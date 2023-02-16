@@ -54,10 +54,17 @@ class Project(db.Entity):
     active = Optional(bool)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    teams = Set('Team')
     persons = Set(Person, reverse='project')
     admin = Optional(Person, reverse='project_of_admin')
     time_of_days = Set('TimeOfDay')
     excel_export_settings = Optional('ExcelExportSettings')
+
+    def before_insert(self):
+        self.excel_export_settings = ExcelExportSettings()
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class Team(db.Entity):
@@ -66,10 +73,18 @@ class Team(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
+    project = Required(Project)
+    locations_of_work = Set('LocationOfWork')
     persons = Set(Person, reverse='team_of_actor')
-    dispatcher = Required(Person, reverse='teams_of_dispatcher')
+    dispatcher = Optional(Person, reverse='teams_of_dispatcher')
     plan_periods = Set('PlanPeriod')
-    excel_export_settings = Required('ExcelExportSettings')
+    excel_export_settings = Optional('ExcelExportSettings')
+
+    def before_insert(self):
+        self.excel_export_settings = self.project.excel_export_settings
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class PlanPeriod(db.Entity):
@@ -85,8 +100,10 @@ class PlanPeriod(db.Entity):
     team = Required(Team)
     actor_plan_periods = Set('ActorPlanPeriod')
     location_plan_periods = Set('LocationPlanPeriod')
-    actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     plans = Set('Plan')
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class ActorPlanPeriod(db.Entity):
@@ -99,6 +116,20 @@ class ActorPlanPeriod(db.Entity):
     avail_days = Set('AvailDay')
     time_of_days = Set('TimeOfDay')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+    actor_partner_location_prefs = Set('ActorPartnerLocationPref')
+
+    @property
+    def team(self):
+        return self.plan_period.team
+
+    def before_insert(self):
+        for c in self.person.combination_locations_possibles:
+            self.combination_locations_possibles.add(c)
+        for c in self.person.actor_partner_location_prefs:
+            self.actor_partner_location_prefs.add(c)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class AvailDay(db.Entity):
@@ -114,6 +145,17 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+
+    @property
+    def team(self):
+        return self.actor_plan_period.team
+
+    def before_insert(self):
+        for c in self.actor_plan_period.combination_locations_possibles:
+            self.combination_locations_possibles.add(c)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class TimeOfDay(db.Entity):
@@ -137,6 +179,9 @@ Für LocationOfWork... gilt das gleiche Schema."""
     events_defaults = Set('Event', reverse='time_of_days')
     project_defaults = Required(Project)
 
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
 
 class LocationOfWork(db.Entity):
     """Um die Konsistenz zurückliegender Pläne zu erhalten, sollten Instanzen von LocationOfWork nicht aus der Datenbank
@@ -149,11 +194,15 @@ class LocationOfWork(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     address = Optional('Address')
+    team = Required(Team)
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class Address(db.Entity):
@@ -168,6 +217,9 @@ class Address(db.Entity):
     persons = Set(Person)
     location_of_work = Optional(LocationOfWork)
 
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
 
 class Event(db.Entity):
     """Kann eine Veranstaltung, eine Arbeitsschicht o.Ä. sein."""
@@ -177,6 +229,7 @@ class Event(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     location_plan_period = Required('LocationPlanPeriod')
+    date = Required(date)
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
     nr_actors = Required(int, size=8, unsigned=True)
@@ -185,6 +238,22 @@ class Event(db.Entity):
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     variation_event_group = Optional('VariationEventGroup')  # Falls vorhanden, wird nur 1 Event aus der Eventgroup zu einem Appointment.
     variation_weight = Optional(int, size=8, unsigned=True)  # ist None, wenn Event nicht in einer Eventgroup
+
+    @property
+    def team(self):
+        return self.location_plan_period.team
+
+    @property
+    def location_of_work(self):
+        return self.location_plan_period.location_of_work
+
+    def before_insert(self):
+        self.nr_actors = self.location_plan_period.nr_actors
+        for tod in self.location_plan_period.time_of_days:
+            self.time_of_days.add(tod)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class LocationPlanPeriod(db.Entity):
@@ -199,6 +268,18 @@ class LocationPlanPeriod(db.Entity):
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     events = Set(Event)
 
+    @property
+    def team(self):
+        return self.plan_period.team
+
+    def before_insert(self):
+        self.nr_actors = self.location_of_work.nr_actors
+        for tod in self.location_of_work.time_of_days:
+            self.time_of_days.add(tod)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
 
 class Appointment(db.Entity):
     id = PrimaryKey(UUID, auto=True)
@@ -208,6 +289,21 @@ class Appointment(db.Entity):
     avail_days = Set(AvailDay)  # je nach Besetzung werden mehrere Inst. von AvailDay zugeordnet.
     event = Required(Event)
     plan = Required('Plan')
+
+    @property
+    def team(self):
+        return self.event.team
+
+    @property
+    def location_of_work(self):
+        return self.event.location_of_work
+
+    @property
+    def weekday(self):
+        return self.event.date.isoweekday()
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class ActorPartnerLocationPref(db.Entity):
@@ -220,8 +316,11 @@ ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatis
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     person = Required(Person, reverse='actor_partner_location_prefs')
     partner = Required(Person, reverse='actor_partner_location_prefs__as_partner')
-    plan_periods = Set(PlanPeriod)
     location_of_work = Required(LocationOfWork)
+    actor_plan_periods = Set(ActorPlanPeriod)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class Flag(db.Entity):
@@ -235,6 +334,9 @@ class Flag(db.Entity):
     persons = Set(Person)
     events = Set(Event)
 
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
 
 class VariationEventGroup(db.Entity):
     """Instanzen von VariationEventGroup ohne Events können nach Beenden der Planperiode gelöscht werden."""
@@ -242,6 +344,9 @@ class VariationEventGroup(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     events = Set(Event)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class CombinationLocationsPossible(db.Entity):
@@ -256,6 +361,9 @@ Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person, ein
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)
 
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
 
 class Plan(db.Entity):
     id = PrimaryKey(UUID, auto=True)
@@ -267,7 +375,23 @@ class Plan(db.Entity):
     appointments = Set(Appointment)
     plan_period = Required(PlanPeriod)
     location_columns = Required(Json, default="{}")  # type -> dict[int, list[int]] ({weekday_nr: [Institution.id]})
-    excel_export_settings = Required('ExcelExportSettings')
+    excel_export_settings = Optional('ExcelExportSettings')
+
+    @property
+    def team(self):
+        return self.plan_period.team
+
+    @property
+    def location_head_columns(self):
+        weekdays = sorted(list(self.appointments.weekday))
+        return {weekday: [ap.location_of_work for ap in self.appointments.select(lambda a: a.weekday == weekday)]
+                for weekday in weekdays}
+
+    def before_insert(self):
+        self.excel_export_settings = self.team.excel_export_settings
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class ExcelExportSettings(db.Entity):

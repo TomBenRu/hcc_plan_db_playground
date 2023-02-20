@@ -1,6 +1,6 @@
 from pony.orm import db_session, commit
 
-from .pony_models import db
+from .models import db
 
 provider = 'sqlite'
 filename = 'database.sqlite'
@@ -11,7 +11,7 @@ db.generate_mapping(create_tables=True)
 
 
 def create_project_and_team(proj_name: str, team_name: str):
-    from .pony_models import Project, Team
+    from .models import Project, Team
     with db_session:
         p = Project(name=proj_name, active=True)
     with db_session:

@@ -17,7 +17,7 @@ class Person(db.Entity):
     phone_nr = Optional(str, 50)
     username = Required(str, 50, unique=True)
     passwort = Required(str)
-    requested_assignments = Required(int, size=16, unsigned=True)
+    requested_assignments = Optional(int, size=16, unsigned=True, default=8)
     created_at = Optional(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pony.orm import db_session
 from .pony_models import Project, Team
 

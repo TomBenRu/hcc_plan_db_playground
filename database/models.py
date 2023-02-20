@@ -47,6 +47,10 @@ class Person(db.Entity):
                     actor_p_p.delete()
         self.last_modified = datetime.utcnow()
 
+    def before_insert(self):
+        for t_o_d in self.project.time_of_days:
+            self.time_of_days.add(t_o_d)
+
 
 class Project(db.Entity):
     id = PrimaryKey(UUID, auto=True)
@@ -127,6 +131,8 @@ class ActorPlanPeriod(db.Entity):
             self.combination_locations_possibles.add(c)
         for c in self.person.actor_partner_location_prefs:
             self.actor_partner_location_prefs.add(c)
+        for t_o_d in self.person.time_of_days:
+            self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -153,6 +159,8 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     def before_insert(self):
         for c in self.actor_plan_period.combination_locations_possibles:
             self.combination_locations_possibles.add(c)
+        for t_o_d in self.actor_plan_period.time_of_days:
+            self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -201,8 +209,16 @@ class LocationOfWork(db.Entity):
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
+    @property
+    def project(self):
+        return self.team.project
+
     def before_update(self):
         self.last_modified = datetime.utcnow()
+
+    def before_insert(self):
+        for t_o_d in self.project.time_of_days:
+            self.time_of_days.add(t_o_d)
 
 
 class Address(db.Entity):
@@ -224,6 +240,7 @@ class Address(db.Entity):
 class Event(db.Entity):
     """Kann eine Veranstaltung, eine Arbeitsschicht o.Ä. sein."""
     id = PrimaryKey(UUID, auto=True)
+    name = Optional(str, 50)
     notes = Optional(str)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
@@ -249,8 +266,8 @@ class Event(db.Entity):
 
     def before_insert(self):
         self.nr_actors = self.location_plan_period.nr_actors
-        for tod in self.location_plan_period.time_of_days:
-            self.time_of_days.add(tod)
+        for t_o_d in self.location_plan_period.time_of_days:
+            self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -274,8 +291,8 @@ class LocationPlanPeriod(db.Entity):
 
     def before_insert(self):
         self.nr_actors = self.location_of_work.nr_actors
-        for tod in self.location_of_work.time_of_days:
-            self.time_of_days.add(tod)
+        for t_o_d in self.location_of_work.time_of_days:
+            self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

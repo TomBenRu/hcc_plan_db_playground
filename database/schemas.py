@@ -165,7 +165,33 @@ class EventShow(Event):
     pass
 
 
+class LocationPlanPeriodCreate(BaseModel):
+    notes: str = ''
+    plan_period: Planperiod
+    location_of_work: LocationOfWork
+    nr_actors: Optional[int]
 
+
+class LocationPlanPeriod(LocationPlanPeriodCreate):
+    id: UUID
+
+
+class LocationPlanPeriodShow(LocationPlanPeriod):
+    pass
+
+
+class AppointmentCreate(BaseModel):
+    notes: str = ''
+    avail_days: Set[AvailDay]
+    event: Event
+
+
+class Appointment(AppointmentCreate):
+    id: UUID
+
+
+class AppointmentShow(Appointment):
+    pass
 
 
 PersonCreate.update_forward_refs(**locals())

@@ -264,6 +264,10 @@ class Event(db.Entity):
     def location_of_work(self):
         return self.location_plan_period.location_of_work
 
+    @property
+    def plan_period(self):
+        return self.location_plan_period.plan_period
+
     def before_insert(self):
         self.nr_actors = self.location_plan_period.nr_actors
         for t_o_d in self.location_plan_period.time_of_days:
@@ -282,7 +286,7 @@ class LocationPlanPeriod(db.Entity):
     time_of_days = Set(TimeOfDay)
     plan_period = Required(PlanPeriod)
     location_of_work = Required(LocationOfWork)
-    nr_actors = Required(int, size=8, default=2, unsigned=True)
+    nr_actors = Optional(int, size=8, default=2, unsigned=True)
     events = Set(Event)
 
     @property

@@ -55,7 +55,7 @@ class Person(db.Entity):
 class Project(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50, unique=True)
-    active = Optional(bool)
+    active = Required(bool, default=False)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     teams = Set('Team')
@@ -417,11 +417,11 @@ class Plan(db.Entity):
 
 class ExcelExportSettings(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    color_head_weekdays_1 = Required(str, 15, default="#FFFFFF")
-    colo_head_weekdays_2 = Required(str, 15, default="#FFFFFF")
-    color_head_locations_1 = Required(str, 15, default="#FFFFFF")
-    color_head_locations_2 = Required(str, 15, default="#FFFFFF")
-    color_day_nrs_1 = Required(str, 15, default="#FFFFFF")
+    color_head_weekdays_1 = Optional(str, 15, default="#FFFFFF")
+    colo_head_weekdays_2 = Optional(str, 15, default="#FFFFFF")
+    color_head_locations_1 = Optional(str, 15, default="#FFFFFF")
+    color_head_locations_2 = Optional(str, 15, default="#FFFFFF")
+    color_day_nrs_1 = Optional(str, 15, default="#FFFFFF")
     color_day_nrs_2 = Optional(str, 15, default="#FFFFFF")
     color_column_kw_1 = Optional(str, 15, default="#FFFFFF")
     color_column_kw_2 = Optional(str, 15, default="#FFFFFF")

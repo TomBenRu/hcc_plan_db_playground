@@ -1,8 +1,8 @@
 from datetime import date, timedelta
-from typing import Set, Optional
+from typing import Set, Optional, List
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 
 class PersonCreate(BaseModel):
@@ -19,9 +19,15 @@ class Person(PersonCreate):
     id: UUID
     address: Optional['Address']
 
+    class Config:
+        orm_mode = True
+
 
 class PersonShow(Person):
     pass
+
+    class Config:
+        orm_mode = True
 
 
 class ProjectCreate(BaseModel):
@@ -31,11 +37,20 @@ class ProjectCreate(BaseModel):
 
 class Project(ProjectCreate):
     id: UUID
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class ProjectShow(Project):
-    pass
+    teams: List['Team']
+
+    @validator('teams', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
 
 
 class TeamCreate(BaseModel):
@@ -46,9 +61,14 @@ class TeamCreate(BaseModel):
 class Team(TeamCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class TeamShow(Team):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class PlanPeriodCreate(BaseModel):
@@ -62,9 +82,14 @@ class PlanPeriodCreate(BaseModel):
 class Planperiod(PlanPeriodCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class PlanPeriodShow(Planperiod):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class ActorPlanPeriodCreate(BaseModel):
@@ -75,13 +100,39 @@ class ActorPlanPeriodCreate(BaseModel):
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):
     id: UUID
-    combination_locations_possibles: Optional[Set['CombinationLocationsPossible']] = None
-    actor_partner_location_prefs: Optional[Set['ActorPartnerLocationPref']] = None
+    combination_locations_possibles: List['CombinationLocationsPossible']
+    actor_partner_location_prefs: List['ActorPartnerLocationPref']
+
+    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    @validator('actor_partner_location_prefs', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
 
 
 class ActorPlanPeriodShow(ActorPlanPeriodCreate):
     id: UUID
-    avail_days: Set['AvailDay']
+    avail_days: List['AvailDay']
+
+    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    @validator('actor_partner_location_prefs', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    @validator('avail_days', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
 
 
 class AvailDayCreate(BaseModel):
@@ -92,12 +143,26 @@ class AvailDayCreate(BaseModel):
 
 class AvailDay(AvailDayCreate):
     id: UUID
-    time_of_days: Set['TimeOfDay']
-    combination_locations_possibles: Set['CombinationLocationsPossible']
+    time_of_days: List['TimeOfDay']
+    combination_locations_possibles: List['CombinationLocationsPossible']
+
+    @validator('time_of_days', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
 
 
 class AvailDayShow(AvailDayCreate):
     id: UUID
+
+    class Config:
+        orm_mode = True
 
 
 class TimeOfDayCreate(BaseModel):
@@ -110,9 +175,14 @@ class TimeOfDayCreate(BaseModel):
 class TimeOfDay(TimeOfDayCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class TimeOfDayShow(TimeOfDayCreate):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class LocationOfWorkCreate(BaseModel):
@@ -125,9 +195,14 @@ class LocationOfWorkCreate(BaseModel):
 class LocationOfWork(LocationOfWorkCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class LocationOfWorkShow(LocationOfWork):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class AddressCreate(BaseModel):
@@ -139,9 +214,14 @@ class AddressCreate(BaseModel):
 class Address(AddressCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class AddressShow(Address):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class EventCreate(BaseModel):
@@ -152,7 +232,7 @@ class EventCreate(BaseModel):
     time_of_day: TimeOfDay
     nr_actors: Optional[int]
     fixed_cast: Optional[str]
-    flags: Set['Flag']
+    flags: List['Flag']
     variation_event_group: Optional['VariationEventGroup']
     variation_weight: Optional[int]
 
@@ -160,9 +240,22 @@ class EventCreate(BaseModel):
 class Event(EventCreate):
     id: UUID
 
+    @validator('flags', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
 
 class EventShow(Event):
-    pass
+
+    @validator('flags', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
 
 
 class LocationPlanPeriodCreate(BaseModel):
@@ -175,24 +268,178 @@ class LocationPlanPeriodCreate(BaseModel):
 class LocationPlanPeriod(LocationPlanPeriodCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class LocationPlanPeriodShow(LocationPlanPeriod):
-    pass
+
+    class Config:
+        orm_mode = True
 
 
 class AppointmentCreate(BaseModel):
     notes: str = ''
-    avail_days: Set[AvailDay]
+    avail_days: List[AvailDay]
     event: Event
 
 
 class Appointment(AppointmentCreate):
     id: UUID
 
+    @validator('avail_days', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
 
 class AppointmentShow(Appointment):
-    pass
+
+    @validator('avail_days', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class ActorPartnerLocationPrefCreate(BaseModel):
+    score: float
+    person: Person
+    partner: Person
+    location_of_work: LocationOfWork
+
+
+class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
+
+    class Config:
+        orm_mode = True
+
+
+class FlagCreate(BaseModel):
+    category: Optional[str]
+    name: str
+
+
+class Flag(FlagCreate):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class FlagShow(Flag):
+
+    class Config:
+        orm_mode = True
+
+
+class VariationEventGroupCreate(BaseModel):
+    events: List[Event]
+
+
+class VariationEventGroup(VariationEventGroupCreate):
+    id: UUID
+
+    @validator('events', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class VariationEventGroupShow(VariationEventGroup):
+
+    @validator('events', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class CombinationLocationsPossibleCreate(BaseModel):
+    locations_of_work: List[LocationOfWork]
+
+
+class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
+    id: UUID
+
+    @validator('locations_of_work', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class CombinationLocationsPossibleShow(CombinationLocationsPossible):
+
+    @validator('locations_of_work', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class PlanCreate(BaseModel):
+    name: str
+    notes: str = ''
+    plan_period: Planperiod
+
+
+class Plan(PlanCreate):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class PlanShow(Plan):
+
+    class Config:
+        orm_mode = True
+
+
+class ExcelExportSettingsCreate(BaseModel):
+    color_head_weekdays_1: str = "#FFFFFF"
+    colo_head_weekdays_2: str = "#FFFFFF"
+    color_head_locations_1: str = "#FFFFFF"
+    color_head_locations_2: str = "#FFFFFF"
+    color_day_nrs_1: str = "#FFFFFF"
+    color_day_nrs_2: str = "#FFFFFF"
+    color_column_kw_1: str = "#FFFFFF"
+    color_column_kw_2: str = "#FFFFFF"
+
+
+class ExcelExportSettings(ExcelExportSettingsCreate):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class ExcelExportSettingsShow(ExcelExportSettings):
+
+    class Config:
+        orm_mode = True
 
 
 PersonCreate.update_forward_refs(**locals())
+ProjectShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
+AvailDayCreate.update_forward_refs(**locals())
+LocationOfWorkCreate.update_forward_refs(**locals())
+EventCreate.update_forward_refs(**locals())
+

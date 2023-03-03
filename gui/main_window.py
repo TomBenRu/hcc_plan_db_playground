@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        self.project_id = '38A4F1E297294CAF922BAA06EDD8F12C'
+        self.project_id = '2A6F13993090409C9EFA340132103C0E'
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
 
     def new_team(self):
         print('...new team...')
-        FrmNewTeam(self)
+        FrmNewTeam(self).exec()
 
     def edit_team_names(self):
         ...

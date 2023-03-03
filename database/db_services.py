@@ -13,7 +13,8 @@ def new_project(name: str):
 
 @db_session
 def new_team(team_name: str, proj_name: str):
-    Team(name=team_name, project=Project.get(lambda p: p.name == proj_name))
+    team_db = Team(name=team_name, project=Project.get(lambda p: p.name == proj_name))
+    return schemas.Team.from_orm(team_db)
 
 
 def create_project_and_team(proj_name: str, team_name: str):
@@ -28,5 +29,7 @@ def get_projects() -> list[schemas.ProjectShow]:
 
 @db_session
 def get_teams_of_project(projet_id: str) -> list[schemas.Team]:
-    teams_in_db = Project.get(lambda p: p.id == UUID(projet_id)).teams
-    return [schemas.Team.from_orm(t) for t in teams_in_db]
+    teams_in_db = Project.get(lambda p: p.id == UUID(projet_id))
+    if not teams_in_db:
+        return []
+    return [schemas.Team.from_orm(t) for t in teams_in_db.teams]

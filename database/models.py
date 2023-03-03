@@ -84,6 +84,8 @@ class Team(db.Entity):
     plan_periods = Set('PlanPeriod')
     excel_export_settings = Optional('ExcelExportSettings')
 
+    composite_key(project, name)
+
     def before_insert(self):
         self.excel_export_settings = self.project.excel_export_settings
 

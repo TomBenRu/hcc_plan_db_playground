@@ -39,7 +39,8 @@ class MainWindow(QMainWindow):
             Action(self, 'resources/toolbar_icons/icons/blue-folder-open-table.png',
                    'Anzeigen der Pläne im Explorer...', 'Pläne der aktuellen Planung werden im Explorer angezeigt.',
                    self.lookup_for_excel_plan),
-            Action(self, 'resources/toolbar_icons/icons/cross-script.png', 'Programm beenden', None, self.exit),
+            Action(self, 'resources/toolbar_icons/icons/cross-script.png', 'Programm beenden', None, self.exit,
+                   'Alt+F4'),
             Action(self, 'resources/toolbar_icons/icons/address-book-blue.png', 'Stammdaten...',
                    'Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.', self.master_data),
             Action(self, 'resources/toolbar_icons/icons/block--plus.png', 'Neues Team...', 'Ein neues Team anlegen.',
@@ -80,12 +81,12 @@ class MainWindow(QMainWindow):
                    self.about_hcc_plan)
         }
         self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
-        self.actions_toolbar: list[QAction | None] = [
+        self.toolbar_actions: list[QAction | None] = [
             self.actions['new_planperiod'], self.actions['open_plan'], self.actions['save_plan'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
-        self.actions_menu = {
+        self.menu_actions = {
             '&Datei': [self.actions['new_planperiod'], None,
                        self.actions['sheets_for_availables'], None, self.actions['exit']],
             '&Klienten': [self.put_clients_to_menu, None, self.actions['master_data'], None, self.actions['new_team'],
@@ -106,12 +107,12 @@ class MainWindow(QMainWindow):
                        self.actions['about_hcc_plan']]
         }
 
-        self.toolbar = MainToolBar('Main Toolbar', self.actions_toolbar, icon_size=16)
+        self.toolbar = MainToolBar('Main Toolbar', self.toolbar_actions, icon_size=16)
 
         self.addToolBar(self.toolbar)
 
         self.main_menu = self.menuBar()
-        self.put_actions_to_menu(self.menuBar(), self.actions_menu)
+        self.put_actions_to_menu(self.main_menu, self.menu_actions)
 
         self.statusBar()
 

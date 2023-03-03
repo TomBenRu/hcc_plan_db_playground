@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QMainWindow, QToolBar, QMenuBar, QMenu, QTabWidget
 
 from database import db_services
 from gui.actions import Action
+from gui.frm_new_team import FrmNewTeam
 from gui.tabbars import TabBar
 from gui.toolbars import MainToolBar
 
@@ -169,7 +170,8 @@ class MainWindow(QMainWindow):
         ...
 
     def new_team(self):
-        ...
+        print('...new team...')
+        FrmNewTeam(self)
 
     def edit_team_names(self):
         ...

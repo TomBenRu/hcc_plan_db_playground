@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
             Action(self, 'resources/toolbar_icons/icons/information-italic.png', 'Über...', 'Info über das Programm',
                    self.about_hcc_plan)
         }
-        self.actions = {a.slot.__name__: a for a in self.actions}
+        self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
         self.actions_toolbar: list[QAction | None] = [
             self.actions['new_planperiod'], self.actions['open_plan'], self.actions['save_plan'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
@@ -110,6 +110,7 @@ class MainWindow(QMainWindow):
 
         self.addToolBar(self.toolbar)
 
+        self.main_menu = self.menuBar()
         self.put_actions_to_menu(self.menuBar(), self.actions_menu)
 
         self.statusBar()
@@ -118,11 +119,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.tabs_right = TabBar(self.central_widget, 'west', 16, 200)
+        self.tabs_right.currentChanged.connect(self.toggled_plan_events)
 
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
         self.tabs_planungsmasken = TabBar(self.widget_planungsmasken, None, 10, 25)
         self.tabs_planungsmasken.setObjectName('masks')
+
         self.tabs_plans = TabBar(self.widget_plans, None, 10, 25)
         self.tabs_plans.setObjectName('plans')
         self.tabs_right.addTab(self.tabs_planungsmasken, 'Planungsmasken')
@@ -225,6 +228,19 @@ class MainWindow(QMainWindow):
     def about_hcc_plan(self):
         ...
 
+    def toggled_plan_events(self):
+        menu: QMenu = self.main_menu.findChild(QMenu, 'Spielplan')
+        if self.tabs_right.currentWidget().objectName() == 'masks':
+            menu.setDisabled(True)
+            self.actions['show_masks'].setChecked(True)
+            for action in menu.actions():
+                action.setDisabled(True)
+        else:
+            menu.setEnabled(True)
+            self.actions['show_plans'].setChecked(True)
+            for action in menu.actions():
+                action.setEnabled(True)
+
     def exit(self):
         sys.exit()
 
@@ -240,6 +256,7 @@ class MainWindow(QMainWindow):
             for value in actions_menu:
                 if type(value) == str:
                     current_menu = menu.addMenu(value)
+                    current_menu.setObjectName(value.replace('&', ''))
                     self.put_actions_to_menu(current_menu, actions_menu[value])
                 elif type(value) == dict:
                     self.put_actions_to_menu(menu, value)

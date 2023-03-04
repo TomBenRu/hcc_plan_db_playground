@@ -1,13 +1,12 @@
 import sys
-from typing import Callable
 from uuid import UUID
 
 from PySide6.QtCore import QRect
-from PySide6.QtGui import QAction, QFont, QActionGroup
-from PySide6.QtWidgets import QMainWindow, QToolBar, QMenuBar, QMenu, QTabWidget, QWidget, QStyle, QPushButton, \
-    QVBoxLayout, QSizePolicy
+from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget
 
 from database import db_services
+from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
 from gui.frm_new_team import FrmNewTeam
 from gui.tabbars import TabBar
@@ -20,7 +19,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        self.project_id = '2A6F13993090409C9EFA340132103C0E'
+        self.project_id = UUID('29597466CF7E458DA271E6BDE1AF3338')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -167,10 +166,10 @@ class MainWindow(QMainWindow):
         ...
 
     def master_data(self):
-        ...
+        dlg = FrmMasterData(self.project_id)
+        dlg.exec()
 
     def new_team(self):
-        print('...new team...')
         FrmNewTeam(self).exec()
 
     def edit_team_names(self):

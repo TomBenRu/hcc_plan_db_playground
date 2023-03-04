@@ -4,6 +4,8 @@ from datetime import timedelta
 from uuid import UUID
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
 
+from database.enums import Gender
+
 db = Database()
 
 
@@ -13,10 +15,11 @@ class Person(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     f_name = Required(str, 50)
     l_name = Required(str, 50)
+    gender = Required(Gender, 20)
     email = Required(str, 50)
     phone_nr = Optional(str, 50)
     username = Required(str, 50, unique=True)
-    passwort = Required(str)
+    password = Required(str)
     requested_assignments = Optional(int, size=16, unsigned=True, default=8)
     created_at = Optional(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
@@ -61,6 +64,7 @@ class Project(db.Entity):
     teams = Set('Team')
     persons = Set(Person, reverse='project')
     admin = Optional(Person, reverse='project_of_admin')
+    addresses = Set('Address')
     time_of_days = Set('TimeOfDay')
     excel_export_settings = Optional('ExcelExportSettings')
 
@@ -231,6 +235,7 @@ class Address(db.Entity):
     city = Required(str, 40)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    project = Required(Project)
     prep_delete = Optional(datetime)
     persons = Set(Person)
     location_of_work = Optional(LocationOfWork)

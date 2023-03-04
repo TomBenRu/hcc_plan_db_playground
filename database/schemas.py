@@ -1,18 +1,24 @@
 from datetime import date, timedelta
-from typing import Set, Optional, List
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, validator
+
+from database.enums import Gender
 
 
 class PersonCreate(BaseModel):
     f_name: str
     l_name: str
     email: EmailStr
+    gender: Gender
     phone_nr: str | None
     username: str
     password: str
-    project: 'Project'
+    address: Optional['AddressCreate']
+
+    class Config:
+        orm_mode = True
 
 
 class Person(PersonCreate):
@@ -44,10 +50,15 @@ class Project(ProjectCreate):
 
 class ProjectShow(Project):
     teams: List['Team']
+    persons: List['Person']
 
     @validator('teams', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def teams_set_to_list(cls, values):
         return [t for t in values]
+
+    @validator('persons', pre=True, allow_reuse=True)
+    def persons_set_to_list(cls, values):
+        return [p for p in values]
 
     class Config:
         orm_mode = True
@@ -213,6 +224,7 @@ class AddressCreate(BaseModel):
 
 class Address(AddressCreate):
     id: UUID
+    project: Project
 
     class Config:
         orm_mode = True
@@ -437,6 +449,7 @@ class ExcelExportSettingsShow(ExcelExportSettings):
 
 
 PersonCreate.update_forward_refs(**locals())
+Person.update_forward_refs(**locals())
 ProjectShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
 AvailDayCreate.update_forward_refs(**locals())

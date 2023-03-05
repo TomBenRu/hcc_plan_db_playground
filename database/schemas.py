@@ -51,6 +51,7 @@ class Project(ProjectCreate):
 class ProjectShow(Project):
     teams: List['Team']
     persons: List['Person']
+    time_of_days: List['TimeOfDay']
 
     @validator('teams', pre=True, allow_reuse=True)
     def teams_set_to_list(cls, values):
@@ -58,6 +59,10 @@ class ProjectShow(Project):
 
     @validator('persons', pre=True, allow_reuse=True)
     def persons_set_to_list(cls, values):
+        return [p for p in values]
+
+    @validator('time_of_days', pre=True, allow_reuse=True)
+    def tim_of_days_set_to_list(cls, values):
         return [p for p in values]
 
     class Config:
@@ -158,11 +163,11 @@ class AvailDay(AvailDayCreate):
     combination_locations_possibles: List['CombinationLocationsPossible']
 
     @validator('time_of_days', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_list(cls, values):
         return [t for t in values]
 
     @validator('combination_locations_possibles', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_list(cls, values):
         return [t for t in values]
 
     class Config:
@@ -213,6 +218,13 @@ class LocationOfWork(LocationOfWorkCreate):
 
 
 class LocationOfWorkShow(LocationOfWork):
+    team: Optional[Team]
+    nr_actors: int
+    time_of_days: List[TimeOfDay]
+
+    @validator('time_of_days', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [t for t in values]
 
     class Config:
         orm_mode = True
@@ -458,5 +470,6 @@ ActorPlanPeriodCreate.update_forward_refs(**locals())
 AvailDayCreate.update_forward_refs(**locals())
 LocationOfWorkCreate.update_forward_refs(**locals())
 LocationOfWork.update_forward_refs(**locals())
+LocationOfWorkShow.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
 

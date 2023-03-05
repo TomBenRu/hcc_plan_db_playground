@@ -1,9 +1,10 @@
+from abc import ABC, abstractmethod
 from uuid import UUID
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
-    QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout
+    QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -247,14 +248,18 @@ class WidgetLocationsOfWork(QWidget):
         self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/store--plus.png'), ' Einrichtung anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_location)
+        self.bt_edit = QPushButton(QIcon('resources/toolbar_icons/icons/store--pencil.png'), ' Einrichtung bearbeiten')
+        self.bt_edit.setFixedWidth(200)
+        self.bt_edit.clicked.connect(self.edit_location)
         self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/store--minus.png'), ' Einrichtung löschen')
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_location)
 
         self.layout_buttons.addWidget(self.bt_new)
+        self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
-    def get_locations(self) -> list[schemas.LocationOfWork]:
+    def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         try:
             locations = db_services.get_locations_of_work_of_project(self.project_id)
             return locations
@@ -269,6 +274,17 @@ class WidgetLocationsOfWork(QWidget):
 
     def create_location(self):
         dlg = FrmLocationCreate(self.project_id)
+        dlg.exec()
+        self.refresh_table()
+
+    def edit_location(self):
+        row = self.table_locations.currentRow()
+        if row == -1:
+            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
+                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            return
+        location_id = UUID(self.table_locations.item(row, 6).text())
+        dlg = FrmLocationModify(self.project_id, location_id)
         dlg.exec()
         self.refresh_table()
 
@@ -293,7 +309,7 @@ class WidgetLocationsOfWork(QWidget):
 
 
 class TableLocationsOfWork(QTableWidget):
-    def __init__(self, locations: list[schemas.LocationOfWork]):
+    def __init__(self, locations: list[schemas.LocationOfWorkShow]):
         super().__init__()
 
         self.locations = locations
@@ -329,14 +345,11 @@ class TableLocationsOfWork(QTableWidget):
         QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
 
 
-class FrmLocationCreate(QDialog):
+class FrmLocationData(QDialog):
     def __init__(self, project_id: UUID):
         super().__init__()
 
-        self.setWindowTitle('Einrichtungsdaten')
-
         self.project_id = project_id
-
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.group_location_data = QGroupBox('Einrichtungsdaten')
@@ -369,7 +382,6 @@ class FrmLocationCreate(QDialog):
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_location)
         self.button_box.rejected.connect(self.reject)
-        self.layout.addWidget(self.button_box)
 
     def save_location(self):
         address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
@@ -381,3 +393,69 @@ class FrmLocationCreate(QDialog):
             self.close()
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+
+class FrmLocationCreate(FrmLocationData):
+    def __init__(self, project_id: UUID):
+        super().__init__(project_id=project_id)
+
+        self.setWindowTitle('Einrichtungsdaten')
+
+        self.layout.addWidget(self.button_box)
+
+
+class FrmLocationModify(FrmLocationData):
+    def __init__(self, project_id: UUID, location_id: UUID):
+        super().__init__(project_id=project_id)
+
+        self.setWindowTitle('Einrichtungsdaten')
+
+        self.location_id = location_id
+
+        self.location_of_work = self.get_location_of_work()
+        self.teams = self.get_teams()
+
+        self.group_specific_data = QGroupBox('Spezielles')
+        self.group_specific_data_layout = QGridLayout()
+        self.group_specific_data.setLayout(self.group_specific_data_layout)
+        self.layout.addWidget(self.group_specific_data)
+
+        self.lb_nr_actors = QLabel('Besetzungsstärke')
+        self.spin_nr_actors = QSpinBox()
+        self.spin_nr_actors.setMinimum(1)
+        self.lb_teams = QLabel('Team')
+        self.cb_teams = QComboBox()
+        self.items_team = ['kein Team'] + [t.name for t in self.teams]
+        self.cb_teams.addItems(self.items_team)
+
+        self.group_specific_data_layout.addWidget(self.lb_nr_actors, 0, 0)
+        self.group_specific_data_layout.addWidget(self.spin_nr_actors, 0, 1)
+        self.group_specific_data_layout.addWidget(self.lb_teams)
+        self.group_specific_data_layout.addWidget(self.cb_teams)
+
+        self.layout.addWidget(self.button_box)
+
+        self.autofill()
+
+    def save_location(self):
+        ...
+
+    def get_location_of_work(self):
+        location = db_services.get_location_of_work_of_project(self.location_id)
+        return location
+
+    def autofill(self):
+        self.le_name.setText(self.location_of_work.name)
+        self.le_street.setText(self.location_of_work.address.street)
+        self.le_postal_code.setText(self.location_of_work.address.postal_code)
+        self.le_city.setText(self.location_of_work.address.city)
+        self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
+        print(f'{self.location_of_work.time_of_days=}')
+        team = self.location_of_work.team
+        self.cb_teams.setItemText(0, team.name) if team else self.cb_teams.setItemText(0, 'kein Team')
+
+    def get_teams(self):
+        teams = db_services.get_teams_of_project(self.project_id)
+        return teams
+
+

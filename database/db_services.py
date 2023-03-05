@@ -19,9 +19,10 @@ def new_team(team_name: str, proj_name: str):
     return schemas.Team.from_orm(team_db)
 
 
-def create_project_and_team(proj_name: str, team_name: str):
-    new_project(proj_name)
-    new_team(team_name, proj_name)
+@db_session
+def get_project(project_id: UUID) -> schemas.ProjectShow:
+    project_db = Project[project_id]
+    return schemas.ProjectShow.from_orm(project_db)
 
 
 @db_session
@@ -62,10 +63,16 @@ def delete_person(person_id: UUID) -> schemas.Person:
 
 
 @db_session
-def get_locations_of_work_of_project(project_id: UUID) -> list[schemas.LocationOfWork]:
+def get_location_of_work_of_project(location_id: UUID) -> schemas.LocationOfWorkShow:
+    location_db = LocationOfWork[location_id]
+    return schemas.LocationOfWorkShow.from_orm(location_db)
+
+
+@db_session
+def get_locations_of_work_of_project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
     project_in_db = Project[project_id]
     locations_in_db = LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
-    return [schemas.LocationOfWork.from_orm(l) for l in locations_in_db]
+    return [schemas.LocationOfWorkShow.from_orm(l) for l in locations_in_db]
 
 
 @db_session
@@ -81,3 +88,9 @@ def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
     location_db = LocationOfWork[location_id]
     location_db.prep_delete = datetime.datetime.utcnow()
     return schemas.LocationOfWork.from_orm(location_db)
+
+
+@db_session
+def get_teams_of_project(project_id: UUID) -> list[schemas.Team]:
+    teams_db = Team.select(lambda t: t.project == Project[project_id])
+    return [schemas.Team.from_orm(t) for t in teams_db]

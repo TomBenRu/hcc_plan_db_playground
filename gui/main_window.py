@@ -2,13 +2,14 @@ import sys
 from uuid import UUID
 
 from PySide6.QtCore import QRect
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services
 from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
 from gui.frm_new_team import FrmNewTeam
+from gui.frm_settings import SettingsProject
 from gui.tabbars import TabBar
 from gui.toolbars import MainToolBar
 
@@ -24,6 +25,8 @@ class MainWindow(QMainWindow):
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
                    'Legt eine neue Planung an.', self.new_planperiod, short_cut='Ctrl+n'),
+            Action(self, 'resources/toolbar_icons/icons/gear--pencil.png', 'Projekt-Einstellungen...',
+                   'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
             Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Pläne)',
                    'Öffnet einen bereits erstellten Plan.', self.open_plan),
             Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Planungsdaten)',
@@ -82,13 +85,13 @@ class MainWindow(QMainWindow):
         }
         self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
-            self.actions['new_planperiod'], self.actions['open_plan'], self.actions['save_plan'], None,
+            self.actions['new_planperiod'], self.actions['master_data'], self.actions['open_plan'], self.actions['save_plan'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
         self.menu_actions = {
-            '&Datei': [self.actions['new_planperiod'], None,
-                       self.actions['sheets_for_availables'], None, self.actions['exit']],
+            '&Datei': [self.actions['new_planperiod'], None, self.actions['sheets_for_availables'], None,
+                       self.actions['exit'], self.actions['settings_project']],
             '&Klienten': [self.put_clients_to_menu, None, self.actions['master_data'], None, self.actions['new_team'],
                           None, self.actions['edit_team_names']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
@@ -144,6 +147,10 @@ class MainWindow(QMainWindow):
 
     def open_plan(self):
         ...
+
+    def settings_project(self):
+        dlg = SettingsProject(self, self.project_id)
+        dlg.exec()
 
     def open_actor_planperiod_location_planperiod(self):
         ...

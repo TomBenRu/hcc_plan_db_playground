@@ -1,15 +1,16 @@
 from uuid import UUID
 
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
-    QGroupBox, QPushButton, QDialogButtonBox
+    QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout
 
 from database import db_services, schemas
 from database.enums import Gender
 from gui.tabbars import TabBar
 
 
-class FrmMasterData(QDialog):
+class FrmMasterData(QWidget):
     def __init__(self, project_id: UUID):
         super().__init__()
         self.setWindowTitle('Stammdaten')
@@ -17,7 +18,6 @@ class FrmMasterData(QDialog):
 
         self.project_id = project_id
 
-        self.persons = self.get_persons()
         self.locations_of_work = self.get_locations()
 
         self.layout = QVBoxLayout()
@@ -26,27 +26,13 @@ class FrmMasterData(QDialog):
         self.tab_bar = TabBar(self, 'north', 12, 20, 200, False, 'tabbar_masterdata')
         self.layout.addWidget(self.tab_bar)
 
-        self.widget_persons = QWidget()
+        self.widget_persons = WidgetPerson(project_id)
+
         self.widget_locations_of_work = QWidget()
 
         self.tab_bar.addTab(self.widget_persons, 'Mitarbeiter')
         self.tab_bar.addTab(self.widget_locations_of_work, 'Einrichtungen')
-
         self.layout.addWidget(self.tab_bar)
-
-        self.widget_persons_layout = QVBoxLayout()
-        self.widget_persons.setLayout(self.widget_persons_layout)
-        self.bt_new_person = QPushButton('Person anlegen...')
-        self.bt_new_person.clicked.connect(self.create_person)
-        self.widget_persons_layout.addWidget(self.bt_new_person)
-
-    def get_persons(self):
-        try:
-            persons = db_services.get_persons_of_project(self.project_id)
-            print(f'{persons=}')
-            return persons
-        except Exception as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
     def get_locations(self):
         try:
@@ -55,9 +41,113 @@ class FrmMasterData(QDialog):
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
+
+class WidgetPerson(QWidget):
+    def __init__(self, project_id: UUID):
+        super().__init__()
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.layout_buttons = QHBoxLayout()
+        self.layout_buttons.setAlignment(Qt.AlignLeft)
+        self.layout.addLayout(self.layout_buttons)
+
+        self.project_id = project_id
+
+        self.persons = self.get_persons()
+
+        self.table_persons = TablePersons(self.persons)
+        self.layout.addWidget(self.table_persons)
+
+        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), 'Person anlegen')
+        self.bt_new.setFixedWidth(200)
+        self.bt_new.clicked.connect(self.create_person)
+        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/user--minus.png'), 'Person löschen')
+        self.bt_delete.setFixedWidth(200)
+        self.bt_delete.clicked.connect(self.delete_person)
+
+        self.layout_buttons.addWidget(self.bt_new)
+        self.layout_buttons.addWidget(self.bt_delete)
+
+    def get_persons(self) -> list[schemas.PersonShow]:
+        try:
+            persons = db_services.get_persons_of_project(self.project_id)
+            return persons
+        except Exception as e:
+            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+    def refresh_table(self):
+        self.persons = self.get_persons()
+        self.table_persons.persons = self.persons
+        self.table_persons.clearContents()
+        self.table_persons.put_data_to_table()
+
     def create_person(self):
         dlg = FrmPersonCreate(self.project_id)
         dlg.exec()
+        self.refresh_table()
+
+    def delete_person(self):
+        row = self.table_persons.currentRow()
+        if row == -1:
+            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
+                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            return
+        text_person = f'{self.table_persons.item(row, 0).text()} {self.table_persons.item(row, 1).text()}'
+        res = QMessageBox.warning(self, 'Löschen',
+                                  f'Wollen Sie die Daten von...\n{text_person}\n...wirklich entgültig löschen?',
+                                  QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        if res == QMessageBox.StandardButton.Yes:
+            person_id = UUID(self.table_persons.item(row, 9).text())
+            try:
+                deleted_person = db_services.delete_person(person_id)
+                QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_person}')
+            except Exception as e:
+                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+        self.refresh_table()
+
+
+class TablePersons(QTableWidget):
+    def __init__(self, persons: list[schemas.PersonShow]):
+        super().__init__()
+
+        self.persons = persons
+
+        self.setSortingEnabled(True)
+        self.setAlternatingRowColors(True)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.cellDoubleClicked.connect(self.text_to_clipboard)
+        self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
+
+        self.headers = ['Vorname', 'Nachname', 'Email', 'Geschlecht', 'Telefon', 'Straße', 'PLZ', 'Ort', 'Team', 'id']
+        self.setColumnCount(len(self.headers))
+        self.setColumnWidth(6, 50)
+        self.setHorizontalHeaderLabels(self.headers)
+        self.hideColumn(9)
+        self.gender_visible_strings = {'m': 'männlich', 'f': 'weiblich', 'd': 'divers'}
+
+        self.put_data_to_table()
+
+    def put_data_to_table(self):
+        self.setRowCount(len(self.persons))
+        for row, p in enumerate(self.persons):
+            self.setItem(row, 0, QTableWidgetItem(p.f_name))
+            self.setItem(row, 1, QTableWidgetItem(p.l_name))
+            self.setItem(row, 2, QTableWidgetItem(p.email))
+            self.setItem(row, 3, QTableWidgetItem(self.gender_visible_strings[p.gender.value]))
+            self.setItem(row, 4, QTableWidgetItem(p.phone_nr))
+            self.setItem(row, 5, QTableWidgetItem(p.address.street))
+            self.setItem(row, 6, QTableWidgetItem(p.address.postal_code))
+            self.setItem(row, 7, QTableWidgetItem(p.address.city))
+            self.setItem(row, 8, QTableWidgetItem(p.team_of_actor.name if p.team_of_actor else ''))
+            self.setItem(row, 9, QTableWidgetItem(str(p.id)))
+
+    def text_to_clipboard(self, r, c):
+        text = self.item(r, c).text()
+        QGuiApplication.clipboard().setText(text)
+        QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
+
 
 
 class FrmPersonCreate(QDialog):

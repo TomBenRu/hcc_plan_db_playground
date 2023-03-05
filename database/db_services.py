@@ -1,3 +1,4 @@
+import datetime
 from uuid import UUID
 
 from pony.orm import db_session
@@ -37,10 +38,10 @@ def get_teams_of_project(projet_id: UUID) -> list[schemas.Team]:
 
 
 @db_session
-def get_persons_of_project(project_id: UUID) -> list[schemas.Person]:
+def get_persons_of_project(project_id: UUID) -> list[schemas.PersonShow]:
     project_in_db = Project[project_id]
-    project = schemas.ProjectShow.from_orm(project_in_db)
-    return project.persons
+    persons_in_db = Person.select(lambda p: p.project == project_in_db and not p.prep_delete)
+    return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
 
 
 @db_session
@@ -50,6 +51,13 @@ def create_person(person: schemas.PersonCreate, project_id: UUID) -> schemas.Per
     hashed_password = hash_psw(person.password)
     person.password = hashed_password
     person_db = Person(**person.dict(exclude={'address'}), address=address_in_db, project=project_in_db)
+    return schemas.Person.from_orm(person_db)
+
+
+@db_session
+def delete_person(person_id: UUID) -> schemas.Person:
+    person_db = Person[person_id]
+    person_db.prep_delete = datetime.datetime.utcnow()
     return schemas.Person.from_orm(person_db)
 
 

@@ -30,7 +30,7 @@ class Person(PersonCreate):
 
 
 class PersonShow(Person):
-    pass
+    team_of_actor: Optional['Team']
 
     class Config:
         orm_mode = True
@@ -450,6 +450,7 @@ class ExcelExportSettingsShow(ExcelExportSettings):
 
 PersonCreate.update_forward_refs(**locals())
 Person.update_forward_refs(**locals())
+PersonShow.update_forward_refs(**locals())
 ProjectShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
 AvailDayCreate.update_forward_refs(**locals())

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QRect
 from PySide6.QtGui import QAction, QActionGroup
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services
 from gui.frm_masterdata import FrmMasterData
@@ -137,6 +137,8 @@ class MainWindow(QMainWindow):
         self.tabs_plans.addTab(QWidget(), 'Planung 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
         self.tabs_plans.addTab(QWidget(), 'Planung 2')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
 
+        self.frm_master_data = None
+
     def new_planperiod(self):
         print('neue Planperiode...')
 
@@ -166,8 +168,11 @@ class MainWindow(QMainWindow):
         ...
 
     def master_data(self):
-        dlg = FrmMasterData(self.project_id)
-        dlg.exec()
+        if self.frm_master_data is None:
+            self.frm_master_data = FrmMasterData(project_id=self.project_id)
+            self.frm_master_data.show()
+        self.frm_master_data.activateWindow()
+        self.frm_master_data.showNormal()
 
     def new_team(self):
         FrmNewTeam(self).exec()

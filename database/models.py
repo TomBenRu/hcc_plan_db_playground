@@ -65,6 +65,7 @@ class Project(db.Entity):
     persons = Set(Person, reverse='project')
     admin = Optional(Person, reverse='project_of_admin')
     addresses = Set('Address')
+    locations_of_work = Set('LocationOfWork')
     time_of_days = Set('TimeOfDay')
     excel_export_settings = Optional('ExcelExportSettings')
 
@@ -208,16 +209,13 @@ class LocationOfWork(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     address = Optional('Address')
-    team = Required(Team)
+    project = Required(Project)
+    team = Optional(Team)
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
-
-    @property
-    def project(self):
-        return self.team.project
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

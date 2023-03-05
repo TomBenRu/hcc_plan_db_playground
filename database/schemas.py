@@ -198,13 +198,15 @@ class TimeOfDayShow(TimeOfDayCreate):
 
 class LocationOfWorkCreate(BaseModel):
     name: str
-    address: Optional['Address']
-    team: Team
+    address: Optional['AddressCreate']
+    team: Optional[Team] = None
     nr_actors: int = 2
 
 
 class LocationOfWork(LocationOfWorkCreate):
     id: UUID
+    address: Optional['Address']
+    project: Project
 
     class Config:
         orm_mode = True
@@ -455,5 +457,6 @@ ProjectShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
 AvailDayCreate.update_forward_refs(**locals())
 LocationOfWorkCreate.update_forward_refs(**locals())
+LocationOfWork.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
 

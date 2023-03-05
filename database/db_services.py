@@ -64,11 +64,20 @@ def delete_person(person_id: UUID) -> schemas.Person:
 @db_session
 def get_locations_of_work_of_project(project_id: UUID) -> list[schemas.LocationOfWork]:
     project_in_db = Project[project_id]
-    locations_in_db = LocationOfWork.select(lambda l: l.project == project_in_db)
+    locations_in_db = LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
     return [schemas.LocationOfWork.from_orm(l) for l in locations_in_db]
 
 
 @db_session
-def create_location_of_work(location: schemas.LocationOfWorkCreate, team_id: UUID) -> schemas.LocationOfWork:
-    location_db = LocationOfWork(**location.dict())
+def create_location_of_work(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
+    project_db = Project[project_id]
+    address_db = Address(**location.address.dict(), project=project_db)
+    location_db = LocationOfWork(name=location.name, project=project_db, address=address_db)
+    return schemas.LocationOfWork.from_orm(location_db)
+
+
+@db_session
+def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
+    location_db = LocationOfWork[location_id]
+    location_db.prep_delete = datetime.datetime.utcnow()
     return schemas.LocationOfWork.from_orm(location_db)

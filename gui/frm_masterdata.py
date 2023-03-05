@@ -18,8 +18,6 @@ class FrmMasterData(QWidget):
 
         self.project_id = project_id
 
-        self.locations_of_work = self.get_locations()
-
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -28,18 +26,11 @@ class FrmMasterData(QWidget):
 
         self.widget_persons = WidgetPerson(project_id)
 
-        self.widget_locations_of_work = QWidget()
+        self.widget_locations_of_work = WidgetLocationsOfWork(project_id)
 
         self.tab_bar.addTab(self.widget_persons, 'Mitarbeiter')
         self.tab_bar.addTab(self.widget_locations_of_work, 'Einrichtungen')
         self.layout.addWidget(self.tab_bar)
-
-    def get_locations(self):
-        try:
-            locations = db_services.get_locations_of_work_of_project(self.project_id)
-            return locations
-        except Exception as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
 
 class WidgetPerson(QWidget):
@@ -60,10 +51,10 @@ class WidgetPerson(QWidget):
         self.table_persons = TablePersons(self.persons)
         self.layout.addWidget(self.table_persons)
 
-        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), 'Person anlegen')
+        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), ' Person anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_person)
-        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/user--minus.png'), 'Person löschen')
+        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/user--minus.png'), ' Person löschen')
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_person)
 
@@ -147,7 +138,6 @@ class TablePersons(QTableWidget):
         text = self.item(r, c).text()
         QGuiApplication.clipboard().setText(text)
         QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
-
 
 
 class FrmPersonCreate(QDialog):
@@ -236,3 +226,158 @@ class FrmPersonCreate(QDialog):
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
 
+class WidgetLocationsOfWork(QWidget):
+    def __init__(self, project_id: UUID):
+        super().__init__()
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.layout_buttons = QHBoxLayout()
+        self.layout_buttons.setAlignment(Qt.AlignLeft)
+        self.layout.addLayout(self.layout_buttons)
+
+        self.project_id = project_id
+
+        self.locations = self.get_locations()
+
+        self.table_locations = TableLocationsOfWork(self.locations)
+        self.layout.addWidget(self.table_locations)
+
+        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/store--plus.png'), ' Einrichtung anlegen')
+        self.bt_new.setFixedWidth(200)
+        self.bt_new.clicked.connect(self.create_location)
+        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/store--minus.png'), ' Einrichtung löschen')
+        self.bt_delete.setFixedWidth(200)
+        self.bt_delete.clicked.connect(self.delete_location)
+
+        self.layout_buttons.addWidget(self.bt_new)
+        self.layout_buttons.addWidget(self.bt_delete)
+
+    def get_locations(self) -> list[schemas.LocationOfWork]:
+        try:
+            locations = db_services.get_locations_of_work_of_project(self.project_id)
+            return locations
+        except Exception as e:
+            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+    def refresh_table(self):
+        self.locations = self.get_locations()
+        self.table_locations.locations = self.locations
+        self.table_locations.clearContents()
+        self.table_locations.put_data_to_table()
+
+    def create_location(self):
+        dlg = FrmLocationCreate(self.project_id)
+        dlg.exec()
+        self.refresh_table()
+
+    def delete_location(self):
+        row = self.table_locations.currentRow()
+        if row == -1:
+            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
+                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            return
+        text_location = f'{self.table_locations.item(row, 0).text()} {self.table_locations.item(row, 1).text()}'
+        res = QMessageBox.warning(self, 'Löschen',
+                                  f'Wollen Sie die Daten von...\n{text_location}\n...wirklich entgültig löschen?',
+                                  QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        if res == QMessageBox.StandardButton.Yes:
+            location_id = UUID(self.table_locations.item(row, 6).text())
+            try:
+                deleted_location = db_services.delete_location_of_work(location_id)
+                QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
+            except Exception as e:
+                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+        self.refresh_table()
+
+
+class TableLocationsOfWork(QTableWidget):
+    def __init__(self, locations: list[schemas.LocationOfWork]):
+        super().__init__()
+
+        self.locations = locations
+
+        self.setSortingEnabled(True)
+        self.setAlternatingRowColors(True)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.cellDoubleClicked.connect(self.text_to_clipboard)
+        self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
+
+        self.headers = ['Name', 'Team', 'Besetung', 'Straße', 'PLZ', 'Ort', 'id']
+        self.setColumnCount(len(self.headers))
+        self.setColumnWidth(4, 50)
+        self.setHorizontalHeaderLabels(self.headers)
+        self.hideColumn(6)
+
+        self.put_data_to_table()
+
+    def put_data_to_table(self):
+        self.setRowCount(len(self.locations))
+        for row, loc in enumerate(self.locations):
+            self.setItem(row, 0, QTableWidgetItem(loc.name))
+            self.setItem(row, 1, QTableWidgetItem(loc.team.name if loc.team else ''))
+            self.setItem(row, 2, QTableWidgetItem(str(loc.nr_actors)))
+            self.setItem(row, 3, QTableWidgetItem(loc.address.street if loc.address else ''))
+            self.setItem(row, 4, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
+            self.setItem(row, 5, QTableWidgetItem(loc.address.city if loc.address else ''))
+            self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
+
+    def text_to_clipboard(self, r, c):
+        text = self.item(r, c).text()
+        QGuiApplication.clipboard().setText(text)
+        QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
+
+
+class FrmLocationCreate(QDialog):
+    def __init__(self, project_id: UUID):
+        super().__init__()
+
+        self.setWindowTitle('Einrichtungsdaten')
+
+        self.project_id = project_id
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        self.group_location_data = QGroupBox('Einrichtungsdaten')
+        self.group_location_data_layout = QGridLayout()
+        self.group_location_data.setLayout(self.group_location_data_layout)
+        self.layout.addWidget(self.group_location_data)
+        self.group_address_data = QGroupBox('Adressdaten')
+        self.group_address_data_layout = QGridLayout()
+        self.group_address_data.setLayout(self.group_address_data_layout)
+        self.layout.addWidget(self.group_address_data)
+
+        self.lb_name = QLabel('Name')
+        self.le_name = QLineEdit()
+        self.lb_street = QLabel('Straße')
+        self.le_street = QLineEdit()
+        self.lb_postal_code = QLabel('Postleitzahl')
+        self.le_postal_code = QLineEdit()
+        self.lb_city = QLabel('Ort')
+        self.le_city = QLineEdit()
+
+        self.group_location_data_layout.addWidget(self.lb_name, 0, 0)
+        self.group_location_data_layout.addWidget(self.le_name, 0, 1)
+        self.group_address_data_layout.addWidget(self.lb_street, 0, 0)
+        self.group_address_data_layout.addWidget(self.le_street, 0, 1)
+        self.group_address_data_layout.addWidget(self.lb_postal_code, 1, 0)
+        self.group_address_data_layout.addWidget(self.le_postal_code, 1, 1)
+        self.group_address_data_layout.addWidget(self.lb_city, 2, 0)
+        self.group_address_data_layout.addWidget(self.le_city, 2, 1)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.save_location)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+    def save_location(self):
+        address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
+                                        city=self.le_city.text())
+        location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
+        try:
+            created = db_services.create_location_of_work(location, self.project_id)
+            QMessageBox.information(self, 'Einrichtung angelegt', f'{created}')
+            self.close()
+        except Exception as e:
+            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')

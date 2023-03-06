@@ -49,9 +49,10 @@ class Project(ProjectCreate):
 
 
 class ProjectShow(Project):
-    teams: List['Team']
+    teams: List['TeamShow']
     persons: List['Person']
-    time_of_days: List['TimeOfDay']
+    time_of_days_default: List['TimeOfDay']
+    excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('teams', pre=True, allow_reuse=True)
     def teams_set_to_list(cls, values):
@@ -61,7 +62,7 @@ class ProjectShow(Project):
     def persons_set_to_list(cls, values):
         return [p for p in values]
 
-    @validator('time_of_days', pre=True, allow_reuse=True)
+    @validator('time_of_days_default', pre=True, allow_reuse=True)
     def tim_of_days_set_to_list(cls, values):
         return [p for p in values]
 
@@ -71,17 +72,20 @@ class ProjectShow(Project):
 
 class TeamCreate(BaseModel):
     name: str
+    dispatcher: Optional[Person]
     project: Project
 
 
 class Team(TeamCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True
 
 
 class TeamShow(Team):
+    excel_export_settings: Optional['ExcelExportSettings']
 
     class Config:
         orm_mode = True
@@ -440,7 +444,7 @@ class PlanShow(Plan):
 
 class ExcelExportSettingsCreate(BaseModel):
     color_head_weekdays_1: str = "#FFFFFF"
-    colo_head_weekdays_2: str = "#FFFFFF"
+    color_head_weekdays_2: str = "#FFFFFF"
     color_head_locations_1: str = "#FFFFFF"
     color_head_locations_2: str = "#FFFFFF"
     color_day_nrs_1: str = "#FFFFFF"
@@ -471,5 +475,6 @@ AvailDayCreate.update_forward_refs(**locals())
 LocationOfWorkCreate.update_forward_refs(**locals())
 LocationOfWork.update_forward_refs(**locals())
 LocationOfWorkShow.update_forward_refs(**locals())
+TeamShow.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
 

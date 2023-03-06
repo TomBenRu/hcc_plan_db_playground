@@ -25,8 +25,26 @@ def update_project(project: schemas.ProjectShow) -> schemas.ProjectShow:
 
 
 @db_session
-def new_team(team_name: str, proj_name: str):
-    team_db = Team(name=team_name, project=Project.get(lambda p: p.name == proj_name))
+def new_team(team_name: str, project_id: UUID, dispatcher_id: UUID = None):
+    project_db = Project.get_for_update(lambda p: p.id == project_id)
+    dispatcher_db = Person.get_for_update(lambda p: p.id == dispatcher_id) if dispatcher_id else None
+    team_db = Team(name=team_name, project=project_db, dispatcher=dispatcher_db)
+    return schemas.TeamShow.from_orm(team_db)
+
+
+@db_session
+def update_team(team: schemas.Team) -> schemas.TeamShow:
+    team_db = Team.get_for_update(lambda t: t.id == team.id)
+    dispatcher_db = Person.get_for_update(lambda p: p.id == team.dispatcher.id) if team.dispatcher else None
+    team_db.name = team.name
+    team_db.dispatcher = dispatcher_db
+    return schemas.TeamShow.from_orm(team_db)
+
+
+@db_session
+def delete_team(team_id: UUID) -> schemas.Team:
+    team_db = Team.get_for_update(lambda t: t.id == team_id)
+    team_db.prep_delete = datetime.datetime.utcnow()
     return schemas.Team.from_orm(team_db)
 
 

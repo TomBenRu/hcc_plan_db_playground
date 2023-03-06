@@ -425,7 +425,7 @@ class Plan(db.Entity):
 class ExcelExportSettings(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     color_head_weekdays_1 = Optional(str, 15, default="#FFFFFF")
-    colo_head_weekdays_2 = Optional(str, 15, default="#FFFFFF")
+    color_head_weekdays_2 = Optional(str, 15, default="#FFFFFF")
     color_head_locations_1 = Optional(str, 15, default="#FFFFFF")
     color_head_locations_2 = Optional(str, 15, default="#FFFFFF")
     color_day_nrs_1 = Optional(str, 15, default="#FFFFFF")

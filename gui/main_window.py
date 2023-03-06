@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        self.project_id = UUID('3184B40BBB3E437F9BC5B6820536EE35')
+        self.project_id = UUID('49BF904758234DC183864FDED26A2690')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -168,7 +168,11 @@ class MainWindow(QMainWindow):
         ...
 
     def put_clients_to_menu(self) -> tuple[Action]:
-        teams = db_services.get_teams_of_project(self.project_id)
+        try:
+            teams = db_services.get_teams_of_project(self.project_id)
+        except Exception as e:
+            QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
+            return ()
         return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.', self.goto_team) for team in teams)
 
     def goto_team(self, team_id: UUID):

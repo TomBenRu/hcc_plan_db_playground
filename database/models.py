@@ -1,6 +1,5 @@
 from datetime import date
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, time
 from uuid import UUID
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
 
@@ -66,7 +65,8 @@ class Project(db.Entity):
     admin = Optional(Person, reverse='project_of_admin')
     addresses = Set('Address')
     locations_of_work = Set('LocationOfWork')
-    time_of_days = Set('TimeOfDay')
+    time_of_days = Set('TimeOfDay', reverse='project')
+    time_of_days_default = Set('TimeOfDay', reverse='project_defaults')
     excel_export_settings = Optional('ExcelExportSettings')
 
     def before_insert(self):
@@ -180,19 +180,21 @@ Wird ein TimeOfDay einer Instanz verändert, wird eine Neue Instanz von AvailDay
 Für LocationOfWork... gilt das gleiche Schema."""
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50)
-    start = Required(timedelta)
-    end = Required(timedelta)
+    start = Required(time)
+    end = Required(time)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    prep_delete = Optional(datetime)
+    project = Required(Project, reverse='time_of_days')
     avail_days = Set(AvailDay, reverse='time_of_day')
     events = Set('Event', reverse='time_of_day')
+    project_defaults = Optional(Project, reverse='time_of_days_default')
     persons_defaults = Set(Person)
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
     location_plan_periods_defaults = Set('LocationPlanPeriod')
     avail_days_defaults = Set(AvailDay, reverse='time_of_days')
     locations_of_work_defaults = Set('LocationOfWork')
     events_defaults = Set('Event', reverse='time_of_days')
-    project_defaults = Required(Project)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

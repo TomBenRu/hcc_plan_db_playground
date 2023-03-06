@@ -1,16 +1,27 @@
 import datetime
 from uuid import UUID
 
-from pony.orm import db_session
+from pony.orm import db_session, commit
 
 from . import schemas
 from .authentication import hash_psw
-from .models import Project, Team, Person, LocationOfWork, Address
+from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay
 
 
-@db_session()
+@db_session
 def new_project(name: str):
     Project(name=name)
+
+
+@db_session
+def update_project(project: schemas.ProjectShow) -> schemas.ProjectShow:
+    project_db = Project[project.id]
+    for key, val in project.dict(include={'name', 'active'}).items():
+        project_db.__setattr__(key, val)
+    project_db.time_of_days_default.clear()
+    for tod in project.time_of_days:
+        project_db.time_of_days_default.add(TimeOfDay[tod.id])
+    return schemas.ProjectShow.from_orm(project_db)
 
 
 @db_session
@@ -94,3 +105,18 @@ def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
 def get_teams_of_project(project_id: UUID) -> list[schemas.Team]:
     teams_db = Team.select(lambda t: t.project == Project[project_id])
     return [schemas.Team.from_orm(t) for t in teams_db]
+
+
+@db_session
+def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
+    project_db = Project[project_id]
+    time_of_day_db = TimeOfDay(**time_of_day.dict(), project=project_db)
+    project_db.time_of_days.add(time_of_day_db)
+    return schemas.TimeOfDay.from_orm(time_of_day_db)
+
+
+@db_session
+def delete_time_of_day(time_of_day_id: UUID) -> schemas.TimeOfDay:
+    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
+    time_of_day_db.prep_delete = datetime.datetime.utcnow()
+    return schemas.TimeOfDay.from_orm(time_of_day_db)

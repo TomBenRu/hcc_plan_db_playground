@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, time, datetime
 from typing import Optional, List
 from uuid import UUID
 
@@ -183,13 +183,13 @@ class AvailDayShow(AvailDayCreate):
 
 class TimeOfDayCreate(BaseModel):
     name: str
-    start: timedelta
-    end: timedelta
-    project: Project
+    start: time
+    end: time
 
 
 class TimeOfDay(TimeOfDayCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True

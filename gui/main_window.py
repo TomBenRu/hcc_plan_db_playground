@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from database import db_services
 from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
-from gui.frm_new_team import FrmNewTeam
 from gui.frm_settings import SettingsProject
 from gui.tabbars import TabBar
 from gui.toolbars import MainToolBar
@@ -46,10 +45,6 @@ class MainWindow(QMainWindow):
                    'Alt+F4'),
             Action(self, 'resources/toolbar_icons/icons/address-book-blue.png', 'Stammdaten...',
                    'Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.', self.master_data),
-            Action(self, 'resources/toolbar_icons/icons/block--plus.png', 'Neues Team...', 'Ein neues Team anlegen.',
-                   self.new_team),
-            Action(self, 'resources/toolbar_icons/icons/block--pencil.png', 'Teamname ändern',
-                   'Ändern des Namens eines Teams.', self.edit_team_names),
             Action(self, None, 'Pläne anzeigen', None, self.show_plans),
             Action(self, None, 'Masken anzeigen', None, self.show_masks),
             Action(self, 'resources/toolbar_icons/icons/table-select-cells.png', 'Übersicht Verfügbarkeiten',
@@ -92,8 +87,7 @@ class MainWindow(QMainWindow):
         self.menu_actions = {
             '&Datei': [self.actions['new_planperiod'], None, self.actions['sheets_for_availables'], None,
                        self.actions['exit'], self.actions['settings_project']],
-            '&Klienten': [self.put_clients_to_menu, None, self.actions['master_data'], None, self.actions['new_team'],
-                          None, self.actions['edit_team_names']],
+            '&Klienten': [self.put_clients_to_menu, None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
@@ -184,12 +178,6 @@ class MainWindow(QMainWindow):
             self.frm_master_data.show()
         self.frm_master_data.activateWindow()
         self.frm_master_data.showNormal()
-
-    def new_team(self):
-        FrmNewTeam(self).exec()
-
-    def edit_team_names(self):
-        ...
 
     def show_plans(self):
         for i in range(self.tabs_right.count()):

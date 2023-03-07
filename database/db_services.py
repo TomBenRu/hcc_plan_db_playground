@@ -129,7 +129,16 @@ def get_teams_of_project(project_id: UUID) -> list[schemas.Team]:
 def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
     project_db = Project[project_id]
     time_of_day_db = TimeOfDay(**time_of_day.dict(), project=project_db)
-    project_db.time_of_days.add(time_of_day_db)
+    project_db.time_of_days_default.add(time_of_day_db)
+    return schemas.TimeOfDay.from_orm(time_of_day_db)
+
+
+@db_session
+def update_time_of_day(time_of_day: schemas.TimeOfDay):
+    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day.id)
+    time_of_day_db.name = time_of_day.name
+    time_of_day_db.start = time_of_day.start
+    time_of_day_db.end = time_of_day.end
     return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 

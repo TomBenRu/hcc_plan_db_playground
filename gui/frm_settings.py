@@ -4,9 +4,11 @@ from uuid import UUID
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
                                QGroupBox, QPushButton, QTimeEdit, QMessageBox)
+from pony.orm import TransactionIntegrityError
 
 from database import db_services, schemas
 from gui.frm_team import FrmTeam
+from gui.frm_time_of_day import FrmTimeOfDay
 
 
 class SettingsProject(QDialog):
@@ -40,10 +42,9 @@ class SettingsProject(QDialog):
         self.color_widgets = [QWidget() for _ in self.project.excel_export_settings.dict(exclude={'id'})]
 
         self.bt_name_save = QPushButton('Speichern')
-        self.bt_teams = QPushButton('Neu/Ändern/Löschen')
-        self.bt_teams.clicked.connect(self.edit_team)
+        self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
         self.bt_admin = QPushButton('Speichern')
-        self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen')
+        self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_excel_export_settings = QPushButton('Bearbeiten')
 
         self.layout_group_project_data.addWidget(self.lb_name, 0, 0)
@@ -72,11 +73,7 @@ class SettingsProject(QDialog):
         self.cb_admin.clear()
         for p in self.project.persons:
             self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-nude.png'), f'{p.f_name} {p.l_name}', p)
-        self.cb_time_of_days.clear()
-        for t in sorted([tod for tod in self.project.time_of_days_default if not tod.prep_delete], key=lambda t: t.start):
-            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
-                                         f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
-                                         f'{t.end.hour:02}:{t.end.minute:02}', t)
+        self.fill_time_of_days()
         if self.project.excel_export_settings:
             for i, color in enumerate(self.project.excel_export_settings.dict(exclude={'id'}).values()):
                 self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
@@ -86,7 +83,43 @@ class SettingsProject(QDialog):
         for t in sorted([t for t in self.project.teams if not t.prep_delete], key=lambda x: x.name):
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
 
+    def fill_time_of_days(self):
+        self.cb_time_of_days.clear()
+        for t in sorted([tod for tod in self.project.time_of_days_default if not tod.prep_delete],
+                        key=lambda t: t.start):
+            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
+                                         f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
+                                         f'{t.end.hour:02}:{t.end.minute:02}', t)
+
     def edit_team(self):
-        FrmTeam(self, self.project, self.cb_teams.currentData()).exec()
-        self.project = db_services.get_project(self.project_id)
-        self.fill_teams()
+        if FrmTeam(self, self.project, self.cb_teams.currentData()).exec():
+            self.project = db_services.get_project(self.project_id)
+            self.fill_teams()
+
+    def edit_time_of_day(self):
+        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData())
+        if dlg.exec():  # Wenn der Dialog mit OK bestätigt wird...
+            if dlg.to_delete_status:
+                deleted_time_of_day = db_services.delete_time_of_day(dlg.curr_time_of_day.id)
+                QMessageBox.information(self, 'Löschen', f'Die Tageszeit "{deleted_time_of_day.name}" wurde gelöscht.')
+                return
+            if dlg.chk_new_mode.isChecked():
+                if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days_default if not t.prep_delete]:
+                    QMessageBox.critical(dlg, 'Fehler',
+                                         f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
+                else:
+                    t_o_d_created = db_services.create_time_of_day(dlg.new_time_of_day, self.project_id)
+                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde erstellt:\n{t_o_d_created}')
+                    self.project = db_services.get_project(self.project_id)
+                    self.fill_time_of_days()
+
+            else:
+                if dlg.curr_time_of_day.name in [t.name for t in self.project.time_of_days_default
+                                                 if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
+                    QMessageBox.critical(dlg, 'Fehler',
+                                         f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
+                else:
+                    t_o_d_updated = db_services.update_time_of_day(dlg.curr_time_of_day)
+                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
+                    self.project = db_services.get_project(self.project_id)
+                    self.fill_time_of_days()

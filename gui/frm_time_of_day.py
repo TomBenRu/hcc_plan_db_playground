@@ -1,10 +1,22 @@
-from PySide6.QtWidgets import QDialog, QWidget
+import datetime
+
+from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
+    QDialogButtonBox, QCheckBox
+
+from database import schemas, db_services
 
 
-class TimeOfDay(QDialog):
-    def __init__(self, parent: QWidget):
+class FrmTimeOfDay(QDialog):
+    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDay):
         super().__init__(parent)
         self.setWindowTitle('Tageszeit')
+
+        self.curr_time_of_day = time_of_day
+        self.new_time_of_day: schemas.TimeOfDayCreate | None = None
+        self.to_delete_status = False
+        self.new_mode = False
+
+        self.layout = QGridLayout(self)
 
         self.lb_name = QLabel('Name')
         self.le_name = QLineEdit()
@@ -12,44 +24,61 @@ class TimeOfDay(QDialog):
         self.te_start = QTimeEdit()
         self.lb_end = QLabel('Zeitpunkt Ende')
         self.te_end = QTimeEdit()
-        self.bt_save = QPushButton('Tageszeit speichern')
-        self.bt_save.clicked.connect(self.save_time_of_day)
+        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
+        self.chk_new_mode.toggled.connect(self.change_new_mode)
 
-        self.layout_group_time_of_day_data.addWidget(self.lb_tod_name, 0, 0)
-        self.layout_group_time_of_day_data.addWidget(self.le_tod_name, 0, 1)
-        self.layout_group_time_of_day_data.addWidget(self.lb_tod_start, 1, 0)
-        self.layout_group_time_of_day_data.addWidget(self.te_tod_start, 1, 1)
-        self.layout_group_time_of_day_data.addWidget(self.lb_tod_end, 2, 0)
-        self.layout_group_time_of_day_data.addWidget(self.te_tod_end, 2, 1)
-        self.layout_group_time_of_day_data.addWidget(self.bt_tod_save, 3, 1)
+        self.layout.addWidget(self.lb_name, 0, 0)
+        self.layout.addWidget(self.le_name, 0, 1)
+        self.layout.addWidget(self.lb_start, 1, 0)
+        self.layout.addWidget(self.te_start, 1, 1)
+        self.layout.addWidget(self.lb_end, 2, 0)
+        self.layout.addWidget(self.te_end, 2, 1)
+        self.layout.addWidget(self.chk_new_mode, self.layout.rowCount(), 0, 1, 2)
 
-    def set_time_of_day_values(self):
-        tod_name = self.cb_time_of_days.currentText()
-        for tod in self.project.time_of_days:
-            if tod.name == tod_name and not tod.prep_delete:
-                self.le_tod_name.setText(tod.name)
-                self.te_tod_start.setTime(tod.start)
-                self.te_tod_end.setTime(tod.end)
-                break
+        self.bt_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.bt_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.DestructiveRole)
+        self.bt_box.accepted.connect(self.save_time_of_day)
+        self.bt_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.bt_box, 4, 0, 1, 2)
+
+        self.autofill()
+
+    def autofill(self):
+        if not self.curr_time_of_day or self.new_mode:
+            self.new_mode = True
+            self.chk_new_mode.setChecked(True)
+            if not self.new_time_of_day:
+                self.chk_new_mode.setDisabled(True)
+            return
+        self.le_name.setText(self.curr_time_of_day.name)
+        self.te_start.setTime(self.curr_time_of_day.start)
+        self.te_end.setTime(self.curr_time_of_day.end)
+
+    def change_new_mode(self):
+        if self.chk_new_mode.isChecked():
+            print('checked', self.chk_new_mode.isChecked())
+            self.bt_delete.setDisabled(True)
+        else:
+            print('checked', self.chk_new_mode.isChecked())
+            self.bt_delete.setEnabled(True)
 
     def save_time_of_day(self):
-        name = self.le_tod_name.text()
+        name = self.le_name.text()
         if not name:
             QMessageBox.information(self, 'Fehler', 'Sie müsser einen Namen für diese Tageszeit angeben.')
             return
-        start = datetime.time(self.te_tod_start.time().hour(), self.te_tod_start.time().minute())
-        end = datetime.time(self.te_tod_end.time().hour(), self.te_tod_end.time().minute())
+        start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
+        end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
 
-        if tods := [tod for tod in self.project.time_of_days if tod.name == name and not tod.prep_delete]:
-            db_services.delete_time_of_day(tods[0].id)
-            self.project.time_of_days.remove(tods[0])
-        new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end)
-        created_time_of_day = db_services.create_time_of_day(new_time_of_day, self.project.id)
-        self.project.time_of_days.append(created_time_of_day)
-        self.project.name = self.le_name.text()
-        project_updated = db_services.update_project(self.project)
-        self.project = project_updated
-        QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit {created_time_of_day.name} wurde upgedatet bzw. dem '
-                                                   f'Projekt {self.project.name} hinzugefügt.')
-        self.autofill()
-        self.cb_time_of_days.setCurrentText(created_time_of_day.name)
+        if self.chk_new_mode.isChecked():
+            self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end)
+        else:
+            self.curr_time_of_day.name = name
+            self.curr_time_of_day.start = start
+            self.curr_time_of_day.end = end
+        self.accept()
+
+    def delete(self):
+        self.to_delete_status = True
+        self.accept()

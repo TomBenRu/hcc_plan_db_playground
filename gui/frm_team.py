@@ -1,6 +1,7 @@
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QComboBox, QHBoxLayout, QGridLayout, QPushButton, \
     QMessageBox
+from pony.orm import TransactionIntegrityError
 
 from database import schemas, db_services
 
@@ -71,12 +72,22 @@ class FrmTeam(QDialog):
             return
         dispatcher_id = self.cb_dispatcher.currentData().id if self.cb_dispatcher.currentData() else None
         if self.new_team_mode:
-            if (team_name := self.le_name.text()) in [t.name for t in self.project.teams]:
+            if (team_name := self.le_name.text()) in [t.name for t in self.project.teams if not t.prep_delete]:
                 QMessageBox.critical(self, 'Neues Team', f'Teamname {team_name} ist schon vorhanden.\n'
                                                          f'Bitte wählen sie einen anderen Namen.')
                 return
-            team_created = db_services.new_team(team_name=self.le_name.text(), project_id=self.project.id,
-                                                dispatcher_id=dispatcher_id)
+            try:
+                team_created = db_services.new_team(team_name=self.le_name.text(), project_id=self.project.id,
+                                                    dispatcher_id=dispatcher_id)
+            except TransactionIntegrityError as e:
+                if str(e.original_exc).startswith('UNIQUE constraint failed'):
+                    QMessageBox.critical(self, 'Fehler', f'Ein Team mit Namen "{self.le_name.text()}" ist beireits '
+                                                         f'vorhanden aber zum Löschen markiert.\n'
+                                                         f'Sie müssen zuerst mit der Serverdatenbank synchronisieren,'
+                                                         f'damit sie diese Aktion erfolgreich durchführen können.')
+                else:
+                    QMessageBox.critical(self, 'Fehler', f'{e}')
+                return
 
             QMessageBox.information(self, 'Neues Team', f'Das Team wurde erstellt:\n{team_created}')
         else:
@@ -84,12 +95,12 @@ class FrmTeam(QDialog):
             self.team.dispatcher = self.cb_dispatcher.currentData()
             updated_team = db_services.update_team(self.team)
             QMessageBox.information(self, 'Team Update', f'Team wurde upgedated:\n{updated_team}')
-        self.close()
+        self.accept()
 
     def delete(self):
         deleted_team = db_services.delete_team(self.team.id)
         QMessageBox.information(self, 'Team Löschung', f'Das Team wurde gelöscht:\n{deleted_team}')
-        self.close()
+        self.accept()
 
     def data_as_new_team(self):
         self.new_team_mode = False if self.new_team_mode else True

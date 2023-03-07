@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabe
 from pony.orm import TransactionIntegrityError
 
 from database import db_services, schemas
+from gui.frm_excel_settings import FrmExcelExportSettings
 from gui.frm_team import FrmTeam
 from gui.frm_time_of_day import FrmTimeOfDay
 
@@ -45,7 +46,7 @@ class SettingsProject(QDialog):
         self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
         self.bt_admin = QPushButton('Speichern')
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
-        self.bt_excel_export_settings = QPushButton('Bearbeiten')
+        self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
         self.layout_group_project_data.addWidget(self.lb_name, 0, 0)
         self.layout_group_project_data.addWidget(self.le_name, 0, 1)
@@ -74,9 +75,7 @@ class SettingsProject(QDialog):
         for p in self.project.persons:
             self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-nude.png'), f'{p.f_name} {p.l_name}', p)
         self.fill_time_of_days()
-        if self.project.excel_export_settings:
-            for i, color in enumerate(self.project.excel_export_settings.dict(exclude={'id'}).values()):
-                self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
+        self.fill_excel_colors()
 
     def fill_teams(self):
         self.cb_teams.clear()
@@ -90,6 +89,11 @@ class SettingsProject(QDialog):
             self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
+
+    def fill_excel_colors(self):
+        if self.project.excel_export_settings:
+            for i, color in enumerate(self.project.excel_export_settings.dict(exclude={'id'}).values()):
+                self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
 
     def edit_team(self):
         if FrmTeam(self, self.project, self.cb_teams.currentData()).exec():
@@ -123,3 +127,12 @@ class SettingsProject(QDialog):
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
                     self.project = db_services.get_project(self.project_id)
                     self.fill_time_of_days()
+
+    def edit_excel_export_settings(self):
+        dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)
+        if dlg.exec():
+            updated_excel_settings = db_services.update_excel_export_settings(dlg.excel_settings)
+            QMessageBox.information(self, 'Excel Expert-Settings', f'Update wurde durchgeführt:\n'
+                                                                   f'{updated_excel_settings}')
+            self.project = db_services.get_project(self.project_id)
+            self.fill_excel_colors()

@@ -3,7 +3,7 @@ import datetime
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox
 
-from database import schemas, db_services
+from database import schemas
 
 
 class FrmTimeOfDay(QDialog):

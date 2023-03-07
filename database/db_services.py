@@ -5,7 +5,7 @@ from pony.orm import db_session, commit
 
 from . import schemas
 from .authentication import hash_psw
-from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay
+from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings
 
 
 @db_session
@@ -147,3 +147,11 @@ def delete_time_of_day(time_of_day_id: UUID) -> schemas.TimeOfDay:
     time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
     time_of_day_db.prep_delete = datetime.datetime.utcnow()
     return schemas.TimeOfDay.from_orm(time_of_day_db)
+
+
+@db_session
+def update_excel_export_settings(excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
+    excel_export_settings_db = ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
+    for key, val in excel_export_settings.dict(exclude={'id'}).items():
+        excel_export_settings_db.__setattr__(key, val)
+    return schemas.ExcelExportSettings.from_orm(excel_export_settings_db)

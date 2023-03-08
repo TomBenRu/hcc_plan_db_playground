@@ -7,11 +7,13 @@ from database import schemas
 
 
 class FrmTimeOfDay(QDialog):
-    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDay):
+    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDay, only_new_time_of_day=False):
         super().__init__(parent)
         self.setWindowTitle('Tageszeit')
 
-        self.curr_time_of_day = time_of_day
+        self.only_new_time_of_day = only_new_time_of_day
+
+        self.curr_time_of_day = time_of_day.copy() if time_of_day else None
         self.new_time_of_day: schemas.TimeOfDayCreate | None = None
         self.to_delete_status = False
         self.new_mode = False
@@ -45,15 +47,15 @@ class FrmTimeOfDay(QDialog):
         self.autofill()
 
     def autofill(self):
-        if not self.curr_time_of_day or self.new_mode:
+        if self.curr_time_of_day:
+            self.le_name.setText(self.curr_time_of_day.name)
+            self.te_start.setTime(self.curr_time_of_day.start)
+            self.te_end.setTime(self.curr_time_of_day.end)
+        if not self.curr_time_of_day or self.new_mode or self.only_new_time_of_day:
             self.new_mode = True
             self.chk_new_mode.setChecked(True)
-            if not self.new_time_of_day:
+            if not self.new_time_of_day or self.only_new_time_of_day:
                 self.chk_new_mode.setDisabled(True)
-            return
-        self.le_name.setText(self.curr_time_of_day.name)
-        self.te_start.setTime(self.curr_time_of_day.start)
-        self.te_end.setTime(self.curr_time_of_day.end)
 
     def change_new_mode(self):
         if self.chk_new_mode.isChecked():

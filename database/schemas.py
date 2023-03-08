@@ -199,7 +199,19 @@ class TimeOfDay(TimeOfDayCreate):
         orm_mode = True
 
 
-class TimeOfDayShow(TimeOfDayCreate):
+class TimeOfDayShow(TimeOfDay):
+    project_defaults: Optional[Project]
+    persons_defaults: List[Person]
+    actor_plan_periods_defaults: List[ActorPlanPeriod]
+    location_plan_periods_defaults: List['LocationPlanPeriod']
+    avail_days_defaults: List[AvailDay]
+    locations_of_work_defaults: List['LocationOfWork']
+    events_defaults: List['Event']
+
+    @validator('persons_defaults', 'actor_plan_periods_defaults', 'location_plan_periods_defaults',
+               'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [t for t in values]
 
     class Config:
         orm_mode = True
@@ -477,4 +489,5 @@ LocationOfWork.update_forward_refs(**locals())
 LocationOfWorkShow.update_forward_refs(**locals())
 TeamShow.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
+TimeOfDayShow.update_forward_refs(**locals())
 

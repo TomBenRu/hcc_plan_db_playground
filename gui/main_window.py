@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from database import db_services
 from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
-from gui.frm_settings import SettingsProject
+from gui.frm_project_settings import SettingsProject
 from gui.tabbars import TabBar
 from gui.toolbars import MainToolBar
 

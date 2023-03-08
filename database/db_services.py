@@ -1,4 +1,5 @@
 import datetime
+from typing import Literal
 from uuid import UUID
 
 from pony.orm import db_session, commit
@@ -19,7 +20,7 @@ def update_project(project: schemas.ProjectShow) -> schemas.ProjectShow:
     for key, val in project.dict(include={'name', 'active'}).items():
         project_db.__setattr__(key, val)
     project_db.time_of_days_default.clear()
-    for tod in project.time_of_days:
+    for tod in project.time_of_days_default:
         project_db.time_of_days_default.add(TimeOfDay[tod.id])
     return schemas.ProjectShow.from_orm(project_db)
 
@@ -113,6 +114,32 @@ def create_location_of_work(location: schemas.LocationOfWorkCreate, project_id: 
 
 
 @db_session
+def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWork:
+    location_db = LocationOfWork.get_for_update(lambda l: l.id == location_of_work.id)
+    location_db.time_of_days.clear()
+    for t_o_d in location_of_work.time_of_days:
+        location_db.time_of_days.add(TimeOfDay.get_for_update(lambda t: t.id == t_o_d.id))
+    if location_db.address:
+        address = update_address(location_of_work.address)
+    else:
+        address = create_address(schemas.AddressCreate(street=location_of_work.address.street,
+                                                       postal_code=location_of_work.address.postal_code,
+                                                       city=location_of_work.address.city))
+    location_db.address = Address.get_for_update(lambda a: a.id == address.id)
+    if location_of_work.team:
+        location_db.team = Team.get_for_update(lambda t: t.id == location_of_work.team.id)
+    '''Es fehlt noch: combination_locations_possibles'''
+    for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
+        location_db.__setattr__(key, val)
+
+    return schemas.LocationOfWork.from_orm(location_db)
+
+
+
+
+
+
+@db_session
 def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
     location_db = LocationOfWork[location_id]
     location_db.prep_delete = datetime.datetime.utcnow()
@@ -126,10 +153,15 @@ def get_teams_of_project(project_id: UUID) -> list[schemas.Team]:
 
 
 @db_session
+def get_time_of_day(time_of_day_id: UUID):
+    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
+    return schemas.TimeOfDayShow.from_orm(time_of_day_db)
+
+
+@db_session
 def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
     project_db = Project[project_id]
     time_of_day_db = TimeOfDay(**time_of_day.dict(), project=project_db)
-    project_db.time_of_days_default.add(time_of_day_db)
     return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 
@@ -155,3 +187,17 @@ def update_excel_export_settings(excel_export_settings: schemas.ExcelExportSetti
     for key, val in excel_export_settings.dict(exclude={'id'}).items():
         excel_export_settings_db.__setattr__(key, val)
     return schemas.ExcelExportSettings.from_orm(excel_export_settings_db)
+
+
+@db_session
+def create_address(address: schemas.AddressCreate) -> schemas.Address:
+    address_db = Address(street=address.street, postal_code=address.postal_code, city=address.city)
+    return schemas.Address.from_orm(address_db)
+
+
+@db_session
+def update_address(address: schemas.Address) -> schemas.Address:
+    address_db = Address.get_for_update(lambda a: a.id == address.id)
+    for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
+        address_db.__setattr__(key, val)
+    return schemas.Address.from_orm(address_db)

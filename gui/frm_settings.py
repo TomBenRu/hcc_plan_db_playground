@@ -73,7 +73,7 @@ class SettingsProject(QDialog):
         self.fill_teams()
         self.cb_admin.clear()
         for p in self.project.persons:
-            self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-nude.png'), f'{p.f_name} {p.l_name}', p)
+            self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-business.png'), f'{p.f_name} {p.l_name}', p)
         self.fill_time_of_days()
         self.fill_excel_colors()
 

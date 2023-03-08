@@ -425,7 +425,7 @@ class FrmLocationModify(FrmLocationData):
         self.spin_nr_actors.setMinimum(1)
         self.lb_teams = QLabel('Team')
         self.cb_teams = QComboBox()
-        self.items_team = ['kein Team'] + [t.name for t in self.teams]
+        self.items_team = ['kein Team'] + [t.name for t in self.teams if not t.prep_delete]
         self.cb_teams.addItems(self.items_team)
 
         self.group_specific_data_layout.addWidget(self.lb_nr_actors, 0, 0)

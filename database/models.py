@@ -219,6 +219,8 @@ class LocationOfWork(db.Entity):
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
+    composite_key(project, name)
+
     def before_update(self):
         self.last_modified = datetime.utcnow()
 

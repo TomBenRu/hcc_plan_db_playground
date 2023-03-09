@@ -1,5 +1,4 @@
 import datetime
-from typing import Literal
 from uuid import UUID
 
 from pony.orm import db_session, commit
@@ -114,7 +113,7 @@ def create_location_of_work(location: schemas.LocationOfWorkCreate, project_id: 
 
 
 @db_session
-def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWork:
+def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
     location_db = LocationOfWork.get_for_update(lambda l: l.id == location_of_work.id)
     location_db.time_of_days.clear()
     for t_o_d in location_of_work.time_of_days:
@@ -132,7 +131,7 @@ def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> sch
     for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
         location_db.__setattr__(key, val)
 
-    return schemas.LocationOfWork.from_orm(location_db)
+    return schemas.LocationOfWorkShow.from_orm(location_db)
 
 
 
@@ -159,10 +158,10 @@ def get_time_of_day(time_of_day_id: UUID):
 
 
 @db_session
-def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
+def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDayShow:
     project_db = Project[project_id]
     time_of_day_db = TimeOfDay(**time_of_day.dict(), project=project_db)
-    return schemas.TimeOfDay.from_orm(time_of_day_db)
+    return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 
 
 @db_session
@@ -172,6 +171,23 @@ def update_time_of_day(time_of_day: schemas.TimeOfDay):
     time_of_day_db.start = time_of_day.start
     time_of_day_db.end = time_of_day.end
     return schemas.TimeOfDay.from_orm(time_of_day_db)
+
+
+@db_session
+def put_time_of_day_to_model(time_of_day: schemas.TimeOfDay,
+                             pydantic_model: schemas.ModelWithTimeOfDays | schemas.Project, db_model):
+    if (not isinstance(pydantic_model, schemas.ModelWithTimeOfDays)) and (not isinstance(pydantic_model, schemas.Project)):
+        raise ValueError
+    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day.id)
+    if isinstance(pydantic_model, schemas.Project):
+        instance_db = Project.get_for_update(lambda p: p.id == time_of_day.project.id)
+        instance_db.time_of_days_default.add(time_of_day_db)
+    else:
+        instance_db = db_model.get_for_update(lambda m: m.id == pydantic_model.id)
+        instance_db.time_of_days.add(time_of_day_db)
+    return type(pydantic_model).from_orm(instance_db)
+
+
 
 
 @db_session

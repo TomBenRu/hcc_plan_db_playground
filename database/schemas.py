@@ -1,10 +1,15 @@
 from datetime import date, time, datetime
-from typing import Optional, List
+from typing import Optional, List, Protocol, runtime_checkable
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, validator
 
 from database.enums import Gender
+
+
+@runtime_checkable
+class ModelWithTimeOfDays(Protocol):
+    time_of_days: list['TimeOfDay']
 
 
 class PersonCreate(BaseModel):
@@ -51,7 +56,7 @@ class Project(ProjectCreate):
 class ProjectShow(Project):
     teams: List['TeamShow']
     persons: List['Person']
-    time_of_days_default: List['TimeOfDay']
+    time_of_days_default: List['TimeOfDayShow']
     excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('teams', pre=True, allow_reuse=True)
@@ -194,6 +199,7 @@ class TimeOfDayCreate(BaseModel):
 class TimeOfDay(TimeOfDayCreate):
     id: UUID
     prep_delete: Optional[datetime]
+    project: Project
 
     class Config:
         orm_mode = True
@@ -236,7 +242,7 @@ class LocationOfWork(LocationOfWorkCreate):
 class LocationOfWorkShow(LocationOfWork):
     team: Optional[Team]
     nr_actors: int
-    time_of_days: List[TimeOfDay]
+    time_of_days: List[TimeOfDayShow]
 
     @validator('time_of_days', pre=True, allow_reuse=True)
     def set_to_list(cls, values):

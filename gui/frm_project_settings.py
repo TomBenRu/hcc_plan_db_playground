@@ -6,7 +6,8 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabe
                                QGroupBox, QPushButton, QTimeEdit, QMessageBox)
 from pony.orm import TransactionIntegrityError
 
-from database import db_services, schemas
+from database import db_services, schemas, models
+from database.models import Project
 from gui.frm_excel_settings import FrmExcelExportSettings
 from gui.frm_team import FrmTeam
 from gui.frm_time_of_day import FrmTimeOfDay
@@ -114,6 +115,8 @@ class SettingsProject(QDialog):
                 else:
                     t_o_d_created = db_services.create_time_of_day(dlg.new_time_of_day, self.project_id)
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde erstellt:\n{t_o_d_created}')
+                    instance = db_services.put_time_of_day_to_model(t_o_d_created, self.project, models.Project)
+                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde hinzugefügt zu:\n{instance}')
                     self.project = db_services.get_project(self.project_id)
                     self.fill_time_of_days()
 

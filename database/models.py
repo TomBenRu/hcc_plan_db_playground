@@ -51,7 +51,8 @@ class Person(db.Entity):
 
     def before_insert(self):
         for t_o_d in self.project.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
 
 class Project(db.Entity):
@@ -139,7 +140,8 @@ class ActorPlanPeriod(db.Entity):
         for c in self.person.actor_partner_location_prefs:
             self.actor_partner_location_prefs.add(c)
         for t_o_d in self.person.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -167,7 +169,8 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
         for c in self.actor_plan_period.combination_locations_possibles:
             self.combination_locations_possibles.add(c)
         for t_o_d in self.actor_plan_period.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -281,7 +284,8 @@ class Event(db.Entity):
     def before_insert(self):
         self.nr_actors = self.location_plan_period.nr_actors
         for t_o_d in self.location_plan_period.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -306,7 +310,8 @@ class LocationPlanPeriod(db.Entity):
     def before_insert(self):
         self.nr_actors = self.location_of_work.nr_actors
         for t_o_d in self.location_of_work.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

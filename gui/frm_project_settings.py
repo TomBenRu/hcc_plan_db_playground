@@ -43,9 +43,9 @@ class SettingsProject(QDialog):
         self.layout_excel_export_settings.setSpacing(2)
         self.color_widgets = [QWidget() for _ in self.project.excel_export_settings.dict(exclude={'id'})]
 
-        self.bt_name_save = QPushButton('Speichern')
+        self.bt_name_save = QPushButton('Speichern', clicked=self.save_name)
         self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
-        self.bt_admin = QPushButton('Speichern')
+        self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
@@ -72,9 +72,7 @@ class SettingsProject(QDialog):
     def autofill(self):
         self.le_name.setText(self.project.name)
         self.fill_teams()
-        self.cb_admin.clear()
-        for p in self.project.persons:
-            self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-business.png'), f'{p.f_name} {p.l_name}', p)
+        self.fill_admins()
         self.fill_time_of_days()
         self.fill_excel_colors()
 
@@ -82,6 +80,16 @@ class SettingsProject(QDialog):
         self.cb_teams.clear()
         for t in sorted([t for t in self.project.teams if not t.prep_delete], key=lambda x: x.name):
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
+
+    def fill_admins(self):
+        self.cb_admin.clear()
+        for p in self.project.persons:
+            self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-business.png'), f'{p.f_name} {p.l_name}', p)
+        if self.project.admin:
+            self.cb_admin.setCurrentText(f'{self.project.admin.f_name} {self.project.admin.l_name}')
+        else:
+            self.cb_admin.addItem('kein Admin', None)
+            self.cb_admin.setCurrentText('kein Admin')
 
     def fill_time_of_days(self):
         self.cb_time_of_days.clear()
@@ -96,10 +104,21 @@ class SettingsProject(QDialog):
             for i, color in enumerate(self.project.excel_export_settings.dict(exclude={'id'}).values()):
                 self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
 
+    def save_name(self):
+        project_updated = db_services.update_project_name(self.le_name.text(), self.project_id)
+        QMessageBox.information(self, 'Projekt', f'Name wurde upgedatet:\n{project_updated}')
+
     def edit_team(self):
         if FrmTeam(self, self.project, self.cb_teams.currentData()).exec():
             self.project = db_services.get_project(self.project_id)
             self.fill_teams()
+
+    def save_admin(self):
+        updated_person = db_services.update_person__project_of_admin(self.cb_admin.currentData().id, self.project_id)
+        QMessageBox.information(self, 'Projekt', f'Admin des Projektes "{self.project.name}" ist nun '
+                                                 f'"{updated_person.f_name} {updated_person.l_name}"')
+        self.project = db_services.get_project(self.project_id)
+        self.fill_admins()
 
     def edit_time_of_day(self):
         dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData())

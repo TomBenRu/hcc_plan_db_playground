@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon
+from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QMenu
+    QMenu, QListWidget
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -53,7 +53,8 @@ class WidgetPerson(QWidget):
 
         self.persons = self.get_persons()
 
-        self.table_persons = TablePersons(self.persons)
+        self.table_persons = TablePersons(self.persons, self.project_id)
+
         self.layout.addWidget(self.table_persons)
 
         self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), ' Person anlegen')
@@ -105,10 +106,11 @@ class WidgetPerson(QWidget):
 
 
 class TablePersons(QTableWidget):
-    def __init__(self, persons: list[schemas.PersonShow]):
+    def __init__(self, persons: list[schemas.PersonShow], project_id: UUID):
         super().__init__()
 
         self.persons = persons
+        self.project_id = project_id
 
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
@@ -136,13 +138,34 @@ class TablePersons(QTableWidget):
             self.setItem(row, 5, QTableWidgetItem(p.address.street))
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code))
             self.setItem(row, 7, QTableWidgetItem(p.address.city))
-            self.setItem(row, 8, QTableWidgetItem(p.team_of_actor.name if p.team_of_actor else ''))
+            cb_team_of_actor = QComboBox()
+            cb_team_of_actor.addItem('', None)
+            for team in sorted(db_services.get_teams_of_project(self.project_id), key=lambda t: t.name):
+                cb_team_of_actor.addItem(team.name, team)
+            cb_team_of_actor.setCurrentText('' if not p.team_of_actor else p.team_of_actor.name)
+            cb_team_of_actor.currentIndexChanged.connect(self.set_team)
+            self.setCellWidget(row, 8, cb_team_of_actor)
+
             self.setItem(row, 9, QTableWidgetItem(str(p.id)))
 
     def text_to_clipboard(self, r, c):
         text = self.item(r, c).text()
         QGuiApplication.clipboard().setText(text)
         QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
+
+    def set_team(self, e):
+        sender: QComboBox = self.sender()
+        team: schemas.Team = sender.currentData()
+        person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
+        person_id = UUID(self.item(self.currentRow(), 9).text())
+        team_id = team.id if team else None
+        updated_person = db_services.update_person__team_of_actor(person_id, team_id)
+        if updated_person.team_of_actor:
+            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" wurde dem Team '
+                                                    f'"{updated_person.team_of_actor.name}" zugeordnet.')
+        else:
+            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist nun keinem Team zugeordnet.')
+
 
 
 class FrmPersonCreate(QDialog):

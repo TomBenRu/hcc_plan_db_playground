@@ -226,7 +226,8 @@ class LocationOfWork(db.Entity):
 
     def before_insert(self):
         for t_o_d in self.project.time_of_days:
-            self.time_of_days.add(t_o_d)
+            if not t_o_d.prep_delete:
+                self.time_of_days.add(t_o_d)
 
 
 class Address(db.Entity):

@@ -1,49 +1,69 @@
 import datetime
+import inspect
+import logging
 from uuid import UUID
 
-from pony.orm import db_session, commit
+from pony.orm import db_session, show
 
 from . import schemas
 from .authentication import hash_psw
 from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def new_project(name: str):
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
     Project(name=name)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
+def update_project_name(name: str, project_id) -> schemas.Project:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_db = Project.get_for_update(id=project_id)
+    project_db.name = name
+    return schemas.Project.from_orm(project_db)
+
+
+@db_session(sql_debug=True, show_values=True)
 def update_project(project: schemas.ProjectShow) -> schemas.ProjectShow:
-    project_db = Project[project.id]
-    for key, val in project.dict(include={'name', 'active'}).items():
-        project_db.__setattr__(key, val)
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_db = Project.get_for_update(id=project.id)
+    project_db.set(**project.dict(include={'name', 'active'}))
     project_db.time_of_days_default.clear()
     for tod in project.time_of_days_default:
         project_db.time_of_days_default.add(TimeOfDay[tod.id])
     return schemas.ProjectShow.from_orm(project_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def new_team(team_name: str, project_id: UUID, dispatcher_id: UUID = None):
-    project_db = Project.get_for_update(lambda p: p.id == project_id)
-    dispatcher_db = Person.get_for_update(lambda p: p.id == dispatcher_id) if dispatcher_id else None
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_db = Project.get_for_update(id=project_id)
+    dispatcher_db = Person.get_for_update(id=dispatcher_id) if dispatcher_id else None
     team_db = Team(name=team_name, project=project_db, dispatcher=dispatcher_db)
     return schemas.TeamShow.from_orm(team_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def update_team(team: schemas.Team) -> schemas.TeamShow:
-    team_db = Team.get_for_update(lambda t: t.id == team.id)
-    dispatcher_db = Person.get_for_update(lambda p: p.id == team.dispatcher.id) if team.dispatcher else None
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    team_db = Team.get_for_update(id=team.id)
+    dispatcher_db = Person.get_for_update(id=team.dispatcher.id) if team.dispatcher else None
     team_db.name = team.name
     team_db.dispatcher = dispatcher_db
     return schemas.TeamShow.from_orm(team_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def delete_team(team_id: UUID) -> schemas.Team:
-    team_db = Team.get_for_update(lambda t: t.id == team_id)
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    team_db = Team.get_for_update(id=team_id)
     team_db.prep_delete = datetime.datetime.utcnow()
     return schemas.Team.from_orm(team_db)
 
@@ -68,15 +88,23 @@ def get_teams_of_project(projet_id: UUID) -> list[schemas.Team]:
 
 
 @db_session
+def get_person(person_id: UUID) -> schemas.PersonShow:
+    person_db = Person.get_for_update(id=person_id)
+    return schemas.PersonShow.from_orm(person_db)
+
+
+@db_session
 def get_persons_of_project(project_id: UUID) -> list[schemas.PersonShow]:
     project_in_db = Project[project_id]
     persons_in_db = Person.select(lambda p: p.project == project_in_db and not p.prep_delete)
     return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def create_person(person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
-    project_in_db = Project[project_id]
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_in_db = Project.get_for_update(id=project_id)
     address_in_db = Address(**person.address.dict(), project=project_in_db)
     hashed_password = hash_psw(person.password)
     person.password = hashed_password
@@ -84,16 +112,38 @@ def create_person(person: schemas.PersonCreate, project_id: UUID) -> schemas.Per
     return schemas.Person.from_orm(person_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
+def update_person__team_of_actor(person_id: UUID, team_id: UUID | None):
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    person_db = Person.get_for_update(id=person_id)
+    team_db = Team.get_for_update(id=team_id) if team_id else None
+    person_db.team_of_actor = team_db
+    return schemas.PersonShow.from_orm(person_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def update_person__project_of_admin(person_id: UUID, project_id: UUID) -> schemas.PersonShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    person_db = Person.get_for_update(id=person_id)
+    project_db = Project.get_for_update(id=project_id)
+    person_db.project_of_admin = project_db
+    return schemas.PersonShow.from_orm(person_db)
+
+
+@db_session(sql_debug=True, show_values=True)
 def delete_person(person_id: UUID) -> schemas.Person:
-    person_db = Person[person_id]
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    person_db = Person.get_for_update(id=person_id)
     person_db.prep_delete = datetime.datetime.utcnow()
     return schemas.Person.from_orm(person_db)
 
 
 @db_session
 def get_location_of_work_of_project(location_id: UUID) -> schemas.LocationOfWorkShow:
-    location_db = LocationOfWork[location_id]
+    location_db = LocationOfWork.get_for_update(id=location_id)
     return schemas.LocationOfWorkShow.from_orm(location_db)
 
 
@@ -104,43 +154,46 @@ def get_locations_of_work_of_project(project_id: UUID) -> list[schemas.LocationO
     return [schemas.LocationOfWorkShow.from_orm(l) for l in locations_in_db]
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def create_location_of_work(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
-    project_db = Project[project_id]
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_db = Project.get_for_update(id=project_id)
     address_db = Address(**location.address.dict(), project=project_db)
     location_db = LocationOfWork(name=location.name, project=project_db, address=address_db)
     return schemas.LocationOfWork.from_orm(location_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
-    location_db = LocationOfWork.get_for_update(lambda l: l.id == location_of_work.id)
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    location_db = LocationOfWork.get_for_update(id=location_of_work.id)
     location_db.time_of_days.clear()
     for t_o_d in location_of_work.time_of_days:
-        location_db.time_of_days.add(TimeOfDay.get_for_update(lambda t: t.id == t_o_d.id))
+        location_db.time_of_days.add(TimeOfDay.get_for_update(id=t_o_d.id))
     if location_db.address:
         address = update_address(location_of_work.address)
     else:
         address = create_address(schemas.AddressCreate(street=location_of_work.address.street,
                                                        postal_code=location_of_work.address.postal_code,
                                                        city=location_of_work.address.city))
-    location_db.address = Address.get_for_update(lambda a: a.id == address.id)
+    location_db.address = Address.get_for_update(id=address.id)
     if location_of_work.team:
-        location_db.team = Team.get_for_update(lambda t: t.id == location_of_work.team.id)
+        location_db.team = Team.get_for_update(id=location_of_work.team.id)
     '''Es fehlt noch: combination_locations_possibles'''
-    for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
-        location_db.__setattr__(key, val)
+    # for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
+    #     location_db.__setattr__(key, val)
+    location_db.set(**location_of_work.dict(include={'name', 'nr_actors'}))
 
     return schemas.LocationOfWorkShow.from_orm(location_db)
 
 
-
-
-
-
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
-    location_db = LocationOfWork[location_id]
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    location_db = LocationOfWork.get_for_update(id=location_id)
     location_db.prep_delete = datetime.datetime.utcnow()
     return schemas.LocationOfWork.from_orm(location_db)
 
@@ -157,63 +210,70 @@ def get_time_of_day(time_of_day_id: UUID):
     return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def create_time_of_day(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDayShow:
-    project_db = Project[project_id]
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    project_db = Project.get_for_update(id=project_id)
     time_of_day_db = TimeOfDay(**time_of_day.dict(), project=project_db)
     return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def update_time_of_day(time_of_day: schemas.TimeOfDay):
-    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day.id)
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    time_of_day_db = TimeOfDay.get_for_update(id=time_of_day.id)
     time_of_day_db.name = time_of_day.name
     time_of_day_db.start = time_of_day.start
     time_of_day_db.end = time_of_day.end
     return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def put_time_of_day_to_model(time_of_day: schemas.TimeOfDay,
                              pydantic_model: schemas.ModelWithTimeOfDays | schemas.Project, db_model):
-    if (not isinstance(pydantic_model, schemas.ModelWithTimeOfDays)) and (not isinstance(pydantic_model, schemas.Project)):
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    if not (isinstance(pydantic_model, schemas.ModelWithTimeOfDays) or isinstance(pydantic_model, schemas.Project)):
         raise ValueError
-    time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day.id)
+    time_of_day_db = TimeOfDay.get_for_update(id=time_of_day.id)
     if isinstance(pydantic_model, schemas.Project):
-        instance_db = Project.get_for_update(lambda p: p.id == time_of_day.project.id)
+        instance_db = Project.get_for_update(id=time_of_day.project.id)
         instance_db.time_of_days_default.add(time_of_day_db)
     else:
-        instance_db = db_model.get_for_update(lambda m: m.id == pydantic_model.id)
+        instance_db = db_model.get_for_update(id=pydantic_model.id)
         instance_db.time_of_days.add(time_of_day_db)
     return type(pydantic_model).from_orm(instance_db)
 
 
-
-
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def delete_time_of_day(time_of_day_id: UUID) -> schemas.TimeOfDay:
     time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
     time_of_day_db.prep_delete = datetime.datetime.utcnow()
     return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def update_excel_export_settings(excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
     excel_export_settings_db = ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
-    for key, val in excel_export_settings.dict(exclude={'id'}).items():
-        excel_export_settings_db.__setattr__(key, val)
+    # for key, val in excel_export_settings.dict(exclude={'id'}).items():
+    #     excel_export_settings_db.__setattr__(key, val)
+    excel_export_settings_db.set(**excel_export_settings.dict(exclude={'id'}))
+
     return schemas.ExcelExportSettings.from_orm(excel_export_settings_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def create_address(address: schemas.AddressCreate) -> schemas.Address:
     address_db = Address(street=address.street, postal_code=address.postal_code, city=address.city)
     return schemas.Address.from_orm(address_db)
 
 
-@db_session
+@db_session(sql_debug=True, show_values=True)
 def update_address(address: schemas.Address) -> schemas.Address:
     address_db = Address.get_for_update(lambda a: a.id == address.id)
-    for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
-        address_db.__setattr__(key, val)
+    # for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
+    #     address_db.__setattr__(key, val)
+    address_db.set(**address.dict(include={'street', 'postal_code', 'city'}))
     return schemas.Address.from_orm(address_db)

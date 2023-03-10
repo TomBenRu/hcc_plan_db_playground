@@ -35,6 +35,7 @@ class Person(PersonCreate):
 
 
 class PersonShow(Person):
+    project: 'Project'
     team_of_actor: Optional['Team']
 
     class Config:
@@ -54,6 +55,7 @@ class Project(ProjectCreate):
 
 
 class ProjectShow(Project):
+    admin: Optional[Person]
     teams: List['TeamShow']
     persons: List['Person']
     time_of_days_default: List['TimeOfDayShow']

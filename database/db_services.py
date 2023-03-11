@@ -100,6 +100,12 @@ def get_persons_of_project(project_id: UUID) -> list[schemas.PersonShow]:
     return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
 
 
+@db_session
+def get_persons_of_team(team_id: UUID) -> list[schemas.PersonShow]:
+    persons_db = Person.select(lambda p: p.team_of_actor.id == team_id)
+    return [schemas.PersonShow.from_orm(p) for p in persons_db]
+
+
 @db_session(sql_debug=True, show_values=True)
 def create_person(person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
     logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')

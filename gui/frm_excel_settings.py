@@ -44,11 +44,12 @@ class FrmExcelExportSettings(QDialog):
             if i < 4:
                 self.layout_group_top.addWidget(label, i, 0)
                 self.layout_group_top.addWidget(button, i, 1)
-            if i < 6:
+            elif i < 6:
                 self.layout_group_body.addWidget(label, i-4, 0)
                 self.layout_group_body.addWidget(button, i-4, 1)
-            self.layout_group_side.addWidget(label, i-6, 0)
-            self.layout_group_side.addWidget(button, i-6, 1)
+            else:
+                self.layout_group_side.addWidget(label, i-6, 0)
+                self.layout_group_side.addWidget(button, i-6, 1)
 
     def get_color(self):
         widget = self.sender()

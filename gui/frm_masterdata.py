@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessa
 from database import db_services, schemas
 from database.enums import Gender
 from gui.actions import Action
+from gui.frm_fixed_cast import FrmFixedCast
 from gui.frm_time_of_day import FrmTimeOfDay
 from gui.tabbars import TabBar
 
@@ -463,6 +464,8 @@ class FrmLocationModify(FrmLocationData):
         self.action_time_of_days_reset = Action(self, None, 'Reset von Projekt', None, self.reset_time_of_days)
         self.action_time_of_days_edit = Action(self, None, 'Ändern...', None, self.edit_time_of_days)
         self.menu_bt_time_of_days.addActions([self.action_time_of_days_edit, self.action_time_of_days_reset])
+        self.lb_fixed_cast = QLabel('Besetung erwünscht')
+        self.bt_fixed_cast = QPushButton('bearbeiten', clicked=self.edit_fixed_cast)
 
         self.group_specific_data_layout.addWidget(self.lb_nr_actors, 0, 0)
         self.group_specific_data_layout.addWidget(self.spin_nr_actors, 0, 1)
@@ -471,6 +474,8 @@ class FrmLocationModify(FrmLocationData):
         self.group_specific_data_layout.addWidget(self.bt_time_of_days, 1, 2)
         self.group_specific_data_layout.addWidget(self.lb_teams, 2, 0)
         self.group_specific_data_layout.addWidget(self.cb_teams, 2, 1)
+        self.group_specific_data_layout.addWidget(self.lb_fixed_cast, 3, 0)
+        self.group_specific_data_layout.addWidget(self.bt_fixed_cast, 3, 2)
 
         self.layout.addWidget(self.button_box)
 
@@ -564,6 +569,14 @@ class FrmLocationModify(FrmLocationData):
             self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
+
+    def edit_fixed_cast(self):
+        if not self.location_of_work.team:
+            QMessageBox.critical(self, 'Besetzung', 'Sie mussen diese Einrichtung zuerst einem Team zuteilen,'
+                                                    'um eine Besetzungsstrategie zu definieren.')
+            return
+        dlg = FrmFixedCast(self, self.location_of_work.team.id)
+        dlg.exec()
 
     def autofill(self):
         self.le_name.setText(self.location_of_work.name)

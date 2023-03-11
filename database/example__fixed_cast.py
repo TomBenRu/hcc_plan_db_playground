@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-
+from uuid import UUID
 
 # Form: 1 and (2 or 3 or 4), (1 or 2) and (3 or 4), (1 and 2) or (3 and 4)
 
@@ -128,5 +128,36 @@ bt_del.grid(row=0, column=2)
 bt_eval = tk.Button(root, text='evaluate', command=evaluate)
 bt_eval.pack(pady=10)
 
+
+def transf_to_form(raw_form: tuple):
+    form = []
+    for val in raw_form:
+        if type(val) == int:
+            form.append([val])
+        elif type(val) == str:
+            form.append(val)
+        else:
+            form.append(list(val))
+    return form
+
+
+def back_translate(eval_str: str):
+    e_s = eval_str.replace('and', ',"and",')
+    e_s = e_s.replace('or', ',"or",')
+    e_s = e_s.replace('in team', '')
+    e_s = eval(e_s)
+    return transf_to_form(e_s)
+
+
+eval_str = '((1 in team) and (5 in team)) or ((2 in team) and (4 in team))'
+eval_str = '((UUID("635a8539-518f-4156-af6c-97adfec2b0dd") in team)) or ((UUID("635A8539518F4156AF6C97ADFEC2B0DD") in team) and (UUID("635A8539518F4156AF6C97ADFEC2B0DD") in team))'
+eval_str = '((2 in team) and (3 in team)) or (6 in team) or ((5 in team) and (4 in team)) '
+# e_s = eval_str.replace('and', ',"and",')
+# e_s = e_s.replace('or', ',"or",')
+# e_s = e_s.replace('in team', '')
+# print(e_s)
+# print(eval(e_s))
+
+print(back_translate(eval_str))
 
 root.mainloop()

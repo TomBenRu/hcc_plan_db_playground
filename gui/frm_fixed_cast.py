@@ -24,28 +24,67 @@ class FrmFixedCast(QDialog):
         self.layout.addWidget(self.bt_new, 0, 0)
 
     def new_row(self):
+        """füg eine neue Reihe mit Zwischenoperator-Auswahl hinzu"""
         widget = self.sender()
         print(f'{widget=}')
-        print(f'{self.layout.indexOf(widget)=}')
-        print(f'{self.layout.getItemPosition(self.layout.indexOf(widget))=}')
         r, c, _, _ = self.layout.getItemPosition(self.layout.indexOf(widget))
+        print(f'{r=}, {c=}')
+        # print(f'{self.layout.itemAtPosition(r, c).widget().objectName()}')
 
-        print(f'{self.layout.itemAtPosition(r, c).widget().objectName()}')
-        self.layout.addWidget(self.bt_new, r+1, c)
+        '''neue reihen werden angelegt'''
         if r == 0:
-            bt_del_row = QPushButton(QIcon('resources/toolbar_icons/icons/minus.png'), None)
-            bt_del_row.setObjectName('del_row')
-            bt_del_row.clicked.connect(self.delete_row)
-            self.layout.addWidget(bt_del_row, r, c)
+            '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
+            cb_actors = QComboBox()
+            cb_actors.addItems(['Actor1', 'Actor2'])
+            self.layout.addWidget(cb_actors, r, c + 1)
+            bt_add_inner_operator = QPushButton(QIcon('resources/toolbar_icons/icons/plus-circle.png'), None,
+                                                clicked=self.add_actor)
+            bt_add_inner_operator.setObjectName('bt_inner_operator')
+            self.layout.addWidget(bt_add_inner_operator, r, c + 2)
+            '''add-row-button wird um 1 nach unten verschoben'''
+            self.layout.addWidget(self.bt_new, r+1, c)
+            '''neuer row-delete-button wird erzeugt'''
+            self.bt_del_row = QPushButton(QIcon('resources/toolbar_icons/icons/minus.png'), None)
+            self.bt_del_row.setObjectName('del_row')
+            self.bt_del_row.clicked.connect(self.delete_row)
+            self.layout.addWidget(self.bt_del_row, r, c)
         else:
-            w = self.layout.itemAtPosition(r-1, c).widget()
-            self.layout.addWidget(w, r, c)
+            '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
+            cb_actors = QComboBox()
+            cb_actors.addItems(['Actor1', 'Actor2'])
+            self.layout.addWidget(cb_actors, r+1, c + 1)
+            bt_add_inner_operator = QPushButton(QIcon('resources/toolbar_icons/icons/plus-circle.png'), None,
+                                                clicked=self.add_actor)
+            bt_add_inner_operator.setObjectName('bt_inner_operator')
+            self.layout.addWidget(bt_add_inner_operator, r+1, c + 2)
+            '''add-row-button wird um 2 nach unten verschoben'''
+            self.layout.addWidget(self.bt_new, r+2, c)
+            '''combo operator betw. rows wird erzeugt'''
+            combo_op_betw_rows = QComboBox()
+            combo_op_betw_rows.addItems(['and', 'or'])
+            combo_op_betw_rows.setObjectName('operator_betw_rows')
+            self.layout.addWidget(combo_op_betw_rows, r, 1)
+            '''row-delete-button wird um 2 nach unten verschoben'''
+            self.layout.addWidget(self.bt_del_row, r+1, c)
 
-        cb_actors = QComboBox()
-        self.layout.addWidget(cb_actors, r, c+1)
 
     def delete_row(self):
         ...
+
+    def add_actor(self):
+        """fügt eine neue Operator-Auswahl mit nachfolgender Actor-Auswahl hinzu"""
+        add_operator_widget = self.sender()
+        r, c, _, _ = self.layout.getItemPosition(self.layout.indexOf(add_operator_widget))
+        self.layout.addWidget(add_operator_widget, r, c+2)
+        cb_operator = QComboBox()
+        cb_operator.setObjectName('inner_operator')
+        cb_operator.addItems(['and', 'or'])
+        self.layout.addWidget(cb_operator, r, c)
+
+        cb_actor = QComboBox()
+        cb_actor.addItems(['actor1', 'actor2'])
+        self.layout.addWidget(cb_actor, r, c+1)
+
 
 
 

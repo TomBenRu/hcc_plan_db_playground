@@ -575,7 +575,7 @@ class FrmLocationModify(FrmLocationData):
             QMessageBox.critical(self, 'Besetzung', 'Sie mussen diese Einrichtung zuerst einem Team zuteilen,'
                                                     'um eine Besetzungsstrategie zu definieren.')
             return
-        dlg = FrmFixedCast(self, self.location_of_work.team.id)
+        dlg = FrmFixedCast(self, self.location_of_work)
         dlg.exec()
 
     def autofill(self):

@@ -34,6 +34,7 @@ class PersonCreate(BaseModel):
 class Person(PersonCreate):
     id: UUID
     address: Optional['Address']
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True

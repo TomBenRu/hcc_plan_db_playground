@@ -14,6 +14,7 @@ from gui.actions import Action
 from gui.frm_fixed_cast import FrmFixedCast
 from gui.frm_time_of_day import FrmTimeOfDay
 from gui.tabbars import TabBar
+from gui.tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmMasterData(QWidget):
@@ -484,20 +485,15 @@ class FrmLocationModify(FrmLocationData):
         self.autofill()
 
     def save_location(self):
-            self.location_of_work.name = self.le_name.text()
-            self.location_of_work.address.street = self.le_street.text()
-            self.location_of_work.address.postal_code = self.le_postal_code.text()
-            self.location_of_work.address.city = self.le_city.text()
-            self.location_of_work.nr_actors = self.spin_nr_actors.value()
-            self.location_of_work.team = self.cb_teams.currentData()
-            print(f'{self.cb_teams.currentData()=}')
-            print()
-        # try:
-            updated_location = db_services.update_location_of_work(self.location_of_work)
-            QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
-        # except Exception as e:
-        #     QMessageBox.critical(self, 'Fehler', f'{e}')
-            self.close()
+        self.location_of_work.name = self.le_name.text()
+        self.location_of_work.address.street = self.le_street.text()
+        self.location_of_work.address.postal_code = self.le_postal_code.text()
+        self.location_of_work.address.city = self.le_city.text()
+        self.location_of_work.nr_actors = self.spin_nr_actors.value()
+        self.location_of_work.team = self.cb_teams.currentData()
+        updated_location = db_services.update_location_of_work(self.location_of_work)
+        QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
+        self.close()
 
     def get_location_of_work(self):
         location = db_services.get_location_of_work_of_project(self.location_id)
@@ -576,6 +572,15 @@ class FrmLocationModify(FrmLocationData):
             self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
+
+    def fill_dispatcher(self):
+        self.cb_dispatcher.clear()
+        persons = sorted([p for p in db_services.get_persons_of_project(self.project_id)
+                          if not p.prep_delete], key=lambda t: t.f_name)
+        for p in persons:
+            self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user-female.png'),
+                                       f'{p.f_name} {p.l_name}', p)
+        self.cb_dispatcher.setCurrentIndex(self.cb_dispatcher.findData(self.location_of_work.dispatcher))
 
     def edit_fixed_cast(self):
         if not self.location_of_work.team:

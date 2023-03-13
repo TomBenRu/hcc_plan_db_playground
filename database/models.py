@@ -113,6 +113,7 @@ class PlanPeriod(db.Entity):
     actor_plan_periods = Set('ActorPlanPeriod')
     location_plan_periods = Set('LocationPlanPeriod')
     plans = Set('Plan')
+    # apscheduler_job = Optional('APSchedulerJob')  # ist noch zu implementieren
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -449,3 +450,10 @@ class ExcelExportSettings(db.Entity):
     project = Optional(Project)
     teams = Set(Team)
     plans = Set(Plan)
+
+
+#  noch zu implementieren
+"""class APSchedulerJob(db.Entity):
+    id = PrimaryKey(int, auto=True)
+    plan_period = Required(PlanPeriod)
+    job = Required(bytes)"""

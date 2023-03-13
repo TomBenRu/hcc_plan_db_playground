@@ -7,14 +7,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridL
     QDialogButtonBox, QMessageBox
 
 from database import db_services, schemas
-
-
-class QComboBoxToFindData(QComboBox):
-    def findData(self, data):
-        for index in range(self.count()):
-            if self.itemData(index) == data:
-                return index
-        return -1
+from gui.tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmFixedCast(QDialog):

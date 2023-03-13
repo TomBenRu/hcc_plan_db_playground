@@ -217,6 +217,7 @@ class LocationOfWork(db.Entity):
     project = Required(Project)
     team = Optional(Team)
     nr_actors = Required(int, size=8, default=2, unsigned=True)
+    fixed_cast = Optional(str)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
@@ -286,6 +287,7 @@ class Event(db.Entity):
         for t_o_d in self.location_plan_period.time_of_days:
             if not t_o_d.prep_delete:
                 self.time_of_days.add(t_o_d)
+        self.fixed_cast = self.location_plan_period.fixed_cast
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -301,6 +303,7 @@ class LocationPlanPeriod(db.Entity):
     plan_period = Required(PlanPeriod)
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
+    fixed_cast = Optional(str)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     events = Set(Event)
 
     @property
@@ -312,6 +315,7 @@ class LocationPlanPeriod(db.Entity):
         for t_o_d in self.location_of_work.time_of_days:
             if not t_o_d.prep_delete:
                 self.time_of_days.add(t_o_d)
+        self.fixed_cast = self.location_of_work.fixed_cast
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

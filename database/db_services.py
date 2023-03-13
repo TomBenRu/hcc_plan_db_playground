@@ -190,7 +190,7 @@ def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> sch
     '''Es fehlt noch: combination_locations_possibles'''
     # for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
     #     location_db.__setattr__(key, val)
-    location_db.set(**location_of_work.dict(include={'name', 'nr_actors'}))
+    location_db.set(**location_of_work.dict(include={'name', 'nr_actors', 'fixed_cast'}))
 
     return schemas.LocationOfWorkShow.from_orm(location_db)
 

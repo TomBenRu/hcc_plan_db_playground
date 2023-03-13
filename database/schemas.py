@@ -114,6 +114,7 @@ class Planperiod(PlanPeriodCreate):
 
 
 class PlanPeriodShow(Planperiod):
+    fixed_cast: Optional[str]
 
     class Config:
         orm_mode = True
@@ -244,6 +245,7 @@ class LocationOfWork(LocationOfWorkCreate):
 class LocationOfWorkShow(LocationOfWork):
     team: Optional[Team]
     nr_actors: int
+    fixed_cast: Optional[str]
     time_of_days: List[TimeOfDayShow]
 
     @validator('time_of_days', pre=True, allow_reuse=True)

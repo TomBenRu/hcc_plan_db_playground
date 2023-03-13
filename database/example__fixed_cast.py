@@ -131,8 +131,13 @@ bt_eval.pack(pady=10)
 
 def transf_to_form(raw_form: tuple):
     form = []
+    for element in raw_form:
+        if type(element) == tuple:
+            break
+    else:
+        raw_form = [raw_form]
     for val in raw_form:
-        if type(val) == int:
+        if type(val) in [int, UUID]:
             form.append([val])
         elif type(val) == str:
             form.append(val)
@@ -149,9 +154,10 @@ def back_translate(eval_str: str):
     return transf_to_form(e_s)
 
 
-eval_str = '((1 in team) and (5 in team)) or ((2 in team) and (4 in team))'
-eval_str = '((UUID("635a8539-518f-4156-af6c-97adfec2b0dd") in team)) or ((UUID("635A8539518F4156AF6C97ADFEC2B0DD") in team) and (UUID("635A8539518F4156AF6C97ADFEC2B0DD") in team))'
 eval_str = '((2 in team) and (3 in team)) or (6 in team) or ((5 in team) and (4 in team)) '
+eval_str = '((1 in team) and (5 in team)) or ((2 in team) and (4 in team))'
+eval_str = '((1 in team) and (5 in team))'
+eval_str = '(((UUID("0b7c5327-f3bc-480d-9606-fe01f6db49d5") in team) and (UUID("0b7c5327-f3bc-480d-9606-fe01f6db49d5") in team)))'
 # e_s = eval_str.replace('and', ',"and",')
 # e_s = e_s.replace('or', ',"or",')
 # e_s = e_s.replace('in team', '')

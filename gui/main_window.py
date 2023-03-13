@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        self.project_id = UUID('46671D35A68343DB9FA6D2785A4059D8')
+        self.project_id = UUID('8F826C28BC244F7CB38791E8AA67F46D')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',

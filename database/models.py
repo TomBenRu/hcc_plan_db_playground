@@ -107,7 +107,7 @@ class PlanPeriod(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     closed = Required(bool, default=True)
     team = Required(Team)
     actor_plan_periods = Set('ActorPlanPeriod')
@@ -120,7 +120,7 @@ class PlanPeriod(db.Entity):
 
 class ActorPlanPeriod(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     plan_period = Required(PlanPeriod)
@@ -217,7 +217,7 @@ class LocationOfWork(db.Entity):
     project = Required(Project)
     team = Optional(Team)
     nr_actors = Required(int, size=8, default=2, unsigned=True)
-    fixed_cast = Optional(str)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
@@ -255,7 +255,7 @@ class Event(db.Entity):
     """Kann eine Veranstaltung, eine Arbeitsschicht o.Ä. sein."""
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
@@ -264,7 +264,7 @@ class Event(db.Entity):
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
     nr_actors = Required(int, size=8, unsigned=True)
-    fixed_cast = Optional(str)  # Form: (Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast = Optional(str, nullable=True)  # Form: (Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     variation_event_group = Optional('VariationEventGroup')  # Falls vorhanden, wird nur 1 Event aus der Eventgroup zu einem Appointment.
@@ -296,14 +296,14 @@ class Event(db.Entity):
 class LocationPlanPeriod(db.Entity):
     """nr_actors wird von neuer Instanz von Event übernommen."""
     id = PrimaryKey(UUID, auto=True)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     time_of_days = Set(TimeOfDay)
     plan_period = Required(PlanPeriod)
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
-    fixed_cast = Optional(str)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     events = Set(Event)
 
     @property
@@ -323,7 +323,7 @@ class LocationPlanPeriod(db.Entity):
 
 class Appointment(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     avail_days = Set(AvailDay)  # je nach Besetzung werden mehrere Inst. von AvailDay zugeordnet.
@@ -366,7 +366,7 @@ ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatis
 class Flag(db.Entity):
     """category bestimmt, welcher Klasse die Flag-Instanz zugehört."""
     id = PrimaryKey(UUID, auto=True)
-    category = Optional(str)
+    category = Optional(str, nullable=True)
     name = Required(str, 30)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
@@ -408,7 +408,7 @@ Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person, ein
 class Plan(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50, unique=True)
-    notes = Optional(str)
+    notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)

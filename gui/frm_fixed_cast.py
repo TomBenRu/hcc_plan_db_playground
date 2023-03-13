@@ -78,7 +78,9 @@ class FrmFixedCast(QDialog):
             for col in range(1, self.layout_grid.columnCount()):
                 if not (cell := self.layout_grid.itemAtPosition(row, col)):
                     if (row, col) == (0, 1):
-                        QMessageBox.information(self, 'Fixed Cast', 'Sie haben keine Besetung festgelegt.')
+                        print('Nix')
+                        self.location_of_work.fixed_cast = None
+                        self.accept()
                         return
                     continue
                 if (row, col) == (0, 1):
@@ -211,6 +213,9 @@ class FrmFixedCast(QDialog):
             combo_operator.addItem(text, data)
 
     def plot_eval_str(self):
+        print(f'{self.location_of_work.fixed_cast=}')
+        if not self.location_of_work.fixed_cast:
+            return
         form = self.backtranslate_eval_str()
         for row_idx, row in enumerate(form):
             if type(row) == str:
@@ -235,10 +240,15 @@ class FrmFixedCast(QDialog):
     def backtranslate_eval_str(self, str_for_team: str = 'team'):
         form = []
         eval_str = self.location_of_work.fixed_cast
+        print(f'{eval_str=}')
         if not eval_str:
             return
         e_s = eval_str.replace('and', ',"and",').replace('or', ',"or",').replace(f'in {str_for_team}', '')
+        print(f'{e_s=}')
         e_s = eval(e_s)
+        print(f'{e_s=}')
+        if type(e_s) != tuple:
+            e_s = (e_s,)
         for element in e_s:
             if type(element) == tuple:
                 break

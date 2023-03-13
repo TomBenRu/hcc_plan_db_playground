@@ -311,7 +311,7 @@ class WidgetLocationsOfWork(QWidget):
             QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
                                                      'Klicken Sie dafür in die entsprechende Zeile.')
             return
-        location_id = UUID(self.table_locations.item(row, 6).text())
+        location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
         dlg = FrmLocationModify(self, self.project_id, location_id)
         dlg.exec()
         self.refresh_table()
@@ -327,7 +327,7 @@ class WidgetLocationsOfWork(QWidget):
                                   f'Wollen Sie die Daten von...\n{text_location}\n...wirklich entgültig löschen?',
                                   QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
-            location_id = UUID(self.table_locations.item(row, 6).text())
+            location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
             try:
                 deleted_location = db_services.delete_location_of_work(location_id)
                 QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
@@ -348,13 +348,14 @@ class TableLocationsOfWork(QTableWidget):
         self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        self.headers = ['Name', 'Team', 'Besetung', 'Straße', 'PLZ', 'Ort', 'id']
+        self.headers = ['Name', 'Team', 'Besetung', 'Straße', 'PLZ', 'Ort', 'Team', 'id']
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(4, 50)
         self.setHorizontalHeaderLabels(self.headers)
-        self.hideColumn(6)
 
         self.put_data_to_table()
+        self.hideColumn(self.columnCount()-1)
+        print(self.columnCount())
 
     def put_data_to_table(self):
         self.setRowCount(len(self.locations))
@@ -365,7 +366,8 @@ class TableLocationsOfWork(QTableWidget):
             self.setItem(row, 3, QTableWidgetItem(loc.address.street if loc.address else ''))
             self.setItem(row, 4, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
             self.setItem(row, 5, QTableWidgetItem(loc.address.city if loc.address else ''))
-            self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
+            self.setItem(row, 6, QTableWidgetItem(loc.team.name if loc.team else ''))
+            self.setItem(row, 7, QTableWidgetItem(str(loc.id)))
 
     def text_to_clipboard(self, r, c):
         text = self.item(r, c).text()

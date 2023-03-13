@@ -190,7 +190,13 @@ class FrmFixedCast(QDialog):
         cb_operator.setObjectName(self.object_name_inner_operator if typ == 'inner'
                                   else self.object_name_operatior_between_rows)
         cb_operator.setFixedWidth(self.width_inner_operator)
+        if typ == 'inner':
+            cb_operator.setStyleSheet('background: #d9e193')
+        else:
+            cb_operator.setStyleSheet('background: #8ddee1')
+
         self.fill_cb_operator(cb_operator)
+
         return cb_operator
 
     def create_widget__add_inner_operater(self):

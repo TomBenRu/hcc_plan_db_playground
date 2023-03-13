@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from database import db_services
 from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
+from gui.frm_plan_period import FrmPlanPeriodCreate
 from gui.frm_project_settings import SettingsProject
 from gui.tabbars import TabBar
 from gui.toolbars import MainToolBar
@@ -19,7 +20,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        self.project_id = UUID('8F826C28BC244F7CB38791E8AA67F46D')
+        # db_services.new_project('Humor Hilft Heilen')
+
+        self.project_id = UUID('91D5BC582B214663B6727331210E5D87')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -137,7 +140,8 @@ class MainWindow(QMainWindow):
         self.frm_master_data = None
 
     def new_planperiod(self):
-        print('neue Planperiode...')
+        dlg = FrmPlanPeriodCreate(self, project_id=self.project_id)
+        dlg.exec()
 
     def open_plan(self):
         ...

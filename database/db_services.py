@@ -7,7 +7,7 @@ from pony.orm import db_session, show
 
 from . import schemas
 from .authentication import hash_psw
-from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings
+from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings, PlanPeriod
 
 
 @db_session(sql_debug=True, show_values=True)
@@ -257,6 +257,8 @@ def put_time_of_day_to_model(time_of_day: schemas.TimeOfDay,
 
 @db_session(sql_debug=True, show_values=True)
 def delete_time_of_day(time_of_day_id: UUID) -> schemas.TimeOfDay:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
     time_of_day_db = TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
     time_of_day_db.prep_delete = datetime.datetime.utcnow()
     return schemas.TimeOfDay.from_orm(time_of_day_db)
@@ -264,6 +266,8 @@ def delete_time_of_day(time_of_day_id: UUID) -> schemas.TimeOfDay:
 
 @db_session(sql_debug=True, show_values=True)
 def update_excel_export_settings(excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
     excel_export_settings_db = ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
     # for key, val in excel_export_settings.dict(exclude={'id'}).items():
     #     excel_export_settings_db.__setattr__(key, val)
@@ -274,14 +278,27 @@ def update_excel_export_settings(excel_export_settings: schemas.ExcelExportSetti
 
 @db_session(sql_debug=True, show_values=True)
 def create_address(address: schemas.AddressCreate) -> schemas.Address:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
     address_db = Address(street=address.street, postal_code=address.postal_code, city=address.city)
     return schemas.Address.from_orm(address_db)
 
 
 @db_session(sql_debug=True, show_values=True)
 def update_address(address: schemas.Address) -> schemas.Address:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
     address_db = Address.get_for_update(lambda a: a.id == address.id)
     # for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
     #     address_db.__setattr__(key, val)
     address_db.set(**address.dict(include={'street', 'postal_code', 'city'}))
     return schemas.Address.from_orm(address_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_planperiod(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    team_db = Team.get_for_update(id=plan_period.team.id)
+    plan_period_db = PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline, notes=plan_period.notes, team=team_db)
+    return schemas.PlanPeriodShow.from_orm(plan_period_db)

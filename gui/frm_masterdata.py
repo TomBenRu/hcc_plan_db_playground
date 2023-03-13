@@ -356,7 +356,6 @@ class TableLocationsOfWork(QTableWidget):
 
         self.put_data_to_table()
         self.hideColumn(self.columnCount()-1)
-        print(self.columnCount())
 
     def put_data_to_table(self):
         self.setRowCount(len(self.locations))

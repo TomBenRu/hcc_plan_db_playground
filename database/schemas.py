@@ -43,6 +43,11 @@ class Person(PersonCreate):
 class PersonShow(Person):
     project: 'Project'
     team_of_actor: Optional['Team']
+    teams_of_dispatcher: list['TeamShow']
+
+    @validator('teams_of_dispatcher', pre=True, allow_reuse=True)
+    def teams_set_to_list(cls, values):
+        return [t for t in values]
 
     class Config:
         orm_mode = True
@@ -98,7 +103,12 @@ class Team(TeamCreate):
 
 
 class TeamShow(Team):
+    plan_periods: List['Planperiod']
     excel_export_settings: Optional['ExcelExportSettings']
+
+    @validator('plan_periods', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [v for v in values]
 
     class Config:
         orm_mode = True
@@ -109,11 +119,13 @@ class PlanPeriodCreate(BaseModel):
     end: date
     deadline: date
     notes: str = ''
+    remainder: bool
     team: Team
 
 
 class Planperiod(PlanPeriodCreate):
     id: UUID
+    prep_delete: Optional[date]
 
     class Config:
         orm_mode = True
@@ -138,11 +150,11 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
 
     @validator('combination_locations_possibles', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_list(cls, values):
         return [t for t in values]
 
     @validator('actor_partner_location_prefs', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_list(cls, values):
         return [t for t in values]
 
     class Config:

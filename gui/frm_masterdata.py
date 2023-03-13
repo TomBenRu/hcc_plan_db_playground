@@ -500,11 +500,14 @@ class FrmLocationModify(FrmLocationData):
         return location
 
     def edit_time_of_days(self):
-        time_of_day_show_in_project = db_services.get_time_of_day(self.cb_time_of_days.currentData().id)
+        if not (curr_data := self.cb_time_of_days.currentData()):
+            only_new_time_of_day_cause_project = True
+        else:
+            time_of_day_show_in_project = db_services.get_time_of_day(curr_data.id)
 
-        '''Falls die Tageszeit dem Projekt zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
-        Referenz zur Location gespeichert werden.'''
-        only_new_time_of_day_cause_project = True if time_of_day_show_in_project.project_defaults else False
+            '''Falls die Tageszeit dem Projekt zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
+            Referenz zur Location gespeichert werden.'''
+            only_new_time_of_day_cause_project = True if time_of_day_show_in_project.project_defaults else False
 
         dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(), only_new_time_of_day=only_new_time_of_day_cause_project)
         if dlg.exec():  # Wenn der Dialog mit OK bestätigt wird...

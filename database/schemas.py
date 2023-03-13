@@ -12,6 +12,11 @@ class ModelWithTimeOfDays(Protocol):
     time_of_days: list['TimeOfDay']
 
 
+@runtime_checkable
+class ModelWithFixedCast(Protocol):
+    fixed_cast: Optional[str]
+
+
 class PersonCreate(BaseModel):
     f_name: str
     l_name: str

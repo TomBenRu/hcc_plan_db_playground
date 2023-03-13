@@ -18,7 +18,7 @@ class QComboBoxToFindData(QComboBox):
 
 
 class FrmFixedCast(QDialog):
-    def __init__(self, parent: QWidget, location_of_work: schemas.LocationOfWorkShow):
+    def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
         super().__init__(parent)
         self.setWindowTitle('Fixed Cast')
         self.col_operator_betw_rows = 2
@@ -28,22 +28,29 @@ class FrmFixedCast(QDialog):
         self.width_container__add_inner_operator = 60
         self.width_operator_betw_rows = 50
 
-        self.location_of_work = location_of_work
+        self.object_with_fixed_cast = schema_with_fixed_cast_field
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
         self.object_name_operatior_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': 'und', 'or': 'oder'}
 
-        self.persons = sorted(db_services.get_persons_of_team(location_of_work.team.id), key=lambda p: p.f_name)
-
-        self.result_list = []
+        self.persons = sorted(db_services.get_persons_of_team(schema_with_fixed_cast_field.team.id),
+                              key=lambda p: p.f_name)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.lb_title = QLabel(f'Hier können Sie definieren, welche Besetzung für die Einrichtung '
-                               f'"{location_of_work.name}" grundsätzlich erforderlich ist.\n'
+        if (isinstance(schema_with_fixed_cast_field, schemas.LocationOfWork)
+                or isinstance(schema_with_fixed_cast_field, schemas.Event)):
+            additional_text = f'die Einrichtung "{schema_with_fixed_cast_field.name}"'
+        elif isinstance(schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
+            additional_text = f'die Planungsperiode "{schema_with_fixed_cast_field.start}-{schema_with_fixed_cast_field.end}"'
+        else:
+            QMessageBox.critical(self, 'Fehler Fixed Cast', f'Schema:{type(schema_with_fixed_cast_field)}')
+
+        self.lb_title = QLabel(f'Hier können Sie definieren, welche Besetzung für {additional_text} '
+                               f'grundsätzlich erforderlich ist.\n'
                                f'Zum starten bitte auf das Plus-Symbol klicken')
         self.lb_title.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.lb_title.setFixedHeight(40)
@@ -57,13 +64,9 @@ class FrmFixedCast(QDialog):
         self.bt_new_row.setFixedWidth(self.width_bt_new_row)
         self.layout_grid.addWidget(self.bt_new_row, 0, 0)
 
-        self.spacer_widget = QLabel('xxxx')
+        self.spacer_widget = QLabel()
         self.spacer_widget.setObjectName('spacer_widget')
         self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
-
-        self.lb_result = QLabel('Noch keine Besetzung festgelet.')
-        self.lb_result.setAlignment(Qt.AlignmentFlag.AlignBottom)
-        self.layout.addWidget(self.lb_result)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.save_fixed_cast)
@@ -73,29 +76,35 @@ class FrmFixedCast(QDialog):
         self.plot_eval_str()
 
     def save_fixed_cast(self):
-        self.result_list = []
+        result_list = self.grid_to_list()
+        if not result_list:
+            self.object_with_fixed_cast.fixed_cast = None
+            self.accept()
+            return
+
+        result_text = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
+        self.object_with_fixed_cast.fixed_cast = result_text
+        self.accept()
+
+    def grid_to_list(self):
+        result_list = []
         for row in range(self.layout_grid.rowCount()):
             for col in range(1, self.layout_grid.columnCount()):
                 if not (cell := self.layout_grid.itemAtPosition(row, col)):
                     if (row, col) == (0, 1):
-                        self.location_of_work.fixed_cast = None
-                        self.accept()
-                        return
+                        return result_list
                     continue
                 if (row, col) == (0, 1):
-                    self.result_list.append([])
+                    result_list.append([])
                 cb: QComboBox = cell.widget()
                 if cb.objectName() == self.object_name_operatior_between_rows:
-                    self.result_list.append(cb.currentData())
-                    self.result_list.append([])
+                    result_list.append(cb.currentData())
+                    result_list.append([])
                 if cb.objectName() == self.object_name_actors:
-                    self.result_list[-1].append(f'(UUID("{cb.currentData()}") in team)')
+                    result_list[-1].append(f'(UUID("{cb.currentData()}") in team)')
                 if cb.objectName() == self.object_name_inner_operator:
-                    self.result_list[-1].append(cb.currentData())
-        result_text = f'{self.result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
-        self.lb_result.setText(result_text)
-        self.location_of_work.fixed_cast = result_text
-        self.accept()
+                    result_list[-1].append(cb.currentData())
+        return result_list
 
     def new_row(self):
         """füg eine neue Reihe mit Zwischenoperator-Auswahl hinzu"""
@@ -212,7 +221,7 @@ class FrmFixedCast(QDialog):
             combo_operator.addItem(text, data)
 
     def plot_eval_str(self):
-        if not self.location_of_work.fixed_cast:
+        if not self.object_with_fixed_cast.fixed_cast:
             return
         form = self.backtranslate_eval_str()
         for row_idx, row in enumerate(form):
@@ -237,7 +246,7 @@ class FrmFixedCast(QDialog):
 
     def backtranslate_eval_str(self, str_for_team: str = 'team'):
         form = []
-        eval_str = self.location_of_work.fixed_cast
+        eval_str = self.object_with_fixed_cast.fixed_cast
         if not eval_str:
             return
         e_s = eval_str.replace('and', ',"and",').replace('or', ',"or",').replace(f'in {str_for_team}', '')

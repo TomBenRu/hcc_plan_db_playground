@@ -490,6 +490,8 @@ class FrmLocationModify(FrmLocationData):
             self.location_of_work.address.city = self.le_city.text()
             self.location_of_work.nr_actors = self.spin_nr_actors.value()
             self.location_of_work.team = self.cb_teams.currentData()
+            print(f'{self.cb_teams.currentData()=}')
+            print()
         # try:
             updated_location = db_services.update_location_of_work(self.location_of_work)
             QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')

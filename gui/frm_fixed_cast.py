@@ -2,7 +2,7 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
     QDialogButtonBox, QMessageBox
 

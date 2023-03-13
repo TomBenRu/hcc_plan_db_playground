@@ -187,6 +187,8 @@ def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> sch
     location_db.address = Address.get_for_update(id=address.id)
     if location_of_work.team:
         location_db.team = Team.get_for_update(id=location_of_work.team.id)
+    else:
+        location_db.team = None
     '''Es fehlt noch: combination_locations_possibles'''
     # for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
     #     location_db.__setattr__(key, val)

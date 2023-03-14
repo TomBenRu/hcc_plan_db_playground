@@ -21,13 +21,15 @@ class FrmPlanPeriodData(QDialog):
         self.max_end_plan_periods: datetime.datetime | None = None
 
         self.layout = QVBoxLayout()
+        self.layout.setSpacing(20)
         self.setLayout(self.layout)
 
         self.lb_title = QLabel('Erstellen Sie hier einen neuen Planungszeitraum.')
-        self.lb_title.setFixedHeight(20)
+        self.lb_title.setFixedHeight(40)
         self.layout.addWidget(self.lb_title)
 
         self.data_input_layout = QGridLayout()
+        self.data_input_layout.setSpacing(10)
         self.layout.addLayout(self.data_input_layout)
 
         self.lb_cb_dispatcher = QLabel('Planer*in')
@@ -120,7 +122,6 @@ class FrmPlanPeriodData(QDialog):
         plan_period_created = db_services.create_planperiod(new_plan_period)
         QMessageBox.information(self, 'Planungszeitraum', f'Planungszeitraum wurde erstellt:\n{plan_period_created}')
         self.accept()
-
 
 
 class FrmPlanPeriodCreate(FrmPlanPeriodData):

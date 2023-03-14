@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QMenu, QListWidget
+    QMenu, QListWidget, QFormLayout
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -169,7 +169,6 @@ class TablePersons(QTableWidget):
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist nun keinem Team zugeordnet.')
 
 
-
 class FrmPersonCreate(QDialog):
     def __init__(self, project_id: UUID):
         super().__init__()
@@ -180,61 +179,41 @@ class FrmPersonCreate(QDialog):
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+
         self.group_person_data = QGroupBox('Personendaten')
-        self.group_person_data_layout = QGridLayout()
-        self.group_person_data.setLayout(self.group_person_data_layout)
+        self.group_person_data_layout = QFormLayout(self.group_person_data)
         self.layout.addWidget(self.group_person_data)
+
         self.group_auth_data = QGroupBox('Anmeldedaten')
-        self.group_auth_data_layout = QGridLayout()
-        self.group_auth_data.setLayout(self.group_auth_data_layout)
+        self.group_auth_data_layout = QFormLayout(self.group_auth_data)
         self.layout.addWidget(self.group_auth_data)
+
         self.group_address_data = QGroupBox('Adressdaten')
-        self.group_address_data_layout = QGridLayout()
-        self.group_address_data.setLayout(self.group_address_data_layout)
+        self.group_address_data_layout = QFormLayout(self.group_address_data)
         self.layout.addWidget(self.group_address_data)
 
-        self.lb_f_name = QLabel('Vorname')
         self.le_f_name = QLineEdit()
-        self.lb_l_name = QLabel('Nachname')
         self.le_l_name = QLineEdit()
-        self.lb_email = QLabel('Email')
         self.le_email = QLineEdit()
-        self.lb_gender = QLabel('Geschlecht')
         self.cb_gender = QComboBox()
         self.cb_gender.addItems([n.name for n in Gender])
-        self.lb_phone_nr = QLabel('Telefon')
         self.le_phone_nr = QLineEdit()
-        self.lb_username = QLabel('Username')
         self.le_username = QLineEdit()
-        self.lb_password = QLabel('Passwort')
         self.le_password = QLineEdit()
-        self.lb_street = QLabel('Straße')
         self.le_street = QLineEdit()
-        self.lb_postal_code = QLabel('Postleitzahl')
         self.le_postal_code = QLineEdit()
-        self.lb_city = QLabel('Ort')
         self.le_city = QLineEdit()
 
-        self.group_person_data_layout.addWidget(self.lb_f_name, 0, 0)
-        self.group_person_data_layout.addWidget(self.le_f_name, 0, 1)
-        self.group_person_data_layout.addWidget(self.lb_l_name, 1, 0)
-        self.group_person_data_layout.addWidget(self.le_l_name, 1, 1)
-        self.group_person_data_layout.addWidget(self.lb_email, 2, 0)
-        self.group_person_data_layout.addWidget(self.le_email, 2, 1)
-        self.group_person_data_layout.addWidget(self.lb_gender, 3, 0)
-        self.group_person_data_layout.addWidget(self.cb_gender, 3, 1)
-        self.group_person_data_layout.addWidget(self.lb_phone_nr, 4, 0)
-        self.group_person_data_layout.addWidget(self.le_phone_nr, 4, 1)
-        self.group_auth_data_layout.addWidget(self.lb_username, 0, 0)
-        self.group_auth_data_layout.addWidget(self.le_username, 0, 1)
-        self.group_auth_data_layout.addWidget(self.lb_password, 1, 0)
-        self.group_auth_data_layout.addWidget(self.le_password, 1, 1)
-        self.group_address_data_layout.addWidget(self.lb_street, 0, 0)
-        self.group_address_data_layout.addWidget(self.le_street, 0, 1)
-        self.group_address_data_layout.addWidget(self.lb_postal_code, 1, 0)
-        self.group_address_data_layout.addWidget(self.le_postal_code, 1, 1)
-        self.group_address_data_layout.addWidget(self.lb_city, 2, 0)
-        self.group_address_data_layout.addWidget(self.le_city, 2, 1)
+        self.group_person_data_layout.addRow('Vorname', self.le_f_name)
+        self.group_person_data_layout.addRow('Nachname', self.le_l_name)
+        self.group_person_data_layout.addRow('Email', self.le_email)
+        self.group_person_data_layout.addRow('Gerschlecht', self.cb_gender)
+        self.group_person_data_layout.addRow('Telefon', self.le_phone_nr)
+        self.group_auth_data_layout.addRow('Username', self.le_username)
+        self.group_auth_data_layout.addRow('Passwort', self.le_password)
+        self.group_address_data_layout.addRow('Straße', self.le_street)
+        self.group_address_data_layout.addRow('Postleitzahl', self.le_postal_code)
+        self.group_address_data_layout.addRow('Ort', self.le_city)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_person)
@@ -381,34 +360,26 @@ class FrmLocationData(QDialog):
 
         self.project_id = project_id
         self.project = db_services.get_project(project_id)
+
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+
         self.group_location_data = QGroupBox('Einrichtungsdaten')
-        self.group_location_data_layout = QGridLayout()
-        self.group_location_data.setLayout(self.group_location_data_layout)
+        self.group_location_data_layout = QFormLayout(self.group_location_data)
         self.layout.addWidget(self.group_location_data)
         self.group_address_data = QGroupBox('Adressdaten')
-        self.group_address_data_layout = QGridLayout()
-        self.group_address_data.setLayout(self.group_address_data_layout)
+        self.group_address_data_layout = QFormLayout(self.group_address_data)
         self.layout.addWidget(self.group_address_data)
 
-        self.lb_name = QLabel('Name')
         self.le_name = QLineEdit()
-        self.lb_street = QLabel('Straße')
         self.le_street = QLineEdit()
-        self.lb_postal_code = QLabel('Postleitzahl')
         self.le_postal_code = QLineEdit()
-        self.lb_city = QLabel('Ort')
         self.le_city = QLineEdit()
 
-        self.group_location_data_layout.addWidget(self.lb_name, 0, 0)
-        self.group_location_data_layout.addWidget(self.le_name, 0, 1)
-        self.group_address_data_layout.addWidget(self.lb_street, 0, 0)
-        self.group_address_data_layout.addWidget(self.le_street, 0, 1)
-        self.group_address_data_layout.addWidget(self.lb_postal_code, 1, 0)
-        self.group_address_data_layout.addWidget(self.le_postal_code, 1, 1)
-        self.group_address_data_layout.addWidget(self.lb_city, 2, 0)
-        self.group_address_data_layout.addWidget(self.le_city, 2, 1)
+        self.group_location_data_layout.addRow('Name', self.le_name)
+        self.group_address_data_layout.addRow('Straße', self.le_street)
+        self.group_address_data_layout.addRow('Postleitzahl', self.le_postal_code)
+        self.group_address_data_layout.addRow('Ort', self.le_city)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_location)
@@ -446,11 +417,10 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work = self.get_location_of_work()
 
         self.group_specific_data = QGroupBox('Spezielles')
-        self.group_specific_data_layout = QGridLayout()
+        self.group_specific_data_layout = QGridLayout(self.group_specific_data)
         self.group_specific_data_layout.setColumnStretch(0, 1)
         self.group_specific_data_layout.setColumnStretch(1, 10)
         self.group_specific_data_layout.setColumnStretch(2, 1)
-        self.group_specific_data.setLayout(self.group_specific_data_layout)
         self.layout.addWidget(self.group_specific_data)
 
         self.lb_nr_actors = QLabel('Besetzungsstärke')
@@ -606,6 +576,3 @@ class FrmLocationModify(FrmLocationData):
     def get_teams(self):
         teams = db_services.get_teams_of_project(self.project_id)
         return teams
-
-
-

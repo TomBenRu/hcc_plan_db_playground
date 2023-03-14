@@ -4,7 +4,7 @@ from uuid import UUID
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
-    QVBoxLayout, QDialogButtonBox, QMessageBox
+    QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout
 
 from database import db_services, schemas
 from gui.tools.qcombobox_find_data import QComboBoxToFindData
@@ -28,43 +28,32 @@ class FrmPlanPeriodData(QDialog):
         self.lb_title.setFixedHeight(40)
         self.layout.addWidget(self.lb_title)
 
-        self.data_input_layout = QGridLayout()
+        self.data_input_layout = QFormLayout()
         self.data_input_layout.setSpacing(10)
         self.layout.addLayout(self.data_input_layout)
 
-        self.lb_cb_dispatcher = QLabel('Planer*in')
         self.cb_dispatcher = QComboBox()  # wird später über Anmeldeberechtigung bestimmt
         self.cb_dispatcher.currentIndexChanged.connect(self.fill_teams)
 
-        self.lb_cb_teams = QLabel('Team')
         self.cb_teams = QComboBox()
         self.cb_teams.currentIndexChanged.connect(self.fill_dates)
 
-        self.lb_de_start = QLabel('Start')
         self.de_start = QDateEdit()
-        self.lb_de_end = QLabel('Ende')
         self.de_end = QDateEdit()
-        self.lb_de_deadline = QLabel('Deadline')
         self.de_deadline = QDateEdit()
 
-        self.lb_pt_notes = QLabel('Notizen')
         self.pt_notes = QPlainTextEdit()
 
         self.chk_remainder = QCheckBox('Remainder verschicken?')
 
-        self.data_input_layout.addWidget(self.lb_cb_dispatcher, 0, 0)
-        self.data_input_layout.addWidget(self.cb_dispatcher, 0, 1)
-        self.data_input_layout.addWidget(self.lb_cb_teams, 1, 0)
-        self.data_input_layout.addWidget(self.cb_teams, 1, 1)
-        self.data_input_layout.addWidget(self.lb_de_start, 2, 0)
-        self.data_input_layout.addWidget(self.de_start, 2, 1)
-        self.data_input_layout.addWidget(self.lb_de_end, 3, 0)
-        self.data_input_layout.addWidget(self.de_end)
-        self.data_input_layout.addWidget(self.lb_de_deadline, 4, 0)
-        self.data_input_layout.addWidget(self.de_deadline, 4, 1)
-        self.data_input_layout.addWidget(self.lb_pt_notes, 5, 0)
-        self.data_input_layout.addWidget(self.pt_notes, 5, 0, 3, 3)
-        self.data_input_layout.addWidget(self.chk_remainder, self.data_input_layout.rowCount(), 0, 1, 2)
+        self.data_input_layout.addRow('Planer*in', self.cb_dispatcher)
+        self.data_input_layout.addRow('Team', self.cb_teams)
+        self.data_input_layout.addRow('Start', self.de_start)
+        self.data_input_layout.addRow('Ende', self.de_end)
+        self.data_input_layout.addRow('Deadline', self.de_deadline)
+        self.data_input_layout.addRow('Notizen', None)
+        self.data_input_layout.addRow(self.pt_notes)
+        self.data_input_layout.addRow(self.chk_remainder)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.save)

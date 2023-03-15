@@ -328,7 +328,7 @@ class TableLocationsOfWork(QTableWidget):
         self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        self.headers = ['Name', 'Team', 'Besetung', 'Straße', 'PLZ', 'Ort', 'Team', 'id']
+        self.headers = ['Name', 'Straße', 'PLZ', 'Ort', 'Team', 'Besetung', 'id']
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(4, 50)
         self.setHorizontalHeaderLabels(self.headers)
@@ -340,13 +340,12 @@ class TableLocationsOfWork(QTableWidget):
         self.setRowCount(len(self.locations))
         for row, loc in enumerate(self.locations):
             self.setItem(row, 0, QTableWidgetItem(loc.name))
-            self.setItem(row, 1, QTableWidgetItem(loc.team.name if loc.team else ''))
-            self.setItem(row, 2, QTableWidgetItem(str(loc.nr_actors)))
-            self.setItem(row, 3, QTableWidgetItem(loc.address.street if loc.address else ''))
-            self.setItem(row, 4, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
-            self.setItem(row, 5, QTableWidgetItem(loc.address.city if loc.address else ''))
-            self.setItem(row, 6, QTableWidgetItem(loc.team.name if loc.team else ''))
-            self.setItem(row, 7, QTableWidgetItem(str(loc.id)))
+            self.setItem(row, 1, QTableWidgetItem(loc.address.street if loc.address else ''))
+            self.setItem(row, 2, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
+            self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
+            self.setItem(row, 4, QTableWidgetItem(loc.team.name if loc.team else ''))
+            self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
+            self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
 
     def text_to_clipboard(self, r, c):
         text = self.item(r, c).text()

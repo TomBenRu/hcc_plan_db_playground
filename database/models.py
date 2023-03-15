@@ -114,7 +114,6 @@ class PlanPeriod(db.Entity):
     actor_plan_periods = Set('ActorPlanPeriod')
     location_plan_periods = Set('LocationPlanPeriod')
     plans = Set('Plan')
-    # apscheduler_job = Optional('APSchedulerJob')  # ist noch zu implementieren
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -212,6 +211,7 @@ class LocationOfWork(db.Entity):
     nr_actors wird von neuer Instanz von LocationPlanPeriod übernommen."""
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
+    notes = Optional(str)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
@@ -254,14 +254,14 @@ class Address(db.Entity):
 
 
 class Event(db.Entity):
-    """Kann eine Veranstaltung, eine Arbeitsschicht o.Ä. sein."""
+    """Kann eine Veranstaltung, eine Arbeitsschicht o.Ä. sein.
+       Ein Event muss immer genau einer Eventgroup zugeordnet sein."""
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50)
     notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
-    location_plan_period = Required('LocationPlanPeriod')
     date = Required(date)
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
@@ -269,8 +269,11 @@ class Event(db.Entity):
     fixed_cast = Optional(str, nullable=True)  # Form: (Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
-    variation_event_group = Optional('VariationEventGroup')  # Falls vorhanden, wird nur 1 Event aus der Eventgroup zu einem Appointment.
-    variation_weight = Optional(int, size=8, unsigned=True)  # ist None, wenn Event nicht in einer Eventgroup
+    event_group = Required('EventGroup')
+
+    @property
+    def location_plan_period(self):
+        return self.event_group.location_plan_period_getter
 
     @property
     def team(self):
@@ -295,8 +298,32 @@ class Event(db.Entity):
         self.last_modified = datetime.utcnow()
 
 
+class EventGroup(db.Entity):
+    """Eventgroups können entweder genau 1 Event beinhalten, oden 1 oder mehrere Eventgroups.
+       Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
+    id = PrimaryKey(UUID, auto=True)
+    location_plan_period = Optional('LocationPlanPeriod')
+    nr_eventgroups = Required(int, unsigned=True)
+    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
+    # Optional kann der Wert von nr_eventgroups auch geringer sein.
+    event_group = Optional('EventGroup', reverse='event_groups')
+    event_groups = Set('EventGroup', reverse='event_group')
+    event = Optional(Event)
+    variation_weight = Required(int, size=8, default=1, unsigned=True)  # Falls weniger Eventgroups in einer Eventgroup als nr_events der Eventgroup können den Events unterschiedliche Gewichtungen verliehen werden.
+    created_at = Required(datetime, default=lambda: datetime.utcnow())
+    last_modified = Optional(datetime)
+
+    @property
+    def location_plan_period_getter(self):
+        return self.location_plan_period if self.location_plan_period else self.event_group.location_plan_period_getter
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
+
 class LocationPlanPeriod(db.Entity):
-    """nr_actors wird von neuer Instanz von Event übernommen."""
+    """nr_actors wird von neuer Instanz von Event übernommen.
+       Jede LocationPlanPeriod enthält genau 1 Eventgroup."""
     id = PrimaryKey(UUID, auto=True)
     notes = Optional(str, nullable=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
@@ -306,7 +333,7 @@ class LocationPlanPeriod(db.Entity):
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
-    events = Set(Event)
+    event_group = Required('EventGroup')
 
     @property
     def team(self):
@@ -374,17 +401,6 @@ class Flag(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     persons = Set(Person)
-    events = Set(Event)
-
-    def before_update(self):
-        self.last_modified = datetime.utcnow()
-
-
-class VariationEventGroup(db.Entity):
-    """Instanzen von VariationEventGroup ohne Events können nach Beenden der Planperiode gelöscht werden."""
-    id = PrimaryKey(UUID, auto=True)
-    created_at = Required(datetime, default=lambda: datetime.utcnow())
-    last_modified = Required(datetime, default=lambda: datetime.utcnow())
     events = Set(Event)
 
     def before_update(self):

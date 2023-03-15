@@ -298,13 +298,12 @@ class EventCreate(BaseModel):
     name: Optional[str]
     notes: Optional[str]
     location_plan_period: 'LocationPlanPeriod'
+    event_group: 'EventGroup'
     date: date
     time_of_day: TimeOfDay
     nr_actors: Optional[int]
     fixed_cast: Optional[str]
     flags: List['Flag']
-    variation_event_group: Optional['VariationEventGroup']
-    variation_weight: Optional[int]
 
 
 class Event(EventCreate):
@@ -326,6 +325,24 @@ class EventShow(Event):
 
     class Config:
         orm_mode = True
+
+
+class EventGroupCreate(BaseModel):
+    location_plan_period: Optional['LocationPlanPeriod']
+    nr_eventgroups: int
+    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
+    # Optional kann der Wert von nr_eventgroups auch geringer sein.
+    event_group: Optional['EventGroup']
+    event: Optional[Event]
+    variation_weight: int = 1
+
+
+class EventGroup(EventGroupCreate):
+    id: UUID
+
+
+class EventGroupShow(EventGroup):
+    ...
 
 
 class LocationPlanPeriodCreate(BaseModel):
@@ -413,31 +430,6 @@ class FlagShow(Flag):
         orm_mode = True
 
 
-class VariationEventGroupCreate(BaseModel):
-    events: List[Event]
-
-
-class VariationEventGroup(VariationEventGroupCreate):
-    id: UUID
-
-    @validator('events', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
-        return [t for t in values]
-
-    class Config:
-        orm_mode = True
-
-
-class VariationEventGroupShow(VariationEventGroup):
-
-    @validator('events', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
-        return [t for t in values]
-
-    class Config:
-        orm_mode = True
-
-
 class CombinationLocationsPossibleCreate(BaseModel):
     locations_of_work: List[LocationOfWork]
 
@@ -517,5 +509,8 @@ LocationOfWork.update_forward_refs(**locals())
 LocationOfWorkShow.update_forward_refs(**locals())
 TeamShow.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
+EventGroupCreate.update_forward_refs(**locals())
+EventGroup.update_forward_refs(**locals())
+EventGroupShow.update_forward_refs(**locals())
 TimeOfDayShow.update_forward_refs(**locals())
 

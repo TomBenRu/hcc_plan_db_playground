@@ -17,6 +17,7 @@ db.provider.converter_classes.append((Enum, EnumConverter))
 db.generate_mapping(create_tables=True)
 set_sql_debug(False, False)
 
+
 def create_project_and_team(proj_name: str, team_name: str):
     from .models import Project, Team
     with db_session:

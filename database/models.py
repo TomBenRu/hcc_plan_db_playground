@@ -303,6 +303,12 @@ class EventGroup(db.Entity):
        Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
+    same_day_cast_pref = Required(int, size=8, default=2, unsigned=True)
+    # Wenn am gleichen Tag mehrere Events der gleichen Location stattfinden bedeuten:
+    # 0: beliebige Besetzungen, 1: möglichsts die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
+    same_group_cast_pref = Required(int, size=8, default=0, unsigned=True)
+    # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
+    # Gewichtungen wie same_day_cast_pref
     nr_eventgroups = Required(int, unsigned=True)
     # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
     # Optional kann der Wert von nr_eventgroups auch geringer sein.

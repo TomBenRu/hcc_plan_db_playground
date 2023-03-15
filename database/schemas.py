@@ -329,6 +329,12 @@ class EventShow(Event):
 
 class EventGroupCreate(BaseModel):
     location_plan_period: Optional['LocationPlanPeriod']
+    same_day_cast_pref: int
+    # Wenn am gleichen Tag mehrere Events der gleichen Location stattfinden bedeuten:
+    # 0: beliebige Besetzungen, 1: möglichsts die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
+    same_group_cast_pref: int
+    # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
+    # Gewichtungen wie same_day_cast_pref
     nr_eventgroups: int
     # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
     # Optional kann der Wert von nr_eventgroups auch geringer sein.

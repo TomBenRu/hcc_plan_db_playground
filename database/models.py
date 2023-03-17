@@ -8,6 +8,10 @@ from database.enums import Gender
 db = Database()
 
 
+class CustomError(Exception):
+    pass
+
+
 class Person(db.Entity):
     """Um die Konsistenz zurückliegender Pläne zu erhalten, sollten Instanzen von Personen nicht aus der Datenbank
     gelöscht werden, sondern nur der Wert prep_delete gesetzt werden."""
@@ -19,7 +23,8 @@ class Person(db.Entity):
     phone_nr = Optional(str, 50)
     username = Required(str, 50, unique=True)
     password = Required(str)
-    requested_assignments = Optional(int, size=16, unsigned=True, default=8)
+    requested_assignments = Optional(int, size=16, default=8, unsigned=True)
+    notes = Optional(str, nullable=True)  # Allgemeine Anmerkungen zum Mitarbeiter.
     created_at = Optional(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
@@ -107,7 +112,7 @@ class PlanPeriod(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
-    notes = Optional(str, nullable=True)
+    notes = Optional(str, nullable=True)  # Anmerkungen des Dispatchers.
     closed = Required(bool, default=False)
     remainder = Required(bool, default=True)
     team = Required(Team)
@@ -126,8 +131,9 @@ class ActorPlanPeriod(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     plan_period = Required(PlanPeriod)
     person = Required(Person)
-    avail_days = Set('AvailDay')
+    avail_day_group = Optional('AvailDayGroup')
     time_of_days = Set('TimeOfDay')
+    requested_assignments = Required(int, size=16, default=8, unsigned=True)
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
 
@@ -148,6 +154,32 @@ class ActorPlanPeriod(db.Entity):
         self.last_modified = datetime.utcnow()
 
 
+class AvailDayGroup(db.Entity):
+    """AvailDayGroups können entweder genau 1 AvailDay beinhalten, oder 1 oder mehrere AvailDayGroups.
+       Jede AvailDayGroup ist entweder genau 1 AvailDayGroup zugeordnet oder genau einerActorPlanPeriod."""
+    id = PrimaryKey(UUID, auto=True)
+    actor_plan_period = Optional(ActorPlanPeriod)
+    nr_avail_day_groups = Optional(int, unsigned=True)
+    # Falls alle AvailDayGroups innerhalb der AvailDayGroup stattfinden können, entspricht der Wert genau dieser Anzahl
+    # (alternativ: None).
+    # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
+    avail_day_group = Optional('AvailDayGroup', reverse='avail_day_groups')
+    avail_day_groups = Set('AvailDayGroup', reverse='avail_day_group')
+    avail_day = Optional('AvailDay')
+    variation_weight = Required(int, size=8, default=1, unsigned=True)
+    # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
+    # unterschiedliche Gewichtungen verliehen werden.
+    created_at = Required(datetime, default=lambda: datetime.utcnow())
+    last_modified = Required(datetime, default=lambda: datetime.utcnow())
+
+    @property
+    def actor_plan_period_getter(self):
+        return self.actor_plan_period if self.actor_plan_period else self.avail_day_group.actor_plan_period_getter
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
+
 class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.
 Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
@@ -156,11 +188,15 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
-    actor_plan_period = Required(ActorPlanPeriod)
+    avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+
+    @property
+    def actor_plan_period(self):
+        return self.avail_day_group.actor_plan_period_getter
 
     @property
     def team(self):
@@ -309,8 +345,9 @@ class EventGroup(db.Entity):
     same_group_cast_pref = Required(int, size=8, default=0, unsigned=True)
     # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
     # Gewichtungen wie same_day_cast_pref
-    nr_eventgroups = Required(int, unsigned=True)
-    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
+    nr_eventgroups = Optional(int, unsigned=True)
+    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
+    # (alternativ: None).
     # Optional kann der Wert von nr_eventgroups auch geringer sein.
     event_group = Optional('EventGroup', reverse='event_groups')
     event_groups = Set('EventGroup', reverse='event_group')
@@ -326,6 +363,11 @@ class EventGroup(db.Entity):
     def before_update(self):
         self.last_modified = datetime.utcnow()
 
+    def before_insert(self):
+        if not (self.location_plan_period or self.event_group) or (self.location_plan_period and self.event_group):
+            raise CustomError('Eine Eventgroup muss entweder genau 1 Eventgroup '
+                              'oder genau einer Location PlanPeriod zugeordnet sein.')
+
 
 class LocationPlanPeriod(db.Entity):
     """nr_actors wird von neuer Instanz von Event übernommen.
@@ -339,7 +381,7 @@ class LocationPlanPeriod(db.Entity):
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
-    event_group = Required('EventGroup')
+    event_group = Optional('EventGroup')
 
     @property
     def team(self):

@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
 
         # db_services.new_project('Humor Hilft Heilen')
 
-        self.project_id = UUID('A6944E23C3D947DF989602D90537BBD8')
+        self.project_id = UUID('FB7DA3C230F045CE85826770D5841C83')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -140,6 +140,13 @@ class MainWindow(QMainWindow):
         self.frm_master_data = None
 
     def new_planperiod(self):
+        if not db_services.get_teams_of_project(self.project_id):
+            QMessageBox.critical(self, 'Neuer Planungszeitraum', 'Sie müssen Ihrem Projekt zuerst ein Team hinzufügen.')
+            return
+        if not db_services.get_locations_of_work_of_project(self.project_id):
+            QMessageBox.critical(self, 'Neuer Planungszeitraum',
+                                 'Sie müssen Ihrem Projekt zuerst eine Einrichtung hinzufügen.')
+            return
         dlg = FrmPlanPeriodCreate(self, project_id=self.project_id)
         dlg.exec()
 

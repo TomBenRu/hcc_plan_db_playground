@@ -1,13 +1,15 @@
 import datetime
 import inspect
 import logging
+from typing import Optional
 from uuid import UUID
 
 from pony.orm import db_session, show
 
 from . import schemas
 from .authentication import hash_psw
-from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings, PlanPeriod
+from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings, PlanPeriod, \
+    LocationPlanPeriod, EventGroup, ActorPlanPeriod, AvailDayGroup
 
 
 @db_session(sql_debug=True, show_values=True)
@@ -80,11 +82,11 @@ def get_projects() -> list[schemas.ProjectShow]:
 
 
 @db_session
-def get_teams_of_project(projet_id: UUID) -> list[schemas.Team]:
+def get_teams_of_project(projet_id: UUID) -> list[schemas.TeamShow]:
     project_in_db = Project.get(lambda p: p.id == projet_id)
     if not project_in_db:
         return []
-    return [schemas.Team.from_orm(t) for t in project_in_db.teams]
+    return [schemas.TeamShow.from_orm(t) for t in project_in_db.teams]
 
 
 @db_session
@@ -302,3 +304,50 @@ def create_planperiod(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeri
     team_db = Team.get_for_update(id=plan_period.team.id)
     plan_period_db = PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline, notes=plan_period.notes, team=team_db)
     return schemas.PlanPeriodShow.from_orm(plan_period_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_location_plan_period(plan_period_id: UUID, location_id: UUID) -> schemas.LocationPlanPeriodShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    plan_period_db = PlanPeriod.get_for_update(id=plan_period_id)
+    location_db = LocationOfWork.get_for_update(id=location_id)
+    location_plan_period_db = LocationPlanPeriod(plan_period=plan_period_db, location_of_work=location_db)
+    return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_event_group(*, location_plan_period_id: Optional[UUID] = None,
+                       event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    location_plan_period_db = LocationPlanPeriod.get_for_update(id=location_plan_period_id) if location_plan_period_id else None
+    event_group_db = EventGroup.get_for_update(id=event_group_id) if event_group_id else None
+    new_event_group_db = EventGroup(location_plan_period=location_plan_period_db, event_group=event_group_db)
+
+    return schemas.EventGroupShow.from_orm(new_event_group_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_actor_plan_period(plan_period_id: UUID, person_id: UUID) -> schemas.ActorPlanPeriodShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    plan_period_db = PlanPeriod.get_for_update(id=plan_period_id)
+    person_db = Person.get_for_update(id=person_id)
+    actor_plan_period_db = ActorPlanPeriod(plan_period=plan_period_db, person=person_db)
+
+    return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_avail_day_group(*, actor_plan_period_id: Optional[UUID] = None,
+                           avail_day_group_id: Optional[UUID] = None) -> schemas.AvailDayGroupShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    actor_plan_period_db = ActorPlanPeriod.get_for_update(id=actor_plan_period_id) if actor_plan_period_id else None
+    avail_day_group_db = AvailDayGroup.get_for_update(id=avail_day_group_id) if avail_day_group_id else None
+    new_avail_day_group = AvailDayGroup(actor_plan_period=actor_plan_period_db, avail_day_group=avail_day_group_db)
+
+    return schemas.AvailDayGroupShow.from_orm(new_avail_day_group)
+
+

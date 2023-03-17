@@ -34,6 +34,7 @@ class PersonCreate(BaseModel):
 class Person(PersonCreate):
     id: UUID
     address: Optional['Address']
+    notes: Optional[str]
     prep_delete: Optional[datetime]
 
     class Config:
@@ -103,10 +104,11 @@ class Team(TeamCreate):
 
 
 class TeamShow(Team):
+    persons: List[Person]
     plan_periods: List['Planperiod']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('plan_periods', pre=True, allow_reuse=True)
+    @validator('persons', 'plan_periods', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 
@@ -118,7 +120,7 @@ class PlanPeriodCreate(BaseModel):
     start: date
     end: date
     deadline: date
-    notes: str = ''
+    notes: Optional[str]
     remainder: bool
     team: Team
 
@@ -139,21 +141,24 @@ class PlanPeriodShow(Planperiod):
 
 
 class ActorPlanPeriodCreate(BaseModel):
-    notes: str = ''
+    notes: Optional[str]
     plan_period: Planperiod
     person: Person
 
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):
     id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class ActorPlanPeriodShow(ActorPlanPeriod):
+    id: UUID
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
 
-    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
-        return [t for t in values]
-
-    @validator('actor_partner_location_prefs', pre=True, allow_reuse=True)
+    @validator('combination_locations_possibles', 'actor_partner_location_prefs', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -161,21 +166,31 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
         orm_mode = True
 
 
-class ActorPlanPeriodShow(ActorPlanPeriodCreate):
+class AvailDayGroupCreate(BaseModel):
+    """AvailDayGroups können entweder genau 1 AvailDay beinhalten, oden 1 oder mehrere AvailDayGroups.
+       Jede AvailDayGroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
+    actor_plan_period: Optional[ActorPlanPeriod]
+    nr_avail_day_groups: Optional[int]
+    # Falls alle AvailDayGrous innerhalb der AvailDayGroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
+    # (alternativ: None).
+    # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
+    avail_day_group: Optional['AvailDayGroup']
+    avail_day: Optional['AvailDay']
+    variation_weight: int
+    # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
+    # unterschiedliche Gewichtungen verliehen werden.
+    created_at: datetime
+    last_modified: datetime
+
+
+class AvailDayGroup(AvailDayGroupCreate):
     id: UUID
-    avail_days: List['AvailDay']
 
-    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
-        return [t for t in values]
+    class Config:
+        orm_mode = True
 
-    @validator('actor_partner_location_prefs', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
-        return [t for t in values]
 
-    @validator('avail_days', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
-        return [t for t in values]
+class AvailDayGroupShow(AvailDayGroup):
 
     class Config:
         orm_mode = True
@@ -255,6 +270,7 @@ class LocationOfWork(LocationOfWorkCreate):
     id: UUID
     address: Optional['Address']
     project: Project
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True
@@ -335,8 +351,9 @@ class EventGroupCreate(BaseModel):
     same_group_cast_pref: int
     # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
     # Gewichtungen wie same_day_cast_pref
-    nr_eventgroups: int
-    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl.
+    nr_eventgroups: Optional[int]
+    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
+    # (alternativ: None).
     # Optional kann der Wert von nr_eventgroups auch geringer sein.
     event_group: Optional['EventGroup']
     event: Optional[Event]
@@ -346,13 +363,19 @@ class EventGroupCreate(BaseModel):
 class EventGroup(EventGroupCreate):
     id: UUID
 
+    class Config:
+        orm_mode = True
+
 
 class EventGroupShow(EventGroup):
     ...
 
+    class Config:
+        orm_mode = True
+
 
 class LocationPlanPeriodCreate(BaseModel):
-    notes: str = ''
+    notes: Optional[str]
     plan_period: Planperiod
     location_of_work: LocationOfWork
     nr_actors: Optional[int]
@@ -509,6 +532,10 @@ Person.update_forward_refs(**locals())
 PersonShow.update_forward_refs(**locals())
 ProjectShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
+ActorPlanPeriodShow.update_forward_refs(**locals())
+AvailDayGroupCreate.update_forward_refs(**locals())
+AvailDayGroup.update_forward_refs(**locals())
+AvailDayGroupShow.update_forward_refs(**locals())
 AvailDayCreate.update_forward_refs(**locals())
 LocationOfWorkCreate.update_forward_refs(**locals())
 LocationOfWork.update_forward_refs(**locals())

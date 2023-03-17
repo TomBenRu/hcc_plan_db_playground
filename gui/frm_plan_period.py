@@ -76,6 +76,8 @@ class FrmPlanPeriodData(QDialog):
 
     def fill_dates(self):
         team: schemas.TeamShow = self.cb_teams.currentData()
+        if not team:
+            return
         if team.plan_periods:
             self.max_end_plan_periods = max([p.end for p in team.plan_periods if not p.prep_delete])
         else:
@@ -85,6 +87,9 @@ class FrmPlanPeriodData(QDialog):
         self.de_deadline.setDate(datetime.date.today())
 
     def save(self):
+        if not self.cb_teams.currentData():
+            QMessageBox.critical(self, 'Planungszeitraum', 'Wie müssen zuerst ein Team auswählen.')
+            return
         start = self.de_start.date().toPython()
         end = self.de_end.date().toPython()
         deadline = self.de_deadline.date().toPython()
@@ -109,12 +114,30 @@ class FrmPlanPeriodData(QDialog):
                                                    team=self.cb_teams.currentData(),
                                                    remainder=self.chk_remainder.isChecked())
         plan_period_created = db_services.create_planperiod(new_plan_period)
-        QMessageBox.information(self, 'Planungszeitraum', f'Planungszeitraum wurde erstellt:\n{plan_period_created}')
+        locations = [loc for loc in db_services.get_locations_of_work_of_project(self.project_id)
+                     if not loc.prep_delete]
+        actors = [p for p in db_services.get_persons_of_project(self.project_id)
+                  if p.team_of_actor and not p.prep_delete]
+        for loc in locations:
+            self.create_location_plan_periods(plan_period_created.id, loc.id)
+        for actor in actors:
+            self.create_actor_plan_periods(plan_period_created.id, actor.id)
+
         self.accept()
+
+    def create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
+        new_location_plan_period = db_services.create_location_plan_period(plan_period_id, loc_id)
+        print(f'{new_location_plan_period=}')
+        new_master_event_group = db_services.create_event_group(location_plan_period_id=new_location_plan_period.id)
+        print(f'{new_master_event_group=}')
+
+    def create_actor_plan_periods(self, plan_period_id: UUID, person_id: UUID):
+        new_actor_plan_period = db_services.create_actor_plan_period(plan_period_id, person_id)
+        print(f'{new_actor_plan_period=}')
+        new_master_avail_day_group = db_services.create_avail_day_group(actor_plan_period_id=new_actor_plan_period.id)
+        print(f'{new_master_avail_day_group=}')
 
 
 class FrmPlanPeriodCreate(FrmPlanPeriodData):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent, project_id=project_id)
-
-

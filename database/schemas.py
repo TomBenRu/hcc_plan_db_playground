@@ -45,9 +45,10 @@ class PersonShow(Person):
     project: 'Project'
     team_of_actor: Optional['Team']
     teams_of_dispatcher: list['TeamShow']
+    time_of_days: ['TimeOfDay']
 
-    @validator('teams_of_dispatcher', pre=True, allow_reuse=True)
-    def teams_set_to_list(cls, values):
+    @validator('teams_of_dispatcher', 'time_of_days', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
         return [t for t in values]
 
     class Config:
@@ -73,17 +74,9 @@ class ProjectShow(Project):
     time_of_days_default: List['TimeOfDayShow']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('teams', pre=True, allow_reuse=True)
-    def teams_set_to_list(cls, values):
+    @validator('teams', 'persons', 'time_of_days_default', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
         return [t for t in values]
-
-    @validator('persons', pre=True, allow_reuse=True)
-    def persons_set_to_list(cls, values):
-        return [p for p in values]
-
-    @validator('time_of_days_default', pre=True, allow_reuse=True)
-    def tim_of_days_set_to_list(cls, values):
-        return [p for p in values]
 
     class Config:
         orm_mode = True
@@ -105,7 +98,7 @@ class Team(TeamCreate):
 
 class TeamShow(Team):
     persons: List[Person]
-    plan_periods: List['Planperiod']
+    plan_periods: List['PlanPeriod']
     excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('persons', 'plan_periods', pre=True, allow_reuse=True)
@@ -125,7 +118,7 @@ class PlanPeriodCreate(BaseModel):
     team: Team
 
 
-class Planperiod(PlanPeriodCreate):
+class PlanPeriod(PlanPeriodCreate):
     id: UUID
     prep_delete: Optional[date]
 
@@ -133,8 +126,10 @@ class Planperiod(PlanPeriodCreate):
         orm_mode = True
 
 
-class PlanPeriodShow(Planperiod):
+class PlanPeriodShow(PlanPeriod):
+    team: TeamShow
     fixed_cast: Optional[str]
+    actor_plan_periods = List['ActorPlanPeriodShow']
 
     class Config:
         orm_mode = True
@@ -142,7 +137,7 @@ class PlanPeriodShow(Planperiod):
 
 class ActorPlanPeriodCreate(BaseModel):
     notes: Optional[str]
-    plan_period: Planperiod
+    plan_period: PlanPeriod
     person: Person
 
 
@@ -155,6 +150,7 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
 
 class ActorPlanPeriodShow(ActorPlanPeriod):
     id: UUID
+    person: PersonShow
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
 
@@ -207,11 +203,7 @@ class AvailDay(AvailDayCreate):
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
 
-    @validator('time_of_days', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
-        return [t for t in values]
-
-    @validator('combination_locations_possibles', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'combination_locations_possibles', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -376,7 +368,7 @@ class EventGroupShow(EventGroup):
 
 class LocationPlanPeriodCreate(BaseModel):
     notes: Optional[str]
-    plan_period: Planperiod
+    plan_period: PlanPeriod
     location_of_work: LocationOfWork
     nr_actors: Optional[int]
 
@@ -487,7 +479,7 @@ class CombinationLocationsPossibleShow(CombinationLocationsPossible):
 class PlanCreate(BaseModel):
     name: str
     notes: str = ''
-    plan_period: Planperiod
+    plan_period: PlanPeriod
 
 
 class Plan(PlanCreate):
@@ -531,6 +523,8 @@ PersonCreate.update_forward_refs(**locals())
 Person.update_forward_refs(**locals())
 PersonShow.update_forward_refs(**locals())
 ProjectShow.update_forward_refs(**locals())
+PlanPeriod.update_forward_refs(**locals())
+PlanPeriodShow.update_forward_refs(**locals())
 ActorPlanPeriodCreate.update_forward_refs(**locals())
 ActorPlanPeriodShow.update_forward_refs(**locals())
 AvailDayGroupCreate.update_forward_refs(**locals())

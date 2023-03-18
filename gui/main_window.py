@@ -5,7 +5,8 @@ from PySide6.QtCore import QRect
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
-from database import db_services
+from database import db_services, schemas
+from gui.frm_actor_plan_period import FrmTabActorPlanPeriod
 from gui.frm_masterdata import FrmMasterData
 from gui.actions import Action
 from gui.frm_plan_period import FrmPlanPeriodCreate
@@ -131,7 +132,6 @@ class MainWindow(QMainWindow):
         self.tabs_plans.setObjectName('plans')
         self.tabs_right.addTab(self.tabs_planungsmasken, 'Planungsmasken')
         self.tabs_right.addTab(self.tabs_plans, 'Einsatzpläne')
-
         self.tabs_planungsmasken.addTab(QWidget(), 'availables/events 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Einrichtungen verwendet.
         self.tabs_planungsmasken.addTab(QWidget(), 'availables/events 2')  # statt QWidget wird das jew. Widget für die Planungsmaske der Einrichtungen verwendet.
         self.tabs_plans.addTab(QWidget(), 'Planung 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
@@ -172,16 +172,21 @@ class MainWindow(QMainWindow):
     def lookup_for_excel_plan(self):
         ...
 
-    def put_clients_to_menu(self) -> tuple[Action]:
+    def put_clients_to_menu(self) -> tuple[Action] :
         try:
             teams = db_services.get_teams_of_project(self.project_id)
+            print(teams)
         except Exception as e:
             QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
             return ()
-        return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.', self.goto_team) for team in teams)
+        return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.',
+                            lambda event=1, t=team: self.goto_team(t)) for team in teams)
 
-    def goto_team(self, team_id: UUID):
-        ...
+    def goto_team(self, team: schemas.TeamShow):
+        print(team.plan_periods)
+        for plan_period in team.plan_periods:
+            print(plan_period)
+            self.tabs_planungsmasken.addTab(FrmTabActorPlanPeriod(plan_period), 'hhhh')
 
     def master_data(self):
         if self.frm_master_data is None:

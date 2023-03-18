@@ -42,10 +42,11 @@ class Person(PersonCreate):
 
 
 class PersonShow(Person):
+    requested_assignments: Optional[int]
     project: 'Project'
     team_of_actor: Optional['Team']
     teams_of_dispatcher: list['TeamShow']
-    time_of_days: ['TimeOfDay']
+    time_of_days: list['TimeOfDayShow']
 
     @validator('teams_of_dispatcher', 'time_of_days', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
@@ -98,7 +99,7 @@ class Team(TeamCreate):
 
 class TeamShow(Team):
     persons: List[Person]
-    plan_periods: List['PlanPeriod']
+    plan_periods: List['PlanPeriodShow']
     excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('persons', 'plan_periods', pre=True, allow_reuse=True)
@@ -127,9 +128,13 @@ class PlanPeriod(PlanPeriodCreate):
 
 
 class PlanPeriodShow(PlanPeriod):
-    team: TeamShow
+    team: Team
     fixed_cast: Optional[str]
-    actor_plan_periods = List['ActorPlanPeriodShow']
+    actor_plan_periods: List['ActorPlanPeriod']
+
+    @validator('actor_plan_periods', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [v for v in values]
 
     class Config:
         orm_mode = True

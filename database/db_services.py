@@ -209,9 +209,9 @@ def delete_location_of_work(location_id: UUID) -> schemas.LocationOfWork:
 
 
 @db_session
-def get_teams_of_project(project_id: UUID) -> list[schemas.Team]:
+def get_teams_of_project(project_id: UUID) -> list[schemas.TeamShow]:
     teams_db = Team.select(lambda t: t.project == Project[project_id])
-    return [schemas.Team.from_orm(t) for t in teams_db]
+    return [schemas.TeamShow.from_orm(t) for t in teams_db]
 
 
 @db_session

@@ -62,16 +62,20 @@ class WidgetPerson(QWidget):
         self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), ' Person anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_person)
+        self.bt_edit = QPushButton(QIcon('resources/toolbar_icons/icons/user--pencil.png'), 'Person bearbeiten')
+        self.bt_edit.setFixedWidth(200)
+        self.bt_edit.clicked.connect(self.edit_person)
         self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/user--minus.png'), ' Person löschen')
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_person)
 
         self.layout_buttons.addWidget(self.bt_new)
+        self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
     def get_persons(self) -> list[schemas.PersonShow]:
         try:
-            persons = db_services.get_persons_of_project(self.project_id)
+            persons = [p for p in db_services.get_persons_of_project(self.project_id) if not p.prep_delete]
             return persons
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -83,9 +87,19 @@ class WidgetPerson(QWidget):
         self.table_persons.put_data_to_table()
 
     def create_person(self):
-        dlg = FrmPersonCreate(self.project_id)
+        dlg = FrmPersonCreate(self, self.project_id)
         dlg.exec()
         self.refresh_table()
+
+    def edit_person(self):
+        row = self.table_persons.currentRow()
+        if row == -1:
+            QMessageBox.information(self, 'Bearbeiten', 'Sie müssen zuerst einen Eintrag auswählen.\n'
+                                                        'Klicken Sie dafür in die entsprechende Zeile.')
+            return
+        person = db_services.get_person(UUID(self.table_persons.item(row, 9).text()))
+        dlg = FrmPersonModify(self, self.project_id, person)
+        dlg.exec()
 
     def delete_person(self):
         row = self.table_persons.currentRow()
@@ -169,9 +183,9 @@ class TablePersons(QTableWidget):
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist nun keinem Team zugeordnet.')
 
 
-class FrmPersonCreate(QDialog):
-    def __init__(self, project_id: UUID):
-        super().__init__()
+class FrmPersonData(QDialog):
+    def __init__(self, parent: QWidget, project_id: UUID):
+        super().__init__(parent)
 
         self.setWindowTitle('Personendaten')
 
@@ -218,6 +232,15 @@ class FrmPersonCreate(QDialog):
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_person)
         self.button_box.rejected.connect(self.reject)
+
+    def save_person(self):
+        ...
+
+
+class FrmPersonCreate(FrmPersonData):
+    def __init__(self, parent: QWidget, project_id: UUID):
+        super().__init__(parent, project_id)
+
         self.layout.addWidget(self.button_box)
 
     def save_person(self):
@@ -230,9 +253,87 @@ class FrmPersonCreate(QDialog):
         try:
             created = db_services.create_person(person, self.project_id)
             QMessageBox.information(self, 'Person angelegt', f'{created}')
-            self.close()
+            self.accept()
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+
+class FrmPersonModify(FrmPersonData):
+    def __init__(self, parent:QWidget, project_id: UUID, person: schemas.PersonShow):
+        super().__init__(parent, project_id)
+
+        self.project_id = project_id
+        self.person = person
+
+        self.sp_nr_requ_assignm = QSpinBox()
+        self.sp_nr_requ_assignm.setMinimum(0)
+        self.cb_time_of_days = QComboBox()
+        self.bt_time_of_days = QPushButton('bearbeiten')
+        self.menu_bt_time_of_days = QMenu(self.bt_time_of_days)
+        self.bt_time_of_days.setMenu(self.menu_bt_time_of_days)
+        self.action_time_of_days_reset = Action(self, None, 'Reset von Projekt', None, self.reset_time_of_days)
+        self.action_time_of_days_edit = Action(self, None, 'Ändern...', None, self.edit_time_of_days)
+        self.menu_bt_time_of_days.addActions([self.action_time_of_days_edit, self.action_time_of_days_reset])
+        self.widget_time_of_days_combi = QWidget()
+        self.h_box_time_of_days_combi = QHBoxLayout(self.widget_time_of_days_combi)
+        self.h_box_time_of_days_combi.setContentsMargins(0, 0, 0, 0)
+        self.h_box_time_of_days_combi.addWidget(self.cb_time_of_days)
+        self.h_box_time_of_days_combi.addWidget(self.bt_time_of_days)
+
+        self.group_auth_data.close()
+        self.group_specific_data = QGroupBox('Spezielles')
+        self.group_specific_data_layout = QFormLayout(self.group_specific_data)
+        self.layout.addWidget(self.group_specific_data)
+
+        self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.sp_nr_requ_assignm)
+        self.group_specific_data_layout.addRow('Tageszeiten', self.widget_time_of_days_combi)
+        self.group_specific_data_layout.addRow('Einrichtungskombinationnen', QLabel('....wird noch'))
+        self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', QLabel('....wird noch'))
+
+        self.autofill()
+
+    def autofill(self):
+        self.fill_person_data()
+        self.fill_address_data()
+        self.fill_time_of_days()
+        self.fill_requested_assignm()
+
+    def fill_person_data(self):
+        self.le_f_name.setText(self.person.f_name)
+        self.le_l_name.setText(self.person.l_name)
+        self.le_email.setText(self.person.email)
+        self.cb_gender.setCurrentText(self.person.gender.name)
+        self.le_phone_nr.setText(self.person.phone_nr)
+
+    def fill_address_data(self):
+        self.le_street.setText(self.person.address.street)
+        self.le_postal_code.setText(self.person.address.postal_code)
+        self.le_city.setText(self.person.address.city)
+
+    def fill_requested_assignm(self):
+        self.sp_nr_requ_assignm.setValue(self.person.requested_assignments)
+
+    def fill_time_of_days(self):
+        self.cb_time_of_days.clear()
+        time_of_days = sorted([t for t in self.person.time_of_days if not t.prep_delete], key=lambda x: x.start)
+        for t in time_of_days:
+            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
+                                         f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
+                                         f'{t.end.hour:02}:{t.end.minute:02}', t)
+
+    def reset_time_of_days(self):
+        project = db_services.get_project(self.project_id)
+        for t_o_d in self.person.time_of_days:
+            if not t_o_d.project_defaults:
+                db_services.delete_time_of_day(t_o_d.id)
+        self.person.time_of_days.clear()
+        for t_o_d in [t for t in project.time_of_days_default if not t.prep_delete]:
+            self.person.time_of_days.append(t_o_d)
+        self.fill_time_of_days()
+
+    def edit_time_of_days(self):
+        ...
+
 
 
 class WidgetLocationsOfWork(QWidget):

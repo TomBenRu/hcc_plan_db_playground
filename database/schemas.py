@@ -1,5 +1,5 @@
 from datetime import date, time, datetime
-from typing import Optional, List, Protocol, runtime_checkable
+from typing import Optional, List, Protocol, runtime_checkable, Union
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, validator
@@ -9,7 +9,8 @@ from database.enums import Gender
 
 @runtime_checkable
 class ModelWithTimeOfDays(Protocol):
-    time_of_days: list['TimeOfDay']
+    id: UUID
+    time_of_days: list[Union['TimeOfDay', 'TimeOfDayShow']]
 
 
 @runtime_checkable

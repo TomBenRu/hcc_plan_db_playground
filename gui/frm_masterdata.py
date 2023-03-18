@@ -600,7 +600,8 @@ class FrmLocationModify(FrmLocationData):
             Referenz zur Location gespeichert werden.'''
             only_new_time_of_day_cause_project = True if time_of_day_show_in_project.project_defaults else False
 
-        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(), only_new_time_of_day=only_new_time_of_day_cause_project)
+        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(),
+                           only_new_time_of_day=only_new_time_of_day_cause_project)
         if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
             return
         if dlg.chk_new_mode.isChecked():
@@ -612,9 +613,9 @@ class FrmLocationModify(FrmLocationData):
                 '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
                 QMessageBox.critical(dlg, 'Fehler',
                                      f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-                self.location_of_work = db_services.get_location_of_work_of_project(self.location_id)
-                self.cb_time_of_days.clear()
-                self.fill_time_of_days()
+                if only_new_time_of_day_cause_project:
+                    self.location_of_work.time_of_days.append(self.cb_time_of_days.currentData())
+                    self.fill_time_of_days()
             else:
                 t_o_d_created = db_services.create_time_of_day(dlg.new_time_of_day, self.project_id)
                 '''Neue TimeOfDay wurde erstellt, aber noch nicht der Location zugeordnet.'''

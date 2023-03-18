@@ -595,19 +595,8 @@ class FrmLocationModify(FrmLocationData):
         frm_time_of_day.edit_time_of_days(self, self.location_of_work, 'project_defaults')
 
     def reset_time_of_days(self):
-        project = db_services.get_project(self.project_id)
-        for t_o_d in self.location_of_work.time_of_days:
-            '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
-            Diese werden dann mit bestätigen des Dialogs gelöscht.'''
-            if not t_o_d.project_defaults:
-                self.time_of_days_to_delete.append(t_o_d)
-        self.location_of_work.time_of_days.clear()
-        for t_o_d in [t for t in project.time_of_days_default if not t.prep_delete]:
-            self.location_of_work.time_of_days.append(t_o_d)
-        # self.location_of_work = db_services.update_location_of_work(self.location_of_work)
-        QMessageBox.information(self, 'Tageszeiten reset', f'Die Tageszeiten wurden zurückgesetzt:\n'
-                                                           f'{self.location_of_work}')
-        self.fill_time_of_days()
+        default_time_of_days = db_services.get_project(self.project_id).time_of_days_default
+        frm_time_of_day.reset_time_of_days(self, self.location_of_work, default_time_of_days, 'project_defaults')
 
     def fill_time_of_days(self):
         self.cb_time_of_days.clear()

@@ -142,3 +142,19 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                     parent.time_of_days_to_update.append(dlg.curr_time_of_day)
             QMessageBox.information(parent, 'Tageszeit', f'Die Tageszeit wird upgedated:\n{dlg.curr_time_of_day}')
             parent.fill_time_of_days()
+
+
+def reset_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
+                       default_time_of_days: list[schemas.TimeOfDayShow], field__time_of_days__parent_model: str):
+
+    for t_o_d in pydantic_model.time_of_days:
+        '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
+        Diese werden dann mit bestätigen des Dialogs gelöscht.'''
+        if not t_o_d.__getattribute__(field__time_of_days__parent_model):
+            parent.time_of_days_to_delete.append(t_o_d)
+    pydantic_model.time_of_days.clear()
+    for t_o_d in [t for t in default_time_of_days if not t.prep_delete]:
+        pydantic_model.time_of_days.append(t_o_d)
+
+    QMessageBox.information(parent, 'Tageszeiten reset', f'Die Tageszeiten wurden zurückgesetzt:\n{pydantic_model}')
+    parent.fill_time_of_days()

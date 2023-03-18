@@ -592,7 +592,7 @@ class FrmLocationModify(FrmLocationData):
         return location
 
     def edit_time_of_days(self):
-        frm_time_of_day.edit_time_of_days(self, self.location_of_work)
+        frm_time_of_day.edit_time_of_days(self, self.location_of_work, 'project_defaults')
 
     def reset_time_of_days(self):
         project = db_services.get_project(self.project_id)

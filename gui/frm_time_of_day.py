@@ -80,22 +80,25 @@ class FrmTimeOfDay(QDialog):
         self.accept()
 
 
-def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays):
+def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
+                      field__time_of_days__parent_model: str):
     if not (curr_data := parent.cb_time_of_days.currentData()):
-        only_new_time_of_day_cause_project = True
+        only_new_time_of_day_cause_parent_model = True
     else:
         time_of_day_show_in_project = db_services.get_time_of_day(curr_data.id)
 
         '''Falls die Tageszeit dem Projekt zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
         Referenz zur Location gespeichert werden.'''
-        only_new_time_of_day_cause_project = True if time_of_day_show_in_project.project_defaults else False
+        only_new_time_of_day_cause_parent_model = (
+            True if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model) else False
+        )
 
     dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(),
-                       only_new_time_of_day=only_new_time_of_day_cause_project)
+                       only_new_time_of_day=only_new_time_of_day_cause_parent_model)
     if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
         return
     if dlg.chk_new_mode.isChecked():
-        if only_new_time_of_day_cause_project:
+        if only_new_time_of_day_cause_parent_model:
             '''Die aktuell gewählte Tageszeit ist dem Projekt zugeordnet
                und wird daher aus time_of_days entfernt.'''
             pydantic_model.time_of_days.remove(parent.cb_time_of_days.currentData())
@@ -103,7 +106,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
             '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
             QMessageBox.critical(dlg, 'Fehler',
                                  f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            if only_new_time_of_day_cause_project:
+            if only_new_time_of_day_cause_parent_model:
                 pydantic_model.time_of_days.append(parent.cb_time_of_days.currentData())
                 parent.fill_time_of_days()
         else:
@@ -122,8 +125,8 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                 if t_o_d.id == dlg.curr_time_of_day.id:
                     parent.time_of_days_to_delete.append(t_o_d)
                     pydantic_model.time_of_days.remove(t_o_d)
-            QMessageBox.information(parent, 'Tageszeit Löschen', f'Die Tageszeit wird gelöscht:\n'
-                                                               f'{dlg.curr_time_of_day}')
+            QMessageBox.information(parent, 'Tageszeit Löschen',
+                                    f'Die Tageszeit wird gelöscht:\n{dlg.curr_time_of_day}')
             parent.fill_time_of_days()
             return
         if dlg.curr_time_of_day.name in [t.name for t in pydantic_model.time_of_days

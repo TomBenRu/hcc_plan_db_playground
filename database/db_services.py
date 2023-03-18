@@ -121,6 +121,27 @@ def create_person(person: schemas.PersonCreate, project_id: UUID) -> schemas.Per
 
 
 @db_session(sql_debug=True, show_values=True)
+def update_person(person: schemas.PersonShow) -> schemas.Person:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    person_db = Person.get_for_update(id=person.id)
+    if person_db.address:
+        address = update_address(person.address)
+    else:
+        address = create_address(schemas.AddressCreate(**person.address.dict(include={'street', 'postal_code', 'city'})))
+    person_db.address = Address.get_for_update(id=address.id)
+    for t_o_d in person.time_of_days:
+        person_db.time_of_days.add(TimeOfDay.get_for_update(id=t_o_d.id))
+    person_db.set(**person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments'}))
+
+    '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
+
+    return schemas.Person.from_orm(person_db)
+
+
+
+
+@db_session(sql_debug=True, show_values=True)
 def update_person__team_of_actor(person_id: UUID, team_id: UUID | None):
     logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
 
@@ -191,7 +212,6 @@ def update_location_of_work(location_of_work: schemas.LocationOfWorkShow) -> sch
         location_db.team = Team.get_for_update(id=location_of_work.team.id)
     else:
         location_db.team = None
-    '''Es fehlt noch: combination_locations_possibles'''
     # for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
     #     location_db.__setattr__(key, val)
     location_db.set(**location_of_work.dict(include={'name', 'nr_actors', 'fixed_cast'}))

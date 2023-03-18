@@ -191,6 +191,7 @@ class FrmPersonData(QDialog):
         self.setWindowTitle('Personendaten')
 
         self.project_id = project_id
+        self.project = db_services.get_project(project_id)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -266,6 +267,9 @@ class FrmPersonModify(FrmPersonData):
         self.project_id = project_id
         self.person = person
 
+        self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
+        self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
+
         self.sp_nr_requ_assignm = QSpinBox()
         self.sp_nr_requ_assignm.setMinimum(0)
         self.cb_time_of_days = QComboBox()
@@ -293,6 +297,26 @@ class FrmPersonModify(FrmPersonData):
 
         self.layout.addWidget(self.button_box)
         self.autofill()
+
+    def save_person(self):
+        self.person.f_name = self.le_f_name.text()
+        self.person.l_name = self.le_l_name.text()
+        self.person.email = self.le_email.text()
+        self.person.gender = Gender[self.cb_gender.currentText()]
+        self.person.phone_nr = self.le_phone_nr.text()
+        self.person.requested_assignments = self.sp_nr_requ_assignm.value()
+        self.person.address.street = self.le_street.text()
+        self.person.address.postal_code = self.le_postal_code.text()
+        self.person.address.city = self.le_city.text()
+        for t_o_d in self.time_of_days_to_delete:
+            db_services.delete_time_of_day(t_o_d.id)
+        for t_o_d in self.time_of_days_to_update:
+            db_services.update_time_of_day(t_o_d)
+
+        updated_person = db_services.update_person(self.person)
+        QMessageBox.information(self, 'Person Update',
+                                f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
+        self.accept()
 
     def autofill(self):
         self.fill_person_data()
@@ -323,18 +347,11 @@ class FrmPersonModify(FrmPersonData):
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
-    def reset_time_of_days(self):
-        project = db_services.get_project(self.project_id)
-        for t_o_d in self.person.time_of_days:
-            if not t_o_d.project_defaults:
-                db_services.delete_time_of_day(t_o_d.id)
-        self.person.time_of_days.clear()
-        for t_o_d in [t for t in project.time_of_days_default if not t.prep_delete]:
-            self.person.time_of_days.append(t_o_d)
-        self.fill_time_of_days()
-
     def edit_time_of_days(self):
-        ...
+        frm_time_of_day.edit_time_of_days(self, self.person, 'project_defaults')
+
+    def reset_time_of_days(self):
+        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days_default, 'project_defaults')
 
 
 
@@ -573,7 +590,7 @@ class FrmLocationModify(FrmLocationData):
             db_services.update_time_of_day(t_o_d)
         updated_location = db_services.update_location_of_work(self.location_of_work)
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
-        self.close()
+        self.accept()
 
     def cancel(self):
         """Wenn TimeOfDays in time_of_days vorhanden sind, die weder der Location noch dem Project zugeordnet sind,

@@ -172,20 +172,17 @@ class MainWindow(QMainWindow):
     def lookup_for_excel_plan(self):
         ...
 
-    def put_clients_to_menu(self) -> tuple[Action] :
+    def put_clients_to_menu(self) -> tuple[Action] | None:
         try:
             teams = db_services.get_teams_of_project(self.project_id)
-            print(teams)
         except Exception as e:
             QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
-            return ()
+            return
         return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.',
                             lambda event=1, t=team: self.goto_team(t)) for team in teams)
 
     def goto_team(self, team: schemas.TeamShow):
-        print(team.plan_periods)
         for plan_period in team.plan_periods:
-            print(plan_period)
             self.tabs_planungsmasken.addTab(FrmTabActorPlanPeriod(plan_period), 'hhhh')
 
     def master_data(self):

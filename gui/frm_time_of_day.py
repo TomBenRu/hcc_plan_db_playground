@@ -1,4 +1,5 @@
 import datetime
+from typing import Literal
 
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout
@@ -81,7 +82,9 @@ class FrmTimeOfDay(QDialog):
 
 
 def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
-                      field__time_of_days__parent_model: str):
+                      field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
+                      'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
+                      'location_plan_periods_defaults', 'events_defaults']):
     if not (curr_data := parent.cb_time_of_days.currentData()):
         only_new_time_of_day_cause_parent_model = True
     else:
@@ -145,7 +148,10 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
 
 
 def reset_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
-                       default_time_of_days: list[schemas.TimeOfDayShow], field__time_of_days__parent_model: str):
+                       default_time_of_days: list[schemas.TimeOfDayShow],
+                       field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
+                       'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
+                       'location_plan_periods_defaults', 'events_defaults']):
 
     for t_o_d in pydantic_model.time_of_days:
         '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.

@@ -514,7 +514,8 @@ class FrmLocationModify(FrmLocationData):
     def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
         super().__init__(parent, project_id=project_id)
 
-        self.time_of_days_to_delete: list[schemas.TeamShow] = []
+        self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
+        self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.setWindowTitle('Einrichtungsdaten')
 
         self.location_id = location_id
@@ -567,6 +568,8 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.team = self.cb_teams.currentData()
         for t_o_d in self.time_of_days_to_delete:
             db_services.delete_time_of_day(t_o_d.id)
+        for t_o_d in self.time_of_days_to_update:
+            db_services.update_time_of_day(t_o_d)
         updated_location = db_services.update_location_of_work(self.location_of_work)
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
         self.close()
@@ -600,10 +603,6 @@ class FrmLocationModify(FrmLocationData):
         dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(), only_new_time_of_day=only_new_time_of_day_cause_project)
         if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
             return
-        if dlg.to_delete_status:
-            deleted_time_of_day = db_services.delete_time_of_day(dlg.curr_time_of_day.id)
-            QMessageBox.information(self, 'Löschen', f'Die Tageszeit "{deleted_time_of_day.name}" wurde gelöscht.')
-            return
         if dlg.chk_new_mode.isChecked():
             if only_new_time_of_day_cause_project:
                 '''Die aktuell gewählte Tageszeit ist dem Projekt zugeordnet
@@ -627,26 +626,34 @@ class FrmLocationModify(FrmLocationData):
                 self.fill_time_of_days()
 
         else:
-            if dlg.curr_time_of_day.name in [t.name for t in self.location_of_work.time_of_days
-                                             if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
-                QMessageBox.critical(dlg, 'Fehler 494',
-                                     f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            else:
-                t_o_d_updated = db_services.update_time_of_day(dlg.curr_time_of_day)
-                QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
-                self.location_of_work = db_services.get_location_of_work_of_project(self.location_id)
+            if dlg.to_delete_status:
+                for t_o_d in self.location_of_work.time_of_days:
+                    if t_o_d.id == dlg.curr_time_of_day.id:
+                        self.time_of_days_to_delete.append(t_o_d)
+                        self.location_of_work.time_of_days.remove(t_o_d)
+                QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wird gelöscht:\n'
+                                                                   f'{dlg.curr_time_of_day}')
                 self.fill_time_of_days()
                 return
-            if dlg.to_delete_status:
-                time_of_day_deleted = db_services.delete_time_of_day(dlg.curr_time_of_day.id)
-                QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n'
-                                                                   f'{time_of_day_deleted}')
-                self.location_of_work = db_services.get_location_of_work_of_project(self.location_id)
+            if dlg.curr_time_of_day.name in [t.name for t in self.location_of_work.time_of_days
+                                             if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
+                QMessageBox.critical(dlg, 'Fehler',
+                                     f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
+            else:
+                for t_o_d in self.location_of_work.time_of_days:
+                    if t_o_d.id == dlg.curr_time_of_day.id:
+
+                        self.location_of_work.time_of_days.remove(t_o_d)
+                        self.location_of_work.time_of_days.append(dlg.curr_time_of_day)
+                        self.time_of_days_to_update.append(dlg.curr_time_of_day)
+                QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wird upgedated:\n{dlg.curr_time_of_day}')
                 self.fill_time_of_days()
 
     def reset_time_of_days(self):
         project = db_services.get_project(self.project_id)
         for t_o_d in self.location_of_work.time_of_days:
+            '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
+            Diese werden dann mit bestätigen des Dialogs gelöscht.'''
             if not t_o_d.project_defaults:
                 self.time_of_days_to_delete.append(t_o_d)
         self.location_of_work.time_of_days.clear()

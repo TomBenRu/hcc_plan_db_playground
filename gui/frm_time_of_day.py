@@ -54,10 +54,8 @@ class FrmTimeOfDay(QDialog):
 
     def change_new_mode(self):
         if self.chk_new_mode.isChecked():
-            print('checked', self.chk_new_mode.isChecked())
             self.bt_delete.setDisabled(True)
         else:
-            print('checked', self.chk_new_mode.isChecked())
             self.bt_delete.setEnabled(True)
 
     def save_time_of_day(self):

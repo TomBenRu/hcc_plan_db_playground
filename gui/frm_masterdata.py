@@ -354,7 +354,6 @@ class FrmPersonModify(FrmPersonData):
         frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days_default, 'project_defaults')
 
 
-
 class WidgetLocationsOfWork(QWidget):
     def __init__(self, project_id: UUID):
         super().__init__()

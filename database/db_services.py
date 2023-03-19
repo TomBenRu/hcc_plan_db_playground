@@ -130,6 +130,7 @@ def update_person(person: schemas.PersonShow) -> schemas.Person:
     else:
         address = create_address(schemas.AddressCreate(**person.address.dict(include={'street', 'postal_code', 'city'})))
     person_db.address = Address.get_for_update(id=address.id)
+    person_db.time_of_days.clear()
     for t_o_d in person.time_of_days:
         person_db.time_of_days.add(TimeOfDay.get_for_update(id=t_o_d.id))
     person_db.set(**person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments'}))
@@ -137,8 +138,6 @@ def update_person(person: schemas.PersonShow) -> schemas.Person:
     '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
 
     return schemas.Person.from_orm(person_db)
-
-
 
 
 @db_session(sql_debug=True, show_values=True)

@@ -162,5 +162,7 @@ def reset_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mod
     for t_o_d in [t for t in default_time_of_days if not t.prep_delete]:
         pydantic_model.time_of_days.append(t_o_d)
 
-    QMessageBox.information(parent, 'Tageszeiten reset', f'Die Tageszeiten wurden zurückgesetzt:\n{pydantic_model}')
+    QMessageBox.information(parent, 'Tageszeiten reset',
+                            f'Die Tageszeiten wurden zurückgesetzt:\n'
+                            f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in pydantic_model.time_of_days]}')
     parent.fill_time_of_days()

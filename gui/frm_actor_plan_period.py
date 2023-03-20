@@ -24,18 +24,18 @@ class FrmTabActorPlanPeriod(QWidget):
         self.layout.addWidget(QLabel('Verfügbarkeiten'))
         self.layout.addWidget(QLabel(f'{plan_period.start} - {plan_period.end}'))
 
-        self.layout_availables = QSplitter()
-        self.layout.addWidget(self.layout_availables)
+        self.splitter_availables = QSplitter()
+        self.layout.addWidget(self.splitter_availables)
         self.table_select_actor = QTableWidget()
-        self.layout_availables.addWidget(self.table_select_actor)
+        self.splitter_availables.addWidget(self.table_select_actor)
         self.setup_selector_table()
-        # self.layout.addStretch()
+        self.splitter_availables.setSizes([175])
         self.layout.setStretch(0, 2)
         self.layout.setStretch(1, 2)
         self.layout.setStretch(2, 96)
 
     def setup_selector_table(self):
-        self.table_select_actor.setMaximumWidth(250)
+        self.table_select_actor.setMaximumWidth(175)
         self.table_select_actor.setSortingEnabled(True)
         self.table_select_actor.setAlternatingRowColors(True)
         self.table_select_actor.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -55,11 +55,14 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor.hideColumn(0)
 
     def view_table(self, r, c):
+        self.table_select_actor.setMaximumWidth(10000)
         actor_plan_period: schemas.ActorPlanPeriodShow = self.pers_id__actor_pp[self.table_select_actor.item(r, 0).text()]
         if self.frame_availables:
             self.frame_availables.deleteLater()
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period)
-        self.layout_availables.addWidget(self.frame_availables)
+        self.splitter_availables.addWidget(self.frame_availables)
+        self.splitter_availables.setStretchFactor(1, 1)
+        self.splitter_availables.setStretchFactor(2, 1000)
 
 
 class FrmActorPlanPeriod(QTableWidget):

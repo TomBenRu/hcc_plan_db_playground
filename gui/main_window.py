@@ -183,7 +183,9 @@ class MainWindow(QMainWindow):
 
     def goto_team(self, team: schemas.TeamShow):
         for plan_period in team.plan_periods:
-            self.tabs_planungsmasken.addTab(FrmTabActorPlanPeriod(plan_period), 'hhhh')
+            self.tabs_planungsmasken.addTab(
+                FrmTabActorPlanPeriod(plan_period),
+                f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
 
     def master_data(self):
         if self.frm_master_data is None:

@@ -77,38 +77,6 @@ class FrmTabActorPlanPeriod(QWidget):
         self.layout_availables.insertWidget(0, self.frame_availables)
 
 
-
-
-class _FrmActorPlanPeriod(QTableWidget):
-    def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
-        super().__init__()
-        self.horizontalHeader().setMaximumSectionSize(35)
-        self.horizontalHeader().setMinimumSectionSize(35)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.days = [actor_plan_period.plan_period.start+timedelta(delta) for delta in
-                     range((actor_plan_period.plan_period.end - actor_plan_period.plan_period.start).days + 1)]
-        header_items = [d.strftime('%d.%m') for d in self.days]
-        self.setColumnCount(len(header_items))
-        self.setRowCount(10)
-        self.setHorizontalHeaderLabels(header_items)
-        self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
-        self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
-
-        for col, d in enumerate(self.days):
-            t_o_d = db_services.get_person(actor_plan_period.person.id).time_of_days
-            for row, tageszeit in enumerate(sorted(t_o_d, key=lambda t: t.start), start=0):
-                chkbox_item = QTableWidgetItem()
-
-                chkbox_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-                chkbox_item.setCheckState(QtCore.Qt.Unchecked)
-                self.setItem(row, col, chkbox_item)
-            self.item_weekday = QTableWidgetItem(self.weekdays[d.weekday()])
-            if d.weekday() in (5, 6):
-                self.item_weekday.setBackground(QColor('#ffdc99'))
-            self.setItem(row+1, col, self.item_weekday)
-
-
 class FrmActorPlanPeriod(QWidget):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__()

@@ -1,3 +1,4 @@
+import datetime
 from datetime import timedelta
 
 from PySide6 import QtCore
@@ -92,6 +93,12 @@ class FrmActorPlanPeriod(QWidget):
         self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
         self.months = {1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August',
                        9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember'}
+
+        self.set_headers_months()
+
+        self.set_chk_field()
+
+    def set_headers_months(self):
         month_year = [(d.month, d.year) for d in self.days]
         header_items_months = {m_y: month_year.count(m_y) for m_y in sorted({my for my in month_year},
                                                                             key=lambda x: f'{x[1]}{x[0]:02}')}
@@ -107,34 +114,40 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(label, 0, col, 1, count)
             col += count
 
+    def set_chk_field(self):
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            t_o_d = db_services.get_person(actor_plan_period.person.id).time_of_days
-            for row, tageszeit in enumerate(sorted(t_o_d, key=lambda t: t.start), start=2):
-                self.layout.addWidget(QLabel(tageszeit.name), row, 0)
-                button = QPushButton()
-                button.setCheckable(True)
-                button.setMaximumWidth(23)
-                button.setMinimumHeight(23)
-                if tageszeit.name == 'Morgen':
-                    button.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                                         "QPushButton::checked { background-color: #002aaa; border: none;}")
-                else:
-                    button.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                                         "QPushButton::checked { background-color: #ff4600; border: none;}")
-                    '#a7c1d1'
-                self.layout.addWidget(button, row, col)
+            t_o_d = db_services.get_person(self.actor_plan_period.person.id).time_of_days
+            for row, time_of_day in enumerate(sorted(t_o_d, key=lambda t: t.start), start=2):
+                self.layout.addWidget(QLabel(time_of_day.name), row, 0)
+                self.create_time_of_day_button(d, time_of_day, row, col)
+
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
 
+    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDayShow, row: int, col: int):
+        button = QPushButton()
+        button.setCheckable(True)
+        button.setMaximumWidth(23)
+        button.setMinimumHeight(23)
+        button.toggled.connect(lambda checked=button.event, t_o_d=time_of_day: self.save_avail_day(checked, day, t_o_d))
+        if time_of_day.name == 'Morgen':
+            button.setStyleSheet("QPushButton {background-color: #cae4f4}"
+                                 "QPushButton::checked { background-color: #002aaa; border: none;}")
+        else:
+            button.setStyleSheet("QPushButton {background-color: #fff4d6}"
+                                 "QPushButton::checked { background-color: #ff4600; border: none;}")
+        self.layout.addWidget(button, row, col)
 
-
-
+    def save_avail_day(self, checked, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
+        print(f'{checked=}')
+        print(f'{date=}')
+        print(f'{t_o_d=}')
 
 
 

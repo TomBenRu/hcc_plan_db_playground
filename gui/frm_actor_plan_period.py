@@ -4,7 +4,7 @@ from datetime import timedelta
 from PySide6 import QtCore
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
-    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox
+    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea
 
 from database import schemas, db_services
 
@@ -16,6 +16,7 @@ class FrmTabActorPlanPeriod(QWidget):
         self.plan_period = plan_period
         self.actor_plan_periods = [a_pp for a_pp in plan_period.actor_plan_periods]
         self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in plan_period.actor_plan_periods}
+        self.scroll_area_availables: QScrollArea | None = None
         self.frame_availables: FrmActorPlanPeriod | None = None
 
         self.layout = QVBoxLayout()
@@ -43,7 +44,7 @@ class FrmTabActorPlanPeriod(QWidget):
         self.setup_selector_table()
         self.splitter_availables.setSizes([175, 10000])
         self.layout.setStretch(0, 2)
-        self.layout.setStretch(1, 96)
+        self.layout.setStretch(1, 99)
 
     def setup_selector_table(self):
         self.table_select_actor.setMaximumWidth(175)
@@ -51,6 +52,9 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor.setSortingEnabled(True)
         self.table_select_actor.setAlternatingRowColors(True)
         self.table_select_actor.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_select_actor.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_select_actor.verticalHeader().setVisible(False)
+        self.table_select_actor.horizontalHeader().setHighlightSections(False)
         self.table_select_actor.cellClicked.connect(self.view_table)
         self.table_select_actor.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
@@ -58,7 +62,7 @@ class FrmTabActorPlanPeriod(QWidget):
 
         headers = ['id', 'Vorname', 'Nachname']
         self.table_select_actor.setColumnCount(len(headers))
-        self.table_select_actor.setRowCount(len(self.pers_id__actor_pp)+5)
+        self.table_select_actor.setRowCount(len(self.pers_id__actor_pp))
         self.table_select_actor.setHorizontalHeaderLabels(headers)
         for row, actor_pp in enumerate(sorted(self.pers_id__actor_pp.values(), key=lambda x: x.person.f_name)):
             self.table_select_actor.setItem(row, 0, QTableWidgetItem(str(actor_pp.person.id)))
@@ -70,12 +74,12 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor.setMaximumWidth(10000)
         actor_plan_period: schemas.ActorPlanPeriodShow = self.pers_id__actor_pp[self.table_select_actor.item(r, 0).text()]
         self.lb_title_name.setText(f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
-        if self.frame_availables:
-            self.frame_availables.deleteLater()
-        else:
-            self.layout_availables.addStretch(10000)
+        if self.scroll_area_availables:
+            self.scroll_area_availables.deleteLater()
+        self.scroll_area_availables = QScrollArea()
+        self.layout_availables.addWidget(self.scroll_area_availables)
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period)
-        self.layout_availables.insertWidget(0, self.frame_availables)
+        self.scroll_area_availables.setWidget(self.frame_availables)
 
 
 class FrmActorPlanPeriod(QWidget):

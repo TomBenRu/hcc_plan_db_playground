@@ -132,6 +132,8 @@ class TablePersons(QTableWidget):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.horizontalHeader().setHighlightSections(False)
         self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
@@ -444,6 +446,8 @@ class TableLocationsOfWork(QTableWidget):
         self.setSortingEnabled(True)
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.horizontalHeader().setHighlightSections(False)
         self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 

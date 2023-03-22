@@ -219,6 +219,7 @@ class AvailDay(AvailDayCreate):
 
 class AvailDayShow(AvailDayCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True
@@ -546,4 +547,6 @@ EventGroupCreate.update_forward_refs(**locals())
 EventGroup.update_forward_refs(**locals())
 EventGroupShow.update_forward_refs(**locals())
 TimeOfDayShow.update_forward_refs(**locals())
+AvailDay.update_forward_refs()
+AvailDayShow.update_forward_refs()
 

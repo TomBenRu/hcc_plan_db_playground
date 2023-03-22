@@ -9,7 +9,7 @@ from pony.orm import db_session, show
 from . import schemas
 from .authentication import hash_psw
 from .models import Project, Team, Person, LocationOfWork, Address, TimeOfDay, ExcelExportSettings, PlanPeriod, \
-    LocationPlanPeriod, EventGroup, ActorPlanPeriod, AvailDayGroup
+    LocationPlanPeriod, EventGroup, ActorPlanPeriod, AvailDayGroup, AvailDay
 
 
 @db_session(sql_debug=True, show_values=True)
@@ -363,10 +363,57 @@ def create_avail_day_group(*, actor_plan_period_id: Optional[UUID] = None,
                            avail_day_group_id: Optional[UUID] = None) -> schemas.AvailDayGroupShow:
     logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
 
+    print(f'{avail_day_group_id=}')
     actor_plan_period_db = ActorPlanPeriod.get_for_update(id=actor_plan_period_id) if actor_plan_period_id else None
     avail_day_group_db = AvailDayGroup.get_for_update(id=avail_day_group_id) if avail_day_group_id else None
+    print(f'{avail_day_group_db=}')
     new_avail_day_group = AvailDayGroup(actor_plan_period=actor_plan_period_db, avail_day_group=avail_day_group_db)
 
     return schemas.AvailDayGroupShow.from_orm(new_avail_day_group)
 
 
+@db_session
+def get_avail_days(actor_plan_period_id: UUID) -> list[schemas.AvailDayShow]:
+    actor_plan_period_db = ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+    avail_days_db = AvailDay.select(lambda a: a.actor_plan_period == actor_plan_period_db)
+    return [schemas.AvailDayShow.from_orm(ad) for ad in avail_days_db]
+
+
+@db_session
+def get_avail_day(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
+    actor_plan_period_db = ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+    avail_day_db = AvailDay.get_for_update(
+        lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.day == day and
+                   ad.time_of_day == TimeOfDay.get_for_update(id=time_of_day_id) and not ad.prep_delete)
+    return schemas.AvailDayShow.from_orm(avail_day_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def create_avail_day(avail_day: schemas.AvailDayCreate) -> schemas.AvailDayShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+    actor_plan_period_db = ActorPlanPeriod.get_for_update(id=avail_day.actor_plan_period.id)
+    master_avail_day_group_db = actor_plan_period_db.avail_day_group
+    avail_day_group_db = create_avail_day_group(avail_day_group_id=master_avail_day_group_db.id)
+    avail_day_db = AvailDay(day=avail_day.day, time_of_day=TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
+                            actor_plan_period=ActorPlanPeriod.get_for_update(id=avail_day.actor_plan_period.id),
+                            avail_day_group=AvailDayGroup.get_for_update(id=avail_day_group_db.id))
+    return schemas.AvailDayShow.from_orm(avail_day_db)
+
+
+@db_session(sql_debug=True, show_values=True)
+def delete_avail_day(avail_day_id: UUID) -> schemas.AvailDayShow:
+    logging.info(f'function: {__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+
+    avail_day_db = AvailDay.get_for_update(id=avail_day_id)
+    deleted = schemas.AvailDayShow.from_orm(avail_day_db)
+    avail_day_group = avail_day_db.avail_day_group
+    avail_day_db.delete()
+    while True:
+        if not avail_day_group:
+            break
+        if avail_day_group.avail_day_groups.is_empty() and not avail_day_group.actor_plan_period:
+            avail_day_group, avail_day_group_to_delete = avail_day_group.avail_day_group, avail_day_group
+            avail_day_group_to_delete.delete()
+        else:
+            break
+    return deleted

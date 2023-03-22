@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
 
         # db_services.new_project('Humor Hilft Heilen')
 
-        self.project_id = UUID('FB7DA3C230F045CE85826770D5841C83')
+        self.project_id = UUID('24B1A883239344A98ED742EDD79F0703')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',

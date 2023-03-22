@@ -4,7 +4,7 @@ from datetime import timedelta
 from PySide6 import QtCore
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
-    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout
+    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox
 
 from database import schemas, db_services
 
@@ -98,6 +98,8 @@ class FrmActorPlanPeriod(QWidget):
 
         self.set_chk_field()
 
+        self.get_avail_days()
+
     def set_headers_months(self):
         month_year = [(d.month, d.year) for d in self.days]
         header_items_months = {m_y: month_year.count(m_y) for m_y in sorted({my for my in month_year},
@@ -131,11 +133,11 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(lb_weekday, row+1, col)
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDayShow, row: int, col: int):
-        button = QPushButton()
+        button = QPushButton(objectName=f'{day}-{time_of_day.name}')
         button.setCheckable(True)
         button.setMaximumWidth(23)
         button.setMinimumHeight(23)
-        button.toggled.connect(lambda checked=button.event, t_o_d=time_of_day: self.save_avail_day(checked, day, t_o_d))
+        button.released.connect(lambda bt=button, t_o_d=time_of_day: self.save_avail_day(bt, day, t_o_d))
         if time_of_day.name == 'Morgen':
             button.setStyleSheet("QPushButton {background-color: #cae4f4}"
                                  "QPushButton::checked { background-color: #002aaa; border: none;}")
@@ -144,11 +146,17 @@ class FrmActorPlanPeriod(QWidget):
                                  "QPushButton::checked { background-color: #ff4600; border: none;}")
         self.layout.addWidget(button, row, col)
 
-    def save_avail_day(self, checked, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
-        print(f'{checked=}')
-        print(f'{date=}')
-        print(f'{t_o_d=}')
+    def save_avail_day(self, bt: QPushButton, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
+        if bt.isChecked():
+            new_avail_day = db_services.create_avail_day(
+                schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
+            # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')
+        else:
+            avail_day = db_services.get_avail_day(self.actor_plan_period.id, date, t_o_d.id)
+            deleted_avail_day = db_services.delete_avail_day(avail_day.id)
 
-
-
-
+    def get_avail_days(self):
+        avail_days = [ad for ad in db_services.get_avail_days(self.actor_plan_period.id) if not ad.prep_delete]
+        for ad in avail_days:
+            button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.name}')
+            button.setChecked(True)

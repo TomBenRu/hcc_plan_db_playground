@@ -136,6 +136,7 @@ class ActorPlanPeriod(db.Entity):
     requested_assignments = Required(int, size=16, default=8, unsigned=True)
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
+    avail_days = Set('AvailDay')
 
     @property
     def team(self):
@@ -179,6 +180,10 @@ class AvailDayGroup(db.Entity):
     def before_update(self):
         self.last_modified = datetime.utcnow()
 
+    def after_update(self):
+        if not self.avail_day_groups and not self.actor_plan_period:
+            self.delete()
+
 
 class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.
@@ -188,15 +193,12 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
+    actor_plan_period = Required(ActorPlanPeriod)
     avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
-
-    @property
-    def actor_plan_period(self):
-        return self.avail_day_group.actor_plan_period_getter
 
     @property
     def team(self):

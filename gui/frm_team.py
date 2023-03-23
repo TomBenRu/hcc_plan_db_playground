@@ -77,8 +77,8 @@ class FrmTeam(QDialog):
                                                          f'Bitte wählen sie einen anderen Namen.')
                 return
             try:
-                team_created = db_services.new_team(team_name=self.le_name.text(), project_id=self.project.id,
-                                                    dispatcher_id=dispatcher_id)
+                team_created = db_services.Team.create(team_name=self.le_name.text(), project_id=self.project.id,
+                                                       dispatcher_id=dispatcher_id)
             except TransactionIntegrityError as e:
                 if str(e.original_exc).startswith('UNIQUE constraint failed'):
                     QMessageBox.critical(self, 'Fehler', f'Ein Team mit Namen "{self.le_name.text()}" ist beireits '
@@ -93,12 +93,12 @@ class FrmTeam(QDialog):
         else:
             self.team.name = self.le_name.text()
             self.team.dispatcher = self.cb_dispatcher.currentData()
-            updated_team = db_services.update_team(self.team)
+            updated_team = db_services.Team.update(self.team)
             QMessageBox.information(self, 'Team Update', f'Team wurde upgedated:\n{updated_team}')
         self.accept()
 
     def delete(self):
-        deleted_team = db_services.delete_team(self.team.id)
+        deleted_team = db_services.Team.delete(self.team.id)
         QMessageBox.information(self, 'Team Löschung', f'Das Team wurde gelöscht:\n{deleted_team}')
         self.accept()
 

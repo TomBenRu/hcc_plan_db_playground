@@ -88,7 +88,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
     if not (curr_data := parent.cb_time_of_days.currentData()):
         only_new_time_of_day_cause_parent_model = True
     else:
-        time_of_day_show_in_project = db_services.get_time_of_day(curr_data.id)
+        time_of_day_show_in_project = db_services.TimeOfDay.get(curr_data.id)
 
         '''Falls die Tageszeit dem Projekt zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
         Referenz zur Location gespeichert werden.'''
@@ -113,7 +113,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                 pydantic_model.time_of_days.append(parent.cb_time_of_days.currentData())
                 parent.fill_time_of_days()
         else:
-            t_o_d_created = db_services.create_time_of_day(dlg.new_time_of_day, parent.project_id)
+            t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, parent.project_id)
             '''Neue TimeOfDay wurde erstellt, aber noch nicht der Location zugeordnet.'''
             pydantic_model.time_of_days.append(t_o_d_created)
             # self.location_of_work = db_services.update_location_of_work(self.location_of_work)

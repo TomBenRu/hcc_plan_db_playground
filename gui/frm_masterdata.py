@@ -76,7 +76,7 @@ class WidgetPerson(QWidget):
 
     def get_persons(self) -> list[schemas.PersonShow]:
         try:
-            persons = [p for p in db_services.get_persons_of_project(self.project_id) if not p.prep_delete]
+            persons = [p for p in db_services.Person.get_all_from_project(self.project_id) if not p.prep_delete]
             return persons
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -98,9 +98,10 @@ class WidgetPerson(QWidget):
             QMessageBox.information(self, 'Bearbeiten', 'Sie müssen zuerst einen Eintrag auswählen.\n'
                                                         'Klicken Sie dafür in die entsprechende Zeile.')
             return
-        person = db_services.get_person(UUID(self.table_persons.item(row, 9).text()))
+        person = db_services.Person.get(UUID(self.table_persons.item(row, 9).text()))
         dlg = FrmPersonModify(self, self.project_id, person)
-        dlg.exec()
+        if dlg.exec():
+            self.refresh_table()
 
     def delete_person(self):
         row = self.table_persons.currentRow()
@@ -115,7 +116,7 @@ class WidgetPerson(QWidget):
         if res == QMessageBox.StandardButton.Yes:
             person_id = UUID(self.table_persons.item(row, 9).text())
             try:
-                deleted_person = db_services.delete_person(person_id)
+                deleted_person = db_services.Person.delete(person_id)
                 QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_person}')
             except Exception as e:
                 QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -159,7 +160,7 @@ class TablePersons(QTableWidget):
             self.setItem(row, 7, QTableWidgetItem(p.address.city))
             cb_team_of_actor = QComboBox()
             cb_team_of_actor.addItem('', None)
-            for team in sorted(db_services.get_teams_of_project(self.project_id), key=lambda t: t.name):
+            for team in sorted(db_services.Team.get_all_from_project(self.project_id), key=lambda t: t.name):
                 cb_team_of_actor.addItem(team.name, team)
             cb_team_of_actor.setCurrentText('' if not p.team_of_actor else p.team_of_actor.name)
             cb_team_of_actor.currentIndexChanged.connect(self.set_team)
@@ -178,7 +179,7 @@ class TablePersons(QTableWidget):
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
         person_id = UUID(self.item(self.currentRow(), 9).text())
         team_id = team.id if team else None
-        updated_person = db_services.update_person__team_of_actor(person_id, team_id)
+        updated_person = db_services.Person.update_team_of_actor(person_id, team_id)
         if updated_person.team_of_actor:
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" wurde dem Team '
                                                     f'"{updated_person.team_of_actor.name}" zugeordnet.')
@@ -193,7 +194,7 @@ class FrmPersonData(QDialog):
         self.setWindowTitle('Personendaten')
 
         self.project_id = project_id
-        self.project = db_services.get_project(project_id)
+        self.project = db_services.Project.get(project_id)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -255,7 +256,7 @@ class FrmPersonCreate(FrmPersonData):
                                       phone_nr=self.le_phone_nr.text(), username=self.le_username.text(),
                                       password=self.le_password.text(), address=address)
         try:
-            created = db_services.create_person(person, self.project_id)
+            created = db_services.Person.create(person, self.project_id)
             QMessageBox.information(self, 'Person angelegt', f'{created}')
             self.accept()
         except Exception as e:
@@ -263,7 +264,7 @@ class FrmPersonCreate(FrmPersonData):
 
 
 class FrmPersonModify(FrmPersonData):
-    def __init__(self, parent:QWidget, project_id: UUID, person: schemas.PersonShow):
+    def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
         super().__init__(parent, project_id)
 
         self.project_id = project_id
@@ -311,11 +312,11 @@ class FrmPersonModify(FrmPersonData):
         self.person.address.postal_code = self.le_postal_code.text()
         self.person.address.city = self.le_city.text()
         for t_o_d in self.time_of_days_to_delete:
-            db_services.delete_time_of_day(t_o_d.id)
+            db_services.TimeOfDay.delete(t_o_d.id)
         for t_o_d in self.time_of_days_to_update:
-            db_services.update_time_of_day(t_o_d)
+            db_services.TimeOfDay.update(t_o_d)
 
-        updated_person = db_services.update_person(self.person)
+        updated_person = db_services.Person.update(self.person)
         QMessageBox.information(self, 'Person Update',
                                 f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
         self.accept()
@@ -390,7 +391,7 @@ class WidgetLocationsOfWork(QWidget):
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         try:
-            locations = db_services.get_locations_of_work_of_project(self.project_id)
+            locations = db_services.LocationOfWork.get_all_from_project(self.project_id)
             return locations
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -414,8 +415,8 @@ class WidgetLocationsOfWork(QWidget):
             return
         location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
         dlg = FrmLocationModify(self, self.project_id, location_id)
-        dlg.exec()
-        self.refresh_table()
+        if dlg.exec():
+            self.refresh_table()
 
     def delete_location(self):
         row = self.table_locations.currentRow()
@@ -430,7 +431,7 @@ class WidgetLocationsOfWork(QWidget):
         if res == QMessageBox.StandardButton.Yes:
             location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
             try:
-                deleted_location = db_services.delete_location_of_work(location_id)
+                deleted_location = db_services.LocationOfWork.delete(location_id)
                 QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
             except Exception as e:
                 QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -481,7 +482,7 @@ class FrmLocationData(QDialog):
         super().__init__(parent)
 
         self.project_id = project_id
-        self.project = db_services.get_project(project_id)
+        self.project = db_services.Project.get(project_id)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -512,7 +513,7 @@ class FrmLocationData(QDialog):
                                         city=self.le_city.text())
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
         try:
-            created = db_services.create_location_of_work(location, self.project_id)
+            created = db_services.LocationOfWork.create(location, self.project_id)
             QMessageBox.information(self, 'Einrichtung angelegt', f'{created}')
             self.close()
         except Exception as e:
@@ -588,10 +589,10 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
         self.location_of_work.team = self.cb_teams.currentData()
         for t_o_d in self.time_of_days_to_delete:
-            db_services.delete_time_of_day(t_o_d.id)
+            db_services.TimeOfDay.delete(t_o_d.id)
         for t_o_d in self.time_of_days_to_update:
-            db_services.update_time_of_day(t_o_d)
-        updated_location = db_services.update_location_of_work(self.location_of_work)
+            db_services.TimeOfDay.update(t_o_d)
+        updated_location = db_services.LocationOfWork.update(self.location_of_work)
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
         self.accept()
 
@@ -604,18 +605,18 @@ class FrmLocationModify(FrmLocationData):
                 time_of_days__to_delete.append(t_o_d)
         for t_o_d in time_of_days__to_delete:
             self.location_of_work.time_of_days.remove(t_o_d)
-            db_services.delete_time_of_day(t_o_d.id)
+            db_services.TimeOfDay.delete(t_o_d.id)
         self.reject()
 
     def get_location_of_work(self):
-        location = db_services.get_location_of_work_of_project(self.location_id)
+        location = db_services.LocationOfWork.get(self.location_id)
         return location
 
     def edit_time_of_days(self):
         frm_time_of_day.edit_time_of_days(self, self.location_of_work, 'project_defaults')
 
     def reset_time_of_days(self):
-        default_time_of_days = db_services.get_project(self.project_id).time_of_days_default
+        default_time_of_days = db_services.Project.get(self.project_id).time_of_days_default
         frm_time_of_day.reset_time_of_days(self, self.location_of_work, default_time_of_days, 'project_defaults')
 
     def fill_time_of_days(self):
@@ -649,5 +650,5 @@ class FrmLocationModify(FrmLocationData):
         self.fill_time_of_days()
 
     def get_teams(self):
-        teams = db_services.get_teams_of_project(self.project_id)
+        teams = db_services.Team.get_all_from_project(self.project_id)
         return teams

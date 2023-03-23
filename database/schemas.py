@@ -16,6 +16,7 @@ class ModelWithTimeOfDays(Protocol):
 @runtime_checkable
 class ModelWithFixedCast(Protocol):
     fixed_cast: Optional[str]
+    team: 'Team'
 
 
 class PersonCreate(BaseModel):
@@ -145,6 +146,11 @@ class ActorPlanPeriodCreate(BaseModel):
     notes: Optional[str]
     plan_period: PlanPeriod
     person: Person
+
+
+class ActorPlanPeriodUpdate(BaseModel):
+    id: UUID
+    notes: Optional[str]
 
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):

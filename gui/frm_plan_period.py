@@ -69,7 +69,7 @@ class FrmPlanPeriodData(QDialog):
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
 
     def fill_dispatchers(self):
-        dispatcher = [p for p in db_services.get_persons_of_project(self.project_id)
+        dispatcher = [p for p in db_services.Person.get_all_from_project(self.project_id)
                       if p.teams_of_dispatcher and not p.prep_delete]
         for d in dispatcher:
             self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user.png'), f'{d.f_name} {d.l_name}', d)
@@ -113,10 +113,10 @@ class FrmPlanPeriodData(QDialog):
                                                    notes=self.pt_notes.toPlainText(),
                                                    team=self.cb_teams.currentData(),
                                                    remainder=self.chk_remainder.isChecked())
-        plan_period_created = db_services.create_planperiod(new_plan_period)
-        locations = [loc for loc in db_services.get_locations_of_work_of_project(self.project_id)
+        plan_period_created = db_services.PlanPeriod.create(new_plan_period)
+        locations = [loc for loc in db_services.LocationOfWork.get_all_from_project(self.project_id)
                      if not loc.prep_delete]
-        actors = [p for p in db_services.get_persons_of_project(self.project_id)
+        actors = [p for p in db_services.Person.get_all_from_project(self.project_id)
                   if p.team_of_actor and not p.prep_delete]
         for loc in locations:
             self.create_location_plan_periods(plan_period_created.id, loc.id)
@@ -126,15 +126,15 @@ class FrmPlanPeriodData(QDialog):
         self.accept()
 
     def create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
-        new_location_plan_period = db_services.create_location_plan_period(plan_period_id, loc_id)
+        new_location_plan_period = db_services.LocationPlanPeriod.create(plan_period_id, loc_id)
         print(f'{new_location_plan_period=}')
-        new_master_event_group = db_services.create_event_group(location_plan_period_id=new_location_plan_period.id)
+        new_master_event_group = db_services.EventGroup.create(location_plan_period_id=new_location_plan_period.id)
         print(f'{new_master_event_group=}')
 
     def create_actor_plan_periods(self, plan_period_id: UUID, person_id: UUID):
-        new_actor_plan_period = db_services.create_actor_plan_period(plan_period_id, person_id)
+        new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period_id, person_id)
         print(f'{new_actor_plan_period=}')
-        new_master_avail_day_group = db_services.create_avail_day_group(actor_plan_period_id=new_actor_plan_period.id)
+        new_master_avail_day_group = db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
         print(f'{new_master_avail_day_group=}')
 
 

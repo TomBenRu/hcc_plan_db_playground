@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        # db_services.new_project('Humor Hilft Heilen')
+        # db_services.Project.new_project('Humor Hilft Heilen')
 
         self.project_id = UUID('24B1A883239344A98ED742EDD79F0703')
 
@@ -140,10 +140,10 @@ class MainWindow(QMainWindow):
         self.frm_master_data = None
 
     def new_planperiod(self):
-        if not db_services.get_teams_of_project(self.project_id):
+        if not db_services.Team.get_all_from_project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum', 'Sie müssen Ihrem Projekt zuerst ein Team hinzufügen.')
             return
-        if not db_services.get_locations_of_work_of_project(self.project_id):
+        if not db_services.LocationOfWork.get_all_from_project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum',
                                  'Sie müssen Ihrem Projekt zuerst eine Einrichtung hinzufügen.')
             return
@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
 
     def put_clients_to_menu(self) -> tuple[Action] | None:
         try:
-            teams = db_services.get_teams_of_project(self.project_id)
+            teams = db_services.Team.get_all_from_project(self.project_id)
         except Exception as e:
             QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
             return

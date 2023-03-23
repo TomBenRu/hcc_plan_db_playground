@@ -28,7 +28,7 @@ class FrmFixedCast(QDialog):
         self.object_name_operatior_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': 'und', 'or': 'oder'}
 
-        self.persons = sorted(db_services.get_persons_of_team(schema_with_fixed_cast_field.team.id),
+        self.persons = sorted(db_services.Person.get_all_from_team(schema_with_fixed_cast_field.team.id),
                               key=lambda p: p.f_name)
 
         self.layout = QVBoxLayout()

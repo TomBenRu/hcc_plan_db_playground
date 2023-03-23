@@ -1,10 +1,11 @@
 import datetime
 from datetime import timedelta
+from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
-    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea
+    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit
 
 from database import schemas, db_services
 
@@ -16,8 +17,16 @@ class FrmTabActorPlanPeriod(QWidget):
         self.plan_period = plan_period
         self.actor_plan_periods = [a_pp for a_pp in plan_period.actor_plan_periods]
         self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in plan_period.actor_plan_periods}
+        self.person_id: UUID | None = None
         self.scroll_area_availables: QScrollArea | None = None
         self.frame_availables: FrmActorPlanPeriod | None = None
+        self.lb_notes = QLabel('Infos:')
+        font_lb_notes = self.lb_notes.font()
+        font_lb_notes.setBold(True)
+        self.lb_notes.setFont(font_lb_notes)
+        self.te_notes = QTextEdit()
+        self.te_notes.textChanged.connect(self.save_info)
+        self.te_notes.setFixedHeight(180)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -55,7 +64,7 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table_select_actor.verticalHeader().setVisible(False)
         self.table_select_actor.horizontalHeader().setHighlightSections(False)
-        self.table_select_actor.cellClicked.connect(self.view_table)
+        self.table_select_actor.cellClicked.connect(self.data_setup)
         self.table_select_actor.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
         self.table_select_actor.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -70,16 +79,34 @@ class FrmTabActorPlanPeriod(QWidget):
             self.table_select_actor.setItem(row, 2, QTableWidgetItem(actor_pp.person.l_name))
         self.table_select_actor.hideColumn(0)
 
-    def view_table(self, r, c):
+    def data_setup(self, r, c):
         self.table_select_actor.setMaximumWidth(10000)
-        actor_plan_period: schemas.ActorPlanPeriodShow = self.pers_id__actor_pp[self.table_select_actor.item(r, 0).text()]
-        self.lb_title_name.setText(f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
+        self.person_id = UUID(self.table_select_actor.item(r, 0).text())
+        actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
+        self.lb_title_name.setText(
+            f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
         if self.scroll_area_availables:
             self.scroll_area_availables.deleteLater()
         self.scroll_area_availables = QScrollArea()
         self.layout_availables.addWidget(self.scroll_area_availables)
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period)
         self.scroll_area_availables.setWidget(self.frame_availables)
+
+        self.info_text_setup()
+
+    def info_text_setup(self):
+        self.te_notes.textChanged.disconnect()
+        self.te_notes.clear()
+        self.layout_availables.addWidget(self.lb_notes)
+        self.layout_availables.addWidget(self.te_notes)
+        self.te_notes.setText(self.pers_id__actor_pp[str(self.person_id)].notes)
+        self.te_notes.textChanged.connect(self.save_info)
+
+    def save_info(self):
+        saved_actor_plan_period = db_services.ActorPlanPeriod.update(
+            schemas.ActorPlanPeriodUpdate(id=self.pers_id__actor_pp[str(self.person_id)].id,
+                                          notes=self.te_notes.toPlainText()))
+        self.pers_id__actor_pp[str(saved_actor_plan_period.person.id)] = saved_actor_plan_period
 
 
 class FrmActorPlanPeriod(QWidget):
@@ -125,7 +152,7 @@ class FrmActorPlanPeriod(QWidget):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            t_o_d = db_services.get_person(self.actor_plan_period.person.id).time_of_days
+            t_o_d = db_services.Person.get(self.actor_plan_period.person.id).time_of_days
             for row, time_of_day in enumerate(sorted(t_o_d, key=lambda t: t.start), start=2):
                 self.layout.addWidget(QLabel(time_of_day.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day, row, col)
@@ -152,15 +179,16 @@ class FrmActorPlanPeriod(QWidget):
 
     def save_avail_day(self, bt: QPushButton, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
         if bt.isChecked():
-            new_avail_day = db_services.create_avail_day(
+            new_avail_day = db_services.AvailDay.create(
                 schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
             # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')
         else:
-            avail_day = db_services.get_avail_day(self.actor_plan_period.id, date, t_o_d.id)
-            deleted_avail_day = db_services.delete_avail_day(avail_day.id)
+            avail_day = db_services.AvailDay.get(self.actor_plan_period.id, date, t_o_d.id)
+            deleted_avail_day = db_services.AvailDay.delete(avail_day.id)
 
     def get_avail_days(self):
-        avail_days = [ad for ad in db_services.get_avail_days(self.actor_plan_period.id) if not ad.prep_delete]
+        avail_days = [ad for ad in db_services.AvailDay.get_all_from_project(self.actor_plan_period.id)
+                      if not ad.prep_delete]
         for ad in avail_days:
             button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.name}')
             button.setChecked(True)

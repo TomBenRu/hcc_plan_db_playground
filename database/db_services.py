@@ -20,7 +20,7 @@ class Project:
 
     @staticmethod
     @db_session
-    def get_projects() -> list[schemas.ProjectShow]:
+    def get_all() -> list[schemas.ProjectShow]:
         return [schemas.ProjectShow.from_orm(p) for p in models.Project.select()]
 
     @staticmethod

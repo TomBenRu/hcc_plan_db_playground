@@ -1,4 +1,5 @@
 import datetime
+import time
 from datetime import timedelta
 from uuid import UUID
 
@@ -119,6 +120,8 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.setHorizontalSpacing(2)
 
         self.actor_plan_period = actor_plan_period
+        self.actor_time_of_days = sorted(db_services.Person.get(self.actor_plan_period.person.id).time_of_days,
+                                         key=lambda t: t.start)
         self.days = [actor_plan_period.plan_period.start+timedelta(delta) for delta in
                      range((actor_plan_period.plan_period.end - actor_plan_period.plan_period.start).days + 1)]
         self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
@@ -126,9 +129,7 @@ class FrmActorPlanPeriod(QWidget):
                        9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember'}
 
         self.set_headers_months()
-
         self.set_chk_field()
-
         self.get_avail_days()
 
     def set_headers_months(self):
@@ -152,11 +153,9 @@ class FrmActorPlanPeriod(QWidget):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            t_o_d = db_services.Person.get(self.actor_plan_period.person.id).time_of_days
-            for row, time_of_day in enumerate(sorted(t_o_d, key=lambda t: t.start), start=2):
+            for row, time_of_day in enumerate(self.actor_time_of_days, start=2):
                 self.layout.addWidget(QLabel(time_of_day.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day, row, col)
-
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
@@ -187,7 +186,7 @@ class FrmActorPlanPeriod(QWidget):
             deleted_avail_day = db_services.AvailDay.delete(avail_day.id)
 
     def get_avail_days(self):
-        avail_days = [ad for ad in db_services.AvailDay.get_all_from_project(self.actor_plan_period.id)
+        avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for ad in avail_days:
             button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.name}')

@@ -1,13 +1,11 @@
 import datetime
 from uuid import UUID
 
-from PySide6.QtCore import QDate
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout
 
 from database import db_services, schemas
-from gui.tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmPlanPeriodData(QDialog):

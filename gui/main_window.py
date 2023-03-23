@@ -6,13 +6,13 @@ from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
-from gui.frm_actor_plan_period import FrmTabActorPlanPeriod
-from gui.frm_masterdata import FrmMasterData
-from gui.actions import Action
-from gui.frm_plan_period import FrmPlanPeriodCreate
-from gui.frm_project_settings import SettingsProject
-from gui.tabbars import TabBar
-from gui.toolbars import MainToolBar
+from .frm_actor_plan_period import FrmTabActorPlanPeriod
+from .frm_masterdata import FrmMasterData
+from .actions import Action
+from .frm_plan_period import FrmPlanPeriodCreate
+from .frm_project_settings import SettingsProject
+from .tabbars import TabBar
+from .toolbars import MainToolBar
 
 
 class MainWindow(QMainWindow):

@@ -1,5 +1,3 @@
-import sys
-from abc import ABC, abstractmethod
 from uuid import UUID
 
 from PySide6.QtCore import Qt
@@ -11,11 +9,9 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessa
 from database import db_services, schemas
 from database.enums import Gender
 from gui import frm_time_of_day
-from gui.actions import Action
-from gui.frm_fixed_cast import FrmFixedCast
-from gui.frm_time_of_day import FrmTimeOfDay
-from gui.tabbars import TabBar
-from gui.tools.qcombobox_find_data import QComboBoxToFindData
+from .actions import Action
+from .frm_fixed_cast import FrmFixedCast
+from .tabbars import TabBar
 
 
 class FrmMasterData(QWidget):

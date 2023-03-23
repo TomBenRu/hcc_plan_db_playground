@@ -1,10 +1,8 @@
 import datetime
-import time
 from datetime import timedelta
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit
 

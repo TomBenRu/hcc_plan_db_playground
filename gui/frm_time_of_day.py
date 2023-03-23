@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
     QDialogButtonBox, QCheckBox, QFormLayout
 
 from database import schemas, db_services
-from gui.protocol_widget_classes import ManipulateTimeOfDays
+from .protocol_widget_classes import ManipulateTimeOfDays
 
 
 class FrmTimeOfDay(QDialog):

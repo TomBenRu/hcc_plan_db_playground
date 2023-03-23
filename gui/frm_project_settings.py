@@ -1,16 +1,13 @@
-import datetime
 from uuid import UUID
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
                                QGroupBox, QPushButton, QTimeEdit, QMessageBox)
-from pony.orm import TransactionIntegrityError
 
 from database import db_services, schemas, models
-from database.models import Project
-from gui.frm_excel_settings import FrmExcelExportSettings
-from gui.frm_team import FrmTeam
-from gui.frm_time_of_day import FrmTimeOfDay
+from .frm_excel_settings import FrmExcelExportSettings
+from .frm_team import FrmTeam
+from .frm_time_of_day import FrmTimeOfDay
 
 
 class SettingsProject(QDialog):

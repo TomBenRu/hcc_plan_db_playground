@@ -76,7 +76,7 @@ class WidgetPerson(QWidget):
 
     def get_persons(self) -> list[schemas.PersonShow]:
         try:
-            persons = [p for p in db_services.Person.get_all_from_project(self.project_id) if not p.prep_delete]
+            persons = [p for p in db_services.Person.get_all_from__project(self.project_id) if not p.prep_delete]
             return persons
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -160,7 +160,7 @@ class TablePersons(QTableWidget):
             self.setItem(row, 7, QTableWidgetItem(p.address.city))
             cb_team_of_actor = QComboBox()
             cb_team_of_actor.addItem('', None)
-            for team in sorted(db_services.Team.get_all_from_project(self.project_id), key=lambda t: t.name):
+            for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
                 cb_team_of_actor.addItem(team.name, team)
             cb_team_of_actor.setCurrentText('' if not p.team_of_actor else p.team_of_actor.name)
             cb_team_of_actor.currentIndexChanged.connect(self.set_team)
@@ -391,7 +391,7 @@ class WidgetLocationsOfWork(QWidget):
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         try:
-            locations = db_services.LocationOfWork.get_all_from_project(self.project_id)
+            locations = db_services.LocationOfWork.get_all_from__project(self.project_id)
             return locations
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
@@ -650,5 +650,5 @@ class FrmLocationModify(FrmLocationData):
         self.fill_time_of_days()
 
     def get_teams(self):
-        teams = db_services.Team.get_all_from_project(self.project_id)
+        teams = db_services.Team.get_all_from__project(self.project_id)
         return teams

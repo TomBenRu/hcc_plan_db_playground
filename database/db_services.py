@@ -54,7 +54,7 @@ class Project:
 class Team:
     @staticmethod
     @db_session
-    def get_all_from_project(projet_id: UUID) -> list[schemas.TeamShow]:
+    def get_all_from__project(projet_id: UUID) -> list[schemas.TeamShow]:
         project_in_db = models.Project.get_for_update(lambda p: p.id == projet_id)
         if not project_in_db:
             return []
@@ -100,14 +100,14 @@ class Person:
 
     @staticmethod
     @db_session
-    def get_all_from_project(project_id: UUID) -> list[schemas.PersonShow]:
+    def get_all_from__project(project_id: UUID) -> list[schemas.PersonShow]:
         project_in_db = models.Project.get_for_update(id=project_id)
         persons_in_db = models.Person.select(lambda p: p.project == project_in_db and not p.prep_delete)
         return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
 
     @staticmethod
     @db_session
-    def get_all_from_team(team_id: UUID) -> list[schemas.PersonShow]:
+    def get_all_from__team(team_id: UUID) -> list[schemas.PersonShow]:
         persons_db = models.Person.select(lambda p: p.team_of_actor.id == team_id)
         return [schemas.PersonShow.from_orm(p) for p in persons_db]
 
@@ -182,7 +182,7 @@ class LocationOfWork:
 
     @staticmethod
     @db_session
-    def get_all_from_project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
+    def get_all_from__project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
         project_in_db = models.Project[project_id]
         locations_in_db = models.LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
         return [schemas.LocationOfWorkShow.from_orm(l) for l in locations_in_db]

@@ -69,7 +69,7 @@ class FrmPlanPeriodData(QDialog):
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
 
     def fill_dispatchers(self):
-        dispatcher = [p for p in db_services.Person.get_all_from_project(self.project_id)
+        dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)
                       if p.teams_of_dispatcher and not p.prep_delete]
         for d in dispatcher:
             self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user.png'), f'{d.f_name} {d.l_name}', d)
@@ -114,9 +114,9 @@ class FrmPlanPeriodData(QDialog):
                                                    team=self.cb_teams.currentData(),
                                                    remainder=self.chk_remainder.isChecked())
         plan_period_created = db_services.PlanPeriod.create(new_plan_period)
-        locations = [loc for loc in db_services.LocationOfWork.get_all_from_project(self.project_id)
+        locations = [loc for loc in db_services.LocationOfWork.get_all_from__project(self.project_id)
                      if not loc.prep_delete]
-        actors = [p for p in db_services.Person.get_all_from_project(self.project_id)
+        actors = [p for p in db_services.Person.get_all_from__project(self.project_id)
                   if p.team_of_actor and not p.prep_delete]
         for loc in locations:
             self.create_location_plan_periods(plan_period_created.id, loc.id)

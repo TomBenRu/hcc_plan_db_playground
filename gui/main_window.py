@@ -140,10 +140,10 @@ class MainWindow(QMainWindow):
         self.frm_master_data = None
 
     def new_planperiod(self):
-        if not db_services.Team.get_all_from_project(self.project_id):
+        if not db_services.Team.get_all_from__project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum', 'Sie müssen Ihrem Projekt zuerst ein Team hinzufügen.')
             return
-        if not db_services.LocationOfWork.get_all_from_project(self.project_id):
+        if not db_services.LocationOfWork.get_all_from__project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum',
                                  'Sie müssen Ihrem Projekt zuerst eine Einrichtung hinzufügen.')
             return
@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
 
     def put_clients_to_menu(self) -> tuple[Action] | None:
         try:
-            teams = db_services.Team.get_all_from_project(self.project_id)
+            teams = db_services.Team.get_all_from__project(self.project_id)
         except Exception as e:
             QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
             return

@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session, show
+from pony.orm import db_session
 
 from . import schemas
 from .authentication import hash_psw
@@ -134,12 +134,14 @@ class Person:
         if person_db.address:
             address = Address.update(person.address)
         else:
-            address = Address.create(schemas.AddressCreate(**person.address.dict(include={'street', 'postal_code', 'city'})))
+            address = Address.create(
+                schemas.AddressCreate(**person.address.dict(include={'street', 'postal_code', 'city'})))
         person_db.address = models.Address.get_for_update(id=address.id)
         person_db.time_of_days.clear()
         for t_o_d in person.time_of_days:
             person_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
-        person_db.set(**person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments'}))
+        person_db.set(
+            **person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments'}))
 
         '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
 
@@ -187,7 +189,7 @@ class LocationOfWork:
     def get_all_from__project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
         project_in_db = models.Project[project_id]
         locations_in_db = models.LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
-        return [schemas.LocationOfWorkShow.from_orm(l) for l in locations_in_db]
+        return [schemas.LocationOfWorkShow.from_orm(loc) for loc in locations_in_db]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -352,7 +354,7 @@ class EventGroup:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, location_plan_period_id: Optional[UUID] = None,
-                           event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
+               event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         location_plan_period_db = (models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)

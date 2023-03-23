@@ -25,15 +25,17 @@ class Project:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(name: str):
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-        models.Project(name=name)
+    def create(name: str) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project(name=name)
+        return schemas.ProjectShow.from_orm(project_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update_name(name: str, project_id) -> schemas.Project:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         project_db.name = name
         return schemas.Project.from_orm(project_db)
@@ -41,8 +43,8 @@ class Project:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(project: schemas.ProjectShow) -> schemas.ProjectShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project.id)
         project_db.set(**project.dict(include={'name', 'active'}))
         project_db.time_of_days_default.clear()
@@ -63,8 +65,8 @@ class Team:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(team_name: str, project_id: UUID, dispatcher_id: UUID = None):
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         dispatcher_db = models.Person.get_for_update(id=dispatcher_id) if dispatcher_id else None
         team_db = models.Team(name=team_name, project=project_db, dispatcher=dispatcher_db)
@@ -73,8 +75,8 @@ class Team:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(team: schemas.Team) -> schemas.TeamShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         team_db = models.Team.get_for_update(id=team.id)
         dispatcher_db = models.Person.get_for_update(id=team.dispatcher.id) if team.dispatcher else None
         team_db.name = team.name
@@ -84,8 +86,8 @@ class Team:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def delete(team_id: UUID) -> schemas.Team:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         team_db = models.Team.get_for_update(id=team_id)
         team_db.prep_delete = datetime.datetime.utcnow()
         return schemas.Team.from_orm(team_db)
@@ -114,8 +116,8 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_in_db = models.Project.get_for_update(id=project_id)
         address_in_db = models.Address(**person.address.dict(), project=project_in_db)
         hashed_password = hash_psw(person.password)
@@ -126,8 +128,8 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(person: schemas.PersonShow) -> schemas.Person:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person.id)
         if person_db.address:
             address = Address.update(person.address)
@@ -146,8 +148,8 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update_team_of_actor(person_id: UUID, team_id: UUID | None):
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         team_db = models.Team.get_for_update(id=team_id) if team_id else None
         person_db.team_of_actor = team_db
@@ -156,8 +158,8 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update_project_of_admin(person_id: UUID, project_id: UUID) -> schemas.PersonShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         project_db = models.Project.get_for_update(id=project_id)
         person_db.project_of_admin = project_db
@@ -166,8 +168,8 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def delete(person_id: UUID) -> schemas.Person:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         person_db.prep_delete = datetime.datetime.utcnow()
         return schemas.Person.from_orm(person_db)
@@ -190,8 +192,8 @@ class LocationOfWork:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         address_db = models.Address(**location.address.dict(), project=project_db)
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
@@ -200,8 +202,8 @@ class LocationOfWork:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         location_db = models.LocationOfWork.get_for_update(id=location_of_work.id)
         location_db.time_of_days.clear()
         for t_o_d in location_of_work.time_of_days:
@@ -226,8 +228,8 @@ class LocationOfWork:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def delete(location_id: UUID) -> schemas.LocationOfWork:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_db.prep_delete = datetime.datetime.utcnow()
         return schemas.LocationOfWork.from_orm(location_db)
@@ -243,9 +245,8 @@ class TimeOfDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDayShow:
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_db = models.TimeOfDay(**time_of_day.dict(), project=project_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)
@@ -253,9 +254,8 @@ class TimeOfDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(time_of_day: schemas.TimeOfDay):
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day.id)
         time_of_day_db.name = time_of_day.name
         time_of_day_db.start = time_of_day.start
@@ -266,8 +266,8 @@ class TimeOfDay:
     @db_session(sql_debug=True, show_values=True)
     def put_to_model(time_of_day: schemas.TimeOfDay,
                      pydantic_model: schemas.ModelWithTimeOfDays | schemas.Project, db_model):
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         if not (isinstance(pydantic_model, schemas.ModelWithTimeOfDays) or isinstance(pydantic_model, schemas.Project)):
             raise ValueError
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day.id)
@@ -282,9 +282,8 @@ class TimeOfDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def delete(time_of_day_id: UUID) -> schemas.TimeOfDay:
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
         time_of_day_db.prep_delete = datetime.datetime.utcnow()
         return schemas.TimeOfDay.from_orm(time_of_day_db)
@@ -294,8 +293,8 @@ class ExcelExportSettings:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         excel_export_settings_db = models.ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
         # for key, val in excel_export_settings.dict(exclude={'id'}).items():
         #     excel_export_settings_db.__setattr__(key, val)
@@ -308,18 +307,16 @@ class Address:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(address: schemas.AddressCreate) -> schemas.Address:
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         address_db = models.Address(street=address.street, postal_code=address.postal_code, city=address.city)
         return schemas.Address.from_orm(address_db)
 
     @ staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(address: schemas.Address) -> schemas.Address:
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         address_db = models.Address.get_for_update(lambda a: a.id == address.id)
         # for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
         #     address_db.__setattr__(key, val)
@@ -331,8 +328,8 @@ class PlanPeriod:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         team_db = models.Team.get_for_update(id=plan_period.team.id)
         plan_period_db = models.PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
                                            notes=plan_period.notes, team=team_db)
@@ -343,8 +340,8 @@ class LocationPlanPeriod:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period_id: UUID, location_id: UUID) -> schemas.LocationPlanPeriodShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_plan_period_db = models.LocationPlanPeriod(plan_period=plan_period_db, location_of_work=location_db)
@@ -356,8 +353,8 @@ class EventGroup:
     @db_session(sql_debug=True, show_values=True)
     def create(*, location_plan_period_id: Optional[UUID] = None,
                            event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         location_plan_period_db = (models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
                                    if location_plan_period_id else None)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id) if event_group_id else None
@@ -370,8 +367,8 @@ class ActorPlanPeriod:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period_id: UUID, person_id: UUID) -> schemas.ActorPlanPeriodShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         person_db = models.Person.get_for_update(id=person_id)
         actor_plan_period_db = models.ActorPlanPeriod(plan_period=plan_period_db, person=person_db)
@@ -381,8 +378,8 @@ class ActorPlanPeriod:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def update(actor_plan_period: schemas.ActorPlanPeriodUpdate) -> schemas.ActorPlanPeriodShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
         actor_plan_period_db.set(notes=actor_plan_period.notes)
         return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
@@ -392,10 +389,9 @@ class AvailDayGroup:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, actor_plan_period_id: Optional[UUID] = None,
-                               avail_day_group_id: Optional[UUID] = None) -> schemas.AvailDayGroupShow:
-        logging.info(
-            f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+               avail_day_group_id: Optional[UUID] = None) -> schemas.AvailDayGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(
             id=actor_plan_period_id) if actor_plan_period_id else None
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id) if avail_day_group_id else None
@@ -425,7 +421,8 @@ class AvailDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(avail_day: schemas.AvailDayCreate) -> schemas.AvailDayShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=avail_day.actor_plan_period.id)
         master_avail_day_group_db = actor_plan_period_db.avail_day_group
         avail_day_group_db = AvailDayGroup.create(avail_day_group_id=master_avail_day_group_db.id)
@@ -438,8 +435,8 @@ class AvailDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def delete(avail_day_id: UUID) -> schemas.AvailDayShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\nargs: {locals()}')
-
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         deleted = schemas.AvailDayShow.from_orm(avail_day_db)
         avail_day_group = avail_day_db.avail_day_group

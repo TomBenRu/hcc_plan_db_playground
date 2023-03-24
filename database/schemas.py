@@ -214,8 +214,10 @@ class AvailDay(AvailDayCreate):
     id: UUID
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
+    actor_partner_location_prefs: List['ActorPartnerLocationPref']
 
-    @validator('time_of_days', 'combination_locations_possibles', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -233,6 +235,7 @@ class AvailDayShow(AvailDayCreate):
 
 class TimeOfDayCreate(BaseModel):
     name: str
+    time_of_day_enum: 'TimeOfDayEnum'
     start: time
     end: time
 
@@ -259,6 +262,30 @@ class TimeOfDayShow(TimeOfDay):
                'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class TimeOfDayEnumCreate(BaseModel):
+    name: str
+    abbreviation: str
+    project: Project
+
+
+class TimeOfDayEnum(TimeOfDayEnumCreate):
+    id: UUID
+
+    class Config:
+        orm_mode = True
+
+
+class TimeOfDayEnumShow(TimeOfDayEnum):
+    time_of_days: List[TimeOfDay]
+
+    @validator('time_of_days', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [v for v in values]
 
     class Config:
         orm_mode = True
@@ -552,6 +579,7 @@ EventCreate.update_forward_refs(**locals())
 EventGroupCreate.update_forward_refs(**locals())
 EventGroup.update_forward_refs(**locals())
 EventGroupShow.update_forward_refs(**locals())
+TimeOfDayCreate.update_forward_refs()
 TimeOfDayShow.update_forward_refs(**locals())
 AvailDay.update_forward_refs()
 AvailDayShow.update_forward_refs()

@@ -21,9 +21,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 800, 600))
 
-        # db_services.Project.new_project('Humor Hilft Heilen')
+        # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('24B1A883239344A98ED742EDD79F0703')
+        self.project_id = UUID('AB6301AD703D438F9C5ACFF36CA9BC5B')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',

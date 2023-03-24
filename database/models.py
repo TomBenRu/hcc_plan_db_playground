@@ -74,6 +74,7 @@ class Project(db.Entity):
     time_of_days = Set('TimeOfDay', reverse='project')
     time_of_days_default = Set('TimeOfDay', reverse='project_defaults')
     excel_export_settings = Optional('ExcelExportSettings')
+    time_of_day_enums = Set('TimeOfDayEnum')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -199,6 +200,7 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+    actor_partner_location_prefs = Set('ActorPartnerLocationPref')
 
     @property
     def team(self):
@@ -210,6 +212,8 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
         for t_o_d in self.actor_plan_period.time_of_days:
             if not t_o_d.prep_delete:
                 self.time_of_days.add(t_o_d)
+        for aplp in self.actor_plan_period.actor_partner_location_prefs:
+            self.actor_partner_location_prefs.add(aplp)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -224,6 +228,7 @@ Für LocationOfWork... gilt das gleiche Schema."""
     name = Optional(str, 50)
     start = Required(time)
     end = Required(time)
+    time_of_day_enum = Required('TimeOfDayEnum')
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
@@ -240,6 +245,17 @@ Für LocationOfWork... gilt das gleiche Schema."""
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
+
+
+class TimeOfDayEnum(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    name = Required(str, 50)
+    abbreviation = Required(str, 10)
+    time_of_days = Set(TimeOfDay)
+    project = Required(Project)
+
+    composite_key(name, project)
+    composite_key(abbreviation, project)
 
 
 class LocationOfWork(db.Entity):
@@ -437,6 +453,7 @@ ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatis
     partner = Required(Person, reverse='actor_partner_location_prefs__as_partner')
     location_of_work = Required(LocationOfWork)
     actor_plan_periods = Set(ActorPlanPeriod)
+    avail_days = Set(AvailDay)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

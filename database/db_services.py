@@ -250,7 +250,9 @@ class TimeOfDay:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
-        time_of_day_db = models.TimeOfDay(**time_of_day.dict(), project=project_db)
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
+        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude={'time_of_day_enum'}), project=project_db,
+                                          time_of_day_enum=time_of_day_enum_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 
     @staticmethod
@@ -262,6 +264,7 @@ class TimeOfDay:
         time_of_day_db.name = time_of_day.name
         time_of_day_db.start = time_of_day.start
         time_of_day_db.end = time_of_day.end
+        time_of_day_db.time_of_day_enum = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
         return schemas.TimeOfDay.from_orm(time_of_day_db)
 
     @staticmethod
@@ -292,6 +295,12 @@ class TimeOfDay:
 
 
 class TimeOfDayEnum:
+    @staticmethod
+    @db_session
+    def get(time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
+        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(time_of_day_enum: schemas.TimeOfDayEnumCreate) -> schemas.TimeOfDayEnumShow:

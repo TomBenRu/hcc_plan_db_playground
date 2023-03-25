@@ -131,7 +131,7 @@ class SettingsProject(QDialog):
         self.fill_admins()
 
     def edit_time_of_day(self):
-        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData())
+        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project)
         if dlg.exec():  # Wenn der Dialog mit OK bestätigt wird...
             if dlg.to_delete_status:
                 deleted_time_of_day = db_services.TimeOfDay.delete(dlg.curr_time_of_day.id)
@@ -155,6 +155,7 @@ class SettingsProject(QDialog):
                     QMessageBox.critical(dlg, 'Fehler',
                                          f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
                 else:
+                    print(f'{dlg.curr_time_of_day=}')
                     t_o_d_updated = db_services.TimeOfDay.update(dlg.curr_time_of_day)
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
                     self.project = db_services.Project.get(self.project_id)

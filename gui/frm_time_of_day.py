@@ -2,20 +2,24 @@ import datetime
 from typing import Literal
 from uuid import UUID
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout
+    QDialogButtonBox, QCheckBox, QFormLayout, QComboBox
 
 from database import schemas, db_services
 from .protocol_widget_classes import ManipulateTimeOfDays
+from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmTimeOfDay(QDialog):
-    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow, only_new_time_of_day=False):
+    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow, project: schemas.ProjectShow,
+                 only_new_time_of_day=False):
         super().__init__(parent)
         self.setWindowTitle('Tageszeit')
 
         self.only_new_time_of_day = only_new_time_of_day
 
+        self.project = project
         self.curr_time_of_day = time_of_day.copy() if time_of_day else None
         self.new_time_of_day: schemas.TimeOfDayCreate | None = None
         self.to_delete_status = False
@@ -26,6 +30,7 @@ class FrmTimeOfDay(QDialog):
         self.le_name = QLineEdit()
         self.te_start = QTimeEdit()
         self.te_end = QTimeEdit()
+        self.cb_time_of_day_enum = QComboBoxToFindData()
         self.bt_delete = QPushButton('Löschen', clicked=self.delete)
         self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
         self.chk_new_mode.toggled.connect(self.change_new_mode)
@@ -38,6 +43,7 @@ class FrmTimeOfDay(QDialog):
         self.layout.addRow('Name', self.le_name)
         self.layout.addRow('Zeitpunkt Start', self.te_start)
         self.layout.addRow('Zeitpunkt Ende', self.te_end)
+        self.layout.addRow('Tagesz.-Standart', self.cb_time_of_day_enum)
         self.layout.addRow(self.chk_new_mode)
 
         self.layout.addRow(self.bt_box)
@@ -45,10 +51,15 @@ class FrmTimeOfDay(QDialog):
         self.autofill()
 
     def autofill(self):
+        for t_o_d_enum in self.project.time_of_day_enums:
+            self.cb_time_of_day_enum.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+                                             f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum.id)
         if self.curr_time_of_day:
             self.le_name.setText(self.curr_time_of_day.name)
             self.te_start.setTime(self.curr_time_of_day.start)
             self.te_end.setTime(self.curr_time_of_day.end)
+            self.cb_time_of_day_enum.setCurrentIndex(
+                self.cb_time_of_day_enum.findData(self.curr_time_of_day.time_of_day_enum.id))
         if not self.curr_time_of_day or self.new_mode or self.only_new_time_of_day:
             self.new_mode = True
             self.chk_new_mode.setChecked(True)
@@ -66,15 +77,20 @@ class FrmTimeOfDay(QDialog):
         if not name:
             QMessageBox.information(self, 'Fehler', 'Sie müsser einen Namen für diese Tageszeit angeben.')
             return
+        if not self.cb_time_of_day_enum.currentData():
+            QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')
         start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
         end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
+        time_of_day_enum = db_services.TimeOfDayEnum.get(self.cb_time_of_day_enum.currentData())
 
         if self.chk_new_mode.isChecked():
-            self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end)
+            self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end,
+                                                           time_of_day_enum=time_of_day_enum)
         else:
             self.curr_time_of_day.name = name
             self.curr_time_of_day.start = start
             self.curr_time_of_day.end = end
+            self.curr_time_of_day.time_of_day_enum = time_of_day_enum
         self.accept()
 
     def delete(self):
@@ -165,6 +181,7 @@ class FrmTimeOfDayEnum(QDialog):
 
 
 def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
+                      project: schemas.ProjectShow,
                       field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
                       'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
                       'location_plan_periods_defaults', 'events_defaults']):
@@ -179,7 +196,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
             True if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model) else False
         )
 
-    dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(),
+    dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(), project,
                        only_new_time_of_day=only_new_time_of_day_cause_parent_model)
     if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
         return

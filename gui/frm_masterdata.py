@@ -347,7 +347,7 @@ class FrmPersonModify(FrmPersonData):
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
     def edit_time_of_days(self):
-        frm_time_of_day.edit_time_of_days(self, self.person, 'project_defaults')
+        frm_time_of_day.edit_time_of_days(self, self.person, self.project, 'project_defaults')
 
     def reset_time_of_days(self):
         frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days_default, 'project_defaults')
@@ -609,7 +609,7 @@ class FrmLocationModify(FrmLocationData):
         return location
 
     def edit_time_of_days(self):
-        frm_time_of_day.edit_time_of_days(self, self.location_of_work, 'project_defaults')
+        frm_time_of_day.edit_time_of_days(self, self.location_of_work, self.project, 'project_defaults')
 
     def reset_time_of_days(self):
         default_time_of_days = db_services.Project.get(self.project_id).time_of_days_default

@@ -147,6 +147,7 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):
+        project = db_services.Project.get(self.actor_plan_period.plan_period.team.project.id)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)

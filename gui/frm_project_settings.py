@@ -105,7 +105,7 @@ class SettingsProject(QDialog):
 
     def fill_time_of_day_enums(self):
         self.cb_time_of_days_enums.clear()
-        for t_o_d_enum in self.project.time_of_day_enums:
+        for t_o_d_enum in sorted(self.project.time_of_day_enums, key=lambda x: x.time_index):
             self.cb_time_of_days_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
                                                f'{t_o_d_enum.name}/{t_o_d_enum.abbreviation}', t_o_d_enum)
 
@@ -155,7 +155,6 @@ class SettingsProject(QDialog):
                     QMessageBox.critical(dlg, 'Fehler',
                                          f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
                 else:
-                    print(f'{dlg.curr_time_of_day=}')
                     t_o_d_updated = db_services.TimeOfDay.update(dlg.curr_time_of_day)
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
                     self.project = db_services.Project.get(self.project_id)
@@ -176,7 +175,6 @@ class SettingsProject(QDialog):
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
-
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

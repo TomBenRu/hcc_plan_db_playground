@@ -4,7 +4,7 @@ from uuid import UUID
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout, QComboBox
+    QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox
 
 from database import schemas, db_services
 from .protocol_widget_classes import ManipulateTimeOfDays
@@ -115,6 +115,8 @@ class FrmTimeOfDayEnum(QDialog):
         self.le_name.setMaxLength(50)
         self.le_abbreviation = QLineEdit()
         self.le_abbreviation.setMaxLength(10)
+        self.sp_time_index = QSpinBox()
+        self.sp_time_index.setMinimum(1)
 
         self.chk_new_mode = QCheckBox('Als neuen Tagesz.-Standard speichern?')
         self.chk_new_mode.toggled.connect(self.change_new_mode)
@@ -127,6 +129,7 @@ class FrmTimeOfDayEnum(QDialog):
 
         self.layout.addRow('Name', self.le_name)
         self.layout.addRow('Kürzel', self.le_abbreviation)
+        self.layout.addRow('Einordnung am Tag', self.sp_time_index)
         self.layout.addRow(self.chk_new_mode)
         self.layout.addRow(self.button_box)
 
@@ -135,6 +138,7 @@ class FrmTimeOfDayEnum(QDialog):
     def save(self):
         name = self.le_name.text()
         abbreviation = self.le_abbreviation.text()
+        time_index = self.sp_time_index.value()
         if not name or not abbreviation:
             QMessageBox.critical(self, 'Tagesz.-Standard', 'Sie müssen sowohl Namen als auch Kürzel angeben.')
             return
@@ -146,7 +150,7 @@ class FrmTimeOfDayEnum(QDialog):
                 QMessageBox.critical(self, 'Tagesz.-Standard', f'Das Kürzel {k} ist schon unter den Standards vorhanden.')
                 return
             self.new_time_of_day_enum = schemas.TimeOfDayEnumCreate(name=name, abbreviation=abbreviation,
-                                                                    project=self.project)
+                                                                    time_index=time_index, project=self.project)
             self.accept()
         else:
             if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums
@@ -159,6 +163,7 @@ class FrmTimeOfDayEnum(QDialog):
                 return
             self.curr_time_of_day_enum.name = name
             self.curr_time_of_day_enum.abbreviation = abbreviation
+            self.curr_time_of_day_enum.time_index = time_index
             self.accept()
 
     def delete(self):
@@ -169,9 +174,15 @@ class FrmTimeOfDayEnum(QDialog):
         if self.curr_time_of_day_enum:
             self.le_name.setText(self.curr_time_of_day_enum.name)
             self.le_abbreviation.setText(self.curr_time_of_day_enum.abbreviation)
+            self.sp_time_index.setValue(self.curr_time_of_day_enum.time_index)
         else:
             self.chk_new_mode.setChecked(True)
             self.chk_new_mode.setDisabled(True)
+            if self.project.time_of_day_enums:
+                self.sp_time_index.setValue(max(d_o_t_enum.time_index
+                                                for d_o_t_enum in self.project.time_of_day_enums) + 1)
+            else:
+                self.sp_time_index.setValue(1)
 
     def change_new_mode(self):
         if self.chk_new_mode.isChecked():

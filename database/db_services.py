@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session
+from pony.orm import db_session, commit
 
 from . import schemas
 from .authentication import hash_psw
@@ -302,6 +302,12 @@ class TimeOfDayEnum:
         return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
 
     @staticmethod
+    @db_session
+    def get_all_from__project(project_id: UUID) -> list[schemas.TimeOfDayEnumShow]:
+        project_db = models.Project.get_for_update(id=project_id)
+        return [schemas.TimeOfDayEnumShow.from_orm(t_o_d_enum) for t_o_d_enum in project_db.time_of_day_enums]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(time_of_day_enum: schemas.TimeOfDayEnumCreate) -> schemas.TimeOfDayEnumShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -309,7 +315,10 @@ class TimeOfDayEnum:
         project_db = models.Project.get_for_update(id=time_of_day_enum.project.id)
         time_of_day_enum_db = models.TimeOfDayEnum(name=time_of_day_enum.name,
                                                    abbreviation=time_of_day_enum.abbreviation,
+                                                   time_index=time_of_day_enum.time_index,
                                                    project=project_db)
+        commit()
+        TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
         return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
 
     @staticmethod
@@ -318,7 +327,9 @@ class TimeOfDayEnum:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum.id)
-        time_of_day_enum_db.set(**time_of_day_enum.dict(include={'name', 'abbreviation'}))
+        time_of_day_enum_db.set(**time_of_day_enum.dict(include={'name', 'abbreviation', 'time_index'}))
+        commit()
+        TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
         return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
 
     @staticmethod
@@ -327,7 +338,22 @@ class TimeOfDayEnum:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
+        project_id = time_of_day_enum_db.project.id
         time_of_day_enum_db.delete()
+        commit()
+        TimeOfDayEnum.__consolidate_indexes(project_id)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def __consolidate_indexes(project_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        time_of_day_enums = TimeOfDayEnum.get_all_from__project(project_id)
+        for i, t_o_d_enum in enumerate(sorted(time_of_day_enums, key=lambda x: x.time_index), start=1):
+            t_o_d_enum_db = models.TimeOfDayEnum.get_for_update(id=t_o_d_enum.id)
+            t_o_d_enum_db.time_index = i
+            commit()
 
 
 class ExcelExportSettings:

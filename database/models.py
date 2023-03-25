@@ -251,11 +251,13 @@ class TimeOfDayEnum(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
     abbreviation = Required(str, 10)
+    time_index = Required(int, size=8, unsigned=True)  # Einordnung im Tagesverlauf
     time_of_days = Set(TimeOfDay)
     project = Required(Project)
 
     composite_key(name, project)
     composite_key(abbreviation, project)
+    composite_key(time_index, project)
 
 
 class LocationOfWork(db.Entity):

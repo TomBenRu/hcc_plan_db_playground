@@ -271,6 +271,7 @@ class TimeOfDayShow(TimeOfDay):
 class TimeOfDayEnumCreate(BaseModel):
     name: str
     abbreviation: str
+    time_index: int
     project: Project
 
 

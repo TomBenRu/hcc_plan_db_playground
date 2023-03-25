@@ -291,6 +291,36 @@ class TimeOfDay:
         return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 
+class TimeOfDayEnum:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(time_of_day_enum: schemas.TimeOfDayEnumCreate) -> schemas.TimeOfDayEnumShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=time_of_day_enum.project.id)
+        time_of_day_enum_db = models.TimeOfDayEnum(name=time_of_day_enum.name,
+                                                   abbreviation=time_of_day_enum.abbreviation,
+                                                   project=project_db)
+        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update(time_of_day_enum: schemas.TimeOfDayEnumShow) -> schemas.TimeOfDayEnumShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum.id)
+        time_of_day_enum_db.set(**time_of_day_enum.dict(include={'name', 'abbreviation'}))
+        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(time_of_day_enum_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
+        time_of_day_enum_db.delete()
+
+
 class ExcelExportSettings:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabe
 from database import db_services, schemas, models
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
-from .frm_time_of_day import FrmTimeOfDay
+from .frm_time_of_day import FrmTimeOfDay, FrmTimeOfDayEnum
 
 
 class SettingsProject(QDialog):
@@ -35,6 +35,8 @@ class SettingsProject(QDialog):
         self.cb_admin = QComboBox()
         self.lb_time_of_days = QLabel('Tageszeiten')
         self.cb_time_of_days = QComboBox()
+        self.lb_time_of_days_enums = QLabel('Tagesz. Standards')
+        self.cb_time_of_days_enums = QComboBox()
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
@@ -44,6 +46,7 @@ class SettingsProject(QDialog):
         self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
         self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
+        self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
         self.layout_group_project_data.addWidget(self.lb_name, 0, 0)
@@ -58,9 +61,12 @@ class SettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.lb_time_of_days, 3, 0)
         self.layout_group_project_data.addWidget(self.cb_time_of_days, 3, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day, 3, 2)
-        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 4, 0)
-        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 4, 1)
-        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 4, 2)
+        self.layout_group_project_data.addWidget(self.lb_time_of_days_enums, 4, 0)
+        self.layout_group_project_data.addWidget(self.cb_time_of_days_enums, 4, 1)
+        self.layout_group_project_data.addWidget(self.bt_time_of_day_enums, 4, 2)
+        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 5, 0)
+        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 5, 1)
+        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 5, 2)
         for widget in self.color_widgets:
             self.layout_excel_export_settings.addWidget(widget)
 
@@ -72,6 +78,7 @@ class SettingsProject(QDialog):
         self.fill_admins()
         self.fill_time_of_days()
         self.fill_excel_colors()
+        self.fill_time_of_day_enums()
 
     def fill_teams(self):
         self.cb_teams.clear()
@@ -95,6 +102,12 @@ class SettingsProject(QDialog):
             self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
+
+    def fill_time_of_day_enums(self):
+        self.cb_time_of_days_enums.clear()
+        for t_o_d_enum in self.project.time_of_day_enums:
+            self.cb_time_of_days_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+                                               f'{t_o_d_enum.name}/{t_o_d_enum.abbreviation}', t_o_d_enum)
 
     def fill_excel_colors(self):
         if self.project.excel_export_settings:
@@ -146,6 +159,23 @@ class SettingsProject(QDialog):
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
                     self.project = db_services.Project.get(self.project_id)
                     self.fill_time_of_days()
+
+    def edit_time_of_day_enums(self):
+        dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_days_enums.currentData())
+        if dlg.exec():
+            if dlg.chk_new_mode.isChecked():
+                created_time_of_day_enum = db_services.TimeOfDayEnum.create(dlg.new_time_of_day_enum)
+                QMessageBox.information(self, 'new time_of_day_enum', f'{created_time_of_day_enum}')
+            elif dlg.to_delete_status:
+                db_services.TimeOfDayEnum.delete(dlg.curr_time_of_day_enum.id)
+                QMessageBox.information(self, 'deleted time_of_day_enum', f'{dlg.curr_time_of_day_enum}')
+            else:
+                updated_time_of_day_enum = db_services.TimeOfDayEnum.update(dlg.curr_time_of_day_enum)
+                QMessageBox.information(self, 'update time_of_day_enum', f'{updated_time_of_day_enum}')
+
+            self.project = db_services.Project.get(self.project_id)
+            self.fill_time_of_day_enums()
+
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

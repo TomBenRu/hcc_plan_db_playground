@@ -1,5 +1,6 @@
 import datetime
 from typing import Literal
+from uuid import UUID
 
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout
@@ -79,6 +80,88 @@ class FrmTimeOfDay(QDialog):
     def delete(self):
         self.to_delete_status = True
         self.accept()
+
+
+class FrmTimeOfDayEnum(QDialog):
+    def __init__(self, parent: QWidget, project: schemas.ProjectShow,
+                 time_of_day_enum: schemas.TimeOfDayEnumShow | None):
+        super().__init__(parent)
+        self.setWindowTitle('Tageszeit Standard')
+
+        self.project = project.copy()
+        self.curr_time_of_day_enum: schemas.TimeOfDayEnumShow | None = time_of_day_enum
+        self.new_time_of_day_enum: schemas.TimeOfDayEnumCreate | None = None
+        self.to_delete_status = False
+
+        self.layout = QFormLayout(self)
+
+        self.le_name = QLineEdit()
+        self.le_name.setMaxLength(50)
+        self.le_abbreviation = QLineEdit()
+        self.le_abbreviation.setMaxLength(10)
+
+        self.chk_new_mode = QCheckBox('Als neuen Tagesz.-Standard speichern?')
+        self.chk_new_mode.toggled.connect(self.change_new_mode)
+
+        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.DestructiveRole)
+        self.button_box.accepted.connect(self.save)
+        self.button_box.rejected.connect(self.reject)
+
+        self.layout.addRow('Name', self.le_name)
+        self.layout.addRow('Kürzel', self.le_abbreviation)
+        self.layout.addRow(self.chk_new_mode)
+        self.layout.addRow(self.button_box)
+
+        self.autofill()
+
+    def save(self):
+        name = self.le_name.text()
+        abbreviation = self.le_abbreviation.text()
+        if not name or not abbreviation:
+            QMessageBox.critical(self, 'Tagesz.-Standard', 'Sie müssen sowohl Namen als auch Kürzel angeben.')
+            return
+        if self.chk_new_mode.isChecked():
+            if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums]:
+                QMessageBox.critical(self, 'Tagesz.-Standard', f'Der Name {n} ist schon unter den Standards vorhanden.')
+                return
+            if (k := self.le_name.text()) in [t.abbreviation for t in self.project.time_of_day_enums]:
+                QMessageBox.critical(self, 'Tagesz.-Standard', f'Das Kürzel {k} ist schon unter den Standards vorhanden.')
+                return
+            self.new_time_of_day_enum = schemas.TimeOfDayEnumCreate(name=name, abbreviation=abbreviation,
+                                                                    project=self.project)
+            self.accept()
+        else:
+            if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums
+                                              if t.id != self.curr_time_of_day_enum.id]:
+                QMessageBox.critical(self, 'Tagesz.-Standard', f'Der Name {n} ist schon unter den Standards vorhanden.')
+                return
+            if (k := self.le_name.text()) in [t.abbreviation for t in self.project.time_of_day_enums
+                                              if t.id != self.curr_time_of_day_enum.id]:
+                QMessageBox.critical(self, 'Tagesz.-Standard', f'Das Kürzel {k} ist schon unter den Standards vorhanden.')
+                return
+            self.curr_time_of_day_enum.name = name
+            self.curr_time_of_day_enum.abbreviation = abbreviation
+            self.accept()
+
+    def delete(self):
+        self.to_delete_status = True
+        self.accept()
+
+    def autofill(self):
+        if self.curr_time_of_day_enum:
+            self.le_name.setText(self.curr_time_of_day_enum.name)
+            self.le_abbreviation.setText(self.curr_time_of_day_enum.abbreviation)
+        else:
+            self.chk_new_mode.setChecked(True)
+            self.chk_new_mode.setDisabled(True)
+
+    def change_new_mode(self):
+        if self.chk_new_mode.isChecked():
+            self.bt_delete.setDisabled(True)
+        else:
+            self.bt_delete.setEnabled(True)
 
 
 def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,

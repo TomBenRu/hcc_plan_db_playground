@@ -75,9 +75,10 @@ class ProjectShow(Project):
     teams: List['TeamShow']
     persons: List['Person']
     time_of_days_default: List['TimeOfDayShow']
+    time_of_day_enums: List['TimeOfDayEnum']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('teams', 'persons', 'time_of_days_default', pre=True, allow_reuse=True)
+    @validator('teams', 'persons', 'time_of_days_default', 'time_of_day_enums', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 

@@ -350,7 +350,7 @@ class FrmPersonModify(FrmPersonData):
         frm_time_of_day.edit_time_of_days(self, self.person, self.project, 'project_defaults')
 
     def reset_time_of_days(self):
-        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days_default, 'project_defaults')
+        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days, 'project_defaults')
 
 
 class WidgetLocationsOfWork(QWidget):
@@ -612,7 +612,7 @@ class FrmLocationModify(FrmLocationData):
         frm_time_of_day.edit_time_of_days(self, self.location_of_work, self.project, 'project_defaults')
 
     def reset_time_of_days(self):
-        default_time_of_days = db_services.Project.get(self.project_id).time_of_days_default
+        default_time_of_days = db_services.Project.get(self.project_id).time_of_days
         frm_time_of_day.reset_time_of_days(self, self.location_of_work, default_time_of_days, 'project_defaults')
 
     def fill_time_of_days(self):

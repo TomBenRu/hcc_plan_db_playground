@@ -148,31 +148,36 @@ class FrmActorPlanPeriod(QWidget):
 
     def set_chk_field(self):
         project = db_services.Project.get(self.actor_plan_period.plan_period.team.project.id)
+        time_of_day_enums = sorted(project.time_of_day_enums, key=lambda x: x.time_index)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            for row, time_of_day in enumerate(self.actor_time_of_days, start=2):
-                self.layout.addWidget(QLabel(time_of_day.name), row, 0)
-                self.create_time_of_day_button(d, time_of_day, row, col)
+            for row, time_of_day_enum in enumerate(time_of_day_enums, start=2):
+                self.layout.addWidget(QLabel(time_of_day_enum.name), row, 0)
+                self.create_time_of_day_button(d, time_of_day_enum, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
 
-    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDayShow, row: int, col: int):
-        button = QPushButton(objectName=f'{day}-{time_of_day.name}')
+    def create_time_of_day_button(self, day: datetime.date, time_of_day_enum: schemas.TimeOfDayEnumShow, row: int, col: int):
+        button = QPushButton(objectName=f'{day}-{time_of_day_enum.name}')
         button.setCheckable(True)
         button.setMaximumWidth(23)
         button.setMinimumHeight(23)
-        button.released.connect(lambda bt=button, t_o_d=time_of_day: self.save_avail_day(bt, day, t_o_d))
-        if time_of_day.name == 'Morgen':
+        button.released.connect(lambda bt=button, t_o_d=time_of_day_enum: self.save_avail_day(bt, day, t_o_d))
+        if time_of_day_enum.time_index == 1:
             button.setStyleSheet("QPushButton {background-color: #cae4f4}"
                                  "QPushButton::checked { background-color: #002aaa; border: none;}")
-        else:
+        elif time_of_day_enum.time_index == 2:
             button.setStyleSheet("QPushButton {background-color: #fff4d6}"
                                  "QPushButton::checked { background-color: #ff4600; border: none;}")
+        elif time_of_day_enum.time_index == 3:
+            button.setStyleSheet("QPushButton {background-color: #daa4c9}"
+                                 "QPushButton::checked { background-color: #84033c; border: none;}")
+            '#daa4c9'
         self.layout.addWidget(button, row, col)
 
     def save_avail_day(self, bt: QPushButton, date: datetime.date, t_o_d: schemas.TimeOfDayShow):

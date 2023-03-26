@@ -74,11 +74,13 @@ class ProjectShow(Project):
     admin: Optional[Person]
     teams: List['TeamShow']
     persons: List['Person']
-    time_of_days_default: List['TimeOfDayShow']
-    time_of_day_enums: List['TimeOfDayEnum']
+    time_of_days: List['TimeOfDayShow']
+    time_of_day_standards: List['TimeOfDayShow']
+    time_of_day_enums: List['TimeOfDayEnumShow']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('teams', 'persons', 'time_of_days_default', 'time_of_day_enums', pre=True, allow_reuse=True)
+    @validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -237,6 +239,7 @@ class AvailDayShow(AvailDayCreate):
 class TimeOfDayCreate(BaseModel):
     name: str
     time_of_day_enum: 'TimeOfDayEnum'
+    project_standard: Optional[Project]
     start: time
     end: time
 
@@ -245,6 +248,7 @@ class TimeOfDay(TimeOfDayCreate):
     id: UUID
     prep_delete: Optional[datetime]
     project: Project
+    project_standard: Optional[Project]
 
     class Config:
         orm_mode = True

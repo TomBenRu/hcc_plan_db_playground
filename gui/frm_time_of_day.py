@@ -31,6 +31,8 @@ class FrmTimeOfDay(QDialog):
         self.te_start = QTimeEdit()
         self.te_end = QTimeEdit()
         self.cb_time_of_day_enum = QComboBoxToFindData()
+        self.cb_time_of_day_enum.currentIndexChanged.connect(self.time_of_day_enum_changed)
+        self.chk_default = QCheckBox()
         self.bt_delete = QPushButton('Löschen', clicked=self.delete)
         self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
         self.chk_new_mode.toggled.connect(self.change_new_mode)
@@ -44,6 +46,7 @@ class FrmTimeOfDay(QDialog):
         self.layout.addRow('Zeitpunkt Start', self.te_start)
         self.layout.addRow('Zeitpunkt Ende', self.te_end)
         self.layout.addRow('Tagesz.-Standart', self.cb_time_of_day_enum)
+        self.layout.addRow(self.chk_default)
         self.layout.addRow(self.chk_new_mode)
 
         self.layout.addRow(self.bt_box)
@@ -53,7 +56,7 @@ class FrmTimeOfDay(QDialog):
     def autofill(self):
         for t_o_d_enum in self.project.time_of_day_enums:
             self.cb_time_of_day_enum.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
-                                             f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum.id)
+                                             f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum)
         if self.curr_time_of_day:
             self.le_name.setText(self.curr_time_of_day.name)
             self.te_start.setTime(self.curr_time_of_day.start)
@@ -72,6 +75,10 @@ class FrmTimeOfDay(QDialog):
         else:
             self.bt_delete.setEnabled(True)
 
+    def time_of_day_enum_changed(self):
+        if t_o_d_enum := self.cb_time_of_day_enum.currentData():
+            self.chk_default.setText(f'Als Default für {t_o_d_enum.name} speichern?')
+
     def save_time_of_day(self):
         name = self.le_name.text()
         if not name:
@@ -81,16 +88,20 @@ class FrmTimeOfDay(QDialog):
             QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')
         start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
         end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
-        time_of_day_enum = db_services.TimeOfDayEnum.get(self.cb_time_of_day_enum.currentData())
+        time_of_day_enum = self.cb_time_of_day_enum.currentData()
+        proj_default = self.project if self.chk_default.isChecked() else None
 
         if self.chk_new_mode.isChecked():
+
             self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end,
-                                                           time_of_day_enum=time_of_day_enum)
+                                                           time_of_day_enum=time_of_day_enum,
+                                                           project_standard=proj_default)
         else:
             self.curr_time_of_day.name = name
             self.curr_time_of_day.start = start
             self.curr_time_of_day.end = end
             self.curr_time_of_day.time_of_day_enum = time_of_day_enum
+            self.curr_time_of_day.project_standard = proj_default
         self.accept()
 
     def delete(self):
@@ -194,18 +205,19 @@ class FrmTimeOfDayEnum(QDialog):
 def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
                       project: schemas.ProjectShow,
                       field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
-                      'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
-                      'location_plan_periods_defaults', 'events_defaults']):
+                      'actor_plan_periods_defaults', 'locations_of_work_defaults', 'location_plan_periods_defaults'] | None):
     if not (curr_data := parent.cb_time_of_days.currentData()):
         only_new_time_of_day_cause_parent_model = True
     else:
         time_of_day_show_in_project = db_services.TimeOfDay.get(curr_data.id)
 
-        '''Falls die Tageszeit dem Projekt zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
-        Referenz zur Location gespeichert werden.'''
-        only_new_time_of_day_cause_parent_model = (
-            True if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model) else False
-        )
+        '''Falls die Tageszeit dem parent model zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
+        Referenz zu aktuellen model gespeichert werden.'''
+        if field__time_of_days__parent_model:
+            only_new_time_of_day_cause_parent_model = (
+                True if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model) else False)
+        else:
+            only_new_time_of_day_cause_parent_model = False
 
     dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(), project,
                        only_new_time_of_day=only_new_time_of_day_cause_parent_model)
@@ -213,7 +225,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
         return
     if dlg.chk_new_mode.isChecked():
         if only_new_time_of_day_cause_parent_model:
-            '''Die aktuell gewählte Tageszeit ist dem Projekt zugeordnet
+            '''Die aktuell gewählte Tageszeit ist dem parent-model zugeordnet
                und wird daher aus time_of_days entfernt.'''
             pydantic_model.time_of_days.remove(parent.cb_time_of_days.currentData())
         if dlg.new_time_of_day.name in [t.name for t in pydantic_model.time_of_days if not t.prep_delete]:
@@ -225,7 +237,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                 parent.fill_time_of_days()
         else:
             t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, parent.project_id)
-            '''Neue TimeOfDay wurde erstellt, aber noch nicht der Location zugeordnet.'''
+            '''Neue TimeOfDay wurde erstellt, aber noch nicht der aktuellen model zugeordnet.'''
             pydantic_model.time_of_days.append(t_o_d_created)
             # self.location_of_work = db_services.update_location_of_work(self.location_of_work)
             QMessageBox.information(parent, 'Tageszeit',

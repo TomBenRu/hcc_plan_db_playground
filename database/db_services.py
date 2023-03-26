@@ -47,9 +47,9 @@ class Project:
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project.id)
         project_db.set(**project.dict(include={'name', 'active'}))
-        project_db.time_of_days_default.clear()
-        for tod in project.time_of_days_default:
-            project_db.time_of_days_default.add(models.TimeOfDay[tod.id])
+        project_db.time_of_days.clear()
+        for tod in project.time_of_days:
+            project_db.time_of_days.add(models.TimeOfDay[tod.id])
         return schemas.ProjectShow.from_orm(project_db)
 
 
@@ -251,8 +251,9 @@ class TimeOfDay:
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
-        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude={'time_of_day_enum'}), project=project_db,
-                                          time_of_day_enum=time_of_day_enum_db)
+
+        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude={'time_of_day_enum', 'project_standard'}),
+                                          project=project_db, time_of_day_enum=time_of_day_enum_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 
     @staticmethod
@@ -270,18 +271,14 @@ class TimeOfDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def put_to_model(time_of_day: schemas.TimeOfDay,
-                     pydantic_model: schemas.ModelWithTimeOfDays | schemas.Project, db_model):
+                     pydantic_model: schemas.ModelWithTimeOfDays, db_model):
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         if not (isinstance(pydantic_model, schemas.ModelWithTimeOfDays) or isinstance(pydantic_model, schemas.Project)):
             raise ValueError
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day.id)
-        if isinstance(pydantic_model, schemas.Project):
-            instance_db = models.Project.get_for_update(id=time_of_day.project.id)
-            instance_db.time_of_days_default.add(time_of_day_db)
-        else:
-            instance_db = db_model.get_for_update(id=pydantic_model.id)
-            instance_db.time_of_days.add(time_of_day_db)
+        instance_db = db_model.get_for_update(id=pydantic_model.id)
+        instance_db.time_of_days.add(time_of_day_db)
         return type(pydantic_model).from_orm(instance_db)
 
     @staticmethod

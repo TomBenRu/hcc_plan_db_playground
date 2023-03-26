@@ -97,7 +97,7 @@ class SettingsProject(QDialog):
 
     def fill_time_of_days(self):
         self.cb_time_of_days.clear()
-        for t in sorted([tod for tod in self.project.time_of_days_default if not tod.prep_delete],
+        for t in sorted([tod for tod in self.project.time_of_days if not tod.prep_delete],
                         key=lambda t: t.start):
             self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
@@ -138,19 +138,19 @@ class SettingsProject(QDialog):
                 QMessageBox.information(self, 'Löschen', f'Die Tageszeit "{deleted_time_of_day.name}" wurde gelöscht.')
                 return
             if dlg.chk_new_mode.isChecked():
-                if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days_default if not t.prep_delete]:
+                if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days if not t.prep_delete]:
                     QMessageBox.critical(dlg, 'Fehler',
                                          f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
                 else:
                     t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, self.project_id)
                     QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde erstellt:\n{t_o_d_created}')
                     instance = db_services.TimeOfDay.put_to_model(t_o_d_created, self.project, models.Project)
-                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde hinzugefügt zu:\n{instance}')
+                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde hinzugefügt zu:\n{instance.__class__}')
                     self.project = db_services.Project.get(self.project_id)
                     self.fill_time_of_days()
 
             else:
-                if dlg.curr_time_of_day.name in [t.name for t in self.project.time_of_days_default
+                if dlg.curr_time_of_day.name in [t.name for t in self.project.time_of_days
                                                  if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
                     QMessageBox.critical(dlg, 'Fehler',
                                          f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')

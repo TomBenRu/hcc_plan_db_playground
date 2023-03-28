@@ -193,6 +193,20 @@ class Person:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def new_time_of_day_standard(person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        for t_o_d in person_db.time_of_day_standards:
+            if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
+                person_db.time_of_day_standards.remove(t_o_d)
+                break
+        person_db.time_of_day_standards.add(time_of_day_db)
+        return schemas.PersonShow.from_orm(person_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(person_id: UUID) -> schemas.Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

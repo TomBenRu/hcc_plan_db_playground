@@ -266,9 +266,11 @@ class FrmPersonModify(FrmPersonData):
         self.project_id = project_id
         self.person = person
 
-        self.new_time_of_day_to_delete: schemas.TimeOfDayShow | None = None
+        self.new_time_of_day_to_delete: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
+        self.time_of_day_standard_ids: list[UUID] = []
+        self.reset_time_of_days_mode = False
 
         self.sp_nr_requ_assignm = QSpinBox()
         self.sp_nr_requ_assignm.setMinimum(0)
@@ -313,6 +315,13 @@ class FrmPersonModify(FrmPersonData):
             db_services.TimeOfDay.delete(t_o_d.id)
         for t_o_d in self.time_of_days_to_update:
             db_services.TimeOfDay.update(t_o_d)
+        for t_o_d_id in self.time_of_day_standard_ids:
+            db_services.Person.new_time_of_day_standard(self.person.id, t_o_d_id)
+        if self.reset_time_of_days_mode:
+            print('reset mode')
+            for t_o_d_standard in self.person.project.time_of_day_standards:
+                print(t_o_d_standard.name)
+                db_services.Person.new_time_of_day_standard(self.person.id, t_o_d_standard.id)
 
         updated_person = db_services.Person.update(self.person)
         QMessageBox.information(self, 'Person Update',
@@ -320,7 +329,7 @@ class FrmPersonModify(FrmPersonData):
         self.accept()
 
     def cancel(self):
-        if t_o_d := self.new_time_of_day_to_delete:
+        for t_o_d in self.new_time_of_day_to_delete:
             db_services.TimeOfDay.delete(t_o_d.id)
         self.reject()
 
@@ -354,10 +363,14 @@ class FrmPersonModify(FrmPersonData):
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
     def edit_time_of_days(self):
-        frm_time_of_day.edit_time_of_days(self, self.person, self.project, 'project_defaults')
+        dlg = frm_time_of_day.edit_time_of_days(self, self.person, self.project, 'project_defaults')
+        if dlg and dlg.chk_default.isChecked():
+            self.time_of_day_standard_ids.append(dlg.time_of_day_standard_id)
 
     def reset_time_of_days(self):
-        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days, 'project_defaults')
+        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days, 'project_defaults',
+                                           'project_standard')
+        self.reset_time_of_days_mode = True
 
 
 class WidgetLocationsOfWork(QWidget):

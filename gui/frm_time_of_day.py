@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox
 
 from database import schemas, db_services
-from .protocol_widget_classes import ManipulateTimeOfDays
+from .protocol_widget_classes import ManipulateTimeOfDays, ManipulateTimeOfDaysFurther
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
@@ -249,7 +249,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
         else:
             t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, parent.project_id)
             dlg.time_of_day_standard_id = t_o_d_created.id  # wird zum späteren Setzen o. Löschen gesetzt.
-            parent.new_time_of_day_to_delete.append(t_o_d_created)
+            parent.new_time_of_days_to_delete.append(t_o_d_created)
             '''Neue TimeOfDay wurde erstellt, aber noch nicht der aktuellen model zugeordnet.'''
             pydantic_model.time_of_days.append(t_o_d_created)
             QMessageBox.information(parent, 'Tageszeit',
@@ -289,15 +289,17 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
         return dlg
 
 
-def reset_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
+def reset_time_of_days(parent: ManipulateTimeOfDays | ManipulateTimeOfDaysFurther,
+                       pydantic_model: schemas.ModelWithTimeOfDays,
                        default_time_of_days: list[schemas.TimeOfDayShow],
                        field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
                        'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
-                       'location_plan_periods_defaults', 'events_defaults']):
+                       'location_plan_periods_defaults', 'events_defaults'],
+                       field__time_of_day_standards__parent_model: Literal['project_standard']):
 
     for t_o_d in pydantic_model.time_of_days:
         '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
-        Diese werden dann mit bestätigen des Dialogs gelöscht.'''
+        Diese werden dann mit Bestätigen des vorherigen Dialogs gelöscht.'''
         if not t_o_d.__getattribute__(field__time_of_days__parent_model):
             parent.time_of_days_to_delete.append(t_o_d)
     pydantic_model.time_of_days.clear()

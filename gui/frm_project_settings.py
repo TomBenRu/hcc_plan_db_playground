@@ -40,8 +40,8 @@ class SettingsProject(QDialog):
         self.cb_admin = QComboBox()
         self.lb_time_of_days = QLabel('Tageszeiten')
         self.cb_time_of_days = QComboBox()
-        self.lb_time_of_days_enums = QLabel('Tagesz. Standards')
-        self.cb_time_of_days_enums = QComboBox()
+        self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
+        self.cb_time_of_day_enums = QComboBox()
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
@@ -66,8 +66,8 @@ class SettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.lb_time_of_days, 3, 0)
         self.layout_group_project_data.addWidget(self.cb_time_of_days, 3, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day, 3, 2)
-        self.layout_group_project_data.addWidget(self.lb_time_of_days_enums, 4, 0)
-        self.layout_group_project_data.addWidget(self.cb_time_of_days_enums, 4, 1)
+        self.layout_group_project_data.addWidget(self.lb_time_of_day_enums, 4, 0)
+        self.layout_group_project_data.addWidget(self.cb_time_of_day_enums, 4, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day_enums, 4, 2)
         self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 5, 0)
         self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 5, 1)
@@ -109,9 +109,9 @@ class SettingsProject(QDialog):
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
     def fill_time_of_day_enums(self):
-        self.cb_time_of_days_enums.clear()
+        self.cb_time_of_day_enums.clear()
         for t_o_d_enum in sorted(self.project.time_of_day_enums, key=lambda x: x.time_index):
-            self.cb_time_of_days_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+            self.cb_time_of_day_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
                                                f'{t_o_d_enum.name}/{t_o_d_enum.abbreviation}', t_o_d_enum)
 
     def fill_excel_colors(self):
@@ -149,7 +149,7 @@ class SettingsProject(QDialog):
             self.project = db_services.Project.remove_time_of_day_standard(self.project_id, dlg.time_of_day_standard_id)
 
     def edit_time_of_day_enums(self):
-        dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_days_enums.currentData())
+        dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
         if dlg.exec():
             if dlg.chk_new_mode.isChecked():
                 created_time_of_day_enum = db_services.TimeOfDayEnum.create(dlg.new_time_of_day_enum)

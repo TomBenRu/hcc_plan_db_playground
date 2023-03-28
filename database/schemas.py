@@ -47,13 +47,13 @@ class Person(PersonCreate):
 
 class PersonShow(Person):
     requested_assignments: Optional[int]
-    project: 'Project'
+    project: 'ProjectShow'
     team_of_actor: Optional['Team']
     teams_of_dispatcher: list['TeamShow']
     time_of_day_standards: list['TimeOfDayShow']
     time_of_days: list['TimeOfDayShow']
 
-    @validator('teams_of_dispatcher', 'time_of_days', pre=True, allow_reuse=True)
+    @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 

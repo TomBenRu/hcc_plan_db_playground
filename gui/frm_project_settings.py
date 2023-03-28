@@ -137,11 +137,10 @@ class SettingsProject(QDialog):
 
     def edit_time_of_day(self):
         dlg = frm_time_of_day.edit_time_of_days(self, self.project, self.project, None)
-        if not dlg:
+        if dlg is None:
             return
-        if dlg.to_delete_status:
-            for t_o_d in self.time_of_days_to_delete:
-                db_services.TimeOfDay.delete(t_o_d.id)
+        for t_o_d in self.time_of_days_to_delete:
+            db_services.TimeOfDay.delete(t_o_d.id)
             return
         self.project = db_services.Project.update(self.project)
         if dlg.chk_default.isChecked():
@@ -164,6 +163,7 @@ class SettingsProject(QDialog):
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
+            self.fill_time_of_days()
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

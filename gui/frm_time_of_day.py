@@ -40,7 +40,7 @@ class FrmTimeOfDay(QDialog):
         self.chk_new_mode.toggled.connect(self.change_new_mode)
 
         self.bt_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.bt_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.DestructiveRole)
+        self.bt_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.ActionRole)
         self.bt_box.accepted.connect(self.save_time_of_day)
         self.bt_box.rejected.connect(self.reject)
 
@@ -269,7 +269,7 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                                     f'Die Tageszeit wird mit Bestätigen der vorhergehenden Dialogs gelöscht:\n'
                                     f'{dlg.curr_time_of_day}')
             parent.fill_time_of_days()
-            return
+            return dlg
         '''Tageszeit updaten...'''
         if dlg.curr_time_of_day.name in [t.name for t in pydantic_model.time_of_days
                                          if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
@@ -279,12 +279,12 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
             dlg.time_of_day_standard_id = dlg.curr_time_of_day.id  # wird zum späteren Setzen o. Löschen gesetzt.
             for t_o_d in pydantic_model.time_of_days:
                 if t_o_d.id == dlg.curr_time_of_day.id:
-
                     pydantic_model.time_of_days.remove(t_o_d)
                     pydantic_model.time_of_days.append(dlg.curr_time_of_day)
                     parent.time_of_days_to_update.append(dlg.curr_time_of_day)
+                    break
             QMessageBox.information(parent, 'Tageszeit', f'Die Tageszeit wird mit Bestätigen des vorhergehenden Dialogs'
-                                                         f' geupdated:\n{dlg.curr_time_of_day}')
+                                                         f' geupdated:\n{dlg.curr_time_of_day.name}')
             parent.fill_time_of_days()
         return dlg
 

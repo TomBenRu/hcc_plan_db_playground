@@ -142,6 +142,7 @@ class SettingsProject(QDialog):
         if dlg.to_delete_status:
             for t_o_d in self.time_of_days_to_delete:
                 db_services.TimeOfDay.delete(t_o_d.id)
+            return
         self.project = db_services.Project.update(self.project)
         if dlg.chk_default.isChecked():
             self.project = db_services.Project.new_time_of_day_standard(self.project_id, dlg.time_of_day_standard_id)

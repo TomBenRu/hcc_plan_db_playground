@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabe
                                QGroupBox, QPushButton, QTimeEdit, QMessageBox)
 
 from database import db_services, schemas, models
+from . import frm_time_of_day
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
 from .frm_time_of_day import FrmTimeOfDay, FrmTimeOfDayEnum
@@ -18,6 +19,10 @@ class SettingsProject(QDialog):
         self.project_id = project_id
 
         self.project = db_services.Project.get(project_id)
+
+        self.new_time_of_day_to_delete: list[schemas.TimeOfDayShow] = []
+        self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
+        self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
 
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
@@ -131,34 +136,17 @@ class SettingsProject(QDialog):
         self.fill_admins()
 
     def edit_time_of_day(self):
-        dlg = FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project)
-        if dlg.exec():  # Wenn der Dialog mit OK bestätigt wird...
-            if dlg.to_delete_status:
-                deleted_time_of_day = db_services.TimeOfDay.delete(dlg.curr_time_of_day.id)
-                QMessageBox.information(self, 'Löschen', f'Die Tageszeit "{deleted_time_of_day.name}" wurde gelöscht.')
-                return
-            if dlg.chk_new_mode.isChecked():
-                if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days if not t.prep_delete]:
-                    QMessageBox.critical(dlg, 'Fehler',
-                                         f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-                else:
-                    t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, self.project_id)
-                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde erstellt:\n{t_o_d_created}')
-                    instance = db_services.TimeOfDay.put_to_model(t_o_d_created, self.project, models.Project)
-                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde hinzugefügt zu:\n{instance.__class__}')
-                    self.project = db_services.Project.get(self.project_id)
-                    self.fill_time_of_days()
-
-            else:
-                if dlg.curr_time_of_day.name in [t.name for t in self.project.time_of_days
-                                                 if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
-                    QMessageBox.critical(dlg, 'Fehler',
-                                         f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-                else:
-                    t_o_d_updated = db_services.TimeOfDay.update(dlg.curr_time_of_day)
-                    QMessageBox.information(self, 'Tageszeit', f'Die Tageszeit wurde upgedated:\n{t_o_d_updated}')
-                    self.project = db_services.Project.get(self.project_id)
-                    self.fill_time_of_days()
+        dlg = frm_time_of_day.edit_time_of_days(self, self.project, self.project, None)
+        if not dlg:
+            return
+        if dlg.to_delete_status:
+            for t_o_d in self.time_of_days_to_delete:
+                db_services.TimeOfDay.delete(t_o_d.id)
+        self.project = db_services.Project.update(self.project)
+        if dlg.chk_default.isChecked():
+            self.project = db_services.Project.new_time_of_day_standard(self.project_id, dlg.time_of_day_standard_id)
+        else:
+            self.project = db_services.Project.remove_time_of_day_standard(self.project_id, dlg.time_of_day_standard_id)
 
     def edit_time_of_day_enums(self):
         dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_days_enums.currentData())

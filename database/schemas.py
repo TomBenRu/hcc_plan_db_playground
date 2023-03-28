@@ -11,6 +11,8 @@ from database.enums import Gender
 class ModelWithTimeOfDays(Protocol):
     id: UUID
     time_of_days: list[Union['TimeOfDay', 'TimeOfDayShow']]
+    time_of_day_standards: list['TimeOfDayShow']
+
 
 
 @runtime_checkable
@@ -48,6 +50,7 @@ class PersonShow(Person):
     project: 'Project'
     team_of_actor: Optional['Team']
     teams_of_dispatcher: list['TeamShow']
+    time_of_day_standards: list['TimeOfDayShow']
     time_of_days: list['TimeOfDayShow']
 
     @validator('teams_of_dispatcher', 'time_of_days', pre=True, allow_reuse=True)
@@ -319,8 +322,9 @@ class LocationOfWorkShow(LocationOfWork):
     nr_actors: int
     fixed_cast: Optional[str]
     time_of_days: List[TimeOfDayShow]
+    time_of_day_standards: list[TimeOfDayShow]
 
-    @validator('time_of_days', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 

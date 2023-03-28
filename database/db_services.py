@@ -48,8 +48,32 @@ class Project:
         project_db = models.Project.get_for_update(id=project.id)
         project_db.set(**project.dict(include={'name', 'active'}))
         project_db.time_of_days.clear()
-        for tod in project.time_of_days:
-            project_db.time_of_days.add(models.TimeOfDay[tod.id])
+        for t_o_d in project.time_of_days:
+            project_db.time_of_days.add(models.TimeOfDay[t_o_d.id])
+        return schemas.ProjectShow.from_orm(project_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def new_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        for t_o_d in project_db.time_of_day_standards:
+            if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
+                project_db.time_of_day_standards.remove(t_o_d)
+                break
+        project_db.time_of_day_standards.add(time_of_day_db)
+        return schemas.ProjectShow.from_orm(project_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        project_db.time_of_day_standards.remove(time_of_day_db)
         return schemas.ProjectShow.from_orm(project_db)
 
 

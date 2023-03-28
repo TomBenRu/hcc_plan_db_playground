@@ -266,6 +266,7 @@ class FrmPersonModify(FrmPersonData):
         self.project_id = project_id
         self.person = person
 
+        self.new_time_of_day_to_delete: schemas.TimeOfDayShow | None = None
         self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
 
@@ -295,6 +296,7 @@ class FrmPersonModify(FrmPersonData):
         self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', QLabel('....wird noch'))
 
         self.layout.addWidget(self.button_box)
+        self.button_box.rejected.connect(self.cancel)
         self.autofill()
 
     def save_person(self):
@@ -316,6 +318,11 @@ class FrmPersonModify(FrmPersonData):
         QMessageBox.information(self, 'Person Update',
                                 f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
         self.accept()
+
+    def cancel(self):
+        if t_o_d := self.new_time_of_day_to_delete:
+            db_services.TimeOfDay.delete(t_o_d.id)
+        self.reject()
 
     def autofill(self):
         self.fill_person_data()
@@ -532,6 +539,7 @@ class FrmLocationModify(FrmLocationData):
     def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
         super().__init__(parent, project_id=project_id)
 
+        self.new_time_of_day_to_delete: schemas.TimeOfDayShow | None = None
         self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.setWindowTitle('Einrichtungsdaten')
@@ -593,14 +601,7 @@ class FrmLocationModify(FrmLocationData):
         self.accept()
 
     def cancel(self):
-        """Wenn TimeOfDays in time_of_days vorhanden sind, die weder der Location noch dem Project zugeordnet sind,
-        werden sie aus time_of_days entfernt und gelöscht."""
-        time_of_days__to_delete = []
-        for t_o_d in self.location_of_work.time_of_days:
-            if not (t_o_d.project_defaults or t_o_d.locations_of_work_defaults):
-                time_of_days__to_delete.append(t_o_d)
-        for t_o_d in time_of_days__to_delete:
-            self.location_of_work.time_of_days.remove(t_o_d)
+        for t_o_d in self.new_time_of_day_to_delete:
             db_services.TimeOfDay.delete(t_o_d.id)
         self.reject()
 

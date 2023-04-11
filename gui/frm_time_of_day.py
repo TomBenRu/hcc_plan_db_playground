@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox
 
 from database import schemas, db_services
+from .commands import command_base_classes
 from .protocol_widget_classes import ManipulateTimeOfDays, ManipulateTimeOfDaysFurther
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
@@ -204,11 +205,10 @@ class FrmTimeOfDayEnum(QDialog):
             self.bt_delete.setEnabled(True)
 
 
-def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
-                      project: schemas.ProjectShow, field__time_of_days__parent_model: Literal['project_defaults',
-                      'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
-                      'location_plan_periods_defaults'] | None):
-
+def set_params_for__frm_time_of_day(parent, pydantic_model: schemas.ModelWithTimeOfDays,
+                                    field__time_of_days__parent_model: Literal['project_defaults',
+                                    'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
+                                    'location_plan_periods_defaults'] | None):
     only_new_time_of_day = False
     only_new_time_of_day_cause_parent_model = False
 
@@ -230,14 +230,22 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
     else:
         standard = False
 
+    return only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard
+
+
+def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
+                      project: schemas.ProjectShow, field__time_of_days__parent_model: Literal['project_defaults',
+                      'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
+                      'location_plan_periods_defaults'] | None):
+
+    only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = set_params_for__frm_time_of_day(parent, pydantic_model, field__time_of_days__parent_model)
+
     dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(), project, only_new_time_of_day=only_new_time_of_day,
                        standard=standard)
     if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
         return
+
     if dlg.chk_new_mode.isChecked():
-
-
-
         if only_new_time_of_day_cause_parent_model:
             '''Die aktuell gewählte Tageszeit ist dem parent-model zugeordnet
                und wird daher aus time_of_days entfernt.'''

@@ -37,3 +37,36 @@ class Update(Command):
 
     def redo(self):
         db_services.Project.update(self.new_data)
+
+
+class NewTimeOfDayStandard(Command):
+    def __init__(self, project_id: UUID, time_of_day_id: UUID):
+        self.project_id = project_id
+        self.time_of_day_id = time_of_day_id
+        self.old_t_o_d_standard_id = None
+
+    def execute(self):
+        _, self.old_t_o_d_standard_id = db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+        if self.old_t_o_d_standard_id:
+            db_services.Project.new_time_of_day_standard(self.project_id, self.old_t_o_d_standard_id)
+
+    def redo(self):
+        db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+
+
+class RemoveTimeOfDayStandard(Command):
+    def __init__(self, project_id: UUID, time_of_day_id: UUID):
+        self.project_id = project_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)

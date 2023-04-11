@@ -54,17 +54,19 @@ class Project:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def new_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
+    def new_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ProjectShow, UUID | None]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        old_time_of_day_standard_id = None
         for t_o_d in project_db.time_of_day_standards:
             if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
                 project_db.time_of_day_standards.remove(t_o_d)
+                old_time_of_day_standard_id = t_o_d.id
                 break
         project_db.time_of_day_standards.add(time_of_day_db)
-        return schemas.ProjectShow.from_orm(project_db)
+        return schemas.ProjectShow.from_orm(project_db), old_time_of_day_standard_id
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -292,7 +294,7 @@ class TimeOfDay:
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
 
         exclude = {'time_of_day_enum', 'project_standard'} if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
-        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude={'time_of_day_enum', 'project_standard'}),
+        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude=exclude),
                                           project=project_db, time_of_day_enum=time_of_day_enum_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)
 

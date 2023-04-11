@@ -1,14 +1,15 @@
 from uuid import UUID
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
-                               QGroupBox, QPushButton, QTimeEdit, QMessageBox)
+from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
+                               QGroupBox, QPushButton, QMessageBox)
 
-from database import db_services, schemas, models
+from database import db_services, schemas
 from . import frm_time_of_day
+from .commands import command_base_classes
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
-from .frm_time_of_day import FrmTimeOfDay, FrmTimeOfDayEnum
+from .frm_time_of_day import FrmTimeOfDayEnum
 
 
 class SettingsProject(QDialog):
@@ -136,6 +137,12 @@ class SettingsProject(QDialog):
         self.fill_admins()
 
     def edit_time_of_day(self):
+
+        controller = command_base_classes.ContrExecUndoRedo()
+
+
+
+
         dlg = frm_time_of_day.edit_time_of_days(self, self.project, self.project, None)
         if dlg is None:
             return

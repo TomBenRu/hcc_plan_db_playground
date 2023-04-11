@@ -197,6 +197,7 @@ class Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
+        print(f'{time_of_day_id=}')
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         for t_o_d in person_db.time_of_day_standards:
             if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
@@ -290,6 +291,7 @@ class TimeOfDay:
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
 
+        exclude = {'time_of_day_enum', 'project_standard'} if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
         time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude={'time_of_day_enum', 'project_standard'}),
                                           project=project_db, time_of_day_enum=time_of_day_enum_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)
@@ -326,6 +328,15 @@ class TimeOfDay:
                      f'args: {locals()}')
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
         time_of_day_db.prep_delete = datetime.datetime.utcnow()
+        return schemas.TimeOfDay.from_orm(time_of_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undo_delete(time_of_day_id: UUID) -> schemas.TimeOfDay:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
+        time_of_day_db.prep_delete = None
         return schemas.TimeOfDay.from_orm(time_of_day_db)
 
 

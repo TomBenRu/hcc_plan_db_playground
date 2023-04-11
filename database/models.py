@@ -76,6 +76,11 @@ class Project(db.Entity):
     time_of_days_all = Set('TimeOfDay', reverse='project')
     time_of_days = Set('TimeOfDay', reverse='project_defaults')
     time_of_day_standards = Set('TimeOfDay', reverse='project_standard')
+    # Hier wird festgelegt,
+    # weche konkreten Tageszeiten für die jeweiligen Enums als Standard für das Projekt gelten sollen.
+    # Diese Standards werden von nachfolgenden Models übernommen,
+    # können da aber durch zuweisen der Enums zu anderen Tageszeiten
+    # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
     time_of_day_enums = Set('TimeOfDayEnum')
 
@@ -253,6 +258,7 @@ Für LocationOfWork... gilt das gleiche Schema."""
 
 
 class TimeOfDayEnum(db.Entity):
+    """Zeigt durch den Index die Position im Tagesablauf an."""
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
     abbreviation = Required(str, 10)

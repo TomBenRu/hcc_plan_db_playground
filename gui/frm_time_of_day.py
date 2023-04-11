@@ -224,8 +224,8 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
                 only_new_time_of_day_cause_parent_model = True
                 only_new_time_of_day = True
     if t_o_d := parent.cb_time_of_days.currentData():
-        '''Wenn sich die aktuelle Tagesz. in den Standarts des aktuellen Modells befindet, wird "standard" auf True
-        gesetztz und dem Dialog mitgeteilt.'''
+        '''Wenn sich die aktuelle Tagesz. in den Standards des aktuellen Modells befindet, wird "standard" auf True
+        gesetzt und dem Dialog mitgeteilt.'''
         standard = t_o_d.id in [t.id for t in pydantic_model.time_of_day_standards]
     else:
         standard = False
@@ -235,6 +235,9 @@ def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.Mode
     if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
         return
     if dlg.chk_new_mode.isChecked():
+
+
+
         if only_new_time_of_day_cause_parent_model:
             '''Die aktuell gewählte Tageszeit ist dem parent-model zugeordnet
                und wird daher aus time_of_days entfernt.'''

@@ -266,7 +266,7 @@ class FrmPersonModify(FrmPersonData):
         self.project_id = project_id
         self.person = person
 
-        self.new_time_of_day_to_delete: list[schemas.TimeOfDayShow] = []
+        self.new_time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
         self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
         self.time_of_day_standard_ids: list[UUID] = []
@@ -318,9 +318,7 @@ class FrmPersonModify(FrmPersonData):
         for t_o_d_id in self.time_of_day_standard_ids:
             db_services.Person.new_time_of_day_standard(self.person.id, t_o_d_id)
         if self.reset_time_of_days_mode:
-            print('reset mode')
             for t_o_d_standard in self.person.project.time_of_day_standards:
-                print(t_o_d_standard.name)
                 db_services.Person.new_time_of_day_standard(self.person.id, t_o_d_standard.id)
 
         updated_person = db_services.Person.update(self.person)

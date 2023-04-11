@@ -21,10 +21,6 @@ class SettingsProject(QDialog):
 
         self.project = db_services.Project.get(project_id)
 
-        self.new_time_of_day_to_delete: list[schemas.TimeOfDayShow] = []
-        self.time_of_days_to_delete: list[schemas.TimeOfDayShow] = []
-        self.time_of_days_to_update: list[schemas.TimeOfDayShow] = []
-
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 

@@ -195,17 +195,32 @@ class Person:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def new_time_of_day_standard(person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
+    def new_time_of_day_standard(person_id: UUID, time_of_day_id: UUID) -> tuple[schemas.PersonShow, UUID | None]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
-        print(f'{time_of_day_id=}')
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+
+        old_time_of_day_standard_id = None
         for t_o_d in person_db.time_of_day_standards:
             if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
                 person_db.time_of_day_standards.remove(t_o_d)
+                old_time_of_day_standard_id = t_o_d.id
                 break
         person_db.time_of_day_standards.add(time_of_day_db)
+        return schemas.PersonShow.from_orm(person_db), old_time_of_day_standard_id
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_time_of_day_standard(person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        print(f'{person_id=}')
+        print(f'{person_db=}')
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        if person_db.time_of_day_standards:
+            person_db.time_of_day_standards.remove(time_of_day_db)
         return schemas.PersonShow.from_orm(person_db)
 
     @staticmethod

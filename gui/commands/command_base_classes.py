@@ -51,3 +51,7 @@ class ContrExecUndoRedo(Invoker):
         command = self.redo_stack.pop()
         command.redo()
         self.undo_stack.append(command)
+
+    def undo_all(self):
+        for command in reversed(self.undo_stack):
+            command.undo()

@@ -365,6 +365,12 @@ class FrmPersonModify(FrmPersonData):
                 if only_new_time_of_day_cause_parent_model:  # Die zuvor entfernte Tagesz. wird wieder hinzugefügt
                     self.person.time_of_days.append(self.cb_time_of_days.currentData())
             else:
+                if only_new_time_of_day_cause_parent_model:
+                    '''Die aktuelle Tageszeit wurde aus times_of_days entfernt, weil sie zum Parent-Model gehöhrt.
+                     Falls sie sich auch in den Personenstandarts befindet, wird sie auch da entfernt.'''
+                    if self.cb_time_of_days.currentData().id in [t.id for t in self.person.time_of_day_standards]:
+                        self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, self.cb_time_of_days.currentData().id))
+
                 create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.project_id)
                 self.controller.execute(create_command)
                 created_t_o_d_id = create_command.time_of_day_id
@@ -393,7 +399,6 @@ class FrmPersonModify(FrmPersonData):
                     self.controller.execute(person_commands.NewTimeOfDayStandard(self.person.id, curr_t_o_d_id))
                 else:
                     self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, curr_t_o_d_id))
-        print(self.controller.undo_stack)
 
         self.person = db_services.Person.get(self.person.id)
         self.fill_time_of_days()

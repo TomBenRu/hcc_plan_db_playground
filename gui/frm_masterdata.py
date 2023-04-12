@@ -408,9 +408,13 @@ class FrmPersonModify(FrmPersonData):
                 '''Das funktioniert, weil der Eintrag nicht wirklich gelöscht wird, 
                 sondern nur das Attribut "prep_delete" gesetzt wird.'''
                 self.controller.execute(time_of_day_commands.Delete(t_o_d.id))
+        for t_o_d in self.person.time_of_day_standards:
+            self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, t_o_d.id))
         self.person.time_of_days.clear()  # notendig?
         for t_o_d in [t for t in self.project.time_of_days if not t.prep_delete]:
             self.person.time_of_days.append(t_o_d)
+            if t_o_d.project_standard:
+                self.controller.execute(person_commands.NewTimeOfDayStandard(self.person.id, t_o_d.id))
 
         self.controller.execute(person_commands.Update(self.person))
         self.person = db_services.Person.get(self.person.id)
@@ -419,13 +423,6 @@ class FrmPersonModify(FrmPersonData):
                                 f'Die Tageszeiten wurden zurückgesetzt:\n'
                                 f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.person.time_of_days]}')
         self.fill_time_of_days()
-
-        return
-
-
-        frm_time_of_day.reset_time_of_days(self, self.person, self.project.time_of_days, 'project_defaults',
-                                           'project_standard')
-        self.reset_time_of_days_mode = True
 
 
 class WidgetLocationsOfWork(QWidget):

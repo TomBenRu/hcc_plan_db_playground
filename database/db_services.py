@@ -216,8 +216,6 @@ class Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
-        print(f'{person_id=}')
-        print(f'{person_db=}')
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         if person_db.time_of_day_standards:
             person_db.time_of_day_standards.remove(time_of_day_db)

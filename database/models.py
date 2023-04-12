@@ -152,13 +152,9 @@ class ActorPlanPeriod(db.Entity):
         return self.plan_period.team
 
     def before_insert(self):
-        for c in self.person.combination_locations_possibles:
-            self.combination_locations_possibles.add(c)
-        for c in self.person.actor_partner_location_prefs:
-            self.actor_partner_location_prefs.add(c)
-        for t_o_d in self.person.time_of_days:
-            if not t_o_d.prep_delete:
-                self.time_of_days.add(t_o_d)
+        self.combination_locations_possibles.add(self.person.combination_locations_possibles)
+        self.actor_partner_location_prefs.add(self.person.actor_partner_location_prefs)
+        self.time_of_days.add(self.person.time_of_days)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -421,9 +417,7 @@ class LocationPlanPeriod(db.Entity):
 
     def before_insert(self):
         self.nr_actors = self.location_of_work.nr_actors
-        for t_o_d in self.location_of_work.time_of_days:
-            if not t_o_d.prep_delete:
-                self.time_of_days.add(t_o_d)
+        self.time_of_days.add(self.location_of_work.time_of_days)
         self.fixed_cast = self.location_of_work.fixed_cast
 
     def before_update(self):

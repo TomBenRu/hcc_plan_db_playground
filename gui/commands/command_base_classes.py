@@ -29,6 +29,7 @@ class Invoker(ABC):
 
 
 class ContrExecUndoRedo(Invoker):
+    """Ein Invoker für Commands mit Undo und Redo Funktionalität"""
     def __init__(self):
         self.undo_stack: list[Command] = []
         self.redo_stack: list[Command] = []

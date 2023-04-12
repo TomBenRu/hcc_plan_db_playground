@@ -283,6 +283,34 @@ class LocationOfWork:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def new_time_of_day_standard(location_of_work_id: UUID, time_of_day_id: UUID) -> tuple[schemas.LocationOfWorkShow, UUID | None]:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+
+        old_time_of_day_standard_id = None
+        for t_o_d in location_db.time_of_day_standards:
+            if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
+                location_db.time_of_day_standards.remove(t_o_d)
+                old_time_of_day_standard_id = t_o_d.id
+                break
+        location_db.time_of_day_standards.add(time_of_day_db)
+        return schemas.LocationOfWorkShow.from_orm(location_db), old_time_of_day_standard_id
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_time_of_day_standard(location_of_work_id: UUID, time_of_day_id: UUID) -> schemas.LocationOfWorkShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        if location_db.time_of_day_standards:
+            location_db.time_of_day_standards.remove(time_of_day_db)
+        return schemas.LocationOfWorkShow.from_orm(location_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(location_id: UUID) -> schemas.LocationOfWork:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

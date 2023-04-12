@@ -35,7 +35,7 @@ class Person(db.Entity):
     actor_plan_periods = Set('ActorPlanPeriod')
     address = Optional('Address')
     time_of_days = Set('TimeOfDay')
-    time_of_day_standards = Set('TimeOfDay', reverse='persons_standard')
+    time_of_day_standards = Set('TimeOfDay', reverse='person_standard')
     # Wenn ein time_of_day_standard upgedatet wird, welcher auch Standart des Projektes ist wird er als neues
     # time_of_date_standard ohne Relation zum Projekt gespeichert.
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
@@ -244,7 +244,8 @@ Für LocationOfWork... gilt das gleiche Schema."""
     avail_days = Set(AvailDay, reverse='time_of_day')
     events = Set('Event', reverse='time_of_day')
     project_standard = Optional(Project, reverse='time_of_day_standards')
-    persons_standard = Set(Person, reverse='time_of_day_standards')
+    person_standard = Set(Person, reverse='time_of_day_standards')
+    locations_of_work_standard = Set('LocationOfWork', reverse='time_of_day_standards')
     project_defaults = Optional(Project, reverse='time_of_days')
     persons_defaults = Set(Person)
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
@@ -289,6 +290,7 @@ class LocationOfWork(db.Entity):
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
+    time_of_day_standards = Set(TimeOfDay, reverse='locations_of_work_standard')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
@@ -298,9 +300,8 @@ class LocationOfWork(db.Entity):
         self.last_modified = datetime.utcnow()
 
     def before_insert(self):
-        for t_o_d in self.project.time_of_days:
-            if not t_o_d.prep_delete:
-                self.time_of_days.add(t_o_d)
+        self.time_of_days.add(self.project.time_of_days)
+        self.time_of_day_standards.add(self.project.time_of_day_standards)
 
 
 class Address(db.Entity):

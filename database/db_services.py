@@ -566,7 +566,13 @@ class AvailDayGroup:
 class AvailDay:
     @staticmethod
     @db_session
-    def get(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
+    def get(avail_day_id: UUID) -> schemas.AvailDayShow:
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session
+    def get_from__pp_date_tod(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_day_db = models.AvailDay.get_for_update(
             lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.day == day and

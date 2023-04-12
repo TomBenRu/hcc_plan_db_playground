@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit
 
 from database import schemas, db_services
+from gui.commands import command_base_classes, avail_day_commands
 
 
 class FrmTabActorPlanPeriod(QWidget):
@@ -118,6 +119,7 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.setVerticalSpacing(0)
         self.layout.setHorizontalSpacing(2)
 
+        self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
         self.t_o_d_standards = sorted([t_o_d for t_o_d in actor_plan_period.person.time_of_day_standards
                                        if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
@@ -155,7 +157,7 @@ class FrmActorPlanPeriod(QWidget):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            for row, time_of_day in enumerate(self.actor_time_of_days, start=2):
+            for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
@@ -184,16 +186,29 @@ class FrmActorPlanPeriod(QWidget):
 
     def save_avail_day(self, bt: QPushButton, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
         if bt.isChecked():
-            new_avail_day = db_services.AvailDay.create(
+            avail_day_new = schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d)
+            save_command = avail_day_commands.Create(avail_day_new)
+            self.controller_avail_days.execute(save_command)
+            created_avail_day = save_command.created_avail_day
+
+            '''new_avail_day = db_services.AvailDay.create(
                 schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
-            # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')
+            # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')'''
         else:
-            avail_day = db_services.AvailDay.get(self.actor_plan_period.id, date, t_o_d.id)
-            deleted_avail_day = db_services.AvailDay.delete(avail_day.id)
+            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
+            del_command = avail_day_commands.Delete(avail_day.id)
+            self.controller_avail_days.execute(del_command)
+            '''deleted_avail_day = db_services.AvailDay.delete(avail_day.id)'''
 
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for ad in avail_days:
-            button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.name}')
+            button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
+            if not button:
+                QMessageBox.critical(self, 'Fehlende Standards',
+                                     f'Fehler:\n'
+                                     f'Kann die verfügbaren Zeiten nich anzeigen.\nEventuell haben Sie nachträglich '
+                                     f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+                return
             button.setChecked(True)

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, 
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout
 
 from database import db_services, schemas
+from gui.commands import command_base_classes
 
 
 class FrmPlanPeriodData(QDialog):

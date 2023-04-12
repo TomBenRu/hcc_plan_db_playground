@@ -82,13 +82,14 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor.setMaximumWidth(10000)
         self.person_id = UUID(self.table_select_actor.item(r, 0).text())
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
+        actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
         if self.scroll_area_availables:
             self.scroll_area_availables.deleteLater()
         self.scroll_area_availables = QScrollArea()
         self.layout_availables.addWidget(self.scroll_area_availables)
-        self.frame_availables = FrmActorPlanPeriod(actor_plan_period)
+        self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
         self.info_text_setup()
@@ -118,6 +119,8 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.setHorizontalSpacing(2)
 
         self.actor_plan_period = actor_plan_period
+        self.t_o_d_standards = [t_o_d for t_o_d in actor_plan_period.person.time_of_day_standards if not t_o_d.prep_delete]
+        self.t_o_d_enums = sorted([t_o_d.time_of_day_enum for t_o_d in self.t_o_d_standards], key=lambda x: x.time_index)
         self.actor_time_of_days = sorted(db_services.Person.get(self.actor_plan_period.person.id).time_of_days,
                                          key=lambda t: t.start)
         self.days = [actor_plan_period.plan_period.start+timedelta(delta) for delta in
@@ -147,13 +150,11 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):
-        project = db_services.Project.get(self.actor_plan_period.plan_period.team.project.id)
-        time_of_day_enums = sorted(project.time_of_day_enums, key=lambda x: x.time_index)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
-            for row, time_of_day_enum in enumerate(time_of_day_enums, start=2):
+            for row, time_of_day_enum in enumerate(self.t_o_d_enums, start=2):
                 self.layout.addWidget(QLabel(time_of_day_enum.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day_enum, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])

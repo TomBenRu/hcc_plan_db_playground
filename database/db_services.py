@@ -521,6 +521,12 @@ class EventGroup:
 
 class ActorPlanPeriod:
     @staticmethod
+    @db_session
+    def get(actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodShow:
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period_id: UUID, person_id: UUID) -> schemas.ActorPlanPeriodShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
+from PySide6.QtWidgets import QWidget, QMessageBox
+
 from database import db_services
 
 
@@ -56,3 +58,29 @@ class ContrExecUndoRedo(Invoker):
     def undo_all(self):
         for command in reversed(self.undo_stack):
             command.undo()
+
+
+class BatchCommand(Command):
+    def __init__(self, parent_window: QWidget, commands: list[Command]):
+        self.parent_window = parent_window
+        self.commands = commands
+
+    def execute(self):
+        completed_commands: list[Command] = []
+        try:
+            for command in self.commands:
+                command.execute()
+                completed_commands.append(command)
+        except Exception as e:
+            for command in reversed(completed_commands):
+                command.undo()
+            QMessageBox.critical(self.parent_window, 'Fehler',
+                                 f'Folgender Fehler trat auf:\n{e}\nDie Aktionen konnten nicht ausgeführt werden.')
+
+    def undo(self):
+        for command in reversed(self.commands):
+            command.undo()
+
+    def redo(self):
+        for command in self.commands:
+            command.redo()

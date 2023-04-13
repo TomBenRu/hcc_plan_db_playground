@@ -201,7 +201,7 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     actor_plan_period = Required(ActorPlanPeriod)
     avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
-    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')
+    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # kann weg!!!!!!!!
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')

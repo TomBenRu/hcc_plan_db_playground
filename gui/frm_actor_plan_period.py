@@ -1,15 +1,89 @@
 import datetime
+import functools
 import time
 from datetime import timedelta
+from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
+from PySide6.QtCore import QPoint
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
-    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit
+    QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
+    QMenu
 
 from database import schemas, db_services
+from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands
 
+
+class ButtonAvailDay(QPushButton):
+    def __init__(self, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
+                 t_o_d_for_selection: list[schemas.TimeOfDay], slot__save_avail_day: Callable):
+        super().__init__()
+        self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
+        self.setCheckable(True)
+        self.released.connect(lambda: slot__save_avail_day(self))
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        if time_of_day.time_of_day_enum.time_index == 1:
+            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
+                               "QPushButton::checked { background-color: #002aaa; border: none;}")
+        elif time_of_day.time_of_day_enum.time_index == 2:
+            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
+                               "QPushButton::checked { background-color: #ff4600; border: none;}")
+        elif time_of_day.time_of_day_enum.time_index == 3:
+            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
+                               "QPushButton::checked { background-color: #84033c; border: none;}")
+
+        self.slot__save_avail_day = slot__save_avail_day
+        self.day = day
+        self.time_of_day = time_of_day
+        self.t_o_d_for_selection = t_o_d_for_selection
+
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
+
+        self.t_o_d_for_selection = t_o_d_for_selection
+        self.actions = []
+        self.create_actions()
+        self.set_tooltip()
+
+    def show_context_menu(self, pos):
+        menu_pos = self.mapToGlobal(pos)
+        context_menu = QMenu()
+        context_menu.addActions(self.actions)
+        context_menu.move(menu_pos)
+        context_menu.exec()
+
+    def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
+        if self.isChecked():
+            '''Es wird simuliert: Löschen des aktuellen AvailDay, Erzeugen eines neuen AvailDay mit neuer Tageszeit.'''
+            self.setChecked(False)
+            self.slot__save_avail_day(self)
+            self.time_of_day = new_time_of_day
+            self.setChecked(True)
+            self.slot__save_avail_day(self)
+        else:
+            self.time_of_day = new_time_of_day
+        self.create_actions()
+        self.set_tooltip()
+
+    def create_actions(self):
+        self.actions = [
+            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t == self.time_of_day else None,
+                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                   functools.partial(self.set_new_time_of_day, t))
+            for t in self.t_o_d_for_selection]
+
+    def set_tooltip(self):
+        self.setToolTip(f'Rechtsklick:\n'
+                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
+                        f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
+                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
 class FrmTabActorPlanPeriod(QWidget):
     def __init__(self, plan_period: schemas.PlanPeriodShow):
@@ -167,25 +241,15 @@ class FrmActorPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
 
-    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDayShow, row: int, col: int):
-        button = QPushButton(objectName=f'{day}-{time_of_day.time_of_day_enum.name}')
-        button.setCheckable(True)
-        button.setMaximumWidth(23)
-        button.setMinimumHeight(23)
-        button.released.connect(lambda bt=button, t_o_d=time_of_day: self.save_avail_day(bt, day, t_o_d))
-        if time_of_day.time_of_day_enum.time_index == 1:
-            button.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                                 "QPushButton::checked { background-color: #002aaa; border: none;}")
-        elif time_of_day.time_of_day_enum.time_index == 2:
-            button.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                                 "QPushButton::checked { background-color: #ff4600; border: none;}")
-        elif time_of_day.time_of_day_enum.time_index == 3:
-            button.setStyleSheet("QPushButton {background-color: #daa4c9}"
-                                 "QPushButton::checked { background-color: #84033c; border: none;}")
-            '#daa4c9'
+    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
+        t_o_d_for_selection = [t_o_d for t_o_d in self.actor_time_of_days
+                               if t_o_d.time_of_day_enum == time_of_day.time_of_day_enum]
+        button = ButtonAvailDay(day, time_of_day, 24, t_o_d_for_selection, self.save_avail_day)
         self.layout.addWidget(button, row, col)
 
-    def save_avail_day(self, bt: QPushButton, date: datetime.date, t_o_d: schemas.TimeOfDayShow):
+    def save_avail_day(self, bt: ButtonAvailDay):
+        date = bt.day
+        t_o_d = bt.time_of_day
         if bt.isChecked():
             avail_day_new = schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d)
             save_command = avail_day_commands.Create(avail_day_new)
@@ -204,8 +268,9 @@ class FrmActorPlanPeriod(QWidget):
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
+        print([ad.time_of_day.name for ad in avail_days])
         for ad in avail_days:
-            button: QPushButton = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
+            button: ButtonAvailDay = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
             if not button:
                 QMessageBox.critical(self, 'Fehlende Standards',
                                      f'Fehler:\n'
@@ -213,3 +278,6 @@ class FrmActorPlanPeriod(QWidget):
                                      f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
                 return
             button.setChecked(True)
+            button.time_of_day = ad.time_of_day
+            button.create_actions()
+            button.set_tooltip()

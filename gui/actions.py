@@ -11,6 +11,6 @@ class Action(QAction):
         self.slot = slot
         if status_tip:
             self.setStatusTip(status_tip)
-        self.triggered.connect(slot)
+        self.triggered.connect(self.slot)
         if short_cut:
             self.setShortcut(QKeySequence(short_cut))

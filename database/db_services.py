@@ -173,7 +173,7 @@ class Person:
         for t_o_d in person.time_of_days:
             person_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
         person_db.set(
-            **person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments'}))
+            **person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments', 'notes'}))
 
         '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
 

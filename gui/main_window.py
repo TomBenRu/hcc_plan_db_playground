@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
     def __init__(self, app):
         super().__init__()
         self.setWindowTitle('hcc-plan')
-        self.setGeometry(QRect(0, 0, 800, 600))
+        self.setGeometry(QRect(0, 0, 1200, 600))
 
         # db_services.Project.create('Humor Hilft Heilen')
 

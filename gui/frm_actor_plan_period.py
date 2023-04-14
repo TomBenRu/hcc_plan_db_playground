@@ -44,20 +44,14 @@ class ButtonAvailDay(QPushButton):
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = t_o_d_for_selection
 
-        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_context_menu)
-
-        self.t_o_d_for_selection = t_o_d_for_selection
         self.actions = []
         self.create_actions()
         self.set_tooltip()
 
-    def show_context_menu(self, pos):
-        menu_pos = self.mapToGlobal(pos)
+    def contextMenuEvent(self, pos):
         context_menu = QMenu()
         context_menu.addActions(self.actions)
-        context_menu.move(menu_pos)
-        context_menu.exec()
+        context_menu.exec(pos.globalPos())
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
@@ -94,15 +88,24 @@ class FrmTabActorPlanPeriod(QWidget):
         self.actor_plan_periods = [a_pp for a_pp in plan_period.actor_plan_periods]
         self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in plan_period.actor_plan_periods}
         self.person_id: UUID | None = None
-        self.scroll_area_availables: QScrollArea | None = None
+        self.person: schemas.PersonShow | None = None
+        self.scroll_area_availables = QScrollArea()
         self.frame_availables: FrmActorPlanPeriod | None = None
-        self.lb_notes = QLabel('Infos:')
-        font_lb_notes = self.lb_notes.font()
+        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
+        font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)
-        self.lb_notes.setFont(font_lb_notes)
-        self.te_notes = QTextEdit()
-        self.te_notes.textChanged.connect(self.save_info)
-        self.te_notes.setFixedHeight(180)
+        self.lb_notes_pp.setFont(font_lb_notes)
+        self.te_notes_pp = QTextEdit()
+        self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
+        self.te_notes_pp.setFixedHeight(180)
+
+        self.lb_notes_actor = QLabel('Infos zur Person:')
+        font_lb_notes = self.lb_notes_actor.font()
+        font_lb_notes.setBold(True)
+        self.lb_notes_actor.setFont(font_lb_notes)
+        self.te_notes_actor = QTextEdit()
+        self.te_notes_actor.textChanged.connect(self.save_info_person)
+        self.te_notes_actor.setFixedHeight(180)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -122,7 +125,7 @@ class FrmTabActorPlanPeriod(QWidget):
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
         self.widget_availables = QWidget()
-        self.layout_availables = QVBoxLayout()
+        self.layout_availables = QGridLayout()
         self.layout_availables.setContentsMargins(0, 0, 0, 0)
         self.widget_availables.setLayout(self.layout_availables)
         self.splitter_availables.addWidget(self.widget_availables)
@@ -130,6 +133,18 @@ class FrmTabActorPlanPeriod(QWidget):
         self.splitter_availables.setSizes([175, 10000])
         self.layout.setStretch(0, 2)
         self.layout.setStretch(1, 99)
+        self.layout_notes = QHBoxLayout()
+        self.layout_notes_actor = QVBoxLayout()
+        self.layout_notes_actor_pp = QVBoxLayout()
+
+        self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
+        self.layout_availables.addLayout(self.layout_notes, 1, 0)
+        self.layout_notes.addLayout(self.layout_notes_actor_pp)
+        self.layout_notes.addLayout(self.layout_notes_actor)
+        self.layout_notes_actor_pp.addWidget(self.lb_notes_pp)
+        self.layout_notes_actor_pp.addWidget(self.te_notes_pp)
+        self.layout_notes_actor.addWidget(self.lb_notes_actor)
+        self.layout_notes_actor.addWidget(self.te_notes_actor)
 
     def setup_selector_table(self):
         self.table_select_actor.setMaximumWidth(175)
@@ -158,32 +173,37 @@ class FrmTabActorPlanPeriod(QWidget):
     def data_setup(self, r, c):
         self.table_select_actor.setMaximumWidth(10000)
         self.person_id = UUID(self.table_select_actor.item(r, 0).text())
+        self.person = db_services.Person.get(self.person_id)
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
-        if self.scroll_area_availables:
-            self.scroll_area_availables.deleteLater()
-        self.scroll_area_availables = QScrollArea()
-        self.layout_availables.addWidget(self.scroll_area_availables)
+        self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
         self.info_text_setup()
 
     def info_text_setup(self):
-        self.te_notes.textChanged.disconnect()
-        self.te_notes.clear()
-        self.layout_availables.addWidget(self.lb_notes)
-        self.layout_availables.addWidget(self.te_notes)
-        self.te_notes.setText(self.pers_id__actor_pp[str(self.person_id)].notes)
-        self.te_notes.textChanged.connect(self.save_info)
+        self.te_notes_pp.textChanged.disconnect()
+        self.te_notes_pp.clear()
+        self.te_notes_pp.setText(self.pers_id__actor_pp[str(self.person_id)].notes)
+        self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
+        self.te_notes_actor.textChanged.disconnect()
+        self.te_notes_actor.clear()
+        self.te_notes_actor.setText(self.person.notes)
+        self.te_notes_actor.textChanged.connect(self.save_info_person)
 
-    def save_info(self):
-        saved_actor_plan_period = db_services.ActorPlanPeriod.update(
+    def save_info_actor_pp(self):
+        updated_actor_plan_period = db_services.ActorPlanPeriod.update(
             schemas.ActorPlanPeriodUpdate(id=self.pers_id__actor_pp[str(self.person_id)].id,
-                                          notes=self.te_notes.toPlainText()))
-        self.pers_id__actor_pp[str(saved_actor_plan_period.person.id)] = saved_actor_plan_period
+                                          notes=self.te_notes_pp.toPlainText()))
+        self.pers_id__actor_pp[str(updated_actor_plan_period.person.id)] = updated_actor_plan_period
+
+    def save_info_person(self):
+        self.person.notes = self.te_notes_actor.toPlainText()
+        updated_actor = db_services.Person.update(self.person)
+
 
 
 class FrmActorPlanPeriod(QWidget):
@@ -197,13 +217,12 @@ class FrmActorPlanPeriod(QWidget):
 
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
-        self.t_o_d_standards = sorted([t_o_d for t_o_d in actor_plan_period.person.time_of_day_standards
-                                       if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
-        self.t_o_d_enums = [t_o_d.time_of_day_enum for t_o_d in self.t_o_d_standards]
-        self.actor_time_of_days = sorted(db_services.Person.get(self.actor_plan_period.person.id).time_of_days,
-                                         key=lambda t: t.start)
-        self.days = [actor_plan_period.plan_period.start+timedelta(delta) for delta in
-                     range((actor_plan_period.plan_period.end - actor_plan_period.plan_period.start).days + 1)]
+        self.t_o_d_standards: list[schemas.TimeOfDay] = []
+        self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
+        self.actor_plan_period_time_of_days: list[schemas.TimeOfDay] = []
+        self.days: list[datetime.date] = []
+        self.set_instance_variables()
+
         self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
         self.months = {1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August',
                        9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember'}
@@ -211,6 +230,16 @@ class FrmActorPlanPeriod(QWidget):
         self.set_headers_months()
         self.set_chk_field()
         self.get_avail_days()
+
+    def set_instance_variables(self):
+        self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.person.time_of_day_standards
+                                       if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
+        self.t_o_d_enums = [t_o_d.time_of_day_enum for t_o_d in self.t_o_d_standards]
+        self.actor_plan_period_time_of_days = sorted(
+            [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
+        self.days = [
+            self.actor_plan_period.plan_period.start + timedelta(delta) for delta in
+            range((self.actor_plan_period.plan_period.end - self.actor_plan_period.plan_period.start).days + 1)]
 
     def set_headers_months(self):
         month_year = [(d.month, d.year) for d in self.days]
@@ -243,7 +272,7 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(lb_weekday, row+1, col)
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
-        t_o_d_for_selection = [t_o_d for t_o_d in self.actor_time_of_days
+        t_o_d_for_selection = [t_o_d for t_o_d in self.actor_plan_period_time_of_days
                                if t_o_d.time_of_day_enum == time_of_day.time_of_day_enum]
         button = ButtonAvailDay(day, time_of_day, 24, t_o_d_for_selection, self.save_avail_day)
         self.layout.addWidget(button, row, col)
@@ -269,7 +298,6 @@ class FrmActorPlanPeriod(QWidget):
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
-        print([ad.time_of_day.name for ad in avail_days])
         for ad in avail_days:
             button: ButtonAvailDay = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
             if not button:

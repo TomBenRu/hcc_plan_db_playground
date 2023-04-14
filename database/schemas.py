@@ -169,10 +169,12 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
 class ActorPlanPeriodShow(ActorPlanPeriod):
     id: UUID
     person: PersonShow
+    time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
 
-    @validator('combination_locations_possibles', 'actor_partner_location_prefs', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 

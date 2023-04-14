@@ -85,6 +85,7 @@ class ButtonAvailDay(QPushButton):
                         f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
+
 class FrmTabActorPlanPeriod(QWidget):
     def __init__(self, plan_period: schemas.PlanPeriodShow):
         super().__init__()

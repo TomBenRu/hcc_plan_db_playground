@@ -82,6 +82,12 @@ class Project:
 class Team:
     @staticmethod
     @db_session
+    def get(team_id: UUID) -> schemas.TeamShow:
+        team_db = models.Team.get_for_update(id=team_id)
+        return schemas.TeamShow.from_orm(team_db)
+
+    @staticmethod
+    @db_session
     def get_all_from__project(projet_id: UUID) -> list[schemas.TeamShow]:
         project_in_db = models.Project.get_for_update(lambda p: p.id == projet_id)
         if not project_in_db:

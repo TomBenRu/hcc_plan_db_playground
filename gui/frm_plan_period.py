@@ -65,7 +65,8 @@ class FrmPlanPeriodData(QDialog):
     def fill_teams(self):
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
         for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
+            team = db_services.Team.get(t.id)
+            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team)
 
     def fill_dispatchers(self):
         dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)

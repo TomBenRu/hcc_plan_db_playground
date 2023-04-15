@@ -205,7 +205,6 @@ class FrmTabActorPlanPeriod(QWidget):
         updated_actor = db_services.Person.update(self.person)
 
 
-
 class FrmActorPlanPeriod(QWidget):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__()

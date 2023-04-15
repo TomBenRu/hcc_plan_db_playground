@@ -35,7 +35,7 @@ class Person(db.Entity):
     actor_plan_periods = Set('ActorPlanPeriod')
     address = Optional('Address')
     time_of_days = Set('TimeOfDay')
-    time_of_day_standards = Set('TimeOfDay', reverse='person_standard')
+    time_of_day_standards = Set('TimeOfDay', reverse='persons_standard')
     # Wenn ein time_of_day_standard upgedatet wird, welcher auch Standart des Projektes ist wird er als neues
     # time_of_date_standard ohne Relation zum Projekt gespeichert.
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
@@ -146,6 +146,7 @@ class ActorPlanPeriod(db.Entity):
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     avail_days = Set('AvailDay')
+    time_of_day_standards = Set('TimeOfDay', reverse='actor_plan_periods_standard')
 
     @property
     def team(self):
@@ -155,6 +156,7 @@ class ActorPlanPeriod(db.Entity):
         self.combination_locations_possibles.add(self.person.combination_locations_possibles)
         self.actor_partner_location_prefs.add(self.person.actor_partner_location_prefs)
         self.time_of_days.add(self.person.time_of_days)
+        self.time_of_day_standards.add(self.person.time_of_day_standards)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -240,8 +242,10 @@ Für LocationOfWork... gilt das gleiche Schema."""
     avail_days = Set(AvailDay, reverse='time_of_day')
     events = Set('Event', reverse='time_of_day')
     project_standard = Optional(Project, reverse='time_of_day_standards')
-    person_standard = Set(Person, reverse='time_of_day_standards')
+    persons_standard = Set(Person, reverse='time_of_day_standards')
+    actor_plan_periods_standard = Set(ActorPlanPeriod, reverse='time_of_day_standards')
     locations_of_work_standard = Set('LocationOfWork', reverse='time_of_day_standards')
+    location_plan_periods_standard = Set('LocationPlanPeriod', reverse='time_of_day_standards')
     project_defaults = Optional(Project, reverse='time_of_days')
     persons_defaults = Set(Person)
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
@@ -405,6 +409,7 @@ class LocationPlanPeriod(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     time_of_days = Set(TimeOfDay)
+    time_of_day_standards = Set(TimeOfDay, reverse='location_plan_periods_standard')
     plan_period = Required(PlanPeriod)
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
@@ -418,6 +423,7 @@ class LocationPlanPeriod(db.Entity):
     def before_insert(self):
         self.nr_actors = self.location_of_work.nr_actors
         self.time_of_days.add(self.location_of_work.time_of_days)
+        self.time_of_day_standards.add(self.location_of_work.time_of_day_standards)
         self.fixed_cast = self.location_of_work.fixed_cast
 
     def before_update(self):

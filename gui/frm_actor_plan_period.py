@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QMenu
 
 from database import schemas, db_services
+from gui import side_menu, frm_time_of_day
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands
 
@@ -80,7 +81,7 @@ class ButtonAvailDay(QPushButton):
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
 
-class FrmTabActorPlanPeriod(QWidget):
+class FrmTabActorPlanPeriods(QWidget):
     def __init__(self, plan_period: schemas.PlanPeriodShow):
         super().__init__()
 
@@ -122,6 +123,9 @@ class FrmTabActorPlanPeriod(QWidget):
         self.splitter_availables = QSplitter()
         self.layout.addWidget(self.splitter_availables)
 
+        self.side_menu = side_menu.WidgetSideMenu(self, 200, 10, 'right')
+        self.side_menu.add_button(QPushButton('Tageszeiten...'))
+        self.side_menu.add_button(QPushButton('Präferenzen...'))
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
         self.widget_availables = QWidget()
@@ -309,3 +313,7 @@ class FrmActorPlanPeriod(QWidget):
             button.time_of_day = ad.time_of_day
             button.create_actions()
             button.set_tooltip()
+
+    def edit_time_of_days(self):
+        frm_time_of_day.set_params_for__frm_time_of_day(self, self.actor_plan_period, 'persons_default')
+        dlg = frm_time_of_day.FrmTimeOfDay(self, self.actor_plan_period.time_of_days)

@@ -136,11 +136,13 @@ class PlanPeriod(PlanPeriodCreate):
 
 
 class PlanPeriodShow(PlanPeriod):
+    person: Person
     team: Team
     fixed_cast: Optional[str]
     actor_plan_periods: List['ActorPlanPeriod']
+    time_of_days: List['TimeOfDay']
 
-    @validator('actor_plan_periods', pre=True, allow_reuse=True)
+    @validator('actor_plan_periods', 'time_of_days', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 

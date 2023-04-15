@@ -28,6 +28,7 @@ class WidgetSideMenu(QWidget):
         super().__init__(parent)
 
         self.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
         self.parent = parent
         self.align = align
@@ -38,15 +39,16 @@ class WidgetSideMenu(QWidget):
 
         self.set_positions()
         self.setGeometry(self.pos_x_hide, 0, menu_width, 600)
-        self.color_buttons = '#dfdfdf'
+        self.color_buttons = '#e1e1e1'
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.scrollarea_fields = QScrollArea()
-        self.scrollarea_fields.setStyleSheet("background-color:#82cdcb;")
+        self.scrollarea_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
         self.layout.addWidget(self.scrollarea_fields)
         self.container_fields = QLabel()
+        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
         self.container_fields.setMinimumWidth(menu_width - 20)
         self.container_fields.setContentsMargins(20, 20, 0, 20)
         self.scrollarea_fields.setWidget(self.container_fields)
@@ -55,7 +57,7 @@ class WidgetSideMenu(QWidget):
 
         self.layout_fields.setAlignment(Qt.AlignTop)
 
-        self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30)
+        self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
         self.anim = QPropertyAnimation(self, b"pos")
 
@@ -91,10 +93,15 @@ class WidgetSideMenu(QWidget):
         self.anim.setDuration(750)
         self.anim.start()
 
+    def set_side_menu_width(self, width: int):
+        self.menu_width = width
+        self.setGeometry(self.pos_x_hide, 0, self.menu_width, self.parent.height())
+
+
     def add_button(self, button: QPushButton):
         button.setStyleSheet(f"background-color: {self.color_buttons};")
         self.layout_fields.addWidget(button)
-        self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30)
+        self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
 
 if __name__ == '__main__':
@@ -103,11 +110,12 @@ if __name__ == '__main__':
     class Window(QWidget):
         def __init__(self):
             super().__init__()
-            self.resize(600, 600)
+            self.resize(800, 600)
             self.layout = QVBoxLayout()
             self.setLayout(self.layout)
+            self.layout.addWidget(QLabel('dlkfjlakdsjflöaksdjflkjadslfjalsdkjflaskdjflasdjflkajsdflkajsd'))
 
-            self.side_menu = WidgetSideMenu(self, 150, 10, 'right')
+            self.side_menu = WidgetSideMenu(self, 150, 10, 'left')
             for i in range(1, 11):
                 button = QPushButton(f'Option {i:02}')
                 self.side_menu.add_button(button)

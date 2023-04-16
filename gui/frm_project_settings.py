@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
                                QGroupBox, QPushButton, QMessageBox)
 
 from database import db_services, schemas
-from . import frm_time_of_day
+from . import frm_time_of_day, frm_comb_loc_possible
 from .commands import command_base_classes, time_of_day_commands, project_commands
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
@@ -154,7 +154,7 @@ class SettingsProject(QDialog):
         only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = (
             frm_time_of_day.set_params_for__frm_time_of_day(self.project, t_o_d_id, None))
 
-        dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
+        dlg = frm_time_of_day.FrmTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
 
         if not dlg.exec():
             return
@@ -223,7 +223,8 @@ class SettingsProject(QDialog):
             self.fill_time_of_days()
 
     def edit_comb_loc_poss(self):
-        ...
+        dlg = frm_comb_loc_possible.FrmCombLocPossibleEditList(self, self.project, None)
+        dlg.exec()
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

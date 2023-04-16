@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QMenu, QListWidget, QFormLayout
+    QMenu, QListWidget, QFormLayout, QHeaderView
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -19,7 +19,7 @@ class FrmMasterData(QWidget):
     def __init__(self, project_id: UUID):
         super().__init__()
         self.setWindowTitle('Stammdaten')
-        self.setGeometry(50, 50, 800, 600)
+        self.setGeometry(50, 50, 1000, 600)
 
         self.project_id = project_id
 
@@ -143,6 +143,7 @@ class TablePersons(QTableWidget):
         self.gender_visible_strings = {'m': 'männlich', 'f': 'weiblich', 'd': 'divers'}
 
         self.put_data_to_table()
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def put_data_to_table(self):
         self.setRowCount(len(self.persons))
@@ -352,7 +353,7 @@ class FrmPersonModify(FrmPersonData):
         only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = (
             frm_time_of_day.set_params_for__frm_time_of_day(self.person, self.cb_time_of_days.currentData().id,
                                                             'project_defaults'))
-        dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
+        dlg = frm_time_of_day.FrmTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
         if not dlg.exec():
             return
 
@@ -533,6 +534,7 @@ class TableLocationsOfWork(QTableWidget):
 
         self.put_data_to_table()
         self.hideColumn(self.columnCount()-1)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def put_data_to_table(self):
         self.setRowCount(len(self.locations))
@@ -678,8 +680,8 @@ class FrmLocationModify(FrmLocationData):
         only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = (
             frm_time_of_day.set_params_for__frm_time_of_day(self.location_of_work,
                                                             self.cb_time_of_days.currentData().id, 'project_defaults'))
-        dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day,
-                                           standard)
+        dlg = frm_time_of_day.FrmTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day,
+                                               standard)
         if not dlg.exec():
             return
 

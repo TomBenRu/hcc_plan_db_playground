@@ -219,7 +219,7 @@ def set_params_for__frm_time_of_day(pydantic_model: schemas.ModelWithTimeOfDays,
 
     only_new_time_of_day (is there a time_of_day instance to edit?),
 
-    only_new_time_of_day_cause_parent_model (current time_of_day instance is also a instance of the parent model),
+    only_new_time_of_day_cause_parent_model (current time_of_day instance is also an instance of the parent model),
 
     standard (is current time_of_day also part of time_of_day_standart in the current model?)"""
 

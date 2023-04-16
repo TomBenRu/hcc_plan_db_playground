@@ -296,7 +296,7 @@ class FrmPersonModify(FrmPersonData):
         self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', QLabel('....wird noch'))
 
         self.layout.addWidget(self.button_box)
-        self.button_box.rejected.connect(self.cancel)
+        self.button_box.rejected.connect(self.reject)
         self.autofill()
 
     def save_person(self):
@@ -315,9 +315,9 @@ class FrmPersonModify(FrmPersonData):
                                 f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
         self.accept()
 
-    def cancel(self):
+    def reject(self):
         self.controller.undo_all()
-        self.reject()
+        super().reject()
 
     def autofill(self):
         self.fill_person_data()
@@ -580,7 +580,7 @@ class FrmLocationData(QDialog):
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_location)
-        self.button_box.rejected.connect(self.cancel)
+        self.button_box.rejected.connect(self.reject)
 
     def save_location(self):
         address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
@@ -593,8 +593,8 @@ class FrmLocationData(QDialog):
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
-    def cancel(self):
-        self.reject()
+    def reject(self):
+        super().reject()
 
 
 class FrmLocationCreate(FrmLocationData):
@@ -666,9 +666,9 @@ class FrmLocationModify(FrmLocationData):
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
         self.accept()
 
-    def cancel(self):
+    def reject(self):
         self.controller.undo_all()
-        self.reject()
+        super().reject()
 
     def get_location_of_work(self):
         location = db_services.LocationOfWork.get(self.location_id)

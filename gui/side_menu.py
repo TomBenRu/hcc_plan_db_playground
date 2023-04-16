@@ -59,7 +59,7 @@ class WidgetSideMenu(QWidget):
 
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
-        self.anim = QPropertyAnimation(self, b"pos")
+        self.animation = QPropertyAnimation(self, b"pos")
 
         parent.resizeEvent = self.parent_resize_event
 
@@ -82,16 +82,16 @@ class WidgetSideMenu(QWidget):
         self.hide_siedemenu()
 
     def show_sidemenu(self):
-        self.anim.setEasingCurve(QEasingCurve.OutBounce)
-        self.anim.setEndValue(QPoint(self.pos_x_show, 0))
-        self.anim.setDuration(750)
-        self.anim.start()
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)
+        self.animation.setEndValue(QPoint(self.pos_x_show, 0))
+        self.animation.setDuration(750)
+        self.animation.start()
 
     def hide_siedemenu(self):
-        self.anim.setEasingCurve(QEasingCurve.OutCubic)
-        self.anim.setEndValue(QPoint(self.pos_x_hide, 0))
-        self.anim.setDuration(750)
-        self.anim.start()
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.animation.setEndValue(QPoint(self.pos_x_hide, 0))
+        self.animation.setDuration(750)
+        self.animation.start()
 
     def set_side_menu_width(self, width: int):
         self.menu_width = width
@@ -104,7 +104,6 @@ class WidgetSideMenu(QWidget):
 
     def delete_all_buttons(self):
         buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
-        print(buttons)
         for button in buttons:
             button.deleteLater()
 

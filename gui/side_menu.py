@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Iterable
 
 from PySide6.QtGui import QMouseEvent, Qt
 from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene, \
@@ -97,11 +97,16 @@ class WidgetSideMenu(QWidget):
         self.menu_width = width
         self.setGeometry(self.pos_x_hide, 0, self.menu_width, self.parent.height())
 
-
     def add_button(self, button: QPushButton):
         button.setStyleSheet(f"background-color: {self.color_buttons};")
         self.layout_fields.addWidget(button)
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
+
+    def delete_all_buttons(self):
+        buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
+        print(buttons)
+        for button in buttons:
+            button.deleteLater()
 
 
 if __name__ == '__main__':

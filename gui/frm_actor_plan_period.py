@@ -10,7 +10,7 @@ from PySide6.QtCore import QPoint
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
-    QMenu
+    QMenu, QDialog
 
 from database import schemas, db_services
 from gui import side_menu, frm_time_of_day
@@ -124,8 +124,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout.addWidget(self.splitter_availables)
 
         self.side_menu = side_menu.WidgetSideMenu(self, 200, 10, 'right')
-        self.side_menu.add_button(QPushButton('Tageszeiten...'))
-        self.side_menu.add_button(QPushButton('Präferenzen...'))
+
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
         self.widget_availables = QWidget()
@@ -183,7 +182,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
         self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
-        self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show)
+        self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
         self.info_text_setup()
@@ -210,13 +209,16 @@ class FrmTabActorPlanPeriods(QWidget):
 
 
 class FrmActorPlanPeriod(QWidget):
-    def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
         super().__init__()
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
         self.layout.setVerticalSpacing(0)
         self.layout.setHorizontalSpacing(2)
+
+        self.side_menu = side_menu
+        self.setup_side_menu()
 
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
@@ -233,6 +235,11 @@ class FrmActorPlanPeriod(QWidget):
         self.set_headers_months()
         self.set_chk_field()
         self.get_avail_days()
+
+    def setup_side_menu(self):
+        self.side_menu.delete_all_buttons()
+        bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
+        self.side_menu.add_button(bt_time_of_days)
 
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
@@ -315,5 +322,50 @@ class FrmActorPlanPeriod(QWidget):
             button.set_tooltip()
 
     def edit_time_of_days(self):
-        frm_time_of_day.set_params_for__frm_time_of_day(self, self.actor_plan_period, 'persons_default')
-        dlg = frm_time_of_day.FrmTimeOfDay(self, self.actor_plan_period.time_of_days)
+        dlg = TimeOfDays(self, self.actor_plan_period)
+        dlg.exec()
+
+
+class TimeOfDays(QDialog):
+    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent)
+
+        self.resize(450, 350)
+        self.setWindowTitle(f'Tageszeiten des Planungszeitraums, '
+                            f'{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
+
+        self.time_of_days = sorted(actor_plan_period.time_of_days, key=lambda x: x.time_of_day_enum.time_index)
+        self.time_of_day_standards = actor_plan_period.time_of_day_standards
+
+        self.layout = QGridLayout(self)
+
+        self.table_time_of_days = QTableWidget()
+        self.layout.addWidget(self.table_time_of_days, 0, 0, 1, 3)
+        self.header_labels = ['id', 'Name', 'Zeitspanne', 'Enum', 'Standard']
+        self.table_time_of_days.setRowCount(len(self.time_of_days))
+        self.table_time_of_days.setColumnCount(len(self.header_labels))
+        self.table_time_of_days.setHorizontalHeaderLabels(self.header_labels)
+
+        self.setup_table_time_of_days()
+
+    def setup_table_time_of_days(self):
+        self.table_time_of_days.setSortingEnabled(True)
+        self.table_time_of_days.setAlternatingRowColors(True)
+        self.table_time_of_days.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_time_of_days.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_time_of_days.horizontalHeader().setHighlightSections(False)
+        self.table_time_of_days.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
+        self.table_time_of_days.hideColumn(0)
+
+        for row, t_o_d in enumerate(self.time_of_days):
+            self.table_time_of_days.setItem(row, 0, QTableWidgetItem(str(t_o_d.id)))
+            self.table_time_of_days.setItem(row, 1, QTableWidgetItem(t_o_d.name))
+            text_times = f'{t_o_d.start.strftime("%H:%M")}-{t_o_d.end.strftime("%H:%M")}'
+            self.table_time_of_days.setItem(row, 2, QTableWidgetItem(text_times))
+            self.table_time_of_days.setItem(row, 3, QTableWidgetItem(t_o_d.time_of_day_enum.name))
+            if t_o_d.id in [t.id for t in self.time_of_day_standards]:
+                text_standard = 'ja'
+            else:
+                text_standard = 'nein'
+            self.table_time_of_days.setItem(row, 4, QTableWidgetItem(text_standard))
+

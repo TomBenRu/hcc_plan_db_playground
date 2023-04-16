@@ -11,7 +11,7 @@ from database.enums import Gender
 class ModelWithTimeOfDays(Protocol):
     id: UUID
     time_of_days: list[Union['TimeOfDay', 'TimeOfDayShow']]
-    time_of_day_standards: list['TimeOfDayShow']
+    time_of_day_standards: list['TimeOfDay']
 
 
 

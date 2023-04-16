@@ -349,7 +349,9 @@ class FrmPersonModify(FrmPersonData):
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
     def edit_time_of_days(self):
-        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = frm_time_of_day.set_params_for__frm_time_of_day(self.person, self.cb_time_of_days.currentData().id, 'project_defaults')
+        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = (
+            frm_time_of_day.set_params_for__frm_time_of_day(self.person, self.cb_time_of_days.currentData().id,
+                                                            'project_defaults'))
         dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
         if not dlg.exec():
             return
@@ -674,8 +676,9 @@ class FrmLocationModify(FrmLocationData):
         return location
 
     def edit_time_of_days(self):
-        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = frm_time_of_day.set_params_for__frm_time_of_day(
-            self.location_of_work, self.cb_time_of_days.currentData().id, 'project_defaults')
+        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = (
+            frm_time_of_day.set_params_for__frm_time_of_day(self.location_of_work,
+                                                            self.cb_time_of_days.currentData().id, 'project_defaults'))
         dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day,
                                            standard)
         if not dlg.exec():

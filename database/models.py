@@ -129,6 +129,10 @@ class PlanPeriod(db.Entity):
     location_plan_periods = Set('LocationPlanPeriod')
     plans = Set('Plan')
 
+    @property
+    def project(self):
+        return self.team.project
+
     def before_update(self):
         self.last_modified = datetime.utcnow()
 
@@ -151,6 +155,10 @@ class ActorPlanPeriod(db.Entity):
     @property
     def team(self):
         return self.plan_period.team
+
+    @property
+    def project(self):
+        return self.team.project
 
     def before_insert(self):
         self.combination_locations_possibles.add(self.person.combination_locations_possibles)

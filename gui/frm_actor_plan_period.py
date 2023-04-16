@@ -10,7 +10,7 @@ from PySide6.QtCore import QPoint
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QSpacerItem, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
-    QMenu, QDialog
+    QMenu, QDialog, QDialogButtonBox
 
 from database import schemas, db_services
 from gui import side_menu, frm_time_of_day
@@ -334,21 +334,38 @@ class TimeOfDays(QDialog):
         self.setWindowTitle(f'Tageszeiten des Planungszeitraums, '
                             f'{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
 
-        self.time_of_days = sorted(actor_plan_period.time_of_days, key=lambda x: x.time_of_day_enum.time_index)
-        self.time_of_day_standards = actor_plan_period.time_of_day_standards
+        self.actor_plan_period = actor_plan_period
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QGridLayout(self)
 
         self.table_time_of_days = QTableWidget()
         self.layout.addWidget(self.table_time_of_days, 0, 0, 1, 3)
-        self.header_labels = ['id', 'Name', 'Zeitspanne', 'Enum', 'Standard']
-        self.table_time_of_days.setRowCount(len(self.time_of_days))
-        self.table_time_of_days.setColumnCount(len(self.header_labels))
-        self.table_time_of_days.setHorizontalHeaderLabels(self.header_labels)
-
         self.setup_table_time_of_days()
 
+        self.bt_new = QPushButton('Neu...', clicked=self.create_time_of_day)
+        self.bt_edit = QPushButton('Berabeiten...', clicked=self.edit_time_of_day)
+        self.bt_delete = QPushButton('Löschen')
+        self.bt_reset = QPushButton('Reset')
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box.setCenterButtons(True)
+        self.button_box.accepted.connect(self.accept())
+        self.button_box.rejected.connect(self.cancel)
+
+        self.layout.addWidget(self.bt_new, 1, 0)
+        self.layout.addWidget(self.bt_edit, 1, 1)
+        self.layout.addWidget(self.bt_delete, 1, 2)
+        self.layout.addWidget(self.bt_reset, 2, 1)
+        self.layout.addWidget(self.button_box, 3, 0, 1, 3)
+
     def setup_table_time_of_days(self):
+        time_of_days = sorted(self.actor_plan_period.time_of_days, key=lambda x: x.time_of_day_enum.time_index)
+        time_of_day_standards = self.actor_plan_period.time_of_day_standards
+        header_labels = ['id', 'Name', 'Zeitspanne', 'Enum', 'Standard']
+        self.table_time_of_days.setRowCount(len(time_of_days))
+        self.table_time_of_days.setColumnCount(len(header_labels))
+        self.table_time_of_days.setHorizontalHeaderLabels(header_labels)
         self.table_time_of_days.setSortingEnabled(True)
         self.table_time_of_days.setAlternatingRowColors(True)
         self.table_time_of_days.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -357,15 +374,38 @@ class TimeOfDays(QDialog):
         self.table_time_of_days.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
         self.table_time_of_days.hideColumn(0)
 
-        for row, t_o_d in enumerate(self.time_of_days):
+        for row, t_o_d in enumerate(time_of_days):
             self.table_time_of_days.setItem(row, 0, QTableWidgetItem(str(t_o_d.id)))
             self.table_time_of_days.setItem(row, 1, QTableWidgetItem(t_o_d.name))
             text_times = f'{t_o_d.start.strftime("%H:%M")}-{t_o_d.end.strftime("%H:%M")}'
             self.table_time_of_days.setItem(row, 2, QTableWidgetItem(text_times))
             self.table_time_of_days.setItem(row, 3, QTableWidgetItem(t_o_d.time_of_day_enum.name))
-            if t_o_d.id in [t.id for t in self.time_of_day_standards]:
+            if t_o_d.id in [t.id for t in time_of_day_standards]:
                 text_standard = 'ja'
             else:
                 text_standard = 'nein'
             self.table_time_of_days.setItem(row, 4, QTableWidgetItem(text_standard))
+
+    def cancel(self):
+        self.controller.undo_all()
+        self.reject()
+
+    def create_time_of_day(self):
+        project = db_services.Project.get(self.actor_plan_period.project.id)
+        dlg = frm_time_of_day.FrmTimeOfDay(self, None, project, True)
+
+        dlg.exec()
+
+    def edit_time_of_day(self):
+        curr_row = self.table_time_of_days.currentRow()
+        t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
+        curr_t_o_d = db_services.TimeOfDay.get(t_o_d_id)
+        _, only_new_time_of_day_cause_parent_model, standard = frm_time_of_day.set_params_for__frm_time_of_day(
+            self.actor_plan_period, t_o_d_id, 'persons_defaults')
+
+        project = db_services.Project.get(self.actor_plan_period.project.id)
+        dlg = frm_time_of_day.FrmTimeOfDay(self, curr_t_o_d, project, only_new_time_of_day_cause_parent_model, standard)
+
+        dlg.exec()
+
 

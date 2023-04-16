@@ -13,7 +13,7 @@ from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmTimeOfDay(QDialog):
-    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow, project: schemas.ProjectShow,
+    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow | None, project: schemas.ProjectShow,
                  only_new_time_of_day=False, standard=False):
         super().__init__(parent)
         self.setWindowTitle('Tageszeit')
@@ -209,6 +209,14 @@ def set_params_for__frm_time_of_day(pydantic_model: schemas.ModelWithTimeOfDays,
                                     field__time_of_days__parent_model: Literal['project_defaults',
                                     'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
                                     'location_plan_periods_defaults'] | None):
+    """Returns 3 boolean parameters to note, when editing time_of_days:
+
+    only_new_time_of_day (is there a time_of_day instance to edit?),
+
+    only_new_time_of_day_cause_parent_model (current time_of_day instance is also a instance of the parent model),
+
+    standard (is current time_of_day also part of time_of_day_standart in the current model?)"""
+
     only_new_time_of_day = False
     only_new_time_of_day_cause_parent_model = False
 

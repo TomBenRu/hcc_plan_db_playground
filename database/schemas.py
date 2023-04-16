@@ -14,7 +14,6 @@ class ModelWithTimeOfDays(Protocol):
     time_of_day_standards: list['TimeOfDay']
 
 
-
 @runtime_checkable
 class ModelWithFixedCast(Protocol):
     fixed_cast: Optional[str]
@@ -139,6 +138,7 @@ class PlanPeriodShow(PlanPeriod):
     team: Team
     fixed_cast: Optional[str]
     actor_plan_periods: List['ActorPlanPeriod']
+    project: Project
 
     @validator('actor_plan_periods', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
@@ -173,6 +173,8 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     time_of_day_standards: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
+    team: Team
+    project: Project
 
     @validator('time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
                'actor_partner_location_prefs', pre=True, allow_reuse=True)

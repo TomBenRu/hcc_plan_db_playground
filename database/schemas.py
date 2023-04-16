@@ -15,6 +15,12 @@ class ModelWithTimeOfDays(Protocol):
 
 
 @runtime_checkable
+class ModelWithCombLocPossible(Protocol):
+    id: UUID
+    combination_locations_possibles: list['CombinationLocationsPossible']
+
+
+@runtime_checkable
 class ModelWithFixedCast(Protocol):
     fixed_cast: Optional[str]
     team: 'Team'

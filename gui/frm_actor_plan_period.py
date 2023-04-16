@@ -326,12 +326,12 @@ class FrmActorPlanPeriod(QWidget):
             button.set_tooltip()
 
     def edit_time_of_days(self):
-        dlg = TimeOfDays(self, self.actor_plan_period)
+        dlg = TimeOfDaysEditList(self, self.actor_plan_period)
         dlg.exec()
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 
-class TimeOfDays(QDialog):
+class TimeOfDaysEditList(QDialog):
     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
 

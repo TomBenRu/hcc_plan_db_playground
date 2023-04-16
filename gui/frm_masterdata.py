@@ -407,7 +407,6 @@ class FrmPersonModify(FrmPersonData):
         return
 
     def reset_time_of_days(self):
-
         for t_o_d in self.person.time_of_days:
             '''Alle nicht nur zur Location gehörigen TimeOfDays werden mit dem Controller gelöscht.
             Diese werden dann mit Bestätigen des vorherigen Dialogs entgültig gelöscht.'''

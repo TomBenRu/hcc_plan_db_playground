@@ -58,6 +58,11 @@ class ContrExecUndoRedo(Invoker):
     def undo_all(self):
         for command in reversed(self.undo_stack):
             command.undo()
+        self.redo_stack = self.undo_stack[:]
+        self.undo_stack.clear()
+
+    def show_stacks(self):
+        return f'Undo-Stack: {self.undo_stack}\nRedo-Stack: {self.redo_stack}'
 
 
 class BatchCommand(Command):

@@ -111,6 +111,12 @@ class FrmTimeOfDay(QDialog):
         self.to_delete_status = True
         self.accept()
 
+    def set_delete_disabled(self):
+        self.bt_delete.setDisabled(True)
+
+    def set_new_mode_disabled(self):
+        self.chk_new_mode.setDisabled(True)
+
 
 class FrmTimeOfDayEnum(QDialog):
     def __init__(self, parent: QWidget, project: schemas.ProjectShow,

@@ -60,6 +60,7 @@ class Person(db.Entity):
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
         self.time_of_day_standards.add(self.project.time_of_day_standards)
+        self.combination_locations_possibles.add(self.project.combination_locations_possibles)
 
 
 class Project(db.Entity):
@@ -83,6 +84,7 @@ class Project(db.Entity):
     # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
     time_of_day_enums = Set('TimeOfDayEnum')
+    combination_locations_possibles = Set('CombinationLocationsPossible')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -497,13 +499,17 @@ class Flag(db.Entity):
 
 
 class CombinationLocationsPossible(db.Entity):
-    """Verschiedene Personen können die gleiche Instanz einer Combination verwenden. Falls eine neue Instanz angelegt werden soll wird zuerst überprüft, ob es schon eine Instanz mit der gleichen Kombination von Locations gibt. Falls ja, sollte diese Instanz verwendet werden.
-Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person, eine neue Instanz von AvailDay übernimmt die Combinations von ActorPlanPeriod."""
+    """Verschiedene Personen können die gleiche Instanz einer Combination verwenden.
+    Falls eine neue Instanz angelegt werden soll wird zuerst überprüft, ob es schon eine Instanz mit der gleichen
+    Kombination von Locations gibt. Falls ja, sollte diese Instanz verwendet werden.
+    Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person,
+    eine neue Instanz von AvailDay übernimmt die Combinations von ActorPlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     locations_of_work = Set(LocationOfWork)
+    project = Optional(Project)
     persons = Set(Person)
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)

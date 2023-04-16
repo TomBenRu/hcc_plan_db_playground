@@ -20,6 +20,9 @@ class Create(Command):
     def redo(self):
         db_services.TimeOfDay.undo_delete(self.time_of_day_id)
 
+    def get_created_time_of_day_id(self):
+        return self.time_of_day_id
+
 
 class Update(Command):
     def __init__(self, time_of_day: schemas.TimeOfDay):

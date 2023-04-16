@@ -114,6 +114,9 @@ class FrmTimeOfDay(QDialog):
     def set_delete_disabled(self):
         self.bt_delete.setDisabled(True)
 
+    def set_new_mode(self, enabled: bool):
+        self.chk_new_mode.setChecked(enabled)
+
     def set_new_mode_disabled(self):
         self.chk_new_mode.setDisabled(True)
 

@@ -545,12 +545,58 @@ class ActorPlanPeriod:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def update(actor_plan_period: schemas.ActorPlanPeriodUpdate) -> schemas.ActorPlanPeriodShow:
+    def update(actor_plan_period: schemas.ActorPlanPeriodShow) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
+
+        actor_plan_period_db.time_of_days.clear()
+        for t_o_d in actor_plan_period.time_of_days:
+            actor_plan_period_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
+        actor_plan_period_db.set(
+            **actor_plan_period.dict(
+                include={'notes', 'requested_assignments'}))
+
+        '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
+
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_notes(actor_plan_period: schemas.ActorPlanPeriodUpdate) -> schemas.ActorPlanPeriodShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
         actor_plan_period_db.set(notes=actor_plan_period.notes)
         return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_time_of_day_standard(actor_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        if actor_plan_period_db.time_of_day_standards:
+            actor_plan_period_db.time_of_day_standards.remove(time_of_day_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def new_time_of_day_standard(actor_plan_period_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ActorPlanPeriodShow, UUID | None]:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+
+        old_time_of_day_standard_id = None
+        for t_o_d in actor_plan_period_db.time_of_day_standards:
+            if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
+                actor_plan_period_db.time_of_day_standards.remove(t_o_d)
+                old_time_of_day_standard_id = t_o_d.id
+                break
+        actor_plan_period_db.time_of_day_standards.add(time_of_day_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db), old_time_of_day_standard_id
 
 
 class AvailDayGroup:

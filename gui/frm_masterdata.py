@@ -409,8 +409,8 @@ class FrmPersonModify(FrmPersonData):
     def reset_time_of_days(self):
 
         for t_o_d in self.person.time_of_days:
-            '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
-            Diese werden dann mit Bestätigen des vorherigen Dialogs gelöscht.'''
+            '''Alle nicht nur zur Location gehörigen TimeOfDays werden mit dem Controller gelöscht.
+            Diese werden dann mit Bestätigen des vorherigen Dialogs entgültig gelöscht.'''
             if not db_services.TimeOfDay.get(t_o_d.id).project_defaults:
                 '''Das funktioniert, weil der Eintrag nicht wirklich gelöscht wird, 
                 sondern nur das Attribut "prep_delete" gesetzt wird.'''

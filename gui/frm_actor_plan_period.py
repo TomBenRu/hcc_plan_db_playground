@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from database import schemas, db_services
 from gui import side_menu, frm_time_of_day
 from gui.actions import Action
-from gui.commands import command_base_classes, avail_day_commands
+from gui.commands import command_base_classes, avail_day_commands, time_of_day_commands, actor_plan_period_commands
 
 
 class ButtonAvailDay(QPushButton):
@@ -198,7 +198,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.te_notes_actor.textChanged.connect(self.save_info_person)
 
     def save_info_actor_pp(self):
-        updated_actor_plan_period = db_services.ActorPlanPeriod.update(
+        updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
             schemas.ActorPlanPeriodUpdate(id=self.pers_id__actor_pp[str(self.person_id)].id,
                                           notes=self.te_notes_pp.toPlainText()))
         self.pers_id__actor_pp[str(updated_actor_plan_period.person.id)] = updated_actor_plan_period
@@ -272,6 +272,12 @@ class FrmActorPlanPeriod(QWidget):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
+            if not self.t_o_d_standards:
+                QMessageBox.critical(self, 'Verfügbarkeiten',
+                                     f'Für diesen Planungszeitraum von {self.actor_plan_period.person.f_name} '
+                                     f'{self.actor_plan_period.person.l_name} sind noch keine '
+                                     f'Tageszeiten-Standartwerdte definiert.')
+                return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day, row, col)
@@ -340,17 +346,16 @@ class TimeOfDays(QDialog):
 
         self.layout = QGridLayout(self)
 
-        self.table_time_of_days = QTableWidget()
-        self.layout.addWidget(self.table_time_of_days, 0, 0, 1, 3)
+        self.table_time_of_days: QTableWidget | None = None
         self.setup_table_time_of_days()
 
         self.bt_new = QPushButton('Neu...', clicked=self.create_time_of_day)
         self.bt_edit = QPushButton('Berabeiten...', clicked=self.edit_time_of_day)
-        self.bt_delete = QPushButton('Löschen')
-        self.bt_reset = QPushButton('Reset')
+        self.bt_delete = QPushButton('Löschen', clicked=self.delete_time_of_day)
+        self.bt_reset = QPushButton('Reset', clicked=self.reset_time_of_days)
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.setCenterButtons(True)
-        self.button_box.accepted.connect(self.accept())
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.cancel)
 
         self.layout.addWidget(self.bt_new, 1, 0)
@@ -360,6 +365,10 @@ class TimeOfDays(QDialog):
         self.layout.addWidget(self.button_box, 3, 0, 1, 3)
 
     def setup_table_time_of_days(self):
+        if self.table_time_of_days:
+            self.table_time_of_days.deleteLater()
+        self.table_time_of_days = QTableWidget()
+        self.layout.addWidget(self.table_time_of_days, 0, 0, 1, 3)
         time_of_days = sorted(self.actor_plan_period.time_of_days, key=lambda x: x.time_of_day_enum.time_index)
         time_of_day_standards = self.actor_plan_period.time_of_day_standards
         header_labels = ['id', 'Name', 'Zeitspanne', 'Enum', 'Standard']
@@ -394,7 +403,8 @@ class TimeOfDays(QDialog):
         project = db_services.Project.get(self.actor_plan_period.project.id)
         dlg = frm_time_of_day.FrmTimeOfDay(self, None, project, True)
 
-        dlg.exec()
+        if dlg.exec():
+            ...
 
     def edit_time_of_day(self):
         curr_row = self.table_time_of_days.currentRow()
@@ -406,6 +416,37 @@ class TimeOfDays(QDialog):
         project = db_services.Project.get(self.actor_plan_period.project.id)
         dlg = frm_time_of_day.FrmTimeOfDay(self, curr_t_o_d, project, only_new_time_of_day_cause_parent_model, standard)
 
-        dlg.exec()
+        if dlg.exec():
+            ...
+
+    def reset_time_of_days(self):
+        project = db_services.Project.get(self.actor_plan_period.project.id)
+        for t_o_d in self.actor_plan_period.time_of_days:
+            '''Alle nicht nur zur Location gehörigen TimeOfDays werden mit dem Controller gelöscht.
+            Diese werden dann mit Bestätigen des vorherigen Dialogs entgültig gelöscht.'''
+            if not db_services.TimeOfDay.get(t_o_d.id).project_defaults:
+                '''Das funktioniert, weil der Eintrag nicht wirklich gelöscht wird, 
+                sondern nur das Attribut "prep_delete" gesetzt wird.'''
+                self.controller.execute(time_of_day_commands.Delete(t_o_d.id))
+        for t_o_d in self.actor_plan_period.time_of_day_standards:
+            self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                       t_o_d.id))
+        self.actor_plan_period.time_of_days.clear()  # notendig?
+        for t_o_d in [t for t in project.time_of_days if not t.prep_delete]:
+            self.actor_plan_period.time_of_days.append(t_o_d)
+            if t_o_d.project_standard:
+                self.controller.execute(actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                        t_o_d.id))
+
+        self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+
+        QMessageBox.information(self, 'Tageszeiten reset',
+                                f'Die Tageszeiten wurden zurückgesetzt:\n'
+                                f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.actor_plan_period.time_of_days]}')
+        self.setup_table_time_of_days()
+
+    def delete_time_of_day(self):
+        ...
 
 

@@ -136,7 +136,7 @@ class SettingsProject(QDialog):
 
         controller = command_base_classes.ContrExecUndoRedo()
 
-        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = frm_time_of_day.set_params_for__frm_time_of_day(self, self.project, None)
+        only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = frm_time_of_day.set_params_for__frm_time_of_day(self.project, self.cb_time_of_days.currentData().id, None)
 
         dlg = frm_time_of_day.FrmTimeOfDay(self, self.cb_time_of_days.currentData(), self.project, only_new_time_of_day, standard)
 

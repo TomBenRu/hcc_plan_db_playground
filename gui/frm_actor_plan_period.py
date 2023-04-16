@@ -235,7 +235,7 @@ class FrmActorPlanPeriod(QWidget):
         self.get_avail_days()
 
     def set_instance_variables(self):
-        self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.person.time_of_day_standards
+        self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
                                        if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
         self.t_o_d_enums = [t_o_d.time_of_day_enum for t_o_d in self.t_o_d_standards]
         self.actor_plan_period_time_of_days = sorted(

@@ -205,17 +205,17 @@ class FrmTimeOfDayEnum(QDialog):
             self.bt_delete.setEnabled(True)
 
 
-def set_params_for__frm_time_of_day(parent, pydantic_model: schemas.ModelWithTimeOfDays,
+def set_params_for__frm_time_of_day(pydantic_model: schemas.ModelWithTimeOfDays, curr_time_of_day_id: UUID | None,
                                     field__time_of_days__parent_model: Literal['project_defaults',
                                     'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
                                     'location_plan_periods_defaults'] | None):
     only_new_time_of_day = False
     only_new_time_of_day_cause_parent_model = False
 
-    if not (curr_data := parent.cb_time_of_days.currentData()):
+    if not curr_time_of_day_id:
         only_new_time_of_day = True
     else:
-        time_of_day_show_in_project = db_services.TimeOfDay.get(curr_data.id)
+        time_of_day_show_in_project = db_services.TimeOfDay.get(curr_time_of_day_id)
 
         '''Falls die Tageszeit dem parent model zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
         Referenz zu aktuellen model gespeichert werden.'''
@@ -223,101 +223,11 @@ def set_params_for__frm_time_of_day(parent, pydantic_model: schemas.ModelWithTim
             if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model):
                 only_new_time_of_day_cause_parent_model = True
                 only_new_time_of_day = True
-    if t_o_d := parent.cb_time_of_days.currentData():
+    if curr_time_of_day_id:
         '''Wenn sich die aktuelle Tagesz. in den Standards des aktuellen Modells befindet, wird "standard" auf True
         gesetzt und dem Dialog mitgeteilt.'''
-        standard = t_o_d.id in [t.id for t in pydantic_model.time_of_day_standards]
+        standard = curr_time_of_day_id in [t.id for t in pydantic_model.time_of_day_standards]
     else:
         standard = False
 
     return only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard
-
-
-def edit_time_of_days(parent: ManipulateTimeOfDays, pydantic_model: schemas.ModelWithTimeOfDays,
-                      project: schemas.ProjectShow, field__time_of_days__parent_model: Literal['project_defaults',
-                      'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
-                      'location_plan_periods_defaults'] | None):
-
-    only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard = set_params_for__frm_time_of_day(parent, pydantic_model, field__time_of_days__parent_model)
-
-    dlg = FrmTimeOfDay(parent, parent.cb_time_of_days.currentData(), project, only_new_time_of_day=only_new_time_of_day,
-                       standard=standard)
-    if not dlg.exec():  # Wenn der Dialog nicht mit OK bestätigt wird...
-        return
-
-    if dlg.chk_new_mode.isChecked():
-        if only_new_time_of_day_cause_parent_model:
-            '''Die aktuell gewählte Tageszeit ist dem parent-model zugeordnet
-               und wird daher aus time_of_days entfernt.'''
-            pydantic_model.time_of_days.remove(parent.cb_time_of_days.currentData())
-        if dlg.new_time_of_day.name in [t.name for t in pydantic_model.time_of_days if not t.prep_delete]:
-            '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-            QMessageBox.critical(dlg, 'Fehler',
-                                 f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            if only_new_time_of_day_cause_parent_model:
-                pydantic_model.time_of_days.append(parent.cb_time_of_days.currentData())
-                parent.fill_time_of_days()
-        else:
-            t_o_d_created = db_services.TimeOfDay.create(dlg.new_time_of_day, parent.project_id)
-            dlg.time_of_day_standard_id = t_o_d_created.id  # wird zum späteren Setzen o. Löschen gesetzt.
-            parent.new_time_of_days_to_delete.append(t_o_d_created)
-            '''Neue TimeOfDay wurde erstellt, aber noch nicht der aktuellen model zugeordnet.'''
-            pydantic_model.time_of_days.append(t_o_d_created)
-            QMessageBox.information(parent, 'Tageszeit',
-                                    f'Die Tageszeit wurde erstellt, wird aber erst mit Bestätigen des vorhergehenden '
-                                    f'Dialogs übernommen:\n{t_o_d_created}')
-            parent.fill_time_of_days()
-        return dlg
-
-    else:
-        '''Tageszeit löschen...'''
-        if dlg.to_delete_status:
-            for t_o_d in pydantic_model.time_of_days:
-                if t_o_d.id == dlg.curr_time_of_day.id:
-                    parent.time_of_days_to_delete.append(t_o_d)
-                    pydantic_model.time_of_days.remove(t_o_d)
-            QMessageBox.information(parent, 'Tageszeit Löschen',
-                                    f'Die Tageszeit wird mit Bestätigen der vorhergehenden Dialogs gelöscht:\n'
-                                    f'{dlg.curr_time_of_day}')
-            parent.fill_time_of_days()
-            return dlg
-        '''Tageszeit updaten...'''
-        if dlg.curr_time_of_day.name in [t.name for t in pydantic_model.time_of_days
-                                         if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
-            QMessageBox.critical(dlg, 'Fehler',
-                                 f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-        else:
-            dlg.time_of_day_standard_id = dlg.curr_time_of_day.id  # wird zum späteren Setzen o. Löschen gesetzt.
-            for t_o_d in pydantic_model.time_of_days:
-                if t_o_d.id == dlg.curr_time_of_day.id:
-                    pydantic_model.time_of_days.remove(t_o_d)
-                    pydantic_model.time_of_days.append(dlg.curr_time_of_day)
-                    parent.time_of_days_to_update.append(dlg.curr_time_of_day)
-                    break
-            QMessageBox.information(parent, 'Tageszeit', f'Die Tageszeit wird mit Bestätigen des vorhergehenden Dialogs'
-                                                         f' geupdated:\n{dlg.curr_time_of_day.name}')
-            parent.fill_time_of_days()
-        return dlg
-
-
-def reset_time_of_days(parent: ManipulateTimeOfDays | ManipulateTimeOfDaysFurther,
-                       pydantic_model: schemas.ModelWithTimeOfDays,
-                       default_time_of_days: list[schemas.TimeOfDayShow],
-                       field__time_of_days__parent_model: Literal['project_defaults', 'persons_defaults',
-                       'actor_plan_periods_defaults', 'avail_days_defaults', 'locations_of_work_defaults',
-                       'location_plan_periods_defaults', 'events_defaults'],
-                       field__time_of_day_standards__parent_model: Literal['project_standard']):
-
-    for t_o_d in pydantic_model.time_of_days:
-        '''Alle nicht nur zur Location gehörigen TimeOfDays werden nach self.time_of_days_to_delete geschoben.
-        Diese werden dann mit Bestätigen des vorherigen Dialogs gelöscht.'''
-        if not t_o_d.__getattribute__(field__time_of_days__parent_model):
-            parent.time_of_days_to_delete.append(t_o_d)
-    pydantic_model.time_of_days.clear()
-    for t_o_d in [t for t in default_time_of_days if not t.prep_delete]:
-        pydantic_model.time_of_days.append(t_o_d)
-
-    QMessageBox.information(parent, 'Tageszeiten reset',
-                            f'Die Tageszeiten wurden zurückgesetzt:\n'
-                            f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in pydantic_model.time_of_days]}')
-    parent.fill_time_of_days()

@@ -357,9 +357,7 @@ class TimeOfDays(QDialog):
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.setCenterButtons(True)
         self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.escape)
-
-        QShortcut(QKeySequence("Esc"), self, self.escape)
+        self.button_box.rejected.connect(self.reject)
 
         self.layout.addWidget(self.bt_new, 1, 0)
         self.layout.addWidget(self.bt_edit, 1, 1)
@@ -398,14 +396,9 @@ class TimeOfDays(QDialog):
                 text_standard = 'nein'
             self.table_time_of_days.setItem(row, 4, QTableWidgetItem(text_standard))
 
-    def closeEvent(self, event):
-        self.escape()
-        super().closeEvent(event)
-
-    def escape(self):
-        print('reject')
+    def reject(self) -> None:
         self.controller.undo_all()
-        self.reject()
+        super().reject()
 
     def create_time_of_day(self):
         project = db_services.Project.get(self.actor_plan_period.project.id)

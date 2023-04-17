@@ -223,7 +223,7 @@ class SettingsProject(QDialog):
             self.fill_time_of_days()
 
     def edit_comb_loc_poss(self):
-        dlg = frm_comb_loc_possible.FrmCombLocPossibleEditList(self, self.project, None)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.project, None)
         dlg.exec()
 
     def edit_excel_export_settings(self):

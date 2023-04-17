@@ -4,11 +4,23 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QHeaderView
 
+from database import schemas
 from database.schemas import ModelWithCombLocPossible
 
 
-class FrmCombLocPossibleEditList(QDialog):
-    def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible, parent_model: ModelWithCombLocPossible | None):
+class DlgNewCombLocPossible(QDialog):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent)
+
+
+class DlgCombLocPossibleEditList(QDialog):
+    def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
+                 parent_model: ModelWithCombLocPossible | None, teams: schemas.Team | list[schemas.Team]):
+        """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt und
+        dem Prameter teams alle Teams des Projektes Übergeben.
+
+        In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
+        die Combinations erbt. Dem Parameter Teams wird das Team übergeben, welchem das curr_model angehört."""
         super().__init__(parent)
 
         self.setWindowTitle('Einrichtungskombinationen')
@@ -22,6 +34,19 @@ class FrmCombLocPossibleEditList(QDialog):
         self.layout.addWidget(self.table_combinations, 0, 0, 1, 3)
 
         self.setup_table_combinations()
+
+        self.bt_create = QPushButton('Neu...', clicked=self.new)
+        self.bt_reset = QPushButton('Reset', clicked=self.reset)
+        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        self.layout.addWidget(self.bt_create, 1, 0)
+        self.layout.addWidget(self.bt_reset, 1, 1)
+        self.layout.addWidget(self.bt_delete, 1, 2)
+        self.layout.addWidget(self.button_box, 2, 0, 1, 3)
+        self.button_box.setCenterButtons(True)
 
     def setup_table_combinations(self):
         comb_loc_poss = [
@@ -40,3 +65,19 @@ class FrmCombLocPossibleEditList(QDialog):
         self.table_combinations.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
         self.table_combinations.hideColumn(0)
         self.table_combinations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+    def new(self):
+        dlg = DlgNewCombLocPossible(self)
+
+    def reset(self):
+        ...
+
+    def delete(self):
+        ...
+
+    def accept(self) -> None:
+        super().accept()
+
+    def reject(self) -> None:
+        ...
+        super().reject()

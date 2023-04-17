@@ -15,7 +15,7 @@ class DlgNewCombLocPossible(QDialog):
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model: ModelWithCombLocPossible | None, team: schemas.Team):
+                 parent_model: ModelWithCombLocPossible | None):
         """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch

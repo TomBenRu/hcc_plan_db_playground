@@ -164,9 +164,8 @@ class MainWindow(QMainWindow):
         ...
 
     def edit_comb_loc_poss(self, team: schemas.Team):
-        print(team)
         team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None)
         dlg.exec()
 
     def edit_excel_export_settings(self, team: schemas.Team):

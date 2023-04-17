@@ -15,12 +15,11 @@ class DlgNewCombLocPossible(QDialog):
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model: ModelWithCombLocPossible | None, teams: schemas.Team | list[schemas.Team]):
-        """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt und
-        dem Prameter teams alle Teams des Projektes Übergeben.
+                 parent_model: ModelWithCombLocPossible | None, teams: schemas.Team):
+        """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
-        die Combinations erbt. Dem Parameter Teams wird das Team übergeben, welchem das curr_model angehört."""
+        die Combinations erbt."""
         super().__init__(parent)
 
         self.setWindowTitle('Einrichtungskombinationen')

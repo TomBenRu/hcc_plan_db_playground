@@ -2,7 +2,7 @@ from uuid import UUID
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
-                               QGroupBox, QPushButton, QMessageBox)
+                               QGroupBox, QPushButton, QMessageBox, QMenu)
 
 from database import db_services, schemas
 from . import frm_time_of_day, frm_comb_loc_possible
@@ -51,7 +51,11 @@ class SettingsProject(QDialog):
         self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
+
         self.bt_comb_loc_poss = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_comb_loc_poss)
+        self.bt_comb_loc_poss_menu = QMenu()
+        self.bt_comb_loc_poss.setMenu(self.bt_comb_loc_poss_menu)
+
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
         self.layout_group_project_data.addWidget(self.lb_name, 0, 0)
@@ -87,6 +91,7 @@ class SettingsProject(QDialog):
         self.fill_time_of_days()
         self.fill_excel_colors()
         self.fill_time_of_day_enums()
+        self.fill_menu_bt_comb_loc_poss()
 
     def fill_teams(self):
         self.cb_teams.clear()
@@ -122,6 +127,11 @@ class SettingsProject(QDialog):
         for c_l_p in self.project.combination_locations_possibles:
             self.cb_comb_loc_poss.addItem(QIcon('resources/toolbar_icons/icons/car-red.png'),
                                           '-'.join([loc.name for loc in c_l_p.locations_of_work]), c_l_p)
+
+    def fill_menu_bt_comb_loc_poss(self):
+        for team in sorted(self.project.teams, key=lambda x: x.name):
+            self.bt_comb_loc_poss_menu.addAction(QIcon('resources/toolbar_icons/icons/users.png'), team.name,
+                                                 lambda t=team: self.edit_comb_loc_poss(t))
 
     def fill_excel_colors(self):
         if self.project.excel_export_settings:
@@ -222,8 +232,8 @@ class SettingsProject(QDialog):
             self.fill_time_of_day_enums()
             self.fill_time_of_days()
 
-    def edit_comb_loc_poss(self):
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.project, None)
+    def edit_comb_loc_poss(self, team: schemas.Team):
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.project, None, team)
         dlg.exec()
 
     def edit_excel_export_settings(self):

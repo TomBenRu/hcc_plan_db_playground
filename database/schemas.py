@@ -85,11 +85,10 @@ class ProjectShow(Project):
     time_of_days: List['TimeOfDayShow']
     time_of_day_standards: List['TimeOfDayShow']
     time_of_day_enums: List['TimeOfDayEnumShow']
-    combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
-               'combination_locations_possibles', pre=True, allow_reuse=True)
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -114,9 +113,10 @@ class Team(TeamCreate):
 class TeamShow(Team):
     persons: List[Person]
     plan_periods: List['PlanPeriodShow']
+    combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('persons', 'plan_periods', pre=True, allow_reuse=True)
+    @validator('persons', 'plan_periods', 'combination_locations_possibles', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 

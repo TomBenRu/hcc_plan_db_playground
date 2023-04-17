@@ -253,12 +253,10 @@ class FrmPersonCreate(FrmPersonData):
                                       email=self.le_email.text(), gender=Gender[self.cb_gender.currentText()],
                                       phone_nr=self.le_phone_nr.text(), username=self.le_username.text(),
                                       password=self.le_password.text(), address=address)
-        try:
-            created = db_services.Person.create(person, self.project_id)
-            QMessageBox.information(self, 'Person angelegt', f'{created}')
-            self.accept()
-        except Exception as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+        created = db_services.Person.create(person, self.project_id)
+        QMessageBox.information(self, 'Person angelegt', f'{created}')
+        self.accept()
 
 
 class FrmPersonModify(FrmPersonData):

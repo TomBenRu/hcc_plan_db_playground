@@ -56,11 +56,12 @@ class Person(db.Entity):
                 if not actor_p_p.plan_period.closed:
                     actor_p_p.delete()
         self.last_modified = datetime.utcnow()
+        if self.team_of_actor:
+            self.combination_locations_possibles.add(self.team_of_actor.combination_locations_possibles)
 
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
         self.time_of_day_standards.add(self.project.time_of_day_standards)
-        self.combination_locations_possibles.add(self.project.combination_locations_possibles)
 
 
 class Project(db.Entity):
@@ -84,7 +85,6 @@ class Project(db.Entity):
     # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
     time_of_day_enums = Set('TimeOfDayEnum')
-    combination_locations_possibles = Set('CombinationLocationsPossible')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -104,6 +104,7 @@ class Team(db.Entity):
     persons = Set(Person, reverse='team_of_actor')
     dispatcher = Optional(Person, reverse='teams_of_dispatcher')
     plan_periods = Set('PlanPeriod')
+    combination_locations_possibles = Set('CombinationLocationsPossible')
     excel_export_settings = Optional('ExcelExportSettings')
 
     composite_key(project, name)
@@ -509,7 +510,7 @@ class CombinationLocationsPossible(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     locations_of_work = Set(LocationOfWork)
-    project = Optional(Project)
+    team = Optional(Team)
     persons = Set(Person)
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)

@@ -1,3 +1,4 @@
+import functools
 import sys
 from uuid import UUID
 
@@ -6,6 +7,7 @@ from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
+from . import frm_comb_loc_possible
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
@@ -91,7 +93,8 @@ class MainWindow(QMainWindow):
         self.menu_actions = {
             '&Datei': [self.actions['new_planperiod'], None, self.actions['sheets_for_availables'], None,
                        self.actions['exit'], self.actions['settings_project']],
-            '&Klienten': [self.put_clients_to_menu, None, self.actions['master_data']],
+            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
+                          self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
@@ -157,6 +160,18 @@ class MainWindow(QMainWindow):
         dlg = SettingsProject(self, self.project_id)
         dlg.exec()
 
+    def edit_team(self, team: schemas.Team):
+        ...
+
+    def edit_comb_loc_poss(self, team: schemas.Team):
+        print(team)
+        team = db_services.Team.get(team.id)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team)
+        dlg.exec()
+
+    def edit_excel_export_settings(self, team: schemas.Team):
+        ...
+
     def open_actor_planperiod_location_planperiod(self):
         ...
 
@@ -176,10 +191,23 @@ class MainWindow(QMainWindow):
         try:
             teams = db_services.Team.get_all_from__project(self.project_id)
         except Exception as e:
-            QMessageBox.critical(self, 'Teams', f'Fehler: {e}')
+            QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
         return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.',
                             lambda event=1, t=team: self.goto_team(t)) for team in teams)
+
+    def put_teams_to__teams_edit_menu(self) -> dict[str, list[Action]] | None:
+        try:
+            teams = db_services.Team.get_all_from__project(self.project_id)
+        except Exception as e:
+            QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
+            return
+        return {team.name: [Action(self, None, 'Einrichtunskombis...',
+                                   'Mögliche Kombinationen von Einrichtungen bearbeiten.',
+                                   functools.partial(self.edit_comb_loc_poss, team)),
+                            Action(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
+                                   functools.partial(self.edit_excel_export_settings, team))]
+                for team in teams}
 
     def goto_team(self, team: schemas.TeamShow):
         for plan_period in team.plan_periods:

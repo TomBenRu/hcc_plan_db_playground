@@ -39,8 +39,6 @@ class SettingsProject(QDialog):
         self.cb_time_of_days = QComboBox()
         self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
         self.cb_time_of_day_enums = QComboBox()
-        self.lb_comb_loc_poss = QLabel('mögl. Einr.-Kombis')
-        self.cb_comb_loc_poss = QComboBox()
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
@@ -51,10 +49,6 @@ class SettingsProject(QDialog):
         self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
-
-        self.bt_comb_loc_poss = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_comb_loc_poss)
-        self.bt_comb_loc_poss_menu = QMenu()
-        self.bt_comb_loc_poss.setMenu(self.bt_comb_loc_poss_menu)
 
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
@@ -73,12 +67,9 @@ class SettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.lb_time_of_day_enums, 4, 0)
         self.layout_group_project_data.addWidget(self.cb_time_of_day_enums, 4, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day_enums, 4, 2)
-        self.layout_group_project_data.addWidget(self.lb_comb_loc_poss, 5, 0)
-        self.layout_group_project_data.addWidget(self.cb_comb_loc_poss, 5, 1)
-        self.layout_group_project_data.addWidget(self.bt_comb_loc_poss, 5, 2)
-        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 6, 0)
-        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 6, 1)
-        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 6, 2)
+        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 5, 0)
+        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 5, 1)
+        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 5, 2)
         for widget in self.color_widgets:
             self.layout_excel_export_settings.addWidget(widget)
 
@@ -91,7 +82,6 @@ class SettingsProject(QDialog):
         self.fill_time_of_days()
         self.fill_excel_colors()
         self.fill_time_of_day_enums()
-        self.fill_menu_bt_comb_loc_poss()
 
     def fill_teams(self):
         self.cb_teams.clear()
@@ -121,17 +111,6 @@ class SettingsProject(QDialog):
         for t_o_d_enum in sorted(self.project.time_of_day_enums, key=lambda x: x.time_index):
             self.cb_time_of_day_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
                                               f'{t_o_d_enum.name} ({t_o_d_enum.abbreviation})', t_o_d_enum)
-
-    def fill_comb_loc_poss(self):
-        self.cb_comb_loc_poss.clear()
-        for c_l_p in self.project.combination_locations_possibles:
-            self.cb_comb_loc_poss.addItem(QIcon('resources/toolbar_icons/icons/car-red.png'),
-                                          '-'.join([loc.name for loc in c_l_p.locations_of_work]), c_l_p)
-
-    def fill_menu_bt_comb_loc_poss(self):
-        for team in sorted(self.project.teams, key=lambda x: x.name):
-            self.bt_comb_loc_poss_menu.addAction(QIcon('resources/toolbar_icons/icons/users.png'), team.name,
-                                                 lambda t=team: self.edit_comb_loc_poss(t))
 
     def fill_excel_colors(self):
         if self.project.excel_export_settings:
@@ -231,10 +210,6 @@ class SettingsProject(QDialog):
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
             self.fill_time_of_days()
-
-    def edit_comb_loc_poss(self, team: schemas.Team):
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.project, None, team)
-        dlg.exec()
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

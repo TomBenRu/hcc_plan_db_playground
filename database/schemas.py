@@ -112,11 +112,13 @@ class Team(TeamCreate):
 
 class TeamShow(Team):
     persons: List[Person]
+    locations_of_work: List['LocationOfWork']
     plan_periods: List['PlanPeriodShow']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('persons', 'plan_periods', 'combination_locations_possibles', pre=True, allow_reuse=True)
+    @validator('persons', 'locations_of_work', 'plan_periods', 'combination_locations_possibles',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 

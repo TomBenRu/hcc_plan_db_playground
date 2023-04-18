@@ -266,7 +266,13 @@ Für LocationOfWork... gilt das gleiche Schema."""
     events_defaults = Set('Event', reverse='time_of_days')
 
     def before_update(self):
+        """Falls diese Instanz keine Verwendung mehr hat, wird sie zum Löschen markiert."""
         self.last_modified = datetime.utcnow()
+        empty_check = [self.persons_defaults, self.actor_plan_periods_defaults,
+                       self.avail_days_defaults, self.locations_of_work_defaults, self.location_plan_periods_defaults,
+                       self.events_defaults]
+        if all([(not self.project_defaults), all([default.is_empty() for default in empty_check])]):
+            self.prep_delete = datetime.utcnow()
 
 
 class TimeOfDayEnum(db.Entity):

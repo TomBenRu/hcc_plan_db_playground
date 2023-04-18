@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
 
     def edit_comb_loc_poss(self, team: schemas.Team):
         team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work)
         dlg.exec()
 
     def edit_excel_export_settings(self, team: schemas.Team):
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
 
     def put_clients_to_menu(self) -> tuple[Action] | None:
         try:
-            teams = db_services.Team.get_all_from__project(self.project_id)
+            teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
 
     def put_teams_to__teams_edit_menu(self) -> dict[str, list[Action]] | None:
         try:
-            teams = db_services.Team.get_all_from__project(self.project_id)
+            teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
             return

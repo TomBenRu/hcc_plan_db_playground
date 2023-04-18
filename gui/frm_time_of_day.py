@@ -12,6 +12,99 @@ from .protocol_widget_classes import ManipulateTimeOfDays, ManipulateTimeOfDaysF
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
+class DlgTimeOfDayEdit(QDialog):
+    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow | None, project: schemas.ProjectShow,
+                 standard: bool):
+        super().__init__(parent)
+
+        self.curr_time_of_day = time_of_day
+        self.new_time_of_day: schemas.TimeOfDayCreate | None = None
+        self.project = project
+        self.standard = standard
+        self.to_delete_status = False
+
+        self.layout = QFormLayout(self)
+
+        self.le_name = QLineEdit()
+        self.te_start = QTimeEdit()
+        self.te_end = QTimeEdit()
+        self.cb_time_of_day_enum = QComboBoxToFindData()
+        self.cb_time_of_day_enum.currentIndexChanged.connect(self.time_of_day_enum_changed)
+        self.chk_default = QCheckBox()
+        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
+        self.chk_new_mode.toggled.connect(self.change_new_mode)
+
+        self.bt_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.bt_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.ActionRole)
+        self.bt_box.accepted.connect(self.accept)
+        self.bt_box.rejected.connect(self.reject)
+
+        self.layout.addRow('Name', self.le_name)
+        self.layout.addRow('Zeitpunkt Start', self.te_start)
+        self.layout.addRow('Zeitpunkt Ende', self.te_end)
+        self.layout.addRow('Tagesz.-Standart', self.cb_time_of_day_enum)
+        self.layout.addRow(self.chk_default)
+        self.layout.addRow(self.chk_new_mode)
+
+        self.layout.addRow(self.bt_box)
+
+        self.autofill()
+
+    def autofill(self):
+        for t_o_d_enum in self.project.time_of_day_enums:
+            self.cb_time_of_day_enum.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+                                             f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum.id)
+        if self.curr_time_of_day:
+            self.le_name.setText(self.curr_time_of_day.name)
+            self.te_start.setTime(self.curr_time_of_day.start)
+            self.te_end.setTime(self.curr_time_of_day.end)
+            self.cb_time_of_day_enum.setCurrentIndex(
+                self.cb_time_of_day_enum.findData(self.curr_time_of_day.time_of_day_enum.id))
+            self.chk_default.setChecked(self.standard)
+        if not self.curr_time_of_day:
+            self.chk_new_mode.setChecked(True)
+            self.chk_new_mode.setDisabled(True)
+
+    def change_new_mode(self):
+        if self.chk_new_mode.isChecked():
+            self.bt_delete.setDisabled(True)
+        else:
+            self.bt_delete.setEnabled(True)
+
+    def time_of_day_enum_changed(self):
+        if t_o_d_enum := self.cb_time_of_day_enum.currentText():
+            self.chk_default.setText(f'Als Default für {t_o_d_enum} speichern?')
+
+    def accept(self):
+        name = self.le_name.text()
+        if not name:
+            QMessageBox.information(self, 'Fehler', 'Sie müsser einen Namen für diese Tageszeit angeben.')
+            return
+        if not self.cb_time_of_day_enum.currentData():
+            QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')
+            self.reject()
+        start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
+        end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
+        time_of_day_enum = db_services.TimeOfDayEnum.get(self.cb_time_of_day_enum.currentData())
+        proj_default = self.project if self.chk_default.isChecked() else None
+
+        if self.chk_new_mode.isChecked():
+            self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end,
+                                                           time_of_day_enum=time_of_day_enum)
+        else:
+            self.curr_time_of_day.name = name
+            self.curr_time_of_day.start = start
+            self.curr_time_of_day.end = end
+            self.curr_time_of_day.time_of_day_enum = time_of_day_enum
+            self.curr_time_of_day.project_standard = proj_default
+        super().accept()
+
+    def delete(self):
+        self.to_delete_status = True
+        super().accept()
+
+
 class FrmTimeOfDayEdit(QDialog):
     def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow | None, project: schemas.ProjectShow,
                  only_new_time_of_day=False, standard=False):
@@ -121,7 +214,7 @@ class FrmTimeOfDayEdit(QDialog):
         self.chk_new_mode.setDisabled(True)
 
 
-class TimeOfDaysEditList(QDialog):
+class TimeOfDaysActorPlanPeriodEditList(QDialog):
     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
 
@@ -200,19 +293,19 @@ class TimeOfDaysEditList(QDialog):
         if dlg.new_time_of_day.name in [t.name for t in self.actor_plan_period.time_of_days if not t.prep_delete]:
             '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
             QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            return
+        else:
+            create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.actor_plan_period.id)
+            self.controller.execute(create_command)
+            created_t_o_d_id = create_command.time_of_day_id
+            self.actor_plan_period.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
+            self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
 
-        create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.actor_plan_period.project.id)
-        self.controller.execute(create_command)
-        created_t_o_d_id = create_command.get_created_time_of_day_id()
-
-        if dlg.chk_default.isChecked():
-            self.controller.execute(
-                actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id, created_t_o_d_id))
-
-        self.actor_plan_period.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
-
-        self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
+            if dlg.chk_default.isChecked():
+                self.controller.execute(actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                        created_t_o_d_id))
+            else:
+                self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                           created_t_o_d_id))
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.setup_table_time_of_days()
 
@@ -234,85 +327,33 @@ class TimeOfDaysEditList(QDialog):
         if not dlg.exec():
             return
 
-        if dlg.chk_new_mode.isChecked():
-            if only_new_time_of_day_cause_parent_model:
-                '''Die aktuell gewählte Tageszeit ist dem parent-model zugeordnet 
-                und wird daher aus time_of_days entfernt.'''
-                for t_o_d in self.actor_plan_period.time_of_days:
-                    if t_o_d.id == curr_t_o_d_id:
-                        self.actor_plan_period.time_of_days.remove(t_o_d)
-                        break
-            if dlg.new_time_of_day.name in [t.name for t in self.actor_plan_period.time_of_days if not t.prep_delete]:
-                '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-                QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-                if only_new_time_of_day_cause_parent_model:  # Die zuvor entfernte Tagesz. wird wieder hinzugefügt
-                    self.actor_plan_period.time_of_days.append(curr_t_o_d)
-            else:
-                if only_new_time_of_day_cause_parent_model:
-                    '''Die aktuelle Tageszeit wurde aus times_of_days entfernt, weil sie zum Parent-Model gehöhrt.
-                     Falls sie sich auch in den Personenstandarts befindet, wird sie auch da entfernt.'''
-                    if curr_t_o_d_id in [t.id for t in self.actor_plan_period.time_of_day_standards]:
-                        self.controller.execute(
-                            actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
-                                                                               curr_t_o_d_id))
-
-                create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.actor_plan_period.project.id)
-                self.controller.execute(create_command)
-                created_t_o_d_id = create_command.time_of_day_id
-                self.actor_plan_period.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
-                self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
-
-                if dlg.chk_default.isChecked():
-                    self.controller.execute(
-                        actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id, created_t_o_d_id))
-                else:
-                    self.controller.execute(
-                        actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id, created_t_o_d_id))
-
-        else:
-            if dlg.curr_time_of_day.name in [t.name for t in self.actor_plan_period.time_of_days
-                                             if not t.prep_delete and dlg.curr_time_of_day.id != t.id]:
-                QMessageBox.critical(dlg, 'Fehler',
-                                     f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            else:
-                curr_t_o_d_id = dlg.curr_time_of_day.id
-                self.controller.execute(time_of_day_commands.Update(dlg.curr_time_of_day))
-
-                if dlg.chk_default.isChecked():
-                    self.controller.execute(
-                        actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id, curr_t_o_d_id))
-                else:
-                    self.controller.execute(
-                        actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id, curr_t_o_d_id))
-
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        self.setup_table_time_of_days()
+        self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
+                                               if not t.id == dlg.curr_time_of_day.id]
+        self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                   dlg.curr_time_of_day.id))
+        dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
+        self.create_time_of_day()
 
     def reset_time_of_days(self):
         project = db_services.Project.get(self.actor_plan_period.project.id)
-        for t_o_d in self.actor_plan_period.time_of_days:
-            '''Alle nicht nur zur ActorPlanPeriod gehörigen TimeOfDays werden mit dem Controller gelöscht.
-            Diese werden dann mit Bestätigen des vorherigen Dialogs entgültig gelöscht.'''
-            if not db_services.TimeOfDay.get(t_o_d.id).persons_defaults:
-                '''Das funktioniert, weil der Eintrag nicht wirklich gelöscht wird, 
-                sondern nur das Attribut "prep_delete" gesetzt wird.'''
-                self.controller.execute(time_of_day_commands.Delete(t_o_d.id))
+        self.actor_plan_period.time_of_days.clear()
         for t_o_d in self.actor_plan_period.time_of_day_standards:
-            self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
-                                                                                       t_o_d.id))
-        self.actor_plan_period.time_of_days.clear()  # notendig?
+            self.controller.execute(
+                actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id, t_o_d.id))
         for t_o_d in [t for t in project.time_of_days if not t.prep_delete]:
             self.actor_plan_period.time_of_days.append(t_o_d)
             if t_o_d.project_standard:
-                self.controller.execute(actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id,
-                                                                                        t_o_d.id))
+                self.controller.execute(
+                    actor_plan_period_commands.NewTimeOfDayStandard(self.actor_plan_period.id, t_o_d.id))
 
         self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
+
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
         QMessageBox.information(self, 'Tageszeiten reset',
                                 f'Die Tageszeiten wurden zurückgesetzt:\n'
                                 f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.actor_plan_period.time_of_days]}')
+
         self.setup_table_time_of_days()
 
     def delete_time_of_day(self):
@@ -320,21 +361,16 @@ class TimeOfDaysEditList(QDialog):
         if curr_row == -1:
             QMessageBox.critical(self, 'Tageszeiten', 'Sie müssen zuerst eine Tageszeit zur Bearbeitung auswählen.')
             return
+
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
+        curr_time_of_day = db_services.TimeOfDay.get(curr_t_o_d_id)
 
-        _, only_new_time_of_day_cause_parent_model, _ = set_params_for__frm_time_of_day(
-            self.actor_plan_period, curr_t_o_d_id, 'persons_defaults')
-
-        if only_new_time_of_day_cause_parent_model:
-            for t_o_d in self.actor_plan_period.time_of_days:
-                if t_o_d.id == curr_t_o_d_id:
-                    self.actor_plan_period.time_of_days.remove(t_o_d)
-                    self.controller.execute(
-                        actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id, curr_t_o_d_id))
-                    break
-            self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
-        else:
-            self.controller.execute(time_of_day_commands.Delete(curr_t_o_d_id))
+        self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
+                                               if not t.id == curr_t_o_d_id]
+        self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
+                                                                                   curr_t_o_d_id))
+        self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
+        QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{curr_time_of_day.name}')
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.setup_table_time_of_days()
 

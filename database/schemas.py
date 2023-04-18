@@ -254,7 +254,7 @@ class AvailDayShow(AvailDayCreate):
 
 
 class TimeOfDayCreate(BaseModel):
-    id: UUID | None = None
+    # id: UUID | None = None
     name: str
     time_of_day_enum: 'TimeOfDayEnum'
     project_standard: Optional[Project]

@@ -13,8 +13,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from database import schemas, db_services
 from gui import side_menu
 from gui.actions import Action
-from gui.commands import command_base_classes, avail_day_commands
-from gui.frm_time_of_day import TimeOfDaysEditList
+from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands
+from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
 
 
 class ButtonAvailDay(QPushButton):
@@ -327,7 +327,7 @@ class FrmActorPlanPeriod(QWidget):
             button.set_tooltip()
 
     def edit_time_of_days(self):
-        dlg = TimeOfDaysEditList(self, self.actor_plan_period)
+        dlg = TimeOfDaysActorPlanPeriodEditList(self, self.actor_plan_period)
         dlg.exec()
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 

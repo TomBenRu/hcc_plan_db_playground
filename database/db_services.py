@@ -338,9 +338,10 @@ class TimeOfDay:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
+        print(f'{project_id=}, {project_db=}')
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
 
-        exclude = {'time_of_day_enum', 'project_standard'} if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
+        exclude = {'time_of_day_enum', 'project_standard'}  # if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
         time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude=exclude),
                                           project=project_db, time_of_day_enum=time_of_day_enum_db)
         return schemas.TimeOfDayShow.from_orm(time_of_day_db)

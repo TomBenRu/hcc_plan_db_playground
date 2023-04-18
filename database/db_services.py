@@ -389,6 +389,30 @@ class TimeOfDay:
         time_of_day_db.prep_delete = None
         return schemas.TimeOfDay.from_orm(time_of_day_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_unused(projec_id: UUID) -> None:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
+        for t_o_d in t_o_ds_from__project:
+            empty_check = [t_o_d.persons_defaults, t_o_d.actor_plan_periods_defaults,
+                           t_o_d.avail_days_defaults, t_o_d.locations_of_work_defaults,
+                           t_o_d.location_plan_periods_defaults,
+                           t_o_d.events_defaults]
+            if all([(not t_o_d.project_defaults), all([default.is_empty() for default in empty_check])]):
+                t_o_d.prep_delete = datetime.datetime.utcnow()
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes(projec_id: UUID) -> None:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
+        for t_o_d in t_o_ds_from__project:
+            if t_o_d.prep_delete:
+                t_o_d.delete()
+
 
 class TimeOfDayEnum:
     @staticmethod
@@ -651,6 +675,17 @@ class AvailDay:
             day=avail_day.day, time_of_day=models.TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
             avail_day_group=models.AvailDayGroup.get_for_update(id=avail_day_group_db.id),
             actor_plan_period=actor_plan_period_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_time_of_days(avail_day_id: UUID, time_of_days: list[schemas.TimeOfDay]) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        time_of_days_db = [models.TimeOfDay.get_for_update(id=t.id) for t in time_of_days]
+        avail_day_db.time_of_days.clear()
+        avail_day_db.time_of_days.add(time_of_days_db)
         return schemas.AvailDayShow.from_orm(avail_day_db)
 
     @staticmethod

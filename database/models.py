@@ -224,13 +224,9 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
         return self.actor_plan_period.team
 
     def before_insert(self):
-        for c in self.actor_plan_period.combination_locations_possibles:
-            self.combination_locations_possibles.add(c)
-        for t_o_d in self.actor_plan_period.time_of_days:
-            if not t_o_d.prep_delete:
-                self.time_of_days.add(t_o_d)
-        for aplp in self.actor_plan_period.actor_partner_location_prefs:
-            self.actor_partner_location_prefs.add(aplp)
+        self.combination_locations_possibles.add(self.actor_plan_period.combination_locations_possibles)
+        self.time_of_days.add(self.actor_plan_period.time_of_days)
+        self.actor_partner_location_prefs.add(self.actor_plan_period.actor_partner_location_prefs)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -268,11 +264,6 @@ Für LocationOfWork... gilt das gleiche Schema."""
     def before_update(self):
         """Falls diese Instanz keine Verwendung mehr hat, wird sie zum Löschen markiert."""
         self.last_modified = datetime.utcnow()
-        empty_check = [self.persons_defaults, self.actor_plan_periods_defaults,
-                       self.avail_days_defaults, self.locations_of_work_defaults, self.location_plan_periods_defaults,
-                       self.events_defaults]
-        if all([(not self.project_defaults), all([default.is_empty() for default in empty_check])]):
-            self.prep_delete = datetime.utcnow()
 
 
 class TimeOfDayEnum(db.Entity):

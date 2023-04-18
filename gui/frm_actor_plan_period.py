@@ -239,6 +239,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.delete_all_buttons()
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
+        bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
+        self.side_menu.add_button(bt_reset_all_avail_t_o_ds)
 
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
@@ -330,5 +332,17 @@ class FrmActorPlanPeriod(QWidget):
         dlg = TimeOfDaysActorPlanPeriodEditList(self, self.actor_plan_period)
         dlg.exec()
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+
+    def reset_all_avail_t_o_ds(self):
+        avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+                      if not ad.prep_delete]
+        for avail_day in avail_days:
+            print([t.name for t in avail_day.time_of_days])
+            self.controller_avail_days.execute(
+                avail_day_commands.UpdateTimeOfDays(avail_day.id, self.actor_plan_period.time_of_days))
+        db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
+        db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
+
+        self.get_avail_days()
 
 

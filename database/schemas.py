@@ -245,7 +245,7 @@ class AvailDay(AvailDayCreate):
         orm_mode = True
 
 
-class AvailDayShow(AvailDayCreate):
+class AvailDayShow(AvailDay):
     id: UUID
     prep_delete: Optional[datetime]
 

@@ -294,7 +294,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
             '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
             QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
         else:
-            create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.actor_plan_period.id)
+            create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.actor_plan_period.project.id)
             self.controller.execute(create_command)
             created_t_o_d_id = create_command.time_of_day_id
             self.actor_plan_period.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))

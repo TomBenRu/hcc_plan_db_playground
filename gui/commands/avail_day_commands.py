@@ -35,3 +35,19 @@ class Delete(Command):
 
     def redo(self):
         db_services.AvailDay.delete(self.avail_day_id)
+
+
+class UpdateTimeOfDays(Command):
+    def __init__(self, avail_day_id: UUID, time_of_days: list[schemas.TimeOfDay]):
+        self.avail_day_id = avail_day_id
+        self.new_time_of_days = time_of_days
+        self.old_time_of_days = db_services.AvailDay.get(avail_day_id).time_of_days
+
+    def execute(self):
+        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.new_time_of_days)
+
+    def undo(self):
+        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.old_time_of_days)
+
+    def redo(self):
+        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.new_time_of_days)

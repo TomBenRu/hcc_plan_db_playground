@@ -1,2 +1,3 @@
 pony
 pydantic[email]
+py-events

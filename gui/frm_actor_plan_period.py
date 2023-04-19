@@ -19,7 +19,7 @@ from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
 
 class ButtonAvailDay(QPushButton):
     def __init__(self, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
-                 t_o_d_for_selection: list[schemas.TimeOfDay], slot__save_avail_day: Callable):
+                 actor_plan_period: schemas.ActorPlanPeriodShow, slot__save_avail_day: Callable):
         super().__init__()
         self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
         self.setCheckable(True)
@@ -39,19 +39,34 @@ class ButtonAvailDay(QPushButton):
             self.setStyleSheet("QPushButton {background-color: #daa4c9}"
                                "QPushButton::checked { background-color: #84033c; border: none;}")
 
+        self.actor_plan_period = actor_plan_period
         self.slot__save_avail_day = slot__save_avail_day
         self.day = day
         self.time_of_day = time_of_day
-        self.t_o_d_for_selection = t_o_d_for_selection
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        self.context_menu = QMenu()
 
         self.actions = []
         self.create_actions()
         self.set_tooltip()
 
+    def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
+        actor_plan_period_time_of_days = sorted(
+            [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
+        return [t_o_d for t_o_d in actor_plan_period_time_of_days
+                if t_o_d.time_of_day_enum == self.time_of_day.time_of_day_enum]
+
     def contextMenuEvent(self, pos):
-        context_menu = QMenu()
-        context_menu.addActions(self.actions)
-        context_menu.exec(pos.globalPos())
+        self.context_menu.addActions(self.actions)
+        self.context_menu.exec(pos.globalPos())
+
+    def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
+        self.actor_plan_period = actor_plan_period
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        for action in self.context_menu.actions():
+            self.context_menu.removeAction(action)
+        self.create_actions()
+        self.context_menu.addActions(self.actions)
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
@@ -223,7 +238,6 @@ class FrmActorPlanPeriod(QWidget):
         self.actor_plan_period = actor_plan_period
         self.t_o_d_standards: list[schemas.TimeOfDay] = []
         self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
-        self.actor_plan_period_time_of_days: list[schemas.TimeOfDay] = []
         self.days: list[datetime.date] = []
         self.set_instance_variables()
 
@@ -246,8 +260,6 @@ class FrmActorPlanPeriod(QWidget):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
                                        if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
         self.t_o_d_enums = [t_o_d.time_of_day_enum for t_o_d in self.t_o_d_standards]
-        self.actor_plan_period_time_of_days = sorted(
-            [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
         self.days = [
             self.actor_plan_period.plan_period.start + timedelta(delta) for delta in
             range((self.actor_plan_period.plan_period.end - self.actor_plan_period.plan_period.start).days + 1)]
@@ -289,9 +301,7 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(lb_weekday, row+1, col)
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
-        t_o_d_for_selection = [t_o_d for t_o_d in self.actor_plan_period_time_of_days
-                               if t_o_d.time_of_day_enum == time_of_day.time_of_day_enum]
-        button = ButtonAvailDay(day, time_of_day, 24, t_o_d_for_selection, self.save_avail_day)
+        button = ButtonAvailDay(day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
         self.layout.addWidget(button, row, col)
 
     def save_avail_day(self, bt: ButtonAvailDay):
@@ -316,7 +326,7 @@ class FrmActorPlanPeriod(QWidget):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for ad in avail_days:
-            button: ButtonAvailDay = self.findChild(QPushButton, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
+            button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
             if not button:
                 QMessageBox.critical(self, 'Fehlende Standards',
                                      f'Fehler:\n'
@@ -330,8 +340,11 @@ class FrmActorPlanPeriod(QWidget):
 
     def edit_time_of_days(self):
         dlg = TimeOfDaysActorPlanPeriodEditList(self, self.actor_plan_period)
-        dlg.exec()
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        if dlg.exec():
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)
+            for bt in buttons_avail_day:
+                bt.reset_context_menu(self.actor_plan_period)
 
     def reset_all_avail_t_o_ds(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)

@@ -397,9 +397,8 @@ class TimeOfDay:
         t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
         for t_o_d in t_o_ds_from__project:
             empty_check = [t_o_d.persons_defaults, t_o_d.actor_plan_periods_defaults,
-                           t_o_d.avail_days_defaults, t_o_d.locations_of_work_defaults,
-                           t_o_d.location_plan_periods_defaults,
-                           t_o_d.events_defaults]
+                           t_o_d.avail_days_defaults, t_o_d.avail_days, t_o_d.locations_of_work_defaults,
+                           t_o_d.location_plan_periods_defaults, t_o_d.events_defaults, t_o_d.events]
             if all([(not t_o_d.project_defaults), all([default.is_empty() for default in empty_check])]):
                 t_o_d.prep_delete = datetime.datetime.utcnow()
 

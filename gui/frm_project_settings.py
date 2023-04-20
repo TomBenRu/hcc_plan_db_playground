@@ -153,7 +153,7 @@ class SettingsProject(QDialog):
         controller = command_base_classes.ContrExecUndoRedo()
 
         curr_time_of_day = self.cb_time_of_days.currentData()
-        standard = curr_time_of_day.id in [t.id for t in self.project.time_of_day_standards]
+        standard = curr_time_of_day.id in [t.id for t in self.project.time_of_day_standards] if curr_time_of_day else None
 
         dlg = frm_time_of_day.DlgTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, standard)
 

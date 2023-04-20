@@ -1,5 +1,6 @@
 from datetime import date
 from datetime import datetime, time
+from typing import runtime_checkable, Protocol
 from uuid import UUID
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
 
@@ -10,6 +11,12 @@ db = Database()
 
 class CustomError(Exception):
     pass
+
+
+@runtime_checkable
+class ModelWithCombLocPossible(Protocol):
+    id: UUID
+    combination_locations_possibles: Set('CombinationLocationsPossible')
 
 
 class Person(db.Entity):
@@ -85,6 +92,7 @@ class Project(db.Entity):
     # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
     time_of_day_enums = Set('TimeOfDayEnum')
+    combination_locations_possibles = Set('CombinationLocationsPossible')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -503,6 +511,7 @@ class CombinationLocationsPossible(db.Entity):
     Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person,
     eine neue Instanz von AvailDay übernimmt die Combinations von ActorPlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
+    project = Required(Project)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)

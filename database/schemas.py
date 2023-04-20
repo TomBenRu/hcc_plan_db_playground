@@ -17,6 +17,7 @@ class ModelWithTimeOfDays(Protocol):
 @runtime_checkable
 class ModelWithCombLocPossible(Protocol):
     id: UUID
+    project: 'Project'
     combination_locations_possibles: list['CombinationLocationsPossible']
 
 
@@ -517,11 +518,13 @@ class FlagShow(Flag):
 
 
 class CombinationLocationsPossibleCreate(BaseModel):
+    project: Project
     locations_of_work: List[LocationOfWork]
 
 
 class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     @validator('locations_of_work', pre=True, allow_reuse=True)
     def set_to_set(cls, values):

@@ -54,6 +54,8 @@ class FrmTeam(QDialog):
         if not self.curr_team or self.new_mode:
             self.new_mode = True
             self.bt_excel_export_settings.setDisabled(True)
+            self.chk_new_mode.setChecked(True)
+            self.chk_new_mode.setDisabled(True)
             self.bt_delete.setDisabled(True)
             return
         self.bt_excel_export_settings.setEnabled(True)

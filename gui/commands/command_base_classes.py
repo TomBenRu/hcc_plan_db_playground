@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
-
-from database import db_services
 
 
 class Command(ABC):

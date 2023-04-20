@@ -117,6 +117,26 @@ class Team:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def put_in_comb_loc_possible(team_id: UUID, comb_loc_possible_id: UUID) -> schemas.TeamShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        team_db = models.Team.get_for_update(id=team_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        team_db.combination_locations_possibles.add(comb_loc_possible_db)
+        return schemas.TeamShow.from_orm(team_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_comb_loc_possible(team_id: UUID, comb_loc_possible_id: UUID) -> schemas.TeamShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        team_db = models.Team.get_for_update(id=team_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        team_db.combination_locations_possibles.remove(comb_loc_possible_db)
+        return schemas.TeamShow.from_orm(team_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(team_id: UUID) -> schemas.Team:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
@@ -705,3 +725,37 @@ class AvailDay:
             else:
                 break
         return deleted
+
+
+class CombinationLocationsPossible:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(comb_loc_poss: schemas.CombinationLocationsPossibleCreate) -> schemas.CombinationLocationsPossibleShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=comb_loc_poss.project.id)
+        new_comb_loc_poss = models.CombinationLocationsPossible(project=project_db)
+        for loc in comb_loc_poss.locations_of_work:
+            new_comb_loc_poss.locations_of_work.add(models.LocationOfWork.get_for_update(id=loc.id))
+
+        return schemas.CombinationLocationsPossibleShow.from_orm(new_comb_loc_poss)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
+        comb_loc_poss_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.CombinationLocationsPossibleShow.from_orm(comb_loc_poss_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
+        comb_loc_poss_db.prep_delete = None
+
+        return schemas.CombinationLocationsPossibleShow.from_orm(comb_loc_poss_db)

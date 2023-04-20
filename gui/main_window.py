@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
 from . import frm_comb_loc_possible
+from .commands import team_commands
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('0180455513C446F5804EFCA270118CEA')
+        self.project_id = UUID('EC01DB4F782B454DA32AACB0D74C2589')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -165,7 +166,8 @@ class MainWindow(QMainWindow):
 
     def edit_comb_loc_poss(self, team: schemas.Team):
         team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work, team_commands.PutInCombLocPossible)
+        dlg.disable_reset_bt()
         dlg.exec()
 
     def edit_excel_export_settings(self, team: schemas.Team):

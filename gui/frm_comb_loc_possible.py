@@ -1,13 +1,12 @@
-from typing import List
 from uuid import UUID
 
-from PySide6 import QtCore
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QHeaderView, \
-    QVBoxLayout, QGroupBox
+    QVBoxLayout, QGroupBox, QTableWidgetItem
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
+from gui.commands import command_base_classes, comb_loc_possible_commands
 
 
 class DlgNewCombLocPossible(QDialog):
@@ -16,14 +15,14 @@ class DlgNewCombLocPossible(QDialog):
         super().__init__(parent)
 
         self.locations_of_work = sorted([loc for loc in locations_of_work if not loc.prep_delete], key=lambda x: x.name)
-        self.comb_locations: list[schemas.LocationOfWork] = []
+        self.comb_location_ids: set[UUID] = set()
 
         self.layout = QVBoxLayout(self)
         self.group_checks = QGroupBox('Einrichtungen')
         self.layout.addWidget(self.group_checks)
         self.layout_group_checks = QVBoxLayout(self.group_checks)
 
-        self.chks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(l_o_w.name) 
+        self.chks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(l_o_w.name)
                                                         for l_o_w in self.locations_of_work}
         for chk in self.chks_loc_of_work.values():
             self.layout_group_checks.addWidget(chk)
@@ -34,14 +33,14 @@ class DlgNewCombLocPossible(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def accept(self) -> None:
-        self.comb_locations = [db_services.LocationOfWork.get(l_o_w_id)
-                               for l_o_w_id, chk in self.chks_loc_of_work.items() if chk.isChecked()]
+        self.comb_location_ids = {l_o_w_id for l_o_w_id, chk in self.chks_loc_of_work.items() if chk.isChecked()}
         super().accept()
 
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork]):
+                 parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork],
+                 command_to_put_in_combination: type(command_base_classes.Command)):
         """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
@@ -53,6 +52,9 @@ class DlgCombLocPossibleEditList(QDialog):
         self.curr_model = curr_model
         self.parent_model = parent_model
         self.locations_of_work = locations_of_work
+        self.command_to_put_in_combination = command_to_put_in_combination
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QGridLayout(self)
 
@@ -60,6 +62,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.layout.addWidget(self.table_combinations, 0, 0, 1, 3)
 
         self.setup_table_combinations()
+        self.fill_table_combinations()
 
         self.bt_create = QPushButton('Neu...', clicked=self.new)
         self.bt_reset = QPushButton('Reset', clicked=self.reset)
@@ -75,9 +78,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.button_box.setCenterButtons(True)
 
     def setup_table_combinations(self):
-        comb_loc_poss = [
-            sorted((str(c.id), ' + '.join(sorted([f'{loc.name} ({loc.address.city})' for loc in c.locations_of_work]))),
-                   key=lambda x: x[1]) for c in self.curr_model.combination_locations_possibles]
+        comb_loc_poss = [c for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
 
         header_labels = ['ID', 'Einrichtungskombination']
         self.table_combinations.setRowCount(len(comb_loc_poss))
@@ -92,11 +93,31 @@ class DlgCombLocPossibleEditList(QDialog):
         self.table_combinations.hideColumn(0)
         self.table_combinations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
+    def fill_table_combinations(self):
+        comb_loc_poss = [
+            sorted((str(c.id), ' + '.join(sorted([f'{loc.name} ({loc.address.city})' for loc in c.locations_of_work]))),
+                   key=lambda x: x[1]) for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
+        for row, c in enumerate(comb_loc_poss):
+            self.table_combinations.setItem(row, 0, QTableWidgetItem(c[0]))
+            self.table_combinations.setItem(row, 1, QTableWidgetItem(c[1]))
+
     def new(self):
+        curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
+                                for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
         dlg = DlgNewCombLocPossible(self, self.locations_of_work)
-        if dlg.exec():
-            comb_locations = dlg.comb_locations
-            print(comb_locations)
+        if not dlg.exec():
+            return
+        if len(dlg.comb_location_ids) < 2:
+            QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen mindestens 2 Einrichtungen auswählen.')
+            return
+        if dlg.comb_location_ids not in curr_model_c_l_p_ids:
+            locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
+            comb_to_create = schemas.CombinationLocationsPossibleCreate(project=self.curr_model.project,
+                                                                        locations_of_work=locations_work)
+            create_command = comb_loc_possible_commands.Create(comb_to_create)
+            self.controller.execute(create_command)
+            created_comb_loc_poss = create_command.created_comb_loc_poss
+            self.controller.execute(self.command_to_put_in_combination(self.curr_model.id, created_comb_loc_poss.id))
 
     def reset(self):
         ...
@@ -108,5 +129,8 @@ class DlgCombLocPossibleEditList(QDialog):
         super().accept()
 
     def reject(self) -> None:
-        ...
+        self.controller.undo_all()
         super().reject()
+
+    def disable_reset_bt(self):
+        self.bt_reset.setDisabled(True)

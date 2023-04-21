@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QHeaderView, \
     QVBoxLayout, QGroupBox, QTableWidgetItem
@@ -78,10 +79,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.button_box.setCenterButtons(True)
 
     def setup_table_combinations(self):
-        comb_loc_poss = [c for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
-
         header_labels = ['ID', 'Einrichtungskombination']
-        self.table_combinations.setRowCount(len(comb_loc_poss))
         self.table_combinations.setColumnCount(len(header_labels))
         self.table_combinations.setHorizontalHeaderLabels(header_labels)
         self.table_combinations.setSortingEnabled(True)
@@ -94,12 +92,18 @@ class DlgCombLocPossibleEditList(QDialog):
         self.table_combinations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def fill_table_combinations(self):
-        comb_loc_poss = [
+        while self.table_combinations.rowCount() < 0:
+            self.table_combinations.removeRow(0)
+        comb_loc_poss = sorted([
             sorted((str(c.id), ' + '.join(sorted([f'{loc.name} ({loc.address.city})' for loc in c.locations_of_work]))),
-                   key=lambda x: x[1]) for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
+                   key=lambda x: x[1]) for c in self.curr_model.combination_locations_possibles if not c.prep_delete],
+            key=lambda y: y[1])
+        self.table_combinations.setRowCount(len(comb_loc_poss))
         for row, c in enumerate(comb_loc_poss):
             self.table_combinations.setItem(row, 0, QTableWidgetItem(c[0]))
             self.table_combinations.setItem(row, 1, QTableWidgetItem(c[1]))
+
+        self.setMinimumWidth(self.table_combinations.columnWidth(1) + 40)
 
     def new(self):
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
@@ -118,12 +122,22 @@ class DlgCombLocPossibleEditList(QDialog):
             self.controller.execute(create_command)
             created_comb_loc_poss = create_command.created_comb_loc_poss
             self.controller.execute(self.command_to_put_in_combination(self.curr_model.id, created_comb_loc_poss.id))
+            self.curr_model.combination_locations_possibles.append(created_comb_loc_poss)
+
+            self.fill_table_combinations()
 
     def reset(self):
         ...
 
     def delete(self):
-        ...
+        if self.table_combinations.currentRow() == -1:
+            QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen zuerst eine Zeile auswählen.')
+            return
+        comb_id_to_delete = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
+        self.controller.execute(comb_loc_possible_commands.Delete(comb_id_to_delete))
+        self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
+                                                           if not c.id == comb_id_to_delete]
+        self.fill_table_combinations()
 
     def accept(self) -> None:
         super().accept()

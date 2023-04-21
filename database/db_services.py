@@ -256,6 +256,26 @@ class Person:
         person_db.prep_delete = datetime.datetime.utcnow()
         return schemas.Person.from_orm(person_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_comb_loc_possible(person_id: UUID, comb_loc_possible_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        person_db.combination_locations_possibles.add(comb_loc_possible_db)
+        return schemas.PersonShow.from_orm(person_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_comb_loc_possible(person_id: UUID, comb_loc_possible_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        person_db.combination_locations_possibles.remove(comb_loc_possible_db)
+        return schemas.PersonShow.from_orm(person_db)
+
 
 class LocationOfWork:
     @staticmethod

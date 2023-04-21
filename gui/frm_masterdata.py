@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessa
 
 from database import db_services, schemas
 from database.enums import Gender
-from gui import frm_time_of_day
+from gui import frm_time_of_day, frm_comb_loc_possible
 from .actions import Action
 from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands
 from .frm_fixed_cast import FrmFixedCast
@@ -283,6 +283,7 @@ class FrmPersonModify(FrmPersonData):
         self.h_box_time_of_days_combi.setContentsMargins(0, 0, 0, 0)
         self.h_box_time_of_days_combi.addWidget(self.cb_time_of_days)
         self.h_box_time_of_days_combi.addWidget(self.bt_time_of_days)
+        self.bt_comb_loc_possible = QPushButton('Einrichtungskombinationen...', clicked=self.edit_comb_loc_possible)
 
         self.group_auth_data.close()
         self.group_specific_data = QGroupBox('Spezielles')
@@ -291,7 +292,7 @@ class FrmPersonModify(FrmPersonData):
 
         self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.sp_nr_requ_assignm)
         self.group_specific_data_layout.addRow('Tageszeiten', self.widget_time_of_days_combi)
-        self.group_specific_data_layout.addRow('Einrichtungskombinationnen', QLabel('....wird noch'))
+        self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', QLabel('....wird noch'))
 
         self.layout.addWidget(self.button_box)
@@ -403,6 +404,21 @@ class FrmPersonModify(FrmPersonData):
                                 f'Die Tageszeiten wurden zurückgesetzt:\n'
                                 f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.person.time_of_days]}')
         self.fill_time_of_days()
+
+    def edit_comb_loc_possible(self):
+        if not self.person.team_of_actor:
+            QMessageBox.critical(self, 'Einrichtungskombinationen',
+                                 'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
+                                 'Es können keine Einrichtungskombinationen festgelegt werden.')
+            return
+
+        team = db_services.Team.get(self.person.team_of_actor.id)
+
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, team, team.locations_of_work,
+                                                               person_commands.PutInCombLocPossible,
+                                                               person_commands.RemoveCombLocPossible)
+        if dlg.exec():
+            self.person = db_services.Person.get(self.person.id)
 
 
 class WidgetLocationsOfWork(QWidget):

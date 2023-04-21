@@ -19,6 +19,10 @@ class ModelWithCombLocPossible(Protocol):
     id: UUID
     project: 'Project'
     combination_locations_possibles: list['CombinationLocationsPossible']
+    prep_delete: Optional[datetime]
+
+    def copy(self, deep: bool):
+        ...
 
 
 @runtime_checkable
@@ -58,8 +62,10 @@ class PersonShow(Person):
     teams_of_dispatcher: list['Team']
     time_of_day_standards: list['TimeOfDay']
     time_of_days: list['TimeOfDay']
+    combination_locations_possibles: list['CombinationLocationsPossible']
 
-    @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
+    @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 

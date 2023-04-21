@@ -41,7 +41,8 @@ class DlgNewCombLocPossible(QDialog):
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
                  parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork],
-                 command_to_put_in_combination: type(command_base_classes.Command)):
+                 command_to_put_in_combination: type(command_base_classes.Command),
+                 command_to_remove_combination: type(command_base_classes.Command)):
         """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
@@ -50,10 +51,11 @@ class DlgCombLocPossibleEditList(QDialog):
 
         self.setWindowTitle('Einrichtungskombinationen')
 
-        self.curr_model = curr_model
-        self.parent_model = parent_model
+        self.curr_model = curr_model.copy(deep=True)
+        self.parent_model = parent_model.copy(deep=True)
         self.locations_of_work = locations_of_work
         self.command_to_put_in_combination = command_to_put_in_combination
+        self.command_to_remove_combination = command_to_remove_combination
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -127,16 +129,23 @@ class DlgCombLocPossibleEditList(QDialog):
             self.fill_table_combinations()
 
     def reset(self):
-        ...
+        for c in self.curr_model.combination_locations_possibles:
+            self.controller.execute(self.command_to_remove_combination(self.curr_model.id, c.id))
+        self.curr_model.combination_locations_possibles.clear()
+        for c in [comb for comb in self.parent_model.combination_locations_possibles if not comb.prep_delete]:
+            self.controller.execute(self.command_to_put_in_combination(self.curr_model.id, c.id))
+        self.curr_model.combination_locations_possibles.extend(self.parent_model.combination_locations_possibles)
+
+        self.fill_table_combinations()
 
     def delete(self):
         if self.table_combinations.currentRow() == -1:
             QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen zuerst eine Zeile auswählen.')
             return
-        comb_id_to_delete = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
-        self.controller.execute(comb_loc_possible_commands.Delete(comb_id_to_delete))
+        comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
+        self.controller.execute(self.command_to_remove_combination(self.curr_model.id, comb_id_to_remove))
         self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
-                                                           if not c.id == comb_id_to_delete]
+                                                           if not c.id == comb_id_to_remove]
         self.fill_table_combinations()
 
     def accept(self) -> None:

@@ -662,6 +662,26 @@ class ActorPlanPeriod:
         actor_plan_period_db.time_of_day_standards.add(time_of_day_db)
         return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db), old_time_of_day_standard_id
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_comb_loc_possible(actor_plan_period_id: UUID, comb_loc_possible_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        actor_plan_period_db.combination_locations_possibles.add(comb_loc_possible_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_comb_loc_possible(actor_plan_period_id: UUID, comb_loc_possible_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        actor_plan_period_db.combination_locations_possibles.remove(comb_loc_possible_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
 
 class AvailDayGroup:
     @staticmethod

@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QMenu
 
 from database import schemas, db_services
-from gui import side_menu
+from gui import side_menu, frm_comb_loc_possible
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands
 from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
@@ -137,7 +137,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.splitter_availables = QSplitter()
         self.layout.addWidget(self.splitter_availables)
 
-        self.side_menu = side_menu.WidgetSideMenu(self, 200, 10, 'right')
+        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
 
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
@@ -255,6 +255,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_time_of_days)
         bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
         self.side_menu.add_button(bt_reset_all_avail_t_o_ds)
+        bt_comb_loc_possibles = QPushButton('Einrichtungskombinationen', clicked=self.edit_comb_loc_possibles)
+        self.side_menu.add_button(bt_comb_loc_possibles)
 
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
@@ -357,5 +359,16 @@ class FrmActorPlanPeriod(QWidget):
         db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
 
         self.get_avail_days()
+
+    def edit_comb_loc_possibles(self):
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+        locations = team.locations_of_work
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations,
+                                                               actor_plan_period_commands.PutInCombLocPossible,
+                                                               actor_plan_period_commands.RemoveCombLocPossible)
+        if dlg.exec():
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 

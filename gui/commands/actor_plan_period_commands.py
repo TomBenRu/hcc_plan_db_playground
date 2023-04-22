@@ -51,3 +51,35 @@ class RemoveTimeOfDayStandard(Command):
 
     def redo(self):
         db_services.ActorPlanPeriod.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+
+
+class PutInCombLocPossible(Command):
+    def __init__(self, actor_plan_period_id: UUID, comb_loc_poss_id: UUID):
+
+        self.actor_plan_period_id = actor_plan_period_id
+        self.comb_loc_poss_id = comb_loc_poss_id
+
+    def execute(self):
+        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+
+class RemoveCombLocPossible(Command):
+    def __init__(self, actor_plan_period_id: UUID, comb_loc_poss_id: UUID):
+
+        self.actor_plan_period_id = actor_plan_period_id
+        self.comb_loc_poss_id = comb_loc_poss_id
+
+    def execute(self):
+        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)

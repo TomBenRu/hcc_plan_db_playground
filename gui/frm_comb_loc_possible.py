@@ -52,7 +52,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.setWindowTitle('Einrichtungskombinationen')
 
         self.curr_model = curr_model.copy(deep=True)
-        self.parent_model = parent_model.copy(deep=True)
+        self.parent_model = parent_model.copy(deep=True) if parent_model else None
         self.locations_of_work = locations_of_work
         self.command_to_put_in_combination = command_to_put_in_combination
         self.command_to_remove_combination = command_to_remove_combination

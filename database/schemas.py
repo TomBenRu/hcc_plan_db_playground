@@ -177,6 +177,7 @@ class ActorPlanPeriodUpdate(BaseModel):
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     class Config:
         orm_mode = True
@@ -184,7 +185,7 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
 
 class ActorPlanPeriodShow(ActorPlanPeriod):
     id: UUID
-    person: PersonShow
+    person: Person
     time_of_days: List['TimeOfDay']
     time_of_day_standards: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']

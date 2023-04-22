@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
-from gui.commands import command_base_classes, comb_loc_possible_commands
+from gui.commands import command_base_classes, comb_loc_possible_commands, team_commands, person_commands, \
+    actor_plan_period_commands
 
 
 class DlgNewCombLocPossible(QDialog):
@@ -40,9 +41,7 @@ class DlgNewCombLocPossible(QDialog):
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork],
-                 command_to_put_in_combination: type(command_base_classes.Command),
-                 command_to_remove_combination: type(command_base_classes.Command)):
+                 parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork]):
         """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
@@ -54,8 +53,6 @@ class DlgCombLocPossibleEditList(QDialog):
         self.curr_model = curr_model.copy(deep=True)
         self.parent_model = parent_model.copy(deep=True) if parent_model else None
         self.locations_of_work = locations_of_work
-        self.command_to_put_in_combination = command_to_put_in_combination
-        self.command_to_remove_combination = command_to_remove_combination
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -123,17 +120,21 @@ class DlgCombLocPossibleEditList(QDialog):
             create_command = comb_loc_possible_commands.Create(comb_to_create)
             self.controller.execute(create_command)
             created_comb_loc_poss = create_command.created_comb_loc_poss
-            self.controller.execute(self.command_to_put_in_combination(self.curr_model.id, created_comb_loc_poss.id))
+            command_to_put_in_combination = self.factory_for_put_in_combs(self.curr_model, self.curr_model.id,
+                                                                          created_comb_loc_poss.id)
+            self.controller.execute(command_to_put_in_combination)
             self.curr_model.combination_locations_possibles.append(created_comb_loc_poss)
 
             self.fill_table_combinations()
 
     def reset(self):
         for c in self.curr_model.combination_locations_possibles:
-            self.controller.execute(self.command_to_remove_combination(self.curr_model.id, c.id))
+            remove_command = self.factory_for_remove_combs(self.curr_model, self.curr_model.id, c.id)
+            self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles.clear()
         for c in [comb for comb in self.parent_model.combination_locations_possibles if not comb.prep_delete]:
-            self.controller.execute(self.command_to_put_in_combination(self.curr_model.id, c.id))
+            put_in_command = self.factory_for_put_in_combs(self.curr_model, self.curr_model.id, c.id)
+            self.controller.execute(put_in_command)
         self.curr_model.combination_locations_possibles.extend(self.parent_model.combination_locations_possibles)
 
         self.fill_table_combinations()
@@ -143,7 +144,8 @@ class DlgCombLocPossibleEditList(QDialog):
             QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen zuerst eine Zeile auswählen.')
             return
         comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
-        self.controller.execute(self.command_to_remove_combination(self.curr_model.id, comb_id_to_remove))
+        remove_command = self.factory_for_remove_combs(self.curr_model, self.curr_model.id, comb_id_to_remove)
+        self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
                                                            if not c.id == comb_id_to_remove]
         self.fill_table_combinations()
@@ -154,6 +156,30 @@ class DlgCombLocPossibleEditList(QDialog):
     def reject(self) -> None:
         self.controller.undo_all()
         super().reject()
+
+    def factory_for_put_in_combs(self, curr_model: ModelWithCombLocPossible,
+                                 curr_model_id: UUID, comb_to_put_i_id: UUID) -> command_base_classes.Command:
+        curr_model_name = curr_model.__class__.__name__
+        curr_model_name__put_in_command = {'TeamShow': team_commands.PutInCombLocPossible,
+                                           'PersonShow': person_commands.PutInCombLocPossible,
+                                           'ActorPlanPeriodShow': actor_plan_period_commands.PutInCombLocPossible}
+
+        try:
+            return curr_model_name__put_in_command[curr_model_name](curr_model_id, comb_to_put_i_id)
+        except ValueError:
+            raise ValueError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+
+    def factory_for_remove_combs(self, curr_model: ModelWithCombLocPossible,
+                                 curr_model_id: UUID, comb_to_put_i_id: UUID) -> command_base_classes.Command:
+        curr_model_name = curr_model.__class__.__name__
+        curr_model_name__remove_command = {'TeamShow': team_commands.RemoveCombLocPossible,
+                                           'PersonShow': person_commands.RemoveCombLocPossible,
+                                           'ActorPlanPeriodShow': actor_plan_period_commands.RemoveCombLocPossible}
+        try:
+            command_to_remove = curr_model_name__remove_command[curr_model_name]
+            return command_to_remove(curr_model_id, comb_to_put_i_id)
+        except ValueError:
+            raise ValueError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
 
     def disable_reset_bt(self):
         self.bt_reset.setDisabled(True)

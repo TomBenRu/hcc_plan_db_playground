@@ -166,9 +166,7 @@ class MainWindow(QMainWindow):
 
     def edit_comb_loc_poss(self, team: schemas.Team):
         team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work,
-                                                               team_commands.PutInCombLocPossible,
-                                                               team_commands.RemoveCombLocPossible)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work)
         dlg.disable_reset_bt()
         dlg.exec()
 

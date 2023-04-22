@@ -414,9 +414,7 @@ class FrmPersonModify(FrmPersonData):
 
         team = db_services.Team.get(self.person.team_of_actor.id)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, team, team.locations_of_work,
-                                                               person_commands.PutInCombLocPossible,
-                                                               person_commands.RemoveCombLocPossible)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, team, team.locations_of_work)
         if dlg.exec():
             self.person = db_services.Person.get(self.person.id)
 

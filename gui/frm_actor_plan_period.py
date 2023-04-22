@@ -365,9 +365,7 @@ class FrmActorPlanPeriod(QWidget):
         locations = team.locations_of_work
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations,
-                                                               actor_plan_period_commands.PutInCombLocPossible,
-                                                               actor_plan_period_commands.RemoveCombLocPossible)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations)
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 

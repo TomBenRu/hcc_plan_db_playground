@@ -5,6 +5,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -195,7 +196,6 @@ class FrmTabActorPlanPeriods(QWidget):
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
-        self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
@@ -226,8 +226,7 @@ class FrmActorPlanPeriod(QWidget):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
         super().__init__()
 
-        self.layout = QGridLayout()
-        self.setLayout(self.layout)
+        self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
         self.layout.setHorizontalSpacing(2)
 
@@ -302,6 +301,15 @@ class FrmActorPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
 
+    def reset_chk_field(self):
+        for widget in self.findChildren(QWidget):
+            widget.deleteLater()
+        self.set_instance_variables()
+        self.set_headers_months()
+        self.set_chk_field()
+        self.get_avail_days()
+        QTimer.singleShot(10, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
+
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
         button = ButtonAvailDay(day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
         self.layout.addWidget(button, row, col)
@@ -347,6 +355,8 @@ class FrmActorPlanPeriod(QWidget):
             buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)
             for bt in buttons_avail_day:
                 bt.reset_context_menu(self.actor_plan_period)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.reset_chk_field()
 
     def reset_all_avail_t_o_ds(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
@@ -358,7 +368,8 @@ class FrmActorPlanPeriod(QWidget):
         db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
         db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
 
-        self.get_avail_days()
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.reset_chk_field()
 
     def edit_comb_loc_possibles(self):
         team = db_services.Team.get(self.actor_plan_period.team.id)

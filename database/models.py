@@ -228,6 +228,10 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
 
     @property
+    def project(self):
+        return self.actor_plan_period.project
+
+    @property
     def team(self):
         return self.actor_plan_period.team
 

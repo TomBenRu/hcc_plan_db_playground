@@ -766,6 +766,26 @@ class AvailDay:
                 break
         return deleted
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_comb_loc_possible(avail_day_id: UUID, comb_loc_possible_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        avail_day_db.combination_locations_possibles.add(comb_loc_possible_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_comb_loc_possible(avail_day_id: UUID, comb_loc_possible_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+        avail_day_db.combination_locations_possibles.remove(comb_loc_possible_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
 
 class CombinationLocationsPossible:
     @staticmethod

@@ -256,6 +256,7 @@ class AvailDay(AvailDayCreate):
 class AvailDayShow(AvailDay):
     id: UUID
     prep_delete: Optional[datetime]
+    project: Project
 
     class Config:
         orm_mode = True
@@ -344,8 +345,8 @@ class LocationOfWorkShow(LocationOfWork):
     team: Optional[Team]
     nr_actors: int
     fixed_cast: Optional[str]
-    time_of_days: List[TimeOfDayShow]
-    time_of_day_standards: list[TimeOfDayShow]
+    time_of_days: List[TimeOfDay]
+    time_of_day_standards: list[TimeOfDay]
 
     @validator('time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
     def set_to_list(cls, values):

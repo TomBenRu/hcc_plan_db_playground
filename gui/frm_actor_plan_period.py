@@ -1,5 +1,6 @@
 import datetime
 import functools
+import time
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -81,7 +82,6 @@ class ButtonAvailDay(QPushButton):
             self.time_of_day = new_time_of_day
         self.create_actions()
         self.set_tooltip()
-
     def create_actions(self):
         self.actions = [
             Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t == self.time_of_day else None,
@@ -94,6 +94,79 @@ class ButtonAvailDay(QPushButton):
                         f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
                         f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+
+
+class ButtonCombLocPossible(QPushButton):
+    def __init__(self, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__()
+        self.object_name = f'comb_loc_poss: {day}'
+        self.setObjectName(f'comb_loc_poss: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        self.actor_plan_period = actor_plan_period
+        self.day = day
+
+        self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%D.%M.%Y")}')
+
+        self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def check_comb_of_day__eq__comb_of_actor_pp(self):
+        avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+        avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+        if not avail_days_at_date:
+            QMessageBox(self, 'Einrichtungskombinatinen',
+                        'Es können keine Einrichtungskombinationen eingerichte werden, '
+                        'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            return
+        comb_of_idx0 = {comb.id for comb in avail_days_at_date[0].combination_locations_possibles}
+        if len(avail_days_at_date) > 1:
+            for avd in avail_days_at_date[1:]:
+                if {comb.id for comb in avd.combination_locations_possibles} != comb_of_idx0:
+                    self.reset_combs_of_day(avail_days_at_date)
+                    return True
+
+        if {comb_locs.id for comb_locs in self.actor_plan_period.combination_locations_possibles} == comb_of_idx0:
+            return True
+        else:
+            return False
+
+    def reset_combs_of_day(self, avail_days_at_date: list[schemas.AvailDayShow] | None = None):
+        if not avail_days_at_date:
+            avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+            avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+
+        for avd in avail_days_at_date:
+            for comb_avd in avd.combination_locations_possibles:
+                db_services.AvailDay.remove_comb_loc_possible(avd.id, comb_avd.id)
+            for comb_app in self.actor_plan_period.combination_locations_possibles:
+                db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_app.id)
+
+    def set_stylesheet(self):
+        if self.check_comb_of_day__eq__comb_of_actor_pp() is None:
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #fff4d6}}")
+        elif self.check_comb_of_day__eq__comb_of_actor_pp():
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #acf49f}}")
+        else:
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}")
+        'acf49f'
+
+    def mouseReleaseEvent(self, e) -> None:
+        avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+        avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+        if not avail_days_at_date:
+            QMessageBox.critical(self, 'Einrichtungskombinatinen',
+                                 'Es können keine Einrichtungskombinationen eingerichtet werden, '
+                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            return
+
+        locations = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], self.actor_plan_period,
+                                                               locations)
+        if not dlg.exec():
+            return
 
 
 class FrmTabActorPlanPeriods(QWidget):
@@ -300,6 +373,9 @@ class FrmActorPlanPeriod(QWidget):
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
+            bt_comb_loc_poss = ButtonCombLocPossible(d, 24, self.actor_plan_period)
+            self.layout.addWidget(bt_comb_loc_poss, row+2, col)
+
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -307,8 +383,8 @@ class FrmActorPlanPeriod(QWidget):
         self.set_instance_variables()
         self.set_headers_months()
         self.set_chk_field()
-        self.get_avail_days()
-        QTimer.singleShot(10, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
+        QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
+        QTimer.singleShot(50, lambda:  self.get_avail_days())
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
         button = ButtonAvailDay(day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)

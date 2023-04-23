@@ -104,114 +104,14 @@ class DlgTimeOfDayEdit(QDialog):
         self.to_delete_status = True
         super().accept()
 
-
-class FrmTimeOfDayEdit(QDialog):
-    def __init__(self, parent: QWidget, time_of_day: schemas.TimeOfDayShow | None, project: schemas.ProjectShow,
-                 only_new_time_of_day=False, standard=False):
-        super().__init__(parent)
-        self.setWindowTitle('Tageszeit')
-
-        self.only_new_time_of_day = only_new_time_of_day
-
-        self.project = project
-        self.standard = standard
-        self.curr_time_of_day = time_of_day.copy() if time_of_day else None
-        self.new_time_of_day: schemas.TimeOfDayCreate | None = None
-        self.time_of_day_standard_id: UUID | None = None
-        self.to_delete_status = False
-        self.new_mode = False
-
-        self.layout = QFormLayout(self)
-
-        self.le_name = QLineEdit()
-        self.te_start = QTimeEdit()
-        self.te_end = QTimeEdit()
-        self.cb_time_of_day_enum = QComboBoxToFindData()
-        self.cb_time_of_day_enum.currentIndexChanged.connect(self.time_of_day_enum_changed)
-        self.chk_default = QCheckBox()
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
-        self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
-        self.chk_new_mode.toggled.connect(self.change_new_mode)
-
-        self.bt_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.bt_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.ActionRole)
-        self.bt_box.accepted.connect(self.save_time_of_day)
-        self.bt_box.rejected.connect(self.reject)
-
-        self.layout.addRow('Name', self.le_name)
-        self.layout.addRow('Zeitpunkt Start', self.te_start)
-        self.layout.addRow('Zeitpunkt Ende', self.te_end)
-        self.layout.addRow('Tagesz.-Standart', self.cb_time_of_day_enum)
-        self.layout.addRow(self.chk_default)
-        self.layout.addRow(self.chk_new_mode)
-
-        self.layout.addRow(self.bt_box)
-
-        self.autofill()
-
-    def autofill(self):
-        for t_o_d_enum in self.project.time_of_day_enums:
-            self.cb_time_of_day_enum.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
-                                             f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum.id)
-        if self.curr_time_of_day:
-            self.le_name.setText(self.curr_time_of_day.name)
-            self.te_start.setTime(self.curr_time_of_day.start)
-            self.te_end.setTime(self.curr_time_of_day.end)
-            self.cb_time_of_day_enum.setCurrentIndex(
-                self.cb_time_of_day_enum.findData(self.curr_time_of_day.time_of_day_enum.id))
-            self.chk_default.setChecked(self.standard)
-        if not self.curr_time_of_day or self.new_mode or self.only_new_time_of_day:
-            self.new_mode = True
-            self.chk_new_mode.setChecked(True)
-            if not self.new_time_of_day or self.only_new_time_of_day:
-                self.chk_new_mode.setDisabled(True)
-
-    def change_new_mode(self):
-        if self.chk_new_mode.isChecked():
-            self.bt_delete.setDisabled(True)
-        else:
-            self.bt_delete.setEnabled(True)
-
-    def time_of_day_enum_changed(self):
-        if t_o_d_enum := self.cb_time_of_day_enum.currentText():
-            self.chk_default.setText(f'Als Default für {t_o_d_enum} speichern?')
-
-    def save_time_of_day(self):
-        name = self.le_name.text()
-        if not name:
-            QMessageBox.information(self, 'Fehler', 'Sie müsser einen Namen für diese Tageszeit angeben.')
-            return
-        if not self.cb_time_of_day_enum.currentData():
-            QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')
-            self.reject()
-        start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
-        end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
-        time_of_day_enum = db_services.TimeOfDayEnum.get(self.cb_time_of_day_enum.currentData())
-        proj_default = self.project if self.chk_default.isChecked() else None
-
-        if self.chk_new_mode.isChecked():
-            self.new_time_of_day = schemas.TimeOfDayCreate(name=name, start=start, end=end,
-                                                           time_of_day_enum=time_of_day_enum)
-        else:
-            self.curr_time_of_day.name = name
-            self.curr_time_of_day.start = start
-            self.curr_time_of_day.end = end
-            self.curr_time_of_day.time_of_day_enum = time_of_day_enum
-            self.curr_time_of_day.project_standard = proj_default
-        self.accept()
-
-    def delete(self):
-        self.to_delete_status = True
-        self.accept()
-
-    def set_delete_disabled(self):
-        self.bt_delete.setDisabled(True)
-
     def set_new_mode(self, enabled: bool):
         self.chk_new_mode.setChecked(enabled)
 
     def set_new_mode_disabled(self):
         self.chk_new_mode.setDisabled(True)
+
+    def set_delete_disabled(self):
+        self.bt_delete.setDisabled(True)
 
 
 class TimeOfDaysActorPlanPeriodEditList(QDialog):
@@ -222,7 +122,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
         self.setWindowTitle(f'Tageszeiten des Planungszeitraums, '
                             f'{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
 
-        self.actor_plan_period = actor_plan_period
+        self.actor_plan_period = actor_plan_period.copy(deep=True)
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -281,14 +181,16 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
         self.controller.undo_all()
         super().reject()
 
-    def create_time_of_day(self):
-        project = db_services.Project.get(self.actor_plan_period.project.id)
-        dlg = FrmTimeOfDayEdit(self, None, project, True)
-        dlg.set_new_mode_disabled()
-        dlg.set_delete_disabled()
+    def create_time_of_day(self, dlg=None):
+        if not dlg:
+            project = db_services.Project.get(self.actor_plan_period.project.id)
+            dlg = DlgTimeOfDayEdit(self, None, project, False)
+            dlg.set_new_mode(True)
+            dlg.set_new_mode_disabled()
+            dlg.set_delete_disabled()
 
-        if not dlg.exec():
-            return
+            if not dlg.exec():
+                return
 
         if dlg.new_time_of_day.name in [t.name for t in self.actor_plan_period.time_of_days if not t.prep_delete]:
             '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
@@ -316,23 +218,22 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
             return
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
         curr_t_o_d = db_services.TimeOfDay.get(curr_t_o_d_id)
-        _, only_new_time_of_day_cause_parent_model, standard = set_params_for__frm_time_of_day(
-            self.actor_plan_period, curr_t_o_d_id, 'persons_defaults')
 
         project = db_services.Project.get(self.actor_plan_period.project.id)
-        dlg = FrmTimeOfDayEdit(self, curr_t_o_d, project, only_new_time_of_day_cause_parent_model, standard)
+        standard = curr_t_o_d_id in [t.id for t in self.actor_plan_period.time_of_day_standards if not t.prep_delete]
+        dlg = DlgTimeOfDayEdit(self, curr_t_o_d, project, standard)
         dlg.set_delete_disabled()
         dlg.set_new_mode_disabled()
 
         if not dlg.exec():
             return
-
+        print('accepted')
         self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
                                                if not t.id == dlg.curr_time_of_day.id]
         self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
                                                                                    dlg.curr_time_of_day.id))
         dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
-        self.create_time_of_day()
+        self.create_time_of_day(dlg=dlg)
 
     def reset_time_of_days(self):
         project = db_services.Project.get(self.actor_plan_period.project.id)

@@ -6,3 +6,8 @@ class CustomEvent(Event):
         super().__init__()
 
         self.data = data
+
+
+class ReloadActorPlanPeriod(Event):
+    def __init__(self):
+        super().__init__()

@@ -17,6 +17,7 @@ from gui import side_menu, frm_comb_loc_possible
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands
 from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
+from gui.observer import events
 
 
 class ButtonAvailDay(QPushButton):
@@ -111,6 +112,8 @@ class ButtonCombLocPossible(QPushButton):
 
         self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%D.%M.%Y")}')
 
+        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
+
         self.set_stylesheet()  # sollte beschleunigt werden!
 
     def check_comb_of_day__eq__comb_of_actor_pp(self):
@@ -167,8 +170,20 @@ class ButtonCombLocPossible(QPushButton):
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], self.actor_plan_period,
                                                                locations)
         if dlg.exec():
+            '''avail_days_at_date[0].combination_locations_possibles wurden geändert.
+            nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst'''
+            avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
             for avd in avail_days_at_date[1:]:
-                ...
+                for comb in avd.combination_locations_possibles:
+                    db_services.AvailDay.remove_comb_loc_possible(avd.id, comb.id)
+                for comb_new in avail_days_at_date[0].combination_locations_possibles:
+                    db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
+
+            self.reload_actor_plan_period()
+
+    def reload_actor_plan_period(self, event=None):
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.set_stylesheet()
 
 
 class FrmTabActorPlanPeriods(QWidget):
@@ -457,5 +472,6 @@ class FrmActorPlanPeriod(QWidget):
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations)
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            events.ReloadActorPlanPeriod().fire()
 
 

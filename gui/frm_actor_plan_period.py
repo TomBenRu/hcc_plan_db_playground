@@ -163,10 +163,12 @@ class ButtonCombLocPossible(QPushButton):
             return
 
         locations = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
+
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], self.actor_plan_period,
                                                                locations)
-        if not dlg.exec():
-            return
+        if dlg.exec():
+            for avd in avail_days_at_date[1:]:
+                ...
 
 
 class FrmTabActorPlanPeriods(QWidget):

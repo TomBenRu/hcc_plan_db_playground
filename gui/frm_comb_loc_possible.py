@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
 from gui.commands import command_base_classes, comb_loc_possible_commands, team_commands, person_commands, \
-    actor_plan_period_commands
+    actor_plan_period_commands, avail_day_commands
 
 
 class DlgNewCombLocPossible(QDialog):
@@ -162,24 +162,26 @@ class DlgCombLocPossibleEditList(QDialog):
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__put_in_command = {'TeamShow': team_commands.PutInCombLocPossible,
                                            'PersonShow': person_commands.PutInCombLocPossible,
-                                           'ActorPlanPeriodShow': actor_plan_period_commands.PutInCombLocPossible}
+                                           'ActorPlanPeriodShow': actor_plan_period_commands.PutInCombLocPossible,
+                                           'AvailDayShow': avail_day_commands.PutInCombLocPossible}
 
         try:
             return curr_model_name__put_in_command[curr_model_name](curr_model_id, comb_to_put_i_id)
-        except ValueError:
-            raise ValueError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+        except KeyError:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
 
     def factory_for_remove_combs(self, curr_model: ModelWithCombLocPossible,
                                  curr_model_id: UUID, comb_to_put_i_id: UUID) -> command_base_classes.Command:
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__remove_command = {'TeamShow': team_commands.RemoveCombLocPossible,
                                            'PersonShow': person_commands.RemoveCombLocPossible,
-                                           'ActorPlanPeriodShow': actor_plan_period_commands.RemoveCombLocPossible}
+                                           'ActorPlanPeriodShow': actor_plan_period_commands.RemoveCombLocPossible,
+                                           'AvailDayShow': avail_day_commands.RemoveCombLocPossible}
         try:
             command_to_remove = curr_model_name__remove_command[curr_model_name]
             return command_to_remove(curr_model_id, comb_to_put_i_id)
-        except ValueError:
-            raise ValueError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+        except KeyError:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
 
     def disable_reset_bt(self):
         self.bt_reset.setDisabled(True)

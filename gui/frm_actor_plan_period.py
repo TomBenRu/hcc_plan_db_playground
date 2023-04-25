@@ -117,7 +117,7 @@ class ButtonCombLocPossible(QPushButton):
         self.set_stylesheet()  # sollte beschleunigt werden!
 
     def check_comb_of_day__eq__comb_of_actor_pp(self):
-        avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+        avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
         if not avail_days_at_date:
             QMessageBox(self, 'Einrichtungskombinatinen',
@@ -136,9 +136,9 @@ class ButtonCombLocPossible(QPushButton):
         else:
             return False
 
-    def reset_combs_of_day(self, avail_days_at_date: list[schemas.AvailDayShow] | None = None):
+    def reset_combs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
         if not avail_days_at_date:
-            avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+            avail_days = self.actor_plan_period.avail_days
             avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
 
         for avd in avail_days_at_date:

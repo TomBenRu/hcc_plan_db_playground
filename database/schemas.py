@@ -188,12 +188,13 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     person: Person
     time_of_days: List['TimeOfDay']
     time_of_day_standards: List['TimeOfDay']
+    avail_days: List['AvailDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
     team: Team
     project: Project
 
-    @validator('time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
+    @validator('time_of_days', 'avail_days', 'time_of_day_standards', 'combination_locations_possibles',
                'actor_partner_location_prefs', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]

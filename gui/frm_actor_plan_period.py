@@ -436,7 +436,6 @@ class FrmActorPlanPeriod(QWidget):
                     self.controller_avail_days.execute(
                         avail_day_commands.PutInCombLocPossible(created_avail_day.id, comb_existing.id))
 
-
             '''new_avail_day = db_services.AvailDay.create(
                 schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
             # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')'''

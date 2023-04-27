@@ -21,9 +21,9 @@ from gui.observer import events
 
 
 class ButtonAvailDay(QPushButton):
-    def __init__(self, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
+    def __init__(self, parent: QWidget, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  actor_plan_period: schemas.ActorPlanPeriodShow, slot__save_avail_day: Callable):
-        super().__init__()
+        super().__init__(parent)
         self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
         self.setCheckable(True)
         self.released.connect(lambda: slot__save_avail_day(self))
@@ -98,8 +98,8 @@ class ButtonAvailDay(QPushButton):
 
 
 class ButtonCombLocPossible(QPushButton):
-    def __init__(self, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
-        super().__init__()
+    def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent)
         self.object_name = f'comb_loc_poss: {day}'
         self.setObjectName(f'comb_loc_poss: {day}')
         self.setMaximumWidth(width_height)
@@ -110,7 +110,7 @@ class ButtonCombLocPossible(QPushButton):
         self.actor_plan_period = actor_plan_period
         self.day = day
 
-        self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%D.%M.%Y")}')
+        self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%d.%m.%Y")}')
 
         events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
 
@@ -157,8 +157,8 @@ class ButtonCombLocPossible(QPushButton):
         'acf49f'
 
     def mouseReleaseEvent(self, e) -> None:
-        avail_days = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
-        avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+        avail_days_at_date = [avd for avd in self.actor_plan_period.avail_days
+                              if not avd.prep_delete and avd.day == self.day]
         if not avail_days_at_date:
             QMessageBox.critical(self, 'Einrichtungskombinatinen',
                                  'Es können keine Einrichtungskombinationen eingerichtet werden, '
@@ -286,6 +286,8 @@ class FrmTabActorPlanPeriods(QWidget):
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
+        if self.frame_availables:
+            self.frame_availables.deleteLater()
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
@@ -372,6 +374,10 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):
+        for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
+            self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
+        bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin.', clicked=self.edit_all_avail_combs)
+        self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -383,16 +389,14 @@ class FrmActorPlanPeriod(QWidget):
                                      f'Tageszeiten-Standartwerdte definiert.')
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
-                self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
                 self.create_time_of_day_button(d, time_of_day, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
-            bt_comb_loc_poss = ButtonCombLocPossible(d, 24, self.actor_plan_period)
+            bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
             self.layout.addWidget(bt_comb_loc_poss, row+2, col)
-
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -404,17 +408,31 @@ class FrmActorPlanPeriod(QWidget):
         QTimer.singleShot(50, lambda:  self.get_avail_days())
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
-        button = ButtonAvailDay(day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
+        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
         self.layout.addWidget(button, row, col)
 
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.day
         t_o_d = bt.time_of_day
         if bt.isChecked():
+            existing_avds_on_day = [avd for avd in self.actor_plan_period.avail_days
+                                    if avd.day == date and not avd.prep_delete]
             avail_day_new = schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d)
             save_command = avail_day_commands.Create(avail_day_new)
             self.controller_avail_days.execute(save_command)
+
+            '''Falls es an diesem Tage schon einen oder mehrere AvailDays gibt, 
+            werden die combination_locations_possibles vom ersten gefndenen AvailDay übernommen, weil, davon ausgegangen
+            wird, dass schon evtl. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
             created_avail_day = save_command.created_avail_day
+            if existing_avds_on_day:
+                for comb in created_avail_day.combination_locations_possibles:
+                    self.controller_avail_days.execute(
+                        avail_day_commands.RemoveCombLocPossible(created_avail_day.id, comb.id))
+                for comb_existing in existing_avds_on_day[0].combination_locations_possibles:
+                    self.controller_avail_days.execute(
+                        avail_day_commands.PutInCombLocPossible(created_avail_day.id, comb_existing.id))
+
 
             '''new_avail_day = db_services.AvailDay.create(
                 schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
@@ -455,7 +473,6 @@ class FrmActorPlanPeriod(QWidget):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for avail_day in avail_days:
-            print([t.name for t in avail_day.time_of_days])
             self.controller_avail_days.execute(
                 avail_day_commands.UpdateTimeOfDays(avail_day.id, self.actor_plan_period.time_of_days))
         db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
@@ -474,4 +491,28 @@ class FrmActorPlanPeriod(QWidget):
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             events.ReloadActorPlanPeriod().fire()
 
+    def edit_all_avail_combs(self):
+        """Bearbeiten der combination_locations_possibles aller AvailDays in dieser Planperiode."""
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
+        if not all_avail_days:
+            QMessageBox.critical(self, 'Einrichtungskombinationen',
+                                 f'In dieser Planungsperiode von '
+                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
+                                 f'gibt es noch keine Verfügbarkeiten.')
+            return
+
+        locations_of_work = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, all_avail_days[0], self.actor_plan_period,
+                                                               locations_of_work)
+        if not dlg.exec():
+            return
+        for avd in all_avail_days[1:]:
+            for comb_old in avd.combination_locations_possibles:
+                self.controller_avail_days.execute(avail_day_commands.RemoveCombLocPossible(avd.id, comb_old.id))
+            for comb in dlg.curr_model.combination_locations_possibles:
+                self.controller_avail_days.execute(avail_day_commands.PutInCombLocPossible(avd.id, comb.id))
+
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        events.ReloadActorPlanPeriod().fire()
 

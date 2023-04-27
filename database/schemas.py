@@ -241,6 +241,8 @@ class AvailDayCreate(BaseModel):
 
 class AvailDay(AvailDayCreate):
     id: UUID
+    prep_delete: Optional[datetime]
+    project: Project
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs: List['ActorPartnerLocationPref']
@@ -256,7 +258,6 @@ class AvailDay(AvailDayCreate):
 
 class AvailDayShow(AvailDay):
     id: UUID
-    prep_delete: Optional[datetime]
     project: Project
 
     class Config:

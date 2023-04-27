@@ -163,6 +163,7 @@ class DlgCombLocPossibleEditList(QDialog):
         curr_model_name__put_in_command = {'TeamShow': team_commands.PutInCombLocPossible,
                                            'PersonShow': person_commands.PutInCombLocPossible,
                                            'ActorPlanPeriodShow': actor_plan_period_commands.PutInCombLocPossible,
+                                           'AvailDay': avail_day_commands.PutInCombLocPossible,
                                            'AvailDayShow': avail_day_commands.PutInCombLocPossible}
 
         try:
@@ -176,6 +177,7 @@ class DlgCombLocPossibleEditList(QDialog):
         curr_model_name__remove_command = {'TeamShow': team_commands.RemoveCombLocPossible,
                                            'PersonShow': person_commands.RemoveCombLocPossible,
                                            'ActorPlanPeriodShow': actor_plan_period_commands.RemoveCombLocPossible,
+                                           'AvailDay': avail_day_commands.RemoveCombLocPossible,
                                            'AvailDayShow': avail_day_commands.RemoveCombLocPossible}
         try:
             command_to_remove = curr_model_name__remove_command[curr_model_name]

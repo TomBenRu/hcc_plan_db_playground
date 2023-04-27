@@ -100,7 +100,6 @@ class ButtonAvailDay(QPushButton):
 class ButtonCombLocPossible(QPushButton):
     def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
-        self.object_name = f'comb_loc_poss: {day}'
         self.setObjectName(f'comb_loc_poss: {day}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
@@ -377,6 +376,10 @@ class FrmActorPlanPeriod(QWidget):
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
         bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin.', clicked=self.edit_all_avail_combs)
+        bt_comb_loc_poss_all_avail.setStatusTip('Einrichtungskombinationen für alle Verfügbarkeiten in diesem Zeitraum '
+                                                'ändern. Später hinzugefügte Verfügbarrkeiten übernehmen davon '
+                                                'unberührt die Kombinationen des Planungszeitraums.')
+
         self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
@@ -442,6 +445,8 @@ class FrmActorPlanPeriod(QWidget):
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
             '''deleted_avail_day = db_services.AvailDay.delete(avail_day.id)'''
+        bt_comb_loc_poss: ButtonCombLocPossible = self.findChild(ButtonCombLocPossible, f'comb_loc_poss: {date}')
+        bt_comb_loc_poss.reload_actor_plan_period()
 
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)

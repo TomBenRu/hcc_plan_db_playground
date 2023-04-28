@@ -491,6 +491,7 @@ ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatis
     score = Required(float, default=1)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    prep_delete = Optional(datetime)
     person = Required(Person, reverse='actor_partner_location_prefs')
     partner = Required(Person, reverse='actor_partner_location_prefs__as_partner')
     location_of_work = Required(LocationOfWork)
@@ -544,11 +545,17 @@ class ActorLocationPref(db.Entity):
     Score 1-2 bevorzugt in dieser Einrichtung."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
+    created_at = Required(datetime, default=lambda: datetime.utcnow())
+    last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    prep_delete = Optional(datetime)
     person = Required(Person)
     location_of_work = Required(LocationOfWork)
     person_default = Optional(Person, reverse='actor_location_prefs_defaults')
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
     avail_days_defaults = Set(AvailDay)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class Plan(db.Entity):

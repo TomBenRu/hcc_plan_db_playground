@@ -26,6 +26,16 @@ class ModelWithCombLocPossible(Protocol):
 
 
 @runtime_checkable
+class ModelWithActorLocPrefs(Protocol):
+    id: UUID
+    actor_location_prefs_defaults: List['ActorLocationPref']
+
+    def copy(self, deep=bool):
+        ...
+
+
+
+@runtime_checkable
 class ModelWithFixedCast(Protocol):
     fixed_cast: Optional[str]
     team: 'Team'
@@ -50,9 +60,14 @@ class Person(PersonCreate):
     address: Optional['Address']
     notes: Optional[str]
     prep_delete: Optional[datetime]
+    actor_location_prefs_defaults: List['ActorLocationPref']
 
     class Config:
         orm_mode = True
+
+    @validator('actor_location_prefs_defaults', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [v for v in values]
 
 
 class PersonShow(Person):
@@ -65,9 +80,9 @@ class PersonShow(Person):
     combination_locations_possibles: list['CombinationLocationsPossible']
 
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
-               pre=True, allow_reuse=True)
+               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
-        return [t for t in values]
+        return [v for v in values]
 
     class Config:
         orm_mode = True
@@ -517,6 +532,7 @@ class ActorLocationPrefCreate(BaseModel):
 
 class ActorLocationPref(ActorLocationPrefCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
 
 class ActorLocationPrefShow(ActorLocationPref):

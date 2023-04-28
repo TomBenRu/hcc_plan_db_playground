@@ -509,6 +509,20 @@ class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
         orm_mode = True
 
 
+class ActorLocoationPrefCreate(BaseModel):
+    score: Optional[float]
+    person: Person
+    location_of_work: LocationOfWork
+
+
+class ActorLocoationPref(ActorLocoationPrefCreate):
+    id: UUID
+
+
+class ActorLocoationPrefShow(ActorLocoationPref):
+    ...
+
+
 class FlagCreate(BaseModel):
     category: Optional[str]
     name: str

@@ -47,6 +47,7 @@ class Person(db.Entity):
     # time_of_date_standard ohne Relation zum Projekt gespeichert.
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
     actor_partner_location_prefs__as_partner = Set('ActorPartnerLocationPref', reverse='partner')
+    actor_locoation_prefs = Set('ActorLocoationPref')
     flags = Set('Flag')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
@@ -312,6 +313,7 @@ class LocationOfWork(db.Entity):
     time_of_days = Set(TimeOfDay)
     time_of_day_standards = Set(TimeOfDay, reverse='locations_of_work_standard')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
+    actor_locoation_prefs = Set('ActorLocoationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
     composite_key(project, name)
@@ -527,6 +529,16 @@ class CombinationLocationsPossible(db.Entity):
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
+
+
+class ActorLocoationPref(db.Entity):
+    """Score 0: Person möchte keinen Einsatz in dieser Einrichtung.
+    Score 1: Gerne in dieser Einrichtung.
+    Score 1-2 bevorzugt in dieser Einrichtung."""
+    id = PrimaryKey(UUID, auto=True)
+    score = Required(float, default=1)
+    person = Required(Person)
+    location_of_work = Required(LocationOfWork)
 
 
 class Plan(db.Entity):

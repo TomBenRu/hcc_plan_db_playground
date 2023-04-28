@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
 from . import frm_comb_loc_possible
-from .commands import team_commands
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
@@ -26,7 +25,7 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('EC01DB4F782B454DA32AACB0D74C2589')
+        self.project_id = UUID('8864450DE74646F09BB354F6A965D794')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',

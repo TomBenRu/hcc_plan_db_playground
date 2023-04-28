@@ -12,6 +12,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu
 
+from line_profiler_pycharm import profile
+
 from database import schemas, db_services
 from gui import side_menu, frm_comb_loc_possible
 from gui.actions import Action
@@ -119,9 +121,6 @@ class ButtonCombLocPossible(QPushButton):
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
         if not avail_days_at_date:
-            QMessageBox(self, 'Einrichtungskombinatinen',
-                        'Es können keine Einrichtungskombinationen eingerichte werden, '
-                        'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
         comb_of_idx0 = {comb.id for comb in avail_days_at_date[0].combination_locations_possibles}
         if len(avail_days_at_date) > 1:
@@ -147,9 +146,10 @@ class ButtonCombLocPossible(QPushButton):
                 db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_app.id)
 
     def set_stylesheet(self):
-        if self.check_comb_of_day__eq__comb_of_actor_pp() is None:
+        check_comb_of_day__eq__comb_of_actor_pp = self.check_comb_of_day__eq__comb_of_actor_pp()
+        if check_comb_of_day__eq__comb_of_actor_pp is None:
             self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #fff4d6}}")
-        elif self.check_comb_of_day__eq__comb_of_actor_pp():
+        elif check_comb_of_day__eq__comb_of_actor_pp:
             self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #acf49f}}")
         else:
             self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}")

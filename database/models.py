@@ -47,7 +47,9 @@ class Person(db.Entity):
     # time_of_date_standard ohne Relation zum Projekt gespeichert.
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
     actor_partner_location_prefs__as_partner = Set('ActorPartnerLocationPref', reverse='partner')
-    actor_locoation_prefs = Set('ActorLocoationPref')
+    actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref', reverse='person_default')
+    actor_location_prefs = Set('ActorLocationPref')
+    actor_location_prefs_defaults = Set('ActorLocationPref', reverse='person_default')
     flags = Set('Flag')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
@@ -160,7 +162,8 @@ class ActorPlanPeriod(db.Entity):
     time_of_days = Set('TimeOfDay')
     requested_assignments = Required(int, size=16, default=8, unsigned=True)
     combination_locations_possibles = Set('CombinationLocationsPossible')
-    actor_partner_location_prefs = Set('ActorPartnerLocationPref')
+    actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
+    actor_location_prefs_defaults = Set('ActorLocationPref')
     avail_days = Set('AvailDay')
     time_of_day_standards = Set('TimeOfDay', reverse='actor_plan_periods_standard')
 
@@ -174,9 +177,10 @@ class ActorPlanPeriod(db.Entity):
 
     def before_insert(self):
         self.combination_locations_possibles.add(self.person.combination_locations_possibles)
-        self.actor_partner_location_prefs.add(self.person.actor_partner_location_prefs)
+        self.actor_partner_location_prefs_defaults.add(self.person.actor_partner_location_prefs_defaults)
         self.time_of_days.add(self.person.time_of_days)
         self.time_of_day_standards.add(self.person.time_of_day_standards)
+        self.actor_location_prefs_defaults.add(self.person.actor_location_prefs_defaults)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -226,7 +230,8 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # kann weg!!!!!!!!
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
-    actor_partner_location_prefs = Set('ActorPartnerLocationPref')
+    actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
+    actor_location_prefs_defaults = Set('ActorLocationPref')
 
     @property
     def project(self):
@@ -239,7 +244,8 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     def before_insert(self):
         self.combination_locations_possibles.add(self.actor_plan_period.combination_locations_possibles)
         self.time_of_days.add(self.actor_plan_period.time_of_days)
-        self.actor_partner_location_prefs.add(self.actor_plan_period.actor_partner_location_prefs)
+        self.actor_partner_location_prefs_defaults.add(self.actor_plan_period.actor_partner_location_prefs_defaults)
+        self.actor_location_prefs_defaults.add(self.actor_plan_period.actor_location_prefs_defaults)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -313,7 +319,7 @@ class LocationOfWork(db.Entity):
     time_of_days = Set(TimeOfDay)
     time_of_day_standards = Set(TimeOfDay, reverse='locations_of_work_standard')
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
-    actor_locoation_prefs = Set('ActorLocoationPref')
+    actor_location_prefs = Set('ActorLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
     composite_key(project, name)
@@ -488,8 +494,9 @@ ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatis
     person = Required(Person, reverse='actor_partner_location_prefs')
     partner = Required(Person, reverse='actor_partner_location_prefs__as_partner')
     location_of_work = Required(LocationOfWork)
-    actor_plan_periods = Set(ActorPlanPeriod)
-    avail_days = Set(AvailDay)
+    person_default = Optional(Person, reverse='actor_partner_location_prefs_defaults')
+    actor_plan_periods_defaults = Set(ActorPlanPeriod)
+    avail_days_dafaults = Set(AvailDay)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
@@ -531,7 +538,7 @@ class CombinationLocationsPossible(db.Entity):
         self.last_modified = datetime.utcnow()
 
 
-class ActorLocoationPref(db.Entity):
+class ActorLocationPref(db.Entity):
     """Score 0: Person möchte keinen Einsatz in dieser Einrichtung.
     Score 1: Gerne in dieser Einrichtung.
     Score 1-2 bevorzugt in dieser Einrichtung."""
@@ -539,6 +546,9 @@ class ActorLocoationPref(db.Entity):
     score = Required(float, default=1)
     person = Required(Person)
     location_of_work = Required(LocationOfWork)
+    person_default = Optional(Person, reverse='actor_location_prefs_defaults')
+    actor_plan_periods_defaults = Set(ActorPlanPeriod)
+    avail_days_defaults = Set(AvailDay)
 
 
 class Plan(db.Entity):

@@ -190,12 +190,12 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     time_of_day_standards: List['TimeOfDay']
     avail_days: List['AvailDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
-    actor_partner_location_prefs: List['ActorPartnerLocationPref']
+    actor_partner_location_prefs_defaults: List['ActorPartnerLocationPref']
     team: Team
     project: Project
 
     @validator('time_of_days', 'avail_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_partner_location_prefs', pre=True, allow_reuse=True)
+               'actor_partner_location_prefs_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -245,9 +245,9 @@ class AvailDay(AvailDayCreate):
     project: Project
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
-    actor_partner_location_prefs: List['ActorPartnerLocationPref']
+    actor_partner_location_prefs_defaults: List['ActorPartnerLocationPref']
 
-    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs',
+    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
                pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
@@ -509,17 +509,17 @@ class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
         orm_mode = True
 
 
-class ActorLocoationPrefCreate(BaseModel):
+class ActorLocationPrefCreate(BaseModel):
     score: Optional[float]
     person: Person
     location_of_work: LocationOfWork
 
 
-class ActorLocoationPref(ActorLocoationPrefCreate):
+class ActorLocationPref(ActorLocationPrefCreate):
     id: UUID
 
 
-class ActorLocoationPrefShow(ActorLocoationPref):
+class ActorLocationPrefShow(ActorLocationPref):
     ...
 
 

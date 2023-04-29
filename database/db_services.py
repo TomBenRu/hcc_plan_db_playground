@@ -704,6 +704,26 @@ class ActorPlanPeriod:
         actor_plan_period_db.combination_locations_possibles.remove(comb_loc_possible_db)
         return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_location_pref(actor_plan_period_id: UUID, actor_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        actor_plan_period_db.actor_location_prefs_defaults.add(location_pref_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_location_pref(actor_plan_period_id: UUID, actor_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        actor_plan_period_db.actor_location_prefs_defaults.remove(location_pref_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
 
 class AvailDayGroup:
     @staticmethod

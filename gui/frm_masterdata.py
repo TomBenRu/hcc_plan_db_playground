@@ -5,7 +5,6 @@ from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QMenu, QListWidget, QFormLayout, QHeaderView
-from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -283,7 +282,7 @@ class FrmPersonModify(FrmPersonData):
         self.h_box_time_of_days_combi.addWidget(self.cb_time_of_days)
         self.h_box_time_of_days_combi.addWidget(self.bt_time_of_days)
         self.bt_comb_loc_possible = QPushButton('Einrichtungskombinationen...', clicked=self.edit_comb_loc_possible)
-        self.bt_actor_loc_prefs = QPushButton('Einrichtungspräferenzen', clicked=self.edit_locations_prefs)
+        self.bt_actor_loc_prefs = QPushButton('Einrichtungspräferenzen', clicked=self.edit_location_prefs)
 
         self.group_auth_data.close()
         self.group_specific_data = QGroupBox('Spezielles')
@@ -419,7 +418,7 @@ class FrmPersonModify(FrmPersonData):
         if dlg.exec():
             self.person = db_services.Person.get(self.person.id)
 
-    def edit_locations_prefs(self):
+    def edit_location_prefs(self):
         if not self.person.team_of_actor:
             QMessageBox.critical(self, 'Einrichtungspräferenzen',
                                  'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'

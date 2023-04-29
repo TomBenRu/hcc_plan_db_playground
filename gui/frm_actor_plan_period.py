@@ -15,9 +15,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from gui import side_menu, frm_comb_loc_possible
+from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs
 from gui.actions import Action
-from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands
+from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
 from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
 from gui.observer import events
 
@@ -325,6 +325,7 @@ class FrmActorPlanPeriod(QWidget):
         self.setup_side_menu()
 
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
+        self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
         self.t_o_d_standards: list[schemas.TimeOfDay] = []
         self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
@@ -347,6 +348,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_reset_all_avail_t_o_ds)
         bt_comb_loc_possibles = QPushButton('Einrichtungskombinationen', clicked=self.edit_comb_loc_possibles)
         self.side_menu.add_button(bt_comb_loc_possibles)
+        bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
+        self.side_menu.add_button(bt_actor_loc_prefs)
 
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
@@ -520,3 +523,42 @@ class FrmActorPlanPeriod(QWidget):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         events.ReloadActorPlanPeriod().fire()
 
+    def edit_location_prefs(self):
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, team)
+        if not dlg.exec():
+            return
+        for loc_id, score in dlg.loc_id__results.items():
+            if loc_id in dlg.loc_id__prefs:
+                if dlg.loc_id__prefs[loc_id].score == score:
+                    continue
+                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
+                curr_loc_pref.score = score
+                if score == 1:
+                    self.controller_actor_loc_prefs.execute(
+                        actor_plan_period_commands.RemoveActorLocationPref(self.actor_plan_period.id, curr_loc_pref.id))
+                else:
+                    self.controller_actor_loc_prefs.execute(
+                        actor_plan_period_commands.RemoveActorLocationPref(self.actor_plan_period.id, curr_loc_pref.id))
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    create_command = actor_loc_pref_commands.Create(new_pref)
+                    self.controller_actor_loc_prefs.execute(create_command)
+                    created_pref_id = create_command.get_created_actor_loc_pref()
+
+                    self.controller_actor_loc_prefs.execute(
+                        actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
+            else:
+                if score == 1:
+                    continue
+                location = dlg.location_id__location[loc_id]
+                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
+                create_command = actor_loc_pref_commands.Create(new_loc_pref)
+                self.controller_actor_loc_prefs.execute(create_command)
+                created_pref_id = create_command.get_created_actor_loc_pref()
+                self.controller_actor_loc_prefs.execute(
+                    actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
+
+        self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)

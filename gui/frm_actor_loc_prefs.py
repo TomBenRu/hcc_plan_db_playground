@@ -1,7 +1,8 @@
 from functools import partial
 
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
+    QDialogButtonBox, QPushButton
 from line_profiler_pycharm import profile
 
 from database import schemas
@@ -59,6 +60,8 @@ class DlgActorLocPref(QDialog):
         self.autoload_data()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.bt_reset = QPushButton('Reset', clicked=self.reset)
+        self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
@@ -90,6 +93,13 @@ class DlgActorLocPref(QDialog):
 
     def save_pref(self, location: schemas.LocationOfWork, value):
         self.loc_id__results[location.id] = value / 2
+
+    def reset(self):
+        for slider in self.sliders.values():
+            slider.setValue(2)
+        if self.parent_model:
+            for pref in self.parent_model.actor_location_prefs_defaults:
+                self.sliders[pref.location_of_work.id].setValue(int(pref.score * 2))
 
     def show_text(self, label: QLabel, event):
         label.setText(self.val2text[event])

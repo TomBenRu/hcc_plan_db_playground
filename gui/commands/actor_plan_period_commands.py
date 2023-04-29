@@ -83,3 +83,35 @@ class RemoveCombLocPossible(Command):
 
     def redo(self):
         db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+
+
+class PutInActorLocationPref(Command):
+    def __init__(self, actor_plan_period_id: UUID, actor_loc_pref_id: UUID):
+
+        self.actor_plan_period_id = actor_plan_period_id
+        self.actor_loc_pref_id = actor_loc_pref_id
+
+    def execute(self):
+        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+
+
+class RemoveActorLocationPref(Command):
+    def __init__(self, actor_plan_period_id: UUID, actor_loc_pref_id: UUID):
+
+        self.actor_plan_period_id = actor_plan_period_id
+        self.actor_loc_pref_id = actor_loc_pref_id
+
+    def execute(self):
+        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)

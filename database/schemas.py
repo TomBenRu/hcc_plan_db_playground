@@ -538,6 +538,9 @@ class ActorLocationPref(ActorLocationPrefCreate):
 class ActorLocationPrefShow(ActorLocationPref):
     ...
 
+    class Config:
+        orm_mode = True
+
 
 class FlagCreate(BaseModel):
     category: Optional[str]

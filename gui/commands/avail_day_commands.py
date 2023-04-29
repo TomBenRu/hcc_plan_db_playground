@@ -1,4 +1,3 @@
-import datetime
 from uuid import UUID
 
 from database import db_services, schemas

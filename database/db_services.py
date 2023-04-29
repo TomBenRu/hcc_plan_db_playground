@@ -276,6 +276,26 @@ class Person:
         person_db.combination_locations_possibles.remove(comb_loc_possible_db)
         return schemas.PersonShow.from_orm(person_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_location_pref(person_id: UUID, actor_loc_pref_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        person_db.actor_location_prefs_defaults.add(location_pref_db)
+        return schemas.PersonShow.from_orm(person_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_location_pref(person_id: UUID, actor_loc_pref_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        person_db.actor_location_prefs_defaults.remove(location_pref_db)
+        return schemas.PersonShow.from_orm(person_db)
+
 
 class LocationOfWork:
     @staticmethod
@@ -819,3 +839,37 @@ class CombinationLocationsPossible:
         comb_loc_poss_db.prep_delete = None
 
         return schemas.CombinationLocationsPossibleShow.from_orm(comb_loc_poss_db)
+
+
+class ActorLocationPref:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(actor_loc_pref: schemas.ActorLocationPrefCreate) -> schemas.ActorLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+
+        person_db = models.Person.get_for_update(id=actor_loc_pref.person.id)
+        location_db = models.LocationOfWork.get_for_update(id=actor_loc_pref.location_of_work.id)
+        actor_loc_pref_db = models.ActorLocationPref(score=actor_loc_pref.score, person=person_db,
+                                                     location_of_work=location_db)
+        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        actor_loc_pref_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        actor_loc_pref_db.prep_delete = None
+
+        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)

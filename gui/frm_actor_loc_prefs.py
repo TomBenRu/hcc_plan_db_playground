@@ -13,16 +13,21 @@ class DlgActorLocPref(QDialog):
 
         self.setWindowTitle('Einrichtungspräferenzen')
 
-        self.curr_model = curr_model
+        self.curr_model = curr_model.copy(deep=True)
         self.parent_model = parent_model
         self.team = team
         self.locations_of_team = sorted([loc for loc in self.team.locations_of_work if not loc.prep_delete],
                                         key=lambda x: x.name)
         self.locations_of_team__defaults = {loc.id: 2 for loc in self.locations_of_team}
         self.loc_prefs = [p for p in self.curr_model.actor_location_prefs_defaults if not p.prep_delete]
+
         self.locations_of_prefs__score = {p.location_of_work.id: p.score for p in self.loc_prefs}
 
+        '''Die folgenden 3 Dictionaries werden zur Auswehrtung benutzt.'''
+        self.location_id__location = {loc.id: loc for loc in self.locations_of_team}
+        self.loc_id__prefs = {loc.location_of_work.id: loc for loc in self.loc_prefs}
         self.loc_id__results = self.locations_of_team__defaults | self.locations_of_prefs__score
+
         self.val2text = {0: 'nicht einsetzen', 1: 'notfalls einsetzen', 2: 'gerne einsetzen',
                          3: 'bevorzugt einsetzen', 4: 'unbedingt einsetzen'}
 
@@ -32,6 +37,11 @@ class DlgActorLocPref(QDialog):
 
         self.sliders = {}
 
+        self.setup_sliders()
+
+        self.autoload_data()
+
+    def setup_sliders(self):
         for row, loc in enumerate(self.locations_of_team):
             lb_loc = QLabel(f'{loc.name} ({loc.address.city})')
             lb_val = QLabel()
@@ -48,8 +58,6 @@ class DlgActorLocPref(QDialog):
             self.layout_data.addWidget(lb_val, row, 2)
 
             self.sliders[loc.id] = slider
-
-        self.autoload_data()
 
     def autoload_data(self):
         for slider in self.sliders.values():

@@ -10,7 +10,8 @@ from database import db_services, schemas
 from database.enums import Gender
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs
 from .actions import Action
-from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands
+from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
+    actor_loc_pref_commands
 from .frm_fixed_cast import FrmFixedCast
 from .tabbars import TabBar
 
@@ -432,7 +433,20 @@ class FrmPersonModify(FrmPersonData):
         dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, team)
         if not dlg.exec():
             return
-
+        for loc_id, score in dlg.loc_id__results.items():
+            if loc_id in dlg.loc_id__prefs and dlg.loc_id__prefs[loc_id].score != score:
+                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
+                if score == 0:
+                    self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
+                else:
+                    self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    self.controller.execute(actor_loc_pref_commands.Create(new_pref))
+            else:
+                location = dlg.location_id__location[loc_id]
+                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=self.person,
+                                                               location_of_work=location)
+                self.controller.execute(actor_loc_pref_commands.Create(new_loc_pref))
 
 class WidgetLocationsOfWork(QWidget):
     def __init__(self, project_id: UUID):

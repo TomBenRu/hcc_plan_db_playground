@@ -82,3 +82,35 @@ class RemoveCombLocPossible(Command):
 
     def redo(self):
         db_services.Person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+
+
+class PutInActorLocationPref(Command):
+    def __init__(self, person_id: UUID, actor_loc_pref_id: UUID):
+
+        self.person_id = person_id
+        self.actor_loc_pref_id = actor_loc_pref_id
+
+    def execute(self):
+        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+
+    def undo(self):
+        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
+
+    def redo(self):
+        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+
+
+class RemoveActorLocationPref(Command):
+    def __init__(self, person_id: UUID, actor_loc_pref_id: UUID):
+
+        self.person_id = person_id
+        self.actor_loc_pref_id = actor_loc_pref_id
+
+    def execute(self):
+        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
+
+    def undo(self):
+        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+
+    def redo(self):
+        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)

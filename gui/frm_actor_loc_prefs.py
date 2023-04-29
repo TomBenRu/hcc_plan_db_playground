@@ -7,6 +7,22 @@ from line_profiler_pycharm import profile
 from database import schemas
 
 
+class SliderWithPressEvent(QSlider):
+    """only works for horizontal orientation"""
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            e.accept()
+            x = e.pos().x()
+            value = (self.maximum() - self.minimum()) * x / self.width() + self.minimum()
+            value = round(value)
+            if value == self.value():
+                super().mousePressEvent(e)
+            self.setValue(value)
+        else:
+            return super().mousePressEvent(e)
+
+
 class DlgActorLocPref(QDialog):
     def __init__(self, parent: QWidget, curr_model: schemas.ModelWithActorLocPrefs,
                  parent_model: schemas.ModelWithActorLocPrefs | None, team: schemas.TeamShow):
@@ -51,7 +67,7 @@ class DlgActorLocPref(QDialog):
         for row, loc in enumerate(self.locations_of_team):
             lb_loc = QLabel(f'{loc.name} ({loc.address.city})')
             lb_val = QLabel()
-            slider = QSlider(Qt.Orientation.Horizontal)
+            slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider.setMinimum(0)
             slider.setMaximum(4)
             slider.setFixedWidth(200)
@@ -59,6 +75,7 @@ class DlgActorLocPref(QDialog):
 
             slider.valueChanged.connect(partial(self.save_pref, loc))
             slider.valueChanged.connect(partial(self.show_text, lb_val))
+
             self.layout_data.addWidget(lb_loc, row, 0)
             self.layout_data.addWidget(slider, row, 1)
             self.layout_data.addWidget(lb_val, row, 2)

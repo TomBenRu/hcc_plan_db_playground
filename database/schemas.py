@@ -57,17 +57,13 @@ class PersonCreate(BaseModel):
 
 class Person(PersonCreate):
     id: UUID
+    project: 'Project'
     address: Optional['Address']
     notes: Optional[str]
     prep_delete: Optional[datetime]
-    actor_location_prefs_defaults: List['ActorLocationPref']
 
     class Config:
         orm_mode = True
-
-    @validator('actor_location_prefs_defaults', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
-        return [v for v in values]
 
 
 class PersonShow(Person):
@@ -78,6 +74,7 @@ class PersonShow(Person):
     time_of_day_standards: list['TimeOfDay']
     time_of_days: list['TimeOfDay']
     combination_locations_possibles: list['CombinationLocationsPossible']
+    actor_location_prefs_defaults: list['ActorLocationPref']
 
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
                'actor_location_prefs_defaults', pre=True, allow_reuse=True)
@@ -532,7 +529,11 @@ class ActorLocationPrefCreate(BaseModel):
 
 class ActorLocationPref(ActorLocationPrefCreate):
     id: UUID
+    project: Project
     prep_delete: Optional[datetime]
+
+    class Config:
+        orm_mode = True
 
 
 class ActorLocationPrefShow(ActorLocationPref):

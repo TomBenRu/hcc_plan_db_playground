@@ -1,7 +1,8 @@
 from functools import partial
 
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, QDialogButtonBox
+from line_profiler_pycharm import profile
 
 from database import schemas
 
@@ -41,6 +42,11 @@ class DlgActorLocPref(QDialog):
 
         self.autoload_data()
 
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
     def setup_sliders(self):
         for row, loc in enumerate(self.locations_of_team):
             lb_loc = QLabel(f'{loc.name} ({loc.address.city})')
@@ -65,10 +71,8 @@ class DlgActorLocPref(QDialog):
         for pref in self.loc_prefs:
             self.sliders[pref.location_of_work.id].setValue(int(pref.score * 2))
 
-    def save_pref(self, location: schemas.LocationOfWork, event):
-        print(location.name, event)
-        self.loc_id__results[location.id] = event / 2
-        print(self.loc_id__results)
+    def save_pref(self, location: schemas.LocationOfWork, value):
+        self.loc_id__results[location.id] = value / 2
 
     def show_text(self, label: QLabel, event):
         label.setText(self.val2text[event])

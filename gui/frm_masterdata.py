@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QMenu, QListWidget, QFormLayout, QHeaderView
+from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -234,11 +235,8 @@ class FrmPersonData(QDialog):
         self.group_address_data_layout.addRow('Ort', self.le_city)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.save_person)
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-
-    def save_person(self):
-        ...
 
 
 class FrmPersonCreate(FrmPersonData):
@@ -247,7 +245,7 @@ class FrmPersonCreate(FrmPersonData):
 
         self.layout.addWidget(self.button_box)
 
-    def save_person(self):
+    def accept(self):
         address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
                                         city=self.le_city.text())
         person = schemas.PersonCreate(f_name=self.le_f_name.text(), l_name=self.le_l_name.text(),
@@ -257,7 +255,7 @@ class FrmPersonCreate(FrmPersonData):
 
         created = db_services.Person.create(person, self.project_id)
         QMessageBox.information(self, 'Person angelegt', f'{created}')
-        self.accept()
+        super().accept()
 
 
 class FrmPersonModify(FrmPersonData):
@@ -302,7 +300,7 @@ class FrmPersonModify(FrmPersonData):
         self.button_box.rejected.connect(self.reject)
         self.autofill()
 
-    def save_person(self):
+    def accept(self):
         self.person.f_name = self.le_f_name.text()
         self.person.l_name = self.le_l_name.text()
         self.person.email = self.le_email.text()
@@ -316,7 +314,7 @@ class FrmPersonModify(FrmPersonData):
         updated_person = db_services.Person.update(self.person)
         QMessageBox.information(self, 'Person Update',
                                 f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
-        self.accept()
+        super().accept()
 
     def reject(self):
         self.controller.undo_all()
@@ -434,19 +432,35 @@ class FrmPersonModify(FrmPersonData):
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs and dlg.loc_id__prefs[loc_id].score != score:
+            if loc_id in dlg.loc_id__prefs:
+                if dlg.loc_id__prefs[loc_id].score == score:
+                    continue
                 curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                if score == 0:
+                curr_loc_pref.score = score
+                if score == 1:
                     self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
                 else:
                     self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
                     new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
-                    self.controller.execute(actor_loc_pref_commands.Create(new_pref))
+                    create_command = actor_loc_pref_commands.Create(new_pref)
+                    self.controller.execute(create_command)
+                    created_pref_id = create_command.get_created_actor_loc_pref()
+
+                    self.controller.execute(person_commands.PutInActorLocationPref(self.person.id, created_pref_id))
             else:
+                if score == 1:
+                    continue
                 location = dlg.location_id__location[loc_id]
                 new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=self.person,
                                                                location_of_work=location)
-                self.controller.execute(actor_loc_pref_commands.Create(new_loc_pref))
+                create_command = actor_loc_pref_commands.Create(new_loc_pref)
+                self.controller.execute(create_command)
+                created_pref_id = create_command.get_created_actor_loc_pref()
+                self.controller.execute(person_commands.PutInActorLocationPref(self.person.id, created_pref_id))
+
+        self.controller.execute(actor_loc_pref_commands.DeleteUnused(self.person.project.id))
+        self.person = db_services.Person.get(self.person.id)
+
 
 class WidgetLocationsOfWork(QWidget):
     def __init__(self, project_id: UUID):

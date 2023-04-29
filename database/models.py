@@ -96,6 +96,7 @@ class Project(db.Entity):
     excel_export_settings = Optional('ExcelExportSettings')
     time_of_day_enums = Set('TimeOfDayEnum')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+    actor_location_prefs = Set('ActorLocationPref')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -548,6 +549,7 @@ class ActorLocationPref(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
+    project = Required(Project)
     person = Required(Person)
     location_of_work = Required(LocationOfWork)
     person_default = Optional(Person, reverse='actor_location_prefs_defaults')

@@ -456,6 +456,8 @@ class TimeOfDay:
                      f'args: {locals()}')
         t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
         for t_o_d in t_o_ds_from__project:
+            if t_o_d.prep_delete:
+                continue
             empty_check = [t_o_d.persons_defaults, t_o_d.actor_plan_periods_defaults,
                            t_o_d.avail_days_defaults, t_o_d.avail_days, t_o_d.locations_of_work_defaults,
                            t_o_d.location_plan_periods_defaults, t_o_d.events_defaults, t_o_d.events]
@@ -848,9 +850,10 @@ class ActorLocationPref:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
 
+        project_db = models.Project.get_for_update(id=actor_loc_pref.person.project.id)
         person_db = models.Person.get_for_update(id=actor_loc_pref.person.id)
         location_db = models.LocationOfWork.get_for_update(id=actor_loc_pref.location_of_work.id)
-        actor_loc_pref_db = models.ActorLocationPref(score=actor_loc_pref.score, person=person_db,
+        actor_loc_pref_db = models.ActorLocationPref(score=actor_loc_pref.score, project=project_db, person=person_db,
                                                      location_of_work=location_db)
         return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
 
@@ -873,3 +876,30 @@ class ActorLocationPref:
         actor_loc_pref_db.prep_delete = None
 
         return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_unused(projec_id: UUID) -> list[UUID]:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
+
+        deleted_a_l_pref_ids = []
+        for a_l_pref in a_l_prefs_form__project:
+            if a_l_pref.prep_delete:
+                continue
+            empty_check = [a_l_pref.actor_plan_periods_defaults, a_l_pref.avail_days_defaults]
+            if all([default.is_empty for default in empty_check]) and not a_l_pref.person_default:
+                a_l_pref.prep_delete = datetime.datetime.utcnow()
+                deleted_a_l_pref_ids.append(a_l_pref.id)
+        return deleted_a_l_pref_ids
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes(projec_id: UUID) -> None:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
+        for a_l_pref in a_l_prefs_form__project:
+            if a_l_pref.prep_delete:
+                a_l_pref.delete()

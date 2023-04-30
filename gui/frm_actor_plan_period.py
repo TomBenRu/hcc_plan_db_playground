@@ -212,19 +212,25 @@ class ButtonActorLocationPref(QPushButton):
         avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
         if not avail_days_at_date:
             return
-        pref_of_idx0 = [pref for pref in avail_days_at_date[0].actor_location_prefs_defaults]
+        prefs_actor_plan_period = {(pref.location_of_work.id, pref.score)
+                                   for pref in self.actor_plan_period.actor_location_prefs_defaults
+                                   if not pref.prep_delete}
+        pref_of_idx0 = {(pref.location_of_work.id, pref.score)
+                        for pref in avail_days_at_date[0].actor_location_prefs_defaults if not pref.prep_delete}
         if len(avail_days_at_date) > 1:
             for avd in avail_days_at_date[1:]:
-                if {(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults} != {
-                    (pref.location_of_work.id, pref.score) for pref in pref_of_idx0}:
-                    print({(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults})
-                    print({(pref.location_of_work.id, pref.score) for pref in pref_of_idx0})
-                    print('reset')
+                avd_prefs = {(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults
+                             if not pref.prep_delete}
+                if avd_prefs != pref_of_idx0:
                     self.reset_prefs_of_day(avail_days_at_date)
+                    QMessageBox.critical(self, 'Einrichtungspräferenzen',
+                                         f'Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die '
+                                         f'Standardwerdte des Planungszeitraums von '
+                                         f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
+                                         f'zurückgesetzt.')
                     return True
 
-        if {(pref.location_of_work.id, pref.score) for pref in self.actor_plan_period.actor_location_prefs_defaults} == {
-            (pref.location_of_work.id, pref.score) for pref in pref_of_idx0}:
+        if prefs_actor_plan_period == pref_of_idx0:
             return True
         else:
             return False
@@ -589,7 +595,6 @@ class FrmActorPlanPeriod(QWidget):
                 for loc_pref_existing in existing_avds_on_day[0].actor_location_prefs_defaults:
                     if loc_pref_existing.prep_delete:
                         continue
-                    print(loc_pref_existing.location_of_work.name, loc_pref_existing.score)
                     self.controller_avail_days.execute(
                         avail_day_commands.PutInActorLocationPref(created_avail_day.id, loc_pref_existing.id))
 

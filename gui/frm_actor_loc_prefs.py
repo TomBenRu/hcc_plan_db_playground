@@ -99,7 +99,8 @@ class DlgActorLocPref(QDialog):
             slider.setValue(2)
         if self.parent_model:
             for pref in self.parent_model.actor_location_prefs_defaults:
-                self.sliders[pref.location_of_work.id].setValue(int(pref.score * 2))
+                if not pref.prep_delete:
+                    self.sliders[pref.location_of_work.id].setValue(int(pref.score * 2))
 
     def show_text(self, label: QLabel, event):
         label.setText(self.val2text[event])

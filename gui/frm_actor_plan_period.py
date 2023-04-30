@@ -183,7 +183,7 @@ class ButtonCombLocPossible(QPushButton):
             events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
-        if event is None or event.date == self.day:
+        if event is None or event.date is None or event.date == self.day:
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             self.set_stylesheet()
 
@@ -302,7 +302,7 @@ class ButtonActorLocationPref(QPushButton):
         events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
-        if event is None or event.date == self.day:
+        if event is None or event.date is None or event.date == self.day:
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             self.set_stylesheet()
 
@@ -485,7 +485,7 @@ class FrmActorPlanPeriod(QWidget):
         bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
         self.side_menu.add_button(bt_actor_loc_prefs)
 
-    def reload_actor_plan_period(self, event):
+    def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.set_instance_variables()
 
@@ -714,7 +714,7 @@ class FrmActorPlanPeriod(QWidget):
                     actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.reload_actor_plan_period()
         events.ReloadActorPlanPeriod().fire()
 
     def edit_all_loc_prefs(self):

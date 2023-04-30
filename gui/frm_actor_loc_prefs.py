@@ -43,7 +43,7 @@ class DlgActorLocPref(QDialog):
 
         '''Die folgenden 3 Dictionaries werden zur Auswehrtung benutzt.'''
         self.location_id__location = {loc.id: loc for loc in self.locations_of_team}
-        self.loc_id__prefs = {loc.location_of_work.id: loc for loc in self.loc_prefs}
+        self.loc_id__prefs = {loc_pref.location_of_work.id: loc_pref for loc_pref in self.loc_prefs}
         self.loc_id__results = self.locations_of_team__defaults | self.locations_of_prefs__score
 
         self.val2text = {0: 'nicht einsetzen', 1: 'notfalls einsetzen', 2: 'gerne einsetzen',

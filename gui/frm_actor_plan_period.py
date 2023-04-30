@@ -102,6 +102,9 @@ class ButtonAvailDay(QPushButton):
 class ButtonCombLocPossible(QPushButton):
     def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
+
+        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
+
         self.setObjectName(f'comb_loc_poss: {day}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
@@ -112,8 +115,6 @@ class ButtonCombLocPossible(QPushButton):
         self.day = day
 
         self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%d.%m.%Y")}')
-
-        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -179,10 +180,131 @@ class ButtonCombLocPossible(QPushButton):
                     db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
 
             self.reload_actor_plan_period()
+            events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
-    def reload_actor_plan_period(self, event=None):
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        self.set_stylesheet()
+    def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
+        if event is None or event.date == self.day:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet()
+
+
+class ButtonActorLocationPref(QPushButton):
+    def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent)
+
+        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
+
+        self.setObjectName(f'act_loc_pref: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        self.actor_plan_period = actor_plan_period
+        self.day = day
+
+        self.setToolTip(f'Einrichtungspräferenzen am {day.strftime("%d.%m.%Y")}')
+
+        self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
+        avail_days = self.actor_plan_period.avail_days
+        avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+        if not avail_days_at_date:
+            return
+        pref_of_idx0 = [pref for pref in avail_days_at_date[0].actor_location_prefs_defaults]
+        if len(avail_days_at_date) > 1:
+            for avd in avail_days_at_date[1:]:
+                if {(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults} != {
+                    (pref.location_of_work.id, pref.score) for pref in pref_of_idx0}:
+                    print({(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults})
+                    print({(pref.location_of_work.id, pref.score) for pref in pref_of_idx0})
+                    print('reset')
+                    self.reset_prefs_of_day(avail_days_at_date)
+                    return True
+
+        if {(pref.location_of_work.id, pref.score) for pref in self.actor_plan_period.actor_location_prefs_defaults} == {
+            (pref.location_of_work.id, pref.score) for pref in pref_of_idx0}:
+            return True
+        else:
+            return False
+
+    def reset_prefs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
+        if not avail_days_at_date:
+            avail_days = self.actor_plan_period.avail_days
+            avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+
+        for avd in avail_days_at_date:
+            for pref_avd in avd.actor_location_prefs_defaults:
+                db_services.AvailDay.remove_location_pref(avd.id, pref_avd.id)
+            for pref_app in self.actor_plan_period.actor_location_prefs_defaults:
+                db_services.AvailDay.put_in_location_pref(avd.id, pref_app.id)
+
+    def set_stylesheet(self):
+        check_loc_pref__eq__loc_pref_of_actor_pp = self.check_loc_pref_of_day__eq__loc_pref_of_actor_pp()
+        if check_loc_pref__eq__loc_pref_of_actor_pp is None:
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #fff4d6}}")
+        elif check_loc_pref__eq__loc_pref_of_actor_pp:
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #acf49f}}")
+        else:
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #f4b2a5}}")
+        'acf49f'
+
+    def mouseReleaseEvent(self, e) -> None:
+        avail_days_at_date = [avd for avd in self.actor_plan_period.avail_days
+                              if not avd.prep_delete and avd.day == self.day]
+        if not avail_days_at_date:
+            QMessageBox.critical(self, 'Einrichtungspräferenzen',
+                                 'Es können keine Einrichtungspräferenzen eingerichtet werden, '
+                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            return
+
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, avail_days_at_date[0], self.actor_plan_period, team)
+        if not dlg.exec():
+            return
+        for loc_id, score in dlg.loc_id__results.items():
+            if loc_id in dlg.loc_id__prefs:
+                if dlg.loc_id__prefs[loc_id].score == score:
+                    continue
+                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
+                curr_loc_pref.score = score
+                if score == 1:
+                    db_services.AvailDay.remove_location_pref(avail_days_at_date[0].id, curr_loc_pref.id)
+                else:
+                    db_services.AvailDay.remove_location_pref(avail_days_at_date[0].id, curr_loc_pref.id)
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    created_pref = db_services.ActorLocationPref.create(new_pref)
+                    db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
+            else:
+                if score == 1:
+                    continue
+                person = self.actor_plan_period.person
+                location = dlg.location_id__location[loc_id]
+                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
+                created_pref = db_services.ActorLocationPref.create(new_loc_pref)
+                db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
+
+
+        '''avail_days_at_date[0].actor_location_prefs_defaults wurden geändert.
+        nun werden die actor_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst'''
+        avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
+        for avd in avail_days_at_date[1:]:
+            for pref in avd.actor_location_prefs_defaults:
+                db_services.AvailDay.remove_location_pref(avd.id, pref.id)
+            for pref_new in avail_days_at_date[0].actor_location_prefs_defaults:
+                if not pref_new.prep_delete:
+                    db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
+
+        db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
+        self.reload_actor_plan_period()
+        events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+
+    def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
+        if event is None or event.date == self.day:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet()
 
 
 class FrmTabActorPlanPeriods(QWidget):
@@ -278,6 +400,15 @@ class FrmTabActorPlanPeriods(QWidget):
         self.table_select_actor.hideColumn(0)
 
     def data_setup(self, r, c):
+        def remove_event_handlers(frame_availables: FrmActorPlanPeriod):
+            events.ReloadActorPlanPeriodInActorFrmPlanPeriod.remove_handler(frame_availables.reload_actor_plan_period)
+            bt_actor_loc_pref: list[ButtonActorLocationPref] = frame_availables.findChildren(ButtonActorLocationPref)
+            bt_combs_loc: list[ButtonCombLocPossible] = frame_availables.findChildren(ButtonCombLocPossible)
+            for bt in bt_actor_loc_pref:
+                events.ReloadActorPlanPeriod().remove_handler(bt.reload_actor_plan_period)
+            for bt in bt_combs_loc:
+                events.ReloadActorPlanPeriod().remove_handler(bt.reload_actor_plan_period)
+
         self.table_select_actor.setMaximumWidth(10000)
         self.person_id = UUID(self.table_select_actor.item(r, 0).text())
         self.person = db_services.Person.get(self.person_id)
@@ -286,6 +417,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
         if self.frame_availables:
+            remove_event_handlers(self.frame_availables)
             self.frame_availables.deleteLater()
         self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
@@ -316,6 +448,8 @@ class FrmTabActorPlanPeriods(QWidget):
 class FrmActorPlanPeriod(QWidget):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
         super().__init__()
+
+        events.ReloadActorPlanPeriodInActorFrmPlanPeriod().add_handler(self.reload_actor_plan_period)
 
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
@@ -351,6 +485,10 @@ class FrmActorPlanPeriod(QWidget):
         bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
         self.side_menu.add_button(bt_actor_loc_prefs)
 
+    def reload_actor_plan_period(self, event):
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.set_instance_variables()
+
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
                                        if not t_o_d.prep_delete], key=lambda x: x.time_of_day_enum.time_index)
@@ -380,10 +518,15 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
         bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin.', clicked=self.edit_all_avail_combs)
         bt_comb_loc_poss_all_avail.setStatusTip('Einrichtungskombinationen für alle Verfügbarkeiten in diesem Zeitraum '
-                                                'ändern. Später hinzugefügte Verfügbarrkeiten übernehmen davon '
+                                                'ändern. Später hinzugefügte Verfügbarkeiten übernehmen davon '
                                                 'unberührt die Kombinationen des Planungszeitraums.')
 
         self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
+        bt_actor_loc_prefs_all_avail = QPushButton('Einr.-Präf.', clicked=self.edit_all_loc_prefs)
+        bt_actor_loc_prefs_all_avail.setStatusTip('Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum '
+                                                  'ändern. Später hinzugefügte Verfügbarkeiten übernehmen davon '
+                                                  'unberührt die Präferenzen des Planungszeitraums.')
+        self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -403,6 +546,8 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(lb_weekday, row+1, col)
             bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
             self.layout.addWidget(bt_comb_loc_poss, row+2, col)
+            bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
+            self.layout.addWidget(bt_loc_prefs, row+3, col)
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -438,6 +583,15 @@ class FrmActorPlanPeriod(QWidget):
                 for comb_existing in existing_avds_on_day[0].combination_locations_possibles:
                     self.controller_avail_days.execute(
                         avail_day_commands.PutInCombLocPossible(created_avail_day.id, comb_existing.id))
+                for loc_pref in created_avail_day.actor_location_prefs_defaults:
+                    self.controller_avail_days.execute(
+                        avail_day_commands.RemoveActorLocationPref(created_avail_day.id, loc_pref.id))
+                for loc_pref_existing in existing_avds_on_day[0].actor_location_prefs_defaults:
+                    if loc_pref_existing.prep_delete:
+                        continue
+                    print(loc_pref_existing.location_of_work.name, loc_pref_existing.score)
+                    self.controller_avail_days.execute(
+                        avail_day_commands.PutInActorLocationPref(created_avail_day.id, loc_pref_existing.id))
 
             '''new_avail_day = db_services.AvailDay.create(
                 schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
@@ -446,9 +600,8 @@ class FrmActorPlanPeriod(QWidget):
             avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
-            '''deleted_avail_day = db_services.AvailDay.delete(avail_day.id)'''
-        bt_comb_loc_poss: ButtonCombLocPossible = self.findChild(ButtonCombLocPossible, f'comb_loc_poss: {date}')
-        bt_comb_loc_poss.reload_actor_plan_period()
+
+        events.ReloadActorPlanPeriod(date).fire()
 
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
@@ -562,3 +715,7 @@ class FrmActorPlanPeriod(QWidget):
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        events.ReloadActorPlanPeriod().fire()
+
+    def edit_all_loc_prefs(self):
+        ...

@@ -259,9 +259,10 @@ class AvailDay(AvailDayCreate):
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs_defaults: List['ActorPartnerLocationPref']
+    actor_location_prefs_defaults: List['ActorLocationPref']
 
     @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
-               pre=True, allow_reuse=True)
+               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
 
@@ -272,6 +273,11 @@ class AvailDay(AvailDayCreate):
 class AvailDayShow(AvailDay):
     id: UUID
     project: Project
+
+    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
+               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):
+        return [t for t in values]
 
     class Config:
         orm_mode = True

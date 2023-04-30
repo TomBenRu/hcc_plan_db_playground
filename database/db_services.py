@@ -828,6 +828,26 @@ class AvailDay:
         avail_day_db.combination_locations_possibles.remove(comb_loc_possible_db)
         return schemas.AvailDayShow.from_orm(avail_day_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_location_pref(avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        avail_day_db.actor_location_prefs_defaults.add(location_pref_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_location_pref(avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+        avail_day_db.actor_location_prefs_defaults.remove(location_pref_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
 
 class CombinationLocationsPossible:
     @staticmethod
@@ -902,14 +922,14 @@ class ActorLocationPref:
     def delete_unused(projec_id: UUID) -> list[UUID]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
+        a_l_prefs_from__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
 
         deleted_a_l_pref_ids = []
-        for a_l_pref in a_l_prefs_form__project:
+        for a_l_pref in a_l_prefs_from__project:
             if a_l_pref.prep_delete:
                 continue
             empty_check = [a_l_pref.actor_plan_periods_defaults, a_l_pref.avail_days_defaults]
-            if all([default.is_empty for default in empty_check]) and not a_l_pref.person_default:
+            if all([default.is_empty() for default in empty_check]) and not a_l_pref.person_default:
                 a_l_pref.prep_delete = datetime.datetime.utcnow()
                 deleted_a_l_pref_ids.append(a_l_pref.id)
         return deleted_a_l_pref_ids

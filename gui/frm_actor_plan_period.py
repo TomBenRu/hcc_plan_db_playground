@@ -184,7 +184,6 @@ class ButtonCombLocPossible(QPushButton):
             self.reload_actor_plan_period()
             events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
-    @profile
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or event.date:
@@ -317,7 +316,6 @@ class ButtonActorLocationPref(QPushButton):
         self.reload_actor_plan_period()
         events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
-    @profile
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or event.date:
@@ -739,7 +737,6 @@ class FrmActorPlanPeriod(QWidget):
         self.reload_actor_plan_period()
         events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
 
-    @profile
     def edit_all_loc_prefs(self):
         """Bearbeiten der actor_location_prefs aller AvailDays in dieser Planperiode."""
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)

@@ -156,9 +156,11 @@ class ButtonCombLocPossible(QPushButton):
             self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}")
         'acf49f'
 
+    def avail_days_at_date(self) -> list[schemas.AvailDay]:
+        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.day == self.day]
+
     def mouseReleaseEvent(self, e) -> None:
-        avail_days_at_date = [avd for avd in self.actor_plan_period.avail_days
-                              if not avd.prep_delete and avd.day == self.day]
+        avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             QMessageBox.critical(self, 'Einrichtungskombinatinen',
                                  'Es können keine Einrichtungskombinationen eingerichtet werden, '
@@ -182,10 +184,16 @@ class ButtonCombLocPossible(QPushButton):
             self.reload_actor_plan_period()
             events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
+    @profile
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
-        if event is None or event.date is None or event.date == self.day:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet()
+        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
+        if self.avail_days_at_date() or event.date:
+            if event is None or event.date is None or event.date == self.day:
+                if event is not None:
+                    self.actor_plan_period = event.actor_plan_period
+                else:
+                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+                self.set_stylesheet()
 
 
 class ButtonActorLocationPref(QPushButton):
@@ -256,9 +264,11 @@ class ButtonActorLocationPref(QPushButton):
             self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #f4b2a5}}")
         'acf49f'
 
+    def avail_days_at_date(self) -> list[schemas.AvailDay]:
+        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.day == self.day]
+
     def mouseReleaseEvent(self, e) -> None:
-        avail_days_at_date = [avd for avd in self.actor_plan_period.avail_days
-                              if not avd.prep_delete and avd.day == self.day]
+        avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             QMessageBox.critical(self, 'Einrichtungspräferenzen',
                                  'Es können keine Einrichtungspräferenzen eingerichtet werden, '
@@ -307,10 +317,16 @@ class ButtonActorLocationPref(QPushButton):
         self.reload_actor_plan_period()
         events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
 
+    @profile
     def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
-        if event is None or event.date is None or event.date == self.day:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet()
+        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
+        if self.avail_days_at_date() or event.date:
+            if event is None or event.date is None or event.date == self.day:
+                if event is not None:
+                    self.actor_plan_period = event.actor_plan_period
+                else:
+                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+                self.set_stylesheet()
 
 
 class FrmTabActorPlanPeriods(QWidget):
@@ -606,7 +622,8 @@ class FrmActorPlanPeriod(QWidget):
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
 
-        events.ReloadActorPlanPeriod(date).fire()
+        self.reload_actor_plan_period()
+        events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
 
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
@@ -653,8 +670,8 @@ class FrmActorPlanPeriod(QWidget):
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations)
         if dlg.exec():
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            events.ReloadActorPlanPeriod().fire()
+            self.reload_actor_plan_period()
+            events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
 
     def edit_all_avail_combs(self):
         """Bearbeiten der combination_locations_possibles aller AvailDays in dieser Planperiode."""
@@ -679,7 +696,7 @@ class FrmActorPlanPeriod(QWidget):
                 self.controller_avail_days.execute(avail_day_commands.PutInCombLocPossible(avd.id, comb.id))
 
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        events.ReloadActorPlanPeriod().fire()
+        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
 
     def edit_location_prefs(self):
         team = db_services.Team.get(self.actor_plan_period.team.id)
@@ -720,7 +737,7 @@ class FrmActorPlanPeriod(QWidget):
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
         self.reload_actor_plan_period()
-        events.ReloadActorPlanPeriod().fire()
+        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
 
     def edit_all_loc_prefs(self):
         ...

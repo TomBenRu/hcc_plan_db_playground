@@ -19,7 +19,8 @@ from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
 from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
-from gui.observer import events
+from gui.observer import events, signal_handling
+from gui.tools import clear_layout
 
 
 class ButtonAvailDay(QPushButton):
@@ -27,6 +28,7 @@ class ButtonAvailDay(QPushButton):
                  actor_plan_period: schemas.ActorPlanPeriodShow, slot__save_avail_day: Callable):
         super().__init__(parent)
         self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCheckable(True)
         self.released.connect(lambda: slot__save_avail_day(self))
         self.setMaximumWidth(width_height)
@@ -103,7 +105,9 @@ class ButtonCombLocPossible(QPushButton):
     def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
 
-        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        signal_handling.handler.signal_reload_actor_pp__avail_configs.connect(
+            lambda data: self.reload_actor_plan_period(data))
 
         self.setObjectName(f'comb_loc_poss: {day}')
         self.setMaximumWidth(width_height)
@@ -182,14 +186,15 @@ class ButtonCombLocPossible(QPushButton):
                     db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
 
             self.reload_actor_plan_period()
-            events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+            # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+            signal_handling.handler.reload_actor_pp__frm_actor_plan_period()
 
-    def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
+    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if self.avail_days_at_date() or event.date:
-            if event is None or event.date is None or event.date == self.day:
-                if event is not None:
-                    self.actor_plan_period = event.actor_plan_period
+        if self.avail_days_at_date() or data.date:
+            if data is None or data.date is None or data.date == self.day:
+                if data is not None:
+                    self.actor_plan_period = data.actor_plan_period
                 else:
                     self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
                 self.set_stylesheet()
@@ -199,7 +204,9 @@ class ButtonActorLocationPref(QPushButton):
     def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
 
-        events.ReloadActorPlanPeriod().add_handler(self.reload_actor_plan_period)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        signal_handling.handler.signal_reload_actor_pp__avail_configs.connect(
+            lambda data: self.reload_actor_plan_period(data))
 
         self.setObjectName(f'act_loc_pref: {day}')
         self.setMaximumWidth(width_height)
@@ -314,14 +321,15 @@ class ButtonActorLocationPref(QPushButton):
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
-        events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+        # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+        signal_handling.handler.reload_actor_pp__frm_actor_plan_period()
 
-    def reload_actor_plan_period(self, event: events.ReloadActorPlanPeriod = None):
+    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if self.avail_days_at_date() or event.date:
-            if event is None or event.date is None or event.date == self.day:
-                if event is not None:
-                    self.actor_plan_period = event.actor_plan_period
+        if self.avail_days_at_date() or data.date:
+            if data is None or data.date is None or data.date == self.day:
+                if data is not None:
+                    self.actor_plan_period = data.actor_plan_period
                 else:
                     self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
                 self.set_stylesheet()
@@ -420,15 +428,6 @@ class FrmTabActorPlanPeriods(QWidget):
         self.table_select_actor.hideColumn(0)
 
     def data_setup(self, r, c):
-        def remove_event_handlers(frame_availables: FrmActorPlanPeriod):
-            events.ReloadActorPlanPeriodInActorFrmPlanPeriod.remove_handler(frame_availables.reload_actor_plan_period)
-            bt_actor_loc_pref: list[ButtonActorLocationPref] = frame_availables.findChildren(ButtonActorLocationPref)
-            bt_combs_loc: list[ButtonCombLocPossible] = frame_availables.findChildren(ButtonCombLocPossible)
-            for bt in bt_actor_loc_pref:
-                events.ReloadActorPlanPeriod().remove_handler(bt.reload_actor_plan_period)
-            for bt in bt_combs_loc:
-                events.ReloadActorPlanPeriod().remove_handler(bt.reload_actor_plan_period)
-
         self.table_select_actor.setMaximumWidth(10000)
         self.person_id = UUID(self.table_select_actor.item(r, 0).text())
         self.person = db_services.Person.get(self.person_id)
@@ -437,9 +436,9 @@ class FrmTabActorPlanPeriods(QWidget):
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {f"{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}"}')
         if self.frame_availables:
-            remove_event_handlers(self.frame_availables)
+            signal_handling.handler.signal_reload_actor_pp__avail_configs.disconnect()
             self.frame_availables.deleteLater()
-        self.frame_availables = FrmActorPlanPeriod(actor_plan_period_show, self.side_menu)
+        self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
 
         self.info_text_setup()
@@ -466,10 +465,10 @@ class FrmTabActorPlanPeriods(QWidget):
 
 
 class FrmActorPlanPeriod(QWidget):
-    def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
-        super().__init__()
+    def __init__(self, parent, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
+        super().__init__(parent)
 
-        events.ReloadActorPlanPeriodInActorFrmPlanPeriod().add_handler(self.reload_actor_plan_period)
+        signal_handling.handler.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period)
 
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
@@ -506,6 +505,7 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_actor_loc_prefs)
 
     def reload_actor_plan_period(self, event=None):
+        print('signal')
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.set_instance_variables()
 
@@ -621,7 +621,9 @@ class FrmActorPlanPeriod(QWidget):
             self.controller_avail_days.execute(del_command)
 
         self.reload_actor_plan_period()
-        events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
+        #events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
+        signal_handling.handler.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
@@ -669,7 +671,9 @@ class FrmActorPlanPeriod(QWidget):
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations)
         if dlg.exec():
             self.reload_actor_plan_period()
-            events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+            #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+            signal_handling.handler.reload_actor_pp__avail_configs(
+                signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def edit_all_avail_combs(self):
         """Bearbeiten der combination_locations_possibles aller AvailDays in dieser Planperiode."""
@@ -694,7 +698,9 @@ class FrmActorPlanPeriod(QWidget):
                 self.controller_avail_days.execute(avail_day_commands.PutInCombLocPossible(avd.id, comb.id))
 
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        signal_handling.handler.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def edit_location_prefs(self):
         team = db_services.Team.get(self.actor_plan_period.team.id)
@@ -735,7 +741,9 @@ class FrmActorPlanPeriod(QWidget):
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
         self.reload_actor_plan_period()
-        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        signal_handling.handler.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def edit_all_loc_prefs(self):
         """Bearbeiten der actor_location_prefs aller AvailDays in dieser Planperiode."""
@@ -787,4 +795,6 @@ class FrmActorPlanPeriod(QWidget):
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
-        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
+        signal_handling.handler.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period))

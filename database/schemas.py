@@ -29,6 +29,17 @@ class ModelWithCombLocPossible(Protocol):
 class ModelWithActorLocPrefs(Protocol):
     id: UUID
     actor_location_prefs_defaults: List['ActorLocationPref']
+    prep_delete: date
+
+    def copy(self, deep=bool):
+        ...
+
+
+@runtime_checkable
+class ModelWithPartnerLocPrefs(Protocol):
+    id: UUID
+    actor_location_prefs_defaults: list['ActorPartnerLocationPref']
+    prep_delete: date
 
     def copy(self, deep=bool):
         ...
@@ -75,9 +86,10 @@ class PersonShow(Person):
     time_of_days: list['TimeOfDay']
     combination_locations_possibles: list['CombinationLocationsPossible']
     actor_location_prefs_defaults: list['ActorLocationPref']
+    actor_location_prefs_defaults: list['ActorPartnerLocationPref']
 
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+               'actor_location_prefs_defaults', 'actor_location_prefs_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 

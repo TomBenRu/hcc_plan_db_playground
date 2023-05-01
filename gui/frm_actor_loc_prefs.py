@@ -1,27 +1,11 @@
 from functools import partial
 
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton
-from line_profiler_pycharm import profile
 
 from database import schemas
-
-
-class SliderWithPressEvent(QSlider):
-    """only works for horizontal orientation"""
-
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            e.accept()
-            x = e.pos().x()
-            value = (self.maximum() - self.minimum()) * x / self.width() + self.minimum()
-            value = round(value)
-            if value == self.value():
-                super().mousePressEvent(e)
-            self.setValue(value)
-        else:
-            return super().mousePressEvent(e)
+from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 
 class DlgActorLocPref(QDialog):

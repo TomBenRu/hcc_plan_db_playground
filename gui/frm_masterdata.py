@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessa
 
 from database import db_services, schemas
 from database.enums import Gender
-from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs
+from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
 from .actions import Action
 from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
     actor_loc_pref_commands
@@ -459,6 +459,10 @@ class FrmPersonModify(FrmPersonData):
 
         self.controller.execute(actor_loc_pref_commands.DeleteUnused(self.person.project.id))
         self.person = db_services.Person.get(self.person.id)
+
+    def edit_partner_location_prefs(self):
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefsPartner(self, self.person)
+        dlg.exec()
 
 
 class WidgetLocationsOfWork(QWidget):

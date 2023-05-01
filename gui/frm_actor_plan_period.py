@@ -739,5 +739,55 @@ class FrmActorPlanPeriod(QWidget):
         self.reload_actor_plan_period()
         events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
 
+    @profile
     def edit_all_loc_prefs(self):
-        ...
+        """Bearbeiten der actor_location_prefs aller AvailDays in dieser Planperiode."""
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
+        if not all_avail_days:
+            QMessageBox.critical(self, 'Einrichtungspräferenzen',
+                                 f'In dieser Planungsperiode von '
+                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
+                                 f'gibt es noch keine Verfügbarkeiten.')
+            return
+
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, all_avail_days[0], self.actor_plan_period, team)
+        if not dlg.exec():
+            return
+        for loc_id, score in dlg.loc_id__results.items():
+            if loc_id in dlg.loc_id__prefs:
+                if dlg.loc_id__prefs[loc_id].score == score:
+                    continue
+                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
+                curr_loc_pref.score = score
+                if score == 1:
+                    db_services.AvailDay.remove_location_pref(all_avail_days[0].id, curr_loc_pref.id)
+                else:
+                    db_services.AvailDay.remove_location_pref(all_avail_days[0].id, curr_loc_pref.id)
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    created_pref = db_services.ActorLocationPref.create(new_pref)
+                    db_services.AvailDay.put_in_location_pref(all_avail_days[0].id, created_pref.id)
+            else:
+                if score == 1:
+                    continue
+                person = self.actor_plan_period.person
+                location = dlg.location_id__location[loc_id]
+                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
+                created_pref = db_services.ActorLocationPref.create(new_loc_pref)
+                db_services.AvailDay.put_in_location_pref(all_avail_days[0].id, created_pref.id)
+
+        '''all_avail_days[0].actor_location_prefs_defaults wurden geändert.
+        nun werden die actor_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod angepasst'''
+        all_avail_days[0] = db_services.AvailDay.get(all_avail_days[0].id)
+        for avd in all_avail_days[1:]:
+            for pref in avd.actor_location_prefs_defaults:
+                db_services.AvailDay.remove_location_pref(avd.id, pref.id)
+            for pref_new in all_avail_days[0].actor_location_prefs_defaults:
+                if not pref_new.prep_delete:
+                    db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
+
+        db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
+        self.reload_actor_plan_period()
+        events.ReloadActorPlanPeriod(self.actor_plan_period).fire()

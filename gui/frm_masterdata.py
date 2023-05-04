@@ -467,7 +467,7 @@ class FrmPersonModify(FrmPersonData):
 
     def edit_partner_location_prefs(self):
         team = db_services.Team.get(self.person.team_of_actor.id)
-        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefsPartner(self, self.person, self.person, None, team)
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, self.person, self.person, None, team)
         dlg.exec()
 
 

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox
+    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
@@ -38,8 +38,16 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.layout = QVBoxLayout(self)
         self.layout_head = QHBoxLayout()
         self.layout.addLayout(self.layout_head)
-        self.layout_options = QGridLayout()
-        self.layout.addLayout(self.layout_options)
+        self.layout_body = QHBoxLayout()
+        self.layout.addLayout(self.layout_body)
+        self.group_locations = QGroupBox('Einrichtungen')
+        self.group_partners = QGroupBox('Mitarbeiter')
+        self.layout_body.addWidget(self.group_locations)
+        self.layout_body.addWidget(self.group_partners)
+        self.layout_options_locs = QGridLayout(self.group_locations)
+        self.layout_options_locs.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.layout_options_partners = QGridLayout(self.group_partners)
+        self.layout_options_partners.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
 
@@ -53,12 +61,16 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.partners: list[schemas.Person] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
-        self.dict_partner_id__bt_chk: dict[UUID, dict[Literal['button', 'check'], QPushButton | QCheckBox]] = {}
-        self.dict_style: dict[
-            Literal['all_locations', 'some_locations', 'no_locations'], dict[Literal['color', 'text'], str]] = {
-            'all_locations': {'color': 'lightgreen', 'text': 'alle Einrichtungen'},
-            'some_locations': {'color': 'orange', 'text': 'einige Einrichtungen'},
-            'no_locations': {'color': 'red', 'text': 'keine Einrichtungen'}
+        self.dict_location_id__bt_slider: dict[UUID, dict[Literal['button', 'slider'], QPushButton | SliderWithPressEvent]] = {}
+        self.dict_partner_id__bt_slider: dict[UUID, dict[Literal['button', 'slider'], QPushButton | SliderWithPressEvent]] = {}
+
+        self.val2text = {0: 'nicht einsetzen', 1: 'notfalls einsetzen', 2: 'gerne einsetzen',
+                         3: 'bevorzugt einsetzen', 4: 'unbedingt einsetzen'}
+        self.dict_style_buttons: dict[
+            Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
+            'all': {'color': 'lightgreen', 'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
+            'some': {'color': 'orange', 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}},
+            'none': {'color': 'red', 'text': {'locs': 'mit keinen Mitarbeitern', 'partners': 'in keinen Einrichtungen'}}
         }
 
         self.setup_data()
@@ -72,46 +84,121 @@ class DlgPartnerLocationPrefsPartner(QDialog):
                                 key=lambda x: x.name)
 
     def setup_option_field(self):
-        for row, p in enumerate(self.partners):
-            bt_locations = QPushButton('Einrichtungen', clicked=partial(self.choice_locations, p.id))
-            self.layout_options.addWidget(bt_locations, row, 0)
-            chk_all_locs = QCheckBox(f'{p.f_name} {p.l_name}')
-            chk_all_locs.toggled.connect(partial(self.change_all_loc_vals, p.id))
-            self.layout_options.addWidget(chk_all_locs, row, 1)
+        """Regler und Buttons für Locations und Partners werden hinzugefügt"""
 
-            self.dict_partner_id__bt_chk[p.id] = {}
-            self.dict_partner_id__bt_chk[p.id]['button'] = bt_locations
-            self.dict_partner_id__bt_chk[p.id]['check'] = chk_all_locs
+        '''setup locations group:'''
+        for row, loc in enumerate(self.locations):
+            lb_location = QLabel(f'In {loc.name} ({loc.address.city}):')
+            self.layout_options_locs.addWidget(lb_location, row, 0)
+            bt_partners = QPushButton('Mitarbeiter', clicked=partial(self.choice_partners, loc.id))
+            self.layout_options_locs.addWidget(bt_partners, row, 1)
+
+            lb_loc_val = QLabel('Error')
+            self.layout_options_locs.addWidget(lb_loc_val, row, 3)
+
+            slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal)
+            slider_location.setMinimum(0)
+            slider_location.setMaximum(4)
+            slider_location.setFixedWidth(200)
+            slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
+
+            slider_location.valueChanged.connect(partial(self.save_pref_loc, loc))
+            slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
+            self.layout_options_locs.addWidget(slider_location, row, 2)
+
+            self.dict_location_id__bt_slider[loc.id] = {}
+            self.dict_location_id__bt_slider[loc.id]['button'] = bt_partners
+            self.dict_location_id__bt_slider[loc.id]['slider'] = slider_location
+
+        '''setup partners group:'''
+        for row, partner in enumerate(self.partners):
+            lb_partner = QLabel(f'Mit {partner.f_name} {partner.l_name}:')
+            self.layout_options_partners.addWidget(lb_partner, row, 0)
+            bt_locations = QPushButton('Einrichtungen', clicked=partial(self.choice_locations, partner.id))
+            self.layout_options_partners.addWidget(bt_locations, row, 1)
+
+            lb_partner_val = QLabel('Error')
+            self.layout_options_partners.addWidget(lb_partner_val, row, 3)
+
+            slider_partner = SliderWithPressEvent(Qt.Orientation.Horizontal)
+            slider_partner.setMinimum(0)
+            slider_partner.setMaximum(4)
+            slider_partner.setFixedWidth(200)
+            slider_partner.setTickPosition(QSlider.TickPosition.TicksBelow)
+
+            slider_partner.valueChanged.connect(partial(self.save_pref_partner, partner))
+            slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_partner_val))
+            self.layout_options_partners.addWidget(slider_partner, row, 2)
+
+            self.dict_partner_id__bt_slider[partner.id] = {}
+            self.dict_partner_id__bt_slider[partner.id]['button'] = bt_locations
+            self.dict_partner_id__bt_slider[partner.id]['slider'] = slider_partner
 
     def setup_values(self):
-        for partner in self.partners:
-            loc_vals_of_partner = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
-                                   if not apl.prep_delete and apl.partner.id == partner.id]
+        """Regler und Buttons bekommen die korrekten Einstellungen."""
 
-            if all(loc_vals_of_partner):  # all([]) is True
-                self.set_bt__style_txt(self.dict_partner_id__bt_chk[partner.id]['button'], 'all_locations')
-                self.dict_partner_id__bt_chk[partner.id]['check'].setChecked(True)
-            elif any(loc_vals_of_partner):  # any([]) is True
-                self.set_bt__style_txt(self.dict_partner_id__bt_chk[partner.id]['button'], 'some_locations')
-                self.dict_partner_id__bt_chk[partner.id]['check'].setChecked(True)
+        '''Einstellungen für Locations:'''
+        for loc in self.locations:
+            partner_vals_of_locations = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                         if not apl.prep_delete and apl.location_of_work.id == loc.id]
+
+            if all(partner_vals_of_locations):  # all([]) is True
+                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'all', 'locs')
+                if not partner_vals_of_locations:
+                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(2)
+                else:
+                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(int(max(partner_vals_of_locations)*2))
+            elif any(partner_vals_of_locations):  # any([]) is True
+                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'some', 'locs')
+                if not partner_vals_of_locations:
+                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(2)
+                else:
+                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(int(max(partner_vals_of_locations)*2))
             else:
-                self.set_bt__style_txt(self.dict_partner_id__bt_chk[partner.id]['button'], 'no_locations')
-                self.dict_partner_id__bt_chk[partner.id]['check'].setChecked(False)
+                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'none', 'locs')
+                self.dict_location_id__bt_slider[loc.id]['slider'].setValue(0)
 
-    def set_bt__style_txt(self, button: QPushButton, style: Literal['all_locations', 'some_locations', 'no_locations']):
-        button.setText(self.dict_style[style]['text'])
-        button.setStyleSheet(f'background-color: {self.dict_style[style]["color"]}')
+        '''Einstellungen für Partner:'''
+        for partner in self.partners:
+            location_vals_of_partner = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                        if not apl.prep_delete and apl.partner.id == partner.id]
 
-    def save_preferenz(self, partner: schemas.Person, value: int):
+            if all(location_vals_of_partner):  # all([]) is True
+                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'all', 'partners')
+                if not location_vals_of_partner:
+                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(2)
+                else:
+                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(int(max(location_vals_of_partner)*2))
+            elif any(location_vals_of_partner):  # any([]) is True
+                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'some', 'partners')
+                if not location_vals_of_partner:
+                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(2)
+                else:
+                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(int(max(location_vals_of_partner)*2))
+            else:
+                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'none', 'partners')
+                self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(0)
+
+    def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some', 'none'], group: Literal['locs', 'partners']):
+        button.setText(self.dict_style_buttons[style]['text'][group])
+        button.setStyleSheet(f'background-color: {self.dict_style_buttons[style]["color"]}')
+
+    def show_slider_text(self, label: QLabel, value: int):
+        label.setText(self.val2text[value])
+
+    def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
         ...
 
-    def change_all_loc_vals(self, partner_id: UUID, toggled):
-        print(partner_id, toggled)
+    def save_pref_partner(self, partner: schemas.Person, value: int):
+        ...
 
-    def choice_locations(self, partner_id: UUID):
-        print(partner_id)
-        apl_with_partner = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
-                          if not apl.prep_delete and apl.partner.id == partner_id]
-        dlg = DlgPartnerLocationPrefsLocs(self, self.person, apl_with_partner, self.locations, self.controller)
+    def choice_partners(self, location_id: UUID):
+        print(location_id)
+        apl_with_location = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
+                             if not apl.prep_delete and apl.location_of_work.id == location_id]
+        dlg = DlgPartnerLocationPrefsLocs(self, self.person, apl_with_location, self.partners, self.controller)
         if dlg.exec():
             ...
+
+    def choice_locations(self, partner_id: UUID):
+        ...

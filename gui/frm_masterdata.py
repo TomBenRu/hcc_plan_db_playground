@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont, QWindow, QGuiApplication, QIcon, QMouseEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QMenu, QListWidget, QFormLayout, QHeaderView
+from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -187,6 +188,7 @@ class TablePersons(QTableWidget):
 
 
 class FrmPersonData(QDialog):
+    @profile
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
@@ -258,6 +260,7 @@ class FrmPersonCreate(FrmPersonData):
 
 
 class FrmPersonModify(FrmPersonData):
+    @profile
     def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
         super().__init__(parent, project_id)
 
@@ -283,6 +286,8 @@ class FrmPersonModify(FrmPersonData):
         self.h_box_time_of_days_combi.addWidget(self.bt_time_of_days)
         self.bt_comb_loc_possible = QPushButton('Einrichtungskombinationen...', clicked=self.edit_comb_loc_possible)
         self.bt_actor_loc_prefs = QPushButton('Einrichtungspräferenzen', clicked=self.edit_location_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton('Mitarbeiterpräferenzen',
+                                                      clicked=self.edit_partner_location_prefs)
 
         self.group_auth_data.close()
         self.group_specific_data = QGroupBox('Spezielles')
@@ -293,7 +298,7 @@ class FrmPersonModify(FrmPersonData):
         self.group_specific_data_layout.addRow('Tageszeiten', self.widget_time_of_days_combi)
         self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow('Einrichtungspräferenzen', self.bt_actor_loc_prefs)
-        self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', QLabel('....wird noch'))
+        self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', self.bt_actor_partner_loc_prefs)
 
         self.layout.addWidget(self.button_box)
         self.button_box.rejected.connect(self.reject)
@@ -461,7 +466,8 @@ class FrmPersonModify(FrmPersonData):
         self.person = db_services.Person.get(self.person.id)
 
     def edit_partner_location_prefs(self):
-        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefsPartner(self, self.person)
+        team = db_services.Team.get(self.person.team_of_actor.id)
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefsPartner(self, self.person, self.person, None, team)
         dlg.exec()
 
 

@@ -324,6 +324,7 @@ class ButtonActorLocationPref(QPushButton):
         # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
         signal_handling.handler.reload_actor_pp__frm_actor_plan_period()
 
+    @profile
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or data.date:
@@ -505,7 +506,6 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_actor_loc_prefs)
 
     def reload_actor_plan_period(self, event=None):
-        print('signal')
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.set_instance_variables()
 
@@ -745,6 +745,7 @@ class FrmActorPlanPeriod(QWidget):
         signal_handling.handler.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
+    @profile
     def edit_all_loc_prefs(self):
         """Bearbeiten der actor_location_prefs aller AvailDays in dieser Planperiode."""
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -795,6 +796,5 @@ class FrmActorPlanPeriod(QWidget):
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
-        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
         signal_handling.handler.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))

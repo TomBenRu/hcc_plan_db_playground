@@ -38,7 +38,7 @@ class ModelWithActorLocPrefs(Protocol):
 @runtime_checkable
 class ModelWithPartnerLocPrefs(Protocol):
     id: UUID
-    actor_location_prefs_defaults: list['ActorPartnerLocationPref']
+    actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
     prep_delete: date
 
     def copy(self, deep=bool):
@@ -86,10 +86,10 @@ class PersonShow(Person):
     time_of_days: list['TimeOfDay']
     combination_locations_possibles: list['CombinationLocationsPossible']
     actor_location_prefs_defaults: list['ActorLocationPref']
-    actor_location_prefs_defaults: list['ActorPartnerLocationPref']
+    actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
 
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_location_prefs_defaults', 'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+               'actor_location_prefs_defaults', 'actor_partner_location_prefs_defaults', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 
@@ -113,9 +113,9 @@ class ProjectShow(Project):
     admin: Optional[Person]
     teams: List['TeamShow']
     persons: List['Person']
-    time_of_days: List['TimeOfDayShow']
-    time_of_day_standards: List['TimeOfDayShow']
-    time_of_day_enums: List['TimeOfDayEnumShow']
+    time_of_days: List['TimeOfDay']
+    time_of_day_standards: List['TimeOfDay']
+    time_of_day_enums: List['TimeOfDayEnum']
     excel_export_settings: Optional['ExcelExportSettings']
 
     @validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
@@ -529,6 +529,8 @@ class ActorPartnerLocationPrefCreate(BaseModel):
 
 class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
     id: UUID
+    score: float
+    prep_delete: Optional[date]
 
     class Config:
         orm_mode = True

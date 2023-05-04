@@ -127,15 +127,11 @@ class FrmPlanPeriodData(QDialog):
 
     def create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
         new_location_plan_period = db_services.LocationPlanPeriod.create(plan_period_id, loc_id)
-        print(f'{new_location_plan_period=}')
         new_master_event_group = db_services.EventGroup.create(location_plan_period_id=new_location_plan_period.id)
-        print(f'{new_master_event_group=}')
 
     def create_actor_plan_periods(self, plan_period_id: UUID, person_id: UUID):
         new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period_id, person_id)
-        print(f'{new_actor_plan_period=}')
         new_master_avail_day_group = db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
-        print(f'{new_master_avail_day_group=}')
 
 
 class FrmPlanPeriodCreate(FrmPlanPeriodData):

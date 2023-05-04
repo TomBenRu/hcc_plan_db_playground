@@ -227,7 +227,6 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
 
         if not dlg.exec():
             return
-        print('accepted')
         self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
                                                if not t.id == dlg.curr_time_of_day.id]
         self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,

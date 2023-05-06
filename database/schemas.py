@@ -537,6 +537,13 @@ class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
 
 
 class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
+    person_default: Optional[Person]
+    actor_plan_periods_defaults: list[ActorPlanPeriod]
+    avail_days_dafaults: list[AvailDay]
+
+    @validator('actor_plan_periods_defaults', 'avail_days_dafaults', pre=True, allow_reuse=True)
+    def set_to_set(cls, values):
+        return [v for v in values]
 
     class Config:
         orm_mode = True

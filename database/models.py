@@ -485,9 +485,10 @@ class Appointment(db.Entity):
 
 
 class ActorPartnerLocationPref(db.Entity):
-    """score: 1 - volle Zustimmung, 0 - volle Ablehnung.
-Präferenz-Instanz kann direkt von nächster Planungsebene übernommen werden, oder abgeändert als neue Instanz gespeichert werden.
-ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatisch von ActorPlanPeriod."""
+    """score: 2 - volle Zustimmung, 1 - normale Zustimmung, 0 - volle Ablehnung.
+    Präferenz-Instanz kann direkt von nächster Planungsebene übernommen werden, oder abgeändert als neue Instanz
+    gespeichert werden.
+    ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatisch von ActorPlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
     created_at = Required(datetime, default=lambda: datetime.utcnow())

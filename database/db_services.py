@@ -296,6 +296,26 @@ class Person:
         person_db.actor_location_prefs_defaults.remove(location_pref_db)
         return schemas.PersonShow.from_orm(person_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_partner_location_pref(person_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        person_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
+        return schemas.PersonShow.from_orm(person_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_partner_location_pref(person_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        person_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
+        return schemas.PersonShow.from_orm(person_db)
+
 
 class LocationOfWork:
     @staticmethod
@@ -723,6 +743,26 @@ class ActorPlanPeriod:
         actor_plan_period_db.actor_location_prefs_defaults.remove(location_pref_db)
         return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_partner_location_pref(actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        actor_plan_period_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_partner_location_pref(actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        actor_plan_period_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
+        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+
 
 class AvailDayGroup:
     @staticmethod
@@ -847,6 +887,26 @@ class AvailDay:
         avail_day_db.actor_location_prefs_defaults.remove(location_pref_db)
         return schemas.AvailDayShow.from_orm(avail_day_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_partner_location_pref(avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        avail_day_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_partner_location_pref(avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        avail_day_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
 
 class CombinationLocationsPossible:
     @staticmethod
@@ -942,3 +1002,91 @@ class ActorLocationPref:
         for a_l_pref in a_l_prefs_form__project:
             if a_l_pref.prep_delete:
                 a_l_pref.delete()
+
+
+class ActorPartnerLocationPref:
+    @staticmethod
+    @db_session
+    def get(actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
+        actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(actor_partner_loc_pref: schemas.ActorPartnerLocationPrefCreate) -> schemas.ActorPartnerLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+
+        person_db = models.Person.get_for_update(id=actor_partner_loc_pref.person.id)
+        partner_db = models.Person.get_for_update(id=actor_partner_loc_pref.partner.id)
+        location_db = models.LocationOfWork.get_for_update(id=actor_partner_loc_pref.location_of_work.id)
+        actor_partner_loc_pref_db = models.ActorLocationPref(score=actor_partner_loc_pref.score, person=person_db,
+                                                             parter=partner_db, location_of_work=location_db)
+        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def modify(actor_partner_loc_pref: schemas.ActorPartnerLocationPrefShow) -> schemas.ActorPartnerLocationPrefShow:
+        actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref.id)
+        if actor_partner_loc_pref.person_default:
+            person_default_db = models.Person.get_for_update(id=actor_partner_loc_pref.person_default.id)
+        else:
+            person_default_db = None
+        actor_plan_periods_defaults_db = [models.ActorPlanPeriod.get_for_update(id=app.id)
+                                          for app in actor_partner_loc_pref.actor_plan_periods_defaults]
+        avail_days_dafaults_db = [models.AvailDay.get_for_update(id=ad.id)
+                                  for ad in actor_partner_loc_pref.avail_days_dafaults]
+        actor_partner_loc_pref_db.person_default = person_default_db
+        actor_partner_loc_pref_db.actor_plan_periods_defaults.clear()
+        actor_partner_loc_pref_db.actor_plan_periods_defaults.add(actor_plan_periods_defaults_db)
+        actor_partner_loc_pref_db.avail_days_dafaults.clear()
+        actor_partner_loc_pref_db.avail_days_dafaults.add(avail_days_dafaults_db)
+
+        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        actor_partner_loc_pref_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+        actor_partner_loc_pref_db.prep_delete = None
+
+        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_unused(person_id: UUID) -> list[UUID]:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        apl_prefs_from__person = models.ActorPartnerLocationPref.select(lambda a: a.person.id == person_id)
+
+        deleted_apl_pref_ids = []
+        for apl_pref in apl_prefs_from__person:
+            if apl_pref.prep_delete:
+                continue
+            empty_check = [apl_pref.actor_plan_periods_defaults, apl_pref.avail_days_defaults]
+            if all([default.is_empty() for default in empty_check]) and not apl_pref.person_default:
+                apl_pref.prep_delete = datetime.datetime.utcnow()
+                deleted_apl_pref_ids.append(apl_pref.id)
+        return deleted_apl_pref_ids
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes(person_id: UUID) -> None:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        apl_prefs_form__person = models.ActorPartnerLocationPref.select(lambda a: a.person.id == person_id)
+        for apl_pref in apl_prefs_form__person:
+            if apl_pref.prep_delete:
+                apl_pref.delete()

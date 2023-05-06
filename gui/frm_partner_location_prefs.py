@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Literal
+from typing import Literal, Callable
 from uuid import UUID
 
 from PySide6.QtGui import Qt
@@ -9,7 +9,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlide
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from gui.commands import command_base_classes
+from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
+    actor_plan_period_commands, avail_day_commands
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 
@@ -32,9 +33,9 @@ class ButtonStyles:
         Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
         'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
                 'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
-        'some': {'color': {'locs': 'orange', 'partners': 'orange'},
+        'some': {'color': {'locs': 'lightorange', 'partners': 'lightorange'},
                  'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}},
-        'none': {'color': {'locs': 'red', 'partners': 'red'},
+        'none': {'color': {'locs': 'lightred', 'partners': 'lightred'},
                  'text': {'locs': 'mit keinen Mitarbeitern', 'partners': 'in keinen Einrichtungen'}}
     }
 
@@ -300,6 +301,10 @@ class DlgPartnerLocationPrefs(QDialog):
                 self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'none', 'partners')
                 self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(0)
 
+    def reload_curr_model(self):
+        self.curr_model = self.factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
+        self.setup_values()
+
     def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some', 'none'], group: Literal['locs', 'partners']):
         text, bg_color = ButtonStyles.get_bg_color_text(style, group)
         button.setText(text)
@@ -309,7 +314,37 @@ class DlgPartnerLocationPrefs(QDialog):
         label.setText(SliderValToText.get_text(value))
 
     def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
-        ...
+        score = value / 2
+        apls_with_loc: dict[UUID, schemas.ActorPartnerLocationPref] = {
+            apl.partner.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
+            if not apl.prep_delete and apl.location_of_work.id == location.id}
+
+        for partner in self.partners:
+            if partner.id in apls_with_loc:
+                apl = db_services.ActorPartnerLocationPref.get(apls_with_loc[partner.id].id)
+                remove_command = self.factory_for_remove_prefs(self.curr_model, apl.id)
+                self.controller.execute(remove_command)
+                if score != 1:
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                    new_apl_pref.score = score
+                    create_command = actor_partner_loc_pref_commands.Create(new_apl_pref)
+                    self.controller.execute(create_command)
+                    created_apl = create_command.get_created_actor_partner_loc_pref()
+                    put_in_command = self.factory_for_put_in_prefs(self.curr_model, created_apl.id)
+                    self.controller.execute(put_in_command)
+
+                self.reload_curr_model()
+
+            elif score != 1:
+                new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person, partner=partner,
+                                                                      location_of_work=location)
+                create_command = actor_partner_loc_pref_commands.Create(new_apl_pref)
+                self.controller.execute(create_command)
+                created_apl = create_command.get_created_actor_partner_loc_pref()
+                put_in_command = self.factory_for_put_in_prefs(self.curr_model, created_apl.id)
+                self.controller.execute(put_in_command)
+
+                self.reload_curr_model()
 
     def save_pref_partner(self, partner: schemas.Person, value: int):
         ...
@@ -327,3 +362,39 @@ class DlgPartnerLocationPrefs(QDialog):
         dlg = DlgPartnerLocationPrefsLocs(self, self.person, apl_with_location, self.locations, self.controller)
         if dlg.exec():
             ...
+
+    def factory_for_put_in_prefs(self, curr_model: schemas.ModelWithPartnerLocPrefs,
+                                 pref_to_put_i_id: UUID) -> command_base_classes.Command:
+        curr_model_name = curr_model.__class__.__name__
+        curr_model_name__put_in_command = {
+            'PersonShow': person_commands.PutInActorPartnerLocationPref,
+            'ActorPlanPeriodShow': actor_plan_period_commands.PutInActorPartnerLocationPref,
+            'AvailDay': avail_day_commands.PutInActorPartnerLocationPref,
+            'AvailDayShow': avail_day_commands.PutInActorPartnerLocationPref}
+
+        try:
+            return curr_model_name__put_in_command[curr_model_name](curr_model.id, pref_to_put_i_id)
+        except KeyError:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+
+    def factory_for_remove_prefs(self, curr_model: schemas.ModelWithPartnerLocPrefs,
+                                 pref_to_remove_id: UUID) -> command_base_classes.Command:
+        curr_model_name = curr_model.__class__.__name__
+        curr_model_name__remove_command = {
+            'PersonShow': person_commands.RemoveActorPartnerLocationPref,
+            'ActorPlanPeriodShow': actor_plan_period_commands.RemoveActorPartnerLocationPref,
+            'AvailDay': avail_day_commands.RemoveActorPartnerLocationPref,
+            'AvailDayShow': avail_day_commands.RemoveActorPartnerLocationPref}
+        try:
+            command_to_remove = curr_model_name__remove_command[curr_model_name]
+            return command_to_remove(curr_model.id, pref_to_remove_id)
+        except KeyError:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+
+    def factory_for_reload_curr_model(self, curr_model: schemas.ModelWithPartnerLocPrefs) -> Callable:
+        curr_model_name = curr_model.__class__.__name__
+        curr_model_get = {'PersonShow': db_services.Person.get,
+                          'ActorPlanPeriodShow': db_services.ActorPlanPeriod.get,
+                          'AvailDay': db_services.AvailDay.get,
+                          'AvailDayShow': db_services.AvailDay.get}
+        return curr_model_get[curr_model_name]

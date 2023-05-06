@@ -120,8 +120,7 @@ class DlgCombLocPossibleEditList(QDialog):
             create_command = comb_loc_possible_commands.Create(comb_to_create)
             self.controller.execute(create_command)
             created_comb_loc_poss = create_command.created_comb_loc_poss
-            command_to_put_in_combination = self.factory_for_put_in_combs(self.curr_model, self.curr_model.id,
-                                                                          created_comb_loc_poss.id)
+            command_to_put_in_combination = self.factory_for_put_in_combs(self.curr_model, created_comb_loc_poss.id)
             self.controller.execute(command_to_put_in_combination)
             self.curr_model.combination_locations_possibles.append(created_comb_loc_poss)
 
@@ -129,11 +128,11 @@ class DlgCombLocPossibleEditList(QDialog):
 
     def reset(self):
         for c in self.curr_model.combination_locations_possibles:
-            remove_command = self.factory_for_remove_combs(self.curr_model, self.curr_model.id, c.id)
+            remove_command = self.factory_for_remove_combs(self.curr_model, c.id)
             self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles.clear()
         for c in [comb for comb in self.parent_model.combination_locations_possibles if not comb.prep_delete]:
-            put_in_command = self.factory_for_put_in_combs(self.curr_model, self.curr_model.id, c.id)
+            put_in_command = self.factory_for_put_in_combs(self.curr_model, c.id)
             self.controller.execute(put_in_command)
         self.curr_model.combination_locations_possibles.extend(self.parent_model.combination_locations_possibles)
 
@@ -144,7 +143,7 @@ class DlgCombLocPossibleEditList(QDialog):
             QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen zuerst eine Zeile auswählen.')
             return
         comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
-        remove_command = self.factory_for_remove_combs(self.curr_model, self.curr_model.id, comb_id_to_remove)
+        remove_command = self.factory_for_remove_combs(self.curr_model, comb_id_to_remove)
         self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
                                                            if not c.id == comb_id_to_remove]
@@ -158,7 +157,7 @@ class DlgCombLocPossibleEditList(QDialog):
         super().reject()
 
     def factory_for_put_in_combs(self, curr_model: ModelWithCombLocPossible,
-                                 curr_model_id: UUID, comb_to_put_i_id: UUID) -> command_base_classes.Command:
+                                 comb_to_put_i_id: UUID) -> command_base_classes.Command:
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__put_in_command = {'TeamShow': team_commands.PutInCombLocPossible,
                                            'PersonShow': person_commands.PutInCombLocPossible,
@@ -167,12 +166,12 @@ class DlgCombLocPossibleEditList(QDialog):
                                            'AvailDayShow': avail_day_commands.PutInCombLocPossible}
 
         try:
-            return curr_model_name__put_in_command[curr_model_name](curr_model_id, comb_to_put_i_id)
+            return curr_model_name__put_in_command[curr_model_name](curr_model.id, comb_to_put_i_id)
         except KeyError:
             raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
 
     def factory_for_remove_combs(self, curr_model: ModelWithCombLocPossible,
-                                 curr_model_id: UUID, comb_to_put_i_id: UUID) -> command_base_classes.Command:
+                                 comb_to_put_i_id: UUID) -> command_base_classes.Command:
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__remove_command = {'TeamShow': team_commands.RemoveCombLocPossible,
                                            'PersonShow': person_commands.RemoveCombLocPossible,
@@ -181,7 +180,7 @@ class DlgCombLocPossibleEditList(QDialog):
                                            'AvailDayShow': avail_day_commands.RemoveCombLocPossible}
         try:
             command_to_remove = curr_model_name__remove_command[curr_model_name]
-            return command_to_remove(curr_model_id, comb_to_put_i_id)
+            return command_to_remove(curr_model.id, comb_to_put_i_id)
         except KeyError:
             raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
 

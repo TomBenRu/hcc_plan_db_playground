@@ -366,39 +366,3 @@ class FrmTimeOfDayEnum(QDialog):
             self.bt_delete.setDisabled(True)
         else:
             self.bt_delete.setEnabled(True)
-
-
-def set_params_for__frm_time_of_day(pydantic_model: schemas.ModelWithTimeOfDays, curr_time_of_day_id: UUID | None,
-                                    field__time_of_days__parent_model: Literal['project_defaults',
-                                    'persons_defaults', 'actor_plan_periods_defaults', 'locations_of_work_defaults',
-                                    'location_plan_periods_defaults'] | None):
-    """Returns 3 boolean parameters to note, when editing time_of_days:
-
-    only_new_time_of_day (is there a time_of_day instance to edit?),
-
-    only_new_time_of_day_cause_parent_model (current time_of_day instance is also an instance of the parent model),
-
-    standard (is current time_of_day also part of time_of_day_standart in the current model?)"""
-
-    only_new_time_of_day = False
-    only_new_time_of_day_cause_parent_model = False
-
-    if not curr_time_of_day_id:
-        only_new_time_of_day = True
-    else:
-        time_of_day_show_in_project = db_services.TimeOfDay.get(curr_time_of_day_id)
-
-        '''Falls die Tageszeit dem parent model zugewiesen ist, soll die abgeänderte Tageszeit als neue Tageszeit mit 
-        Referenz zu aktuellen model gespeichert werden.'''
-        if field__time_of_days__parent_model:
-            if time_of_day_show_in_project.__getattribute__(field__time_of_days__parent_model):
-                only_new_time_of_day_cause_parent_model = True
-                only_new_time_of_day = True
-    if curr_time_of_day_id:
-        '''Wenn sich die aktuelle Tagesz. in den Standards des aktuellen Modells befindet, wird "standard" auf True
-        gesetzt und dem Dialog mitgeteilt.'''
-        standard = curr_time_of_day_id in [t.id for t in pydantic_model.time_of_day_standards]
-    else:
-        standard = False
-
-    return only_new_time_of_day, only_new_time_of_day_cause_parent_model, standard

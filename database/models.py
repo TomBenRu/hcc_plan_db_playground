@@ -499,7 +499,7 @@ class ActorPartnerLocationPref(db.Entity):
     location_of_work = Required(LocationOfWork)
     person_default = Optional(Person, reverse='actor_partner_location_prefs_defaults')
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
-    avail_days_dafaults = Set(AvailDay)
+    avail_days_defaults = Set(AvailDay)
 
     def before_update(self):
         self.last_modified = datetime.utcnow()

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+import time
 from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
@@ -12,6 +12,45 @@ from database import schemas, db_services
 from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
 from gui.tools.slider_with_press_event import SliderWithPressEvent
+
+
+def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
+                             pref_to_put_i_id: UUID) -> command_base_classes.Command:
+    curr_model_name = curr_model.__class__.__name__
+    curr_model_name__put_in_command = {
+        'PersonShow': person_commands.PutInActorPartnerLocationPref,
+        'ActorPlanPeriodShow': actor_plan_period_commands.PutInActorPartnerLocationPref,
+        'AvailDay': avail_day_commands.PutInActorPartnerLocationPref,
+        'AvailDayShow': avail_day_commands.PutInActorPartnerLocationPref}
+
+    try:
+        return curr_model_name__put_in_command[curr_model_name](curr_model.id, pref_to_put_i_id)
+    except KeyError:
+        raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+
+
+def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
+                             pref_to_remove_id: UUID) -> command_base_classes.Command:
+    curr_model_name = curr_model.__class__.__name__
+    curr_model_name__remove_command = {
+        'PersonShow': person_commands.RemoveActorPartnerLocationPref,
+        'ActorPlanPeriodShow': actor_plan_period_commands.RemoveActorPartnerLocationPref,
+        'AvailDay': avail_day_commands.RemoveActorPartnerLocationPref,
+        'AvailDayShow': avail_day_commands.RemoveActorPartnerLocationPref}
+    try:
+        command_to_remove = curr_model_name__remove_command[curr_model_name]
+        return command_to_remove(curr_model.id, pref_to_remove_id)
+    except KeyError:
+        raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+
+
+def factory_for_reload_curr_model(curr_model: schemas.ModelWithPartnerLocPrefs) -> Callable:
+    curr_model_name = curr_model.__class__.__name__
+    curr_model_get = {'PersonShow': db_services.Person.get,
+                      'ActorPlanPeriodShow': db_services.ActorPlanPeriod.get,
+                      'AvailDay': db_services.AvailDay.get,
+                      'AvailDayShow': db_services.AvailDay.get}
+    return curr_model_get[curr_model_name]
 
 
 class SliderValToText:
@@ -33,10 +72,8 @@ class ButtonStyles:
         Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
         'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
                 'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
-        'some': {'color': {'locs': 'lightorange', 'partners': 'lightorange'},
-                 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}},
-        'none': {'color': {'locs': 'lightred', 'partners': 'lightred'},
-                 'text': {'locs': 'mit keinen Mitarbeitern', 'partners': 'in keinen Einrichtungen'}}
+        'some': {'color': {'locs': 'orange', 'partners': 'orange'},
+                 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}}
     }
 
     @classmethod
@@ -103,16 +140,21 @@ class DlgPartnerLocationPrefsLocs(QDialog):
 
 
 class DlgPartnerLocationPrefsPartner(QDialog):
-    def __init__(self, parent, person: schemas.PersonShow, apl_with_location: list[schemas.ActorPartnerLocationPref],
-                 all_partners: list[schemas.Person], controller: command_base_classes.ContrExecUndoRedo):
+    def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
+                 location_id: UUID, all_partners: list[schemas.Person]):
         super().__init__(parent)
 
         self.person = person.copy(deep=True)
-        self.apl_with_location = apl_with_location
+        self.curr_model = curr_model
+        self.location_id = location_id
         self.all_partners = all_partners
-        self.controller = controller
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.apls_with_location: list[schemas.ActorPartnerLocationPref] = []
+        self.dict_partner_id__apl: dict[UUID, schemas.ActorPartnerLocationPref] = {}
         self.dict_partner_id__slider: dict[UUID, SliderWithPressEvent] = {}
-        self.dict_partner_id_score: dict[UUID, int] = {apl.partner.id: apl.score for apl in apl_with_location}
+        self.dict_partner_id_score: dict[UUID, int] = {}
 
         self.layout = QVBoxLayout(self)
         self.layout_head = QHBoxLayout()
@@ -122,8 +164,24 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
 
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_foot.addWidget(self.button_box)
+
+        self.setup_data()
         self.setup_option_field()
         self.setup_values()
+
+    def reject(self) -> None:
+        self.controller.undo_all()
+        super().reject()
+
+    def setup_data(self):
+        self.apls_with_location = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                   if not apl.prep_delete and apl.location_of_work.id == self.location_id]
+        self.dict_partner_id__apl = {apl.partner.id: apl for apl in self.apls_with_location}
+        self.dict_partner_id_score: dict[UUID, int] = {apl.partner.id: apl.score for apl in self.apls_with_location}
 
     def setup_option_field(self):
         for row, partner in enumerate(self.all_partners):
@@ -154,8 +212,30 @@ class DlgPartnerLocationPrefsPartner(QDialog):
     def show_slider_text(self, lb_loc_val: QLabel, val: int):
         lb_loc_val.setText(SliderValToText.get_text(val))
 
-    def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
-        ...
+    def save_pref_loc(self, partner: schemas.Person, value: int):
+        if partner.id in self.dict_partner_id__apl:
+            apl = self.dict_partner_id__apl[partner.id]
+            remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
+            self.controller.execute(remove_command)
+
+        if value != 2:
+            if partner.id in self.dict_partner_id__apl:
+                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                new_apl.score = value / 2
+            else:
+                location = db_services.LocationOfWork.get(self.location_id)
+                new_apl = schemas.ActorPartnerLocationPrefCreate(
+                    score=value/2, person=self.person, partner=partner, location_of_work=location)
+
+            create_command = actor_partner_loc_pref_commands.Create(new_apl)
+            self.controller.execute(create_command)
+
+            created_apl = create_command.get_created_actor_partner_loc_pref()
+            put_in_command = factory_for_put_in_prefs(self.curr_model, created_apl.id)
+            self.controller.execute(put_in_command)
+
+        self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
+        self.setup_data()
 
 
 class DlgPartnerLocationPrefs(QDialog):
@@ -192,11 +272,36 @@ class DlgPartnerLocationPrefs(QDialog):
         self.partners: list[schemas.Person] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
-        self.dict_location_id__bt_slider: dict[UUID, dict[Literal['button', 'slider'], QPushButton | SliderWithPressEvent]] = {}
-        self.dict_partner_id__bt_slider: dict[UUID, dict[Literal['button', 'slider'], QPushButton | SliderWithPressEvent]] = {}
+        self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label'], QPushButton | SliderWithPressEvent | QLabel]] = {}
+        self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label'], QPushButton | SliderWithPressEvent | QLabel]] = {}
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.bt_reset = QPushButton('reset', clicked=self.reset)
+        self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
+        self.layout_foot.addWidget(self.button_box)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
 
         self.setup_data()
         self.setup_option_field()
+        self.setup_values()
+
+    def accept(self) -> None:
+        self.controller.execute(actor_partner_loc_pref_commands.DeleteUnused(self.person.id))
+        super().accept()
+
+    def reject(self) -> None:
+        self.controller.undo_all()
+        db_services.ActorPartnerLocationPref.delete_prep_deletes(self.person.id)
+        super().reject()
+
+    def reset(self):
+        apls = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults if not apl.prep_delete]
+        for apl in apls:
+            remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
+            self.controller.execute(remove_command)
+
+        self.reload_curr_model()
         self.setup_values()
 
     def setup_data(self):
@@ -218,19 +323,20 @@ class DlgPartnerLocationPrefs(QDialog):
             lb_loc_val = QLabel('Error')
             self.layout_options_locs.addWidget(lb_loc_val, row, 3)
 
-            slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal)
+            slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal, self)
             slider_location.setMinimum(0)
             slider_location.setMaximum(4)
             slider_location.setFixedWidth(200)
             slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_location.valueChanged.connect(partial(self.save_pref_loc, loc))
-            slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
+            slider_location.sliderReleased.connect(partial(self.save_pref_loc, loc, slider_location.value()))
+            # slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
             self.layout_options_locs.addWidget(slider_location, row, 2)
 
-            self.dict_location_id__bt_slider[loc.id] = {}
-            self.dict_location_id__bt_slider[loc.id]['button'] = bt_partners
-            self.dict_location_id__bt_slider[loc.id]['slider'] = slider_location
+            self.dict_location_id__bt_slider_lb[loc.id] = {}
+            self.dict_location_id__bt_slider_lb[loc.id]['button'] = bt_partners
+            self.dict_location_id__bt_slider_lb[loc.id]['slider'] = slider_location
+            self.dict_location_id__bt_slider_lb[loc.id]['label'] = lb_loc_val
 
         '''setup partners group:'''
         for row, partner in enumerate(self.partners):
@@ -248,64 +354,63 @@ class DlgPartnerLocationPrefs(QDialog):
             slider_partner.setFixedWidth(200)
             slider_partner.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_partner.valueChanged.connect(partial(self.save_pref_partner, partner))
+            slider_partner.sliderReleased.connect(partial(self.save_pref_partner, partner, slider_partner.value()))
             slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_partner_val))
             self.layout_options_partners.addWidget(slider_partner, row, 2)
 
-            self.dict_partner_id__bt_slider[partner.id] = {}
-            self.dict_partner_id__bt_slider[partner.id]['button'] = bt_locations
-            self.dict_partner_id__bt_slider[partner.id]['slider'] = slider_partner
+            self.dict_partner_id__bt_slider_lb[partner.id] = {}
+            self.dict_partner_id__bt_slider_lb[partner.id]['button'] = bt_locations
+            self.dict_partner_id__bt_slider_lb[partner.id]['slider'] = slider_partner
+            self.dict_partner_id__bt_slider_lb[partner.id]['label'] = lb_partner_val
+
+    def setup_values_locations(self):
+        """Regler und Buttons bekommen die korrekten Einstellungen."""
+
+        for loc in self.locations:
+            partner_vals_of_locations = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                         if not apl.prep_delete and apl.location_of_work.id == loc.id]
+            partner_vals_of_locations += [1 for _ in range(len(self.partners) - len(partner_vals_of_locations))]
+
+            if len(set(partner_vals_of_locations)) == 1:
+                self.set_bt__style_txt(self.dict_location_id__bt_slider_lb[loc.id]['button'], 'all', 'locs')
+            elif len(set(partner_vals_of_locations)) > 1:
+                self.set_bt__style_txt(self.dict_location_id__bt_slider_lb[loc.id]['button'], 'some', 'locs')
+            else:
+                raise Exception('Keine Werte in partner_vals_of_locations!')
+
+            slider_value = max([int(2 * v) for v in partner_vals_of_locations])
+            self.show_slider_text(self.dict_location_id__bt_slider_lb[loc.id]['label'], slider_value)
+            self.dict_location_id__bt_slider_lb[loc.id]['slider'].setValue(slider_value)
+
+    def setup_values_parters(self):
+        """Regler und Buttons bekommen die korrekten Einstellungen."""
+
+        for partner in self.partners:
+            location_vals_of_partner = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                        if not apl.prep_delete and apl.partner.id == partner.id]
+            location_vals_of_partner += [1 for _ in range(len(self.locations) - len(location_vals_of_partner))]
+
+            if len(set(location_vals_of_partner)) == 1:
+                self.set_bt__style_txt(self.dict_partner_id__bt_slider_lb[partner.id]['button'], 'all', 'partners')
+            elif len(set(location_vals_of_partner)) > 1:
+                self.set_bt__style_txt(self.dict_partner_id__bt_slider_lb[partner.id]['button'], 'some', 'partners')
+            else:
+                raise Exception('Keine Werte in location_vals_of_partner!')
+
+            slider_value = max([int(2 * v) for v in location_vals_of_partner])
+            self.show_slider_text(self.dict_partner_id__bt_slider_lb[partner.id]['label'], slider_value)
+            self.dict_partner_id__bt_slider_lb[partner.id]['slider'].setValue(slider_value)
 
     def setup_values(self):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
-        '''Einstellungen für Locations:'''
-        for loc in self.locations:
-            partner_vals_of_locations = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
-                                         if not apl.prep_delete and apl.location_of_work.id == loc.id]
-
-            if all(partner_vals_of_locations):  # all([]) is True
-                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'all', 'locs')
-                if not partner_vals_of_locations:
-                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(2)
-                else:
-                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(int(max(partner_vals_of_locations)*2))
-            elif any(partner_vals_of_locations):  # any([]) is True
-                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'some', 'locs')
-                if not partner_vals_of_locations:
-                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(2)
-                else:
-                    self.dict_location_id__bt_slider[loc.id]['slider'].setValue(int(max(partner_vals_of_locations)*2))
-            else:
-                self.set_bt__style_txt(self.dict_location_id__bt_slider[loc.id]['button'], 'none', 'locs')
-                self.dict_location_id__bt_slider[loc.id]['slider'].setValue(0)
-
-        '''Einstellungen für Partner:'''
-        for partner in self.partners:
-            location_vals_of_partner = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
-                                        if not apl.prep_delete and apl.partner.id == partner.id]
-
-            if all(location_vals_of_partner):  # all([]) is True
-                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'all', 'partners')
-                if not location_vals_of_partner:
-                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(2)
-                else:
-                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(int(max(location_vals_of_partner)*2))
-            elif any(location_vals_of_partner):  # any([]) is True
-                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'some', 'partners')
-                if not location_vals_of_partner:
-                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(2)
-                else:
-                    self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(int(max(location_vals_of_partner)*2))
-            else:
-                self.set_bt__style_txt(self.dict_partner_id__bt_slider[partner.id]['button'], 'none', 'partners')
-                self.dict_partner_id__bt_slider[partner.id]['slider'].setValue(0)
+        self.setup_values_locations()
+        self.setup_values_parters()
 
     def reload_curr_model(self):
-        self.curr_model = self.factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
-        self.setup_values()
+        self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
 
-    def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some', 'none'], group: Literal['locs', 'partners']):
+    def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some'], group: Literal['locs', 'partners']):
         text, bg_color = ButtonStyles.get_bg_color_text(style, group)
         button.setText(text)
         button.setStyleSheet(f'background-color: {bg_color}')
@@ -314,6 +419,8 @@ class DlgPartnerLocationPrefs(QDialog):
         label.setText(SliderValToText.get_text(value))
 
     def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
+        value = self.dict_location_id__bt_slider_lb[location.id]['slider'].value()
+        time.sleep(1)
         score = value / 2
         apls_with_loc: dict[UUID, schemas.ActorPartnerLocationPref] = {
             apl.partner.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
@@ -322,39 +429,65 @@ class DlgPartnerLocationPrefs(QDialog):
         for partner in self.partners:
             if partner.id in apls_with_loc:
                 apl = db_services.ActorPartnerLocationPref.get(apls_with_loc[partner.id].id)
-                remove_command = self.factory_for_remove_prefs(self.curr_model, apl.id)
+                remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
                 self.controller.execute(remove_command)
-                if score != 1:
+
+            if score != 1:
+                if partner.id in apls_with_loc:
                     new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
                     new_apl_pref.score = score
-                    create_command = actor_partner_loc_pref_commands.Create(new_apl_pref)
-                    self.controller.execute(create_command)
-                    created_apl = create_command.get_created_actor_partner_loc_pref()
-                    put_in_command = self.factory_for_put_in_prefs(self.curr_model, created_apl.id)
-                    self.controller.execute(put_in_command)
+                else:
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person,
+                                                                          partner=partner,
+                                                                          location_of_work=location)
 
-                self.reload_curr_model()
-
-            elif score != 1:
-                new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person, partner=partner,
-                                                                      location_of_work=location)
                 create_command = actor_partner_loc_pref_commands.Create(new_apl_pref)
                 self.controller.execute(create_command)
                 created_apl = create_command.get_created_actor_partner_loc_pref()
-                put_in_command = self.factory_for_put_in_prefs(self.curr_model, created_apl.id)
+                put_in_command = factory_for_put_in_prefs(self.curr_model, created_apl.id)
                 self.controller.execute(put_in_command)
 
-                self.reload_curr_model()
+        self.reload_curr_model()
+        self.setup_values()
 
     def save_pref_partner(self, partner: schemas.Person, value: int):
-        ...
+        value = self.dict_partner_id__bt_slider_lb[partner.id]['slider'].value()
+        time.sleep(1)
+        score = value / 2
+        apls_with_partner: dict[UUID, schemas.ActorPartnerLocationPref] = {
+            apl.location_of_work.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
+            if not apl.prep_delete and apl.partner.id == partner.id}
+
+        for location in self.locations:
+            if location.id in apls_with_partner:
+                apl = db_services.ActorPartnerLocationPref.get(apls_with_partner[location.id].id)
+                remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
+                self.controller.execute(remove_command)
+
+            if score != 1:
+                if location.id in apls_with_partner:
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                    new_apl_pref.score = score
+                else:
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person,
+                                                                          partner=partner,
+                                                                          location_of_work=location)
+
+                create_command = actor_partner_loc_pref_commands.Create(new_apl_pref)
+                self.controller.execute(create_command)
+                created_apl = create_command.get_created_actor_partner_loc_pref()
+                put_in_command = factory_for_put_in_prefs(self.curr_model, created_apl.id)
+                self.controller.execute(put_in_command)
+
+        self.reload_curr_model()
+        self.setup_values()
 
     def choice_partners(self, location_id: UUID):
-        apl_with_partners = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
-                             if not apl.prep_delete and apl.location_of_work.id == location_id]
-        dlg = DlgPartnerLocationPrefsPartner(self, self.person, apl_with_partners, self.partners, self.controller)
+        dlg = DlgPartnerLocationPrefsPartner(self, self.person, self.curr_model, location_id, self.partners)
         if dlg.exec():
-            ...
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.reload_curr_model()
+            self.setup_values()
 
     def choice_locations(self, partner_id: UUID):
         apl_with_location = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
@@ -362,39 +495,3 @@ class DlgPartnerLocationPrefs(QDialog):
         dlg = DlgPartnerLocationPrefsLocs(self, self.person, apl_with_location, self.locations, self.controller)
         if dlg.exec():
             ...
-
-    def factory_for_put_in_prefs(self, curr_model: schemas.ModelWithPartnerLocPrefs,
-                                 pref_to_put_i_id: UUID) -> command_base_classes.Command:
-        curr_model_name = curr_model.__class__.__name__
-        curr_model_name__put_in_command = {
-            'PersonShow': person_commands.PutInActorPartnerLocationPref,
-            'ActorPlanPeriodShow': actor_plan_period_commands.PutInActorPartnerLocationPref,
-            'AvailDay': avail_day_commands.PutInActorPartnerLocationPref,
-            'AvailDayShow': avail_day_commands.PutInActorPartnerLocationPref}
-
-        try:
-            return curr_model_name__put_in_command[curr_model_name](curr_model.id, pref_to_put_i_id)
-        except KeyError:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
-
-    def factory_for_remove_prefs(self, curr_model: schemas.ModelWithPartnerLocPrefs,
-                                 pref_to_remove_id: UUID) -> command_base_classes.Command:
-        curr_model_name = curr_model.__class__.__name__
-        curr_model_name__remove_command = {
-            'PersonShow': person_commands.RemoveActorPartnerLocationPref,
-            'ActorPlanPeriodShow': actor_plan_period_commands.RemoveActorPartnerLocationPref,
-            'AvailDay': avail_day_commands.RemoveActorPartnerLocationPref,
-            'AvailDayShow': avail_day_commands.RemoveActorPartnerLocationPref}
-        try:
-            command_to_remove = curr_model_name__remove_command[curr_model_name]
-            return command_to_remove(curr_model.id, pref_to_remove_id)
-        except KeyError:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
-
-    def factory_for_reload_curr_model(self, curr_model: schemas.ModelWithPartnerLocPrefs) -> Callable:
-        curr_model_name = curr_model.__class__.__name__
-        curr_model_get = {'PersonShow': db_services.Person.get,
-                          'ActorPlanPeriodShow': db_services.ActorPlanPeriod.get,
-                          'AvailDay': db_services.AvailDay.get,
-                          'AvailDayShow': db_services.AvailDay.get}
-        return curr_model_get[curr_model_name]

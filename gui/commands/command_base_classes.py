@@ -58,8 +58,14 @@ class ContrExecUndoRedo(Invoker):
         self.redo_stack = self.undo_stack[:]
         self.undo_stack.clear()
 
-    def show_stacks(self):
-        return f'Undo-Stack: {self.undo_stack}\nRedo-Stack: {self.redo_stack}'
+    def get_undo_stack(self):
+        return self.undo_stack
+
+    def add_to_undo_stack(self, value: list[Command] | Command):
+        if isinstance(value, list):
+            self.undo_stack.extend(value)
+        else:
+            self.undo_stack.append(value)
 
 
 class BatchCommand(Command):

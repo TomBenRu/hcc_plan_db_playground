@@ -468,7 +468,9 @@ class FrmPersonModify(FrmPersonData):
     def edit_partner_location_prefs(self):
         team = db_services.Team.get(self.person.team_of_actor.id)
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, self.person, self.person, None, team)
-        dlg.exec()
+        if not dlg.exec():
+            return
+        self.person = db_services.Person.get(self.person.id)
 
 
 class WidgetLocationsOfWork(QWidget):

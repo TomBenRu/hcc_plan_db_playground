@@ -1020,8 +1020,9 @@ class ActorPartnerLocationPref:
         person_db = models.Person.get_for_update(id=actor_partner_loc_pref.person.id)
         partner_db = models.Person.get_for_update(id=actor_partner_loc_pref.partner.id)
         location_db = models.LocationOfWork.get_for_update(id=actor_partner_loc_pref.location_of_work.id)
-        actor_partner_loc_pref_db = models.ActorLocationPref(score=actor_partner_loc_pref.score, person=person_db,
-                                                             parter=partner_db, location_of_work=location_db)
+        actor_partner_loc_pref_db = models.ActorPartnerLocationPref(score=actor_partner_loc_pref.score,
+                                                                    person=person_db, partner=partner_db,
+                                                                    location_of_work=location_db)
         return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
 
     @staticmethod

@@ -5,10 +5,11 @@ from uuid import UUID
 
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox
+    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
+from gui.actions import Action
 from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
 from gui.tools.slider_with_press_event import SliderWithPressEvent
@@ -84,16 +85,21 @@ class ButtonStyles:
 
 
 class DlgPartnerLocationPrefsLocs(QDialog):
-    def __init__(self, parent, person: schemas.PersonShow, apl_with_partner: list[schemas.ActorPartnerLocationPref],
-                 all_locations: list[schemas.LocationOfWork], controller: command_base_classes.ContrExecUndoRedo):
+    def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
+                 partner_id: UUID, all_locations: list[schemas.LocationOfWork]):
         super().__init__(parent)
 
         self.person = person.copy(deep=True)
-        self.apl_with_partner = apl_with_partner
+        self.curr_model = curr_model
+        self.partner_id = partner_id
         self.all_locations = all_locations
-        self.controller = controller
-        self.dict_loc_id__slider: dict[UUID, SliderWithPressEvent] = {}
-        self.dict_loc_id_score: dict[UUID, int] = {apl.location_of_work.id: apl.score for apl in apl_with_partner}
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.apls_with_partner: list[schemas.ActorPartnerLocationPref] = []
+        self.dict_location_id__apl: dict[UUID, schemas.ActorPartnerLocationPref] = {}
+        self.dict_location_id__slider: dict[UUID, SliderWithPressEvent] = {}
+        self.dict_location_id_score: dict[UUID, int] = {}
 
         self.layout = QVBoxLayout(self)
         self.layout_head = QHBoxLayout()
@@ -103,40 +109,84 @@ class DlgPartnerLocationPrefsLocs(QDialog):
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
 
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_foot.addWidget(self.button_box)
+
+        self.setup_data()
         self.setup_option_field()
         self.setup_values()
+        self.connect_sliders_to_save()
+
+    def reject(self) -> None:
+        self.controller.undo_all()
+        super().reject()
+
+    def setup_data(self):
+        self.apls_with_partner = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
+                                  if not apl.prep_delete and apl.partner.id == self.partner_id]
+        self.dict_location_id__apl = {apl.location_of_work.id: apl for apl in self.apls_with_partner}
+        self.dict_location_id_score: dict[UUID, int] = {apl.location_of_work.id: apl.score
+                                                        for apl in self.apls_with_partner}
 
     def setup_option_field(self):
-        for row, loc in enumerate(self.all_locations):
-            lb_location = QLabel(f'{loc.name} ({loc.address.city}):')
-            lb_loc_val = QLabel('Error')
+        for row, location in enumerate(self.all_locations):
+            lb_location = QLabel(f'{location.name} ({location.address.city}):')
+            lb_slider_val = QLabel('Error')
             slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider_location.setMinimum(0)
             slider_location.setMaximum(4)
             slider_location.setFixedWidth(200)
             slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_location.valueChanged.connect(partial(self.save_pref_loc, loc))
-            slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
+            slider_location.valueChanged.connect(partial(self.show_slider_text, lb_slider_val))
 
             self.layout_options.addWidget(lb_location, row, 0)
             self.layout_options.addWidget(slider_location, row, 1)
-            self.layout_options.addWidget(lb_loc_val, row, 2)
+            self.layout_options.addWidget(lb_slider_val, row, 2)
 
-            self.dict_loc_id__slider[loc.id] = slider_location
+            self.dict_location_id__slider[location.id] = slider_location
+
+    def connect_sliders_to_save(self):
+        for location_id, slider in self.dict_location_id__slider.items():
+            location = db_services.LocationOfWork.get(location_id)
+            slider.valueChanged.connect(partial(self.save_pref_loc, location))
 
     def setup_values(self):
-        for loc in self.all_locations:
-            if loc.id in self.dict_loc_id_score:
-                self.dict_loc_id__slider[loc.id].setValue(int(self.dict_loc_id_score[loc.id]*2))
+        for location in self.all_locations:
+            if location.id in self.dict_location_id_score:
+                self.dict_location_id__slider[location.id].setValue(int(self.dict_location_id_score[location.id]*2))
             else:
-                self.dict_loc_id__slider[loc.id].setValue(2)
+                self.dict_location_id__slider[location.id].setValue(2)
 
     def show_slider_text(self, lb_loc_val: QLabel, val: int):
         lb_loc_val.setText(SliderValToText.get_text(val))
 
     def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
-        ...
+        if location.id in self.dict_location_id__apl:
+            apl = self.dict_location_id__apl[location.id]
+            remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
+            self.controller.execute(remove_command)
+
+        if value != 2:
+            if location.id in self.dict_location_id__apl:
+                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                new_apl.score = value / 2
+            else:
+                partner = db_services.Person.get(self.partner_id)
+                new_apl = schemas.ActorPartnerLocationPrefCreate(
+                    score=value/2, person=self.person, partner=partner, location_of_work=location)
+
+            create_command = actor_partner_loc_pref_commands.Create(new_apl)
+            self.controller.execute(create_command)
+
+            created_apl = create_command.get_created_actor_partner_loc_pref()
+            put_in_command = factory_for_put_in_prefs(self.curr_model, created_apl.id)
+            self.controller.execute(put_in_command)
+
+        self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
+        self.setup_data()
 
 
 class DlgPartnerLocationPrefsPartner(QDialog):
@@ -172,6 +222,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.setup_data()
         self.setup_option_field()
         self.setup_values()
+        self.connect_sliders_to_save()
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -193,7 +244,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
             slider_partner.setFixedWidth(200)
             slider_partner.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_partner.valueChanged.connect(partial(self.save_pref_loc, partner))
+            # slider_partner.valueChanged.connect(partial(self.save_pref_loc, partner))
             slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_slider_val))
 
             self.layout_options.addWidget(lb_partner, row, 0)
@@ -201,6 +252,11 @@ class DlgPartnerLocationPrefsPartner(QDialog):
             self.layout_options.addWidget(lb_slider_val, row, 2)
 
             self.dict_partner_id__slider[partner.id] = slider_partner
+
+    def connect_sliders_to_save(self):
+        for partner_id, slider in self.dict_partner_id__slider.items():
+            partner = db_services.Person.get(partner_id)
+            slider.valueChanged.connect(partial(self.save_pref_loc, partner))
 
     def setup_values(self):
         for partner in self.all_partners:
@@ -276,7 +332,8 @@ class DlgPartnerLocationPrefs(QDialog):
         self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label'], QPushButton | SliderWithPressEvent | QLabel]] = {}
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        self.bt_reset = QPushButton('reset', clicked=self.reset)
+        self.bt_reset = QPushButton('reset')
+        self.configure_bt_reset()
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.layout_foot.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
@@ -295,7 +352,7 @@ class DlgPartnerLocationPrefs(QDialog):
         db_services.ActorPartnerLocationPref.delete_prep_deletes(self.person.id)
         super().reject()
 
-    def reset(self):
+    def reset_to_ones(self):
         apls = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults if not apl.prep_delete]
         for apl in apls:
             remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
@@ -303,6 +360,29 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.reload_curr_model()
         self.setup_values()
+
+    def reset_to_parent_values(self):
+        for apl in [pref for pref in self.curr_model.actor_partner_location_prefs_defaults if not pref.prep_delete]:
+            remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
+            self.controller.execute(remove_command)
+        for apl in [pref for pref in self.parent_model.actor_partner_location_prefs_defaults if not pref.prep_delete]:
+            put_in_command = factory_for_put_in_prefs(self.curr_model, apl.id)
+            self.controller.execute(put_in_command)
+
+        self.reload_curr_model()
+        self.setup_values()
+
+    def configure_bt_reset(self):
+        if not self.parent_model:
+            self.bt_reset.clicked.connect(self.reset_to_ones)
+        else:
+            menue = QMenu()
+            menue.addAction(Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
+                                   self.reset_to_ones))
+            menue.addAction(Action(self, None, 'Werte von übergeordnetem Modell',
+                                   'Alle Werte werden vom übergeordnten Modell übernommen',
+                                   self.reset_to_parent_values))
+            self.bt_reset.setMenu(menue)
 
     def setup_data(self):
         self.partners = sorted([p for p in self.team.persons if not p.prep_delete and p.id != self.person.id],
@@ -490,8 +570,8 @@ class DlgPartnerLocationPrefs(QDialog):
             self.setup_values()
 
     def choice_locations(self, partner_id: UUID):
-        apl_with_location = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
-                             if not apl.prep_delete and apl.partner.id == partner_id]
-        dlg = DlgPartnerLocationPrefsLocs(self, self.person, apl_with_location, self.locations, self.controller)
+        dlg = DlgPartnerLocationPrefsLocs(self, self.person, self.curr_model, partner_id, self.locations)
         if dlg.exec():
-            ...
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.reload_curr_model()
+            self.setup_values()

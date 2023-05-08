@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs
+from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
 from gui.frm_time_of_day import TimeOfDaysActorPlanPeriodEditList
@@ -336,6 +336,122 @@ class ButtonActorLocationPref(QPushButton):
                 self.set_stylesheet()
 
 
+class ButtonActorPartnerLocationPref(QPushButton):
+    def __init__(self, parent, day: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent)
+
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        signal_handling.handler.signal_reload_actor_pp__avail_configs.connect(
+            lambda data: self.reload_actor_plan_period(data))
+
+        self.setObjectName(f'act_partner_loc_pref: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        self.actor_plan_period = actor_plan_period
+        self.day = day
+
+        self.setToolTip(f'Mitarbeiter- / Einrichtungspräferenzen am {day.strftime("%d.%m.%Y")}')
+
+        self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def check_pref_of_day__eq__pref_of_actor_pp(self):
+        avail_days = self.actor_plan_period.avail_days
+        avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+        if not avail_days_at_date:
+            return
+        prefs_actor_plan_period = {(pref.location_of_work.id, pref.partner.id, pref.score)
+                                   for pref in self.actor_plan_period.actor_partner_location_prefs_defaults
+                                   if not pref.prep_delete}
+        pref_of_idx0 = {(pref.location_of_work.id, pref.partner.id, pref.score)
+                        for pref in avail_days_at_date[0].actor_partner_location_prefs_defaults if not pref.prep_delete}
+        if len(avail_days_at_date) > 1:
+            for avd in avail_days_at_date[1:]:
+                avd_prefs = {(pref.location_of_work.id, pref.partner.id, pref.score)
+                             for pref in avd.actor_partner_location_prefs_defaults
+                             if not pref.prep_delete}
+                if avd_prefs != pref_of_idx0:
+                    self.reset_prefs_of_day(avail_days_at_date)
+                    QMessageBox.critical(self, 'Partner- / Einrichtungspräferenzen',
+                                         f'Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages '
+                                         f'wurden auf die Standardwerdte des Planungszeitraums von '
+                                         f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
+                                         f'zurückgesetzt.')
+                    return True
+
+        if prefs_actor_plan_period == pref_of_idx0:
+            return True
+        else:
+            return False
+
+    def reset_prefs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
+        if not avail_days_at_date:
+            avail_days = self.actor_plan_period.avail_days
+            avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
+
+        for avd in avail_days_at_date:
+            for pref_avd in avd.actor_partner_location_prefs_defaults:
+                db_services.AvailDay.remove_partner_location_pref(avd.id, pref_avd.id)
+            for pref_app in self.actor_plan_period.actor_partner_location_prefs_defaults:
+                db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_app.id)
+
+    def set_stylesheet(self):
+        check_loc_pref__eq__loc_pref_of_actor_pp = self.check_pref_of_day__eq__pref_of_actor_pp()
+        if check_loc_pref__eq__loc_pref_of_actor_pp is None:
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #fff4d6}}")
+        elif check_loc_pref__eq__loc_pref_of_actor_pp:
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #acf49f}}")
+        else:
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #f4b2a5}}")
+        'acf49f'
+
+    def avail_days_at_date(self) -> list[schemas.AvailDay]:
+        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.day == self.day]
+
+    def mouseReleaseEvent(self, e) -> None:
+        avail_days_at_date = self.avail_days_at_date()
+        if not avail_days_at_date:
+            QMessageBox.critical(self, 'Partner- / Einrichtungspräferenzen',
+                                 'Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, '
+                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            return
+
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
+            self, person, avail_days_at_date[0], self.actor_plan_period, team)
+        if not dlg.exec():
+            return
+
+        '''avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
+        nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst'''
+        avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
+        for avd in avail_days_at_date[1:]:
+            for pref in avd.actor_partner_location_prefs_defaults:
+                db_services.AvailDay.remove_partner_location_pref(avd.id, pref.id)
+            for pref_new in avail_days_at_date[0].actor_partner_location_prefs_defaults:
+                if not pref_new.prep_delete:
+                    db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
+
+        self.reload_actor_plan_period()
+        # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
+        signal_handling.handler.reload_actor_pp__frm_actor_plan_period()
+
+    @profile
+    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
+        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
+        if self.avail_days_at_date() or data.date:
+            if data is None or data.date is None or data.date == self.day:
+                if data is not None:
+                    self.actor_plan_period = data.actor_plan_period
+                else:
+                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+                self.set_stylesheet()
+
+
 class FrmTabActorPlanPeriods(QWidget):
     def __init__(self, plan_period: schemas.PlanPeriodShow):
         super().__init__()
@@ -504,6 +620,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_comb_loc_possibles)
         bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
         self.side_menu.add_button(bt_actor_loc_prefs)
+        bt_actor_partner_loc_prefs = QPushButton('Mitsp.- / Einr.-Präf.', clicked=self.edit_partner_loc_prefs)
+        self.side_menu.add_button(bt_actor_partner_loc_prefs)
 
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -547,6 +665,13 @@ class FrmActorPlanPeriod(QWidget):
                                                   'ändern. Später hinzugefügte Verfügbarkeiten übernehmen davon '
                                                   'unberührt die Präferenzen des Planungszeitraums.')
         self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
+
+        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf.', clicked=self.edit_all_partner_loc_prefs)
+        bt_actor_partner_loc_prefs_all_avail.setStatusTip(
+            'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum ändern. '
+            'Später hinzugefügte Verfügbarkeiten übernehmen davon unberührt die Präferenzen des Planungszeitraums.')
+        self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
+
         for col, d in enumerate(self.days, start=1):
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -568,6 +693,8 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(bt_comb_loc_poss, row+2, col)
             bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
             self.layout.addWidget(bt_loc_prefs, row+3, col)
+            bt_partn_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
+            self.layout.addWidget(bt_partn_loc_prefs, row+4, col)
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -785,7 +912,7 @@ class FrmActorPlanPeriod(QWidget):
                 db_services.AvailDay.put_in_location_pref(all_avail_days[0].id, created_pref.id)
 
         '''all_avail_days[0].actor_location_prefs_defaults wurden geändert.
-        nun werden die actor_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod angepasst'''
+        Nun werden die actor_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod angepasst'''
         all_avail_days[0] = db_services.AvailDay.get(all_avail_days[0].id)
         for avd in all_avail_days[1:]:
             for pref in avd.actor_location_prefs_defaults:
@@ -795,6 +922,49 @@ class FrmActorPlanPeriod(QWidget):
                     db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
+        self.reload_actor_plan_period()
+        signal_handling.handler.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period))
+
+    def edit_partner_loc_prefs(self):
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
+            self, person, self.actor_plan_period, person, team)
+        if dlg.exec():
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            signal_handling.handler.reload_actor_pp__avail_configs(
+                signal_handling.DataActorPPWithDate(self.actor_plan_period))
+
+    def edit_all_partner_loc_prefs(self):
+        """Bearbeiten der actor_partner_location_prefs aller AvailDays in dieser Planperiode."""
+        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
+        if not all_avail_days:
+            QMessageBox.critical(self, 'Mitarbeiter- / Einrichtungspräferenzen',
+                                 f'In dieser Planungsperiode von '
+                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
+                                 f'gibt es noch keine Verfügbarkeiten.')
+            return
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+        team = db_services.Team.get(self.actor_plan_period.team.id)
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, person, all_avail_days[0],
+                                                                 self.actor_plan_period, team)
+        if not dlg.exec():
+            return
+
+        '''all_avail_days[0].actor_partner_location_prefs_defaults wurden geändert.
+        Nun werden die actor_partner_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod 
+        angepasst'''
+        all_avail_days[0] = db_services.AvailDay.get(all_avail_days[0].id)
+        for avd in all_avail_days[1:]:
+            for pref in avd.actor_partner_location_prefs_defaults:
+                db_services.AvailDay.remove_partner_location_pref(avd.id, pref.id)
+            for pref_new in all_avail_days[0].actor_partner_location_prefs_defaults:
+                if not pref_new.prep_delete:
+                    db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
+
+        db_services.ActorPartnerLocationPref.delete_unused(person.id)
+
         self.reload_actor_plan_period()
         signal_handling.handler.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))

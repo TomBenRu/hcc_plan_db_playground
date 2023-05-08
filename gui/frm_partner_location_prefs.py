@@ -5,7 +5,7 @@ from uuid import UUID
 
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu
+    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
@@ -376,13 +376,13 @@ class DlgPartnerLocationPrefs(QDialog):
         if not self.parent_model:
             self.bt_reset.clicked.connect(self.reset_to_ones)
         else:
-            menue = QMenu()
-            menue.addAction(Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
-                                   self.reset_to_ones))
-            menue.addAction(Action(self, None, 'Werte von übergeordnetem Modell',
-                                   'Alle Werte werden vom übergeordnten Modell übernommen',
-                                   self.reset_to_parent_values))
-            self.bt_reset.setMenu(menue)
+            menu = QMenu(self)
+            menu.addAction(Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
+                                  self.reset_to_ones))
+            menu.addAction(Action(self, None, 'Werte von übergeordnetem Modell',
+                                  'Alle Werte werden vom übergeordnten Modell übernommen',
+                                  self.reset_to_parent_values))
+            self.bt_reset.setMenu(menu)
 
     def setup_data(self):
         self.partners = sorted([p for p in self.team.persons if not p.prep_delete and p.id != self.person.id],

@@ -470,6 +470,7 @@ class FrmPersonModify(FrmPersonData):
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, self.person, self.person, None, team)
         if not dlg.exec():
             return
+        self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
         self.person = db_services.Person.get(self.person.id)
 
 

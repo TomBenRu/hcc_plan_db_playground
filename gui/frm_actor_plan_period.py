@@ -6,7 +6,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -464,6 +464,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.scroll_area_availables = QScrollArea()
         self.frame_availables: FrmActorPlanPeriod | None = None
         self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
+        self.lb_notes_pp.setFixedHeight(20)
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)
         self.lb_notes_pp.setFont(font_lb_notes)
@@ -472,6 +473,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.te_notes_pp.setFixedHeight(180)
 
         self.lb_notes_actor = QLabel('Infos zur Person:')
+        self.lb_notes_actor.setFixedHeight(20)
         font_lb_notes = self.lb_notes_actor.font()
         font_lb_notes.setBold(True)
         self.lb_notes_actor.setFont(font_lb_notes)

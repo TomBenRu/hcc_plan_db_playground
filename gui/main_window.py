@@ -135,8 +135,6 @@ class MainWindow(QMainWindow):
         self.tabs_plans.setObjectName('plans')
         self.tabs_right.addTab(self.tabs_planungsmasken, 'Planungsmasken')
         self.tabs_right.addTab(self.tabs_plans, 'Einsatzpläne')
-        self.tabs_planungsmasken.addTab(QWidget(), 'availables/events 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Einrichtungen verwendet.
-        self.tabs_planungsmasken.addTab(QWidget(), 'availables/events 2')  # statt QWidget wird das jew. Widget für die Planungsmaske der Einrichtungen verwendet.
         self.tabs_plans.addTab(QWidget(), 'Planung 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
         self.tabs_plans.addTab(QWidget(), 'Planung 2')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
 
@@ -211,9 +209,12 @@ class MainWindow(QMainWindow):
 
     def goto_team(self, team: schemas.TeamShow):
         for plan_period in team.plan_periods:
+            widget_pp_tab = QWidget(self)
             self.tabs_planungsmasken.addTab(
-                FrmTabActorPlanPeriods(plan_period),
-                f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
+                widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
+            tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, None)
+
+            tabs_period.addTab(FrmTabActorPlanPeriods(plan_period), f'Mitarbeiter')
 
     def master_data(self):
         if self.frm_master_data is None:

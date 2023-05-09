@@ -612,3 +612,6 @@ class ExcelExportSettings(db.Entity):
     id = PrimaryKey(int, auto=True)
     plan_period = Required(PlanPeriod)
     job = Required(bytes)"""
+
+
+# todo: Beibehaltung von Planungen nach Löschung bzw. Statusänderungen (z.B. Änderungen von Zugehörigkeiten zu einem Team).

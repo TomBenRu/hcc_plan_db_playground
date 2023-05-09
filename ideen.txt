@@ -1,0 +1,48 @@
+Frage:
+ich habe ein projekt für die Einsatzplanung freier Mitarbeiter in einem Betrieb.
+Die Mitarbeiter sind jeweils einem festen Team zugeordnet, welches bestimmte Teilaufgaben eines Großprojektes umsetzt.
+Die Einsatzplanung erfolgt in Zeitabschnitten von immer einem Monat.
+Den Mitarbeitern werden dabei betimmte Aufgaben zugeordet für die das jeweilige Team zuständig ist.
+Ich habe dafür eine Postgres-Datenbank angelegt.
+In dieser Datenbank gibt es unter anderem eine Tabelle "Mitarbeiter" mit einem Feld,
+über welches die Verknüpfung zu einem Team herstellt.
+Es kommt im Laufe der Zeit vor, dass ein Mitarbeiter das Team wechselt.
+Dadurch verschwindet logischerweise dieser Mitarbeiter aus den Daten der vergangenen Einsatzplanungen.
+Gibt es eine Möglichkeit die Struktur vergangener Einsatzplanungen trotzdem zu behalten?
+
+Antwort:
+Ja, es gibt eine Möglichkeit, die Struktur vergangener Einsatzplanungen trotzdem zu behalten.
+Eine Möglichkeit wäre, eine zusätzliche Tabelle in der Datenbank anzulegen, in der die Zuordnung von Mitarbeitern
+zu Teams für jeden Zeitabschnitt gespeichert wird. Auf diese Weise könnten Sie die Zuordnung von Mitarbeitern zu Teams
+für jeden Zeitabschnitt nachvollziehen und die Struktur vergangener Einsatzplanungen beibehalten.
+Eine andere Möglichkeit wäre, in der Tabelle "Mitarbeiter" ein zusätzliches Feld hinzuzufügen,
+in dem das Datum des Teamwechsels gespeichert wird.
+Auf diese Weise könnten Sie die Zuordnung von Mitarbeitern zu Teams für jeden Zeitabschnitt nachvollziehen
+und die Struktur vergangener Einsatzplanungen beibehalten.
+Welche dieser beiden Möglichkeiten bevorzugen Sie?
+
+Erwiederung:
+ich präferiere die erstgenannt Möglichkeit.
+
+Antwort:
+In Ordnung. Um die erste Möglichkeit umzusetzen, könnten Sie eine neue Tabelle in Ihrer Postgres-Datenbank anlegen,
+z.B. “Mitarbeiter_Team_Zuordnung”. In dieser Tabelle könnten Sie dann für jeden Zeitabschnitt die Zuordnung von
+Mitarbeitern zu Teams speichern. Die Tabelle könnte z.B. folgende Spalten enthalten: “Mitarbeiter_ID”, “Team_ID”
+und “Zeitabschnitt”. Auf diese Weise könnten Sie die Zuordnung von Mitarbeitern zu Teams für jeden Zeitabschnitt
+nachvollziehen und die Struktur vergangener Einsatzplanungen beibehalten.
+
+Hier ist ein Beispiel für die Verwendung der neuen Tabelle "Mitarbeiter_Team_Zuordnung":
+Angenommen, Sie haben zwei Teams: Team A und Team B. Im Januar ist Mitarbeiter 1 Teil von Team A und Mitarbeiter 2
+Teil von Team B. Im Februar wechselt Mitarbeiter 1 zu Team B.
+
+In der Tabelle "Mitarbeiter_Team_Zuordnung" könnten Sie dann folgende Einträge vornehmen:
+
+| Mitarbeiter_ID | Team_ID | Zeitabschnitt |
+|----------------|---------|---------------|
+| 1              | A       | Januar        |
+| 2              | B       | Januar        |
+| 1              | B       | Februar       |
+| 2              | B       | Februar       |
+
+Auf diese Weise können Sie die Zuordnung von Mitarbeitern zu Teams für jeden Zeitabschnitt nachvollziehen
+und die Struktur vergangener Einsatzplanungen beibehalten.

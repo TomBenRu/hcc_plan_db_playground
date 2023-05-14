@@ -36,7 +36,8 @@ class Person(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     project = Required('Project', reverse='persons')
-    team_of_actor = Optional('Team', reverse='persons')
+    # team_of_actor = Optional('Team', reverse='persons')  # wird entfernt
+    team_actor_assigns = Set('TeamActorAssign')
     project_of_admin = Optional('Project', reverse='admin')
     teams_of_dispatcher = Set('Team', reverse='dispatcher', cascade_delete=False)
     actor_plan_periods = Set('ActorPlanPeriod')
@@ -59,19 +60,21 @@ class Person(db.Entity):
         """Wenn sich der Wert von team_of_actor geändert hat, werden die aktuellen availables-Eiträge
         der Person gelöscht. die verbundenen avail_day-Einträge werden dann automatisch gelöscht."""
         self.last_modified = datetime.utcnow()
-        old_val = self._dbvals_.get(Person.team_of_actor)
-        new_val = self.team_of_actor
-        if new_val != old_val:
-            for actor_p_p in self.actor_plan_periods:
-                if not actor_p_p.plan_period.closed:
-                    actor_p_p.delete()
-        self.last_modified = datetime.utcnow()
-        if self.team_of_actor:
-            self.combination_locations_possibles.add(self.team_of_actor.combination_locations_possibles)
+        # old_val = self._dbvals_.get(Person.team_of_actor)
+        # new_val = self.team_of_actor
+        # if new_val != old_val:
+        #     for actor_p_p in self.actor_plan_periods:
+        #         if not actor_p_p.plan_period.closed:
+        #             actor_p_p.delete()
+        # self.last_modified = datetime.utcnow()
 
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
         self.time_of_day_standards.add(self.project.time_of_day_standards)
+        if self.team_actor_assigns:
+            latest_team = max(self.team_actor_assigns, key=lambda x: x.start)
+            if not latest_team.end:
+                self.combination_locations_possibles.add(latest_team.combination_locations_possibles)
 
 
 class Project(db.Entity):
@@ -112,8 +115,10 @@ class Team(db.Entity):
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
     project = Required(Project)
-    locations_of_work = Set('LocationOfWork')
-    persons = Set(Person, reverse='team_of_actor')
+    # locations_of_work = Set('LocationOfWork')  # wird entfernt
+    # persons = Set(Person, reverse='team_of_actor')  # wird entfernt
+    team_actor_assigns = Set('TeamActorAssign')
+    team_location_assigns = Set('TeamLocationAssign')
     dispatcher = Optional(Person, reverse='teams_of_dispatcher')
     plan_periods = Set('PlanPeriod')
     combination_locations_possibles = Set('CombinationLocationsPossible')
@@ -313,7 +318,8 @@ class LocationOfWork(db.Entity):
     prep_delete = Optional(datetime)
     address = Optional('Address')
     project = Required(Project)
-    team = Optional(Team)
+    # team = Optional(Team)  # wird entfernt
+    team_location_assigns = Set('TeamLocationAssign')
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     location_plan_periods = Set('LocationPlanPeriod')
@@ -331,6 +337,36 @@ class LocationOfWork(db.Entity):
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
         self.time_of_day_standards.add(self.project.time_of_day_standards)
+
+
+class TeamActorAssign(db.Entity):
+    """Gibt den Zeitabschnitt an, in welchem die Person einem bestimmten Team zugeordnet war/ist.
+    start -> inclusive, end -> exclusive"""
+    id = PrimaryKey(UUID, auto=True)
+    start = Required(date, default=lambda: date.today())
+    end = Optional(date)
+    created_at = Required(datetime, default=lambda: datetime.utcnow())
+    last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    person = Required(Person)
+    team = Required(Team)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
+
+
+class TeamLocationAssign(db.Entity):
+    """Gibt den Zeitabschnitt an, in welchem die Location einem bestimmten Team zugeordnet war/ist.
+    start -> inclusive, end -> exclusive"""
+    id = PrimaryKey(UUID, auto=True)
+    start = Required(date, default=lambda: date.today())
+    end = Optional(date)
+    created_at = Required(datetime, default=lambda: datetime.utcnow())
+    last_modified = Required(datetime, default=lambda: datetime.utcnow())
+    location_of_work = Required(LocationOfWork)
+    team = Required(Team)
+
+    def before_update(self):
+        self.last_modified = datetime.utcnow()
 
 
 class Address(db.Entity):

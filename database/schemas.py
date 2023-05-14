@@ -80,7 +80,7 @@ class Person(PersonCreate):
 class PersonShow(Person):
     requested_assignments: Optional[int]
     project: 'Project'
-    team_of_actor: Optional['Team']
+    team_actor_assigns: List['TeamActorAssign']
     teams_of_dispatcher: list['Team']
     time_of_day_standards: list['TimeOfDay']
     time_of_days: list['TimeOfDay']
@@ -89,7 +89,8 @@ class PersonShow(Person):
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
 
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_location_prefs_defaults', 'actor_partner_location_prefs_defaults', pre=True, allow_reuse=True)
+               'actor_location_prefs_defaults', 'actor_partner_location_prefs_defaults', 'team_actor_assigns',
+               pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
 
@@ -142,13 +143,13 @@ class Team(TeamCreate):
 
 
 class TeamShow(Team):
-    persons: List[Person]
-    locations_of_work: List['LocationOfWork']
+    team_actor_assigns: List['TeamActorAssign']
+    team_location_assigns: List['TeamLocationAssign']
     plan_periods: List['PlanPeriodShow']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('persons', 'locations_of_work', 'plan_periods', 'combination_locations_possibles',
+    @validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns',
                pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [v for v in values]
@@ -360,7 +361,6 @@ class TimeOfDayEnumShow(TimeOfDayEnum):
 class LocationOfWorkCreate(BaseModel):
     name: str
     address: Optional['AddressCreate']
-    team: Optional[Team] = None
     nr_actors: int = 2
 
 
@@ -375,15 +375,59 @@ class LocationOfWork(LocationOfWorkCreate):
 
 
 class LocationOfWorkShow(LocationOfWork):
-    team: Optional[Team]
     nr_actors: int
+    team_location_assigns: List['TeamLocationAssign']
     fixed_cast: Optional[str]
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
 
-    @validator('time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', pre=True, allow_reuse=True)
     def set_to_list(cls, values):
         return [t for t in values]
+
+    class Config:
+        orm_mode = True
+
+
+class TeamActorAssignCreate(BaseModel):
+    start: Optional[date]
+    end: Optional[date]
+    person: Person
+    team: Team
+
+
+class TeamActorAssign(TeamActorAssignCreate):
+    id: UUID
+    start: date
+
+    class Config:
+        orm_mode = True
+
+
+class TeamActorAssignShow(TeamActorAssign):
+    pass
+
+    class Config:
+        orm_mode = True
+
+
+class TeamLocationAssignCreate(BaseModel):
+    start: Optional[date]
+    end: Optional[date]
+    location_of_work: LocationOfWork
+    team: Team
+
+
+class TeamLocationAssign(TeamLocationAssignCreate):
+    id: UUID
+    start: date
+
+    class Config:
+        orm_mode = True
+
+
+class TeamLocationAssignShow(TeamLocationAssign):
+    pass
 
     class Config:
         orm_mode = True

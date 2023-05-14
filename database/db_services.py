@@ -201,12 +201,49 @@ class Person:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def update_team_of_actor(person_id: UUID, team_id: UUID | None):
+    def assign_to_team(person_id: UUID, team_id: UUID | None,
+                       start: datetime.date | None) -> schemas.PersonShow | None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         team_db = models.Team.get_for_update(id=team_id) if team_id else None
-        person_db.team_of_actor = team_db
+
+        if not person_db.team_actor_assigns.is_empty():  # if person_db has team assignments
+            latest_assignment = max(person_db.team_actor_assigns, key=lambda x: x.start)
+            if not latest_assignment.end:  # if last assignment is activ right now
+                if latest_assignment.team != team_db:
+                    if not start:
+                        latest_assignment.end = datetime.date.today()
+                    else:
+                        latest_assignment.end = start
+                    created_taa = TeamActorAssign.create(
+                        schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+                else:
+                    created_taa = None
+            else:
+                created_taa = TeamActorAssign.create(
+                    schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+        else:
+            created_taa = TeamActorAssign.create(
+                schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+
+        person_db = models.Person.get_for_update(id=person_id)
+        return schemas.PersonShow.from_orm(person_db) if created_taa else None
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_from_team(person_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        if person_db.team_actor_assigns.is_empty():
+            raise LookupError('Die Person ist noch keinem Team zugeordnet.')
+        latest_assignment = max(person_db.team_location_assigns, key=lambda x: x.start)
+        if latest_assignment.end:
+            raise LookupError('Die Person wurde vom letzten Team bereits abgemeldet.')
+        else:
+            latest_assignment.end = datetime.date.today()
+
         return schemas.PersonShow.from_orm(person_db)
 
     @staticmethod
@@ -357,13 +394,55 @@ class LocationOfWork:
                                                            postal_code=location_of_work.address.postal_code,
                                                            city=location_of_work.address.city))
         location_db.address = models.Address.get_for_update(id=address.id)
-        if location_of_work.team:
-            location_db.team = models.Team.get_for_update(id=location_of_work.team.id)
-        else:
-            location_db.team = None
-        # for key, val in location_of_work.dict(include={'name', 'nr_actors'}).items():
-        #     location_db.__setattr__(key, val)
         location_db.set(**location_of_work.dict(include={'name', 'nr_actors', 'fixed_cast'}))
+
+        return schemas.LocationOfWorkShow.from_orm(location_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def assign_to_team(location_id: UUID, team_id: UUID,
+                       start: datetime.date | None) -> schemas.LocationOfWorkShow | None:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_db = models.LocationOfWork.get_for_update(id=location_id)
+        team_db = models.Team.get_for_update(id=team_id) if team_id else None
+
+        if not location_db.team_location_assigns.is_empty():  # if location_db has team assignments
+            latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start)
+            if not latest_assignment.end:  # if last assignment is activ right now
+                if latest_assignment.team != team_db:
+                    if not start:
+                        latest_assignment.end = datetime.date.today()
+                    else:
+                        latest_assignment.end = start
+                    created_tla = TeamLocationAssign.create(
+                        schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+                else:
+                    created_tla = None
+            else:
+                created_tla = TeamLocationAssign.create(
+                    schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+        else:
+            created_tla = TeamLocationAssign.create(
+                schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+
+        location_db = models.LocationOfWork.get_for_update(id=location_id)
+
+        return schemas.LocationOfWorkShow.from_orm(location_db) if created_tla else None
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_from_team(location_id: UUID) -> schemas.LocationOfWorkShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_db = models.LocationOfWork.get_for_update(id=location_id)
+        if location_db.team_location_assigns.is_empty():
+            raise LookupError('Die Location ist noch keinem Team zugeordnet.')
+        latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start)
+        if latest_assignment.end:
+            raise LookupError('Die Location wurde vom letzten Team bereits abgemeldet.')
+        else:
+            latest_assignment.end = datetime.date.today()
 
         return schemas.LocationOfWorkShow.from_orm(location_db)
 
@@ -403,6 +482,37 @@ class LocationOfWork:
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_db.prep_delete = datetime.datetime.utcnow()
         return schemas.LocationOfWork.from_orm(location_db)
+
+
+class TeamActorAssign:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(team_actor_assign: schemas.TeamActorAssignCreate) -> schemas.TeamActorAssignShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get(id=team_actor_assign.person.id)
+        team_db = models.Team.get(id=team_actor_assign.team.id)
+        if team_actor_assign.start:
+            new_team_aa = models.TeamActorAssign(start=team_actor_assign.start, person=person_db, team=team_db)
+        else:
+            new_team_aa = models.TeamActorAssign(person=person_db, team=team_db)
+        return schemas.TeamActorAssignShow.from_orm(new_team_aa)
+
+
+class TeamLocationAssign:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(team_location_assign: schemas.TeamLocationAssignCreate) -> schemas.TeamLocationAssignShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_db = models.LocationOfWork.get(id=team_location_assign.location_of_work.id)
+        team_db = models.Team.get(id=team_location_assign.team.id)
+        if team_location_assign.start:
+            new_team_la = models.TeamLocationAssign(start=team_location_assign.start, location_of_work=location_db,
+                                                    team=team_db)
+        else:
+            new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db)
+        return schemas.TeamLocationAssignShow.from_orm(new_team_la)
 
 
 class TimeOfDay:

@@ -162,7 +162,15 @@ class TablePersons(QTableWidget):
             cb_team_of_actor.addItem('', None)
             for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
                 cb_team_of_actor.addItem(team.name, team)
-            cb_team_of_actor.setCurrentText('' if not p.team_of_actor else p.team_of_actor.name)
+            if not p.team_actor_assigns:
+                curr_team = None
+            else:
+                latest_assingment = max(p.team_actor_assigns, key=lambda x: x.start)
+                if latest_assingment.end:
+                    curr_team = None
+                else:
+                    curr_team = latest_assingment.team
+            cb_team_of_actor.setCurrentText('' if not curr_team else curr_team.name)
             cb_team_of_actor.currentIndexChanged.connect(self.set_team)
             self.setCellWidget(row, 8, cb_team_of_actor)
 
@@ -179,11 +187,14 @@ class TablePersons(QTableWidget):
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
         person_id = UUID(self.item(self.currentRow(), 9).text())
         team_id = team.id if team else None
-        updated_person = db_services.Person.update_team_of_actor(person_id, team_id)
-        if updated_person.team_of_actor:
+        if team_id:
+            updated_person = db_services.Person.assign_to_team(person_id, team_id, start=None)
+            assigns = updated_person.team_actor_assigns
+            curr_assign = max(assigns, key=lambda x: x.start)
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" wurde dem Team '
-                                                    f'"{updated_person.team_of_actor.name}" zugeordnet.')
+                                                    f'"{curr_assign.team.name}" zugeordnet.')
         else:
+            updated_person = db_services.Person.remove_from_team(person_id)
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist nun keinem Team zugeordnet.')
 
 
@@ -585,7 +596,15 @@ class TableLocationsOfWork(QTableWidget):
             self.setItem(row, 1, QTableWidgetItem(loc.address.street if loc.address else ''))
             self.setItem(row, 2, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
             self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
-            self.setItem(row, 4, QTableWidgetItem(loc.team.name if loc.team else ''))
+            if loc.team_location_assigns:
+                latest_assignment = max(loc.team_location_assigns, key=lambda x: x.start)
+                if latest_assignment.end:
+                    curr_team = None
+                else:
+                    curr_team = latest_assignment.team
+            else:
+                curr_team = None
+            self.setItem(row, 4, QTableWidgetItem(curr_team.name if curr_team else ''))
             self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
             self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
 
@@ -705,7 +724,9 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.address.postal_code = self.le_postal_code.text()
         self.location_of_work.address.city = self.le_city.text()
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
-        self.location_of_work.team = self.cb_teams.currentData()
+        if curr_team := self.cb_teams.currentData():
+            db_services.LocationOfWork.assign_to_team(self.location_id, curr_team.id, start=None)
+
         updated_location = db_services.LocationOfWork.update(self.location_of_work)
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
         self.accept()
@@ -807,8 +828,16 @@ class FrmLocationModify(FrmLocationData):
         self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
         for team in teams:
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team)
-        team = self.location_of_work.team
-        self.cb_teams.setCurrentText(team.name) if team else self.cb_teams.setCurrentText('kein Team')
+        assignments = self.location_of_work.team_location_assigns
+        if assignments:
+            latest_assignment = max(self.location_of_work.team_location_assigns, key=lambda x: x.start)
+            if latest_assignment.end:
+                curr_team = None
+            else:
+                curr_team = latest_assignment.team
+        else:
+            curr_team = None
+        self.cb_teams.setCurrentText(curr_team.name) if curr_team else self.cb_teams.setCurrentText('kein Team')
         self.fill_time_of_days()
 
     def get_teams(self):

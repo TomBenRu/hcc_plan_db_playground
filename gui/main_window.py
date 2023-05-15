@@ -7,6 +7,7 @@ from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
+from database.special_schema_requests import get_curr_locations_of_team
 from . import frm_comb_loc_possible
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -163,7 +164,8 @@ class MainWindow(QMainWindow):
 
     def edit_comb_loc_poss(self, team: schemas.Team):
         team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, team.locations_of_work)
+        locations = get_curr_locations_of_team(team=team)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, locations)
         dlg.disable_reset_bt()
         dlg.exec()
 

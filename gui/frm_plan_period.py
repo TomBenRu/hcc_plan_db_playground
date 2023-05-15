@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, 
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout
 
 from database import db_services, schemas
+from database.special_schema_requests import get_curr_team_of_person
 from gui.commands import command_base_classes
 
 
@@ -117,7 +118,7 @@ class FrmPlanPeriodData(QDialog):
         locations = [loc for loc in db_services.LocationOfWork.get_all_from__project(self.project_id)
                      if not loc.prep_delete]
         actors = [p for p in db_services.Person.get_all_from__project(self.project_id)
-                  if p.team_of_actor and not p.prep_delete]
+                  if get_curr_team_of_person(person=p) and not p.prep_delete]
         for loc in locations:
             self.create_location_plan_periods(plan_period_created.id, loc.id)
         for actor in actors:

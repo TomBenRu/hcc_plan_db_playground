@@ -45,11 +45,9 @@ class ModelWithPartnerLocPrefs(Protocol):
         ...
 
 
-
 @runtime_checkable
 class ModelWithFixedCast(Protocol):
     fixed_cast: Optional[str]
-    team: 'Team'
 
 
 class PersonCreate(BaseModel):

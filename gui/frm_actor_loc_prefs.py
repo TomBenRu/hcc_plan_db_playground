@@ -5,21 +5,20 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayou
     QDialogButtonBox, QPushButton
 
 from database import schemas
+from database.special_schema_requests import get_curr_locations_of_team
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 
 class DlgActorLocPref(QDialog):
     def __init__(self, parent: QWidget, curr_model: schemas.ModelWithActorLocPrefs,
-                 parent_model: schemas.ModelWithActorLocPrefs | None, team: schemas.TeamShow):
+                 parent_model: schemas.ModelWithActorLocPrefs | None, locations_of_team: list[schemas.LocationOfWork]):
         super().__init__(parent)
 
         self.setWindowTitle('Einrichtungspräferenzen')
 
         self.curr_model = curr_model.copy(deep=True)
         self.parent_model = parent_model
-        self.team = team
-        self.locations_of_team = sorted([loc for loc in self.team.locations_of_work if not loc.prep_delete],
-                                        key=lambda x: x.name)
+        self.locations_of_team = locations_of_team
         self.locations_of_team__defaults = {loc.id: 2 for loc in self.locations_of_team}
         self.loc_prefs = [p for p in self.curr_model.actor_location_prefs_defaults if not p.prep_delete]
 

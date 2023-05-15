@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
+from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
@@ -281,9 +282,10 @@ class ButtonActorLocationPref(QPushButton):
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
-        team = db_services.Team.get(self.actor_plan_period.team.id)
+        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                          self.actor_plan_period.plan_period.start)
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, avail_days_at_date[0], self.actor_plan_period, team)
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, avail_days_at_date[0], self.actor_plan_period, locations_at_date)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
@@ -418,11 +420,15 @@ class ButtonActorPartnerLocationPref(QPushButton):
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
-        team = db_services.Team.get(self.actor_plan_period.team.id)
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
+        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                          self.actor_plan_period.plan_period.start)
+        persons_at_date = get_persons_of_team_at_date(self.actor_plan_period.team.id,
+                                                      self.actor_plan_period.plan_period.start)
+
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, avail_days_at_date[0], self.actor_plan_period, team)
+            self, person, avail_days_at_date[0], self.actor_plan_period, persons_at_date, locations_at_date)
         if not dlg.exec():
             return
 
@@ -793,11 +799,14 @@ class FrmActorPlanPeriod(QWidget):
         self.reset_chk_field()
 
     def edit_comb_loc_possibles(self):
-        team = db_services.Team.get(self.actor_plan_period.team.id)
-        locations = team.locations_of_work
+
+        locations_of_team_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                                  self.actor_plan_period.plan_period.start)
+
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person, locations)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person,
+                                                               locations_of_team_at_date)
         if dlg.exec():
             self.reload_actor_plan_period()
             #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
@@ -832,10 +841,13 @@ class FrmActorPlanPeriod(QWidget):
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def edit_location_prefs(self):
-        team = db_services.Team.get(self.actor_plan_period.team.id)
+
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, team)
+        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                          self.actor_plan_period.plan_period.start)
+
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, locations_at_date)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
@@ -886,9 +898,10 @@ class FrmActorPlanPeriod(QWidget):
                                  f'gibt es noch keine Verfügbarkeiten.')
             return
 
-        team = db_services.Team.get(self.actor_plan_period.team.id)
+        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                          self.actor_plan_period.plan_period.start)
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, all_avail_days[0], self.actor_plan_period, team)
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, all_avail_days[0], self.actor_plan_period, locations_at_date)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
@@ -931,8 +944,12 @@ class FrmActorPlanPeriod(QWidget):
     def edit_partner_loc_prefs(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
         team = db_services.Team.get(self.actor_plan_period.team.id)
+
+        locations_at_date = get_locations_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+        persons_at_date = get_persons_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, self.actor_plan_period, person, team)
+            self, person, self.actor_plan_period, person, persons_at_date, locations_at_date)
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             signal_handling.handler.reload_actor_pp__avail_configs(
@@ -949,8 +966,12 @@ class FrmActorPlanPeriod(QWidget):
             return
         person = db_services.Person.get(self.actor_plan_period.person.id)
         team = db_services.Team.get(self.actor_plan_period.team.id)
-        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, person, all_avail_days[0],
-                                                                 self.actor_plan_period, team)
+
+        locations_at_date = get_locations_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+        persons_at_date = get_persons_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+
+        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
+            self, person, all_avail_days[0], self.actor_plan_period, persons_at_date, locations_at_date)
         if not dlg.exec():
             return
 

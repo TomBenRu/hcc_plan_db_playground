@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlide
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
+from database.special_schema_requests import get_curr_persons_of_team, get_curr_locations_of_team
 from gui.actions import Action
 from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
@@ -299,7 +300,8 @@ class DlgPartnerLocationPrefs(QDialog):
     Fall keine Präferenz einer besimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
 
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
-                 parent_model: schemas.ModelWithPartnerLocPrefs | None, team: schemas.TeamShow):
+                 parent_model: schemas.ModelWithPartnerLocPrefs | None,
+                 persons_at_date: list[schemas.Person], locations_at_date: list[schemas.LocationOfWork]):
         super().__init__(parent)
         self.setWindowTitle('Partner-Präferenzen')
 
@@ -324,7 +326,8 @@ class DlgPartnerLocationPrefs(QDialog):
         self.person = person
         self.curr_model: schemas.ModelWithPartnerLocPrefs = curr_model.copy(deep=True)
         self.parent_model = parent_model
-        self.team = team
+        self.persons_at_date = persons_at_date
+        self.locations_at_date = locations_at_date
         self.partners: list[schemas.Person] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
@@ -385,10 +388,8 @@ class DlgPartnerLocationPrefs(QDialog):
             self.bt_reset.setMenu(menu)
 
     def setup_data(self):
-        self.partners = sorted([p for p in self.team.persons if not p.prep_delete and p.id != self.person.id],
-                               key=lambda x: x.f_name)
-        self.locations = sorted([loc for loc in self.team.locations_of_work if not loc.prep_delete],
-                                key=lambda x: x.name)
+        self.partners = [p for p in self.persons_at_date if p.id != self.person.id]
+        self.locations = self.locations_at_date
 
     def setup_option_field(self):
         """Regler und Buttons für Locations und Partners werden hinzugefügt"""

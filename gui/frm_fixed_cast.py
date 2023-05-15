@@ -7,11 +7,13 @@ from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridL
     QDialogButtonBox, QMessageBox
 
 from database import db_services, schemas
+from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmFixedCast(QDialog):
-    def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
+    def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast,
+                 team: schemas.TeamShow):
         super().__init__(parent)
         self.setWindowTitle('Fixed Cast')
         self.col_operator_betw_rows = 2
@@ -28,8 +30,7 @@ class FrmFixedCast(QDialog):
         self.object_name_operatior_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': 'und', 'or': 'oder'}
 
-        self.persons = sorted(db_services.Person.get_all_from__team(schema_with_fixed_cast_field.team.id),
-                              key=lambda p: p.f_name)
+        self.persons = sorted(get_curr_persons_of_team(team), key=lambda p: p.f_name)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)

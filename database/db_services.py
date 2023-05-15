@@ -160,12 +160,6 @@ class Person:
         return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
 
     @staticmethod
-    @db_session
-    def get_all_from__team(team_id: UUID) -> list[schemas.PersonShow]:
-        persons_db = models.Person.select(lambda p: p.team_of_actor.id == team_id)
-        return [schemas.PersonShow.from_orm(p) for p in persons_db]
-
-    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -486,6 +480,45 @@ class LocationOfWork:
 
 class TeamActorAssign:
     @staticmethod
+    @db_session
+    def get(team_actor_assign_id: UUID) -> schemas.TeamActorAssignShow:
+        team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
+        return schemas.TeamActorAssignShow.from_orm(team_actor_assign_db)
+
+    @staticmethod
+    @db_session
+    def get_at__date(person_id: UUID, date: datetime.date | None) -> schemas.TeamActorAssignShow | None:
+        """Bei date == None wird das aktuellste Assignment zurückgegeben."""
+
+        all_assignments_db = models.TeamActorAssign.select(lambda x: x.person.id == person_id)
+
+        if all_assignments_db.is_empty():
+            assignment_db = None
+        else:
+            if not date:
+                latest_assignment = max(all_assignments_db, key=lambda x: x.start)
+                if not latest_assignment.end or latest_assignment.end > datetime.date.today():
+                    assignment_db = latest_assignment
+                else:
+                    assignment_db = None
+            else:
+                for assignm in all_assignments_db:
+                    if assignm.start <= date and (assignm.end > date or assignm.end is None):
+                        assignment_db = assignm
+                        break
+                else:
+                    assignment_db = None
+
+        return None if not assignment_db else schemas.TeamActorAssignShow.from_orm(assignment_db)
+
+    @staticmethod
+    @db_session
+    def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamActorAssignShow]:
+        all_actor_location_assigns = models.TeamActorAssign.select(
+            lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)
+        return [schemas.TeamActorAssignShow.from_orm(tla) for tla in all_actor_location_assigns]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(team_actor_assign: schemas.TeamActorAssignCreate) -> schemas.TeamActorAssignShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -500,6 +533,45 @@ class TeamActorAssign:
 
 
 class TeamLocationAssign:
+    @staticmethod
+    @db_session
+    def get(team_location_assign_id: UUID) -> schemas.TeamActorAssignShow:
+        team_location_assign_db = models.TeamActorAssign.get_for_update(id=team_location_assign_id)
+        return schemas.TeamActorAssignShow.from_orm(team_location_assign_db)
+
+    @staticmethod
+    @db_session
+    def get_at__date(location_id: UUID, date: datetime.date | None) -> schemas.TeamLocationAssignShow | None:
+        """Bei date == None wird das aktuellste Assignment zurückgegeben."""
+
+        all_assignments_db = models.TeamLocationAssign.select(lambda x: x.location_of_work.id == location_id)
+
+        if all_assignments_db.is_empty():
+            assignment_db = None
+        else:
+            if not date:
+                latest_assignment = max(all_assignments_db, key=lambda x: x.start)
+                if not latest_assignment.end or latest_assignment.end > datetime.date.today():
+                    assignment_db = latest_assignment
+                else:
+                    assignment_db = None
+            else:
+                for assignm in all_assignments_db:
+                    if assignm.start <= date and (assignm.end > date or assignm.end is None):
+                        assignment_db = assignm
+                        break
+                else:
+                    assignment_db = None
+
+        return None if not assignment_db else schemas.TeamLocationAssignShow.from_orm(assignment_db)
+
+    @staticmethod
+    @db_session
+    def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamLocationAssignShow]:
+        all_team_location_assigns = models.TeamLocationAssign.select(
+            lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)
+        return [schemas.TeamLocationAssignShow.from_orm(tla) for tla in all_team_location_assigns]
+
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(team_location_assign: schemas.TeamLocationAssignCreate) -> schemas.TeamLocationAssignShow:

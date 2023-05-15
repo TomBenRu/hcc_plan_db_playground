@@ -409,14 +409,6 @@ class Event(db.Entity):
         return self.event_group.location_plan_period_getter
 
     @property
-    def team(self):
-        return self.location_plan_period.team
-
-    @property
-    def location_of_work(self):
-        return self.location_plan_period.location_of_work
-
-    @property
     def plan_period(self):
         return self.location_plan_period.plan_period
 
@@ -651,3 +643,6 @@ class ExcelExportSettings(db.Entity):
 
 
 # todo: Beibehaltung von Planungen nach Löschung bzw. Statusänderungen (z.B. Änderungen von Zugehörigkeiten zu einem Team).
+# todo: Beim Wechsel des Teams von Person oder LoacationOfWork sammeln sich in CombinationLocationsPossible viele nicht aktuelle Combinations an. Lösung?
+# todo: Das Gleiche gilt für ActorLocationPref
+# todo: Das Gleiche gilt für fixed_cast in LocationOfWork und Event

@@ -16,15 +16,21 @@ def get_curr_team_of_location(location: schemas.LocationOfWorkShow) -> schemas.T
     return curr_team
 
 
-def get_curr_team_of_person(person: schemas.PersonShow) -> schemas.Team | None:
-    if person.team_actor_assigns:
-        latest_assignment = max(person.team_actor_assigns, key=lambda x: x.start)
-        if latest_assignment.end and latest_assignment.end <= datetime.date.today():
-            curr_team = None
-        else:
-            curr_team = latest_assignment.team
-    else:
+def get_curr_team_of_person_at_date(person: schemas.PersonShow, date: datetime.date = None) -> schemas.Team | None:
+    """Gibt das Team zurück, welchem die Person an einem Datum zugeordnet war/ist.
+    Falls date = None, wird das aktuelle Datum genommen."""
+    date = date if date else datetime.date.today()
+    if not person.team_actor_assigns:
         curr_team = None
+    else:
+        for assignment in person.team_actor_assigns:
+            if assignment.start <= date:
+                if (assignment.end is None) or (date < assignment.end):
+                    curr_team = assignment.team
+                    break
+        else:
+            curr_team = None
+
     return curr_team
 
 

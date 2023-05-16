@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, 
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout
 
 from database import db_services, schemas
-from database.special_schema_requests import get_curr_team_of_person, get_locations_of_team_at_date, \
+from database.special_schema_requests import get_curr_team_of_person_at_date, get_locations_of_team_at_date, \
     get_persons_of_team_at_date
 from gui.commands import command_base_classes
 

@@ -10,14 +10,16 @@ from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
-from database.special_schema_requests import get_curr_team_of_location, get_curr_team_of_person, \
+from database.special_schema_requests import get_curr_team_of_location, get_curr_team_of_person_at_date, \
     get_curr_locations_of_team, get_locations_of_team_at_date, get_persons_of_team_at_date
-from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
+from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
+    frm_assign_to_team
 from .actions import Action
 from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
     actor_loc_pref_commands
 from .frm_fixed_cast import FrmFixedCast
 from .tabbars import TabBar
+from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmMasterData(QWidget):
@@ -161,13 +163,13 @@ class TablePersons(QTableWidget):
             self.setItem(row, 5, QTableWidgetItem(p.address.street))
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code))
             self.setItem(row, 7, QTableWidgetItem(p.address.city))
-            cb_team_of_actor = QComboBox()
+            cb_team_of_actor = QComboBoxToFindData()
             cb_team_of_actor.addItem('', None)
             for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
-                cb_team_of_actor.addItem(team.name, team)
-            curr_team = get_curr_team_of_person(person=p)
+                cb_team_of_actor.addItem(team.name, team.id)
+            curr_team = get_curr_team_of_person_at_date(person=p)
             cb_team_of_actor.setCurrentText('' if not curr_team else curr_team.name)
-            cb_team_of_actor.currentIndexChanged.connect(self.set_team)
+            cb_team_of_actor.currentIndexChanged.connect(self.change_team)
             self.setCellWidget(row, 8, cb_team_of_actor)
 
             self.setItem(row, 9, QTableWidgetItem(str(p.id)))
@@ -177,21 +179,37 @@ class TablePersons(QTableWidget):
         QGuiApplication.clipboard().setText(text)
         QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
 
-    def set_team(self, e):
-        sender: QComboBox = self.sender()
-        team: schemas.Team = sender.currentData()
-        person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
+    def change_team(self, e):
         person_id = UUID(self.item(self.currentRow(), 9).text())
-        team_id = team.id if team else None
+        sender: QComboBox = self.sender()
+        team_id: UUID = sender.currentData()
+        curr_assignment = db_services.TeamActorAssign.get_at__date(person_id, None)
+        curr_team = curr_assignment.team
+        dlg = frm_assign_to_team.DlgAssignDate(
+            self, curr_team.id if curr_team else None, team_id)
+        if not dlg.exec():
+            sender.blockSignals(True)
+            sender.setCurrentIndex(sender.findData(curr_team.id))
+            sender.blockSignals(False)
+            return
+        person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
         if team_id:
-            updated_person = db_services.Person.assign_to_team(person_id, team_id, start=None)
+            updated_person = db_services.Person.assign_to_team(person_id, team_id, start=dlg.start_date_new_team)
             assigns = updated_person.team_actor_assigns
             curr_assign = max(assigns, key=lambda x: x.start)
-            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" wurde dem Team '
+            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
+                                                    f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} dem Team '
                                                     f'"{curr_assign.team.name}" zugeordnet.')
         else:
-            updated_person = db_services.Person.remove_from_team(person_id)
-            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist nun keinem Team zugeordnet.')
+            updated_person = db_services.Person.remove_from_team(person_id, dlg.start_date_new_team)
+            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
+                                                    f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} '
+                                                    f'keinem Team zugeordnet.')
+
+        sender.blockSignals(True)
+        curr_team = get_curr_team_of_person_at_date(person=db_services.Person.get(person_id))
+        sender.setCurrentIndex(sender.findData(curr_team.id))
+        sender.blockSignals(False)
 
 
 class FrmPersonData(QDialog):
@@ -418,7 +436,7 @@ class FrmPersonModify(FrmPersonData):
         self.fill_time_of_days()
 
     def edit_comb_loc_possible(self):
-        curr_team = get_curr_team_of_person(person=self.person)
+        curr_team = get_curr_team_of_person_at_date(person=self.person)
         if not curr_team:
             QMessageBox.critical(self, 'Einrichtungskombinationen',
                                  'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
@@ -433,7 +451,7 @@ class FrmPersonModify(FrmPersonData):
             self.person = db_services.Person.get(self.person.id)
 
     def edit_location_prefs(self):
-        curr_team = get_curr_team_of_person(person=self.person)
+        curr_team = get_curr_team_of_person_at_date(person=self.person)
         if not curr_team:
             QMessageBox.critical(self, 'Einrichtungspräferenzen',
                                  'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
@@ -476,7 +494,7 @@ class FrmPersonModify(FrmPersonData):
         self.person = db_services.Person.get(self.person.id)
 
     def edit_partner_location_prefs(self):
-        team = get_curr_team_of_person(self.person)
+        team = get_curr_team_of_person_at_date(self.person)
         if not team:
             QMessageBox.critical(self, 'Mitarbeiterpräferenzen',
                                  f'{self.person.f_name} {self.person.l_name} '
@@ -727,7 +745,7 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.address.postal_code = self.le_postal_code.text()
         self.location_of_work.address.city = self.le_city.text()
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
-        if curr_team := self.cb_teams.currentData():
+        if curr_team := self.cb_teams.currentData():  # mit DlgAssignDate bearbeiten!!!
             db_services.LocationOfWork.assign_to_team(self.location_id, curr_team.id, start=None)
 
         updated_location = db_services.LocationOfWork.update(self.location_of_work)

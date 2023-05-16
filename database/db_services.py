@@ -226,7 +226,7 @@ class Person:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def remove_from_team(person_id: UUID) -> schemas.PersonShow:
+    def remove_from_team(person_id: UUID, end_date: datetime.date) -> schemas.PersonShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
@@ -236,7 +236,7 @@ class Person:
         if latest_assignment.end:
             raise LookupError('Die Person wurde vom letzten Team bereits abgemeldet.')
         else:
-            latest_assignment.end = datetime.date.today()
+            latest_assignment.end = end_date
 
         return schemas.PersonShow.from_orm(person_db)
 
@@ -492,12 +492,12 @@ class TeamActorAssign:
 
         all_assignments_db = models.TeamActorAssign.select(lambda x: x.person.id == person_id)
 
-        if all_assignments_db.is_empty():
+        if not all_assignments_db.count():
             assignment_db = None
         else:
             if not date:
                 latest_assignment = max(all_assignments_db, key=lambda x: x.start)
-                if not latest_assignment.end or latest_assignment.end > datetime.date.today():
+                if not latest_assignment.end or (latest_assignment.end > datetime.date.today()):
                     assignment_db = latest_assignment
                 else:
                     assignment_db = None
@@ -546,12 +546,12 @@ class TeamLocationAssign:
 
         all_assignments_db = models.TeamLocationAssign.select(lambda x: x.location_of_work.id == location_id)
 
-        if all_assignments_db.is_empty():
+        if not all_assignments_db.count():
             assignment_db = None
         else:
             if not date:
                 latest_assignment = max(all_assignments_db, key=lambda x: x.start)
-                if not latest_assignment.end or latest_assignment.end > datetime.date.today():
+                if not latest_assignment.end or (latest_assignment.end > datetime.date.today()):
                     assignment_db = latest_assignment
                 else:
                     assignment_db = None

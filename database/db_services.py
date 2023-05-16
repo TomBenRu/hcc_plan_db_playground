@@ -232,7 +232,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         if person_db.team_actor_assigns.is_empty():
             raise LookupError('Die Person ist noch keinem Team zugeordnet.')
-        latest_assignment = max(person_db.team_location_assigns, key=lambda x: x.start)
+        latest_assignment = max(person_db.team_actor_assigns, key=lambda x: x.start)
         if latest_assignment.end:
             raise LookupError('Die Person wurde vom letzten Team bereits abgemeldet.')
         else:

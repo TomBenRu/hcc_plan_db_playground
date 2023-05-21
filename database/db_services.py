@@ -398,31 +398,60 @@ class LocationOfWork:
                        start: datetime.date | None) -> schemas.TeamLocationAssignShow | None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
+
+        start = start or datetime.date.today()
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         team_db = models.Team.get_for_update(id=team_id) if team_id else None
 
         if not location_db.team_location_assigns.is_empty():  # if location_db has team assignments
-            latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start)
-            if not latest_assignment.end:  # if last assignment is activ right now
-                if latest_assignment.team != team_db:
-                    if not start:
-                        latest_assignment.end = datetime.date.today()
-                    else:
-                        latest_assignment.end = start
-                    created_tla = TeamLocationAssign.create(
-                        schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
-                else:
-                    created_tla = None
-            else:
-                created_tla = TeamLocationAssign.create(
-                    schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+
+            '''get latest assignment:'''
+            latest_assignments_db = max(models.TeamLocationAssign.select(lambda a: a.location_of_work == location_db),
+                                        key=lambda tla: tla.start)
+            print(latest_assignments_db)
+
         else:
             created_tla = TeamLocationAssign.create(
                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
 
-        location_db = models.LocationOfWork.get_for_update(id=location_id)
-
         return schemas.TeamLocationAssignShow.from_orm(created_tla) if created_tla else None
+
+
+
+
+
+        #     latest_assignment: schemas.TeamLocationAssign = max(location_db.team_location_assigns, key=lambda x: x.start)
+        #     latest_assignment_db = models.TeamLocationAssign.get_for_update(id=latest_assignment.id)
+        #     if latest_assignment.start > start:  # if start of latest assignment ist later than start of new assignment
+        #         latest_assignment_db.delete()  # delete latest assignment
+        #
+        #     else:
+        #         if latest_assignment.end > start:
+        #             latest_assignment_db.end = start
+        #             created_assignment = TeamLocationAssign.create(
+        #                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db)
+        #             )
+        #         else:
+        #             created_assignment = TeamLocationAssign.create(
+        #                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db)
+        #             )
+        #
+        #     elif latest_assignment.end <= start:
+        #         created_tla = TeamLocationAssign.create(
+        #             schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+        #     elif latest_assignment.team.id == team_db.id:
+        #         created_tla = None
+        #     else:
+        #         latest_assignment_db.end = start
+        #         created_tla = TeamLocationAssign.create(
+        #             schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+        # else:
+        #     created_tla = TeamLocationAssign.create(
+        #         schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+        #
+        # location_db = models.LocationOfWork.get_for_update(id=location_id)
+        #
+        # return schemas.TeamLocationAssignShow.from_orm(created_tla) if created_tla else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -434,7 +463,7 @@ class LocationOfWork:
         if location_db.team_location_assigns.is_empty():
             raise LookupError('Die Location ist noch keinem Team zugeordnet.')
         latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start)
-        if latest_assignment.end <= datetime.date.today():
+        if latest_assignment.end and latest_assignment.end <= datetime.date.today():
             raise LookupError('Die Location wurde vom letzten Team bereits abgemeldet.')
         latest_assignment_db = models.TeamLocationAssign.get_for_update(id=latest_assignment.id)
         latest_assignment.end = end
@@ -792,6 +821,12 @@ class Address:
 
 class PlanPeriod:
     @staticmethod
+    @db_session
+    def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriodShow]:
+        plan_periods_db = models.PlanPeriod.select(lambda pp: pp.project.id == project_id)
+        return [schemas.PlanPeriodShow.from_orm(p) for p in plan_periods_db]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -799,6 +834,25 @@ class PlanPeriod:
         team_db = models.Team.get_for_update(id=plan_period.team.id)
         plan_period_db = models.PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
                                            notes=plan_period.notes, team=team_db)
+        return schemas.PlanPeriodShow.from_orm(plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period.id)
+        plan_period_db.set(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
+                           notes=plan_period.notes, remainder=plan_period.remainder)
+        for actor_plan_period in plan_period_db.actor_plan_periods:
+            for avail_day in actor_plan_period.avail_days:
+                if not (plan_period.start <= avail_day <= plan_period.end) and not avail_day.prep_delete:
+                    avail_day.prep_delete = datetime.datetime.utcnow()
+        for location_plan_period in plan_period_db.location_plan_periods:
+            for event in location_plan_period.events:
+                if not (plan_period.start <= event <= plan_period.end) and not event.prep_delete:
+                    event.prep_delete = datetime.datetime.utcnow()
+
         return schemas.PlanPeriodShow.from_orm(plan_period_db)
 
 

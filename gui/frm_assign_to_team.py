@@ -45,14 +45,14 @@ class DlgAssignDate(QDialog):
         if not curr_team or not curr_team.plan_periods:
             curr_team_earliest_date_to_change = datetime.date.today()
         else:
-            curr_team_last_plan_period_date = max(pp.end for pp in curr_team.plan_periods)
+            curr_team_last_plan_period_date = max(pp.end for pp in curr_team.plan_periods if not pp.prep_delete)
             curr_team_earliest_date_to_change = curr_team_last_plan_period_date + datetime.timedelta(days=1)
 
         if not new_team or not new_team.plan_periods:
             new_team_earliest_date_to_change = datetime.date.today()
 
         else:
-            new_team_last_plan_period_date = max(pp.end for pp in new_team.plan_periods)
+            new_team_last_plan_period_date = max(pp.end for pp in new_team.plan_periods if not pp.prep_delete)
             new_team_earliest_date_to_change = new_team_last_plan_period_date + datetime.timedelta(days=1)
 
         earliest_date_to_change = max([curr_team_earliest_date_to_change, new_team_earliest_date_to_change])

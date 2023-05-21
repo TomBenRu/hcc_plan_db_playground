@@ -403,10 +403,7 @@ class Event(db.Entity):
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     event_group = Required('EventGroup')
-
-    @property
-    def location_plan_period(self):
-        return self.event_group.location_plan_period_getter
+    location_plan_period = Required('LocationPlanPeriod')
 
     @property
     def plan_period(self):
@@ -472,6 +469,7 @@ class LocationPlanPeriod(db.Entity):
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     event_group = Optional('EventGroup')
+    events = Set(Event)
 
     @property
     def team(self):

@@ -74,7 +74,7 @@ class FrmTeam(QDialog):
             QMessageBox.critical(self, 'unvollständig', 'Sie müssen einen Team-Namen angeben')
             return
         dispatcher_id = self.cb_dispatcher.currentData()
-        if self.new_mode:
+        if self.chk_new_mode.isChecked():
             if (team_name := self.le_name.text()) in [t.name for t in self.project.teams if not t.prep_delete]:
                 QMessageBox.critical(self, 'Neues Team', f'Teamname {team_name} ist schon vorhanden.\n'
                                                          f'Bitte wählen sie einen anderen Namen.')

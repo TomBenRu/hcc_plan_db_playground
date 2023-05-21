@@ -183,8 +183,7 @@ class TablePersons(QTableWidget):
         person_id = UUID(self.item(self.currentRow(), 9).text())
         sender: QComboBox = self.sender()
         team_id: UUID = sender.currentData()
-        curr_assignment = db_services.TeamActorAssign.get_at__date(person_id, None)
-        curr_team = curr_assignment.team
+        curr_team = get_curr_team_of_person_at_date(db_services.Person.get(person_id))
         dlg = frm_assign_to_team.DlgAssignDate(
             self, curr_team.id if curr_team else None, team_id)
         if not dlg.exec():
@@ -711,6 +710,7 @@ class FrmLocationModify(FrmLocationData):
         self.spin_nr_actors.setMinimum(1)
         self.lb_teams = QLabel('Team')
         self.cb_teams = QComboBoxToFindData()
+        self.lb_teams_info = QLabel()
         self.lb_time_of_days = QLabel('Tageszeiten')
         self.cb_time_of_days = QComboBox()
         self.bt_time_of_days = QPushButton('bearbeiten')
@@ -824,6 +824,17 @@ class FrmLocationModify(FrmLocationData):
                                          f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
+    def fill_teams(self):
+        teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
+        self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
+        for team in teams:
+            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team.id)
+        curr_team = get_curr_team_of_location_at_date(location=self.location_of_work)
+        curr_team_id = curr_team.id if curr_team else None
+        self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
+        self.cb_teams.currentIndexChanged.connect(self.change_team)
+        #self.lb_teams_info.setText(...)
+
     def edit_fixed_cast(self):
         if not (team := get_curr_team_of_location(self.location_of_work)):
             QMessageBox.critical(self, 'Besetzung', 'Sie mussen diese Einrichtung zuerst einem Team zuteilen,'
@@ -839,14 +850,7 @@ class FrmLocationModify(FrmLocationData):
         self.le_postal_code.setText(self.location_of_work.address.postal_code)
         self.le_city.setText(self.location_of_work.address.city)
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
-        teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
-        self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
-        for team in teams:
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team.id)
-        curr_team = get_curr_team_of_location_at_date(location=self.location_of_work)
-        curr_team_id = curr_team.id if curr_team else None
-        self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
-        self.cb_teams.currentIndexChanged.connect(self.change_team)
+        self.fill_teams()
         self.fill_time_of_days()
 
     def get_teams(self):
@@ -865,5 +869,5 @@ class FrmLocationModify(FrmLocationData):
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
         else:
             self.cb_teams.blockSignals(True)
-            self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team.id))
+            self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
             self.cb_teams.blockSignals(False)

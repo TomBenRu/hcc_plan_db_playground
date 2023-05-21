@@ -12,7 +12,7 @@ from . import frm_comb_loc_possible
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
-from .frm_plan_period import FrmPlanPeriodCreate
+from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_settings import SettingsProject
 from .tabbars import TabBar
 from .toolbars import MainToolBar
@@ -26,11 +26,13 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('13F753DF744E41AFB123BEED9C07D29E')
+        self.project_id = UUID('B8A4139121CC48B69EF1841A14395A91')
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
                    'Legt eine neue Planung an.', self.new_planperiod, short_cut='Ctrl+n'),
+            Action(self, 'resources/toolbar_icons/icons/blue-document--pencil.png', 'Planung ändern...',
+                   'Ändern oder Löschen einer vorhandenen Planung.', self.edit_planperiod),
             Action(self, 'resources/toolbar_icons/icons/gear--pencil.png', 'Projekt-Einstellungen...',
                    'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
             Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Pläne)',
@@ -92,8 +94,9 @@ class MainWindow(QMainWindow):
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
         self.menu_actions = {
-            '&Datei': [self.actions['new_planperiod'], None, self.actions['sheets_for_availables'], None,
-                       self.actions['exit'], self.actions['settings_project']],
+            '&Datei': [self.actions['new_planperiod'], self.actions['edit_planperiod'], None,
+                       self.actions['sheets_for_availables'], None, self.actions['exit'],
+                       self.actions['settings_project']],
             '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
                           self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
@@ -149,8 +152,24 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Neuer Planungszeitraum',
                                  'Sie müssen Ihrem Projekt zuerst eine Einrichtung hinzufügen.')
             return
-        dlg = FrmPlanPeriodCreate(self, project_id=self.project_id)
+        dlg = DlgPlanPeriodCreate(self, project_id=self.project_id)
         dlg.exec()
+
+    def edit_planperiod(self):
+        plan_periods = db_services.PlanPeriod.get_all_from__project(self.project_id)
+        if not plan_periods:
+            QMessageBox.critical(self, 'Planungszeitraum Ändern', 'Es wurden noch keine Planungszeiträume angelegt.')
+            return
+        else:
+            dlg = DlgPlanPeriodEdit(self, self.project_id)
+            if dlg.exec():
+                print(dlg.delete_status)
+                print(dlg.cb_planperiods.currentData().notes)
+                if dlg.delete_status:
+                    ...
+                else:
+                    plan_period = dlg.cb_planperiods.currentData()
+
 
     def open_plan(self):
         ...

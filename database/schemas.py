@@ -143,7 +143,7 @@ class Team(TeamCreate):
 class TeamShow(Team):
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
-    plan_periods: List['PlanPeriodShow']
+    plan_periods: List['PlanPeriod']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 

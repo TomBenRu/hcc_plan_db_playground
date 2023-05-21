@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
                 widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
             tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, None)
 
-            tabs_period.addTab(FrmTabActorPlanPeriods(plan_period), f'Mitarbeiter')
+            tabs_period.addTab(FrmTabActorPlanPeriods(plan_period), 'Mitarbeiter')
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -312,13 +312,11 @@ class MainWindow(QMainWindow):
                     self.put_actions_to_menu(current_menu, actions_menu[value])
                 elif type(value) == dict:
                     self.put_actions_to_menu(menu, value)
+                elif value is None:
+                    menu.addSeparator()
+                elif type(value) == Action:
+                    menu.addAction(value)
                 else:
-                    if value is None:
-                        menu.addSeparator()
-                    else:
-                        if type(value) == Action:
-                            menu.addAction(value)
-                        else:
-                            self.put_actions_to_menu(menu, value())
+                    self.put_actions_to_menu(menu, value())
 
 

@@ -89,7 +89,7 @@ class PersonShow(Person):
     @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
                'actor_location_prefs_defaults', 'actor_partner_location_prefs_defaults', 'team_actor_assigns',
                pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
     class Config:
@@ -119,7 +119,7 @@ class ProjectShow(Project):
 
     @validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
                pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -149,7 +149,7 @@ class TeamShow(Team):
 
     @validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns',
                pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
     class Config:
@@ -180,7 +180,7 @@ class PlanPeriodShow(PlanPeriod):
     project: Project
 
     @validator('actor_plan_periods', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
     class Config:
@@ -220,7 +220,7 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
 
     @validator('time_of_days', 'avail_days', 'time_of_day_standards', 'combination_locations_possibles',
                'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -274,7 +274,7 @@ class AvailDay(AvailDayCreate):
 
     @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
                'actor_location_prefs_defaults', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -287,7 +287,7 @@ class AvailDayShow(AvailDay):
 
     @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
                'actor_location_prefs_defaults', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -324,7 +324,7 @@ class TimeOfDayShow(TimeOfDay):
 
     @validator('persons_defaults', 'actor_plan_periods_defaults', 'location_plan_periods_defaults',
                'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -349,7 +349,7 @@ class TimeOfDayEnumShow(TimeOfDayEnum):
     time_of_days: List[TimeOfDay]
 
     @validator('time_of_days', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
     class Config:
@@ -380,7 +380,7 @@ class LocationOfWorkShow(LocationOfWork):
     time_of_day_standards: list[TimeOfDay]
 
     @validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', pre=True, allow_reuse=True)
-    def set_to_list(cls, values):
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -467,7 +467,7 @@ class Event(EventCreate):
     id: UUID
 
     @validator('flags', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -477,7 +477,7 @@ class Event(EventCreate):
 class EventShow(Event):
 
     @validator('flags', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -545,7 +545,7 @@ class Appointment(AppointmentCreate):
     id: UUID
 
     @validator('avail_days', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -555,7 +555,7 @@ class Appointment(AppointmentCreate):
 class AppointmentShow(Appointment):
 
     @validator('avail_days', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -584,7 +584,7 @@ class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
     avail_days_defaults: list[AvailDay]
 
     @validator('actor_plan_periods_defaults', 'avail_days_defaults', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
     class Config:
@@ -641,7 +641,7 @@ class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
     prep_delete: Optional[datetime]
 
     @validator('locations_of_work', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:
@@ -651,7 +651,7 @@ class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
 class CombinationLocationsPossibleShow(CombinationLocationsPossible):
 
     @validator('locations_of_work', pre=True, allow_reuse=True)
-    def set_to_set(cls, values):
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
     class Config:

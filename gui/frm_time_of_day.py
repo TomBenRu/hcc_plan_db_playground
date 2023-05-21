@@ -228,7 +228,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
         if not dlg.exec():
             return
         self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
-                                               if not t.id == dlg.curr_time_of_day.id]
+                                               if t.id != dlg.curr_time_of_day.id]
         self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
                                                                                    dlg.curr_time_of_day.id))
         dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
@@ -266,7 +266,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
         curr_time_of_day = db_services.TimeOfDay.get(curr_t_o_d_id)
 
         self.actor_plan_period.time_of_days = [t for t in self.actor_plan_period.time_of_days
-                                               if not t.id == curr_t_o_d_id]
+                                               if t.id != curr_t_o_d_id]
         self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
                                                                                    curr_t_o_d_id))
         self.controller.execute(actor_plan_period_commands.Update(self.actor_plan_period))
@@ -328,7 +328,6 @@ class FrmTimeOfDayEnum(QDialog):
                 return
             self.new_time_of_day_enum = schemas.TimeOfDayEnumCreate(name=name, abbreviation=abbreviation,
                                                                     time_index=time_index, project=self.project)
-            self.accept()
         else:
             if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums
                                               if t.id != self.curr_time_of_day_enum.id]:
@@ -341,7 +340,8 @@ class FrmTimeOfDayEnum(QDialog):
             self.curr_time_of_day_enum.name = name
             self.curr_time_of_day_enum.abbreviation = abbreviation
             self.curr_time_of_day_enum.time_index = time_index
-            self.accept()
+
+        self.accept()
 
     def delete(self):
         self.to_delete_status = True

@@ -11,7 +11,8 @@ from line_profiler_pycharm import profile
 from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_location, get_curr_team_of_person_at_date, \
-    get_curr_locations_of_team, get_locations_of_team_at_date, get_persons_of_team_at_date
+    get_curr_locations_of_team, get_locations_of_team_at_date, get_persons_of_team_at_date, \
+    get_curr_team_of_location_at_date
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team
 from .actions import Action
@@ -80,8 +81,7 @@ class WidgetPerson(QWidget):
 
     def get_persons(self) -> list[schemas.PersonShow]:
         try:
-            persons = [p for p in db_services.Person.get_all_from__project(self.project_id) if not p.prep_delete]
-            return persons
+            return [p for p in db_services.Person.get_all_from__project(self.project_id) if not p.prep_delete]
         except Exception as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
@@ -168,7 +168,7 @@ class TablePersons(QTableWidget):
             for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
                 cb_team_of_actor.addItem(team.name, team.id)
             curr_team = get_curr_team_of_person_at_date(person=p)
-            cb_team_of_actor.setCurrentText('' if not curr_team else curr_team.name)
+            cb_team_of_actor.setCurrentText(curr_team.name if curr_team else '')
             cb_team_of_actor.currentIndexChanged.connect(self.change_team)
             self.setCellWidget(row, 8, cb_team_of_actor)
 
@@ -406,11 +406,11 @@ class FrmPersonModify(FrmPersonData):
         if dlg.chk_new_mode.isChecked():
             create_time_of_day()
         elif dlg.to_delete_status:
-            self.person.time_of_days = [t for t in self.person.time_of_days if not t.id == dlg.curr_time_of_day.id]
+            self.person.time_of_days = [t for t in self.person.time_of_days if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
             QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
         else:
-            self.person.time_of_days = [t for t in self.person.time_of_days if not t.id == dlg.curr_time_of_day.id]
+            self.person.time_of_days = [t for t in self.person.time_of_days if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
             dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
             create_time_of_day()
@@ -469,10 +469,8 @@ class FrmPersonModify(FrmPersonData):
                     continue
                 curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
                 curr_loc_pref.score = score
-                if score == 1:
-                    self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
-                else:
-                    self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
+                self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
+                if score != 1:
                     new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
                     create_command = actor_loc_pref_commands.Create(new_pref)
                     self.controller.execute(create_command)
@@ -546,8 +544,7 @@ class WidgetLocationsOfWork(QWidget):
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         try:
-            locations = db_services.LocationOfWork.get_all_from__project(self.project_id)
-            return locations
+            return db_services.LocationOfWork.get_all_from__project(self.project_id)
         except ZeroDivisionError as e:
             QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
@@ -713,7 +710,7 @@ class FrmLocationModify(FrmLocationData):
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
         self.lb_teams = QLabel('Team')
-        self.cb_teams = QComboBox()
+        self.cb_teams = QComboBoxToFindData()
         self.lb_time_of_days = QLabel('Tageszeiten')
         self.cb_time_of_days = QComboBox()
         self.bt_time_of_days = QPushButton('bearbeiten')
@@ -745,9 +742,6 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.address.postal_code = self.le_postal_code.text()
         self.location_of_work.address.city = self.le_city.text()
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
-        if curr_team := self.cb_teams.currentData():  # mit DlgAssignDate bearbeiten!!!
-            db_services.LocationOfWork.assign_to_team(self.location_id, curr_team.id, start=None)
-
         updated_location = db_services.LocationOfWork.update(self.location_of_work)
         QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
         self.accept()
@@ -757,8 +751,7 @@ class FrmLocationModify(FrmLocationData):
         super().reject()
 
     def get_location_of_work(self):
-        location = db_services.LocationOfWork.get(self.location_id)
-        return location
+        return db_services.LocationOfWork.get(self.location_id)
 
     def edit_time_of_days(self):
         def create_time_of_day():
@@ -791,13 +784,13 @@ class FrmLocationModify(FrmLocationData):
             create_time_of_day()
         elif dlg.to_delete_status:
             self.location_of_work.time_of_days = [t for t in self.location_of_work.time_of_days
-                                                  if not t.id == dlg.curr_time_of_day.id]
+                                                  if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
                                                                                       dlg.curr_time_of_day.id))
             QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
         else:
             self.location_of_work.time_of_days = [t for t in self.location_of_work.time_of_days
-                                                  if not t.id == dlg.curr_time_of_day.id]
+                                                  if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
                                                                                       dlg.curr_time_of_day.id))
             dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
@@ -849,11 +842,28 @@ class FrmLocationModify(FrmLocationData):
         teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
         self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
         for team in teams:
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team)
-        curr_team = get_curr_team_of_location(location=self.location_of_work)
-        self.cb_teams.setCurrentText(curr_team.name) if curr_team else self.cb_teams.setCurrentText('kein Team')
+            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team.id)
+        curr_team = get_curr_team_of_location_at_date(location=self.location_of_work)
+        curr_team_id = curr_team.id if curr_team else None
+        self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
+        self.cb_teams.currentIndexChanged.connect(self.change_team)
         self.fill_time_of_days()
 
     def get_teams(self):
-        teams = db_services.Team.get_all_from__project(self.project_id)
-        return teams
+        return db_services.Team.get_all_from__project(self.project_id)
+
+    def change_team(self):
+        curr_team = get_curr_team_of_location_at_date(self.location_of_work)
+        curr_team_id = curr_team.id if curr_team else None
+        new_team_id = self.cb_teams.currentData()
+        dlg = frm_assign_to_team.DlgAssignDate(self, curr_team_id, new_team_id)
+        if dlg.exec():
+            start_date = dlg.start_date_new_team
+            command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
+            self.controller.execute(command)
+
+            self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
+        else:
+            self.cb_teams.blockSignals(True)
+            self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team.id))
+            self.cb_teams.blockSignals(False)

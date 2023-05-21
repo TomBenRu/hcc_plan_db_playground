@@ -27,8 +27,10 @@ def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
 
     try:
         return curr_model_name__put_in_command[curr_model_name](curr_model.id, pref_to_put_i_id)
-    except KeyError:
-        raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+    except KeyError as e:
+        raise KeyError(
+            f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.'
+        ) from e
 
 
 def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
@@ -42,8 +44,10 @@ def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
     try:
         command_to_remove = curr_model_name__remove_command[curr_model_name]
         return command_to_remove(curr_model.id, pref_to_remove_id)
-    except KeyError:
-        raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+    except KeyError as e:
+        raise KeyError(
+            f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.'
+        ) from e
 
 
 def factory_for_reload_curr_model(curr_model: schemas.ModelWithPartnerLocPrefs) -> Callable:
@@ -414,11 +418,11 @@ class DlgPartnerLocationPrefs(QDialog):
             # slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
             self.layout_options_locs.addWidget(slider_location, row, 2)
 
-            self.dict_location_id__bt_slider_lb[loc.id] = {}
-            self.dict_location_id__bt_slider_lb[loc.id]['button'] = bt_partners
-            self.dict_location_id__bt_slider_lb[loc.id]['slider'] = slider_location
-            self.dict_location_id__bt_slider_lb[loc.id]['label'] = lb_loc_val
-
+            self.dict_location_id__bt_slider_lb[loc.id] = {
+                'button': bt_partners,
+                'slider': slider_location,
+                'label': lb_loc_val,
+            }
         '''setup partners group:'''
         for row, partner in enumerate(self.partners):
             lb_partner = QLabel(f'Mit {partner.f_name} {partner.l_name}:')
@@ -439,10 +443,11 @@ class DlgPartnerLocationPrefs(QDialog):
             slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_partner_val))
             self.layout_options_partners.addWidget(slider_partner, row, 2)
 
-            self.dict_partner_id__bt_slider_lb[partner.id] = {}
-            self.dict_partner_id__bt_slider_lb[partner.id]['button'] = bt_locations
-            self.dict_partner_id__bt_slider_lb[partner.id]['slider'] = slider_partner
-            self.dict_partner_id__bt_slider_lb[partner.id]['label'] = lb_partner_val
+            self.dict_partner_id__bt_slider_lb[partner.id] = {
+                'button': bt_locations,
+                'slider': slider_partner,
+                'label': lb_partner_val,
+            }
 
     def setup_values_locations(self):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
@@ -459,7 +464,7 @@ class DlgPartnerLocationPrefs(QDialog):
             else:
                 raise Exception('Keine Werte in partner_vals_of_locations!')
 
-            slider_value = max([int(2 * v) for v in partner_vals_of_locations])
+            slider_value = max(int(2 * v) for v in partner_vals_of_locations)
             self.show_slider_text(self.dict_location_id__bt_slider_lb[loc.id]['label'], slider_value)
             self.dict_location_id__bt_slider_lb[loc.id]['slider'].setValue(slider_value)
 
@@ -478,7 +483,7 @@ class DlgPartnerLocationPrefs(QDialog):
             else:
                 raise Exception('Keine Werte in location_vals_of_partner!')
 
-            slider_value = max([int(2 * v) for v in location_vals_of_partner])
+            slider_value = max(int(2 * v) for v in location_vals_of_partner)
             self.show_slider_text(self.dict_partner_id__bt_slider_lb[partner.id]['label'], slider_value)
             self.dict_partner_id__bt_slider_lb[partner.id]['slider'].setValue(slider_value)
 

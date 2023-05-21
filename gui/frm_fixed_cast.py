@@ -35,8 +35,7 @@ class FrmFixedCast(QDialog):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        if (isinstance(schema_with_fixed_cast_field, schemas.LocationOfWork)
-                or isinstance(schema_with_fixed_cast_field, schemas.Event)):
+        if isinstance(schema_with_fixed_cast_field, (schemas.LocationOfWork, schemas.Event)):
             additional_text = f'die Einrichtung "{schema_with_fixed_cast_field.name}"'
         elif isinstance(schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
             additional_text = f'die Planungsperiode "{schema_with_fixed_cast_field.start}-{schema_with_fixed_cast_field.end}"'
@@ -92,8 +91,7 @@ class FrmFixedCast(QDialog):
                     result_list.append([])
                 cb: QComboBox = cell.widget()
                 if cb.objectName() == self.object_name_operatior_between_rows:
-                    result_list.append(cb.currentData())
-                    result_list.append([])
+                    result_list.extend((cb.currentData(), []))
                 if cb.objectName() == self.object_name_actors:
                     result_list[-1].append(f'(UUID("{cb.currentData()}") in team)')
                 if cb.objectName() == self.object_name_inner_operator:

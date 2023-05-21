@@ -36,7 +36,6 @@ class FrmExcelExportSettings(QDialog):
     def autofill(self):
         for i, (key, val) in enumerate(self.excel_settings.dict(exclude={'id'}).items()):
             label = QLabel(key)
-            label.width
             button = QPushButton()
             button.clicked.connect(self.get_color)
             button.setObjectName(key)

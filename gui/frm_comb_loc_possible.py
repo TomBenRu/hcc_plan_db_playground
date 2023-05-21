@@ -146,7 +146,7 @@ class DlgCombLocPossibleEditList(QDialog):
         remove_command = self.factory_for_remove_combs(self.curr_model, comb_id_to_remove)
         self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
-                                                           if not c.id == comb_id_to_remove]
+                                                           if c.id != comb_id_to_remove]
         self.fill_table_combinations()
 
     def accept(self) -> None:
@@ -167,8 +167,8 @@ class DlgCombLocPossibleEditList(QDialog):
 
         try:
             return curr_model_name__put_in_command[curr_model_name](curr_model.id, comb_to_put_i_id)
-        except KeyError:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+        except KeyError as e:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.') from e
 
     def factory_for_remove_combs(self, curr_model: ModelWithCombLocPossible,
                                  comb_to_put_i_id: UUID) -> command_base_classes.Command:
@@ -181,8 +181,8 @@ class DlgCombLocPossibleEditList(QDialog):
         try:
             command_to_remove = curr_model_name__remove_command[curr_model_name]
             return command_to_remove(curr_model.id, comb_to_put_i_id)
-        except KeyError:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.')
+        except KeyError as e:
+            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.') from e
 
     def disable_reset_bt(self):
         self.bt_reset.setDisabled(True)

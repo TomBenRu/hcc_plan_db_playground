@@ -194,9 +194,11 @@ class TablePersons(QTableWidget):
         if team_id:
             created_team_aa = db_services.Person.assign_to_team(person_id, team_id, start=dlg.start_date_new_team)
             next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())
+            text_start = next_assignment.start.strftime("%d.%m.%Y") if next_assignment else 'ab sofort'
+            text_team_name = db_services.Team.get(team_id).name
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
-                                                    f'{next_assignment.start.strftime("%d.%m.%Y")} dem Team '
-                                                    f'"{next_assignment.team.name}" zugeordnet.')
+                                                    f'{text_start} dem Team '
+                                                    f'"{text_team_name}" zugeordnet.')
         else:
             db_services.Person.remove_from_team(person_id, dlg.start_date_new_team)
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '

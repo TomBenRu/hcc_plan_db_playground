@@ -196,49 +196,62 @@ class Person:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def assign_to_team(person_id: UUID, team_id: UUID | None,
-                       start: datetime.date | None) -> schemas.PersonShow | None:
+                       start: datetime.date | None) -> schemas.TeamActorAssignShow | None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
+        start = start or datetime.date.today()
         person_db = models.Person.get_for_update(id=person_id)
         team_db = models.Team.get_for_update(id=team_id) if team_id else None
 
-        if not person_db.team_actor_assigns.is_empty():  # if person_db has team assignments
-            latest_assignment = max(person_db.team_actor_assigns, key=lambda x: x.start)
-            if not latest_assignment.end:  # if last assignment is activ right now
-                if latest_assignment.team != team_db:
-                    if not start:
-                        latest_assignment.end = datetime.date.today()
-                    else:
-                        latest_assignment.end = start
-                    created_taa = TeamActorAssign.create(
-                        schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+        if not person_db.team_actor_assigns.is_empty():  # if actor_db has team assignments
+
+            latest_assignment_db = max(models.TeamActorAssign.select(lambda a: a.person == person_db),
+                                       key=lambda tla: tla.start)
+            while latest_assignment_db and latest_assignment_db.start > start:  # delete all assignments with start later than start of new assignment
+                latest_assignment_db.delete()
+                if assignments := models.TeamActorAssign.select(lambda a: a.person == person_db):
+                    latest_assignment_db = max(assignments, key=lambda tla: tla.start)
                 else:
-                    created_taa = None
+                    latest_assignment_db = None
+            if latest_assignment_db:
+                if latest_assignment_db.end is None or latest_assignment_db.end >= start:
+                    if latest_assignment_db.team.id != team_id:
+                        latest_assignment_db.end = start
+                        created_assignment = TeamActorAssign.create(
+                            schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+                    else:
+                        latest_assignment_db.end = None
+                        created_assignment = None
+                else:
+                    created_assignment = TeamActorAssign.create(
+                        schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
             else:
-                created_taa = TeamActorAssign.create(
+                created_assignment = TeamActorAssign.create(
                     schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
+
         else:
-            created_taa = TeamActorAssign.create(
+            created_assignment = TeamActorAssign.create(
                 schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
 
-        person_db = models.Person.get_for_update(id=person_id)
-        return schemas.PersonShow.from_orm(person_db) if created_taa else None
+        return schemas.TeamActorAssignShow.from_orm(created_assignment) if created_assignment else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def remove_from_team(person_id: UUID, end_date: datetime.date) -> schemas.PersonShow:
+    def remove_from_team(person_id: UUID, end_date: datetime.date) -> schemas.TeamActorAssignShow | None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         if person_db.team_actor_assigns.is_empty():
-            raise LookupError('Die Person ist noch keinem Team zugeordnet.')
-        latest_assignment = max(person_db.team_actor_assigns, key=lambda x: x.start)
-        if latest_assignment.end:
-            raise LookupError('Die Person wurde vom letzten Team bereits abgemeldet.')
-        else:
+            raise LookupError('Die Location ist noch keinem Team zugeordnet.')
+        assignments_to_delete = [a for a in person_db.team_actor_assigns if a.start >= end_date]
+        for assignm in assignments_to_delete:
+            assignm.delete()
+        latest_assignment = max(person_db.team_actor_assigns,
+                                key=lambda x: x.start) if person_db.team_actor_assigns else None
+        if latest_assignment and (latest_assignment.end is None or latest_assignment.end > end_date):
             latest_assignment.end = end_date
 
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.TeamActorAssignShow.from_orm(latest_assignment) if latest_assignment else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -405,70 +418,54 @@ class LocationOfWork:
 
         if not location_db.team_location_assigns.is_empty():  # if location_db has team assignments
 
-            '''get latest assignment:'''
-            latest_assignments_db = max(models.TeamLocationAssign.select(lambda a: a.location_of_work == location_db),
-                                        key=lambda tla: tla.start)
-            print(latest_assignments_db)
+            latest_assignment_db = max(models.TeamLocationAssign.select(lambda a: a.location_of_work == location_db),
+                                       key=lambda tla: tla.start)
+            while latest_assignment_db and latest_assignment_db.start > start:  # delete all assignments with start later than start of new assignment
+                latest_assignment_db.delete()
+                if assignments := models.TeamLocationAssign.select(lambda a: a.location_of_work == location_db):
+                    latest_assignment_db = max(assignments, key=lambda tla: tla.start)
+                else:
+                    latest_assignment_db = None
+            if latest_assignment_db:
+                if latest_assignment_db.end is None or latest_assignment_db.end >= start:
+                    if latest_assignment_db.team.id != team_id:
+                        latest_assignment_db.end = start
+                        created_assignment = TeamLocationAssign.create(
+                            schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+                    else:
+                        latest_assignment_db.end = None
+                        created_assignment = None
+                else:
+                    created_assignment = TeamLocationAssign.create(
+                        schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
+            else:
+                created_assignment = TeamLocationAssign.create(
+                    schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
 
         else:
-            created_tla = TeamLocationAssign.create(
+            created_assignment = TeamLocationAssign.create(
                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
 
-        return schemas.TeamLocationAssignShow.from_orm(created_tla) if created_tla else None
+        return schemas.TeamLocationAssignShow.from_orm(created_assignment) if created_assignment else None
 
-
-
-
-
-        #     latest_assignment: schemas.TeamLocationAssign = max(location_db.team_location_assigns, key=lambda x: x.start)
-        #     latest_assignment_db = models.TeamLocationAssign.get_for_update(id=latest_assignment.id)
-        #     if latest_assignment.start > start:  # if start of latest assignment ist later than start of new assignment
-        #         latest_assignment_db.delete()  # delete latest assignment
-        #
-        #     else:
-        #         if latest_assignment.end > start:
-        #             latest_assignment_db.end = start
-        #             created_assignment = TeamLocationAssign.create(
-        #                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db)
-        #             )
-        #         else:
-        #             created_assignment = TeamLocationAssign.create(
-        #                 schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db)
-        #             )
-        #
-        #     elif latest_assignment.end <= start:
-        #         created_tla = TeamLocationAssign.create(
-        #             schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
-        #     elif latest_assignment.team.id == team_db.id:
-        #         created_tla = None
-        #     else:
-        #         latest_assignment_db.end = start
-        #         created_tla = TeamLocationAssign.create(
-        #             schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
-        # else:
-        #     created_tla = TeamLocationAssign.create(
-        #         schemas.TeamLocationAssignCreate(start=start, location_of_work=location_db, team=team_db))
-        #
-        # location_db = models.LocationOfWork.get_for_update(id=location_id)
-        #
-        # return schemas.TeamLocationAssignShow.from_orm(created_tla) if created_tla else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def remove_from_team(location_id: UUID, end: datetime.date) -> schemas.TeamLocationAssignShow:
+    def remove_from_team(location_id: UUID, end: datetime.date) -> schemas.TeamLocationAssignShow | None:
         """Setzt das Ende des Assignments auf ein neues Datum."""
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         if location_db.team_location_assigns.is_empty():
             raise LookupError('Die Location ist noch keinem Team zugeordnet.')
-        latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start)
-        if latest_assignment.end and latest_assignment.end <= datetime.date.today():
-            raise LookupError('Die Location wurde vom letzten Team bereits abgemeldet.')
-        latest_assignment_db = models.TeamLocationAssign.get_for_update(id=latest_assignment.id)
-        latest_assignment.end = end
+        assignments_to_delete = [a for a in location_db.team_location_assigns if a.start >= end]
+        for assignm in assignments_to_delete:
+            assignm.delete()
+        latest_assignment = max(location_db.team_location_assigns, key=lambda x: x.start) if location_db.team_location_assigns else None
+        if latest_assignment and (latest_assignment.end is None or latest_assignment.end > end):
+            latest_assignment.end = end
 
-        return schemas.TeamLocationAssignShow.from_orm(latest_assignment_db)
+        return schemas.TeamLocationAssignShow.from_orm(latest_assignment) if latest_assignment else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

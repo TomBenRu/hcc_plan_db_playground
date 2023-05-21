@@ -60,7 +60,10 @@ class AssignToTeam(Command):
         self.team_id = team_id
         self.start = start
         self.created_assignment: schemas.TeamLocationAssignShow | None = None
-        self.latest_assignment = max(self.location.team_location_assigns, key=lambda x: x.start) if self.location.team_location_assigns else None
+        self.assignmets_after_start = [a for a in self.location.team_location_assigns if a.start >= start]
+        self.assignmets_before_start = [a for a in self.location.team_location_assigns if a.start < start]
+        self.latest_assignment = (max(self.assignmets_before_start, key=lambda x: x.start)
+                                  if self.assignmets_before_start else None)
 
     def execute(self):
         if self.team_id:
@@ -78,10 +81,18 @@ class AssignToTeam(Command):
                         db_services.LocationOfWork.remove_from_team(self.location_id, self.latest_assignment.end)
                     else:
                         db_services.TeamLocationAssign.set_end_to_none(self.latest_assignment.id)
-        elif self.latest_assignment.end:
-            db_services.LocationOfWork.remove_from_team(self.location_id, self.latest_assignment.end)
-        else:
+            for assignm in sorted(self.assignmets_after_start, key=lambda x: x.start):
+                db_services.LocationOfWork.assign_to_team(self.location_id, assignm.team.id, assignm.start)
+                if assignm.end:
+                    db_services.LocationOfWork.remove_from_team(self.location_id, assignm.end)
+        elif not self.latest_assignment.end:
             db_services.TeamLocationAssign.set_end_to_none(self.latest_assignment.id)
+        else:
+            db_services.LocationOfWork.remove_from_team(self.location_id, self.latest_assignment.end)
+            for assignm in sorted(self.assignmets_after_start, key=lambda x: x.start):
+                db_services.LocationOfWork.assign_to_team(self.location_id, assignm.team.id, assignm.start)
+                if assignm.end:
+                    db_services.LocationOfWork.remove_from_team(self.location_id, assignm.end)
 
     def redo(self):
         self.created_assignment = db_services.LocationOfWork.assign_to_team(self.location_id, self.team_id, self.start)

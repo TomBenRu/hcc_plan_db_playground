@@ -12,7 +12,7 @@ from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_location, get_curr_team_of_person_at_date, \
     get_curr_locations_of_team, get_locations_of_team_at_date, get_persons_of_team_at_date, \
-    get_curr_team_of_location_at_date
+    get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team
 from .actions import Action
@@ -184,8 +184,7 @@ class TablePersons(QTableWidget):
         sender: QComboBox = self.sender()
         team_id: UUID = sender.currentData()
         curr_team = get_curr_team_of_person_at_date(db_services.Person.get(person_id))
-        dlg = frm_assign_to_team.DlgAssignDate(
-            self, curr_team.id if curr_team else None, team_id)
+        dlg = frm_assign_to_team.DlgAssignDate(self, curr_team.id if curr_team else None, team_id)
         if not dlg.exec():
             sender.blockSignals(True)
             sender.setCurrentIndex(sender.findData(curr_team.id))
@@ -193,21 +192,20 @@ class TablePersons(QTableWidget):
             return
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
         if team_id:
-            updated_person = db_services.Person.assign_to_team(person_id, team_id, start=dlg.start_date_new_team)
-            assigns = updated_person.team_actor_assigns
-            curr_assign = max(assigns, key=lambda x: x.start)
+            created_team_aa = db_services.Person.assign_to_team(person_id, team_id, start=dlg.start_date_new_team)
+            next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
-                                                    f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} dem Team '
-                                                    f'"{curr_assign.team.name}" zugeordnet.')
+                                                    f'{next_assignment.start.strftime("%d.%m.%Y")} dem Team '
+                                                    f'"{next_assignment.team.name}" zugeordnet.')
         else:
-            updated_person = db_services.Person.remove_from_team(person_id, dlg.start_date_new_team)
+            db_services.Person.remove_from_team(person_id, dlg.start_date_new_team)
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
                                                     f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} '
                                                     f'keinem Team zugeordnet.')
 
         sender.blockSignals(True)
         curr_team = get_curr_team_of_person_at_date(person=db_services.Person.get(person_id))
-        sender.setCurrentIndex(sender.findData(curr_team.id))
+        sender.setCurrentIndex(sender.findData(curr_team.id if curr_team else None))
         sender.blockSignals(False)
 
 
@@ -620,8 +618,12 @@ class TableLocationsOfWork(QTableWidget):
             self.setItem(row, 2, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
             self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
 
-            curr_team = get_curr_team_of_location(location=loc)
-            self.setItem(row, 4, QTableWidgetItem(curr_team.name if curr_team else ''))
+            curr_team = get_curr_team_of_location_at_date(location=loc)
+            if next_assignm := get_next_assignment_of_location(loc, datetime.date.today()):
+                txt_next_team = f'{next_assignm.team.name} ab {next_assignm.start.strftime("%d.%m.%Y")}'
+            else:
+                txt_next_team = ''
+            self.setItem(row, 4, QTableWidgetItem(curr_team.name if curr_team else txt_next_team))
             self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
             self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
 
@@ -729,6 +731,7 @@ class FrmLocationModify(FrmLocationData):
         self.group_specific_data_layout.addWidget(self.bt_time_of_days, 1, 2)
         self.group_specific_data_layout.addWidget(self.lb_teams, 2, 0)
         self.group_specific_data_layout.addWidget(self.cb_teams, 2, 1)
+        self.group_specific_data_layout.addWidget(self.lb_teams_info, 2, 2)
         self.group_specific_data_layout.addWidget(self.lb_fixed_cast, 3, 0)
         self.group_specific_data_layout.addWidget(self.bt_fixed_cast, 3, 2)
 
@@ -833,7 +836,11 @@ class FrmLocationModify(FrmLocationData):
         curr_team_id = curr_team.id if curr_team else None
         self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
         self.cb_teams.currentIndexChanged.connect(self.change_team)
-        #self.lb_teams_info.setText(...)
+        if next_assignment := get_next_assignment_of_location(self.location_of_work, datetime.date.today()):
+            text = f'{next_assignment.team.name} ab dem {next_assignment.start.strftime("%d.%m.%y")}'
+        else:
+            text = 'Keine nachfolgende Teamzuweisung'
+        self.lb_teams_info.setText(text)
 
     def edit_fixed_cast(self):
         if not (team := get_curr_team_of_location(self.location_of_work)):

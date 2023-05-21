@@ -37,7 +37,7 @@ def get_curr_team_of_location_at_date(location: schemas.LocationOfWorkShow,
 def get_curr_team_of_person_at_date(person: schemas.PersonShow, date: datetime.date = None) -> schemas.Team | None:
     """Gibt das Team zurück, welchem die Person an einem Datum zugeordnet war/ist.
     Falls date = None, wird das aktuelle Datum genommen."""
-    date = date if date else datetime.date.today()
+    date = date or datetime.date.today()
     if not person.team_actor_assigns:
         curr_team = None
     else:
@@ -49,6 +49,21 @@ def get_curr_team_of_person_at_date(person: schemas.PersonShow, date: datetime.d
             curr_team = None
 
     return curr_team
+
+
+def get_next_assignment_of_location(location: schemas.LocationOfWorkShow,
+                                    date: datetime.date) -> schemas.TeamLocationAssign:
+    assignments = sorted(location.team_location_assigns, key=lambda x: x.start)
+    for assignment in assignments:
+        if assignment.start > date:
+            return assignment
+
+
+def get_next_assignment_of_person(person: schemas.PersonShow, date: datetime.date) -> schemas.TeamActorAssign:
+    assignments = sorted(person.team_actor_assigns, key=lambda x: x.start)
+    for assignment in assignments:
+        if assignment.start >= date:
+            return assignment
 
 
 def get_curr_locations_of_team(team: schemas.TeamShow) -> list[schemas.LocationOfWork]:

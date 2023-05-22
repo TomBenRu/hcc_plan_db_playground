@@ -212,7 +212,6 @@ class TablePersons(QTableWidget):
 
 
 class FrmPersonData(QDialog):
-    @profile
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
@@ -872,9 +871,12 @@ class FrmLocationModify(FrmLocationData):
         dlg = frm_assign_to_team.DlgAssignDate(self, curr_team_id, new_team_id)
         if dlg.exec():
             start_date = dlg.start_date_new_team
-            command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
+            # command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
+            if new_team_id:
+                command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
+            else:
+                command = location_of_work_commands.LeaveTeam(self.location_of_work.id, start_date)
             self.controller.execute(command)
-
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
         else:
             self.cb_teams.blockSignals(True)

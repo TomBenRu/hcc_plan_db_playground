@@ -195,66 +195,6 @@ class Person:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def assign_to_team(person_id: UUID, team_id: UUID | None,
-                       start: datetime.date | None) -> schemas.TeamActorAssignShow | None:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
-                     f'args: {locals()}')
-        start = start or datetime.date.today()
-        person_db = models.Person.get_for_update(id=person_id)
-        team_db = models.Team.get_for_update(id=team_id) if team_id else None
-
-        if not person_db.team_actor_assigns.is_empty():  # if actor_db has team assignments
-
-            latest_assignment_db = max(models.TeamActorAssign.select(lambda a: a.person == person_db),
-                                       key=lambda tla: tla.start)
-            while latest_assignment_db and latest_assignment_db.start >= start:  # delete all assignments with start later than start of new assignment
-                latest_assignment_db.delete()
-                if assignments := models.TeamActorAssign.select(lambda a: a.person == person_db):
-                    latest_assignment_db = max(assignments, key=lambda tla: tla.start)
-                else:
-                    latest_assignment_db = None
-            if latest_assignment_db:
-                if latest_assignment_db.end is None or latest_assignment_db.end >= start:
-                    if latest_assignment_db.team.id != team_id:
-                        latest_assignment_db.end = start
-                        created_assignment = TeamActorAssign.create(
-                            schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
-                    else:
-                        latest_assignment_db.end = None
-                        created_assignment = None
-                else:
-                    created_assignment = TeamActorAssign.create(
-                        schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
-            else:
-                created_assignment = TeamActorAssign.create(
-                    schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
-
-        else:
-            created_assignment = TeamActorAssign.create(
-                schemas.TeamActorAssignCreate(start=start, person=person_db, team=team_db))
-
-        return schemas.TeamActorAssignShow.from_orm(created_assignment) if created_assignment else None
-
-    @staticmethod
-    @db_session(sql_debug=True, show_values=True)
-    def remove_from_team(person_id: UUID, end_date: datetime.date) -> schemas.TeamActorAssignShow | None:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
-                     f'args: {locals()}')
-        person_db = models.Person.get_for_update(id=person_id)
-        if person_db.team_actor_assigns.is_empty():
-            raise LookupError('Die Location ist noch keinem Team zugeordnet.')
-        assignments_to_delete = [a for a in person_db.team_actor_assigns if a.start >= end_date]
-        for assignm in assignments_to_delete:
-            assignm.delete()
-        latest_assignment = max(person_db.team_actor_assigns,
-                                key=lambda x: x.start) if person_db.team_actor_assigns else None
-        if latest_assignment and (latest_assignment.end is None or latest_assignment.end > end_date):
-            latest_assignment.end = end_date
-
-        return schemas.TeamActorAssignShow.from_orm(latest_assignment) if latest_assignment else None
-
-    @staticmethod
-    @db_session(sql_debug=True, show_values=True)
     def update_project_of_admin(person_id: UUID, project_id: UUID) -> schemas.PersonShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
@@ -485,16 +425,40 @@ class TeamActorAssign:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(team_actor_assign: schemas.TeamActorAssignCreate) -> schemas.TeamActorAssignShow:
+    def create(team_actor_assign: schemas.TeamActorAssignCreate,
+               assign_id: UUID | None = None) -> schemas.TeamActorAssignShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         person_db = models.Person.get(id=team_actor_assign.person.id)
         team_db = models.Team.get(id=team_actor_assign.team.id)
         if team_actor_assign.start:
-            new_team_aa = models.TeamActorAssign(start=team_actor_assign.start, person=person_db, team=team_db)
+            if assign_id:
+                new_team_aa = models.TeamActorAssign(start=team_actor_assign.start, person=person_db, team=team_db,
+                                                     id=assign_id)
+            else:
+                new_team_aa = models.TeamActorAssign(start=team_actor_assign.start, person=person_db, team=team_db)
         else:
-            new_team_aa = models.TeamActorAssign(person=person_db, team=team_db)
+            if assign_id:
+                new_team_aa = models.TeamActorAssign(person=person_db, team=team_db, id=assign_id)
+            else:
+                new_team_aa = models.TeamActorAssign(person=person_db, team=team_db)
         return schemas.TeamActorAssignShow.from_orm(new_team_aa)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_end_date(team_actor_assign_id: UUID, end_date: datetime.date | None = None):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
+        team_actor_assign_db.end = end_date
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(team_actor_assign_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
+        team_actor_assign_db.delete()
 
 
 class TeamLocationAssign:
@@ -539,16 +503,26 @@ class TeamLocationAssign:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(team_location_assign: schemas.TeamLocationAssignCreate) -> schemas.TeamLocationAssignShow:
+    def create(team_location_assign: schemas.TeamLocationAssignCreate,
+               assign_id: UUID | None = None) -> schemas.TeamLocationAssignShow:
+        """Wenn eine assign_id angegeben ist, wird der neu erstellten team_location_assign diese UUID als
+        Primärschlüssel zugeordnet."""
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         location_db = models.LocationOfWork.get(id=team_location_assign.location_of_work.id)
         team_db = models.Team.get(id=team_location_assign.team.id)
         if team_location_assign.start:
-            new_team_la = models.TeamLocationAssign(start=team_location_assign.start, location_of_work=location_db,
-                                                    team=team_db)
+            if assign_id:
+                new_team_la = models.TeamLocationAssign(start=team_location_assign.start, location_of_work=location_db,
+                                                        team=team_db, id=assign_id)
+            else:
+                new_team_la = models.TeamLocationAssign(start=team_location_assign.start, location_of_work=location_db,
+                                                        team=team_db)
         else:
-            new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db)
+            if assign_id:
+                new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db, id=assign_id)
+            else:
+                new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db)
         return schemas.TeamLocationAssignShow.from_orm(new_team_la)
 
     @staticmethod
@@ -557,7 +531,7 @@ class TeamLocationAssign:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         team_location_assign_db = models.TeamLocationAssign.get_for_update(id=team_location_assign_id)
-        team_location_assign_db.end = None
+        team_location_assign_db.end = end_date
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

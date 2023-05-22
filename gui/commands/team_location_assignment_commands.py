@@ -49,7 +49,8 @@ class Delete(Command):
         db_services.TeamLocationAssign.delete(self.assignment_id)
 
     def undo(self):
-        db_services.TeamLocationAssign.create(schemas.TeamLocationAssignCreate(**self.assignment.dict()))
+        db_services.TeamLocationAssign.create(schemas.TeamLocationAssignCreate(**self.assignment.dict()),
+                                              self.assignment_id)
 
     def redo(self):
         self.execute()

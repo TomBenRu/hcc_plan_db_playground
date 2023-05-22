@@ -64,17 +64,16 @@ class AssignToTeam(Command):
         self.controller = ContrExecUndoRedo()
 
     def execute(self):
-        if self.location.team_location_assigns:
-            self.delete_assignments(self.get_assignments_later_than_start())
-            if latest_assignm := self.get_latest_assignment_before_start():
-                if latest_assignm.end is None or latest_assignm.end > self.start:
-                    if latest_assignm.team.id != self.team_id:
-                        self.change_assignm_end_date(latest_assignm.id, self.start)
-                        self.create_assignment()
-                    elif latest_assignm.end:
-                        self.change_assignm_end_date(latest_assignm.id, None)
+        if assignments := self.get_assignments_later_than_start():
+            self.delete_assignments(assignments)
+
+        if latest_assignment := self.get_latest_assignment_before_start():
+            if latest_assignment.end is None or latest_assignment.end >= self.start:
+                if latest_assignment.team.id == self.team_id:
+                    self.change_assignm_end_date(latest_assignment.id, None)
                 else:
                     self.create_assignment()
+                    self.change_assignm_end_date(latest_assignment.id, self.start)
             else:
                 self.create_assignment()
         else:

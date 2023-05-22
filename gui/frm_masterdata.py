@@ -17,7 +17,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
     frm_assign_to_team
 from .actions import Action
 from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
-    actor_loc_pref_commands
+    actor_loc_pref_commands, team_actor_assignment_commands
 from .frm_fixed_cast import FrmFixedCast
 from .tabbars import TabBar
 from .tools.qcombobox_find_data import QComboBoxToFindData
@@ -192,7 +192,7 @@ class TablePersons(QTableWidget):
             return
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
         if team_id:
-            created_team_aa = db_services.Person.assign_to_team(person_id, team_id, start=dlg.start_date_new_team)
+            person_commands.AssignToTeam(person_id, team_id, dlg.start_date_new_team).execute()
             next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())
             text_start = next_assignment.start.strftime("%d.%m.%Y") if next_assignment else 'ab sofort'
             text_team_name = db_services.Team.get(team_id).name
@@ -200,7 +200,7 @@ class TablePersons(QTableWidget):
                                                     f'{text_start} dem Team '
                                                     f'"{text_team_name}" zugeordnet.')
         else:
-            db_services.Person.remove_from_team(person_id, dlg.start_date_new_team)
+            person_commands.LeaveTeam(person_id, dlg.start_date_new_team).execute()
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
                                                     f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} '
                                                     f'keinem Team zugeordnet.')

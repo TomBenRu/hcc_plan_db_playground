@@ -52,11 +52,16 @@ def get_curr_team_of_person_at_date(person: schemas.PersonShow, date: datetime.d
 
 
 def get_next_assignment_of_location(location: schemas.LocationOfWorkShow,
-                                    date: datetime.date) -> schemas.TeamLocationAssign:
+                                    date: datetime.date) -> tuple[schemas.TeamLocationAssign | None, datetime.date] | None:
     assignments = sorted(location.team_location_assigns, key=lambda x: x.start)
+
     for assignment in assignments:
+        if assignment.start <= date and assignment.end is None:
+            return
+        if assignment.start <= date < assignment.end and not [a for a in assignments if a.start == assignment.end]:
+            return None, assignment.end
         if assignment.start > date:
-            return assignment
+            return assignment, assignment.start
 
 
 def get_next_assignment_of_person(person: schemas.PersonShow, date: datetime.date) -> schemas.TeamActorAssign:

@@ -620,13 +620,22 @@ class TableLocationsOfWork(QTableWidget):
             self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
 
             curr_team = get_curr_team_of_location_at_date(location=loc)
-            if next_assignm := get_next_assignment_of_location(loc, datetime.date.today()):
-                txt_next_team = f'{next_assignm.team.name} ab {next_assignm.start.strftime("%d.%m.%Y")}'
-            else:
-                txt_next_team = ''
-            self.setItem(row, 4, QTableWidgetItem(curr_team.name if curr_team else txt_next_team))
+            txt_team = self.get_team_info_text(loc, curr_team)
+            self.setItem(row, 4, QTableWidgetItem(txt_team))
             self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
             self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
+
+    @staticmethod
+    def get_team_info_text(location: schemas.LocationOfWorkShow, curr_team: schemas.Team | None) -> str:
+        if curr_team:
+            return curr_team.name
+        if next_assignment__date := get_next_assignment_of_location(location, datetime.date.today()):
+            next_assignment, date = next_assignment__date
+            if next_assignment:
+                return (f'{next_assignment.team.name if next_assignment else "Kein Team"} '
+                        f'ab dem {date.strftime("%d.%m.%y")}')
+        return ''
+
 
     def text_to_clipboard(self, r, c):
         text = self.item(r, c).text()
@@ -713,6 +722,7 @@ class FrmLocationModify(FrmLocationData):
         self.spin_nr_actors.setMinimum(1)
         self.lb_teams = QLabel('Team')
         self.cb_teams = QComboBoxToFindData()
+        self.cb_teams.currentIndexChanged.connect(self.change_team)
         self.lb_teams_info = QLabel()
         self.lb_time_of_days = QLabel('Tageszeiten')
         self.cb_time_of_days = QComboBox()
@@ -829,19 +839,26 @@ class FrmLocationModify(FrmLocationData):
                                          f'{t.end.hour:02}:{t.end.minute:02}', t)
 
     def fill_teams(self):
+        self.cb_teams.blockSignals(True)
+        self.cb_teams.clear()
         teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
         self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
         for team in teams:
             self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team.id)
+        self.set_curr_team()
+        self.lb_teams_info.setText(self.get_team_info_text())
+        self.cb_teams.blockSignals(False)
+
+    def set_curr_team(self):
         curr_team = get_curr_team_of_location_at_date(location=self.location_of_work)
         curr_team_id = curr_team.id if curr_team else None
         self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
-        self.cb_teams.currentIndexChanged.connect(self.change_team)
-        if next_assignment := get_next_assignment_of_location(self.location_of_work, datetime.date.today()):
-            text = f'{next_assignment.team.name} ab dem {next_assignment.start.strftime("%d.%m.%y")}'
-        else:
-            text = 'Keine nachfolgende Teamzuweisung'
-        self.lb_teams_info.setText(text)
+
+    def get_team_info_text(self) -> str:
+        if not (next_assignment__date := get_next_assignment_of_location(self.location_of_work, datetime.date.today())):
+            return 'Keine nachfolgende Teamzuweisung'
+        next_assignment, date = next_assignment__date
+        return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
 
     def edit_fixed_cast(self):
         if not (team := get_curr_team_of_location(self.location_of_work)):
@@ -877,7 +894,8 @@ class FrmLocationModify(FrmLocationData):
             else:
                 command = location_of_work_commands.LeaveTeam(self.location_of_work.id, start_date)
             self.controller.execute(command)
-            self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
+            self.location_of_work = self.get_location_of_work()
+            self.fill_teams()
         else:
             self.cb_teams.blockSignals(True)
             self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))

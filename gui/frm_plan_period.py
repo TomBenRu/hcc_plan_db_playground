@@ -83,7 +83,9 @@ class DlgPlanPeriodData(QDialog):
         if not team:
             return
         if team.plan_periods:
-            self.max_end_plan_periods = max([p.end for p in team.plan_periods if not p.prep_delete])
+            self.max_end_plan_periods = max(p.end for p in team.plan_periods if not p.prep_delete)
+            self.de_start.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
+            self.de_end.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         else:
             self.max_end_plan_periods = datetime.date.today()
         self.de_start.setDate(self.max_end_plan_periods + datetime.timedelta(days=1))
@@ -92,11 +94,11 @@ class DlgPlanPeriodData(QDialog):
 
     def proof_with_end(self):
         if self.de_start.date() > self.de_end.date():
-            self.de_start.setDate(self.de_end.date())
+            self.de_end.setDate(self.de_start.date())
 
     def proof_with_start(self):
         if self.de_end.date() < self.de_start.date():
-            self.de_end.setDate(self.de_start.date())
+            self.de_start.setDate(self.de_end.date())
 
     def save(self):
         if not self.cb_teams.currentData():
@@ -141,7 +143,7 @@ class DlgPlanPeriodEdit(QDialog):
         self.setWindowTitle('Planung ändern')
 
         self.project_id = project_id
-        self.curr_planperiods: list[schemas.PlanPeriod] = []
+        self.curr_plan_periods: list[schemas.PlanPeriod] = []
         self.delete_status = False
 
         self.layout = QVBoxLayout()
@@ -219,15 +221,15 @@ class DlgPlanPeriodEdit(QDialog):
     def fill_plan_periods(self):
         self.cb_planperiods.clear()
         curr_team: schemas.TeamShow = self.cb_teams.currentData()
-        self.curr_planperiods = sorted([p for p in curr_team.plan_periods if not p.prep_delete],
-                                       key=lambda x: x.start, reverse=True)
-        for pp in self.curr_planperiods:
+        self.curr_plan_periods = sorted([p for p in curr_team.plan_periods if not p.prep_delete],
+                                        key=lambda x: x.start, reverse=True)
+        for pp in self.curr_plan_periods:
             text = f'{pp.start.strftime("%d.%m.%Y")} - {pp.end.strftime("%d.%m.%Y")}'
             self.cb_planperiods.addItem(text, pp)
 
     def fill_plan_period_datas(self):
-        pp_after = self.curr_planperiods[self.cb_planperiods.currentIndex()-1] if self.cb_planperiods.currentIndex() > 0 else None
-        pp_before = self.curr_planperiods[self.cb_planperiods.currentIndex()+1] if len(self.curr_planperiods) > (self.cb_planperiods.currentIndex() + 1) else None
+        pp_after = self.curr_plan_periods[self.cb_planperiods.currentIndex() - 1] if self.cb_planperiods.currentIndex() > 0 else None
+        pp_before = self.curr_plan_periods[self.cb_planperiods.currentIndex() + 1] if len(self.curr_plan_periods) > (self.cb_planperiods.currentIndex() + 1) else None
 
         self.de_start.clearMinimumDate()
         self.de_end.clearMaximumDate()
@@ -259,11 +261,11 @@ class DlgPlanPeriodEdit(QDialog):
 
     def proof_with_end(self):
         if self.de_start.date() > self.de_end.date():
-            self.de_start.setDate(self.de_end.date())
+            self.de_end.setDate(self.de_start.date())
 
     def proof_with_start(self):
         if self.de_end.date() < self.de_start.date():
-            self.de_end.setDate(self.de_start.date())
+            self.de_start.setDate(self.de_end.date())
 
     def delete(self):
         self.delete_status = True

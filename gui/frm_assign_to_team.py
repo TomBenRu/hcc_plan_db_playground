@@ -40,29 +40,17 @@ class DlgAssignDate(QDialog):
         self.setup_data()
 
     def setup_data(self):
-        # curr_team = db_services.Team.get(self.curr_team_id) if self.curr_team_id else None
-        # new_team = db_services.Team.get(self.new_team_id) if self.new_team_id else None
-        # if not curr_team or not curr_team.plan_periods:
-        #     curr_team_earliest_date_to_change = datetime.date.today()
-        # else:
-        #     curr_team_last_plan_period_date = max(pp.end for pp in curr_team.plan_periods if not pp.prep_delete)
-        #     curr_team_earliest_date_to_change = curr_team_last_plan_period_date + datetime.timedelta(days=1)
-        #
-        # if not new_team or not new_team.plan_periods:
-        #     new_team_earliest_date_to_change = datetime.date.today()
-        #
-        # else:
-        #     new_team_last_plan_period_date = max(pp.end for pp in new_team.plan_periods if not pp.prep_delete)
-        #     new_team_earliest_date_to_change = new_team_last_plan_period_date + datetime.timedelta(days=1)
-        #
-        # earliest_date_to_change = max([curr_team_earliest_date_to_change, new_team_earliest_date_to_change])
-        # text_explanation = f'Der früheste Zeitpunkt eines Wechsels ist der:\n' \
-        #                            f'{earliest_date_to_change.strftime("%d.%m.%Y")}\n'
-        #
-        # self.dt_change_team.setDate(earliest_date_to_change)
-        # self.dt_change_team.setMinimumDate(earliest_date_to_change)
-        #
-        # self.lb_explanation.setText(text_explanation)
+        curr_team = db_services.Team.get(self.curr_team_id) if self.curr_team_id else None
+        new_team = db_services.Team.get(self.new_team_id) if self.new_team_id else None
+
+        text_explanation = f'Hier kommt noc eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.\n'
+
+
+        self.lb_explanation.setText(text_explanation)
+
+
+
+
         self.dt_change_team.setDate(datetime.date.today())
         self.dt_change_team.setMinimumDate(datetime.date.today())
 

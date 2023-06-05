@@ -88,11 +88,11 @@ class Team:
 
     @staticmethod
     @db_session
-    def get_all_from__project(projet_id: UUID) -> list[schemas.TeamShow]:
-        project_in_db = models.Project.get_for_update(lambda p: p.id == projet_id)
-        if not project_in_db:
+    def get_all_from__project(project_id: UUID) -> list[schemas.TeamShow]:
+        if project_in_db := models.Project.get_for_update(lambda p: p.id == project_id):
+            return [schemas.TeamShow.from_orm(t) for t in project_in_db.teams]
+        else:
             return []
-        return [schemas.TeamShow.from_orm(t) for t in project_in_db.teams]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -729,6 +729,10 @@ class Address:
 
 
 class PlanPeriod:
+    @staticmethod
+    @db_session
+    def get(plan_period_id: UUID) -> schemas.PlanPeriodShow:
+        return schemas.PlanPeriodShow.from_orm(models.PlanPeriod.get_for_update(id=plan_period_id))
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriodShow]:

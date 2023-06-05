@@ -448,12 +448,12 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
 
 class FrmTabActorPlanPeriods(QWidget):
-    def __init__(self, plan_period: schemas.PlanPeriodShow):
+    def __init__(self, plan_period: schemas.PlanPeriod):
         super().__init__()
 
-        self.plan_period = plan_period
-        self.actor_plan_periods = [a_pp for a_pp in plan_period.actor_plan_periods]
-        self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in plan_period.actor_plan_periods}
+        self.plan_period = db_services.PlanPeriod.get(plan_period.id)
+        self.actor_plan_periods = list(self.plan_period.actor_plan_periods)
+        self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods}
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
         self.scroll_area_availables = QScrollArea()
@@ -682,7 +682,8 @@ class FrmActorPlanPeriod(QWidget):
                                      f'Tageszeiten-Standartwerdte definiert.')
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
-                self.create_time_of_day_button(d, time_of_day, row, col)
+                button_avail_day = self.create_time_of_day_button(d, time_of_day)
+                self.layout.addWidget(button_avail_day, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
@@ -704,9 +705,10 @@ class FrmActorPlanPeriod(QWidget):
         QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
         QTimer.singleShot(50, lambda:  self.get_avail_days())
 
-    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay, row: int, col: int):
+    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
+        # sourcery skip: inline-immediately-returned-variable
         button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
-        self.layout.addWidget(button, row, col)
+        return button
 
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.day
@@ -719,7 +721,7 @@ class FrmActorPlanPeriod(QWidget):
             self.controller_avail_days.execute(save_command)
 
             '''Falls es an diesem Tage schon einen oder mehrere AvailDays gibt, 
-            werden die combination_locations_possibles vom ersten gefndenen AvailDay übernommen, weil, davon ausgegangen
+            werden die combination_locations_possibles vom ersten gefundenen AvailDay übernommen, weil, davon ausgegangen
             wird, dass schon evtl. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
             created_avail_day = save_command.created_avail_day
             if existing_avds_on_day:

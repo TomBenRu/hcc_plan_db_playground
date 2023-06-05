@@ -548,9 +548,9 @@ class Flag(db.Entity):
 
 class CombinationLocationsPossible(db.Entity):
     """Verschiedene Personen können die gleiche Instanz einer Combination verwenden.
-    Falls eine neue Instanz angelegt werden soll wird zuerst überprüft, ob es schon eine Instanz mit der gleichen
+    Falls eine neue Instanz angelegt werden soll, wird zuerst überprüft, ob es schon eine Instanz mit der gleichen
     Kombination von Locations gibt. Falls ja, sollte diese Instanz verwendet werden.
-    Eine neue Instanz von ActoPlanPeriod übernimmt die Combinations von Person,
+    Eine neue Instanz von ActorPlanPeriod übernimmt die Combinations von Person,
     eine neue Instanz von AvailDay übernimmt die Combinations von ActorPlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     project = Required(Project)
@@ -640,7 +640,8 @@ class ExcelExportSettings(db.Entity):
     job = Required(bytes)"""
 
 
-# todo: Beibehaltung von Planungen nach Löschung bzw. Statusänderungen (z.B. Änderungen von Zugehörigkeiten zu einem Team).
-# todo: Beim Wechsel des Teams von Person oder LoacationOfWork sammeln sich in CombinationLocationsPossible viele nicht aktuelle Combinations an. Lösung?
+# todo (done): Beibehaltung von Planungen nach Löschung bzw. Statusänderungen (z.B. Änderungen von Zugehörigkeiten zu einem Team).
+# todo: Beim Wechsel des Teams von Person oder LocationOfWork sammeln sich in CombinationLocationsPossible viele nicht aktuelle Combinations an. Lösung?
 # todo: Das Gleiche gilt für ActorLocationPref
 # todo: Das Gleiche gilt für fixed_cast in LocationOfWork und Event
+# todo: In FrameActorPlanPeriod dürfen nur die Termine der Tage des Teams gezeigt werden, an denen die Person dem Team zugeordnet ist.

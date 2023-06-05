@@ -15,7 +15,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
+from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
+    get_curr_team_of_person_at_date, get_next_assignment_of_person, get_curr_assignment_of_person
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
@@ -39,14 +40,17 @@ class ButtonAvailDay(QPushButton):
 
         if time_of_day.time_of_day_enum.time_index == 1:
             self.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                               "QPushButton::checked { background-color: #002aaa; border: none;}")
+                               "QPushButton::checked { background-color: #002aaa; border: none;}"
+                               "QPushButton::disabled { background-color: #6a7585;}")
         elif time_of_day.time_of_day_enum.time_index == 2:
             self.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                               "QPushButton::checked { background-color: #ff4600; border: none;}")
+                               "QPushButton::checked { background-color: #ff4600; border: none;}"
+                               "QPushButton::disabled { background-color: #7f7f7f;}")
         elif time_of_day.time_of_day_enum.time_index == 3:
             self.setStyleSheet("QPushButton {background-color: #daa4c9}"
-                               "QPushButton::checked { background-color: #84033c; border: none;}")
-
+                               "QPushButton::checked { background-color: #84033c; border: none;}"
+                               "QPushButton::disabled { background-color: #674b56;}")
+        '#999999'
         self.actor_plan_period = actor_plan_period
         self.slot__save_avail_day = slot__save_avail_day
         self.day = day
@@ -151,11 +155,14 @@ class ButtonCombLocPossible(QPushButton):
     def set_stylesheet(self):
         check_comb_of_day__eq__comb_of_actor_pp = self.check_comb_of_day__eq__comb_of_actor_pp()
         if check_comb_of_day__eq__comb_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #fff4d6}}")
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #fff4d6}}"
+                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
         elif check_comb_of_day__eq__comb_of_actor_pp:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #acf49f}}")
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #acf49f}}"
+                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
         else:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}")
+            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}"
+                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
         'acf49f'
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
@@ -169,7 +176,7 @@ class ButtonCombLocPossible(QPushButton):
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
-        locations = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
+        locations = get_locations_of_team_at_date(self.actor_plan_period.team.id, self.day)
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], self.actor_plan_period,
                                                                locations)
@@ -258,12 +265,15 @@ class ButtonActorLocationPref(QPushButton):
     def set_stylesheet(self):
         check_loc_pref__eq__loc_pref_of_actor_pp = self.check_loc_pref_of_day__eq__loc_pref_of_actor_pp()
         if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #fff4d6}}")
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #fff4d6;}}"
+                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
         elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #acf49f}}")
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #acf49f;}}"
+                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
         else:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #f4b2a5}}")
-        'acf49f'
+            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #f4b2a5;}}"
+                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
+        '6e6e6e'
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
         return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.day == self.day]
@@ -391,11 +401,14 @@ class ButtonActorPartnerLocationPref(QPushButton):
     def set_stylesheet(self):
         check_loc_pref__eq__loc_pref_of_actor_pp = self.check_pref_of_day__eq__pref_of_actor_pp()
         if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #fff4d6}}")
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #fff4d6}}"
+                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
         elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #acf49f}}")
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #acf49f}}"
+                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
         else:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #f4b2a5}}")
+            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #f4b2a5}}"
+                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
         'acf49f'
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
@@ -651,6 +664,10 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):
+        person = db_services.Person.get(self.actor_plan_period.person.id)
+        curr_assignment_of_person = get_curr_assignment_of_person(person, self.actor_plan_period.plan_period.start)
+        if curr_assignment_of_person.team.id != self.actor_plan_period.team.id:
+            curr_assignment_of_person = get_next_assignment_of_person(person, self.actor_plan_period.plan_period.start)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
         bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin.', clicked=self.edit_all_avail_combs)
@@ -672,6 +689,11 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
 
         for col, d in enumerate(self.days, start=1):
+            disable_buttons = (
+                d < curr_assignment_of_person.start
+                or (curr_assignment_of_person.end is not None
+                and d >= curr_assignment_of_person.end)
+            )
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -683,6 +705,7 @@ class FrmActorPlanPeriod(QWidget):
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 button_avail_day = self.create_time_of_day_button(d, time_of_day)
+                button_avail_day.setDisabled(disable_buttons)
                 self.layout.addWidget(button_avail_day, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -690,10 +713,13 @@ class FrmActorPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row+1, col)
             bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
+            bt_comb_loc_poss.setDisabled(disable_buttons)
             self.layout.addWidget(bt_comb_loc_poss, row+2, col)
             bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
+            bt_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_loc_prefs, row+3, col)
             bt_partn_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
+            bt_partn_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_partn_loc_prefs, row+4, col)
 
     def reset_chk_field(self):
@@ -817,7 +843,9 @@ class FrmActorPlanPeriod(QWidget):
                                  f'gibt es noch keine Verfügbarkeiten.')
             return
 
-        locations_of_work = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
+        locations_of_work = get_locations_of_team_at_date(self.actor_plan_period.team.id,
+                                                          self.actor_plan_period.plan_period.start)
+        # locations_of_work = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, all_avail_days[0], self.actor_plan_period,
                                                                locations_of_work)
         if not dlg.exec():

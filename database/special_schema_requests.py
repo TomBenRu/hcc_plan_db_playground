@@ -64,6 +64,11 @@ def get_next_assignment_of_location(location: schemas.LocationOfWorkShow,
             return assignment, assignment.start
 
 
+def get_curr_assignment_of_person(person: schemas.PersonShow, date: datetime.date) -> schemas.TeamActorAssign:
+    for assignment in person.team_actor_assigns:
+        if assignment.start <= date and (assignment.end is None or assignment.end > date):
+            return assignment
+
 def get_next_assignment_of_person(person: schemas.PersonShow, date: datetime.date) -> schemas.TeamActorAssign:
     assignments = sorted(person.team_actor_assigns, key=lambda x: x.start)
     for assignment in assignments:

@@ -434,7 +434,7 @@ class FrmPersonModify(FrmPersonData):
         self.fill_time_of_days()
 
     def edit_comb_loc_possible(self):
-        curr_team = get_curr_team_of_person_at_date(person=self.person)
+        curr_team = get_curr_team_of_person_at_date(person=self.person, date=datetime.date.today())
         if not curr_team:
             QMessageBox.critical(self, 'Einrichtungskombinationen',
                                  'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
@@ -442,7 +442,7 @@ class FrmPersonModify(FrmPersonData):
             return
 
         team = db_services.Team.get(curr_team.id)
-        locations = get_curr_locations_of_team(team=team)
+        locations = get_locations_of_team_at_date(team_id=curr_team.id, date=datetime.date.today())
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, team, locations)
         if dlg.exec():

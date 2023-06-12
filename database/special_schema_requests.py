@@ -85,6 +85,15 @@ def get_curr_locations_of_team(team: schemas.TeamShow) -> list[schemas.LocationO
     return locations
 
 
+def get_locations_of_team_at_date(team_id:UUID, date: datetime.date) -> list[schemas.LocationOfWork]:
+    # sourcery skip: inline-immediately-returned-variable
+    team_loc_assignments_at_date = db_services.TeamLocationAssign.get_all_at__date(date, team_id)
+    locations_at_date = sorted([tla.location_of_work for tla in team_loc_assignments_at_date
+                                if (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete > date)],
+                               key=lambda x: x.name)
+    return locations_at_date
+
+
 def get_curr_persons_of_team(team: schemas.TeamShow) -> list[schemas.Person]:
     assignments = team.team_actor_assigns
     if not assignments:
@@ -100,14 +109,6 @@ def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[sche
                               if (not taa.person.prep_delete or taa.person.prep_delete > date)],
                              key=lambda x: x.f_name)
     return persons_at_date
-
-
-def get_locations_of_team_at_date(team_id:UUID, date: datetime.date) -> list[schemas.LocationOfWork]:
-    team_loc_assignments_at_date = db_services.TeamLocationAssign.get_all_at__date(date, team_id)
-    locations_at_date = sorted([tla.location_of_work for tla in team_loc_assignments_at_date
-                                if (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete > date)],
-                               key=lambda x: x.name)
-    return locations_at_date
 
 
 

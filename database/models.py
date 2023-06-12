@@ -1,5 +1,5 @@
 from datetime import date
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import runtime_checkable, Protocol
 from uuid import UUID
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
@@ -557,13 +557,17 @@ class CombinationLocationsPossible(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
+
+    # todo: Wenn sich Zusammensetzung vom Team ändert, sollten bei Bedarf Personen aus persons entfernt werden oder Locations aus locations of Work entfernt werden.
+    # todo: Wenn team is not None:
     locations_of_work = Set(LocationOfWork)
+
     team = Optional(Team)
     persons = Set(Person)
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)
 
-    def before_update(self):
+    def before_update(self):  # sourcery skip: aware-datetime-for-utc
         self.last_modified = datetime.utcnow()
 
 

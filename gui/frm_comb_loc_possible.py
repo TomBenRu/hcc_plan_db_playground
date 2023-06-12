@@ -1,3 +1,4 @@
+import sys
 from uuid import UUID
 
 from PySide6.QtCore import QPoint
@@ -42,7 +43,7 @@ class DlgNewCombLocPossible(QDialog):
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
                  parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork]):
-        """Wenn Combinations des Projektes bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
+        """Wenn Combinations des Teams bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
 
         In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
         die Combinations erbt."""
@@ -93,16 +94,24 @@ class DlgCombLocPossibleEditList(QDialog):
     def fill_table_combinations(self):
         while self.table_combinations.rowCount() < 0:
             self.table_combinations.removeRow(0)
-        comb_loc_poss = sorted([
-            sorted((str(c.id), ' + '.join(sorted([f'{loc.name} ({loc.address.city})' for loc in c.locations_of_work]))),
-                   key=lambda x: x[1]) for c in self.curr_model.combination_locations_possibles if not c.prep_delete],
-            key=lambda y: y[1])
+        comb_loc_poss = self.valid_combs_at_date()
+
         self.table_combinations.setRowCount(len(comb_loc_poss))
         for row, c in enumerate(comb_loc_poss):
             self.table_combinations.setItem(row, 0, QTableWidgetItem(c[0]))
             self.table_combinations.setItem(row, 1, QTableWidgetItem(c[1]))
 
         self.setMinimumWidth(self.table_combinations.columnWidth(1) + 40)
+
+    def valid_combs_at_date(self) -> list[list[str, str]]:
+        curr_location_ids = {l.id for l in self.locations_of_work}
+        comb_loc_poss = [[str(c.id), [f'{l.name} ({l.address.city})'
+                                      for l in c.locations_of_work if l.id in curr_location_ids]]
+                         for c in self.curr_model.combination_locations_possibles]
+        comb_loc_poss = [c for c in comb_loc_poss if len(c[1]) > 1]
+        comb_loc_poss = [[c[0], ' + '.join(sorted(c[1]))] for c in comb_loc_poss]
+
+        return sorted(comb_loc_poss, key=lambda x: x[1]) if comb_loc_poss else []
 
     def new(self):
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}

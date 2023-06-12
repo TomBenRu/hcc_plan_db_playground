@@ -1,4 +1,5 @@
 import datetime
+from functools import partial
 from uuid import UUID
 
 from PySide6.QtCore import Qt
@@ -434,17 +435,14 @@ class FrmPersonModify(FrmPersonData):
         self.fill_time_of_days()
 
     def edit_comb_loc_possible(self):
-        curr_team = get_curr_team_of_person_at_date(person=self.person, date=datetime.date.today())
-        if not curr_team:
-            QMessageBox.critical(self, 'Einrichtungskombinationen',
-                                 'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
-                                 'Es können keine Einrichtungskombinationen festgelegt werden.')
-            return
+        team_at_date_factory = parent_model_factory = partial(get_curr_team_of_person_at_date, self.person)
+        # if not curr_team:
+        #     QMessageBox.critical(self, 'Einrichtungskombinationen',
+        #                          'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
+        #                          'Es können keine Einrichtungskombinationen festgelegt werden.')
+        #     return
 
-        team = db_services.Team.get(curr_team.id)
-        locations = get_locations_of_team_at_date(team_id=curr_team.id, date=datetime.date.today())
-
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, team, locations)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, parent_model_factory, team_at_date_factory)
         if dlg.exec():
             self.person = db_services.Person.get(self.person.id)
 

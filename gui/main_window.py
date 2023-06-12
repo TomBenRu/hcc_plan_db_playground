@@ -186,8 +186,7 @@ class MainWindow(QMainWindow):
         """Legt die mögl. Einrichtungskombinationen zum aktuellen Datum fest.
         Differenzierungen werden erst bei Person, ActorPlanPeriod u. AvailDay vorgenommen."""
         team = db_services.Team.get(team.id)
-        locations = get_locations_of_team_at_date(team_id=team.id, date=datetime.date.today())
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, locations)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, None)
         dlg.disable_reset_bt()
         dlg.exec()
 

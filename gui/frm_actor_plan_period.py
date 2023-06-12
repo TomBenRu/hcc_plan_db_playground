@@ -666,6 +666,8 @@ class FrmActorPlanPeriod(QWidget):
     def set_chk_field(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
         curr_assignment_of_person = get_curr_assignment_of_person(person, self.actor_plan_period.plan_period.start)
+
+        # berücksichtigt nur 1 Abschnitt in der Planperiode. Mehrere unabhängige Assignments bleiben unberücksichtigt...
         if curr_assignment_of_person.team.id != self.actor_plan_period.team.id:
             curr_assignment_of_person = get_next_assignment_of_person(person, self.actor_plan_period.plan_period.start)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
@@ -689,6 +691,7 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
 
         for col, d in enumerate(self.days, start=1):
+
             disable_buttons = (
                 d < curr_assignment_of_person.start
                 or (curr_assignment_of_person.end is not None
@@ -818,14 +821,18 @@ class FrmActorPlanPeriod(QWidget):
         self.reset_chk_field()
 
     def edit_comb_loc_possibles(self):
-
-        locations_of_team_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                                  self.actor_plan_period.plan_period.start)
-
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, person,
-                                                               locations_of_team_at_date)
+        '''Workaround: für die Dialogklasse wird eine funktion gebraucht'''
+        parent_model_factory = lambda date :person
+        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, person)
+        '''----------------------------------------------------------------------------------------------------'''
+
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, parent_model_factory,
+                                                               team_at_date_factory)
+        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
+        dlg.de_date.setDisabled(True)
+
         if dlg.exec():
             self.reload_actor_plan_period()
             #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()

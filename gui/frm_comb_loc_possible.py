@@ -1,13 +1,16 @@
+import datetime
 import sys
+from typing import Callable, Any
 from uuid import UUID
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QHeaderView, \
-    QVBoxLayout, QGroupBox, QTableWidgetItem
+    QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
+from database.special_schema_requests import get_locations_of_team_at_date
 from gui.commands import command_base_classes, comb_loc_possible_commands, team_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
 
@@ -25,9 +28,9 @@ class DlgNewCombLocPossible(QDialog):
         self.layout.addWidget(self.group_checks)
         self.layout_group_checks = QVBoxLayout(self.group_checks)
 
-        self.chks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(l_o_w.name)
-                                                        for l_o_w in self.locations_of_work}
-        for chk in self.chks_loc_of_work.values():
+        self.checks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city})')
+                                                          for l_o_w in self.locations_of_work}
+        for chk in self.checks_loc_of_work.values():
             self.layout_group_checks.addWidget(chk)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -36,34 +39,44 @@ class DlgNewCombLocPossible(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def accept(self) -> None:
-        self.comb_location_ids = {l_o_w_id for l_o_w_id, chk in self.chks_loc_of_work.items() if chk.isChecked()}
+        self.comb_location_ids = {l_o_w_id for l_o_w_id, chk in self.checks_loc_of_work.items() if chk.isChecked()}
         super().accept()
 
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model: ModelWithCombLocPossible | None, locations_of_work: list[schemas.LocationOfWork]):
-        """Wenn Combinations des Teams bearbeitet werden, wird der Parameter parent_model auf None gesetzt.
-
-        In den anderen Fällen ist das parent_model eine Instanz der Pydantic-Klasse von der das curr_model automatisch
-        die Combinations erbt."""
+                 parent_model_factory: Callable[[datetime.date], Any] | None,
+                 team_at_date_factory: Callable[[datetime.date], schemas.Team] | None):
+        """Wenn Combinations des Teams bearbeitet werden, wird der Parameter parent_model_factory auf None gesetzt.
+        In den anderen Fällen generiert parent_model_factory eine Instanz der Pydantic-Klasse von der das curr_model
+        automatisch die Combinations erbt."""
         super().__init__(parent)
 
         self.setWindowTitle('Einrichtungskombinationen')
 
         self.curr_model = curr_model.copy(deep=True)
-        self.parent_model = parent_model.copy(deep=True) if parent_model else None
-        self.locations_of_work = locations_of_work
+        self.parent_model_factory = parent_model_factory
+        self.team_at_date_factory = team_at_date_factory
+
+        self.curr_team: schemas.Team | None = None
+        self.parent_model: ModelWithCombLocPossible | None = None
+        self.locations_of_work: list[schemas.LocationOfWork] | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QGridLayout(self)
 
         self.table_combinations = QTableWidget()
-        self.layout.addWidget(self.table_combinations, 0, 0, 1, 3)
+        self.layout.addWidget(self.table_combinations, 1, 0, 1, 3)
 
         self.setup_table_combinations()
-        self.fill_table_combinations()
+
+        self.lb_date = QLabel('Datum')
+        self.de_date = QDateEdit()
+        self.de_date.dateChanged.connect(self.set_new__locations__parent_model)
+        self.de_date.setMinimumDate(datetime.date.today())
+        self.layout.addWidget(self.lb_date, 0, 0)
+        self.layout.addWidget(self.de_date, 0, 1)
 
         self.bt_create = QPushButton('Neu...', clicked=self.new)
         self.bt_reset = QPushButton('Reset', clicked=self.reset)
@@ -72,11 +85,18 @@ class DlgCombLocPossibleEditList(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
-        self.layout.addWidget(self.bt_create, 1, 0)
-        self.layout.addWidget(self.bt_reset, 1, 1)
-        self.layout.addWidget(self.bt_delete, 1, 2)
-        self.layout.addWidget(self.button_box, 2, 0, 1, 3)
+        self.layout.addWidget(self.bt_create, 2, 0)
+        self.layout.addWidget(self.bt_reset, 2, 1)
+        self.layout.addWidget(self.bt_delete, 2, 2)
+        self.layout.addWidget(self.button_box, 3, 0, 1, 3)
         self.button_box.setCenterButtons(True)
+
+    def set_new__locations__parent_model(self):
+        date = self.de_date.date().toPython()
+        self.curr_team = self.team_at_date_factory(date) if self.team_at_date_factory else self.curr_model
+        self.locations_of_work = get_locations_of_team_at_date(self.curr_team.id, date)
+        self.parent_model = self.parent_model_factory(date) if self.parent_model_factory else None
+        self.fill_table_combinations()
 
     def setup_table_combinations(self):
         header_labels = ['ID', 'Einrichtungskombination']
@@ -94,6 +114,10 @@ class DlgCombLocPossibleEditList(QDialog):
     def fill_table_combinations(self):
         while self.table_combinations.rowCount() < 0:
             self.table_combinations.removeRow(0)
+
+        if isinstance(self.curr_model, schemas.ActorPlanPeriod):
+            self.reduce_locations_of_work(self.curr_model.plan_period.start, self.curr_model.plan_period.end)
+
         comb_loc_poss = self.valid_combs_at_date()
 
         self.table_combinations.setRowCount(len(comb_loc_poss))
@@ -112,6 +136,16 @@ class DlgCombLocPossibleEditList(QDialog):
         comb_loc_poss = [[c[0], ' + '.join(sorted(c[1]))] for c in comb_loc_poss]
 
         return sorted(comb_loc_poss, key=lambda x: x[1]) if comb_loc_poss else []
+
+    def reduce_locations_of_work(self, start: datetime.date, end: datetime.date):
+        """Schnittmenge aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
+        curr_loc_of_work_ids = {loc.id for loc in self.locations_of_work}
+        curr_date = start
+        while curr_date < end:
+            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, curr_date)}
+            curr_loc_of_work_ids &= location_ids
+            curr_date = curr_date + datetime.timedelta(days=1)
+        self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
 
     def new(self):
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
@@ -140,7 +174,8 @@ class DlgCombLocPossibleEditList(QDialog):
             remove_command = self.factory_for_remove_combs(self.curr_model, c.id)
             self.controller.execute(remove_command)
         self.curr_model.combination_locations_possibles.clear()
-        for c in [comb for comb in self.parent_model.combination_locations_possibles if not comb.prep_delete]:
+        for c in [comb for comb in self.parent_model.combination_locations_possibles
+                  if (not comb.prep_delete) or (comb.prep_delete > self.de_date.date().toPython())]:
             put_in_command = self.factory_for_put_in_combs(self.curr_model, c.id)
             self.controller.execute(put_in_command)
         self.curr_model.combination_locations_possibles.extend(self.parent_model.combination_locations_possibles)

@@ -177,12 +177,13 @@ class ButtonCombLocPossible(QPushButton):
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
-        locations = get_locations_of_team_at_date(self.actor_plan_period.team.id, self.day)
         parent_model_factory = lambda date: self.actor_plan_period
         team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], parent_model_factory,
                                                                team_at_date_factory)
+        dlg.de_date.setDate(self.day)
+        dlg.de_date.setDisabled(True)
         if dlg.exec():
             '''avail_days_at_date[0].combination_locations_possibles wurden geändert.
             nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst'''

@@ -45,7 +45,7 @@ class DlgNewCombLocPossible(QDialog):
 
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
-                 parent_model_factory: Callable[[datetime.date], Any] | None,
+                 parent_model_factory: Callable[[datetime.date], ModelWithCombLocPossible] | None,
                  team_at_date_factory: Callable[[datetime.date], schemas.Team] | None):
         """Wenn Combinations des Teams bearbeitet werden, wird der Parameter parent_model_factory auf None gesetzt.
         In den anderen Fällen generiert parent_model_factory eine Instanz der Pydantic-Klasse von der das curr_model

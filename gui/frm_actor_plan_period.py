@@ -121,6 +121,7 @@ class ButtonCombLocPossible(QPushButton):
         self.setMinimumHeight(width_height)
 
         self.actor_plan_period = actor_plan_period
+        self.person = db_services.Person.get(self.actor_plan_period.person.id)
         self.day = day
 
         self.setToolTip(f'Einrichtungskombinationen am {day.strftime("%d.%m.%Y")}')
@@ -171,15 +172,17 @@ class ButtonCombLocPossible(QPushButton):
     def mouseReleaseEvent(self, e) -> None:
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
-            QMessageBox.critical(self, 'Einrichtungskombinatinen',
+            QMessageBox.critical(self, 'Einrichtungskombinationen',
                                  'Es können keine Einrichtungskombinationen eingerichtet werden, '
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
         locations = get_locations_of_team_at_date(self.actor_plan_period.team.id, self.day)
+        parent_model_factory = lambda date: self.actor_plan_period
+        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], self.actor_plan_period,
-                                                               locations)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], parent_model_factory,
+                                                               team_at_date_factory)
         if dlg.exec():
             '''avail_days_at_date[0].combination_locations_possibles wurden geändert.
             nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst'''

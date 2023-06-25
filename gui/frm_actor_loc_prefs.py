@@ -7,8 +7,9 @@ from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QDateEdit, QHBoxLayout
 
-from database import schemas
-from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
+from database import schemas, db_services
+from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date, \
+    get_curr_assignment_of_person
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 
@@ -23,7 +24,8 @@ class DlgActorLocPref(QDialog):
         self.curr_model: schemas.ModelWithActorLocPrefs = curr_model.copy(deep=True)
         self.parent_model = parent_model
         self.team_at_date_factory = team_at_date_factory
-        self.locations_of_team: list[schemas.LocationOfWork] = []
+        self.curr_team: schemas.Team | None = None
+        self.locations_of_work: list[schemas.LocationOfWork] = []
         self.locations_of_team__defaults: dict[UUID, int] = {}
         self.loc_prefs: list[schemas.ActorLocationPref] = []
 
@@ -40,6 +42,9 @@ class DlgActorLocPref(QDialog):
         self.layout = QVBoxLayout(self)
         self.layout_date = QHBoxLayout()
         self.layout_data = QGridLayout()
+
+        self.lb_info = QLabel()
+        self.layout.addWidget(self.lb_info)
         self.layout.addLayout(self.layout_date)
         self.layout.addLayout(self.layout_data)
 
@@ -50,7 +55,7 @@ class DlgActorLocPref(QDialog):
         self.layout_date.addWidget(self.de_date)
 
         self.lb_sliders: list[QWidget] = []
-        self.sliders = {}
+        self.sliders: dict[UUID, QSlider] = {}
 
         self.de_date.setMinimumDate(datetime.date.today())
 
@@ -67,28 +72,59 @@ class DlgActorLocPref(QDialog):
         self.autoload_data()
 
     def set_new__locations(self):
-        if not (team_at_date := self.team_at_date_factory(self.de_date.date().toPython())):
-            self.locations_of_team = []
+        self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
+        if isinstance(self.curr_model, schemas.ActorPlanPeriod):
+            self.union_locations_of_work()
+        elif not self.curr_team:
+            self.locations_of_work = []
         else:
-            self.locations_of_team = get_locations_of_team_at_date(team_at_date.id, self.de_date.date().toPython())
-        self.locations_of_team__defaults = {loc.id: 2 for loc in self.locations_of_team}
+            self.locations_of_work = get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
+
+        self.locations_of_work.sort(key=lambda x: x.name + x.address.city)
+        self.locations_of_team__defaults = {loc.id: 2 for loc in self.locations_of_work}
         self.loc_prefs = [p for p in self.curr_model.actor_location_prefs_defaults
                           if (not p.prep_delete) and (p.location_of_work.id in self.locations_of_team__defaults)]
         self.locations_of_prefs__score = {p.location_of_work.id: p.score for p in self.loc_prefs}
 
-        self.location_id__location = {loc.id: loc for loc in self.locations_of_team}
+        self.location_id__location = {loc.id: loc for loc in self.locations_of_work}
         self.loc_id__prefs = {loc_pref.location_of_work.id: loc_pref for loc_pref in self.loc_prefs}
 
+    def union_locations_of_work(self):
+        """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
+        person: schemas.PersonShow = self.parent_model
+        days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
+                               range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
+        valid_days_of_actor = [date for date in days_of_plan_period
+                               if get_curr_assignment_of_person(person, date).team.id == self.curr_team.id]
 
-    def setup_sliders(self):
+        curr_loc_of_work_ids = {loc.id for loc in
+                                get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+
+        self.lb_info.setText('An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+        for date in valid_days_of_actor[1:]:
+            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
+            if location_ids != curr_loc_of_work_ids:
+                self.lb_info.setText(
+                    'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+
+            curr_loc_of_work_ids |= location_ids
+
+        self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+
+
+    def delete_sliders_labels(self):
         for slider in self.sliders.values():
+            slider.setParent(None)
             slider.deleteLater()
         self.sliders = {}
         for label in self.lb_sliders:
+            label.setParent(None)
             label.deleteLater()
         self.lb_sliders = []
 
-        for row, loc in enumerate(self.locations_of_team):
+    def setup_sliders(self):
+        self.delete_sliders_labels()
+        for row, loc in enumerate(self.locations_of_work):
             lb_loc = QLabel(f'{loc.name} ({loc.address.city})')
             lb_val = QLabel()
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
@@ -121,7 +157,7 @@ class DlgActorLocPref(QDialog):
             slider.setValue(2)
         if self.parent_model:
             for pref in self.parent_model.actor_location_prefs_defaults:
-                if not pref.prep_delete:
+                if not pref.prep_delete and self.sliders.get(pref.location_of_work.id):
                     self.sliders[pref.location_of_work.id].setValue(int(pref.score * 2))
 
     def show_text(self, label: QLabel, event):

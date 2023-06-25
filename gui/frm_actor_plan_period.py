@@ -289,10 +289,11 @@ class ButtonActorLocationPref(QPushButton):
                                  'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
             return
 
-        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
+        team_at_date_factory = lambda date: self.actor_plan_period.team
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, avail_days_at_date[0], self.actor_plan_period, locations_at_date)
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, avail_days_at_date[0], self.actor_plan_period, team_at_date_factory)
+        dlg.de_date.setDate(self.day)
+        dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
@@ -675,10 +676,9 @@ class FrmActorPlanPeriod(QWidget):
                                                 'auf die Standartwerte des Planungszeitraums zurücksetzen.')
 
         self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
-        bt_actor_loc_prefs_all_avail = QPushButton('Einr.-Präf.', clicked=self.edit_all_loc_prefs)
+        bt_actor_loc_prefs_all_avail = QPushButton('Einr.-Präf. -> Reset', clicked=self.reset_all_loc_prefs)
         bt_actor_loc_prefs_all_avail.setStatusTip('Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum '
-                                                  'ändern. Später hinzugefügte Verfügbarkeiten übernehmen davon '
-                                                  'unberührt die Präferenzen des Planungszeitraums.')
+                                                  'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
         self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
 
         bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf.', clicked=self.edit_all_partner_loc_prefs)
@@ -835,11 +835,11 @@ class FrmActorPlanPeriod(QWidget):
         """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
         reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungskombinationen',
-                                     'Sollen die Einrichtungskombinatione aller Verfügbarkeiten auf die Standardwerte '
+                                     'Sollen die Einrichtungskombinationen aller Verfügbarkeiten auf die Standardwerte '
                                      'der Planungsperiode zurückgesetzt werden?')
         if reply != QMessageBox.StandardButton.Yes:
             return
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+
         all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
 
         if not all_avail_dates:
@@ -862,11 +862,14 @@ class FrmActorPlanPeriod(QWidget):
     def edit_location_prefs(self):
 
         person = db_services.Person.get(self.actor_plan_period.person.id)
+        team_at_date_factory = lambda date: self.actor_plan_period.team
 
         locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
                                                           self.actor_plan_period.plan_period.start)
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, locations_at_date)
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, team_at_date_factory)
+        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
+        dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():
@@ -903,57 +906,32 @@ class FrmActorPlanPeriod(QWidget):
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     @profile
-    def edit_all_loc_prefs(self):
-        """Bearbeiten der actor_location_prefs aller AvailDays in dieser Planperiode."""
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
-        if not all_avail_days:
+    def reset_all_loc_prefs(self, e=None):
+        """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
+
+        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungspräferenzen',
+                                     'Sollen die Einrichtungspräferenzen aller Verfügbarkeiten auf die Standardwerte '
+                                     'der Planungsperiode zurückgesetzt werden?')
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+
+        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
+        if not all_avail_dates:
             QMessageBox.critical(self, 'Einrichtungspräferenzen',
                                  f'In dieser Planungsperiode von '
                                  f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
                                  f'gibt es noch keine Verfügbarkeiten.')
             return
 
-        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
+        button_actor_location_prefs: list[ButtonActorLocationPref] = self.findChildren(ButtonActorLocationPref)
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, all_avail_days[0], self.actor_plan_period, locations_at_date)
-        if not dlg.exec():
-            return
-        for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs:
-                if dlg.loc_id__prefs[loc_id].score == score:
-                    continue
-                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                curr_loc_pref.score = score
-                db_services.AvailDay.remove_location_pref(all_avail_days[0].id, curr_loc_pref.id)
-                if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
-                    created_pref = db_services.ActorLocationPref.create(new_pref)
-                    db_services.AvailDay.put_in_location_pref(all_avail_days[0].id, created_pref.id)
-            else:
-                if score == 1:
-                    continue
-                person = self.actor_plan_period.person
-                location = dlg.location_id__location[loc_id]
-                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
-                created_pref = db_services.ActorLocationPref.create(new_loc_pref)
-                db_services.AvailDay.put_in_location_pref(all_avail_days[0].id, created_pref.id)
-
-        '''all_avail_days[0].actor_location_prefs_defaults wurden geändert.
-        Nun werden die actor_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod angepasst'''
-        all_avail_days[0] = db_services.AvailDay.get(all_avail_days[0].id)
-        for avd in all_avail_days[1:]:
-            for pref in avd.actor_location_prefs_defaults:
-                db_services.AvailDay.remove_location_pref(avd.id, pref.id)
-            for pref_new in all_avail_days[0].actor_location_prefs_defaults:
-                if not pref_new.prep_delete:
-                    db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
-
-        db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
+        for button_actor_location_pref in button_actor_location_prefs:
+            if button_actor_location_pref.day in all_avail_dates:
+                button_actor_location_pref.reset_prefs_of_day()
+                button_actor_location_pref.reload_actor_plan_period()
+                button_actor_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
-        signal_handling.handler.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def edit_partner_loc_prefs(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)

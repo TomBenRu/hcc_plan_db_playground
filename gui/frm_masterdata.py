@@ -1,4 +1,5 @@
 import datetime
+import functools
 from functools import partial
 from uuid import UUID
 
@@ -447,16 +448,16 @@ class FrmPersonModify(FrmPersonData):
             self.person = db_services.Person.get(self.person.id)
 
     def edit_location_prefs(self):
-        curr_team = get_curr_team_of_person_at_date(person=self.person)
-        if not curr_team:
-            QMessageBox.critical(self, 'Einrichtungspräferenzen',
-                                 'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
-                                 'Es können keine Einrichtungspräferenzen festgelegt werden.')
-            return
 
-        locations_at_date = get_locations_of_team_at_date(curr_team.id, datetime.date.today())
+        # if not curr_team:
+        #     QMessageBox.critical(self, 'Einrichtungspräferenzen',
+        #                          'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
+        #                          'Es können keine Einrichtungspräferenzen festgelegt werden.')
+        #     return
 
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, locations_at_date)
+        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
+
+        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, team_at_date_factory)
         if not dlg.exec():
             return
         for loc_id, score in dlg.loc_id__results.items():

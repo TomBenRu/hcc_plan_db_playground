@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
-from database.special_schema_requests import get_locations_of_team_at_date
+from database.special_schema_requests import get_locations_of_team_at_date, get_curr_assignment_of_person
 from gui.commands import command_base_classes, comb_loc_possible_commands, team_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
 
@@ -67,16 +67,19 @@ class DlgCombLocPossibleEditList(QDialog):
         self.layout = QGridLayout(self)
 
         self.table_combinations = QTableWidget()
-        self.layout.addWidget(self.table_combinations, 1, 0, 1, 3)
+        self.layout.addWidget(self.table_combinations, 2, 0, 1, 3)
 
         self.setup_table_combinations()
+
+        self.lb_info = QLabel()
+        self.layout.addWidget(self.lb_info, 0, 0, 1, 3)
 
         self.lb_date = QLabel('Datum')
         self.de_date = QDateEdit()
         self.de_date.dateChanged.connect(self.set_new__locations__parent_model)
         self.de_date.setMinimumDate(datetime.date.today())
-        self.layout.addWidget(self.lb_date, 0, 0)
-        self.layout.addWidget(self.de_date, 0, 1)
+        self.layout.addWidget(self.lb_date, 1, 0)
+        self.layout.addWidget(self.de_date, 1, 1)
 
         self.bt_create = QPushButton('Neu...', clicked=self.new)
         self.bt_reset = QPushButton('Reset', clicked=self.reset)
@@ -85,10 +88,10 @@ class DlgCombLocPossibleEditList(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
-        self.layout.addWidget(self.bt_create, 2, 0)
-        self.layout.addWidget(self.bt_reset, 2, 1)
-        self.layout.addWidget(self.bt_delete, 2, 2)
-        self.layout.addWidget(self.button_box, 3, 0, 1, 3)
+        self.layout.addWidget(self.bt_create, 3, 0)
+        self.layout.addWidget(self.bt_reset, 3, 1)
+        self.layout.addWidget(self.bt_delete, 3, 2)
+        self.layout.addWidget(self.button_box, 4, 0, 1, 3)
         self.button_box.setCenterButtons(True)
 
     def set_new__locations__parent_model(self):
@@ -116,7 +119,7 @@ class DlgCombLocPossibleEditList(QDialog):
             self.table_combinations.removeRow(0)
 
         if isinstance(self.curr_model, schemas.ActorPlanPeriod):
-            self.reduce_locations_of_work(self.curr_model.plan_period.start, self.curr_model.plan_period.end)
+            self.union_locations_of_work()
 
         comb_loc_poss = self.valid_combs_at_date()
 
@@ -137,15 +140,26 @@ class DlgCombLocPossibleEditList(QDialog):
 
         return sorted(comb_loc_poss, key=lambda x: x[1]) if comb_loc_poss else []
 
-    def reduce_locations_of_work(self, start: datetime.date, end: datetime.date):
-        """Schnittmenge aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
-        curr_loc_of_work_ids = {loc.id for loc in self.locations_of_work}
-        curr_date = start
-        while curr_date < end:
-            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, curr_date)}
-            curr_loc_of_work_ids &= location_ids
-            curr_date = curr_date + datetime.timedelta(days=1)
+    def union_locations_of_work(self):
+        """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
+        person: schemas.PersonShow = self.parent_model
+        days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
+                               range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
+        valid_days_of_actor = [date for date in days_of_plan_period
+                               if get_curr_assignment_of_person(person, date).team.id == self.curr_team.id]
+
+        curr_loc_of_work_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+
+        self.lb_info.setText('An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+        for date in valid_days_of_actor[1:]:
+            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
+            if location_ids != curr_loc_of_work_ids:
+                self.lb_info.setText('Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+
+            curr_loc_of_work_ids |= location_ids
+
         self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+
 
     def new(self):
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}

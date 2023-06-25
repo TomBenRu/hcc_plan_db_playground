@@ -48,7 +48,7 @@ def get_curr_team_of_person_at_date(person: schemas.PersonShow, date: datetime.d
         else:
             curr_team = None
 
-    return db_services.Team.get(curr_team.id)
+    return db_services.Team.get(curr_team.id) if curr_team else None
 
 
 def get_next_assignment_of_location(location: schemas.LocationOfWorkShow,

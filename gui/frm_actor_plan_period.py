@@ -1,12 +1,11 @@
 import datetime
 import functools
-import time
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -16,7 +15,7 @@ from line_profiler_pycharm import profile
 
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
-    get_curr_team_of_person_at_date, get_next_assignment_of_person, get_curr_assignment_of_person
+    get_curr_team_of_person_at_date, get_curr_assignment_of_person
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
@@ -669,17 +668,11 @@ class FrmActorPlanPeriod(QWidget):
 
     def set_chk_field(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
-        curr_assignment_of_person = get_curr_assignment_of_person(person, self.actor_plan_period.plan_period.start)
-
-        # berücksichtigt nur 1 Abschnitt in der Planperiode. Mehrere unabhängige Assignments bleiben unberücksichtigt...
-        if curr_assignment_of_person.team.id != self.actor_plan_period.team.id:
-            curr_assignment_of_person = get_next_assignment_of_person(person, self.actor_plan_period.plan_period.start)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
-        bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin.', clicked=self.edit_all_avail_combs)
+        bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin. -> Reset', clicked=self.reset_all_avail_combs)
         bt_comb_loc_poss_all_avail.setStatusTip('Einrichtungskombinationen für alle Verfügbarkeiten in diesem Zeitraum '
-                                                'ändern. Später hinzugefügte Verfügbarkeiten übernehmen davon '
-                                                'unberührt die Kombinationen des Planungszeitraums.')
+                                                'auf die Standartwerte des Planungszeitraums zurücksetzen.')
 
         self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
         bt_actor_loc_prefs_all_avail = QPushButton('Einr.-Präf.', clicked=self.edit_all_loc_prefs)
@@ -695,12 +688,7 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
 
         for col, d in enumerate(self.days, start=1):
-
-            disable_buttons = (
-                d < curr_assignment_of_person.start
-                or (curr_assignment_of_person.end is not None
-                and d >= curr_assignment_of_person.end)
-            )
+            disable_buttons = get_curr_assignment_of_person(person, d).team.id != self.actor_plan_period.team.id
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -828,8 +816,8 @@ class FrmActorPlanPeriod(QWidget):
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
         '''Workaround: für die Dialogklasse wird eine funktion gebraucht'''
-        parent_model_factory = lambda date :person
-        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, person)
+        parent_model_factory = lambda date: person
+        team_at_date_factory = lambda date: self.actor_plan_period.team
         '''----------------------------------------------------------------------------------------------------'''
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, parent_model_factory,
@@ -843,34 +831,33 @@ class FrmActorPlanPeriod(QWidget):
             signal_handling.handler.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-    def edit_all_avail_combs(self):
-        """Bearbeiten der combination_locations_possibles aller AvailDays in dieser Planperiode."""
+    def reset_all_avail_combs(self):
+        """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
+
+        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungskombinationen',
+                                     'Sollen die Einrichtungskombinatione aller Verfügbarkeiten auf die Standardwerte '
+                                     'der Planungsperiode zurückgesetzt werden?')
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
-        if not all_avail_days:
+        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
+
+        if not all_avail_dates:
             QMessageBox.critical(self, 'Einrichtungskombinationen',
                                  f'In dieser Planungsperiode von '
                                  f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
                                  f'gibt es noch keine Verfügbarkeiten.')
             return
 
-        locations_of_work = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
-        # locations_of_work = db_services.Team.get(self.actor_plan_period.team.id).locations_of_work
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, all_avail_days[0], self.actor_plan_period,
-                                                               locations_of_work)
-        if not dlg.exec():
-            return
-        for avd in all_avail_days[1:]:
-            for comb_old in avd.combination_locations_possibles:
-                self.controller_avail_days.execute(avail_day_commands.RemoveCombLocPossible(avd.id, comb_old.id))
-            for comb in dlg.curr_model.combination_locations_possibles:
-                self.controller_avail_days.execute(avail_day_commands.PutInCombLocPossible(avd.id, comb.id))
+        button_comb_loc_possibles: list[ButtonCombLocPossible] = self.findChildren(ButtonCombLocPossible)
 
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
-        signal_handling.handler.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period))
+        for button_comb_loc_possible in button_comb_loc_possibles:
+            if button_comb_loc_possible.day in all_avail_dates:
+                button_comb_loc_possible.reset_combs_of_day()
+                button_comb_loc_possible.reload_actor_plan_period()
+                button_comb_loc_possible.set_stylesheet()
+        self.reload_actor_plan_period()
+
 
     def edit_location_prefs(self):
 

@@ -607,10 +607,10 @@ class TimeOfDay:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def delete_unused(projec_id: UUID) -> None:
+    def delete_unused(project_id: UUID) -> None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
+        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == project_id)
         for t_o_d in t_o_ds_from__project:
             if t_o_d.prep_delete:
                 continue
@@ -622,10 +622,10 @@ class TimeOfDay:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def delete_prep_deletes(projec_id: UUID) -> None:
+    def delete_prep_deletes(project_id: UUID) -> None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == projec_id)
+        t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == project_id)
         for t_o_d in t_o_ds_from__project:
             if t_o_d.prep_delete:
                 t_o_d.delete()
@@ -1144,10 +1144,10 @@ class ActorLocationPref:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def delete_unused(projec_id: UUID) -> list[UUID]:
+    def delete_unused(project_id: UUID) -> list[UUID]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        a_l_prefs_from__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
+        a_l_prefs_from__project = models.ActorLocationPref.select(lambda a: a.project.id == project_id)
 
         deleted_a_l_pref_ids = []
         for a_l_pref in a_l_prefs_from__project:
@@ -1161,10 +1161,10 @@ class ActorLocationPref:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def delete_prep_deletes(projec_id: UUID) -> None:
+    def delete_prep_deletes(project_id: UUID) -> None:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == projec_id)
+        a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == project_id)
         for a_l_pref in a_l_prefs_form__project:
             if a_l_pref.prep_delete:
                 a_l_pref.delete()
@@ -1201,13 +1201,13 @@ class ActorPartnerLocationPref:
             person_default_db = None
         actor_plan_periods_defaults_db = [models.ActorPlanPeriod.get_for_update(id=app.id)
                                           for app in actor_partner_loc_pref.actor_plan_periods_defaults]
-        avail_days_dafaults_db = [models.AvailDay.get_for_update(id=ad.id)
-                                  for ad in actor_partner_loc_pref.avail_days_dafaults]
+        avail_days_defaults_db = [models.AvailDay.get_for_update(id=ad.id)
+                                  for ad in actor_partner_loc_pref.avail_days_defaults]
         actor_partner_loc_pref_db.person_default = person_default_db
         actor_partner_loc_pref_db.actor_plan_periods_defaults.clear()
         actor_partner_loc_pref_db.actor_plan_periods_defaults.add(actor_plan_periods_defaults_db)
         actor_partner_loc_pref_db.avail_days_dafaults.clear()
-        actor_partner_loc_pref_db.avail_days_dafaults.add(avail_days_dafaults_db)
+        actor_partner_loc_pref_db.avail_days_dafaults.add(avail_days_defaults_db)
 
         return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
 

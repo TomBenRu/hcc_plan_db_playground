@@ -44,7 +44,7 @@ class Person(db.Entity):
     address = Optional('Address')
     time_of_days = Set('TimeOfDay')
     time_of_day_standards = Set('TimeOfDay', reverse='persons_standard')
-    # Wenn ein time_of_day_standard upgedatet wird, welcher auch Standart des Projektes ist wird er als neues
+    # Wenn ein time_of_day_standard upgedatet wird, welcher auch Standard des Projektes ist, wird er als neues
     # time_of_date_standard ohne Relation zum Projekt gespeichert.
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
     actor_partner_location_prefs__as_partner = Set('ActorPartnerLocationPref', reverse='partner')
@@ -520,9 +520,11 @@ class ActorPartnerLocationPref(db.Entity):
     created_at = Required(datetime, default=lambda: datetime.utcnow())
     last_modified = Required(datetime, default=lambda: datetime.utcnow())
     prep_delete = Optional(datetime)
+
     person = Required(Person, reverse='actor_partner_location_prefs')
     partner = Required(Person, reverse='actor_partner_location_prefs__as_partner')
     location_of_work = Required(LocationOfWork)
+
     person_default = Optional(Person, reverse='actor_partner_location_prefs_defaults')
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
     avail_days_defaults = Set(AvailDay)

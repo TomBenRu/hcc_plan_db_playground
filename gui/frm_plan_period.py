@@ -100,6 +100,19 @@ class DlgPlanPeriodData(QDialog):
         if self.de_end.date() < self.de_start.date():
             self.de_start.setDate(self.de_end.date())
 
+    def get_locations_actors_in_period(self, start: datetime.date, end: datetime.date) -> tuple[set[UUID], set[UUID]]:
+        """Gibt ein Tuple von Sets zurück: location_ids, actor_ids"""
+        location_ids = set()
+        actor_ids = set()
+        for delta in range((end - start).days + 1):
+            location_ids |= {
+                loc.id for loc in
+                get_locations_of_team_at_date(self.cb_teams.currentData().id, start + datetime.timedelta(days=delta))}
+            actor_ids |= {
+                pers.id for pers in
+                get_persons_of_team_at_date(self.cb_teams.currentData().id, start + datetime.timedelta(days=delta))}
+        return location_ids, actor_ids
+
     def save(self):
         if not self.cb_teams.currentData():
             QMessageBox.critical(self, 'Planungszeitraum', 'Wie müssen zuerst ein Team auswählen.')
@@ -113,12 +126,13 @@ class DlgPlanPeriodData(QDialog):
                                                    team=self.cb_teams.currentData(),
                                                    remainder=self.chk_remainder.isChecked())
         plan_period_created = db_services.PlanPeriod.create(new_plan_period)
-        locations = get_locations_of_team_at_date(self.cb_teams.currentData().id, start)
-        actors = get_persons_of_team_at_date(self.cb_teams.currentData().id, start)
-        for loc in locations:
-            self.create_location_plan_periods(plan_period_created.id, loc.id)
-        for actor in actors:
-            self.create_actor_plan_periods(plan_period_created.id, actor.id)
+
+        location_ids, actor_ids = self.get_locations_actors_in_period(start, end)
+
+        for loc_id in location_ids:
+            self.create_location_plan_periods(plan_period_created.id, loc_id)
+        for actor_id in actor_ids:
+            self.create_actor_plan_periods(plan_period_created.id, actor_id)
 
         self.accept()
 

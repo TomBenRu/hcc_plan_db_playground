@@ -1,3 +1,4 @@
+import datetime
 import time
 from functools import partial
 from typing import Literal, Callable
@@ -5,7 +6,7 @@ from uuid import UUID
 
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar
+    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar, QDateEdit
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
@@ -312,18 +313,25 @@ class DlgPartnerLocationPrefs(QDialog):
         self.layout = QVBoxLayout(self)
         self.layout_head = QHBoxLayout()
         self.layout.addLayout(self.layout_head)
+        self.group_date = QGroupBox('Datum')
+        self.layout.addWidget(self.group_date)
         self.layout_body = QHBoxLayout()
         self.layout.addLayout(self.layout_body)
         self.group_locations = QGroupBox('Einrichtungen')
         self.group_partners = QGroupBox('Mitarbeiter')
         self.layout_body.addWidget(self.group_locations)
         self.layout_body.addWidget(self.group_partners)
+        self.layout_date = QHBoxLayout(self.group_date)
         self.layout_options_locs = QGridLayout(self.group_locations)
         self.layout_options_locs.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout_options_partners = QGridLayout(self.group_partners)
         self.layout_options_partners.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
+
+        self.de_date = QDateEdit()
+        self.layout_date.addWidget(self.de_date)
+        self.de_date.setMinimumDate(datetime.date.today())
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 

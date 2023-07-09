@@ -496,11 +496,10 @@ class FrmPersonModify(FrmPersonData):
                                  f'ist noch nicht Mitarbeiter*in eines Teams.')
             return
 
-        locations_at_date = get_locations_of_team_at_date(team.id, datetime.date.today())
-        persons_at_date = get_persons_of_team_at_date(team.id, datetime.date.today())
+        team_at_date_factory = partial(get_curr_team_of_person_at_date, self.person)
 
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(self, self.person, self.person, None,
-                                                                 persons_at_date, locations_at_date)
+                                                                 team_at_date_factory)
         if not dlg.exec():
             return
         self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())

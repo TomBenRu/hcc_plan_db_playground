@@ -10,7 +10,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlide
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from database.special_schema_requests import get_curr_persons_of_team, get_curr_locations_of_team
+from database.special_schema_requests import get_curr_persons_of_team, get_curr_locations_of_team, \
+    get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
 from gui.actions import Action
 from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
@@ -306,7 +307,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
                  parent_model: schemas.ModelWithPartnerLocPrefs | None,
-                 persons_at_date: list[schemas.Person], locations_at_date: list[schemas.LocationOfWork]):
+                 team_at_date_factory: Callable[[datetime.date], schemas.Team]):
         super().__init__(parent)
         self.setWindowTitle('Partner-Präferenzen')
 
@@ -329,22 +330,30 @@ class DlgPartnerLocationPrefs(QDialog):
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
 
+        self.lb_info = QLabel()
+        self.layout_head.addWidget(self.lb_info)
+
+        self.lb_date = QLabel('zu einem späteren Datum kann sich die Auswahl an Mitarbeitern und Einrichtungen ändern.')
         self.de_date = QDateEdit()
+        self.de_date.dateChanged.connect(self.date_changed)
         self.layout_date.addWidget(self.de_date)
-        self.de_date.setMinimumDate(datetime.date.today())
+        self.de_date.setFixedWidth(100)
+        self.layout_date.addWidget(self.lb_date)
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.person = person
         self.curr_model: schemas.ModelWithPartnerLocPrefs = curr_model.copy(deep=True)
         self.parent_model = parent_model
-        self.persons_at_date = persons_at_date
-        self.locations_at_date = locations_at_date
+        self.team_at_date_factory = team_at_date_factory
+        self.curr_team: schemas.Team | None = None
+        self.persons_at_date: list[schemas.PersonShow] = []
+        self.locations_at_date: list[schemas.LocationOfWorkShow] = []
         self.partners: list[schemas.Person] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
-        self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label'], QPushButton | SliderWithPressEvent | QLabel]] = {}
-        self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label'], QPushButton | SliderWithPressEvent | QLabel]] = {}
+        self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label_location', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
+        self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label_partner', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.bt_reset = QPushButton('reset')
@@ -354,9 +363,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
-        self.setup_data()
-        self.setup_option_field()
-        self.setup_values()
+        self.de_date.setMinimumDate(datetime.date.today())
 
     def accept(self) -> None:
         self.controller.execute(actor_partner_loc_pref_commands.DeleteUnused(self.person.id))
@@ -366,6 +373,15 @@ class DlgPartnerLocationPrefs(QDialog):
         self.controller.undo_all()
         db_services.ActorPartnerLocationPref.delete_prep_deletes(self.person.id)
         super().reject()
+
+    def date_changed(self):
+        self.set_curr_team()
+        self.lb_info.clear()
+        self.set_new_locations()
+        self.set_new_partners()
+        self.clear_option_field()
+        self.setup_option_field()
+        self.setup_values()
 
     def reset_to_ones(self):
         apls = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults if not apl.prep_delete]
@@ -399,9 +415,83 @@ class DlgPartnerLocationPrefs(QDialog):
                                   self.reset_to_parent_values))
             self.bt_reset.setMenu(menu)
 
-    def setup_data(self):
+    def setup_data(self):  # todo: delete this function
         self.partners = [p for p in self.persons_at_date if p.id != self.person.id]
         self.locations = self.locations_at_date
+
+    def set_curr_team(self):
+        self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
+
+    def set_new_partners(self):
+        if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden
+            self.partners = self.union_partners()
+        elif not self.curr_team:
+            self.partners = []
+        else:  # betrifft Person und AvailDay
+            self.partners = [p for p in get_persons_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
+                             if p.id != self.person.id]
+
+    def set_new_locations(self):
+        if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden
+            self.locations = self.union_locations_of_work()
+        elif not self.curr_team:
+            self.locations = []
+        else:  # betrifft Person und AvailDay
+            self.locations = get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
+
+    def union_partners(self) -> list[schemas.Person]:
+        """Vereinigung aus allen möglichen Partner an den Tagen der Planungsperiode werden gebildet"""
+        #  todo: days_of_plan_period u. valid_days_of_actor können an Funktion ausgelagert werden
+        days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
+                               range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
+        valid_days_of_actor = [date for date in days_of_plan_period
+                               if get_curr_assignment_of_person(self.person, date).team.id == self.curr_team.id]
+        curr_partner_ids = {pers.id for pers in get_persons_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])
+                            if pers.id != self.person.id}
+        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Partner zu.'
+        for date in valid_days_of_actor[1:]:
+            partner_ids_at_date = {p.id for p in get_persons_of_team_at_date(self.curr_team.id, date)
+                                   if p.id != self.person.id}
+            if partner_ids_at_date != curr_partner_ids:
+                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Partner zu.'
+            curr_partner_ids |= partner_ids_at_date
+
+        self.lb_info.setText(self.lb_info.text() + info_text)
+
+        return [db_services.Person.get(p_id) for p_id in curr_partner_ids]
+
+    def union_locations_of_work(self) -> list[schemas.LocationOfWork]:
+        """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
+        #  todo: days_of_plan_period u. valid_days_of_actor können an Funktion ausgelagert werden
+        days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
+                               range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
+        valid_days_of_actor = [date for date in days_of_plan_period
+                               if get_curr_assignment_of_person(self.person, date).team.id == self.curr_team.id]
+        curr_loc_of_work_ids = {loc.id for loc in
+                                get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.'
+        for date in valid_days_of_actor[1:]:
+            location_ids_at_date = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
+            if location_ids_at_date != curr_loc_of_work_ids:
+                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.'
+            curr_loc_of_work_ids |= location_ids_at_date
+
+        self.lb_info.setText(self.lb_info.text() + info_text)
+
+        return [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+
+    def clear_option_field(self):
+        for widgets in self.dict_location_id__bt_slider_lb.values():
+            for widget in widgets.values():
+                widget.setParent(None)
+                widget.deleteLater()
+
+        self.dict_location_id__bt_slider_lb = {}
+        for widgets in self.dict_partner_id__bt_slider_lb.values():
+            for widget in widgets.values():
+                widget.setParent(None)
+                widget.deleteLater()
+        self.dict_partner_id__bt_slider_lb = {}
 
     def setup_option_field(self):
         """Regler und Buttons für Locations und Partners werden hinzugefügt"""
@@ -429,7 +519,8 @@ class DlgPartnerLocationPrefs(QDialog):
             self.dict_location_id__bt_slider_lb[loc.id] = {
                 'button': bt_partners,
                 'slider': slider_location,
-                'label': lb_loc_val,
+                'label_location': lb_location,
+                'label_val': lb_loc_val,
             }
         '''setup partners group:'''
         for row, partner in enumerate(self.partners):
@@ -454,7 +545,8 @@ class DlgPartnerLocationPrefs(QDialog):
             self.dict_partner_id__bt_slider_lb[partner.id] = {
                 'button': bt_locations,
                 'slider': slider_partner,
-                'label': lb_partner_val,
+                'label_partner': lb_partner,
+                'label_val': lb_partner_val,
             }
 
     def setup_values_locations(self):
@@ -473,7 +565,7 @@ class DlgPartnerLocationPrefs(QDialog):
                 raise Exception('Keine Werte in partner_vals_of_locations!')
 
             slider_value = max(int(2 * v) for v in partner_vals_of_locations)
-            self.show_slider_text(self.dict_location_id__bt_slider_lb[loc.id]['label'], slider_value)
+            self.show_slider_text(self.dict_location_id__bt_slider_lb[loc.id]['label_val'], slider_value)
             self.dict_location_id__bt_slider_lb[loc.id]['slider'].setValue(slider_value)
 
     def setup_values_parters(self):
@@ -492,14 +584,21 @@ class DlgPartnerLocationPrefs(QDialog):
                 raise Exception('Keine Werte in location_vals_of_partner!')
 
             slider_value = max(int(2 * v) for v in location_vals_of_partner)
-            self.show_slider_text(self.dict_partner_id__bt_slider_lb[partner.id]['label'], slider_value)
+            self.show_slider_text(self.dict_partner_id__bt_slider_lb[partner.id]['label_val'], slider_value)
             self.dict_partner_id__bt_slider_lb[partner.id]['slider'].setValue(slider_value)
 
     def setup_values(self):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
-        self.setup_values_locations()
-        self.setup_values_parters()
+        try:
+            self.setup_values_locations()
+        except Exception:
+            self.clear_option_field()
+            return
+        try:
+            self.setup_values_parters()
+        except Exception:
+            self.clear_option_field()
 
     def reload_curr_model(self):
         self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
@@ -576,14 +675,14 @@ class DlgPartnerLocationPrefs(QDialog):
         self.reload_curr_model()
         self.setup_values()
 
-    def choice_partners(self, location_id: UUID):
+    def choice_partners(self, location_id: UUID, e):
         dlg = DlgPartnerLocationPrefsPartner(self, self.person, self.curr_model, location_id, self.partners)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_curr_model()
             self.setup_values()
 
-    def choice_locations(self, partner_id: UUID):
+    def choice_locations(self, partner_id: UUID, e):
         dlg = DlgPartnerLocationPrefsLocs(self, self.person, self.curr_model, partner_id, self.locations)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())

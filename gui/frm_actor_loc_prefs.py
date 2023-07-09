@@ -73,11 +73,11 @@ class DlgActorLocPref(QDialog):
 
     def set_new__locations(self):
         self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
-        if isinstance(self.curr_model, schemas.ActorPlanPeriod):
+        if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden
             self.union_locations_of_work()
         elif not self.curr_team:
             self.locations_of_work = []
-        else:
+        else:  # betrifft Person und AvailDay
             self.locations_of_work = get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
 
         self.locations_of_work.sort(key=lambda x: x.name + x.address.city)

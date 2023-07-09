@@ -415,10 +415,6 @@ class DlgPartnerLocationPrefs(QDialog):
                                   self.reset_to_parent_values))
             self.bt_reset.setMenu(menu)
 
-    def setup_data(self):  # todo: delete this function
-        self.partners = [p for p in self.persons_at_date if p.id != self.person.id]
-        self.locations = self.locations_at_date
-
     def set_curr_team(self):
         self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
 

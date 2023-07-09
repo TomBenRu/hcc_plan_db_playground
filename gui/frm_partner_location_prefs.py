@@ -4,6 +4,7 @@ from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
+from PySide6.QtCore import QCoreApplication, QTimer
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar, QDateEdit
@@ -303,7 +304,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
 
 class DlgPartnerLocationPrefs(QDialog):
     """Hier werden die Mitarbeiter-Einrichtungs-Präferenzen festgelegt.
-    Fall keine Präferenz einer besimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
+    Fall keine Präferenz einer bestimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
 
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
                  parent_model: schemas.ModelWithPartnerLocPrefs | None,
@@ -335,7 +336,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.lb_date = QLabel('zu einem späteren Datum kann sich die Auswahl an Mitarbeitern und Einrichtungen ändern.')
         self.de_date = QDateEdit()
-        self.de_date.dateChanged.connect(self.date_changed)
+        self.de_date.dateChanged.connect(self.on_date_change)
         self.layout_date.addWidget(self.de_date)
         self.de_date.setFixedWidth(100)
         self.layout_date.addWidget(self.lb_date)
@@ -363,6 +364,12 @@ class DlgPartnerLocationPrefs(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
+        # QTimer wird verwendet, damit bei schnellem Datumsdurchlauf nicht für jeden Tag das Layout neu aufgebaut wird.
+        self.timer = QTimer(self)
+        self.timer.setInterval(200)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.date_changed)
+
         self.de_date.setMinimumDate(datetime.date.today())
 
     def accept(self) -> None:
@@ -373,6 +380,9 @@ class DlgPartnerLocationPrefs(QDialog):
         self.controller.undo_all()
         db_services.ActorPartnerLocationPref.delete_prep_deletes(self.person.id)
         super().reject()
+
+    def on_date_change(self):
+        self.timer.start()
 
     def date_changed(self):
         self.set_curr_team()

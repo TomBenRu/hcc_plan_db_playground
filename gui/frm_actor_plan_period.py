@@ -428,13 +428,12 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
         person = db_services.Person.get(self.actor_plan_period.person.id)
 
-        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
-        persons_at_date = get_persons_of_team_at_date(self.actor_plan_period.team.id,
-                                                      self.actor_plan_period.plan_period.start)
+        team_at_date_factory = lambda date: self.actor_plan_period.team
 
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, avail_days_at_date[0], self.actor_plan_period, persons_at_date, locations_at_date)
+            self, person, avail_days_at_date[0], self.actor_plan_period, team_at_date_factory)
+        dlg.de_date.setDate(self.day)
+        dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
 
@@ -681,7 +680,7 @@ class FrmActorPlanPeriod(QWidget):
                                                   'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
         self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
 
-        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf.', clicked=self.edit_all_partner_loc_prefs)
+        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf. -> Reset', clicked=self.reset_all_partner_loc_prefs)
         bt_actor_partner_loc_prefs_all_avail.setStatusTip(
             'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum ändern. '
             'Später hinzugefügte Verfügbarkeiten übernehmen davon unberührt die Präferenzen des Planungszeitraums.')
@@ -935,51 +934,39 @@ class FrmActorPlanPeriod(QWidget):
 
     def edit_partner_loc_prefs(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
-        team = db_services.Team.get(self.actor_plan_period.team.id)
-
-        locations_at_date = get_locations_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
-        persons_at_date = get_persons_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+        team_at_date_factory = lambda date: self.actor_plan_period.team
 
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, self.actor_plan_period, person, persons_at_date, locations_at_date)
+            self, person, self.actor_plan_period, person, team_at_date_factory)
+        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
+        dlg.de_date.setDisabled(True)
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             signal_handling.handler.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-    def edit_all_partner_loc_prefs(self):
-        """Bearbeiten der actor_partner_location_prefs aller AvailDays in dieser Planperiode."""
-        all_avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
-        if not all_avail_days:
-            QMessageBox.critical(self, 'Mitarbeiter- / Einrichtungspräferenzen',
+    def reset_all_partner_loc_prefs(self):
+        """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
+
+        reply = QMessageBox.question(self, 'Zurücksetzten der Partnerpräferenzen',
+                                     'Sollen die Partnerpräferenzen aller Verfügbarkeiten auf die Standardwerte '
+                                     'der Planungsperiode zurückgesetzt werden?')
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
+        if not all_avail_dates:
+            QMessageBox.critical(self, 'Partnerpräferenzen',
                                  f'In dieser Planungsperiode von '
                                  f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
                                  f'gibt es noch keine Verfügbarkeiten.')
             return
-        person = db_services.Person.get(self.actor_plan_period.person.id)
-        team = db_services.Team.get(self.actor_plan_period.team.id)
 
-        locations_at_date = get_locations_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
-        persons_at_date = get_persons_of_team_at_date(team.id, self.actor_plan_period.plan_period.start)
+        button_partner_location_prefs: list[ButtonActorPartnerLocationPref] = self.findChildren(ButtonActorPartnerLocationPref)
 
-        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, all_avail_days[0], self.actor_plan_period, persons_at_date, locations_at_date)
-        if not dlg.exec():
-            return
-
-        '''all_avail_days[0].actor_partner_location_prefs_defaults wurden geändert.
-        Nun werden die actor_partner_location_prefs_defaults der übrigen avail_days in dieser ActorPlanPeriod 
-        angepasst'''
-        all_avail_days[0] = db_services.AvailDay.get(all_avail_days[0].id)
-        for avd in all_avail_days[1:]:
-            for pref in avd.actor_partner_location_prefs_defaults:
-                db_services.AvailDay.remove_partner_location_pref(avd.id, pref.id)
-            for pref_new in all_avail_days[0].actor_partner_location_prefs_defaults:
-                if not pref_new.prep_delete:
-                    db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
-
-        db_services.ActorPartnerLocationPref.delete_unused(person.id)
-
+        for button_partner_location_pref in button_partner_location_prefs:
+            if button_partner_location_pref.day in all_avail_dates:
+                button_partner_location_pref.reset_prefs_of_day()
+                button_partner_location_pref.reload_actor_plan_period()
+                button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
-        signal_handling.handler.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period))

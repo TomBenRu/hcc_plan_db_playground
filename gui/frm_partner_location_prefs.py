@@ -5,9 +5,10 @@ from typing import Literal, Callable
 from uuid import UUID
 
 from PySide6.QtCore import QCoreApplication, QTimer
-from PySide6.QtGui import Qt
+from PySide6.QtGui import Qt, QResizeEvent
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar, QDateEdit
+    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar, QDateEdit, \
+    QApplication
 from line_profiler_pycharm import profile
 
 from database import schemas, db_services
@@ -312,6 +313,8 @@ class DlgPartnerLocationPrefs(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Partner-Präferenzen')
 
+        self.screen_geometry = QApplication.primaryScreen().geometry()
+
         self.layout = QVBoxLayout(self)
         self.layout_head = QHBoxLayout()
         self.layout.addLayout(self.layout_head)
@@ -371,6 +374,12 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.timeout.connect(self.date_changed)
 
         self.de_date.setMinimumDate(datetime.date.today())
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        point_bottom_right = self.mapToGlobal(self.rect().bottomRight())
+        if (point_bottom_right.x() > self.screen_geometry.right()) or (point_bottom_right.y() > self.screen_geometry.bottom()):
+            self.move(self.screen_geometry.center() - self.rect().center())
+        super().resizeEvent(event)
 
     def accept(self) -> None:
         self.controller.execute(actor_partner_loc_pref_commands.DeleteUnused(self.person.id))
@@ -475,11 +484,11 @@ class DlgPartnerLocationPrefs(QDialog):
                                if get_curr_assignment_of_person(self.person, date).team.id == self.curr_team.id]
         curr_loc_of_work_ids = {loc.id for loc in
                                 get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
-        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.'
+        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.\n'
         for date in valid_days_of_actor[1:]:
             location_ids_at_date = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
             if location_ids_at_date != curr_loc_of_work_ids:
-                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.'
+                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.\n'
             curr_loc_of_work_ids |= location_ids_at_date
 
         self.lb_info.setText(self.lb_info.text() + info_text)
@@ -574,7 +583,7 @@ class DlgPartnerLocationPrefs(QDialog):
             self.show_slider_text(self.dict_location_id__bt_slider_lb[loc.id]['label_val'], slider_value)
             self.dict_location_id__bt_slider_lb[loc.id]['slider'].setValue(slider_value)
 
-    def setup_values_parters(self):
+    def setup_values_partners(self):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
         for partner in self.partners:
@@ -602,7 +611,7 @@ class DlgPartnerLocationPrefs(QDialog):
             self.clear_option_field()
             return
         try:
-            self.setup_values_parters()
+            self.setup_values_partners()
         except Exception:
             self.clear_option_field()
 

@@ -1243,7 +1243,7 @@ class ActorPartnerLocationPref:
             if apl_pref.prep_delete:
                 continue
             empty_check = [apl_pref.actor_plan_periods_defaults, apl_pref.avail_days_defaults]
-            if all([default.is_empty() for default in empty_check]) and not apl_pref.person_default:
+            if all(default.is_empty() for default in empty_check) and not apl_pref.person_default:
                 apl_pref.prep_delete = datetime.datetime.utcnow()
                 deleted_apl_pref_ids.append(apl_pref.id)
         return deleted_apl_pref_ids

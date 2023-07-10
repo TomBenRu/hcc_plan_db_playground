@@ -230,19 +230,32 @@ class ButtonActorLocationPref(QPushButton):
         self.set_stylesheet()  # sollte beschleunigt werden!
 
     def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
+        locations_at_date_ids = {
+            loc.id for loc in get_locations_of_team_at_date(self.actor_plan_period.team.id, self.day)
+            if not loc.prep_delete or loc.prep_delete > self.day
+        }
+
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
         if not avail_days_at_date:
             return
-        prefs_actor_plan_period = {(pref.location_of_work.id, pref.score)
-                                   for pref in self.actor_plan_period.actor_location_prefs_defaults
-                                   if not pref.prep_delete}
-        pref_of_idx0 = {(pref.location_of_work.id, pref.score)
-                        for pref in avail_days_at_date[0].actor_location_prefs_defaults if not pref.prep_delete}
+        prefs_actor_plan_period = {
+            (pref.location_of_work.id, pref.score) for pref in self.actor_plan_period.actor_location_prefs_defaults
+            if (not pref.prep_delete or pref.prep_delete > self.day)
+               and pref.location_of_work.id in locations_at_date_ids
+        }
+        pref_of_idx0 = {
+            (pref.location_of_work.id, pref.score) for pref in avail_days_at_date[0].actor_location_prefs_defaults
+            if (not pref.prep_delete or pref.prep_delete > self.day)
+               and pref.location_of_work.id in locations_at_date_ids
+        }
         if len(avail_days_at_date) > 1:
             for avd in avail_days_at_date[1:]:
-                avd_prefs = {(pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults
-                             if not pref.prep_delete}
+                avd_prefs = {
+                    (pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults
+                    if (not pref.prep_delete or pref.prep_delete > self.day)
+                       and pref.location_of_work.id in locations_at_date_ids
+                }
                 if avd_prefs != pref_of_idx0:
                     self.reset_prefs_of_day(avail_days_at_date)
                     QMessageBox.critical(self, 'Einrichtungspräferenzen',
@@ -366,20 +379,34 @@ class ButtonActorPartnerLocationPref(QPushButton):
         self.set_stylesheet()  # sollte beschleunigt werden!
 
     def check_pref_of_day__eq__pref_of_actor_pp(self):
+        partner_at_date_ids = {p.id for p in get_persons_of_team_at_date(self.actor_plan_period.team.id, self.day)
+                               if (not p.prep_delete or p.prep_delete > self.day)
+                           and p.id != self.actor_plan_period.person.id}
+        locations_at_date_ids = {loc.id for loc in get_locations_of_team_at_date(self.actor_plan_period.team.id, self.day)
+                                if not loc.prep_delete or loc.prep_delete > self.day}
+
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.day == self.day]
         if not avail_days_at_date:
             return
-        prefs_actor_plan_period = {(pref.location_of_work.id, pref.partner.id, pref.score)
-                                   for pref in self.actor_plan_period.actor_partner_location_prefs_defaults
-                                   if not pref.prep_delete}
-        pref_of_idx0 = {(pref.location_of_work.id, pref.partner.id, pref.score)
-                        for pref in avail_days_at_date[0].actor_partner_location_prefs_defaults if not pref.prep_delete}
+        prefs_actor_plan_period = {
+            (pref.location_of_work.id, pref.partner.id, pref.score)
+            for pref in self.actor_plan_period.actor_partner_location_prefs_defaults
+            if not pref.prep_delete
+               and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)
+        }
+        pref_of_idx0 = {
+            (pref.location_of_work.id, pref.partner.id, pref.score)
+            for pref in avail_days_at_date[0].actor_partner_location_prefs_defaults
+            if not pref.prep_delete
+               and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)
+        }
         if len(avail_days_at_date) > 1:
             for avd in avail_days_at_date[1:]:
                 avd_prefs = {(pref.location_of_work.id, pref.partner.id, pref.score)
                              for pref in avd.actor_partner_location_prefs_defaults
-                             if not pref.prep_delete}
+                             if not pref.prep_delete
+                             and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)}
                 if avd_prefs != pref_of_idx0:
                     self.reset_prefs_of_day(avail_days_at_date)
                     QMessageBox.critical(self, 'Partner- / Einrichtungspräferenzen',

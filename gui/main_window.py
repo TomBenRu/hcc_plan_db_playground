@@ -31,9 +31,9 @@ class MainWindow(QMainWindow):
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
-                   'Legt eine neue Planung an.', self.new_planperiod, short_cut='Ctrl+n'),
+                   'Legt eine neue Planung an.', self.new_plan_period, short_cut='Ctrl+n'),
             Action(self, 'resources/toolbar_icons/icons/blue-document--pencil.png', 'Planung ändern...',
-                   'Ändern oder Löschen einer vorhandenen Planung.', self.edit_planperiod),
+                   'Ändern oder Löschen einer vorhandenen Planung.', self.edit_plan_period),
             Action(self, 'resources/toolbar_icons/icons/gear--pencil.png', 'Projekt-Einstellungen...',
                    'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
             Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Pläne)',
@@ -90,12 +90,12 @@ class MainWindow(QMainWindow):
         }
         self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
-            self.actions['new_planperiod'], self.actions['master_data'], self.actions['open_plan'], self.actions['save_plan'], None,
+            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'], self.actions['save_plan'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
         self.menu_actions = {
-            '&Datei': [self.actions['new_planperiod'], self.actions['edit_planperiod'], None,
+            '&Datei': [self.actions['new_plan_period'], self.actions['edit_plan_period'], None,
                        self.actions['sheets_for_availables'], None, self.actions['exit'],
                        self.actions['settings_project']],
             '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
 
         self.frm_master_data = None
 
-    def new_planperiod(self):
+    def new_plan_period(self):
         if not db_services.Team.get_all_from__project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum', 'Sie müssen Ihrem Projekt zuerst ein Team hinzufügen.')
             return
@@ -156,7 +156,7 @@ class MainWindow(QMainWindow):
         dlg = DlgPlanPeriodCreate(self, project_id=self.project_id)
         dlg.exec()
 
-    def edit_planperiod(self):
+    def edit_plan_period(self):
         plan_periods = db_services.PlanPeriod.get_all_from__project(self.project_id)
         if not plan_periods:
             QMessageBox.critical(self, 'Planungszeitraum Ändern', 'Es wurden noch keine Planungszeiträume angelegt.')
@@ -166,7 +166,7 @@ class MainWindow(QMainWindow):
             if dlg.exec():
                 print(dlg.delete_status)
                 print(dlg.cb_planperiods.currentData().notes)
-                if dlg.delete_status:
+                if dlg.delete_status:  # todo: Löschen von Planperiode implementieren.
                     ...
                 else:
                     plan_period = dlg.cb_planperiods.currentData()

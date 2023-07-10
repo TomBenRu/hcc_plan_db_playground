@@ -50,7 +50,7 @@ def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
         return command_to_remove(curr_model.id, pref_to_remove_id)
     except KeyError as e:
         raise KeyError(
-            f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.'
+            f'Für die Klasse {curr_model_name} ist noch kein Remove-Command definiert.'
         ) from e
 
 
@@ -443,8 +443,9 @@ class DlgPartnerLocationPrefs(QDialog):
         elif not self.curr_team:
             self.partners = []
         else:  # betrifft Person und AvailDay
-            self.partners = [p for p in get_persons_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
-                             if p.id != self.person.id]
+            self.partners = sorted(
+                (p for p in get_persons_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
+                 if p.id != self.person.id), key=lambda x: x.f_name+x.l_name)
 
     def set_new_locations(self):
         if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden
@@ -452,7 +453,8 @@ class DlgPartnerLocationPrefs(QDialog):
         elif not self.curr_team:
             self.locations = []
         else:  # betrifft Person und AvailDay
-            self.locations = get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
+            self.locations = sorted(get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython()),
+                                    key=lambda x: x.name+x.address.city)
 
     def union_partners(self) -> list[schemas.Person]:
         """Vereinigung aus allen möglichen Partner an den Tagen der Planungsperiode werden gebildet"""
@@ -473,7 +475,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.lb_info.setText(self.lb_info.text() + info_text)
 
-        return [db_services.Person.get(p_id) for p_id in curr_partner_ids]
+        return sorted((db_services.Person.get(p_id) for p_id in curr_partner_ids), key=lambda x: x.f_name+x.l_name)
 
     def union_locations_of_work(self) -> list[schemas.LocationOfWork]:
         """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
@@ -493,7 +495,8 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.lb_info.setText(self.lb_info.text() + info_text)
 
-        return [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+        return sorted((db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids),
+                      key=lambda x: x.name+x.address.city)
 
     def clear_option_field(self):
         for widgets in self.dict_location_id__bt_slider_lb.values():
@@ -568,8 +571,11 @@ class DlgPartnerLocationPrefs(QDialog):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
         for loc in self.locations:
-            partner_vals_of_locations = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
-                                         if not apl.prep_delete and apl.location_of_work.id == loc.id]
+            partner_vals_of_locations = [
+                apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                if not apl.prep_delete and apl.location_of_work.id == loc.id and
+                   apl.partner.id in {p.id for p in self.partners}
+            ]
             partner_vals_of_locations += [1 for _ in range(len(self.partners) - len(partner_vals_of_locations))]
 
             if len(set(partner_vals_of_locations)) == 1:
@@ -587,8 +593,11 @@ class DlgPartnerLocationPrefs(QDialog):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
         for partner in self.partners:
-            location_vals_of_partner = [apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
-                                        if not apl.prep_delete and apl.partner.id == partner.id]
+            location_vals_of_partner = [
+                apl.score for apl in self.curr_model.actor_partner_location_prefs_defaults
+                if not apl.prep_delete and apl.partner.id == partner.id
+                   and apl.location_of_work.id in {loc.id for loc in self.locations}
+            ]
             location_vals_of_partner += [1 for _ in range(len(self.locations) - len(location_vals_of_partner))]
 
             if len(set(location_vals_of_partner)) == 1:
@@ -628,11 +637,12 @@ class DlgPartnerLocationPrefs(QDialog):
 
     def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
         value = self.dict_location_id__bt_slider_lb[location.id]['slider'].value()
-        time.sleep(1)
         score = value / 2
         apls_with_loc: dict[UUID, schemas.ActorPartnerLocationPref] = {
             apl.partner.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
-            if not apl.prep_delete and apl.location_of_work.id == location.id}
+            if not apl.prep_delete and apl.location_of_work.id == location.id
+               and apl.partner.id in {p.id for p in self.partners}
+        }
 
         for partner in self.partners:
             if partner.id in apls_with_loc:
@@ -660,11 +670,12 @@ class DlgPartnerLocationPrefs(QDialog):
 
     def save_pref_partner(self, partner: schemas.Person, value: int):
         value = self.dict_partner_id__bt_slider_lb[partner.id]['slider'].value()
-        time.sleep(1)
         score = value / 2
         apls_with_partner: dict[UUID, schemas.ActorPartnerLocationPref] = {
             apl.location_of_work.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
-            if not apl.prep_delete and apl.partner.id == partner.id}
+            if not apl.prep_delete and apl.partner.id == partner.id
+               and apl.location_of_work.id in {loc.id for loc in self.locations}
+        }
 
         for location in self.locations:
             if location.id in apls_with_partner:

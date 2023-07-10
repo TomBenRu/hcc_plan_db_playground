@@ -449,12 +449,6 @@ class FrmPersonModify(FrmPersonData):
 
     def edit_location_prefs(self):
 
-        # if not curr_team:
-        #     QMessageBox.critical(self, 'Einrichtungspräferenzen',
-        #                          'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
-        #                          'Es können keine Einrichtungspräferenzen festgelegt werden.')
-        #     return
-
         team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
 
         dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, team_at_date_factory)

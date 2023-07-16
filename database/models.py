@@ -194,7 +194,8 @@ class ActorPlanPeriod(db.Entity):
 
 class AvailDayGroup(db.Entity):
     """AvailDayGroups können entweder genau 1 AvailDay beinhalten, oder 1 oder mehrere AvailDayGroups.
-       Jede AvailDayGroup ist entweder genau 1 AvailDayGroup zugeordnet oder genau einerActorPlanPeriod."""
+       Jede AvailDayGroup ist entweder genau 1 AvailDayGroup zugeordnet oder genau einerActorPlanPeriod.
+       Jede ActorPlanPeriod enthält genau 1 AvailDayGroup. Jeder AvailDay ist genau 1 AvailDayGroup zugeordnet."""
     id = PrimaryKey(UUID, auto=True)
     actor_plan_period = Optional(ActorPlanPeriod)
     nr_avail_day_groups = Optional(int, unsigned=True)
@@ -224,7 +225,7 @@ class AvailDayGroup(db.Entity):
 
 class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.
-Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
+Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     id = PrimaryKey(UUID, auto=True)
     day = Required(date)
     created_at = Required(datetime, default=lambda: datetime.utcnow())
@@ -233,7 +234,7 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
     actor_plan_period = Required(ActorPlanPeriod)
     avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
-    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # kann weg!!!!!!!!
+    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # todo: kann weg?
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
@@ -260,7 +261,7 @@ Immer auch Appointments in unterschiedelichen Plänen zuteilbar."""
 class TimeOfDay(db.Entity):
     """TimeOfDays werden beim Anlegen einer Person von den TimeOfDaysDefaults übernommen (nicht dupliziert).
 Beim Anlegen einer ActorPlanPeriod werden sie von Person übernommen. Beim Anlegen eines AvailDay werden sie von ActorPlanPeriod übernommen.
-Wird ein TimeOfDay einer Instanz verändert, wird eine Neue Instanz von AvailDay erzeugt und die Instanz mit gleichem Namen aus TimeOfDays entfernt.
+Wird ein TimeOfDay einer Instanz verändert, wird eine neue Instanz von AvailDay erzeugt und die Instanz mit gleichem Namen aus TimeOfDays entfernt.
 Für LocationOfWork... gilt das gleiche Schema."""
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50)
@@ -425,9 +426,9 @@ class EventGroup(db.Entity):
        Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
-    same_day_cast_pref = Required(int, size=8, default=2, unsigned=True)
-    # Wenn am gleichen Tag mehrere Events der gleichen Location stattfinden bedeuten:
-    # 0: beliebige Besetzungen, 1: möglichsts die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
+    same_day_cast_pref = Required(int, size=8, default=2, unsigned=True)  # todo: kann evt. gestrichen werden
+    # Wenn am selben Tag mehrere Events der gleichen Location stattfinden bedeuten:
+    # 0: beliebige Besetzungen, 1: möglichst die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
     same_group_cast_pref = Required(int, size=8, default=0, unsigned=True)
     # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
     # Gewichtungen wie same_day_cast_pref
@@ -650,4 +651,5 @@ class ExcelExportSettings(db.Entity):
 # todo: Beim Wechsel des Teams von Person oder LocationOfWork sammeln sich in CombinationLocationsPossible viele nicht aktuelle Combinations an. Lösung?
 # todo: Das Gleiche gilt für ActorLocationPref
 # todo: Das Gleiche gilt für fixed_cast in LocationOfWork und Event
-# todo: In FrameActorPlanPeriod dürfen nur die Termine der Tage des Teams gezeigt werden, an denen die Person dem Team zugeordnet ist.
+# todo (done): In FrameActorPlanPeriod dürfen nur die Termine der Tage des Teams gezeigt werden, an denen die Person dem Team zugeordnet ist.
+# todo: Qualifikation zu Person hinzufügen

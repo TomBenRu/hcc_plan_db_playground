@@ -5,7 +5,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -547,12 +547,14 @@ class FrmTabActorPlanPeriods(QWidget):
         self.splitter_availables.setSizes([175, 10000])
         self.layout.setStretch(0, 2)
         self.layout.setStretch(1, 99)
+        self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()
         self.layout_notes_actor = QVBoxLayout()
         self.layout_notes_actor_pp = QVBoxLayout()
 
         self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
-        self.layout_availables.addLayout(self.layout_notes, 1, 0)
+        self.layout_availables.addLayout(self.layout_controllers, 1, 0)
+        self.layout_availables.addLayout(self.layout_notes, 2, 0)
         self.layout_notes.addLayout(self.layout_notes_actor_pp)
         self.layout_notes.addLayout(self.layout_notes_actor)
         self.layout_notes_actor_pp.addWidget(self.lb_notes_pp)
@@ -622,8 +624,11 @@ class FrmTabActorPlanPeriods(QWidget):
 
 
 class FrmActorPlanPeriod(QWidget):
-    def __init__(self, parent, actor_plan_period: schemas.ActorPlanPeriodShow, side_menu: side_menu.WidgetSideMenu):
+    def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodShow,
+                 side_menu: side_menu.WidgetSideMenu):
         super().__init__(parent)
+
+        self.layout_controllers = parent.layout_controllers
 
         signal_handling.handler.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period)
 
@@ -634,6 +639,7 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu = side_menu
         self.setup_side_menu()
 
+        self.group_mode = False
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
@@ -648,6 +654,7 @@ class FrmActorPlanPeriod(QWidget):
 
         self.set_headers_months()
         self.set_chk_field()
+        self.setup_controllers()
         self.get_avail_days()
 
     def setup_side_menu(self):
@@ -709,8 +716,8 @@ class FrmActorPlanPeriod(QWidget):
 
         bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf. -> Reset', clicked=self.reset_all_partner_loc_prefs)
         bt_actor_partner_loc_prefs_all_avail.setStatusTip(
-            'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum ändern. '
-            'Später hinzugefügte Verfügbarkeiten übernehmen davon unberührt die Präferenzen des Planungszeitraums.')
+            'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum  '
+            'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
 
         for col, d in enumerate(self.days, start=1):
@@ -739,9 +746,9 @@ class FrmActorPlanPeriod(QWidget):
             bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
             bt_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_loc_prefs, row+3, col)
-            bt_partn_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
-            bt_partn_loc_prefs.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_partn_loc_prefs, row+4, col)
+            bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
+            bt_partner_loc_prefs.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_partner_loc_prefs, row+4, col)
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -754,8 +761,19 @@ class FrmActorPlanPeriod(QWidget):
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
         # sourcery skip: inline-immediately-returned-variable
-        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
+        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.bt_avail_day_toggled)
         return button
+
+    def setup_controllers(self):
+        bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
+        self.layout_controllers.addWidget(bt_toggle__avd_group_mode)
+
+    def bt_avail_day_toggled(self, bt: ButtonAvailDay):
+        if self.group_mode:
+            ...
+            # todo: bt_avail_day_toggled() -> Funktion implementieren
+        else:
+            self.save_avail_day(bt)
 
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.day
@@ -769,7 +787,7 @@ class FrmActorPlanPeriod(QWidget):
 
             '''Falls es an diesem Tage schon einen oder mehrere AvailDays gibt, 
             werden die combination_locations_possibles vom ersten gefundenen AvailDay übernommen, weil, davon ausgegangen
-            wird, dass schon evtl. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
+            wird, dass schon evt. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
             created_avail_day = save_command.created_avail_day
             if existing_avds_on_day:
                 for comb in created_avail_day.combination_locations_possibles:
@@ -786,10 +804,17 @@ class FrmActorPlanPeriod(QWidget):
                         continue
                     self.controller_avail_days.execute(
                         avail_day_commands.PutInActorLocationPref(created_avail_day.id, loc_pref_existing.id))
+                for partner_loc_pref in created_avail_day.actor_partner_location_prefs_defaults:
+                    self.controller_avail_days.execute(
+                        avail_day_commands.RemoveActorPartnerLocationPref(created_avail_day.id, partner_loc_pref.id)
+                    )
+                for partner_loc_pref_existing in existing_avds_on_day[0].actor_partner_location_prefs_defaults:
+                    if partner_loc_pref_existing.prep_delete:
+                        continue
+                    self.controller_avail_days.execute(
+                        avail_day_commands.PutInActorPartnerLocationPref(created_avail_day.id, partner_loc_pref_existing.id)
+                    )
 
-            '''new_avail_day = db_services.AvailDay.create(
-                schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d))
-            # QMessageBox.information(self, 'new time_of_day', f'{new_avail_day}')'''
         else:
             avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
@@ -800,6 +825,16 @@ class FrmActorPlanPeriod(QWidget):
         signal_handling.handler.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
+    def change_mode__avd_group(self):
+        button: QPushButton = self.sender()
+        if self.group_mode:
+            self.group_mode = False
+            button.setText('zum Gruppenmodus')
+        else:
+            self.group_mode = True
+            button.setText('zum Planungsmodus')
+        # todo: change_mode__avd_group() -> implementieren
+
     def get_avail_days(self):
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
@@ -808,7 +843,7 @@ class FrmActorPlanPeriod(QWidget):
             if not button:
                 QMessageBox.critical(self, 'Fehlende Standards',
                                      f'Fehler:\n'
-                                     f'Kann die verfügbaren Zeiten nich anzeigen.\nEventuell haben Sie nachträglich '
+                                     f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
                                      f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
                 return
             button.setChecked(True)
@@ -972,7 +1007,7 @@ class FrmActorPlanPeriod(QWidget):
             signal_handling.handler.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-    def reset_all_partner_loc_prefs(self):
+    def reset_all_partner_loc_prefs(self, e):
         """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
         reply = QMessageBox.question(self, 'Zurücksetzten der Partnerpräferenzen',
@@ -991,9 +1026,12 @@ class FrmActorPlanPeriod(QWidget):
 
         button_partner_location_prefs: list[ButtonActorPartnerLocationPref] = self.findChildren(ButtonActorPartnerLocationPref)
 
-        for button_partner_location_pref in button_partner_location_prefs:
+        for button_partner_location_pref in button_partner_location_prefs:  # todo: Kann mit einem Signal an die buttons evt. schneller gemacht werden
             if button_partner_location_pref.day in all_avail_dates:
                 button_partner_location_pref.reset_prefs_of_day()
                 button_partner_location_pref.reload_actor_plan_period()
                 button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
+
+
+# todo: Wenn Tageszeit-Button geklickt wird und vor dem Loslassen weggezogen wird -> Fehlermeldung

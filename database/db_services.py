@@ -972,6 +972,8 @@ class AvailDay:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(avail_day: schemas.AvailDayCreate) -> schemas.AvailDayShow:
+        """Es wird eine AvailDay-AvailDayGroup für den avail_day angelegt, welche der Master-AvailDayGroup der
+        ActorPlanPeriod zugeordnet ist. Der AvailDay-AvailDayGroup wird der avail_day zugeordnet."""
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=avail_day.actor_plan_period.id)

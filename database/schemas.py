@@ -236,7 +236,6 @@ class AvailDayGroupCreate(BaseModel):
     # (alternativ: None).
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
     avail_day_group: Optional['AvailDayGroup']
-    avail_day: Optional['AvailDay']
     variation_weight: int
     # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
     # unterschiedliche Gewichtungen verliehen werden.
@@ -267,6 +266,7 @@ class AvailDay(AvailDayCreate):
     id: UUID
     prep_delete: Optional[datetime]
     project: Project
+    avail_day_group: AvailDayGroup
     time_of_days: List['TimeOfDay']
     combination_locations_possibles: List['CombinationLocationsPossible']
     actor_partner_location_prefs_defaults: List['ActorPartnerLocationPref']

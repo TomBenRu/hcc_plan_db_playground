@@ -79,7 +79,7 @@ class DlgTimeOfDayEdit(QDialog):
     def accept(self):
         name = self.le_name.text()
         if not name:
-            QMessageBox.information(self, 'Fehler', 'Sie müsser einen Namen für diese Tageszeit angeben.')
+            QMessageBox.information(self, 'Fehler', 'Sie müssen einen Namen für diese Tageszeit angeben.')
             return
         if not self.cb_time_of_day_enum.currentData():
             QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')

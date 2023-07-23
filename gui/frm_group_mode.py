@@ -32,6 +32,7 @@ class TreeGroup(QTreeWidget):
         self.curr_item: QTreeWidgetItem | None = None
 
         self.setup_tree()
+        self.expand_all()
 
     def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
         self.curr_item = items[0]
@@ -58,9 +59,9 @@ class TreeGroup(QTreeWidget):
                     add_children(item, childs)
                 else:
                     avail_day = db_services.AvailDay.get_from__avail_day_group(child.id)
-                    if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
-                        avail_day_group_commands.Delete(child.id).execute()
-                        continue
+                    # if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
+                    #     avail_day_group_commands.Delete(child.id).execute()
+                    #     continue
                     item = QTreeWidgetItem(parent, ['Verfügbar', avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
                     item.setData(0, Qt.UserRole, avail_day)
 
@@ -72,11 +73,23 @@ class TreeGroup(QTreeWidget):
                 add_children(item, children)
             else:
                 avail_day = db_services.AvailDay.get_from__avail_day_group(child.id)
-                if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
-                    avail_day_group_commands.Delete(child.id).execute()
-                    continue
+                # if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
+                #     avail_day_group_commands.Delete(child.id).execute()
+                #     continue
                 item = QTreeWidgetItem(self, ['Verfügbar', avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
                 item.setData(0, Qt.UserRole, avail_day)
+
+    def refresh_tree(self):
+        self.reload_actor_plan_period()
+        self.clear()
+        self.setup_tree()
+        self.expand_all()
+
+    def expand_all(self):
+        self.expandAll()
+        for i in range(self.columnCount()): self.resizeColumnToContents(i)
+    def reload_actor_plan_period(self):
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 
 class DlgGroupMode(QDialog):
@@ -87,6 +100,8 @@ class DlgGroupMode(QDialog):
         self.actor_plan_period = actor_plan_period
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.simplified = False
 
         self.layout = QVBoxLayout(self)
 
@@ -99,8 +114,6 @@ class DlgGroupMode(QDialog):
 
         self.tree_groups = TreeGroup(self.actor_plan_period, self.item_moved)
         self.tree_groups.itemClicked.connect(self.edit_item)
-        self.tree_groups.expandAll()
-        for i in range(self.tree_groups.columnCount()): self.tree_groups.resizeColumnToContents(i)
         self.layout_body.addWidget(self.tree_groups)
 
         self.layout_mod_buttons = QHBoxLayout()
@@ -147,7 +160,6 @@ class DlgGroupMode(QDialog):
             obj_to_move_to: schemas.AvailDayGroup = moved_to.data(0, Qt.UserRole)
         else:
             obj_to_move_to = self.tree_groups.invisibleRootItem().data(0, Qt.UserRole)
-        print(f'{object_to_move.id=}\n{obj_to_move_to.id=}')
 
         self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
 
@@ -172,28 +184,58 @@ class DlgGroupMode(QDialog):
         recurse(self.tree_groups.invisibleRootItem())
         return all_items
 
-    def accept(self):
+    def alert_solo_childs(self):
+        all_items = self.get_all_items()
+        for item in all_items:
+            if isinstance(item.data(0, Qt.UserRole), schemas.AvailDayGroup) and item.childCount() == 1:
+                if isinstance(data := item.child(0).data(0, Qt.UserRole), schemas.AvailDay):
+                    data: schemas.AvailDay
+                    QMessageBox.critical(self, 'Gruppenmodus',
+                                         f'Mindestens eine Gruppe hat nur einen Termin: '
+                                         f'{data.day.strftime("%d.%m.%y")} ({data.time_of_day.name})\n'
+                                         f'Bitte korrigieren Sie das.')
+                else:
+                    QMessageBox.critical(self, 'Gruppenmodus',
+                                         f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
+                                         f'Bitte korrigieren Sie das.')
+                return True
+        return False
+
+
+    def delete_unused_groups(self):
         all_items = self.get_all_items()
         to_delete: list[schemas.AvailDayGroup] = []
         for item in all_items:
-            if isinstance((data:=item.data(0, Qt.UserRole)), schemas.AvailDayGroup):
+            if isinstance((data := item.data(0, Qt.UserRole)), schemas.AvailDayGroup):
                 if not item.childCount():
                     to_delete.append(data)
-                if item.childCount() == 1:
-                    if isinstance(data:=item.child(0).data(0, Qt.UserRole), schemas.AvailDay):
-                        QMessageBox.critical(self, 'Gruppenmodus',
-                                             f'Mindestens eine Gruppe hat nur einen Termin: {data.day}\n'
-                                             f'Bitte korrigieren Sie das.')
-                    else:
-                        QMessageBox.critical(self, 'Gruppenmodus',
-                                             f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
-                                             f'Bitte korrigieren Sie das.')
-                    return
+
+        if not to_delete:
+            return self.alert_solo_childs()
+        else:
+            self.simplified = True
         for group in to_delete:
-            avail_day_group_commands.Delete(group.id).execute()
+            self.controller.execute(avail_day_group_commands.Delete(group.id))
+        self.reload_actor_plan_period()
+        self.refresh_tree()
+
+        return self.delete_unused_groups()
+
+    def accept(self):
+        if self.delete_unused_groups():
+            return
+        if self.simplified:
+            QMessageBox.information(self, 'Gruppenmodus',
+                                    'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
         super().accept()
 
     def reject(self) -> None:
         self.controller.undo_all()
         super().reject()
+
+    def reload_actor_plan_period(self):
+        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+
+    def refresh_tree(self):
+        self.tree_groups.refresh_tree()
 

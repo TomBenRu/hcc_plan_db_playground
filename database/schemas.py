@@ -232,7 +232,7 @@ class AvailDayGroupCreate(BaseModel):
        Jede AvailDayGroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
     actor_plan_period: Optional[ActorPlanPeriod]
     nr_avail_day_groups: Optional[int]
-    # Falls alle AvailDayGrous innerhalb der AvailDayGroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
+    # Falls alle AvailDayGroup innerhalb der AvailDayGroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
     avail_day_group: Optional['AvailDayGroup']

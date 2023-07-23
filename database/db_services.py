@@ -945,6 +945,13 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
 
     @staticmethod
+    @db_session
+    def get_child_groups_from__parent_group(avail_day_group_id) -> list[schemas.AvailDayGroupShow]:
+        avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
+        return [schemas.AvailDayGroupShow.from_orm(adg) for adg in avail_day_group_db.avail_day_groups]
+
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, actor_plan_period_id: Optional[UUID] = None,
                avail_day_group_id: Optional[UUID] = None, undo_id: UUID = None) -> schemas.AvailDayGroupShow:
@@ -985,7 +992,6 @@ class AvailDayGroup:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
-        print(f'{avail_day_group_db=}')
         avail_day_group_db.delete()
 
 
@@ -1011,6 +1017,13 @@ class AvailDay:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_days_db = models.AvailDay.select(lambda a: a.actor_plan_period == actor_plan_period_db)
         return [schemas.AvailDayShow.from_orm(ad) for ad in avail_days_db]
+
+    @staticmethod
+    @db_session
+    def get_from__avail_day_group(avail_day_group_id):
+        avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
+        avail_day_db = avail_day_group_db.avail_day
+        return schemas.AvailDayShow.from_orm(avail_day_db) if avail_day_db else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

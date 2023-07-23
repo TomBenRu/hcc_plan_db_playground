@@ -218,11 +218,6 @@ class AvailDayGroup(db.Entity):
     def before_update(self):
         self.last_modified = datetime.utcnow()
 
-    def after_update(self):
-        if self.avail_day_groups or self.avail_day or self.actor_plan_period:
-            return
-        self.delete()
-
 
 class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.

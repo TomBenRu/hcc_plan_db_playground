@@ -236,15 +236,15 @@ class AvailDayGroupCreate(BaseModel):
     # (alternativ: None).
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
     avail_day_group: Optional['AvailDayGroup']
-    variation_weight: int
+    variation_weight: int = 1
     # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
     # unterschiedliche Gewichtungen verliehen werden.
-    created_at: datetime
-    last_modified: datetime
 
 
 class AvailDayGroup(AvailDayGroupCreate):
     id: UUID
+    created_at: datetime
+    last_modified: datetime
     nr_avail_day_groups: Optional[int]
 
     class Config:

@@ -213,14 +213,15 @@ class AvailDayGroup(db.Entity):
 
     @property
     def actor_plan_period_getter(self):
-        return self.actor_plan_period if self.actor_plan_period else self.avail_day_group.actor_plan_period_getter
+        return self.actor_plan_period or self.avail_day_group.actor_plan_period_getter
 
     def before_update(self):
         self.last_modified = datetime.utcnow()
 
     def after_update(self):
-        if not self.avail_day_groups and not self.actor_plan_period:
-            self.delete()
+        if self.avail_day_groups or self.avail_day or self.actor_plan_period:
+            return
+        self.delete()
 
 
 class AvailDay(db.Entity):

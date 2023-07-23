@@ -15,6 +15,7 @@ class DataActorPPWithDate:
 class Handler(QObject):
 
     signal_reload_actor_pp__avail_configs = Signal(object)
+    signal_reload_actor_pp__avail_days = Signal(object)
     signal_reload_actor_pp__frm_actor_plan_period = Signal(object)
     signal_change_actor_plan_period_group_mode = Signal(bool)
 
@@ -22,6 +23,9 @@ class Handler(QObject):
 
     def reload_actor_pp__avail_configs(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_configs.emit(data)
+
+    def reload_actor_pp__avail_days(self, data: DataActorPPWithDate):
+        self.signal_reload_actor_pp__avail_days.emit(data)
 
     def reload_actor_pp__frm_actor_plan_period(self, data: schemas.ActorPlanPeriodShow = None):
         self.signal_reload_actor_pp__frm_actor_plan_period.emit(data)

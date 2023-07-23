@@ -39,6 +39,9 @@ class ButtonAvailDay(QPushButton):
 
         signal_handling.handler.signal_change_actor_plan_period_group_mode.connect(
             lambda group_mode: self.set_group_mode(group_mode))
+        signal_handling.handler.signal_reload_actor_pp__avail_days.connect(
+            lambda data: self.reload_actor_plan_period(data.actor_plan_period)
+        )
 
         self.group_mode = False
 
@@ -131,8 +134,11 @@ class ButtonAvailDay(QPushButton):
                         f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
-    def reload_actor_plan_period(self):
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+    def reload_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriodShow = None):
+        if actor_plan_period:
+            self.actor_plan_period = actor_plan_period
+        else:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 
 class ButtonCombLocPossible(QPushButton):
@@ -672,8 +678,6 @@ class FrmActorPlanPeriod(QWidget):
 
         signal_handling.handler.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period)
 
-        self.window_group_mode: frm_group_mode.FrmGroupMode | None = None
-
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
         self.layout.setHorizontalSpacing(2)
@@ -681,7 +685,6 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu = side_menu
         self.setup_side_menu()
 
-        self.group_mode = False
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
@@ -804,19 +807,12 @@ class FrmActorPlanPeriod(QWidget):
 
     def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
         # sourcery skip: inline-immediately-returned-variable
-        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.bt_avail_day_toggled)
+        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
         return button
 
     def setup_controllers(self):
         self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
-
-    def bt_avail_day_toggled(self, bt: ButtonAvailDay):
-        if self.group_mode:
-            ...
-            # todo: bt_avail_day_toggled() -> Funktion implementieren
-        else:
-            self.save_avail_day(bt)
 
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.day
@@ -864,29 +860,25 @@ class FrmActorPlanPeriod(QWidget):
             self.controller_avail_days.execute(del_command)
 
         self.reload_actor_plan_period()
+        bt.reload_actor_plan_period()
         #events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
         signal_handling.handler.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
-    def change_mode__avd_group(self, close_window: bool = True):
+    def change_mode__avd_group(self):
 
-        if self.group_mode and close_window:
-            self.window_group_mode.close()
-            return
+        signal_handling.handler.change_actor_plan_period_group_mode(True)
 
-        self.group_mode = not self.group_mode
-
-        signal_handling.handler.change_actor_plan_period_group_mode(self.group_mode)
-
-        if self.group_mode:
-            self.bt_toggle__avd_group_mode.setText('zum Gruppenmodus')
-            self.window_group_mode = frm_group_mode.FrmGroupMode(self.actor_plan_period, self.change_mode__avd_group)
-            self.window_group_mode.show()
+        self.bt_toggle__avd_group_mode.setText('zum Gruppenmodus')
+        dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
+        if dlg.exec():
+            QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
+            self.reload_actor_plan_period()
+            signal_handling.handler.reload_actor_pp__avail_days(signal_handling.DataActorPPWithDate(self.actor_plan_period))
         else:
-            self.bt_toggle__avd_group_mode.setText('zum Planungsmodus')
-            self.window_group_mode.controller.undo_all()
-            self.window_group_mode = None
-        # todo: change_mode__avd_group() -> implementieren
+            QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
+
+        signal_handling.handler.change_actor_plan_period_group_mode(False)
 
     def get_avail_days(self):
         avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)

@@ -245,6 +245,7 @@ class AvailDayGroupCreate(BaseModel):
 
 class AvailDayGroup(AvailDayGroupCreate):
     id: UUID
+    nr_avail_day_groups: Optional[int]
 
     class Config:
         orm_mode = True

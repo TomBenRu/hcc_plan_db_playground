@@ -3,9 +3,9 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Callable, Sequence
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QCloseEvent, QDropEvent
+from PySide6.QtGui import QCloseEvent, QDropEvent, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, \
     QPushButton, QHBoxLayout, QDialog, QMessageBox
 
@@ -18,7 +18,8 @@ class TreeGroup(QTreeWidget):
                  slot_item_moved: Callable[[QTreeWidgetItem, QTreeWidgetItem], None]):
         super().__init__()
 
-        self.setColumnCount(2)
+        # self.setIndentation(30)
+        self.setColumnCount(3)
         self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit"])
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
@@ -39,7 +40,7 @@ class TreeGroup(QTreeWidget):
         return super().mimeData(items)
     def dropEvent(self, event: QDropEvent) -> None:
         item = self.itemAt(event.position().toPoint())
-        if item and isinstance(item.data(0, Qt.UserRole), schemas.AvailDay):
+        if item and isinstance(item.data(4, Qt.UserRole), schemas.AvailDay):
             event.ignore()
         else:
             super().dropEvent(event)
@@ -55,29 +56,31 @@ class TreeGroup(QTreeWidget):
                 childs = db_services.AvailDayGroup.get_child_groups_from__parent_group(child.id)
                 if childs:
                     item = QTreeWidgetItem(parent, ['Gruppe'])
-                    item.setData(0, Qt.UserRole, child)
+                    item.setData(4, Qt.UserRole, child)
                     add_children(item, childs)
                 else:
                     avail_day = db_services.AvailDay.get_from__avail_day_group(child.id)
-                    # if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
-                    #     avail_day_group_commands.Delete(child.id).execute()
-                    #     continue
-                    item = QTreeWidgetItem(parent, ['Verfügbar', avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
-                    item.setData(0, Qt.UserRole, avail_day)
+                    item = QTreeWidgetItem(parent, ['Verfügbar', 
+                                                    avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
+                    item.setData(4, Qt.UserRole, avail_day)
+                    item.setData(0, Qt.ForegroundRole, QColor('#5a009f'))
+                    item.setData(1, Qt.ForegroundRole, QColor('blue'))
+                    item.setData(2, Qt.ForegroundRole, QColor('#9f0057'))
 
         for child in db_services.AvailDayGroup.get_child_groups_from__parent_group(master_group.id):
             children = db_services.AvailDayGroup.get_child_groups_from__parent_group(child.id)
             if children:
                 item = QTreeWidgetItem(self, ['Gruppe'])
-                item.setData(0, Qt.UserRole, child)
+                item.setData(4, Qt.UserRole, child)
                 add_children(item, children)
             else:
                 avail_day = db_services.AvailDay.get_from__avail_day_group(child.id)
-                # if not avail_day:  # AvailDayGroup kann gelöscht werden, weil sie weder eine AvailDayGroup noch einen AvailDay enthält.
-                #     avail_day_group_commands.Delete(child.id).execute()
-                #     continue
-                item = QTreeWidgetItem(self, ['Verfügbar', avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
-                item.setData(0, Qt.UserRole, avail_day)
+                item = QTreeWidgetItem(self,
+                                       ['Verfügbar', avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
+                item.setData(4, Qt.UserRole, avail_day)
+                item.setData(0, Qt.ForegroundRole, QColor('#5a009f'))
+                item.setData(1, Qt.ForegroundRole, QColor('blue'))
+                item.setData(2, Qt.ForegroundRole, QColor('#9f0057'))
 
     def refresh_tree(self):
         self.reload_actor_plan_period()
@@ -115,6 +118,7 @@ class DlgGroupMode(QDialog):
         self.tree_groups = TreeGroup(self.actor_plan_period, self.item_moved)
         self.tree_groups.itemClicked.connect(self.edit_item)
         self.layout_body.addWidget(self.tree_groups)
+        self.resize_dialog()
 
         self.layout_mod_buttons = QHBoxLayout()
         self.layout_foot.addLayout(self.layout_mod_buttons)
@@ -122,7 +126,8 @@ class DlgGroupMode(QDialog):
         self.layout_mod_buttons.addWidget(self.bt_add_group)
         self.bt_remove_group = QPushButton('Gruppe entfernen', clicked=self.remove_group)
         self.layout_mod_buttons.addWidget(self.bt_remove_group)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
+                                           QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
@@ -132,14 +137,15 @@ class DlgGroupMode(QDialog):
         create_command = avail_day_group_commands.Create(avail_day_group_id=master_group.id)
         self.controller.execute(create_command)
         new_item = QTreeWidgetItem(self.tree_groups.invisibleRootItem(), ['Gruppe'])
-        new_item.setData(0, Qt.UserRole, create_command.created_group)
+        new_item.setData(4, Qt.UserRole, create_command.created_group)
+        self.resize_dialog()
 
     def remove_group(self):
         selected_items = self.tree_groups.selectedItems()
-        if not selected_items or isinstance(selected_items[0].data(0, Qt.UserRole), schemas.AvailDay):
+        if not selected_items or isinstance(selected_items[0].data(4, Qt.UserRole), schemas.AvailDay):
             return
         selected_item = selected_items[0]
-        data: schemas.AvailDayGroup = selected_item.data(0, Qt.UserRole)
+        data: schemas.AvailDayGroup = selected_item.data(4, Qt.UserRole)
         if selected_item.childCount() == 0:
             if parent := selected_item.parent():
                 parent.removeChild(selected_item)
@@ -149,7 +155,7 @@ class DlgGroupMode(QDialog):
         self.controller.execute(avail_day_group_commands.Delete(data.id))
 
     def item_moved(self, moved_item: QTreeWidgetItem, moved_to: QTreeWidgetItem):
-        if isinstance(obj := moved_item.data(0, Qt.UserRole), schemas.AvailDayGroup):
+        if isinstance(obj := moved_item.data(4, Qt.UserRole), schemas.AvailDayGroup):
             object_to_move = obj
         elif isinstance(obj, schemas.AvailDay):
             object_to_move = obj.avail_day_group
@@ -157,14 +163,14 @@ class DlgGroupMode(QDialog):
             raise AssertionError('Das zu verschiebende Object hat kein Schema.')
 
         if moved_to:
-            obj_to_move_to: schemas.AvailDayGroup = moved_to.data(0, Qt.UserRole)
+            obj_to_move_to: schemas.AvailDayGroup = moved_to.data(4, Qt.UserRole)
         else:
-            obj_to_move_to = self.tree_groups.invisibleRootItem().data(0, Qt.UserRole)
+            obj_to_move_to = self.tree_groups.invisibleRootItem().data(4, Qt.UserRole)
 
         self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
 
     def edit_item(self, item: QTreeWidgetItem):
-        data = item.data(0, Qt.UserRole)
+        data = item.data(4, Qt.UserRole)
         if isinstance(data, schemas.AvailDay):
             print(item.text(0), data.day, data.time_of_day.name)
         elif isinstance(data, schemas.AvailDayGroup):
@@ -187,8 +193,8 @@ class DlgGroupMode(QDialog):
     def alert_solo_childs(self):
         all_items = self.get_all_items()
         for item in all_items:
-            if isinstance(item.data(0, Qt.UserRole), schemas.AvailDayGroup) and item.childCount() == 1:
-                if isinstance(data := item.child(0).data(0, Qt.UserRole), schemas.AvailDay):
+            if isinstance(item.data(4, Qt.UserRole), schemas.AvailDayGroup) and item.childCount() == 1:
+                if isinstance(data := item.child(0).data(4, Qt.UserRole), schemas.AvailDay):
                     data: schemas.AvailDay
                     QMessageBox.critical(self, 'Gruppenmodus',
                                          f'Mindestens eine Gruppe hat nur einen Termin: '
@@ -201,12 +207,11 @@ class DlgGroupMode(QDialog):
                 return True
         return False
 
-
     def delete_unused_groups(self):
         all_items = self.get_all_items()
         to_delete: list[schemas.AvailDayGroup] = []
         for item in all_items:
-            if isinstance((data := item.data(0, Qt.UserRole)), schemas.AvailDayGroup):
+            if isinstance((data := item.data(4, Qt.UserRole)), schemas.AvailDayGroup):
                 if not item.childCount():
                     to_delete.append(data)
 
@@ -238,4 +243,13 @@ class DlgGroupMode(QDialog):
 
     def refresh_tree(self):
         self.tree_groups.refresh_tree()
+        self.resize_dialog()
+
+    def resize_dialog(self):
+        height = self.tree_groups.header().height()
+        for item in self.get_all_items():
+            height += self.tree_groups.visualItemRect(item).height()
+        self.setFixedHeight(height + 100)
+        self.setMaximumHeight(2**24)
+        # todo: Einschränkung für Bildschirmgröße hinzufügen.
 

@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 
@@ -14,6 +15,16 @@ app = QApplication()
 app.setWindowIcon(QIcon('resources/hcc-dispo_klein.png'))
 
 window = MainWindow(app)
+
+screen_width, screen_height = app.primaryScreen().size().toTuple()
+
+with open('config.json') as f:
+    config_data = json.load(f)
+if not config_data.get('screen_size'):
+    config_data['screen_size'] = {}
+config_data['screen_size']['width'], config_data['screen_size']['height'] = screen_width, screen_height
+with open('config.json', 'w') as f:
+    json.dump(config_data, f)
 
 window.show()
 

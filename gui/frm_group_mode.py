@@ -1,13 +1,14 @@
+import json
 import pprint
 from collections import defaultdict
 from copy import deepcopy
 from typing import Callable, Sequence
 
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QCloseEvent, QDropEvent, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, \
-    QPushButton, QHBoxLayout, QDialog, QMessageBox
+    QPushButton, QHBoxLayout, QDialog, QMessageBox, QApplication
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, avail_day_group_commands
@@ -100,6 +101,7 @@ class DlgGroupMode(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle('Group-Mode')
+        self.resize(280, 400)
         self.actor_plan_period = actor_plan_period
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -249,7 +251,12 @@ class DlgGroupMode(QDialog):
         height = self.tree_groups.header().height()
         for item in self.get_all_items():
             height += self.tree_groups.visualItemRect(item).height()
-        self.setFixedHeight(height + 100)
-        self.setMaximumHeight(2**24)
-        # todo: Einschränkung für Bildschirmgröße hinzufügen.
 
+        if self.tree_groups.horizontalScrollBar().isVisible():
+            height += self.tree_groups.horizontalScrollBar().height()
+
+        with open('config.json') as f:
+            json_data = json.load(f)
+        screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
+
+        self.resize(self.size().width(), min(height + 100, screen_height - 40))

@@ -25,7 +25,7 @@ class TreeGroup(QTreeWidget):
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
         self.invisibleRootItem().setData(
-            0, Qt.UserRole, db_services.AvailDayGroup.get_master_from__actor_plan_period(actor_plan_period.id)
+            4, Qt.UserRole, db_services.AvailDayGroup.get_master_from__actor_plan_period(actor_plan_period.id)
         )
 
         self.actor_plan_period = actor_plan_period

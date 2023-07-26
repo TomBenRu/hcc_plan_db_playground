@@ -70,19 +70,16 @@ class ButtonAvailDay(QPushButton):
         self.context_menu.addActions(self.actions)
         self.set_tooltip()
 
-    def set_group_mode(self, group_mode: bool):
-        self.group_mode = group_mode
+    def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
+        self.group_mode = group_mode.group_mode
         if self.isChecked():
-            if group_mode:
-                avail_day = [avd for avd in self.actor_plan_period.avail_days
-                             if (avd.day, avd.time_of_day.name)==(self.day, self.time_of_day.name)][0]
-                if avail_day.avail_day_group.avail_day_group.actor_plan_period:
-                    self.setText('')
-                else:
-                    self.setText('g')
+            if self.group_mode:
+                if group_mode.date and (group_mode.date == self.day
+                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
+                    self.setText(f'{group_mode.group_nr:02}')
             else:
                 self.setText(None)
-        elif group_mode:
+        elif self.group_mode:
             self.setDisabled(True)
         else:
             self.setEnabled(True)
@@ -866,8 +863,6 @@ class FrmActorPlanPeriod(QWidget):
 
     def change_mode__avd_group(self):
 
-        signal_handling.handler.change_actor_plan_period_group_mode(True)
-
         self.bt_toggle__avd_group_mode.setText('zum Gruppenmodus')
         dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
         if dlg.exec():
@@ -877,7 +872,7 @@ class FrmActorPlanPeriod(QWidget):
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 
-        signal_handling.handler.change_actor_plan_period_group_mode(False)
+        signal_handling.handler.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
 
     def get_avail_days(self):
         avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)

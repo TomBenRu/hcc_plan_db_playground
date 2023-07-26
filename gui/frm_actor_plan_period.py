@@ -77,16 +77,15 @@ class ButtonAvailDay(QPushButton):
                 avail_day = [avd for avd in self.actor_plan_period.avail_days
                              if (avd.day, avd.time_of_day.name)==(self.day, self.time_of_day.name)][0]
                 if avail_day.avail_day_group.avail_day_group.actor_plan_period:
-                    self.setText('.')
+                    self.setText('')
                 else:
                     self.setText('g')
             else:
                 self.setText(None)
+        elif group_mode:
+            self.setDisabled(True)
         else:
-            if group_mode:
-                self.setDisabled(True)
-            else:
-                self.setEnabled(True)
+            self.setEnabled(True)
 
 
 

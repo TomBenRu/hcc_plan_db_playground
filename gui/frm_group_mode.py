@@ -24,48 +24,42 @@ class TreeWidgetItemUser(QTreeWidgetItem):
 
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
-        if column != 1:
-            # Verwende die Standard-Sortierreihenfolge für andere Spalten
-            print('Standard-Sortierreihenfolge')
-            return self.text(column) < other.text(column)
-        # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__AVAIL_DAY
         my_avail_day: schemas.AvailDay = self.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.UserRole)
         other_avail_day: schemas.AvailDay = other.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.UserRole)
+        my_group_id = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        other_group_id = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        sort_order = self.treeWidget().header().sortIndicatorOrder()
+
+        if column != 1:
+            # Verwende die Standard-Sortierreihenfolge für andere Spalten
+            if my_avail_day and not other_avail_day:
+                return sort_order == Qt.SortOrder.DescendingOrder
+            elif not my_avail_day and other_avail_day:
+                return sort_order == Qt.SortOrder.AscendingOrder
+            elif not my_avail_day and not other_avail_day:
+                has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(my_group_id)
+                return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
+            else:
+                return self.text(column) < other.text(column)
+
+        # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__AVAIL_DAY
         if my_avail_day:
             my_value = f'{my_avail_day.day} {my_avail_day.time_of_day.time_of_day_enum.time_index:02}'
         elif not other_avail_day:
-            return (
-                self.treeWidget().header().sortIndicatorOrder()
-                == Qt.SortOrder.DescendingOrder
-                if db_services.AvailDayGroup.get_child_groups_from__parent_group(
-                    self.data(
-                        TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole
-                    ).id
-                )
-                else self.treeWidget().header().sortIndicatorOrder()
-                == Qt.SortOrder.AscendingOrder
-            )
+            has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(my_group_id)
+            return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
         else:
-            return self.treeWidget().header().sortIndicatorOrder() == Qt.SortOrder.AscendingOrder
+            return sort_order == Qt.SortOrder.AscendingOrder
+
         if other_avail_day:
             other_value = f'{other_avail_day.day} {other_avail_day.time_of_day.time_of_day_enum.time_index:02}'
         elif not my_avail_day:
-            return (
-                self.treeWidget().header().sortIndicatorOrder()
-                == Qt.SortOrder.AscendingOrder
-                if db_services.AvailDayGroup.get_child_groups_from__parent_group(
-                    other.data(
-                        TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole
-                    ).id
-                )
-                else self.treeWidget().header().sortIndicatorOrder()
-                == Qt.SortOrder.DescendingOrder
-            )
+            has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(other_group_id)
+            return sort_order == (Qt.SortOrder.AscendingOrder if has_child_groups else Qt.SortOrder.DescendingOrder)
         else:
-            return self.treeWidget().header().sortIndicatorOrder() == Qt.SortOrder.DescendingOrder
-        print(f'{my_value=} {other_value=}')
-        return my_value < other_value
+            return sort_order == Qt.SortOrder.DescendingOrder
 
+        return my_value < other_value
 
 
 class TreeGroup(QTreeWidget):

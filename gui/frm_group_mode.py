@@ -1,15 +1,11 @@
-import functools
 import json
-import pprint
-from collections import defaultdict
-from copy import deepcopy
 from typing import Callable, Sequence
 
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QCloseEvent, QDropEvent, QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, \
-    QPushButton, QHBoxLayout, QDialog, QMessageBox, QApplication
+from PySide6 import QtCore
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDropEvent, QColor
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
+                               QHBoxLayout, QDialog, QMessageBox)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, avail_day_group_commands
@@ -21,7 +17,6 @@ TREE_ITEM_DATA_COLUMN__GROUP = 4
 TREE_ITEM_DATA_COLUMN__AVAIL_DAY = 5
 
 
-# @functools.total_ordering
 class TreeWidgetItemUser(QTreeWidgetItem):
 
     def __lt__(self, other):
@@ -123,11 +118,10 @@ class TreeGroup(QTreeWidget):
         master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)
 
         def add_children(parent: QTreeWidgetItem, parent_group: schemas.AvailDayGroupShow):
-            print(f'{parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)=}')
             children = db_services.AvailDayGroup.get_child_groups_from__parent_group(parent_group.id)
+            parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
                 if avail_day := db_services.AvailDay.get_from__avail_day_group(child.id):
-                    parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
                     item = TreeWidgetItemUser(parent, ['Verfügbar',
                                                     avail_day.day.strftime('%d.%m.%y'), avail_day.time_of_day.name])
                     item.setData(0, Qt.ItemDataRole.ForegroundRole, QColor('#5a009f'))
@@ -230,7 +224,8 @@ class DlgGroupMode(QDialog):
         new_item = TreeWidgetItemUser(self.tree_groups.invisibleRootItem(),
                                       [f'Gruppe_{self.tree_groups.nr_main_groups:02}'])
         new_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, create_command.created_group)
-        new_item.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, self.tree_groups.nr_main_groups)
+        new_item.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole,
+                         self.tree_groups.nr_main_groups)
         self.resize_dialog()
 
     def remove_group(self):
@@ -253,14 +248,15 @@ class DlgGroupMode(QDialog):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
         if moved_to:
-            obj_to_move_to: schemas.AvailDayGroup = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            obj_to_move_to: schemas.AvailDayGroup = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP,
+                                                                  Qt.ItemDataRole.UserRole)
         else:
-            obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
+                                                                       Qt.ItemDataRole.UserRole)
 
         self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
 
     def edit_item(self, item: QTreeWidgetItem):
-        # todo: mit Signal avail_days markieren, die zur gewählten Gruppe gehören
         # sourcery skip: use-named-expression
         data_avail_day_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         data_avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
@@ -269,12 +265,6 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_avail_day.day, data_avail_day.time_of_day.name, f'Gr. {data_group_nr}')
         else:
             print(item.text(0), f'{data_avail_day_group.id=}, {data_avail_day_group.nr_avail_day_groups=}')
-            child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(data_avail_day_group.id)
-
-
-
-    def get_all_child_items(self):
-        ...
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []

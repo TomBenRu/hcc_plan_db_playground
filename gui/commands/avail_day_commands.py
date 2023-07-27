@@ -52,6 +52,22 @@ class UpdateTimeOfDays(Command):
         db_services.AvailDay.update_time_of_days(self.avail_day_id, self.new_time_of_days)
 
 
+class UpdateTimeOfDay(Command):
+    def __init__(self, avail_day: schemas.AvailDayShow, new_time_of_day_id: UUID):
+        self.avail_day = avail_day
+        self.old_time_of_day_id = self.avail_day.time_of_day.id
+        self.new_time_of_day_id = new_time_of_day_id
+
+    def execute(self):
+        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
+
+    def undo(self):
+        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.old_time_of_day_id)
+
+    def redo(self):
+        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
+
+
 class PutInCombLocPossible(Command):
     def __init__(self, avail_day_id: UUID, comb_loc_poss_id: UUID):
 

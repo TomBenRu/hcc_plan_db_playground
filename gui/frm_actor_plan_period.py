@@ -76,15 +76,13 @@ class ButtonAvailDay(QPushButton):
             if self.group_mode:
                 if group_mode.date and (group_mode.date == self.day
                                         and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
-                    self.setText(f'{group_mode.group_nr:02}')
+                    self.setText(f'{group_mode.group_nr:02}' if group_mode.group_nr else None)
             else:
                 self.setText(None)
         elif self.group_mode:
             self.setDisabled(True)
         else:
             self.setEnabled(True)
-
-
 
     def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
         actor_plan_period_time_of_days = sorted(
@@ -105,18 +103,15 @@ class ButtonAvailDay(QPushButton):
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
-            '''Es wird simuliert: Löschen des aktuellen AvailDay, Erzeugen eines neuen AvailDay mit neuer Tageszeit.'''
-            self.setChecked(False)
-            self.slot__avail_day_toggled(self)
-            self.time_of_day = new_time_of_day
-            self.setChecked(True)
-            self.slot__avail_day_toggled(self)
-        else:
-            self.time_of_day = new_time_of_day
+            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
+            avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
+
+        self.time_of_day = new_time_of_day
         self.reload_actor_plan_period()
         self.create_actions()
         self.reset_context_menu(self.actor_plan_period)
         self.set_tooltip()
+        signal_handling.handler.reload_actor_pp__frm_actor_plan_period()
     def create_actions(self):
         self.actions = [
             Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
@@ -863,12 +858,12 @@ class FrmActorPlanPeriod(QWidget):
 
     def change_mode__avd_group(self):
 
-        self.bt_toggle__avd_group_mode.setText('zum Gruppenmodus')
         dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
             self.reload_actor_plan_period()
-            signal_handling.handler.reload_actor_pp__avail_days(signal_handling.DataActorPPWithDate(self.actor_plan_period))
+            signal_handling.handler.reload_actor_pp__avail_days(
+                signal_handling.DataActorPPWithDate(self.actor_plan_period))
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 

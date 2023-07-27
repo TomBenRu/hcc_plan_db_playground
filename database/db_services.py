@@ -971,12 +971,6 @@ class AvailDayGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def update(avail_day_group: schemas.AvailDayGroup) -> schemas.AvailDayGroupShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
-                     f'args: {locals()}')
-
-    @staticmethod
-    @db_session(sql_debug=True, show_values=True)
     def set_new_parent(avail_day_group_id: UUID, new_parent_id: UUID) -> schemas.AvailDayGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
@@ -1039,6 +1033,17 @@ class AvailDay:
             day=avail_day.day, time_of_day=models.TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
             avail_day_group=models.AvailDayGroup.get_for_update(id=avail_day_group_db.id),
             actor_plan_period=actor_plan_period_db)
+        return schemas.AvailDayShow.from_orm(avail_day_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_time_of_day(avail_day_id: UUID, new_time_of_day_id: UUID) -> schemas.AvailDayShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
+        avail_day_db.time_of_day = new_time_of_day_db
+
         return schemas.AvailDayShow.from_orm(avail_day_db)
 
     @staticmethod

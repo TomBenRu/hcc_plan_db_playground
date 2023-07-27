@@ -230,10 +230,9 @@ class DlgGroupMode(QDialog):
 
     def remove_group(self):
         selected_items = self.tree_groups.selectedItems()
-        if not selected_items or isinstance(selected_items[0].data(TREE_ITEM_DATA_COLUMN__GROUP,
-                                                                   Qt.ItemDataRole.UserRole), schemas.AvailDay):
-            return
         selected_item = selected_items[0]
+        if not selected_items or selected_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
+            return
         data: schemas.AvailDayGroup = selected_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         if selected_item.childCount() == 0:
             if parent := selected_item.parent():
@@ -241,8 +240,7 @@ class DlgGroupMode(QDialog):
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
-        self.controller.execute(avail_day_group_commands.Delete(data.id))
-        self.tree_groups.nr_main_groups -= 1
+            self.controller.execute(avail_day_group_commands.Delete(data.id))
 
     def item_moved(self, moved_item: QTreeWidgetItem, moved_to: QTreeWidgetItem):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)

@@ -100,19 +100,20 @@ class TreeWidget(QTreeWidget):
                                               parent_group_nr)
             )
     def dropEvent(self, event: QDropEvent) -> None:
-        item = self.itemAt(event.position().toPoint())
-        if item and item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
+        item_to_move_to = self.itemAt(event.position().toPoint())
+        if item_to_move_to and item_to_move_to.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
             event.ignore()
         else:
             super().dropEvent(event)
-            parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole) if item else 0
+            new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                               if item_to_move_to else 0)
 
-            self.send_signal_to_avail_day(parent_group_nr)
+            self.send_signal_to_avail_day(new_parent_group_nr)
 
-            self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
+            self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
             self.expandAll()
             for i in range(self.columnCount()): self.resizeColumnToContents(i)
-            self.slot_item_moved(self.curr_item, item)
+            self.slot_item_moved(self.curr_item, item_to_move_to)
 
     def setup_tree(self):
         master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)

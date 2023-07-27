@@ -118,7 +118,6 @@ class TreeWidget(QTreeWidget):
         master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)
 
         def add_children(parent: QTreeWidgetItem, parent_group: schemas.AvailDayGroupShow):
-            # todo: parent group nr. von gruppen mit übergeordneter gruppe fails
             children = db_services.AvailDayGroup.get_child_groups_from__parent_group(parent_group.id)
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:

@@ -191,13 +191,13 @@ class TreeWidget(QTreeWidget):
 
 
 class DlgAvailDayGroup(QDialog):
-    def __init__(self, parent: QWidget, avail_day_group: schemas.AvailDayGroup, group_nr: int,
+    def __init__(self, parent: QWidget, avail_day_group_id: UUID, group_nr: int,
                  child__avd_group_id_group_nr: dict[UUID, int]):
         super().__init__(parent=parent)
 
         self.setWindowTitle(f'Eigenschaften von Gruppe {group_nr:02}' if group_nr else 'Eigenschaften der Hauptgruppe')
 
-        self.avail_day_group = avail_day_group
+        self.avail_day_group = db_services.AvailDayGroup.get(avail_day_group_id)
         self.child__avd_group_id_group_nr = child__avd_group_id_group_nr
         self.child_groups = [db_services.AvailDayGroup.get(adg_id) for adg_id in child__avd_group_id_group_nr]
         self.variation_weight_text = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
@@ -405,7 +405,7 @@ class DlgGroupMode(QDialog):
                     TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole
                 ) for child_item in self.get_child_group_items(item)
             }
-            dlg = DlgAvailDayGroup(self, data_group, group_nr, child__avd_group_id_group_nr)
+            dlg = DlgAvailDayGroup(self, data_group.id, group_nr, child__avd_group_id_group_nr)
             if dlg.exec():
                 self.controller.add_to_undo_stack(dlg.controller.undo_stack)
                 self.reload_actor_plan_period()

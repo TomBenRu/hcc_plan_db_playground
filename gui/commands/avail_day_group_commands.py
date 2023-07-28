@@ -46,6 +46,42 @@ class Delete(Command):
         db_services.AvailDayGroup.delete(self.avail_day_group_id)
 
 
+class UpdateNrAvailDayGroups(Command):
+    def __init__(self, avail_day_group_id: UUID, nr_avail_day_groups: int | None):
+        self.avail_day_group_id= avail_day_group_id
+        self.nr_avail_day_groups = nr_avail_day_groups
+        self.nr_avail_day_groups_old: int | None = None
+
+    def execute(self):
+        avail_day_group = db_services.AvailDayGroup.get(self.avail_day_group_id)
+        self.nr_avail_day_groups_old = avail_day_group.nr_avail_day_groups
+        db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group_id, self.nr_avail_day_groups)
+
+    def undo(self):
+        db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group_id, self.nr_avail_day_groups_old)
+
+    def redo(self):
+        db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group_id, self.nr_avail_day_groups)
+
+
+class UpdateVariationWeight(Command):
+    def __init__(self, avail_day_group_id: UUID, variation_weight: int):
+        self.avail_day_group_id= avail_day_group_id
+        self.variation_weight = variation_weight
+        self.variation_weight_old: int | None = None
+
+    def execute(self):
+        avail_day_group = db_services.AvailDayGroup.get(self.avail_day_group_id)
+        self.variation_weight_old = avail_day_group.variation_weight
+        db_services.AvailDayGroup.update_variation_weight(self.avail_day_group_id, self.variation_weight)
+
+    def undo(self):
+        db_services.AvailDayGroup.update_variation_weight(self.avail_day_group_id, self.variation_weight_old)
+
+    def redo(self):
+        db_services.AvailDayGroup.update_variation_weight(self.avail_day_group_id, self.variation_weight)
+
+
 class SetNewParent(Command):
     def __init__(self, avail_day_group_id: UUID, new_parent_id: UUID):
         """new_parent_id ist die id der parent-avail_day_group."""

@@ -971,6 +971,27 @@ class AvailDayGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_nr_avail_day_groups(avail_day_group_id: UUID,
+                                   nr_avail_day_groups: int | None) -> schemas.AvailDayGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
+        avail_day_group_db.nr_avail_day_groups = nr_avail_day_groups
+
+        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_variation_weight(avail_day_group_id: UUID, variation_weight: int) -> schemas.AvailDayGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
+        avail_day_group_db.variation_weight = variation_weight
+
+        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def set_new_parent(avail_day_group_id: UUID, new_parent_id: UUID) -> schemas.AvailDayGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

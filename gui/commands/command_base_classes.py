@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Iterable
 
 from PySide6.QtWidgets import QWidget, QMessageBox
 
@@ -61,8 +62,8 @@ class ContrExecUndoRedo(Invoker):
     def get_undo_stack(self):
         return self.undo_stack
 
-    def add_to_undo_stack(self, value: list[Command] | Command):
-        if isinstance(value, list):
+    def add_to_undo_stack(self, value: Iterable[Command] | Command):
+        if isinstance(value, Iterable):
             self.undo_stack.extend(value)
         else:
             self.undo_stack.append(value)

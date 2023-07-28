@@ -1,15 +1,19 @@
 import json
+from functools import partial
 from typing import Callable, Sequence
+from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor
+from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
-                               QHBoxLayout, QDialog, QMessageBox)
+                               QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
+                               QApplication, QGridLayout)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, avail_day_group_commands
 from gui.observer import signal_handling
+from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -186,11 +190,128 @@ class TreeWidget(QTreeWidget):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 
+class DlgAvailDayGroup(QDialog):
+    def __init__(self, parent: QWidget, avail_day_group: schemas.AvailDayGroup, group_nr: int,
+                 child__avd_group_id_group_nr: dict[UUID, int]):
+        super().__init__(parent=parent)
+
+        self.setWindowTitle(f'Eigenschaften von Gruppe {group_nr:02}')
+
+        self.avail_day_group = avail_day_group
+        self.child__avd_group_id_group_nr = child__avd_group_id_group_nr
+        self.child_groups = [db_services.AvailDayGroup.get(adg_id) for adg_id in child__avd_group_id_group_nr]
+        self.variation_weight_text = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
+
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.layout = QVBoxLayout(self)
+
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QFormLayout()
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+
+        self.group_nr_childs = QGroupBox('Anzahl direkt untergeordneter Gruppen/Termine')
+        self.layout_body.addWidget(self.group_nr_childs)
+        self.layout_group_nr_childs = QHBoxLayout(self.group_nr_childs)
+        self.group_child_variation_weights = QGroupBox('Priorisierung der untergeordneten Gruppen/Termine')
+        self.layout_body.addWidget(self.group_child_variation_weights)
+        self.layout_group_child_variation_weights = QGridLayout(self.group_child_variation_weights)
+
+        self.lb_nr_childs = QLabel('Anzahl:')
+        self.slider_nr_childs = SliderWithPressEvent(Qt.Orientation.Horizontal)
+        self.lb_slider_nr_childs_value = QLabel()
+        self.chk_none = QCheckBox('Alle dir. untergeordneten Elemente')
+        self.layout_group_nr_childs.addWidget(self.lb_nr_childs)
+        self.layout_group_nr_childs.addWidget(self.slider_nr_childs)
+        self.layout_group_nr_childs.addWidget(self.lb_slider_nr_childs_value)
+        self.layout_group_nr_childs.addWidget(self.chk_none)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_foot.addWidget(self.button_box)
+
+        self.sliders_variation_weights = {}
+
+        self.setup_sliders()
+
+    def reject(self) -> None:
+        self.controller.undo_all()
+        super().reject()
+
+    def nr_childs_changed(self, value: int):
+        if self.chk_none.isChecked():
+            return
+        self.controller.execute(avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, value))
+        self.lb_slider_nr_childs_value.setText(f'{value}')
+
+    def chk_none_toggled(self, checked: bool, clicked = False):
+        if not clicked:
+            return
+        if checked:
+            self.controller.execute(avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, None))
+            self.slider_nr_childs.setValue(len(self.child_groups))
+            self.slider_nr_childs.setEnabled(False)
+        else:
+            self.controller.execute(
+                avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, self.slider_nr_childs.value()))
+            self.slider_nr_childs.setEnabled(True)
+
+    def variation_weight_changed(self, child_id: UUID, value: int):
+        self.sliders_variation_weights[child_id]['lb_value'].setText(f'{self.variation_weight_text[value]}')
+        self.controller.execute(avail_day_group_commands.UpdateVariationWeight(child_id, value))
+
+
+    def setup_sliders(self):
+        self.slider_nr_childs.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_nr_childs.setTickInterval(1)
+        self.slider_nr_childs.setMinimum(1)
+        self.slider_nr_childs.setMaximum(len(self.child_groups))
+        self.slider_nr_childs.setMinimumWidth(max(150, 30 * (len(self.child_groups) - 1)))
+        self.slider_nr_childs.valueChanged.connect(self.nr_childs_changed)
+        self.slider_nr_childs.setValue(self.avail_day_group.nr_avail_day_groups or len(self.child_groups))
+        self.lb_slider_nr_childs_value.setText(f'{self.avail_day_group.nr_avail_day_groups or len(self.child_groups)}')
+        self.chk_none.toggled.connect(lambda val: self.chk_none_toggled(checked=val, clicked=True))
+        self.chk_none.setChecked(not self.avail_day_group.nr_avail_day_groups)
+
+        for row, child_group in enumerate(self.child_groups):
+            child_group: schemas.AvailDayGroupShow
+            if child_group_nr := self.child__avd_group_id_group_nr[child_group.id]:
+                text_child_group = f'Gruppe {child_group_nr:02}'
+            else:
+                avail_day = db_services.AvailDay.get_from__avail_day_group(child_group.id)
+                text_child_group = f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})'
+            lb_slider = QLabel(text_child_group)
+            slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
+            slider.setTickInterval(1)
+            slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+            slider.setMinimum(0)
+            slider.setMaximum(2)
+            slider.setValue(child_group.variation_weight)
+            slider.valueChanged.connect(partial(self.variation_weight_changed, child_group.id))
+            lb_val = QLabel(f'{self.variation_weight_text[child_group.variation_weight]}')
+            self.layout_group_child_variation_weights.addWidget(lb_slider, row, 0)
+            self.layout_group_child_variation_weights.addWidget(slider, row, 1)
+            self.layout_group_child_variation_weights.addWidget(lb_val, row, 2)
+            self.sliders_variation_weights[child_group.id] = {'slider': slider, 'lb_value': lb_val}
+
+
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        self.slider_nr_childs.setMinimumWidth(0)
+        super().resizeEvent(event)
+
+
 class DlgGroupMode(QDialog):
     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent)
 
-        self.setWindowTitle('Group-Mode')
+        self.setWindowTitle('Gruppenmodus')
         self.resize(280, 400)
         self.actor_plan_period = actor_plan_period
 
@@ -267,11 +388,23 @@ class DlgGroupMode(QDialog):
         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         data_avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
+        group_nr = item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
         if data_avail_day:
             print(item.text(0), data_avail_day.day, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
             print(item.text(0), f'{data_group.id=}, Gr. {data_parent_group_nr}')
+            child__avd_group_id_group_nr = {
+                child_item.data(
+                    TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole
+                ).id: child_item.data(
+                    TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole
+                ) for child_item in self.get_child_group_items(item)
+            }
+            dlg = DlgAvailDayGroup(self, data_group, group_nr, child__avd_group_id_group_nr)
+            if dlg.exec():
+                self.controller.add_to_undo_stack(dlg.controller.undo_stack)
+                self.reload_actor_plan_period()
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []
@@ -284,6 +417,10 @@ class DlgGroupMode(QDialog):
 
         recurse(self.tree_groups.invisibleRootItem())
         return all_items
+
+    def get_child_group_items(self, item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
+        """returns all child_groups of item"""
+        return [item.child(i) for i in range(item.childCount())]
 
     def alert_solo_childs(self):
         all_items = self.get_all_items()

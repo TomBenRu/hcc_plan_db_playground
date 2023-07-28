@@ -195,7 +195,7 @@ class DlgAvailDayGroup(QDialog):
                  child__avd_group_id_group_nr: dict[UUID, int]):
         super().__init__(parent=parent)
 
-        self.setWindowTitle(f'Eigenschaften von Gruppe {group_nr:02}')
+        self.setWindowTitle(f'Eigenschaften von Gruppe {group_nr:02}' if group_nr else 'Eigenschaften der Hauptgruppe')
 
         self.avail_day_group = avail_day_group
         self.child__avd_group_id_group_nr = child__avd_group_id_group_nr
@@ -328,6 +328,9 @@ class DlgGroupMode(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
+        self.bt_edit_main_group = QPushButton('Hauptgruppe bearbeiten',
+                                              clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
+        self.layout_body.addWidget(self.bt_edit_main_group)
         self.tree_groups = TreeWidget(self.actor_plan_period, self.item_moved)
         self.tree_groups.itemClicked.connect(self.edit_item)
         self.layout_body.addWidget(self.tree_groups)
@@ -341,6 +344,7 @@ class DlgGroupMode(QDialog):
         self.layout_mod_buttons.addWidget(self.bt_remove_group)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
+
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)

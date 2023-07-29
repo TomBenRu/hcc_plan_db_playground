@@ -8,7 +8,7 @@ class SliderWithPressEvent(QSlider):
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             e.accept()
-            x = e.pos().x()
+            x = e.position().x()
             value = (self.maximum() - self.minimum()) * x / self.width() + self.minimum()
             value = round(value)
             if value == self.value():

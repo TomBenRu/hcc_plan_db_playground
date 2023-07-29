@@ -305,7 +305,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
 
 class DlgPartnerLocationPrefs(QDialog):
     """Hier werden die Mitarbeiter-Einrichtungs-Präferenzen festgelegt.
-    Fall keine Präferenz einer bestimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
+    Falls keine Präferenz einer bestimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
 
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
                  parent_model: schemas.ModelWithPartnerLocPrefs | None,
@@ -356,6 +356,8 @@ class DlgPartnerLocationPrefs(QDialog):
         self.partners: list[schemas.Person] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
+        self.updating_sliders = False
+
         self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label_location', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
         self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label_partner', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
 
@@ -373,7 +375,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.date_changed)
 
-        self.de_date.setMinimumDate(datetime.date.today())
+        self.de_date.setMinimumDate(datetime.date.today()) # Löst in einer Kaskade die Einrichtung der Slider aus.
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         point_bottom_right = self.mapToGlobal(self.rect().bottomRight())
@@ -394,6 +396,8 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.start()
 
     def date_changed(self):
+        self.updating_sliders = True
+
         self.set_curr_team()
         self.lb_info.clear()
         self.set_new_locations()
@@ -402,7 +406,10 @@ class DlgPartnerLocationPrefs(QDialog):
         self.setup_option_field()
         self.setup_values()
 
+        self.updating_sliders = False
+
     def reset_to_ones(self):
+        self.updating_sliders = True
         apls = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults if not apl.prep_delete]
         for apl in apls:
             remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
@@ -410,8 +417,10 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.reload_curr_model()
         self.setup_values()
+        self.updating_sliders = False
 
     def reset_to_parent_values(self):
+        self.updating_sliders = True
         for apl in [pref for pref in self.curr_model.actor_partner_location_prefs_defaults if not pref.prep_delete]:
             remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
             self.controller.execute(remove_command)
@@ -421,6 +430,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.reload_curr_model()
         self.setup_values()
+        self.updating_sliders = False
 
     def configure_bt_reset(self):
         if not self.parent_model:
@@ -530,8 +540,7 @@ class DlgPartnerLocationPrefs(QDialog):
             slider_location.setFixedWidth(200)
             slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_location.sliderReleased.connect(partial(self.save_pref_loc, loc, slider_location.value()))
-            # slider_location.valueChanged.connect(partial(self.show_slider_text, lb_loc_val))
+            slider_location.valueChanged.connect(partial(self.save_pref_loc, loc))
             self.layout_options_locs.addWidget(slider_location, row, 2)
 
             self.dict_location_id__bt_slider_lb[loc.id] = {
@@ -556,8 +565,7 @@ class DlgPartnerLocationPrefs(QDialog):
             slider_partner.setFixedWidth(200)
             slider_partner.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            slider_partner.sliderReleased.connect(partial(self.save_pref_partner, partner, slider_partner.value()))
-            slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_partner_val))
+            slider_partner.valueChanged.connect(partial(self.save_pref_partner, partner))
             self.layout_options_partners.addWidget(slider_partner, row, 2)
 
             self.dict_partner_id__bt_slider_lb[partner.id] = {
@@ -636,7 +644,9 @@ class DlgPartnerLocationPrefs(QDialog):
         label.setText(SliderValToText.get_text(value))
 
     def save_pref_loc(self, location: schemas.LocationOfWork, value: int):
-        value = self.dict_location_id__bt_slider_lb[location.id]['slider'].value()
+        if self.updating_sliders:
+            return
+        self.updating_sliders = True
         score = value / 2
         apls_with_loc: dict[UUID, schemas.ActorPartnerLocationPref] = {
             apl.partner.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
@@ -667,9 +677,12 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.reload_curr_model()
         self.setup_values()
+        self.updating_sliders = False
 
     def save_pref_partner(self, partner: schemas.Person, value: int):
-        value = self.dict_partner_id__bt_slider_lb[partner.id]['slider'].value()
+        if self.updating_sliders:
+            return
+        self.updating_sliders = True
         score = value / 2
         apls_with_partner: dict[UUID, schemas.ActorPartnerLocationPref] = {
             apl.location_of_work.id: apl for apl in self.curr_model.actor_partner_location_prefs_defaults
@@ -700,17 +713,22 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.reload_curr_model()
         self.setup_values()
+        self.updating_sliders = False
 
     def choice_partners(self, location_id: UUID, e):
         dlg = DlgPartnerLocationPrefsPartner(self, self.person, self.curr_model, location_id, self.partners)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.updating_sliders = True
             self.reload_curr_model()
             self.setup_values()
+            self.updating_sliders = False
 
     def choice_locations(self, partner_id: UUID, e):
         dlg = DlgPartnerLocationPrefsLocs(self, self.person, self.curr_model, partner_id, self.locations)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.updating_sliders = True
             self.reload_curr_model()
             self.setup_values()
+            self.updating_sliders = False

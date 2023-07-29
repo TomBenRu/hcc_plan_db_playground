@@ -397,7 +397,6 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_avail_day.day, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            print(item.text(0), f'{data_group.id=}, Gr. {data_parent_group_nr}')
             child__avd_group_id_group_nr = {
                 child_item.data(
                     TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole

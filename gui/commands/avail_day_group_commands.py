@@ -29,21 +29,41 @@ class Delete(Command):
     def __init__(self, avail_day_group_id: UUID):
         self.avail_day_group_id = avail_day_group_id
         self.avail_day_group = db_services.AvailDayGroup.get(avail_day_group_id)
+        self.parent_avail_day_group_id: UUID | None = None
+        self.parent_nr_avail_day_groups: int | None = None
 
     def execute(self):
         db_services.AvailDayGroup.delete(self.avail_day_group_id)
 
+        # Um Inkonsistenzen zu vermeiden:
+        parent_avd_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(self.avail_day_group.avail_day_group.id)
+        parent_nr_avail_day_groups = self.avail_day_group.avail_day_group.nr_avail_day_groups
+        if parent_nr_avail_day_groups and parent_nr_avail_day_groups  > len(parent_avd_groups):
+            self.parent_nr_avail_day_groups = parent_nr_avail_day_groups
+            db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group.avail_day_group.id, None)
+
     def undo(self):
-        actor_plan_period_id = self.avail_day_group.actor_plan_period.id if self.avail_day_group.actor_plan_period else None
+        actor_plan_period_id = (self.avail_day_group.actor_plan_period.id
+                                if self.avail_day_group.actor_plan_period else None)
         avail_day_group_id = self.avail_day_group.avail_day_group.id if self.avail_day_group.avail_day_group else None
         db_services.AvailDayGroup.create(
             actor_plan_period_id=actor_plan_period_id,
             avail_day_group_id=avail_day_group_id,
             undo_id=self.avail_day_group_id
         )
+        if self.parent_nr_avail_day_groups:
+            db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group.avail_day_group.id,
+                                                                 self.parent_nr_avail_day_groups)
 
     def redo(self):
         db_services.AvailDayGroup.delete(self.avail_day_group_id)
+
+        parent_avd_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(
+            self.avail_day_group.avail_day_group.id)
+        parent_nr_avail_day_groups = self.avail_day_group.avail_day_group.nr_avail_day_groups
+        if parent_nr_avail_day_groups and parent_nr_avail_day_groups > len(parent_avd_groups):
+            self.parent_nr_avail_day_groups = parent_nr_avail_day_groups
+            db_services.AvailDayGroup.update_nr_avail_day_groups(self.avail_day_group.avail_day_group.id, None)
 
 
 class UpdateNrAvailDayGroups(Command):
@@ -88,15 +108,35 @@ class SetNewParent(Command):
         self.avail_day_group_id = avail_day_group_id
         self.new_parent_id = new_parent_id
         self.old_parent_id: UUID | None = None
+        self.old_parent_nr_avail_day_groups: int | None = None
 
     def execute(self):
-        self.old_parent_id = db_services.AvailDayGroup.get(self.avail_day_group_id).avail_day_group.id
+        old_parent = db_services.AvailDayGroup.get(self.avail_day_group_id).avail_day_group
+
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.new_parent_id)
+
+        # Um Inkonsistenzen zu vermeiden:
+        old_parent_childs = db_services.AvailDayGroup.get_child_groups_from__parent_group(old_parent.id)
+        if old_parent.nr_avail_day_groups and old_parent.nr_avail_day_groups > len(old_parent_childs):
+            self.old_parent_nr_avail_day_groups = old_parent.nr_avail_day_groups
+            db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent.id, None)
+        self.old_parent_id = old_parent.id
+
 
     def undo(self):
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.old_parent_id)
+        if self.old_parent_nr_avail_day_groups:
+            db_services.AvailDayGroup.update_nr_avail_day_groups(self.old_parent_id, self.old_parent_nr_avail_day_groups)
 
     def redo(self):
+        old_parent = db_services.AvailDayGroup.get(self.avail_day_group_id).avail_day_group
+
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.new_parent_id)
+
+        old_parent_childs = db_services.AvailDayGroup.get_child_groups_from__parent_group(old_parent.id)
+        if old_parent.nr_avail_day_groups and old_parent.nr_avail_day_groups > len(old_parent_childs):
+            self.old_parent_nr_avail_day_groups = old_parent.nr_avail_day_groups
+            db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent.id, None)
+
 
 

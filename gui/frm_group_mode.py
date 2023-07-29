@@ -109,6 +109,7 @@ class TreeWidget(QTreeWidget):
             )
     def dropEvent(self, event: QDropEvent) -> None:
         item_to_move_to = self.itemAt(event.position().toPoint())
+        previous_parent = self.curr_item.parent()
         if item_to_move_to and item_to_move_to.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
             event.ignore()
         else:
@@ -121,7 +122,7 @@ class TreeWidget(QTreeWidget):
             self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
             self.expandAll()
             for i in range(self.columnCount()): self.resizeColumnToContents(i)
-            self.slot_item_moved(self.curr_item, item_to_move_to)
+            self.slot_item_moved(self.curr_item, item_to_move_to, previous_parent)
 
     def setup_tree(self):
         master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)
@@ -210,15 +211,21 @@ class TreeWidget(QTreeWidget):
 
 
 class DlgAvailDayGroup(QDialog):
-    def __init__(self, parent: QWidget, avail_day_group_id: UUID, group_nr: int,
-                 child__avd_group_id_group_nr: dict[UUID, int]):
+    def __init__(self, parent: QWidget, item: QTreeWidgetItem):
         super().__init__(parent=parent)
 
-        self.setWindowTitle(f'Eigenschaften von Gruppe {group_nr:02}' if group_nr else 'Eigenschaften der Hauptgruppe')
+        self.item = item
+        self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
-        self.avail_day_group = db_services.AvailDayGroup.get(avail_day_group_id)
-        self.child__avd_group_id_group_nr = child__avd_group_id_group_nr
-        self.child_groups = [db_services.AvailDayGroup.get(adg_id) for adg_id in child__avd_group_id_group_nr]
+        self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}'
+                            if self.group_nr else 'Eigenschaften der Hauptgruppe')
+
+        self.avail_day_group = db_services.AvailDayGroup.get(
+            self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        self.child_items = [self.item.child(i) for i in range(self.item.childCount())]
+        self.child_groups = [
+            db_services.AvailDayGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            for item in self.child_items]
         self.variation_weight_text = VARIATION_WEIGHT_TEXT
 
 
@@ -298,12 +305,13 @@ class DlgAvailDayGroup(QDialog):
         self.chk_none.toggled.connect(lambda val: self.chk_none_toggled(checked=val, clicked=True))
         self.chk_none.setChecked(not self.avail_day_group.nr_avail_day_groups)
 
-        for row, child_group in enumerate(self.child_groups):
-            child_group: schemas.AvailDayGroupShow
-            if child_group_nr := self.child__avd_group_id_group_nr[child_group.id]:
+        for row, child_item in enumerate(self.child_items):
+            child_item: TreeWidgetItem
+            child_group: schemas.AvailDayGroup = child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            if child_group_nr := child_item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole):
                 text_child_group = f'Gruppe {child_group_nr:02}'
             else:
-                avail_day = db_services.AvailDay.get_from__avail_day_group(child_group.id)
+                avail_day = child_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
                 text_child_group = f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})'
             lb_slider = QLabel(text_child_group)
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
@@ -385,21 +393,26 @@ class DlgGroupMode(QDialog):
         self.resize_dialog()
 
     def remove_group(self):
-        # todo: im remove-service kontrolle wg. inkonsistenz einfügen
         selected_items = self.tree_groups.selectedItems()
         selected_item = selected_items[0]
         if not selected_items or selected_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
             return
         data: schemas.AvailDayGroup = selected_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         if selected_item.childCount() == 0:
-            if parent := selected_item.parent():
-                parent.removeChild(selected_item)
+            if parent_item := selected_item.parent():
+                parent_item.removeChild(selected_item)
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
             self.controller.execute(avail_day_group_commands.Delete(data.id))
 
-    def item_moved(self, moved_item: QTreeWidgetItem, moved_to: QTreeWidgetItem):
+            # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
+            parent_avd_group = db_services.AvailDayGroup.get(
+                parent_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
+            parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+
+    def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
         if moved_to:
@@ -411,26 +424,43 @@ class DlgGroupMode(QDialog):
 
         self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
 
+        # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
+        if not previous_parent:
+            return
+        parent_avd_group = db_services.AvailDayGroup.get(
+            previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
+        previous_parent.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+
     def edit_item(self, item: QTreeWidgetItem):
         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         data_avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
-        group_nr = item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
         if data_avail_day:
             print(item.text(0), data_avail_day.day, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            child__avd_group_id_group_nr = {
-                child_item.data(
-                    TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole
-                ).id: child_item.data(
-                    TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole
-                ) for child_item in self.get_child_group_items(item)
-            }
-            dlg = DlgAvailDayGroup(self, data_group.id, group_nr, child__avd_group_id_group_nr)
-            if dlg.exec():
-                self.controller.add_to_undo_stack(dlg.controller.undo_stack)
-                self.reload_actor_plan_period()
+            dlg = DlgAvailDayGroup(self, item)
+            if not dlg.exec():
+                return
+            self.controller.add_to_undo_stack(dlg.controller.undo_stack)
+            self.reload_actor_plan_period()
+
+            self.update_items_after_edit(item)
+
+    @staticmethod
+    def update_items_after_edit(item: TreeWidgetItem):
+        new_avg_data = db_services.AvailDayGroup.get(
+            item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        text_nr_groups = str(new_avg_data.nr_avail_day_groups) if new_avg_data.nr_avail_day_groups else 'alle'
+        item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
+        item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
+        child_items = (item.child(i) for i in range(item.childCount()))
+        for child_item in child_items:
+            new_avg_data = db_services.AvailDayGroup.get(
+                child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            child_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
+            child_item.setText(TREE_HEAD_COLUMN__PRIORITY, VARIATION_WEIGHT_TEXT[new_avg_data.variation_weight])
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []

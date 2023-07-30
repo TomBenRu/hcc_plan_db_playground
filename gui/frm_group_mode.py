@@ -1,6 +1,6 @@
 import json
 from functools import partial
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Literal
 from uuid import UUID
 
 from PySide6 import QtCore
@@ -26,6 +26,32 @@ VARIATION_WEIGHT_TEXT = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
 
 
 class TreeWidgetItem(QTreeWidgetItem):
+
+    def configure(self, avail_day_group: schemas.AvailDayGroup,
+                  avail_day: schemas.AvailDay | None, group_nr: int | None, parent_group_nr: int):
+        text_variation_weight = VARIATION_WEIGHT_TEXT[avail_day_group.variation_weight]
+        if avail_day:
+            self.setText(0, 'Verfügbar')
+            self.setText(1, avail_day.day.strftime('%d.%m.%y'))
+            self.setText(2, avail_day.time_of_day.name)
+            self.setText(4, text_variation_weight)
+
+            self.setForeground(0, QColor('#5a009f'))
+            self.setForeground(1, QColor('blue'))
+            self.setForeground(2, QColor('#9f0057'))
+            self.setData(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole, avail_day)
+        else:
+            text_nr_avail_day_groups = (str(avail_day_group.nr_avail_day_groups)
+                                        if avail_day_group.nr_avail_day_groups else 'alle')
+            self.setText(0, f'Gruppe_{group_nr:02}')
+            self.setText(3, text_nr_avail_day_groups)
+            self.setText(4, text_variation_weight)
+            self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
+            self.setBackground(0, QColor('#e1ffde'))
+            self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
+
+        self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, avail_day_group)
+        self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
@@ -131,19 +157,9 @@ class TreeWidget(QTreeWidget):
             children = db_services.AvailDayGroup.get_child_groups_from__parent_group(parent_group.id)
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
-                text_variation_weight = VARIATION_WEIGHT_TEXT[child.variation_weight]
                 if avail_day := db_services.AvailDay.get_from__avail_day_group(child.id):
-                    item = TreeWidgetItem(parent, ['Verfügbar',
-                                                   avail_day.day.strftime('%d.%m.%y'),
-                                                   avail_day.time_of_day.name,
-                                                   '',
-                                                   text_variation_weight])
-                    item.setData(0, Qt.ItemDataRole.ForegroundRole, QColor('#5a009f'))
-                    item.setData(1, Qt.ItemDataRole.ForegroundRole, QColor('blue'))
-                    item.setData(2, Qt.ItemDataRole.ForegroundRole, QColor('#9f0057'))
-                    item.setData(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole, avail_day)
-                    item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, child)
-                    item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
+                    item = TreeWidgetItem(parent)
+                    item.configure(child, avail_day, None, parent_group_nr)
                     signal_handling.handler.change_actor_plan_period_group_mode(
                         signal_handling.DataGroupMode(True,
                                                       avail_day.day,
@@ -151,34 +167,16 @@ class TreeWidget(QTreeWidget):
                                                       parent_group_nr)
                     )
                 else:
-                    text_nr_avail_day_groups = str(child.nr_avail_day_groups) if child.nr_avail_day_groups else 'alle'
                     self.nr_main_groups += 1
-                    item = TreeWidgetItem(parent, [f'Gruppe_{self.nr_main_groups:02}', '', '', text_nr_avail_day_groups, text_variation_weight])
-                    item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
-                    item.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, self.nr_main_groups)
-                    item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, child)
+                    item = TreeWidgetItem(parent)
+                    item.configure(child, None, self.nr_main_groups, parent_group_nr)
                     add_children(item, child)
 
-
-
         for child in db_services.AvailDayGroup.get_child_groups_from__parent_group(master_group.id):
-            text_variation_weight = VARIATION_WEIGHT_TEXT[child.variation_weight]
             if avail_day := db_services.AvailDay.get_from__avail_day_group(child.id):
                 item = TreeWidgetItem(
-                    self, [
-                        'Verfügbar',
-                        avail_day.day.strftime('%d.%m.%y'),
-                        avail_day.time_of_day.name,
-                        '',
-                        text_variation_weight
-                    ]
-                )
-                item.setData(0, Qt.ItemDataRole.ForegroundRole, QColor('#5a009f'))
-                item.setData(1, Qt.ItemDataRole.ForegroundRole, QColor('blue'))
-                item.setData(2, Qt.ItemDataRole.ForegroundRole, QColor('#9f0057'))
-                item.setData(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole, avail_day)
-                item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, child)
-                item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, 0)
+                    self)
+                item.configure(child, avail_day, None, 0)
                 signal_handling.handler.change_actor_plan_period_group_mode(
                     signal_handling.DataGroupMode(True,
                                                   avail_day.day,
@@ -187,12 +185,8 @@ class TreeWidget(QTreeWidget):
                 )
             else:
                 self.nr_main_groups += 1
-                text_nr_avail_day_groups = str(child.nr_avail_day_groups) if child.nr_avail_day_groups else 'alle'
-                item = TreeWidgetItem(self, [f'Gruppe_{self.nr_main_groups:02}', '', '',
-                                             text_nr_avail_day_groups, text_variation_weight])
-                item.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, self.nr_main_groups)
-                item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, child)
-                item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, 0)
+                item = TreeWidgetItem(self)
+                item.configure(child, None, self.nr_main_groups, 0)
                 add_children(item, child)
 
         self.sortByColumn(1, Qt.SortOrder.AscendingOrder)
@@ -282,6 +276,7 @@ class DlgAvailDayGroup(QDialog):
         if checked:
             self.controller.execute(avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, None))
             self.slider_nr_childs.setValue(len(self.child_groups))
+            self.lb_slider_nr_childs_value.setText(f'{len(self.child_groups)}')
             self.slider_nr_childs.setEnabled(False)
         else:
             self.controller.execute(
@@ -359,7 +354,8 @@ class DlgGroupMode(QDialog):
                                               clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
         self.layout_body.addWidget(self.bt_edit_main_group)
         self.tree_groups = TreeWidget(self.actor_plan_period, self.item_moved)
-        self.tree_groups.itemClicked.connect(self.edit_item)
+        self.tree_groups.itemDoubleClicked.connect(self.edit_item)
+        self.tree_groups.setExpandsOnDoubleClick(False)
         self.layout_body.addWidget(self.tree_groups)
         self.resize_dialog()
 
@@ -381,15 +377,10 @@ class DlgGroupMode(QDialog):
         create_command = avail_day_group_commands.Create(avail_day_group_id=master_group.id)
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
-        text_nr_avail_day_groups = 'alle'
-        text_variation_weight = VARIATION_WEIGHT_TEXT[1]
-        new_item = TreeWidgetItem(self.tree_groups.invisibleRootItem(),
-                                  [f'Gruppe_{self.tree_groups.nr_main_groups:02}', '', '',
-                                   text_nr_avail_day_groups, text_variation_weight])
-        new_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, create_command.created_group)
-        new_item.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole,
-                         self.tree_groups.nr_main_groups)
-        new_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, 0)
+
+        new_item = TreeWidgetItem(self.tree_groups.invisibleRootItem())
+        new_item.configure(create_command.created_group, None, self.tree_groups.nr_main_groups, 0)
+
         self.resize_dialog()
 
     def remove_group(self):

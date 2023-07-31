@@ -9,7 +9,7 @@ class TabBar(QTabWidget):
     def __init__(self, parent: QWidget, position: Literal['west', 'north', 'east', 'south'] = None,
                  font_size: int = None, tab_height: int = None, tab_width: int = None, set_moveble: bool = True,
                  object_name: str = None):
-        super().__init__()
+        super().__init__(parent=parent)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)

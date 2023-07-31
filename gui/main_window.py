@@ -11,6 +11,7 @@ from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
 from . import frm_comb_loc_possible
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
+from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
@@ -232,12 +233,14 @@ class MainWindow(QMainWindow):
 
     def goto_team(self, team: schemas.TeamShow):
         for plan_period in team.plan_periods:
-            widget_pp_tab = QWidget(self)
+            widget_pp_tab = QWidget(self)  # Widget für Datum
             self.tabs_planungsmasken.addTab(
                 widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
-            tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, None)
+            tabs_period = TabBar(  # Tab für Datum
+                widget_pp_tab, 'north', 10, None, None, True, None)
 
-            tabs_period.addTab(FrmTabActorPlanPeriods(plan_period), 'Mitarbeiter')
+            tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
+            tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
 
     def master_data(self):
         if self.frm_master_data is None:

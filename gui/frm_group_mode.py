@@ -97,7 +97,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
 class TreeWidget(QTreeWidget):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow,
-                 slot_item_moved: Callable[[QTreeWidgetItem, QTreeWidgetItem], None]):
+                 slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None]):
         super().__init__()
 
         # self.setIndentation(30)

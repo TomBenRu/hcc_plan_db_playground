@@ -5,7 +5,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import QTimer, QSize
+from PySide6.QtCore import QTimer, QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -518,11 +518,11 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
 
 class FrmTabActorPlanPeriods(QWidget):
-    def __init__(self, plan_period: schemas.PlanPeriod):
-        super().__init__()
+    def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
+        super().__init__(parent=parent)
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
-        self.actor_plan_periods = list(self.plan_period.actor_plan_periods)
+        self.actor_plan_periods = self.plan_period.actor_plan_periods
         self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods}
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
@@ -548,6 +548,7 @@ class FrmTabActorPlanPeriods(QWidget):
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.lb_title_name = QLabel('Verfügbarkeiten')
         self.lb_title_name.setContentsMargins(10, 10, 10, 10)
@@ -561,19 +562,17 @@ class FrmTabActorPlanPeriods(QWidget):
         self.splitter_availables = QSplitter()
         self.layout.addWidget(self.splitter_availables)
 
-        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
-
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
+        self.setup_selector_table()
         self.widget_availables = QWidget()
         self.layout_availables = QGridLayout()
         self.layout_availables.setContentsMargins(0, 0, 0, 0)
         self.widget_availables.setLayout(self.layout_availables)
         self.splitter_availables.addWidget(self.widget_availables)
-        self.setup_selector_table()
-        self.splitter_availables.setSizes([175, 10000])
-        self.layout.setStretch(0, 2)
-        self.layout.setStretch(1, 99)
+
+        self.set_splitter_sizes()
+
         self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()
         self.layout_notes_actor = QVBoxLayout()
@@ -589,19 +588,19 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout_notes_actor.addWidget(self.lb_notes_actor)
         self.layout_notes_actor.addWidget(self.te_notes_actor)
 
+        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
+
     def setup_selector_table(self):
-        self.table_select_actor.setMaximumWidth(175)
-        self.table_select_actor.setMinimumWidth(150)
         self.table_select_actor.setSortingEnabled(True)
         self.table_select_actor.setAlternatingRowColors(True)
-        self.table_select_actor.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table_select_actor.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_select_actor.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_select_actor.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_select_actor.verticalHeader().setVisible(False)
         self.table_select_actor.horizontalHeader().setHighlightSections(False)
         self.table_select_actor.cellClicked.connect(self.data_setup)
         self.table_select_actor.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        self.table_select_actor.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_select_actor.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
         headers = ['id', 'Vorname', 'Nachname']
         self.table_select_actor.setColumnCount(len(headers))
@@ -612,6 +611,18 @@ class FrmTabActorPlanPeriods(QWidget):
             self.table_select_actor.setItem(row, 1, QTableWidgetItem(actor_pp.person.f_name))
             self.table_select_actor.setItem(row, 2, QTableWidgetItem(actor_pp.person.l_name))
         self.table_select_actor.hideColumn(0)
+
+    def set_splitter_sizes(self):
+        self.splitter_availables.setStretchFactor(0, 0)
+        self.splitter_availables.setStretchFactor(1, 1)
+        header_width = sum(self.table_select_actor.horizontalHeader().sectionSize(i)
+                           for i in range(self.table_select_actor.columnCount()))
+        header_width += 3
+
+        self.splitter_availables.setSizes([header_width, 10_000])
+        sizes = self.splitter_availables.sizes()
+        self.splitter_availables.setSizes(sizes)
+        self.table_select_actor.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
     def data_setup(self, r, c):
         self.table_select_actor.setMaximumWidth(10000)

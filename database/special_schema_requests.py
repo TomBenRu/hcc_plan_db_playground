@@ -111,7 +111,14 @@ def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[sche
     return persons_at_date
 
 
+###################################### Locations #######################################################################
 
+
+def get_curr_assignment_of_location(
+        location_of_work: schemas.LocationOfWorkShow, date: datetime.date) -> schemas.TeamLocationAssign:
+    for assignment in location_of_work.team_location_assigns:
+        if assignment.start <= date and (assignment.end is None or assignment.end > date):
+            return assignment
 
 
 

@@ -759,7 +759,8 @@ class FrmActorPlanPeriod(QWidget):
                                                   'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
         self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
 
-        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf. -> Reset', clicked=self.reset_all_partner_loc_prefs)
+        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf. -> Reset',
+                                                           clicked=self.reset_all_partner_loc_prefs)
         bt_actor_partner_loc_prefs_all_avail.setStatusTip(
             'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum  '
             'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')

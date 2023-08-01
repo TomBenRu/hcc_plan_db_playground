@@ -533,6 +533,8 @@ class LocationPlanPeriod(LocationPlanPeriodCreate):
 
 
 class LocationPlanPeriodShow(LocationPlanPeriod):
+    time_of_days: List[TimeOfDay]
+    time_of_day_standards: List[TimeOfDay]
 
     class Config:
         orm_mode = True

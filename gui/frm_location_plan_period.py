@@ -1,8 +1,9 @@
 import datetime
+from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox
 
@@ -11,6 +12,132 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
 from gui.commands import command_base_classes
 from gui.observer import signal_handling
+
+
+class ButtonEvent(QPushButton):  # todo: Ändern
+    def __init__(self, parent: QWidget, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
+                 location_plan_period: schemas.LocationPlanPeriodShow, slot__avail_day_toggled: Callable):
+        super().__init__(parent)
+        self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setCheckable(True)
+        self.clicked.connect(lambda: slot__avail_day_toggled(self))
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.connect(
+            lambda group_mode: self.set_group_mode(group_mode))
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.connect(
+            lambda data: self.reload_actor_plan_period(data.actor_plan_period)
+        )
+
+        self.group_mode = False
+
+        if time_of_day.time_of_day_enum.time_index == 1:
+            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
+                               "QPushButton::checked { background-color: #002aaa; border: none;}"
+                               "QPushButton::disabled { background-color: #6a7585;}")
+        elif time_of_day.time_of_day_enum.time_index == 2:
+            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
+                               "QPushButton::checked { background-color: #ff4600; border: none;}"
+                               "QPushButton::disabled { background-color: #7f7f7f;}")
+        elif time_of_day.time_of_day_enum.time_index == 3:
+            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
+                               "QPushButton::checked { background-color: #84033c; border: none;}"
+                               "QPushButton::disabled { background-color: #674b56;}")
+        '#999999'
+        self.actor_plan_period = actor_plan_period
+        self.slot__avail_day_toggled = slot__avail_day_toggled
+        self.day = day
+        self.time_of_day = time_of_day
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        self.context_menu = QMenu()
+
+        self.actions = []
+        self.create_actions()
+        self.context_menu.addActions(self.actions)
+        self.set_tooltip()
+
+    def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
+        self.group_mode = group_mode.group_mode
+        if self.isChecked():
+            if self.group_mode:
+                if group_mode.date and (group_mode.date == self.day
+                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
+                    self.setText(f'{group_mode.group_nr:02}' if group_mode.group_nr else None)
+            else:
+                self.setText(None)
+        elif self.group_mode:
+            self.setDisabled(True)
+        else:
+            self.setEnabled(True)
+
+    def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
+        actor_plan_period_time_of_days = sorted(
+            [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
+        return [t_o_d for t_o_d in actor_plan_period_time_of_days
+                if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
+
+    def contextMenuEvent(self, pos):
+        self.context_menu.exec(pos.globalPos())
+
+    def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
+        self.actor_plan_period = actor_plan_period
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        for action in self.context_menu.actions():
+            self.context_menu.removeAction(action)
+        self.create_actions()
+        self.context_menu.addActions(self.actions)
+
+    def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
+        if self.isChecked():
+            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
+            avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
+
+        self.time_of_day = new_time_of_day
+        self.reload_actor_plan_period()
+        self.create_actions()
+        self.reset_context_menu(self.actor_plan_period)
+        self.set_tooltip()
+        signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
+    def create_actions(self):
+        self.actions = [
+            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
+                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                   functools.partial(self.set_new_time_of_day, t))
+            for t in self.t_o_d_for_selection]
+
+    def set_tooltip(self):
+        self.setToolTip(f'Rechtsklick:\n'
+                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
+                        f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
+                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+
+    def reload_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriodShow = None):
+        if actor_plan_period:
+            self.actor_plan_period = actor_plan_period
+        else:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+
+
+class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
+    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+                 location_plan_period: schemas.LocationPlanPeriodShow):
+        super().__init__(parent=parent)
+
+
+class ButtonNotes(QPushButton):  # todo: Fertigstellen
+    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+                 location_plan_period: schemas.LocationPlanPeriodShow):
+        super().__init__(parent=parent)
+
+
+class ButtonFlags(QPushButton):  # todo: Fertigstellen
+    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+                 location_plan_period: schemas.LocationPlanPeriodShow):
+        super().__init__(parent=parent)
 
 
 class FrmTabLocationPlanPeriods(QWidget):
@@ -250,16 +377,16 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
 
         # Tages-Configs Reihenbezeichner / Buttons:
-        bt_fixed_cast = QPushButton('Besetzung -> Reset', clicked=self.reset_all_fixed_cast)
-        bt_fixed_cast.setStatusTip('Festgelegte Besetzung für alle Verfügbarkeiten in diesem Zeitraum '
+        bt_fixed_cast_reset = QPushButton('Besetzung -> Reset', clicked=self.reset_all_fixed_cast)
+        bt_fixed_cast_reset.setStatusTip('Festgelegte Besetzung für alle Verfügbarkeiten in diesem Zeitraum '
                                    'auf die Standartwerte des Planungszeitraums zurücksetzen.')
-        self.layout.addWidget(bt_fixed_cast, row + 2, 0)
+        self.layout.addWidget(bt_fixed_cast_reset, row + 2, 0)
         lb_notes = QLabel('Notizen')
         self.layout.addWidget(lb_notes, row + 3, 0)
         lb_flags = QLabel('Besondere Eigensch.')
         self.layout.addWidget(lb_flags, row + 4, 0)
 
-        #
+        # Tages-Config_Buttons:
         for col, d in enumerate(self.days, start=1):
             disable_buttons = get_curr_assignment_of_location(location_of_work, d).team.id != self.actor_plan_period.team.id
             label = QLabel(f'{d.day}')
@@ -273,22 +400,22 @@ class FrmLocationPlanPeriod(QWidget):
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 button_event = self.create_event_button(d, time_of_day)
-                button_avail_day.setDisabled(disable_buttons)
-                self.layout.addWidget(button_avail_day, row, col)
+                button_event.setDisabled(disable_buttons)
+                self.layout.addWidget(button_event, row, col)
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet('background-color: #ffdc99')
             self.layout.addWidget(lb_weekday, row + 1, col)
-            bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
-            bt_comb_loc_poss.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_comb_loc_poss, row + 2, col)
-            bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
-            bt_loc_prefs.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_loc_prefs, row + 3, col)
-            bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
-            bt_partner_loc_prefs.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_partner_loc_prefs, row + 4, col)
+            bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period)
+            bt_fixed_cast.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_fixed_cast, row + 2, col)
+            bt_notes = ButtonNotes(self, d, 24, self.location_plan_period)
+            bt_notes.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_notes, row + 3, col)
+            bt_flags = ButtonFlags(self, d, 24, self.location_plan_period)
+            bt_flags.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_flags, row + 4, col)
 
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
@@ -299,16 +426,17 @@ class FrmLocationPlanPeriod(QWidget):
         QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
         QTimer.singleShot(50, lambda: self.get_avail_days())
 
-    def create_time_of_day_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
+    def create_event_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
         # sourcery skip: inline-immediately-returned-variable
-        button = ButtonAvailDay(self, day, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
+        button = ButtonEvent(self, day, time_of_day, 24, self.location_plan_period, self.save_event)
         return button
 
     def setup_controllers(self):
+        """Buttons im Bereich self.layout_controllers"""
         self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
-    def save_avail_day(self, bt: ButtonAvailDay):
+    def save_event(self, bt: ButtonEvent):
         date = bt.day
         t_o_d = bt.time_of_day
         if bt.isChecked():

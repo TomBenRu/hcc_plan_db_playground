@@ -177,9 +177,10 @@ class PlanPeriodShow(PlanPeriod):
     team: Team
     fixed_cast: Optional[str]
     actor_plan_periods: List['ActorPlanPeriod']
+    location_plan_periods: List['LocationPlanPeriod']
     project: Project
 
-    @validator('actor_plan_periods', pre=True, allow_reuse=True)
+    @validator('actor_plan_periods', 'location_plan_periods', pre=True, allow_reuse=True)
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -365,6 +366,7 @@ class LocationOfWorkCreate(BaseModel):
 
 class LocationOfWork(LocationOfWorkCreate):
     id: UUID
+    notes: Optional[str]
     address: Optional['Address']
     project: Project
     prep_delete: Optional[datetime]

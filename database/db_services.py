@@ -346,6 +346,15 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.from_orm(location_db)
 
     @staticmethod
+    @db_session
+    def update_notes(location_of_work_id: UUID, notes: str) -> schemas.LocationOfWorkShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
+        location_of_work_db.set(notes=notes)
+        return schemas.LocationOfWorkShow.from_orm(location_of_work_db)
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def new_time_of_day_standard(location_of_work_id: UUID, time_of_day_id: UUID) -> tuple[schemas.LocationOfWorkShow, UUID | None]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -771,6 +780,12 @@ class PlanPeriod:
 
 class LocationPlanPeriod:
     @staticmethod
+    @db_session
+    def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(plan_period_id: UUID, location_id: UUID) -> schemas.LocationPlanPeriodShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
@@ -778,6 +793,15 @@ class LocationPlanPeriod:
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_plan_period_db = models.LocationPlanPeriod(plan_period=plan_period_db, location_of_work=location_db)
+        return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_notes(location_plan_period_id: UUID, notes: str) -> schemas.LocationPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        location_plan_period_db.set(notes=notes)
         return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
 
 

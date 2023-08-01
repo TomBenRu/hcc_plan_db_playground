@@ -127,7 +127,7 @@ class TreeWidget(QTreeWidget):
 
     def send_signal_to_avail_day(self, parent_group_nr: int):
         if avail_day := self.curr_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
-            signal_handling.handler.change_actor_plan_period_group_mode(
+            signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                 signal_handling.DataGroupMode(True,
                                               avail_day.day,
                                               avail_day.time_of_day.time_of_day_enum.time_index,
@@ -160,7 +160,7 @@ class TreeWidget(QTreeWidget):
                 if avail_day := db_services.AvailDay.get_from__avail_day_group(child.id):
                     item = TreeWidgetItem(parent)
                     item.configure(child, avail_day, None, parent_group_nr)
-                    signal_handling.handler.change_actor_plan_period_group_mode(
+                    signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                         signal_handling.DataGroupMode(True,
                                                       avail_day.day,
                                                       avail_day.time_of_day.time_of_day_enum.time_index,
@@ -177,7 +177,7 @@ class TreeWidget(QTreeWidget):
                 item = TreeWidgetItem(
                     self)
                 item.configure(child, avail_day, None, 0)
-                signal_handling.handler.change_actor_plan_period_group_mode(
+                signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                     signal_handling.DataGroupMode(True,
                                                   avail_day.day,
                                                   avail_day.time_of_day.time_of_day_enum.time_index,

@@ -468,6 +468,7 @@ class EventCreate(BaseModel):
 
 class Event(EventCreate):
     id: UUID
+    prep_delete: Optional[datetime]
 
     @validator('flags', pre=True, allow_reuse=True)
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
@@ -535,6 +536,11 @@ class LocationPlanPeriod(LocationPlanPeriodCreate):
 class LocationPlanPeriodShow(LocationPlanPeriod):
     time_of_days: List[TimeOfDay]
     time_of_day_standards: List[TimeOfDay]
+    team: Team
+
+    @validator('time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
     class Config:
         orm_mode = True

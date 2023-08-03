@@ -820,6 +820,22 @@ class EventGroup:
         return schemas.EventGroupShow.from_orm(new_event_group_db)
 
 
+class Event:
+    @staticmethod
+    @db_session
+    def get(event_id: UUID) -> schemas.EventShow:
+        event_db = models.Event.get_for_update(id=event_id)
+        return schemas.EventShow.from_orm(event_db)
+
+    @staticmethod
+    @db_session
+    def get_all_from__location_plan_period(location_plan_period_id) -> list[schemas.EventShow]:
+        events_db = models.Event.select(lambda e: e.location_plan_period.id == location_plan_period_id)
+
+        return [schemas.EventShow.from_orm(e) for e in events_db]
+
+
+
 class ActorPlanPeriod:
     @staticmethod
     @db_session

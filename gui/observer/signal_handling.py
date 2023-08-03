@@ -49,8 +49,6 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
     signal_change_location_plan_period_group_mode = Signal(object)
 
-
-
     def reload_location_pp__event_configs(self, data: DataActorPPWithDate):
         self.signal_reload_location_pp__event_configs.emit(data)
 

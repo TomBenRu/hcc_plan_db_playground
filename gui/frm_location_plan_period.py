@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
-    QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox
+    QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
@@ -21,44 +21,48 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCheckable(True)
-        self.clicked.connect(lambda: slot__avail_day_toggled(self))
+    #     self.clicked.connect(lambda: slot__avail_day_toggled(self))
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
 
-        signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.connect(
+        signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.connect(
             lambda group_mode: self.set_group_mode(group_mode))
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.connect(
-            lambda data: self.reload_actor_plan_period(data.actor_plan_period)
+        signal_handling.handler_location_plan_period.signal_reload_location_pp__events.connect(
+            lambda data: self.reload_location_plan_period(data.location_plan_period)
         )
 
         self.group_mode = False
 
-        if time_of_day.time_of_day_enum.time_index == 1:
+
+        self.location_plan_period = location_plan_period
+    #     self.slot__avail_day_toggled = slot__avail_day_toggled
+        self.day = day
+        self.time_of_day = time_of_day
+    #     self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+    #     self.context_menu = QMenu()
+
+        self.set_stylesheet()
+    #
+    #     self.actions = []
+    #     self.create_actions()
+    #     self.context_menu.addActions(self.actions)
+    #     self.set_tooltip()
+    #
+    def set_stylesheet(self):
+        if self.time_of_day.time_of_day_enum.time_index == 1:
             self.setStyleSheet("QPushButton {background-color: #cae4f4}"
                                "QPushButton::checked { background-color: #002aaa; border: none;}"
                                "QPushButton::disabled { background-color: #6a7585;}")
-        elif time_of_day.time_of_day_enum.time_index == 2:
+        elif self.time_of_day.time_of_day_enum.time_index == 2:
             self.setStyleSheet("QPushButton {background-color: #fff4d6}"
                                "QPushButton::checked { background-color: #ff4600; border: none;}"
                                "QPushButton::disabled { background-color: #7f7f7f;}")
-        elif time_of_day.time_of_day_enum.time_index == 3:
+        elif self.time_of_day.time_of_day_enum.time_index == 3:
             self.setStyleSheet("QPushButton {background-color: #daa4c9}"
                                "QPushButton::checked { background-color: #84033c; border: none;}"
                                "QPushButton::disabled { background-color: #674b56;}")
-        '#999999'
-        self.actor_plan_period = actor_plan_period
-        self.slot__avail_day_toggled = slot__avail_day_toggled
-        self.day = day
-        self.time_of_day = time_of_day
-        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-        self.context_menu = QMenu()
-
-        self.actions = []
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
-        self.set_tooltip()
 
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode
@@ -74,52 +78,52 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         else:
             self.setEnabled(True)
 
-    def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
-        actor_plan_period_time_of_days = sorted(
-            [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
-        return [t_o_d for t_o_d in actor_plan_period_time_of_days
-                if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
-
-    def contextMenuEvent(self, pos):
-        self.context_menu.exec(pos.globalPos())
-
-    def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
-        self.actor_plan_period = actor_plan_period
-        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-        for action in self.context_menu.actions():
-            self.context_menu.removeAction(action)
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
-
-    def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
-        if self.isChecked():
-            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
-            avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
-
-        self.time_of_day = new_time_of_day
-        self.reload_actor_plan_period()
-        self.create_actions()
-        self.reset_context_menu(self.actor_plan_period)
-        self.set_tooltip()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
-    def create_actions(self):
-        self.actions = [
-            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
-                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-                   functools.partial(self.set_new_time_of_day, t))
-            for t in self.t_o_d_for_selection]
-
-    def set_tooltip(self):
-        self.setToolTip(f'Rechtsklick:\n'
-                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
-                        f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
-                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
-
-    def reload_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriodShow = None):
-        if actor_plan_period:
-            self.actor_plan_period = actor_plan_period
+    # def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
+    #     actor_plan_period_time_of_days = sorted(
+    #         [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
+    #     return [t_o_d for t_o_d in actor_plan_period_time_of_days
+    #             if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
+    #
+    # def contextMenuEvent(self, pos):
+    #     self.context_menu.exec(pos.globalPos())
+    #
+    # def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
+    #     self.actor_plan_period = actor_plan_period
+    #     self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+    #     for action in self.context_menu.actions():
+    #         self.context_menu.removeAction(action)
+    #     self.create_actions()
+    #     self.context_menu.addActions(self.actions)
+    #
+    # def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
+    #     if self.isChecked():
+    #         avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
+    #         avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
+    #
+    #     self.time_of_day = new_time_of_day
+    #     self.reload_actor_plan_period()
+    #     self.create_actions()
+    #     self.reset_context_menu(self.actor_plan_period)
+    #     self.set_tooltip()
+    #     signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
+    # def create_actions(self):
+    #     self.actions = [
+    #         Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
+    #                f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+    #                functools.partial(self.set_new_time_of_day, t))
+    #         for t in self.t_o_d_for_selection]
+    #
+    # def set_tooltip(self):
+    #     self.setToolTip(f'Rechtsklick:\n'
+    #                     f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
+    #                     f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
+    #                     f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+    #
+    def reload_location_plan_period(self, location_plan_period: schemas.LocationPlanPeriodShow = None):
+        if location_plan_period:
+            self.location_plan_period = location_plan_period
         else:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
 
 class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
@@ -127,17 +131,35 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
+        self.setObjectName(f'fixed_cast: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen
     def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
+        self.setObjectName(f'notes: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
 
 class ButtonFlags(QPushButton):  # todo: Fertigstellen
     def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
+
+        self.setObjectName(f'flags: {day}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
 
 
 class FrmTabLocationPlanPeriods(QWidget):
@@ -150,7 +172,6 @@ class FrmTabLocationPlanPeriods(QWidget):
                                          for loc_pp in self.plan_period.location_plan_periods}
         self.location_id: UUID | None = None
         self.location: schemas.PersonShow | None = None
-        self.scroll_area_events = QScrollArea()
         self.frame_events: FrmLocationPlanPeriod | None = None
         self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
         self.lb_notes_pp.setFixedHeight(20)
@@ -190,21 +211,22 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.splitter_events.addWidget(self.table_select_location)
         self.setup_selector_table()
         self.widget_events = QWidget()
-        self.layout_events = QGridLayout()
+        self.layout_events = QVBoxLayout()
         self.layout_events.setContentsMargins(0, 0, 0, 0)
         self.widget_events.setLayout(self.layout_events)
         self.splitter_events.addWidget(self.widget_events)
         self.set_splitter_sizes()
 
+        self.scroll_area_events = QScrollArea()
 
         self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()
         self.layout_notes_location = QVBoxLayout()
         self.layout_notes_location_pp = QVBoxLayout()
 
-        self.layout_events.addWidget(self.scroll_area_events, 0, 0)
-        self.layout_events.addLayout(self.layout_controllers, 1, 0)
-        self.layout_events.addLayout(self.layout_notes, 2, 0)
+        self.layout_events.addWidget(self.scroll_area_events)
+        self.layout_events.addLayout(self.layout_controllers)
+        self.layout_events.addLayout(self.layout_notes)
         self.layout_notes.addLayout(self.layout_notes_location_pp)
         self.layout_notes.addLayout(self.layout_notes_location)
         self.layout_notes_location_pp.addWidget(self.lb_notes_pp)
@@ -260,6 +282,9 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.delete_location_plan_period_widgets()
         self.frame_events = FrmLocationPlanPeriod(self, location_plan_period_show, self.side_menu)
         self.scroll_area_events.setWidget(self.frame_events)
+        self.scroll_area_events.setMinimumHeight(
+            10000)  # brauche ich seltsamerweise, damit die Scrollarea expandieren kann.
+        self.scroll_area_events.setMinimumHeight(0)
 
         self.info_text_setup()
 
@@ -301,6 +326,8 @@ class FrmLocationPlanPeriod(QWidget):
                  side_menu: side_menu.WidgetSideMenu):
         super().__init__(parent)
 
+        self.setContentsMargins(0, 0, 0, 10)
+
         self.layout_controllers = parent.layout_controllers
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
@@ -328,14 +355,14 @@ class FrmLocationPlanPeriod(QWidget):
         self.set_chk_field()
         self.bt_toggle__avd_group_mode: QPushButton | None = None
         self.setup_controllers()
-        self.get_avail_days()
+        self.get_events()
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
-        bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
-        self.side_menu.add_button(bt_reset_all_avail_t_o_ds)
+        bt_reset_all_event_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_event_t_o_ds)
+        self.side_menu.add_button(bt_reset_all_event_t_o_ds)
         bt_fixed_cast = QPushButton('Feste Besetzung', clicked=self.edit_fixed_cast)
         self.side_menu.add_button(bt_fixed_cast)
 
@@ -388,7 +415,7 @@ class FrmLocationPlanPeriod(QWidget):
 
         # Tages-Config_Buttons:
         for col, d in enumerate(self.days, start=1):
-            disable_buttons = get_curr_assignment_of_location(location_of_work, d).team.id != self.actor_plan_period.team.id
+            disable_buttons = get_curr_assignment_of_location(location_of_work, d).team.id != self.location_plan_period.team.id
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -436,7 +463,8 @@ class FrmLocationPlanPeriod(QWidget):
         self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
-    def save_event(self, bt: ButtonEvent):
+    def save_event(self, bt: ButtonEvent):  # todo: noch implementieren
+        return
         date = bt.day
         t_o_d = bt.time_of_day
         if bt.isChecked():
@@ -489,7 +517,8 @@ class FrmLocationPlanPeriod(QWidget):
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
-    def change_mode__avd_group(self):
+    def change_mode__avd_group(self):  # todo: noch implementieren
+        return
 
         dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
         if dlg.exec():
@@ -503,24 +532,25 @@ class FrmLocationPlanPeriod(QWidget):
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
 
-    def get_avail_days(self):
-        avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
-                      if not ad.prep_delete)
-        for ad in avail_days:
-            button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{ad.day}-{ad.time_of_day.time_of_day_enum.name}')
+    def get_events(self):
+        events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
+                      if not e.prep_delete)
+        for event in events:
+            button: ButtonEvent = self.findChild(ButtonEvent, f'{event.day}-{event.time_of_day.time_of_day_enum.name}')
             if not button:
                 QMessageBox.critical(self, 'Fehlende Standards',
                                      f'Fehler:\n'
                                      f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
-                                     f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+                                     f'"{event.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
                 return
             button.setChecked(True)
-            button.time_of_day = ad.time_of_day
+            button.time_of_day = event.time_of_day
             button.create_actions()
-            button.reset_context_menu(self.actor_plan_period)
+            button.reset_context_menu(self.location_plan_period)
             button.set_tooltip()
 
-    def edit_time_of_days(self):
+    def edit_time_of_days(self):  # todo: noch implementieren
+        return
         dlg = TimeOfDaysActorPlanPeriodEditList(self, self.actor_plan_period)
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -530,173 +560,19 @@ class FrmLocationPlanPeriod(QWidget):
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             self.reset_chk_field()
 
-    def reset_all_avail_t_o_ds(self):
-        avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
-                      if not ad.prep_delete]
-        for avail_day in avail_days:
-            self.controller_avail_days.execute(
-                avail_day_commands.UpdateTimeOfDays(avail_day.id, self.actor_plan_period.time_of_days))
-        db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
-        db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
+    def reset_all_event_t_o_ds(self):  # todo: noch implementieren
+        ...
 
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-        self.reset_chk_field()
+    def edit_fixed_cast(self):  # todo: noch implementieren
+        ...
 
-    def edit_comb_loc_possibles(self):
-        person = db_services.Person.get(self.actor_plan_period.person.id)
+    def reset_all_fixed_cast(self):  # todo: noch implementieren
+        ...
 
-        '''Workaround: für die Dialogklasse wird eine funktion gebraucht'''
-        parent_model_factory = lambda date: person
-        team_at_date_factory = lambda date: self.actor_plan_period.team
-        '''----------------------------------------------------------------------------------------------------'''
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, parent_model_factory,
-                                                               team_at_date_factory)
-        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
-        dlg.de_date.setDisabled(True)
-
-        if dlg.exec():
-            self.reload_actor_plan_period()
-            # events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
-
-    def reset_all_avail_combs(self):
-        """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
-
-        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungskombinationen',
-                                     'Sollen die Einrichtungskombinationen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
-
-        if not all_avail_dates:
-            QMessageBox.critical(self, 'Einrichtungskombinationen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
-            return
-
-        button_comb_loc_possibles: list[ButtonCombLocPossible] = self.findChildren(ButtonCombLocPossible)
-
-        for button_comb_loc_possible in button_comb_loc_possibles:
-            if button_comb_loc_possible.day in all_avail_dates:
-                button_comb_loc_possible.reset_combs_of_day()
-                button_comb_loc_possible.reload_actor_plan_period()
-                button_comb_loc_possible.set_stylesheet()
-        self.reload_actor_plan_period()
-
-    def edit_location_prefs(self):
-
-        person = db_services.Person.get(self.actor_plan_period.person.id)
-        team_at_date_factory = lambda date: self.actor_plan_period.team
-
-        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
-
-        dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, team_at_date_factory)
-        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
-        dlg.de_date.setDisabled(True)
-        if not dlg.exec():
-            return
-        for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs:
-                if dlg.loc_id__prefs[loc_id].score == score:
-                    continue
-                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                curr_loc_pref.score = score
-                self.controller_actor_loc_prefs.execute(
-                    actor_plan_period_commands.RemoveActorLocationPref(self.actor_plan_period.id, curr_loc_pref.id))
-                if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
-                    create_command = actor_loc_pref_commands.Create(new_pref)
-                    self.controller_actor_loc_prefs.execute(create_command)
-                    created_pref_id = create_command.get_created_actor_loc_pref()
-
-                    self.controller_actor_loc_prefs.execute(
-                        actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
-            else:
-                if score == 1:
-                    continue
-                location = dlg.location_id__location[loc_id]
-                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
-                create_command = actor_loc_pref_commands.Create(new_loc_pref)
-                self.controller_actor_loc_prefs.execute(create_command)
-                created_pref_id = create_command.get_created_actor_loc_pref()
-                self.controller_actor_loc_prefs.execute(
-                    actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
-
-        self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
-        self.reload_actor_plan_period()
-        # events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period))
-
-    @profile
-    def reset_all_loc_prefs(self, e=None):
-        """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
-
-        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungspräferenzen',
-                                     'Sollen die Einrichtungspräferenzen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
-        if not all_avail_dates:
-            QMessageBox.critical(self, 'Einrichtungspräferenzen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
-            return
-
-        button_actor_location_prefs: list[ButtonActorLocationPref] = self.findChildren(ButtonActorLocationPref)
-
-        for button_actor_location_pref in button_actor_location_prefs:
-            if button_actor_location_pref.day in all_avail_dates:
-                button_actor_location_pref.reset_prefs_of_day()
-                button_actor_location_pref.reload_actor_plan_period()
-                button_actor_location_pref.set_stylesheet()
-        self.reload_actor_plan_period()
-
-    def edit_partner_loc_prefs(self):
-        person = db_services.Person.get(self.actor_plan_period.person.id)
-        team_at_date_factory = lambda date: self.actor_plan_period.team
-
-        dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
-            self, person, self.actor_plan_period, person, team_at_date_factory)
-        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
-        dlg.de_date.setDisabled(True)
-        if dlg.exec():
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
-
-    def reset_all_partner_loc_prefs(self, e):
-        """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
-
-        reply = QMessageBox.question(self, 'Zurücksetzten der Partnerpräferenzen',
-                                     'Sollen die Partnerpräferenzen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        all_avail_dates = {avd.day for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
-        if not all_avail_dates:
-            QMessageBox.critical(self, 'Partnerpräferenzen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
-            return
-
-        button_partner_location_prefs: list[ButtonActorPartnerLocationPref] = self.findChildren(
-            ButtonActorPartnerLocationPref)
-
-        for button_partner_location_pref in button_partner_location_prefs:  # todo: Kann mit einem Signal an die buttons evt. schneller gemacht werden
-            if button_partner_location_pref.day in all_avail_dates:
-                button_partner_location_pref.reset_prefs_of_day()
-                button_partner_location_pref.reload_actor_plan_period()
-                button_partner_location_pref.set_stylesheet()
-        self.reload_actor_plan_period()
+if __name__ == '__main__':
+    app = QApplication()
+    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('B8A4139121CC48B69EF1841A14395A91'))
+    window = FrmTabLocationPlanPeriods(None, planperiods[0])
+    window.show()
+    app.exec()

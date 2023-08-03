@@ -9,7 +9,7 @@ from PySide6.QtCore import QTimer, QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
-    QMenu
+    QMenu, QApplication
 
 from line_profiler_pycharm import profile
 
@@ -44,19 +44,6 @@ class ButtonAvailDay(QPushButton):
         )
 
         self.group_mode = False
-
-        if time_of_day.time_of_day_enum.time_index == 1:
-            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                               "QPushButton::checked { background-color: #002aaa; border: none;}"
-                               "QPushButton::disabled { background-color: #6a7585;}")
-        elif time_of_day.time_of_day_enum.time_index == 2:
-            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                               "QPushButton::checked { background-color: #ff4600; border: none;}"
-                               "QPushButton::disabled { background-color: #7f7f7f;}")
-        elif time_of_day.time_of_day_enum.time_index == 3:
-            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
-                               "QPushButton::checked { background-color: #84033c; border: none;}"
-                               "QPushButton::disabled { background-color: #674b56;}")
         '#999999'
         self.actor_plan_period = actor_plan_period
         self.slot__avail_day_toggled = slot__avail_day_toggled
@@ -65,10 +52,26 @@ class ButtonAvailDay(QPushButton):
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         self.context_menu = QMenu()
 
+        self.set_stylesheet()
+
         self.actions = []
         self.create_actions()
         self.context_menu.addActions(self.actions)
         self.set_tooltip()
+
+    def set_stylesheet(self):
+        if self.time_of_day.time_of_day_enum.time_index == 1:
+            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
+                               "QPushButton::checked { background-color: #002aaa; border: none;}"
+                               "QPushButton::disabled { background-color: #6a7585;}")
+        elif self.time_of_day.time_of_day_enum.time_index == 2:
+            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
+                               "QPushButton::checked { background-color: #ff4600; border: none;}"
+                               "QPushButton::disabled { background-color: #7f7f7f;}")
+        elif self.time_of_day.time_of_day_enum.time_index == 3:
+            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
+                               "QPushButton::checked { background-color: #84033c; border: none;}"
+                               "QPushButton::disabled { background-color: #674b56;}")
 
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode
@@ -526,7 +529,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods}
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
-        self.scroll_area_availables = QScrollArea()
+
         self.frame_availables: FrmActorPlanPeriod | None = None
         self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
         self.lb_notes_pp.setFixedHeight(20)
@@ -565,22 +568,24 @@ class FrmTabActorPlanPeriods(QWidget):
         self.table_select_actor = QTableWidget()
         self.splitter_availables.addWidget(self.table_select_actor)
         self.setup_selector_table()
+
         self.widget_availables = QWidget()
-        self.layout_availables = QGridLayout()
+        self.layout_availables = QVBoxLayout(self.widget_availables)
         self.layout_availables.setContentsMargins(0, 0, 0, 0)
-        self.widget_availables.setLayout(self.layout_availables)
         self.splitter_availables.addWidget(self.widget_availables)
 
         self.set_splitter_sizes()
+
+        self.scroll_area_availables = QScrollArea()
 
         self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()
         self.layout_notes_actor = QVBoxLayout()
         self.layout_notes_actor_pp = QVBoxLayout()
 
-        self.layout_availables.addWidget(self.scroll_area_availables, 0, 0)
-        self.layout_availables.addLayout(self.layout_controllers, 1, 0)
-        self.layout_availables.addLayout(self.layout_notes, 2, 0)
+        self.layout_availables.addWidget(self.scroll_area_availables)
+        self.layout_availables.addLayout(self.layout_controllers)
+        self.layout_availables.addLayout(self.layout_notes)
         self.layout_notes.addLayout(self.layout_notes_actor_pp)
         self.layout_notes.addLayout(self.layout_notes_actor)
         self.layout_notes_actor_pp.addWidget(self.lb_notes_pp)
@@ -634,6 +639,8 @@ class FrmTabActorPlanPeriods(QWidget):
             self.delete_actor_plan_period_widgets()
         self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
+        self.scroll_area_availables.setMinimumHeight(10000)  # brauche ich seltsamerweise, damit die Scrollarea expandieren kann.
+        self.scroll_area_availables.setMinimumHeight(0)
 
         self.info_text_setup()
 
@@ -672,6 +679,8 @@ class FrmActorPlanPeriod(QWidget):
     def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodShow,
                  side_menu: side_menu.WidgetSideMenu):
         super().__init__(parent)
+
+        self.setContentsMargins(0, 0, 0, 10)
 
         self.layout_controllers = parent.layout_controllers
 
@@ -905,7 +914,8 @@ class FrmActorPlanPeriod(QWidget):
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             self.reset_chk_field()
 
-    def reset_all_avail_t_o_ds(self):
+    def reset_all_avail_t_o_ds(self):  # todo: correct... Wenn mit edit_time_of_day standard eines tim_of_days auf True gesetzt wird, dann der Dialog abgebrochen wird, und danach reset_all_avail_t_o_ds ausgeführt wird, erscheint die entsprechende Reihe trotzdem im checkfield
+        """übernimmt bei allen avail_days die time_of_days der Planperiode."""
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for avail_day in avail_days:
@@ -1076,6 +1086,14 @@ class FrmActorPlanPeriod(QWidget):
                 button_partner_location_pref.reload_actor_plan_period()
                 button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
+
+
+if __name__ == '__main__':
+    app = QApplication()
+    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('B8A4139121CC48B69EF1841A14395A91'))
+    window = FrmTabActorPlanPeriods(None, planperiods[0])
+    window.show()
+    app.exec()
 
 
 # todo: Wenn Tageszeit-Button geklickt wird und vor dem Loslassen weggezogen wird -> Fehlermeldung

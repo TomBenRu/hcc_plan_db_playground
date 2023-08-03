@@ -5,7 +5,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QRect
 from PySide6.QtGui import QAction, QActionGroup, QIcon
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date

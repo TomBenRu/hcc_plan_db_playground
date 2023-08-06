@@ -453,6 +453,7 @@ class FrmLocationPlanPeriod(QWidget):
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
             widget.deleteLater()
+        disconnect_event_button_signals()
         self.set_instance_variables()
         self.set_headers_months()
         self.set_chk_field()

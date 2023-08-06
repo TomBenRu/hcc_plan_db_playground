@@ -1188,16 +1188,9 @@ class AvailDay:
                      f'args: {locals()}')
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         deleted = schemas.AvailDayShow.from_orm(avail_day_db)
-        avail_day_group = avail_day_db.avail_day_group
+        avail_day_group_db = avail_day_db.avail_day_group
         avail_day_db.delete()
-        while True:
-            if not avail_day_group:
-                break
-            if avail_day_group.avail_day_groups.is_empty() and not avail_day_group.actor_plan_period:
-                avail_day_group, avail_day_group_to_delete = avail_day_group.avail_day_group, avail_day_group
-                avail_day_group_to_delete.delete()
-            else:
-                break
+        avail_day_group_db.delete()
         return deleted
 
     @staticmethod

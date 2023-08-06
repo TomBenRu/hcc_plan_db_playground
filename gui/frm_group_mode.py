@@ -194,6 +194,7 @@ class TreeWidget(QTreeWidget):
     def refresh_tree(self):
         self.reload_actor_plan_period()
         self.clear()
+        self.nr_main_groups = 0
         self.setup_tree()
         self.expand_all()
 
@@ -392,16 +393,22 @@ class DlgGroupMode(QDialog):
         if selected_item.childCount() == 0:
             if parent_item := selected_item.parent():
                 parent_item.removeChild(selected_item)
+                parent_avd_group = db_services.AvailDayGroup.get(
+                    parent_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
+                parent_avd_group = db_services.AvailDayGroup.get(
+                    self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+                )
             self.controller.execute(avail_day_group_commands.Delete(data.id))
 
             # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
-            parent_avd_group = db_services.AvailDayGroup.get(
-                parent_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
-            parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+            if parent_item:
+                parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+            else:
+                self.tree_groups.invisibleRootItem().setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
 
     def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
@@ -474,10 +481,13 @@ class DlgGroupMode(QDialog):
         for item in all_items:
             if item.childCount() == 1:
                 if avail_day := item.child(0).data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
-                    QMessageBox.critical(self, 'Gruppenmodus',
-                                         f'Mindestens eine Gruppe hat nur einen Termin: '
-                                         f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
-                                         f'Bitte korrigieren Sie das.')
+                    QMessageBox.critical(
+                        self, 'Gruppenmodus',
+                        f'Mindestens eine Gruppe hat nur einen Termin:\n'
+                        f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
+                        f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
+                        f'Bitte korrigieren Sie das.'
+                    )
                 else:
                     QMessageBox.critical(self, 'Gruppenmodus',
                                          f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
@@ -514,6 +524,9 @@ class DlgGroupMode(QDialog):
 
     def reject(self) -> None:
         self.controller.undo_all()
+        self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
+        if self.alert_solo_childs():  # ...um nach Löschung eines avail_day Solo-Childs zu korrigieren.
+            return
         super().reject()
 
     def reload_actor_plan_period(self):

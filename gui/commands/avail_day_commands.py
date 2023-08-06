@@ -22,7 +22,7 @@ class Create(Command):
 class Delete(Command):
     def __init__(self, avail_day_id: UUID):
         self.avail_day_id = avail_day_id
-        self.deleted_avail_day = db_services.AvailDay.get(avail_day_id)
+        self.avail_day_to_delete = db_services.AvailDay.get(avail_day_id)
 
     def execute(self):
         db_services.AvailDay.delete(self.avail_day_id)
@@ -30,7 +30,7 @@ class Delete(Command):
     def undo(self):
         """todo: Schwierigkeit: Beim Löschen wurden unter Umständen kaskadenweise AvailDayGroups gelöscht.
            diese können auf diese Weise nicht wiederhergestellt werden."""
-        self.avail_day_id = db_services.AvailDay.create(self.deleted_avail_day).id
+        self.avail_day_id = db_services.AvailDay.create(self.avail_day_to_delete).id
 
     def redo(self):
         db_services.AvailDay.delete(self.avail_day_id)

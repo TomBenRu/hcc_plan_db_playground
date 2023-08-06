@@ -867,6 +867,15 @@ class FrmActorPlanPeriod(QWidget):
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
+            self.reload_actor_plan_period()
+            if not (master_group := del_command.avail_day_to_delete.avail_day_group.avail_day_group).actor_plan_period:
+                if len(childs := db_services.AvailDayGroup.get_child_groups_from__parent_group(master_group.id)) < 2:
+                    solo_avail_day = db_services.AvailDay.get_from__avail_day_group(childs[0].id)
+                    QMessageBox.critical(self, 'Verfügbarkeitsgruppen',
+                                         f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
+                                         f'Termin: {solo_avail_day.day.strftime("%d.%m.%y")}\n'
+                                         f'Bitte korrigieren Sie dies im folgenden Dialog.')
+                    self.change_mode__avd_group()
 
         self.reload_actor_plan_period()
         bt.reload_actor_plan_period()

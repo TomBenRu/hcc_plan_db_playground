@@ -520,6 +520,11 @@ class ButtonActorPartnerLocationPref(QPushButton):
                 self.set_stylesheet()
 
 
+def disconnect_avail_button_signals():
+    signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
+    signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
+
+
 class FrmTabActorPlanPeriods(QWidget):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
@@ -635,7 +640,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
         if self.frame_availables:
-            self.disconnect_avail_button_signals()
+            disconnect_avail_button_signals()
             self.delete_actor_plan_period_widgets()
         self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
@@ -643,10 +648,6 @@ class FrmTabActorPlanPeriods(QWidget):
         self.scroll_area_availables.setMinimumHeight(0)
 
         self.info_text_setup()
-
-    def disconnect_avail_button_signals(self):
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
-        signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
 
     def delete_actor_plan_period_widgets(self):
         self.frame_availables.deleteLater()
@@ -808,6 +809,7 @@ class FrmActorPlanPeriod(QWidget):
     def reset_chk_field(self):
         for widget in self.findChildren(QWidget):
             widget.deleteLater()
+        disconnect_avail_button_signals()
         self.set_instance_variables()
         self.set_headers_months()
         self.set_chk_field()

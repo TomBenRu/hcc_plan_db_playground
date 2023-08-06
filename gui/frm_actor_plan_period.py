@@ -632,8 +632,11 @@ class FrmTabActorPlanPeriods(QWidget):
         self.splitter_availables.setSizes([header_width, 10_000])
         self.table_select_actor.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-    def data_setup(self, r, c):
-        self.person_id = UUID(self.table_select_actor.item(r, 0).text())
+    def data_setup(self, row: int = None, col: int = None, person_id: UUID = None):
+        if person_id is None:
+            self.person_id = UUID(self.table_select_actor.item(row, 0).text())
+        else:
+            self.person_id = person_id
         self.person = db_services.Person.get(self.person_id)
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
@@ -683,6 +686,7 @@ class FrmActorPlanPeriod(QWidget):
 
         self.setContentsMargins(0, 0, 0, 10)
 
+        self.parent = parent
         self.layout_controllers = parent.layout_controllers
 
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period)
@@ -807,15 +811,8 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(bt_partner_loc_prefs, row+4, col)
 
     def reset_chk_field(self):
-        for widget in self.findChildren(QWidget):
-            widget.deleteLater()
-        disconnect_avail_button_signals()
-        self.set_instance_variables()
-        self.set_headers_months()
-        self.set_chk_field()
-        QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
-        QTimer.singleShot(50, lambda:  self.get_avail_days())
-
+        self.parent.data_setup(person_id=self.actor_plan_period.person.id)
+        return
     def create_time_of_day_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
         # sourcery skip: inline-immediately-returned-variable
         button = ButtonAvailDay(self, date, time_of_day, 24, self.actor_plan_period, self.save_avail_day)

@@ -282,8 +282,11 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.splitter_events.setSizes([header_width, 10_000])
         self.table_select_location.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-    def data_setup(self, r, c):
-        self.location_id = UUID(self.table_select_location.item(r, 0).text())
+    def data_setup(self, row: int = None, col: int = None, location_id: UUID = None):
+        if location_id is None:
+            self.location_id = UUID(self.table_select_location.item(row, 0).text())
+        else:
+            self.location_id = location_id
         self.location = db_services.LocationOfWork.get(self.location_id)
         location_plan_period = self.location_id__location_pp[str(self.location_id)]
         location_plan_period_show = db_services.LocationPlanPeriod.get(location_plan_period.id)
@@ -334,6 +337,7 @@ class FrmLocationPlanPeriod(QWidget):
 
         self.setContentsMargins(0, 0, 0, 10)
 
+        self.parent = parent
         self.layout_controllers = parent.layout_controllers
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
@@ -451,14 +455,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(bt_flags, row + 4, col)
 
     def reset_chk_field(self):
-        for widget in self.findChildren(QWidget):
-            widget.deleteLater()
-        disconnect_event_button_signals()
-        self.set_instance_variables()
-        self.set_headers_months()
-        self.set_chk_field()
-        QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
-        QTimer.singleShot(50, lambda: self.get_avail_days())
+        self.parent.data_setup(location_id=self.location_plan_period.location_of_work.id)
 
     def create_event_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
         # sourcery skip: inline-immediately-returned-variable

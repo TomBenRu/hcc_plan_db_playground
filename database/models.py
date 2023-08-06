@@ -222,7 +222,7 @@ class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.
 Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     id = PrimaryKey(UUID, auto=True)
-    day = Required(datetime.date)
+    date = Required(datetime.date)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)

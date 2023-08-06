@@ -259,7 +259,7 @@ class AvailDayGroupShow(AvailDayGroup):
 
 
 class AvailDayCreate(BaseModel):
-    day: datetime.date
+    date: datetime.date
     actor_plan_period: ActorPlanPeriod
     time_of_day: 'TimeOfDay'
 

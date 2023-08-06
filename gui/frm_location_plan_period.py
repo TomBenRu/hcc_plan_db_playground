@@ -19,10 +19,10 @@ from gui.observer import signal_handling
 
 
 class ButtonEvent(QPushButton):  # todo: Ändern
-    def __init__(self, parent: QWidget, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
+    def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
         super().__init__(parent)
-        self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
+        self.setObjectName(f'{date}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCheckable(True)
         self.clicked.connect(lambda: slot__event_toggled(self))
@@ -41,7 +41,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
 
         self.location_plan_period = location_plan_period
-        self.day = day
+        self.date = date
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         self.context_menu = QMenu()
@@ -71,7 +71,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.group_mode = group_mode.group_mode
         if self.isChecked():
             if self.group_mode:
-                if group_mode.date and (group_mode.date == self.day
+                if group_mode.date and (group_mode.date == self.date
                                         and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
                     self.setText(f'{group_mode.group_nr:02}' if group_mode.group_nr else None)
             else:
@@ -101,7 +101,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
             event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id,
-                                                                     self.day, self.time_of_day.id)
+                                                                     self.date, self.time_of_day.id)
             event_commands.UpdateTimeOfDay(event, new_time_of_day.id).execute()
 
         self.time_of_day = new_time_of_day
@@ -121,7 +121,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def set_tooltip(self):
         self.setToolTip(f'Rechtsklick:\n'
                         f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
-                        f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
+                        f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
     def reload_location_plan_period(self, location_plan_period: schemas.LocationPlanPeriodShow = None):
@@ -132,11 +132,11 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
 
 class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
-    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
-        self.setObjectName(f'fixed_cast: {day}')
+        self.setObjectName(f'fixed_cast: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -144,11 +144,11 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen
-    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
-        self.setObjectName(f'notes: {day}')
+        self.setObjectName(f'notes: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -156,11 +156,11 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen
 
 
 class ButtonFlags(QPushButton):  # todo: Fertigstellen
-    def __init__(self, parent: QWidget, day: datetime.date, width_height: int,
+    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
-        self.setObjectName(f'flags: {day}')
+        self.setObjectName(f'flags: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -458,9 +458,9 @@ class FrmLocationPlanPeriod(QWidget):
         QTimer.singleShot(50, lambda: self.setFixedHeight(self.layout.sizeHint().height()))
         QTimer.singleShot(50, lambda: self.get_avail_days())
 
-    def create_event_button(self, day: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
+    def create_event_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
         # sourcery skip: inline-immediately-returned-variable
-        button = ButtonEvent(self, day, time_of_day, 24, self.location_plan_period, self.save_event)
+        button = ButtonEvent(self, date, time_of_day, 24, self.location_plan_period, self.save_event)
         return button
 
     def setup_controllers(self):
@@ -470,7 +470,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def save_event(self, bt: ButtonEvent):
 
-        date = bt.day
+        date = bt.date
         t_o_d = bt.time_of_day
         if bt.isChecked():
             existing_events_on_day = [event for event in self.location_plan_period.events

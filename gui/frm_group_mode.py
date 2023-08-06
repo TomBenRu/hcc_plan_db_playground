@@ -32,7 +32,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         text_variation_weight = VARIATION_WEIGHT_TEXT[avail_day_group.variation_weight]
         if avail_day:
             self.setText(0, 'Verfügbar')
-            self.setText(1, avail_day.day.strftime('%d.%m.%y'))
+            self.setText(1, avail_day.date.strftime('%d.%m.%y'))
             self.setText(2, avail_day.time_of_day.name)
             self.setText(4, text_variation_weight)
 
@@ -77,7 +77,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
         # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__AVAIL_DAY
         if my_avail_day:
-            my_value = f'{my_avail_day.day} {my_avail_day.time_of_day.time_of_day_enum.time_index:02}'
+            my_value = f'{my_avail_day.date} {my_avail_day.time_of_day.time_of_day_enum.time_index:02}'
         elif not other_avail_day:
             has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(my_group_id)
             return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
@@ -85,7 +85,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             return sort_order == Qt.SortOrder.AscendingOrder
 
         if other_avail_day:
-            other_value = f'{other_avail_day.day} {other_avail_day.time_of_day.time_of_day_enum.time_index:02}'
+            other_value = f'{other_avail_day.date} {other_avail_day.time_of_day.time_of_day_enum.time_index:02}'
         elif not my_avail_day:
             has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(other_group_id)
             return sort_order == (Qt.SortOrder.AscendingOrder if has_child_groups else Qt.SortOrder.DescendingOrder)
@@ -129,7 +129,7 @@ class TreeWidget(QTreeWidget):
         if avail_day := self.curr_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
             signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                 signal_handling.DataGroupMode(True,
-                                              avail_day.day,
+                                              avail_day.date,
                                               avail_day.time_of_day.time_of_day_enum.time_index,
                                               parent_group_nr)
             )
@@ -162,7 +162,7 @@ class TreeWidget(QTreeWidget):
                     item.configure(child, avail_day, None, parent_group_nr)
                     signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                         signal_handling.DataGroupMode(True,
-                                                      avail_day.day,
+                                                      avail_day.date,
                                                       avail_day.time_of_day.time_of_day_enum.time_index,
                                                       parent_group_nr)
                     )
@@ -179,7 +179,7 @@ class TreeWidget(QTreeWidget):
                 item.configure(child, avail_day, None, 0)
                 signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
                     signal_handling.DataGroupMode(True,
-                                                  avail_day.day,
+                                                  avail_day.date,
                                                   avail_day.time_of_day.time_of_day_enum.time_index,
                                                   0)
                 )
@@ -308,7 +308,7 @@ class DlgAvailDayGroup(QDialog):
                 text_child_group = f'Gruppe {child_group_nr:02}'
             else:
                 avail_day = child_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
-                text_child_group = f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})'
+                text_child_group = f'{avail_day.date.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})'
             lb_slider = QLabel(text_child_group)
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider.setTickInterval(1)
@@ -435,7 +435,7 @@ class DlgGroupMode(QDialog):
         data_avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
         if data_avail_day:
-            print(item.text(0), data_avail_day.day, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
+            print(item.text(0), data_avail_day.date, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
             dlg = DlgAvailDayGroup(self, item)
@@ -485,7 +485,7 @@ class DlgGroupMode(QDialog):
                         self, 'Gruppenmodus',
                         f'Mindestens eine Gruppe hat nur einen Termin:\n'
                         f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
-                        f'{avail_day.day.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
+                        f'{avail_day.date.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
                         f'Bitte korrigieren Sie das.'
                     )
                 else:

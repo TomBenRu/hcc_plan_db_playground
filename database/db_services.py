@@ -1125,10 +1125,10 @@ class AvailDay:
 
     @staticmethod
     @db_session
-    def get_from__actor_pp_date_tod(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
+    def get_from__actor_pp_date_tod(actor_plan_period_id: UUID, date: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_day_db = models.AvailDay.get_for_update(
-            lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.day == day and
+            lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.date == date and
                        ad.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not ad.prep_delete)
         return schemas.AvailDayShow.from_orm(avail_day_db)
 
@@ -1157,7 +1157,7 @@ class AvailDay:
         master_avail_day_group_db = actor_plan_period_db.avail_day_group
         avail_day_group_db = AvailDayGroup.create(avail_day_group_id=master_avail_day_group_db.id)
         avail_day_db = models.AvailDay(
-            day=avail_day.day, time_of_day=models.TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
+            date=avail_day.date, time_of_day=models.TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
             avail_day_group=models.AvailDayGroup.get_for_update(id=avail_day_group_db.id),
             actor_plan_period=actor_plan_period_db)
         return schemas.AvailDayShow.from_orm(avail_day_db)

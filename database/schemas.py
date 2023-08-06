@@ -1,4 +1,4 @@
-from datetime import date, time, datetime
+import datetime
 from typing import Optional, List, Protocol, runtime_checkable, Union
 from uuid import UUID
 
@@ -19,7 +19,7 @@ class ModelWithCombLocPossible(Protocol):
     id: UUID
     project: 'Project'
     combination_locations_possibles: list['CombinationLocationsPossible']
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     def copy(self, deep: bool):
         ...
@@ -29,7 +29,7 @@ class ModelWithCombLocPossible(Protocol):
 class ModelWithActorLocPrefs(Protocol):
     id: UUID
     actor_location_prefs_defaults: List['ActorLocationPref']
-    prep_delete: date
+    prep_delete: datetime.datetime
 
     def copy(self, deep=bool):
         ...
@@ -39,7 +39,7 @@ class ModelWithActorLocPrefs(Protocol):
 class ModelWithPartnerLocPrefs(Protocol):
     id: UUID
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
-    prep_delete: date
+    prep_delete: datetime.datetime
 
     def copy(self, deep=bool):
         ...
@@ -69,7 +69,7 @@ class Person(PersonCreate):
     project: 'Project'
     address: Optional['Address']
     notes: Optional[str]
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -134,7 +134,7 @@ class TeamCreate(BaseModel):
 
 class Team(TeamCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -157,9 +157,9 @@ class TeamShow(Team):
 
 
 class PlanPeriodCreate(BaseModel):
-    start: date
-    end: date
-    deadline: date
+    start: datetime.date
+    end: datetime.date
+    deadline: datetime.date
     notes: Optional[str]
     remainder: bool
     team: Team
@@ -167,7 +167,7 @@ class PlanPeriodCreate(BaseModel):
 
 class PlanPeriod(PlanPeriodCreate):
     id: UUID
-    prep_delete: Optional[date]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -201,7 +201,7 @@ class ActorPlanPeriodUpdate(BaseModel):
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -244,8 +244,8 @@ class AvailDayGroupCreate(BaseModel):
 
 class AvailDayGroup(AvailDayGroupCreate):
     id: UUID
-    created_at: datetime
-    last_modified: datetime
+    created_at: datetime.datetime
+    last_modified: datetime.datetime
     nr_avail_day_groups: Optional[int]
 
     class Config:
@@ -259,14 +259,14 @@ class AvailDayGroupShow(AvailDayGroup):
 
 
 class AvailDayCreate(BaseModel):
-    day: date
+    day: datetime.date
     actor_plan_period: ActorPlanPeriod
     time_of_day: 'TimeOfDay'
 
 
 class AvailDay(AvailDayCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
     project: Project
     avail_day_group: AvailDayGroup
     time_of_days: List['TimeOfDay']
@@ -301,13 +301,13 @@ class TimeOfDayCreate(BaseModel):
     name: str
     time_of_day_enum: 'TimeOfDayEnum'
     project_standard: Optional[Project]
-    start: time
-    end: time
+    start: datetime.time
+    end: datetime.time
 
 
 class TimeOfDay(TimeOfDayCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
     project: Project
     project_standard: Optional[Project]
 
@@ -369,7 +369,7 @@ class LocationOfWork(LocationOfWorkCreate):
     notes: Optional[str]
     address: Optional['Address']
     project: Project
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -391,15 +391,15 @@ class LocationOfWorkShow(LocationOfWork):
 
 
 class TeamActorAssignCreate(BaseModel):
-    start: Optional[date]
-    end: Optional[date]
+    start: Optional[datetime.date]
+    end: Optional[datetime.date]
     person: Person
     team: Team
 
 
 class TeamActorAssign(TeamActorAssignCreate):
     id: UUID
-    start: date
+    start: datetime.date
 
     class Config:
         orm_mode = True
@@ -413,15 +413,15 @@ class TeamActorAssignShow(TeamActorAssign):
 
 
 class TeamLocationAssignCreate(BaseModel):
-    start: Optional[date]
-    end: Optional[date]
+    start: Optional[datetime.date]
+    end: Optional[datetime.date]
     location_of_work: LocationOfWork
     team: Team
 
 
 class TeamLocationAssign(TeamLocationAssignCreate):
     id: UUID
-    start: date
+    start: datetime.date
 
     class Config:
         orm_mode = True
@@ -458,7 +458,7 @@ class EventCreate(BaseModel):
     name: Optional[str]
     notes: Optional[str]
     location_plan_period: 'LocationPlanPeriod'
-    date: date
+    date: datetime.date
     time_of_day: TimeOfDay
     nr_actors: Optional[int] = 2
     fixed_cast: Optional[str]
@@ -467,7 +467,7 @@ class EventCreate(BaseModel):
 
 class Event(EventCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     @validator('flags', pre=True, allow_reuse=True)
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
@@ -584,7 +584,7 @@ class ActorPartnerLocationPrefCreate(BaseModel):
 class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
     id: UUID
     score: float
-    prep_delete: Optional[date]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -612,7 +612,7 @@ class ActorLocationPrefCreate(BaseModel):
 class ActorLocationPref(ActorLocationPrefCreate):
     id: UUID
     project: Project
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True
@@ -650,7 +650,7 @@ class CombinationLocationsPossibleCreate(BaseModel):
 
 class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
     id: UUID
-    prep_delete: Optional[datetime]
+    prep_delete: Optional[datetime.datetime]
 
     @validator('locations_of_work', pre=True, allow_reuse=True)
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension

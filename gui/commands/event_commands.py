@@ -53,7 +53,7 @@ class UpdateFixedCast(Command):
 class Delete(Command):
     def __init__(self, event_id):
         self.event_id = event_id
-        self.event = db_services.Event.get(event_id)
+        self.event_to_delete = db_services.Event.get(event_id)
 
     def execute(self):
         db_services.Event.delete(self.event_id)
@@ -61,7 +61,7 @@ class Delete(Command):
     def undo(self):
         """todo: Schwierigkeit: Beim Löschen wurden unter Umständen kaskadenweise EventGroups gelöscht.
            diese können auf diese Weise nicht wiederhergestellt werden."""
-        self.event_id = db_services.Event.create(self.event)
+        self.event_id = db_services.Event.create(self.event_to_delete)
 
     def redo(self):
         db_services.Event.delete(self.event_id)

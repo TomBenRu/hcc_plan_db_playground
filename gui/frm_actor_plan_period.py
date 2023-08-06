@@ -863,6 +863,8 @@ class FrmActorPlanPeriod(QWidget):
                         avail_day_commands.PutInActorPartnerLocationPref(created_avail_day.id, partner_loc_pref_existing.id)
                     )
 
+                self.reload_actor_plan_period()
+
         else:
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
@@ -877,7 +879,6 @@ class FrmActorPlanPeriod(QWidget):
                                          f'Bitte korrigieren Sie dies im folgenden Dialog.')
                     self.change_mode__avd_group()
 
-        self.reload_actor_plan_period()
         bt.reload_actor_plan_period()
         #events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(

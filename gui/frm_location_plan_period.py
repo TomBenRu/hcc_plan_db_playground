@@ -465,7 +465,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def setup_controllers(self):
         """Buttons im Bereich self.layout_controllers"""
-        self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
+        self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__event_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
     def save_event(self, bt: ButtonEvent):
@@ -488,19 +488,29 @@ class FrmLocationPlanPeriod(QWidget):
                self.controller.execute(
                    event_commands.UpdateFixedCast(save_command.created_event, existing_events_on_day[0].fixed_cast))
 
+            self.reload_location_plan_period()
+
         else:
             event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
             del_command = event_commands.Delete(event.id)
             self.controller.execute(del_command)
+            self.reload_location_plan_period()
+            if not (master_group := del_command.event_to_delete.event_group.event_group).location_plan_period:
+                if len(childs := db_services.EventGroup.get_child_groups_from__parent_group(master_group.id)) < 2:
+                    solo_event = childs[0].event
+                    QMessageBox.critical(self, 'Verfügbarkeitsgruppen',
+                                         f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
+                                         f'Termin: {solo_event.date.strftime("%d.%m.%y")}\n'
+                                         f'Bitte korrigieren Sie dies im folgenden Dialog.')
+                    self.change_mode__event_group()
 
-        self.reload_location_plan_period()
         bt.reload_location_plan_period()
         # events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
         signal_handling.handler_location_plan_period.reload_location_pp__events(
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    def change_mode__avd_group(self):  # todo: noch implementieren
+    def change_mode__event_group(self):  # todo: noch implementieren
         return
 
         dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)

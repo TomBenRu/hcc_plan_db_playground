@@ -819,6 +819,13 @@ class EventGroup:
 
         return schemas.EventGroupShow.from_orm(new_event_group_db)
 
+    @staticmethod
+    @db_session
+    def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGroupShow]:
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+
+        return [schemas.EventGroupShow.from_orm(e) for e in event_group_db.event_groups]
+
 
 class Event:
     @staticmethod
@@ -888,14 +895,10 @@ class Event:
                      f'args: {locals()}')
         event_db = models.Event.get_for_update(id=event_id)
         deleted = schemas.EventShow.from_orm(event_db)
-        event_group = event_db.event_group
+        event_group_db = event_db.event_group
         event_db.delete()
-        while event_group:
-            if event_group.event_groups.is_empty() and not event_group.location_plan_period:
-                event_group, event_group_to_delete = event_group.event_group, event_group
-                event_group_to_delete.delete()
-            else:
-                break
+        event_group_db.delete()
+
         return deleted
 
 

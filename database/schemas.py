@@ -478,6 +478,7 @@ class Event(EventCreate):
 
 
 class EventShow(Event):
+    event_group: 'EventGroup'
 
     @validator('flags', pre=True, allow_reuse=True)
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension

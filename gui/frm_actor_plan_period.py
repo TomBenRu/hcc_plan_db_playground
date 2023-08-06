@@ -24,6 +24,11 @@ from gui.observer import events, signal_handling
 from gui.tools import clear_layout
 
 
+def disconnect_avail_button_signals():
+    signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
+    signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
+
+
 class ButtonAvailDay(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  actor_plan_period: schemas.ActorPlanPeriodShow, slot__avail_day_toggled: Callable):
@@ -518,11 +523,6 @@ class ButtonActorPartnerLocationPref(QPushButton):
                 else:
                     self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
                 self.set_stylesheet()
-
-
-def disconnect_avail_button_signals():
-    signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
-    signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
 
 
 class FrmTabActorPlanPeriods(QWidget):

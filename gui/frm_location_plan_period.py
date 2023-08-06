@@ -18,6 +18,14 @@ from gui.commands import command_base_classes, event_commands
 from gui.observer import signal_handling
 
 
+def disconnect_event_button_signals():
+    try:
+        signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.disconnect()
+        signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect()
+    except Exception as e:
+        print(f'Fehler: {e}')
+
+
 class ButtonEvent(QPushButton):  # todo: Ändern
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
@@ -283,7 +291,7 @@ class FrmTabLocationPlanPeriods(QWidget):
                                    f'{location_plan_period_show.location_of_work.address.city}')
 
         if self.frame_events:
-            self.disconnect_event_button_signals()
+            disconnect_event_button_signals()
             self.delete_location_plan_period_widgets()
         self.frame_events = FrmLocationPlanPeriod(self, location_plan_period_show, self.side_menu)
         self.scroll_area_events.setWidget(self.frame_events)
@@ -292,13 +300,6 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.scroll_area_events.setMinimumHeight(0)
 
         self.info_text_setup()
-
-    def disconnect_event_button_signals(self):
-        try:
-            signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.disconnect()
-            signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect()
-        except Exception as e:
-            print(f'Fehler: {e}')
 
     def delete_location_plan_period_widgets(self):
         self.frame_events.deleteLater()

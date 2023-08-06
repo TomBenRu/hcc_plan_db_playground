@@ -106,7 +106,7 @@ class ButtonAvailDay(QPushButton):
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
-            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
+            avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
             avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
 
         self.time_of_day = new_time_of_day
@@ -864,7 +864,7 @@ class FrmActorPlanPeriod(QWidget):
                     )
 
         else:
-            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
+            avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
 

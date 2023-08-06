@@ -28,9 +28,9 @@ class Delete(Command):
         db_services.AvailDay.delete(self.avail_day_id)
 
     def undo(self):
-        """Schwierigkeit: Beim Löschen wurden unter Umständen caskadenweise AvailDayGroups gelöscht.
-        diese können auf diese Weise nicht wiederhergestellt werden."""
-        db_services.AvailDay.create(self.deleted_avail_day)
+        """todo: Schwierigkeit: Beim Löschen wurden unter Umständen kaskadenweise AvailDayGroups gelöscht.
+           diese können auf diese Weise nicht wiederhergestellt werden."""
+        self.avail_day_id = db_services.AvailDay.create(self.deleted_avail_day).id
 
     def redo(self):
         db_services.AvailDay.delete(self.avail_day_id)

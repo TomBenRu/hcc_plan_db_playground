@@ -458,10 +458,9 @@ class EventCreate(BaseModel):
     name: Optional[str]
     notes: Optional[str]
     location_plan_period: 'LocationPlanPeriod'
-    event_group: 'EventGroup'
     date: date
     time_of_day: TimeOfDay
-    nr_actors: Optional[int]
+    nr_actors: Optional[int] = 2
     fixed_cast: Optional[str]
     flags: List['Flag']
 
@@ -537,8 +536,9 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     time_of_days: List[TimeOfDay]
     time_of_day_standards: List[TimeOfDay]
     team: Team
+    events: List[Event]
 
-    @validator('time_of_days', 'time_of_day_standards', pre=True, allow_reuse=True)
+    @validator('time_of_days', 'time_of_day_standards', 'events', pre=True, allow_reuse=True)
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -728,7 +728,9 @@ LocationOfWorkCreate.update_forward_refs(**locals())
 LocationOfWork.update_forward_refs(**locals())
 LocationOfWorkShow.update_forward_refs(**locals())
 TeamShow.update_forward_refs(**locals())
+Event.update_forward_refs(**locals())
 EventCreate.update_forward_refs(**locals())
+EventShow.update_forward_refs(**locals())
 EventGroupCreate.update_forward_refs(**locals())
 EventGroup.update_forward_refs(**locals())
 EventGroupShow.update_forward_refs(**locals())

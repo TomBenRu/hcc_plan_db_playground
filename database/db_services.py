@@ -834,6 +834,69 @@ class Event:
 
         return [schemas.EventShow.from_orm(e) for e in events_db]
 
+    @staticmethod
+    @db_session
+    def get_from__location_pp_date_tod(location_plan_period_id: UUID, date: datetime.date,
+                                    time_of_day_id) -> schemas.EventShow:
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        event_db = models.Event.get_for_update(
+            lambda e: e.location_plan_period == location_plan_period_db and e.date == date and
+                       e.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not e.prep_delete)
+
+        return schemas.EventShow.from_orm(event_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(event: schemas.EventCreate) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=event.location_plan_period.id)
+        master_event_group_db = location_plan_period_db.event_group
+        event_group_db = EventGroup.create(event_group_id=master_event_group_db.id)
+        event_db = models.Event(
+            date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
+            nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group_db.id),
+            location_plan_period=location_plan_period_db, fixed_cast=event.fixed_cast)
+        return schemas.EventShow.from_orm(event_db)
+
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_time_of_day(event_id: UUID, new_time_of_day_id: UUID) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_db = models.Event.get_for_update(id=event_id)
+        new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
+        event_db.time_of_day = new_time_of_day_db
+
+        return schemas.EventShow.from_orm(event_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_fixed_cast(event_id: UUID, fixed_cast: str) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_db = models.Event.get_for_update(id=event_id)
+        event_db.fixed_cast = fixed_cast
+
+        return schemas.EventShow.from_orm(event_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(event_id: UUID) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_db = models.Event.get_for_update(id=event_id)
+        deleted = schemas.EventShow.from_orm(event_db)
+        event_group = event_db.event_group
+        event_db.delete()
+        while event_group:
+            if event_group.event_groups.is_empty() and not event_group.location_plan_period:
+                event_group, event_group_to_delete = event_group.event_group, event_group
+                event_group_to_delete.delete()
+            else:
+                break
+        return deleted
 
 
 class ActorPlanPeriod:
@@ -1059,7 +1122,7 @@ class AvailDay:
 
     @staticmethod
     @db_session
-    def get_from__pp_date_tod(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
+    def get_from__actor_pp_date_tod(actor_plan_period_id: UUID, day: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_day_db = models.AvailDay.get_for_update(
             lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.day == day and

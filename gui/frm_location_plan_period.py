@@ -1,27 +1,31 @@
 import datetime
+import functools
 from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
-    QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication
+    QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
+    QMenu
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
-from gui.commands import command_base_classes
+from gui.actions import Action
+from gui.commands import command_base_classes, event_commands
 from gui.observer import signal_handling
 
 
 class ButtonEvent(QPushButton):  # todo: Ändern
     def __init__(self, parent: QWidget, day: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow, slot__avail_day_toggled: Callable):
+                 location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
         super().__init__(parent)
         self.setObjectName(f'{day}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCheckable(True)
-    #     self.clicked.connect(lambda: slot__avail_day_toggled(self))
+        self.clicked.connect(lambda: slot__event_toggled(self))
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -37,19 +41,18 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
 
         self.location_plan_period = location_plan_period
-    #     self.slot__avail_day_toggled = slot__avail_day_toggled
         self.day = day
         self.time_of_day = time_of_day
-    #     self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-    #     self.context_menu = QMenu()
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        self.context_menu = QMenu()
 
         self.set_stylesheet()
-    #
-    #     self.actions = []
-    #     self.create_actions()
-    #     self.context_menu.addActions(self.actions)
-    #     self.set_tooltip()
-    #
+
+        self.actions = []
+        self.create_actions()
+        self.context_menu.addActions(self.actions)
+        self.set_tooltip()
+
     def set_stylesheet(self):
         if self.time_of_day.time_of_day_enum.time_index == 1:
             self.setStyleSheet("QPushButton {background-color: #cae4f4}"
@@ -78,47 +81,49 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         else:
             self.setEnabled(True)
 
-    # def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
-    #     actor_plan_period_time_of_days = sorted(
-    #         [t_o_d for t_o_d in self.actor_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
-    #     return [t_o_d for t_o_d in actor_plan_period_time_of_days
-    #             if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
-    #
-    # def contextMenuEvent(self, pos):
-    #     self.context_menu.exec(pos.globalPos())
-    #
-    # def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
-    #     self.actor_plan_period = actor_plan_period
-    #     self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-    #     for action in self.context_menu.actions():
-    #         self.context_menu.removeAction(action)
-    #     self.create_actions()
-    #     self.context_menu.addActions(self.actions)
-    #
-    # def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
-    #     if self.isChecked():
-    #         avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, self.day, self.time_of_day.id)
-    #         avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
-    #
-    #     self.time_of_day = new_time_of_day
-    #     self.reload_actor_plan_period()
-    #     self.create_actions()
-    #     self.reset_context_menu(self.actor_plan_period)
-    #     self.set_tooltip()
-    #     signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
-    # def create_actions(self):
-    #     self.actions = [
-    #         Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
-    #                f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-    #                functools.partial(self.set_new_time_of_day, t))
-    #         for t in self.t_o_d_for_selection]
-    #
-    # def set_tooltip(self):
-    #     self.setToolTip(f'Rechtsklick:\n'
-    #                     f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
-    #                     f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
-    #                     f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
-    #
+    def get_t_o_d_for_selection(self) -> list[schemas.TimeOfDay]:
+        location_plan_period_time_of_days = sorted(
+            [t_o_d for t_o_d in self.location_plan_period.time_of_days if not t_o_d.prep_delete], key=lambda x: x.start)
+        return [t_o_d for t_o_d in location_plan_period_time_of_days
+                if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
+
+    def contextMenuEvent(self, pos):
+        self.context_menu.exec(pos.globalPos())
+
+    def reset_context_menu(self, location_plan_period: schemas.LocationPlanPeriodShow):
+        self.location_plan_period = location_plan_period
+        self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        for action in self.context_menu.actions():
+            self.context_menu.removeAction(action)
+        self.create_actions()
+        self.context_menu.addActions(self.actions)
+
+    def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
+        if self.isChecked():
+            event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id,
+                                                                     self.day, self.time_of_day.id)
+            event_commands.UpdateTimeOfDay(event, new_time_of_day.id).execute()
+
+        self.time_of_day = new_time_of_day
+        self.reload_location_plan_period()
+        self.create_actions()
+        self.reset_context_menu(self.location_plan_period)
+        self.set_tooltip()
+        signal_handling.handler_location_plan_period.reload_location_pp__frm_location_plan_period()
+
+    def create_actions(self):
+        self.actions = [
+            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
+                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                   functools.partial(self.set_new_time_of_day, t))
+            for t in self.t_o_d_for_selection]
+
+    def set_tooltip(self):
+        self.setToolTip(f'Rechtsklick:\n'
+                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
+                        f'am {self.day} wechseln.\nAktuell: {self.time_of_day.name} '
+                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+
     def reload_location_plan_period(self, location_plan_period: schemas.LocationPlanPeriodShow = None):
         if location_plan_period:
             self.location_plan_period = location_plan_period
@@ -464,58 +469,36 @@ class FrmLocationPlanPeriod(QWidget):
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
     def save_event(self, bt: ButtonEvent):  # todo: noch implementieren
-        return
+
         date = bt.day
         t_o_d = bt.time_of_day
         if bt.isChecked():
-            existing_avds_on_day = [avd for avd in self.actor_plan_period.avail_days
-                                    if avd.day == date and not avd.prep_delete]
-            avail_day_new = schemas.AvailDayCreate(day=date, actor_plan_period=self.actor_plan_period,
-                                                   time_of_day=t_o_d)
-            save_command = avail_day_commands.Create(avail_day_new)
-            self.controller_avail_days.execute(save_command)
+            existing_events_on_day = [event for event in self.location_plan_period.events
+                                    if event.date == date and not event.prep_delete]
+            event_new = schemas.EventCreate(date=date, location_plan_period=self.location_plan_period,
+                                                   time_of_day=t_o_d, flags=[])
+            save_command = event_commands.Create(event_new)
+            self.controller.execute(save_command)
 
-            '''Falls es an diesem Tage schon einen oder mehrere AvailDays gibt,
-            werden die combination_locations_possibles vom ersten gefundenen AvailDay übernommen, weil, davon ausgegangen
-            wird, dass schon evt. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
-            created_avail_day = save_command.created_avail_day
-            if existing_avds_on_day:
-                for comb in created_avail_day.combination_locations_possibles:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveCombLocPossible(created_avail_day.id, comb.id))
-                for comb_existing in existing_avds_on_day[0].combination_locations_possibles:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInCombLocPossible(created_avail_day.id, comb_existing.id))
-                for loc_pref in created_avail_day.actor_location_prefs_defaults:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveActorLocationPref(created_avail_day.id, loc_pref.id))
-                for loc_pref_existing in existing_avds_on_day[0].actor_location_prefs_defaults:
-                    if loc_pref_existing.prep_delete:
-                        continue
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInActorLocationPref(created_avail_day.id, loc_pref_existing.id))
-                for partner_loc_pref in created_avail_day.actor_partner_location_prefs_defaults:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveActorPartnerLocationPref(created_avail_day.id, partner_loc_pref.id)
-                    )
-                for partner_loc_pref_existing in existing_avds_on_day[0].actor_partner_location_prefs_defaults:
-                    if partner_loc_pref_existing.prep_delete:
-                        continue
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInActorPartnerLocationPref(created_avail_day.id,
-                                                                         partner_loc_pref_existing.id)
-                    )
+            '''Falls es an diesem Tage schon einen oder mehrere Events gibt,
+            werden die fixed_casts vom ersten gefundenen Event übernommen, weil, davon ausgegangen
+            wird, dass schon evt. geänderte fixed_casts für alle Events an diesem Tag gelten.'''
+            created_event = save_command.created_event
+            if existing_events_on_day:
+               self.controller.execute(
+                   event_commands.UpdateFixedCast(save_command.created_event, existing_events_on_day[0].fixed_cast))
 
         else:
-            avail_day = db_services.AvailDay.get_from__pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
-            del_command = avail_day_commands.Delete(avail_day.id)
-            self.controller_avail_days.execute(del_command)
+            event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
+            del_command = event_commands.Delete(event.id)
+            self.controller.execute(del_command)
 
-        self.reload_actor_plan_period()
-        bt.reload_actor_plan_period()
+        self.reload_location_plan_period()
+        bt.reload_location_plan_period()
         # events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
+        signal_handling.handler_location_plan_period.reload_location_pp__events(
+            signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
+        )
 
     def change_mode__avd_group(self):  # todo: noch implementieren
         return
@@ -536,7 +519,7 @@ class FrmLocationPlanPeriod(QWidget):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
                       if not e.prep_delete)
         for event in events:
-            button: ButtonEvent = self.findChild(ButtonEvent, f'{event.day}-{event.time_of_day.time_of_day_enum.name}')
+            button: ButtonEvent = self.findChild(ButtonEvent, f'{event.date}-{event.time_of_day.time_of_day_enum.name}')
             if not button:
                 QMessageBox.critical(self, 'Fehlende Standards',
                                      f'Fehler:\n'

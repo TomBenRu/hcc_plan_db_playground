@@ -13,6 +13,12 @@ class DataActorPPWithDate:
 
 
 @dataclass
+class DataLocationPPWithDate:
+    location_plan_period: schemas.LocationPlanPeriodShow
+    date: datetime.date | None = None
+
+
+@dataclass
 class DataGroupMode:
     group_mode: bool
     date: datetime.date | None = None

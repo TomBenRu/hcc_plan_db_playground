@@ -468,7 +468,7 @@ class FrmLocationPlanPeriod(QWidget):
         self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
-    def save_event(self, bt: ButtonEvent):  # todo: noch implementieren
+    def save_event(self, bt: ButtonEvent):
 
         date = bt.day
         t_o_d = bt.time_of_day

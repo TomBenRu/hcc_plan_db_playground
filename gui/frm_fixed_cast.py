@@ -1,19 +1,21 @@
+import datetime
 from typing import Literal
 from uuid import UUID
 
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
-    QDialogButtonBox, QMessageBox
+    QDialogButtonBox, QMessageBox, QDateEdit
 
 from database import db_services, schemas
-from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team
+from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team, \
+    get_persons_of_team_at_date, get_curr_team_of_location_at_date
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmFixedCast(QDialog):
     def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast,
-                 team: schemas.TeamShow):
+                 location_of_work: schemas.LocationOfWorkShow):
         super().__init__(parent)
         self.setWindowTitle('Fixed Cast')
         self.col_operator_betw_rows = 2
@@ -24,31 +26,37 @@ class FrmFixedCast(QDialog):
         self.width_operator_betw_rows = 50
 
         self.object_with_fixed_cast = schema_with_fixed_cast_field
+        self.locatin_of_work = location_of_work
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
         self.object_name_operatior_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': 'und', 'or': 'oder'}
 
-        self.persons = sorted(get_curr_persons_of_team(team), key=lambda p: p.f_name)
+        self.persons: list[schemas.Person] = []
 
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.layout = QVBoxLayout(self)
 
         if isinstance(schema_with_fixed_cast_field, (schemas.LocationOfWork, schemas.Event)):
             additional_text = f'die Einrichtung "{schema_with_fixed_cast_field.name}"'
         elif isinstance(schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
             additional_text = f'die Planungsperiode "{schema_with_fixed_cast_field.start}-{schema_with_fixed_cast_field.end}"'
         else:
-            QMessageBox.critical(self, 'Fehler Fixed Cast', f'Schema:{type(schema_with_fixed_cast_field)}')
+            raise TypeError(f'{type(schema_with_fixed_cast_field)} ist kein erlaubtes Schema.')
 
         self.lb_title = QLabel(f'Hier können Sie definieren, welche Besetzung für {additional_text} '
                                f'grundsätzlich erforderlich ist.\n'
-                               f'Zum starten bitte auf das Plus-Symbol klicken')
+                               f'Zum starten bitte auf das Plus-Symbol klicken\n'
+                               f'Die Besetzung gilt allgemein datumsunabhängig, egal welches Datum ausgewählt ist.\n'
+                               f'Die Auswahl des Datums ist dafür da, dass in sich in naher Zukunft ändernde '
+                               f'Personalien berücksichtigt werden können.')
         self.lb_title.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.lb_title.setFixedHeight(40)
         self.layout.addWidget(self.lb_title)
 
+        self.layout_date = QHBoxLayout()
+        self.layout_date.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.layout.addLayout(self.layout_date)
         self.layout_grid = QGridLayout()
         self.layout.addLayout(self.layout_grid)
 
@@ -61,12 +69,27 @@ class FrmFixedCast(QDialog):
         self.spacer_widget.setObjectName('spacer_widget')
         self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
 
+        self.lb_date = QLabel('Datum:')
+        self.de_date = QDateEdit()
+        self.de_date.setFixedWidth(120)
+        self.de_date.dateChanged.connect(self.date_changed)
+        self.de_date.setDate(datetime.date.today())
+        self.de_date.setMinimumDate(datetime.date.today())
+        self.layout_date.addWidget(self.lb_date)
+        self.layout_date.addWidget(self.de_date)
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.save_fixed_cast)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
-        self.plot_eval_str()
+        # self.plot_eval_str()
+
+    def date_changed(self):
+        date = self.de_date.date().toPython()
+        team = get_curr_team_of_location_at_date(self.locatin_of_work, date)
+        self.persons = sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
+        self.reset_fixed_cast_plot()
 
     def save_fixed_cast(self):
         result_list = self.grid_to_list()
@@ -218,11 +241,18 @@ class FrmFixedCast(QDialog):
         for data, text in self.data_text_operator.items():
             combo_operator.addItem(text, data)
 
+    def reset_fixed_cast_plot(self):
+        for i in range(self.layout_grid.count()):
+            self.layout_grid.itemAt(i).widget().deleteLater()
+        self.plot_eval_str()
+
     def plot_eval_str(self):
         if not self.object_with_fixed_cast.fixed_cast:
             return
         form = self.backtranslate_eval_str()
-        for row_idx, row in enumerate(form):
+        form_cleaned = self.proof_form_to_not_assigned_persons(form)
+
+        for row_idx, row in enumerate(form_cleaned):
             if type(row) == str:
                 cb_operator = self.create_combo_operator('between')
                 cb_operator.setCurrentIndex(cb_operator.findData(row))
@@ -264,3 +294,28 @@ class FrmFixedCast(QDialog):
             else:
                 form.append(list(val))
         return form
+
+    def proof_form_to_not_assigned_persons(self, form: list[list | str]):
+        person_ids = [p.id for p in self.persons]
+        for i, expression in enumerate(form):
+            if isinstance(expression, str):
+                continue
+            for j, value in enumerate(expression):
+                if isinstance(value, UUID) and value not in person_ids:
+                    expression[j] = None
+                    if j > 0:
+                        expression[j - 1] = None
+            form[i] = [v for v in expression if v is not None]
+            if form[i] and isinstance(form[i][0], str):
+                form[i].pop(0)
+        for i, expression in enumerate(form):
+            if isinstance(expression, list) and not expression:
+                form[i] = None
+                if i > 0:
+                    form[i - 1] = None
+        form = [e for e in form if e is not None]
+        if isinstance(form[0], str):
+            form.pop(0)
+        return form
+
+

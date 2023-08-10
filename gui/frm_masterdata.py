@@ -853,12 +853,7 @@ class FrmLocationModify(FrmLocationData):
         return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
 
     def edit_fixed_cast(self):
-        if not (team := get_curr_team_of_location(self.location_of_work)):
-            QMessageBox.critical(self, 'Besetzung', 'Sie mussen diese Einrichtung zuerst einem Team zuteilen,'
-                                                    'um eine Besetzungsstrategie zu definieren.')
-            return
-        team = db_services.Team.get(team.id)
-        dlg = FrmFixedCast(self, self.location_of_work, team)
+        dlg = FrmFixedCast(self, self.location_of_work, self.location_of_work)
         dlg.exec()
 
     def autofill(self):

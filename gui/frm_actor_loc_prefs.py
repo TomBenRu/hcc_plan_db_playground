@@ -21,7 +21,7 @@ class DlgActorLocPref(QDialog):
 
         self.setWindowTitle('Einrichtungspräferenzen')
 
-        self.curr_model: schemas.ModelWithActorLocPrefs = curr_model.copy(deep=True)
+        self.curr_model: schemas.ModelWithActorLocPrefs = curr_model.model_copy(deep=True)
         self.parent_model = parent_model
         self.team_at_date_factory = team_at_date_factory
         self.curr_team: schemas.Team | None = None

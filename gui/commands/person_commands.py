@@ -8,7 +8,7 @@ from gui.commands.command_base_classes import Command, ContrExecUndoRedo
 
 class Update(Command):
     def __init__(self, person: schemas.PersonShow):
-        self.new_data = person.copy()
+        self.new_data = person.model_copy()
         self.old_data = db_services.Person.get(person.id)
 
     def execute(self):

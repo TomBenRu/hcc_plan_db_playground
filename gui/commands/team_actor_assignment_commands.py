@@ -49,7 +49,7 @@ class Delete(Command):
         db_services.TeamActorAssign.delete(self.assignment_id)
 
     def undo(self):
-        db_services.TeamActorAssign.create(schemas.TeamActorAssignCreate(**self.assignment.dict()), self.assignment_id)
+        db_services.TeamActorAssign.create(schemas.TeamActorAssignCreate(**self.assignment.model_dump()), self.assignment_id)
 
     def redo(self):
         self.execute()

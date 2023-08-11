@@ -6,7 +6,7 @@ from gui.commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, avail_day: schemas.AvailDayCreate):
-        self.avail_day = avail_day.copy()
+        self.avail_day = avail_day.model_copy()
         self.created_avail_day: schemas.AvailDayShow | None = None
 
     def execute(self):

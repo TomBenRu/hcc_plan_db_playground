@@ -412,7 +412,7 @@ class FrmPersonModify(FrmPersonData):
         else:
             self.person.time_of_days = [t for t in self.person.time_of_days if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
+            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
             create_time_of_day()
 
         self.person = db_services.Person.get(self.person.id)
@@ -462,7 +462,7 @@ class FrmPersonModify(FrmPersonData):
                 curr_loc_pref.score = score
                 self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
                 if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
                     create_command = actor_loc_pref_commands.Create(new_pref)
                     self.controller.execute(create_command)
                     created_pref_id = create_command.get_created_actor_loc_pref()
@@ -799,7 +799,7 @@ class FrmLocationModify(FrmLocationData):
                                                   if t.id != dlg.curr_time_of_day.id]
             self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
                                                                                       dlg.curr_time_of_day.id))
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
+            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
             create_time_of_day()
 
         self.location_of_work = db_services.Person.get(self.location_of_work.id)

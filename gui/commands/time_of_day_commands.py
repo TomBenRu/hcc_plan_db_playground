@@ -7,7 +7,7 @@ from gui.commands.command_base_classes import Command
 class Create(Command):
     def __init__(self, time_of_day: schemas.TimeOfDayCreate, project_id: UUID):
         self.project_id = project_id
-        self.new_data = time_of_day.copy()
+        self.new_data = time_of_day.model_copy()
         self.time_of_day_id: UUID | None = None
 
     def execute(self):
@@ -26,7 +26,7 @@ class Create(Command):
 
 class Update(Command):
     def __init__(self, time_of_day: schemas.TimeOfDay):
-        self.new_data = time_of_day.copy()
+        self.new_data = time_of_day.model_copy()
         self.old_data = db_services.TimeOfDay.get(time_of_day.id)
 
     def execute(self):

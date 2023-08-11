@@ -42,7 +42,7 @@ class SettingsProject(QDialog):
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
-        self.color_widgets = [QWidget() for _ in self.project.excel_export_settings.dict(exclude={'id'})]
+        self.color_widgets = [QWidget() for _ in self.project.excel_export_settings.model_dump(exclude={'id'})]
 
         self.bt_name_save = QPushButton('Speichern', clicked=self.save_name)
         self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
@@ -114,7 +114,7 @@ class SettingsProject(QDialog):
 
     def fill_excel_colors(self):
         if self.project.excel_export_settings:
-            for i, color in enumerate(self.project.excel_export_settings.dict(exclude={'id'}).values()):
+            for i, color in enumerate(self.project.excel_export_settings.model_dump(exclude={'id'}).values()):
                 self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
 
     def save_name(self):
@@ -169,7 +169,7 @@ class SettingsProject(QDialog):
         else:
             self.project.time_of_days = [t for t in self.project.time_of_days if not t.id == dlg.curr_time_of_day.id]
             controller.execute(project_commands.RemoveTimeOfDayStandard(self.project_id, dlg.curr_time_of_day.id))
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
+            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
             create_time_of_day()
 
         self.project = db_services.Project.get(self.project_id)

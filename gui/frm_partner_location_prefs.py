@@ -98,7 +98,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
                  partner_id: UUID, all_locations: list[schemas.LocationOfWork]):
         super().__init__(parent)
 
-        self.person = person.copy(deep=True)
+        self.person = person.model_copy(deep=True)
         self.curr_model = curr_model
         self.partner_id = partner_id
         self.all_locations = all_locations
@@ -180,7 +180,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
 
         if value != 2:
             if location.id in self.dict_location_id__apl:
-                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
                 new_apl.score = value / 2
             else:
                 partner = db_services.Person.get(self.partner_id)
@@ -203,7 +203,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
                  location_id: UUID, all_partners: list[schemas.Person]):
         super().__init__(parent)
 
-        self.person = person.copy(deep=True)
+        self.person = person.model_copy(deep=True)
         self.curr_model = curr_model
         self.location_id = location_id
         self.all_partners = all_partners
@@ -285,7 +285,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
 
         if value != 2:
             if partner.id in self.dict_partner_id__apl:
-                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
                 new_apl.score = value / 2
             else:
                 location = db_services.LocationOfWork.get(self.location_id)
@@ -347,7 +347,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.person = person
-        self.curr_model: schemas.ModelWithPartnerLocPrefs = curr_model.copy(deep=True)
+        self.curr_model: schemas.ModelWithPartnerLocPrefs = curr_model.model_copy(deep=True)
         self.parent_model = parent_model
         self.team_at_date_factory = team_at_date_factory
         self.curr_team: schemas.Team | None = None
@@ -662,7 +662,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
             if score != 1:
                 if partner.id in apls_with_loc:
-                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
                     new_apl_pref.score = score
                 else:
                     new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person,
@@ -698,7 +698,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
             if score != 1:
                 if location.id in apls_with_partner:
-                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.dict())
+                    new_apl_pref = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
                     new_apl_pref.score = score
                 else:
                     new_apl_pref = schemas.ActorPartnerLocationPrefCreate(score=score, person=self.person,

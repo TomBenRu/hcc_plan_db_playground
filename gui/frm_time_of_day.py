@@ -122,7 +122,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
         self.setWindowTitle(f'Tageszeiten des Planungszeitraums, '
                             f'{actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
 
-        self.actor_plan_period = actor_plan_period.copy(deep=True)
+        self.actor_plan_period = actor_plan_period.model_copy(deep=True)
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -231,7 +231,7 @@ class TimeOfDaysActorPlanPeriodEditList(QDialog):
                                                if t.id != dlg.curr_time_of_day.id]
         self.controller.execute(actor_plan_period_commands.RemoveTimeOfDayStandard(self.actor_plan_period.id,
                                                                                    dlg.curr_time_of_day.id))
-        dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.dict())
+        dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
         self.create_time_of_day(dlg=dlg)
 
     def reset_time_of_days(self):
@@ -281,7 +281,7 @@ class FrmTimeOfDayEnum(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Tageszeit Standard')
 
-        self.project = project.copy()
+        self.project = project.model_copy()
         self.curr_time_of_day_enum: schemas.TimeOfDayEnumShow | None = time_of_day_enum
         self.new_time_of_day_enum: schemas.TimeOfDayEnumCreate | None = None
         self.to_delete_status = False

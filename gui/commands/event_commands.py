@@ -6,7 +6,7 @@ from gui.commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, event: schemas.EventCreate):
-        self.event = event.copy()
+        self.event = event.model_copy()
         self.created_event: schemas.EventShow | None = None
 
     def execute(self):

@@ -16,12 +16,12 @@ class Project:
     @db_session
     def get(project_id: UUID) -> schemas.ProjectShow:
         project_db = models.Project[project_id]
-        return schemas.ProjectShow.from_orm(project_db)
+        return schemas.ProjectShow.model_validate(project_db)
 
     @staticmethod
     @db_session
     def get_all() -> list[schemas.ProjectShow]:
-        return [schemas.ProjectShow.from_orm(p) for p in models.Project.select()]
+        return [schemas.ProjectShow.model_validate(p) for p in models.Project.select()]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -29,7 +29,7 @@ class Project:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project(name=name)
-        return schemas.ProjectShow.from_orm(project_db)
+        return schemas.ProjectShow.model_validate(project_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -38,7 +38,7 @@ class Project:
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
         project_db.name = name
-        return schemas.Project.from_orm(project_db)
+        return schemas.Project.model_validate(project_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -46,11 +46,11 @@ class Project:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project.id)
-        project_db.set(**project.dict(include={'name', 'active'}))
+        project_db.set(**project.model_dump(include={'name', 'active'}))
         project_db.time_of_days.clear()
         for t_o_d in project.time_of_days:
             project_db.time_of_days.add(models.TimeOfDay[t_o_d.id])
-        return schemas.ProjectShow.from_orm(project_db)
+        return schemas.ProjectShow.model_validate(project_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -66,7 +66,7 @@ class Project:
                 old_time_of_day_standard_id = t_o_d.id
                 break
         project_db.time_of_day_standards.add(time_of_day_db)
-        return schemas.ProjectShow.from_orm(project_db), old_time_of_day_standard_id
+        return schemas.ProjectShow.model_validate(project_db), old_time_of_day_standard_id
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -76,7 +76,7 @@ class Project:
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         project_db.time_of_day_standards.remove(time_of_day_db)
-        return schemas.ProjectShow.from_orm(project_db)
+        return schemas.ProjectShow.model_validate(project_db)
 
 
 class Team:
@@ -84,13 +84,13 @@ class Team:
     @db_session
     def get(team_id: UUID) -> schemas.TeamShow:
         team_db = models.Team.get_for_update(id=team_id)
-        return schemas.TeamShow.from_orm(team_db)
+        return schemas.TeamShow.model_validate(team_db)
 
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.TeamShow]:
         if project_in_db := models.Project.get_for_update(lambda p: p.id == project_id):
-            return [schemas.TeamShow.from_orm(t) for t in project_in_db.teams]
+            return [schemas.TeamShow.model_validate(t) for t in project_in_db.teams]
         else:
             return []
 
@@ -102,7 +102,7 @@ class Team:
         project_db = models.Project.get_for_update(id=project_id)
         dispatcher_db = models.Person.get_for_update(id=dispatcher_id) if dispatcher_id else None
         team_db = models.Team(name=team_name, project=project_db, dispatcher=dispatcher_db)
-        return schemas.TeamShow.from_orm(team_db)
+        return schemas.TeamShow.model_validate(team_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -113,7 +113,7 @@ class Team:
         dispatcher_db = models.Person.get_for_update(id=team.dispatcher.id) if team.dispatcher else None
         team_db.name = team.name
         team_db.dispatcher = dispatcher_db
-        return schemas.TeamShow.from_orm(team_db)
+        return schemas.TeamShow.model_validate(team_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -123,7 +123,7 @@ class Team:
         team_db = models.Team.get_for_update(id=team_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         team_db.combination_locations_possibles.add(comb_loc_possible_db)
-        return schemas.TeamShow.from_orm(team_db)
+        return schemas.TeamShow.model_validate(team_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -133,7 +133,7 @@ class Team:
         team_db = models.Team.get_for_update(id=team_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         team_db.combination_locations_possibles.remove(comb_loc_possible_db)
-        return schemas.TeamShow.from_orm(team_db)
+        return schemas.TeamShow.model_validate(team_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -142,7 +142,7 @@ class Team:
                      f'args: {locals()}')
         team_db = models.Team.get_for_update(id=team_id)
         team_db.prep_delete = datetime.datetime.utcnow()
-        return schemas.Team.from_orm(team_db)
+        return schemas.Team.model_validate(team_db)
 
 
 class Person:
@@ -150,14 +150,14 @@ class Person:
     @db_session
     def get(person_id: UUID) -> schemas.PersonShow:
         person_db = models.Person.get_for_update(id=person_id)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.PersonShow]:
         project_in_db = models.Project.get_for_update(id=project_id)
         persons_in_db = models.Person.select(lambda p: p.project == project_in_db and not p.prep_delete)
-        return [schemas.PersonShow.from_orm(p) for p in persons_in_db]
+        return [schemas.PersonShow.model_validate(p) for p in persons_in_db]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -165,11 +165,11 @@ class Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_in_db = models.Project.get_for_update(id=project_id)
-        address_in_db = models.Address(**person.address.dict(), project=project_in_db)
+        address_in_db = models.Address(**person.address.model_dump(), project=project_in_db)
         hashed_password = hash_psw(person.password)
         person.password = hashed_password
-        person_db = models.Person(**person.dict(exclude={'address'}), address=address_in_db, project=project_in_db)
-        return schemas.Person.from_orm(person_db)
+        person_db = models.Person(**person.model_dump(exclude={'address'}), address=address_in_db, project=project_in_db)
+        return schemas.Person.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -181,17 +181,17 @@ class Person:
             address = Address.update(person.address)
         else:
             address = Address.create(
-                schemas.AddressCreate(**person.address.dict(include={'street', 'postal_code', 'city'})))
+                schemas.AddressCreate(**person.address.model_dump(include={'street', 'postal_code', 'city'})))
         person_db.address = models.Address.get_for_update(id=address.id)
         person_db.time_of_days.clear()
         for t_o_d in person.time_of_days:
             person_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
         person_db.set(
-            **person.dict(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments', 'notes'}))
+            **person.model_dump(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments', 'notes'}))
 
         '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
 
-        return schemas.Person.from_orm(person_db)
+        return schemas.Person.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -201,7 +201,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         project_db = models.Project.get_for_update(id=project_id)
         person_db.project_of_admin = project_db
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -218,7 +218,7 @@ class Person:
                 old_time_of_day_standard_id = t_o_d.id
                 break
         person_db.time_of_day_standards.add(time_of_day_db)
-        return schemas.PersonShow.from_orm(person_db), old_time_of_day_standard_id
+        return schemas.PersonShow.model_validate(person_db), old_time_of_day_standard_id
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -229,7 +229,7 @@ class Person:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         if person_db.time_of_day_standards:
             person_db.time_of_day_standards.remove(time_of_day_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -238,7 +238,7 @@ class Person:
                      f'args: {locals()}')
         person_db = models.Person.get_for_update(id=person_id)
         person_db.prep_delete = datetime.datetime.utcnow()
-        return schemas.Person.from_orm(person_db)
+        return schemas.Person.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -248,7 +248,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         person_db.combination_locations_possibles.add(comb_loc_possible_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -258,7 +258,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         person_db.combination_locations_possibles.remove(comb_loc_possible_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -268,7 +268,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         person_db.actor_location_prefs_defaults.add(location_pref_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -278,7 +278,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         person_db.actor_location_prefs_defaults.remove(location_pref_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -288,7 +288,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         person_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -298,7 +298,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         person_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
-        return schemas.PersonShow.from_orm(person_db)
+        return schemas.PersonShow.model_validate(person_db)
 
 
 class LocationOfWork:
@@ -306,14 +306,14 @@ class LocationOfWork:
     @db_session
     def get(location_id: UUID) -> schemas.LocationOfWorkShow:
         location_db = models.LocationOfWork.get_for_update(id=location_id)
-        return schemas.LocationOfWorkShow.from_orm(location_db)
+        return schemas.LocationOfWorkShow.model_validate(location_db)
 
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
         project_in_db = models.Project[project_id]
         locations_in_db = models.LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
-        return [schemas.LocationOfWorkShow.from_orm(loc) for loc in locations_in_db]
+        return [schemas.LocationOfWorkShow.model_validate(loc) for loc in locations_in_db]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -321,9 +321,9 @@ class LocationOfWork:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
-        address_db = models.Address(**location.address.dict(), project=project_db)
+        address_db = models.Address(**location.address.model_dump(), project=project_db)
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
-        return schemas.LocationOfWork.from_orm(location_db)
+        return schemas.LocationOfWork.model_validate(location_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -341,9 +341,9 @@ class LocationOfWork:
                                                            postal_code=location_of_work.address.postal_code,
                                                            city=location_of_work.address.city))
         location_db.address = models.Address.get_for_update(id=address.id)
-        location_db.set(**location_of_work.dict(include={'name', 'nr_actors', 'fixed_cast'}))
+        location_db.set(**location_of_work.model_dump(include={'name', 'nr_actors', 'fixed_cast'}))
 
-        return schemas.LocationOfWorkShow.from_orm(location_db)
+        return schemas.LocationOfWorkShow.model_validate(location_db)
 
     @staticmethod
     @db_session
@@ -352,7 +352,7 @@ class LocationOfWork:
                      f'args: {locals()}')
         location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
         location_of_work_db.set(notes=notes)
-        return schemas.LocationOfWorkShow.from_orm(location_of_work_db)
+        return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -369,7 +369,7 @@ class LocationOfWork:
                 old_time_of_day_standard_id = t_o_d.id
                 break
         location_db.time_of_day_standards.add(time_of_day_db)
-        return schemas.LocationOfWorkShow.from_orm(location_db), old_time_of_day_standard_id
+        return schemas.LocationOfWorkShow.model_validate(location_db), old_time_of_day_standard_id
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -380,7 +380,7 @@ class LocationOfWork:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         if location_db.time_of_day_standards:
             location_db.time_of_day_standards.remove(time_of_day_db)
-        return schemas.LocationOfWorkShow.from_orm(location_db)
+        return schemas.LocationOfWorkShow.model_validate(location_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -389,7 +389,7 @@ class LocationOfWork:
                      f'args: {locals()}')
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_db.prep_delete = datetime.datetime.utcnow()
-        return schemas.LocationOfWork.from_orm(location_db)
+        return schemas.LocationOfWork.model_validate(location_db)
 
 
 class TeamActorAssign:
@@ -397,7 +397,7 @@ class TeamActorAssign:
     @db_session
     def get(team_actor_assign_id: UUID) -> schemas.TeamActorAssignShow:
         team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
-        return schemas.TeamActorAssignShow.from_orm(team_actor_assign_db)
+        return schemas.TeamActorAssignShow.model_validate(team_actor_assign_db)
 
     @staticmethod
     @db_session
@@ -423,14 +423,14 @@ class TeamActorAssign:
                 else:
                     assignment_db = None
 
-        return None if not assignment_db else schemas.TeamActorAssignShow.from_orm(assignment_db)
+        return None if not assignment_db else schemas.TeamActorAssignShow.model_validate(assignment_db)
 
     @staticmethod
     @db_session
     def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamActorAssignShow]:
         all_actor_location_assigns = models.TeamActorAssign.select(
             lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)
-        return [schemas.TeamActorAssignShow.from_orm(tla) for tla in all_actor_location_assigns]
+        return [schemas.TeamActorAssignShow.model_validate(tla) for tla in all_actor_location_assigns]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -451,7 +451,7 @@ class TeamActorAssign:
                 new_team_aa = models.TeamActorAssign(person=person_db, team=team_db, id=assign_id)
             else:
                 new_team_aa = models.TeamActorAssign(person=person_db, team=team_db)
-        return schemas.TeamActorAssignShow.from_orm(new_team_aa)
+        return schemas.TeamActorAssignShow.model_validate(new_team_aa)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -475,7 +475,7 @@ class TeamLocationAssign:
     @db_session
     def get(team_location_assign_id: UUID) -> schemas.TeamLocationAssignShow:
         team_location_assign_db = models.TeamLocationAssign.get_for_update(id=team_location_assign_id)
-        return schemas.TeamLocationAssignShow.from_orm(team_location_assign_db)
+        return schemas.TeamLocationAssignShow.model_validate(team_location_assign_db)
 
     @staticmethod
     @db_session
@@ -501,14 +501,14 @@ class TeamLocationAssign:
                 else:
                     assignment_db = None
 
-        return None if not assignment_db else schemas.TeamLocationAssignShow.from_orm(assignment_db)
+        return None if not assignment_db else schemas.TeamLocationAssignShow.model_validate(assignment_db)
 
     @staticmethod
     @db_session
     def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamLocationAssignShow]:
         all_team_location_assigns = models.TeamLocationAssign.select(
             lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)
-        return [schemas.TeamLocationAssignShow.from_orm(tla) for tla in all_team_location_assigns]
+        return [schemas.TeamLocationAssignShow.model_validate(tla) for tla in all_team_location_assigns]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -532,7 +532,7 @@ class TeamLocationAssign:
                 new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db, id=assign_id)
             else:
                 new_team_la = models.TeamLocationAssign(location_of_work=location_db, team=team_db)
-        return schemas.TeamLocationAssignShow.from_orm(new_team_la)
+        return schemas.TeamLocationAssignShow.model_validate(new_team_la)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -556,7 +556,7 @@ class TimeOfDay:
     @db_session
     def get(time_of_day_id: UUID):
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
-        return schemas.TimeOfDayShow.from_orm(time_of_day_db)
+        return schemas.TimeOfDayShow.model_validate(time_of_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -567,9 +567,9 @@ class TimeOfDay:
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
 
         exclude = {'time_of_day_enum', 'project_standard'}  # if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
-        time_of_day_db = models.TimeOfDay(**time_of_day.dict(exclude=exclude),
+        time_of_day_db = models.TimeOfDay(**time_of_day.model_dump(exclude=exclude),
                                           project=project_db, time_of_day_enum=time_of_day_enum_db)
-        return schemas.TimeOfDayShow.from_orm(time_of_day_db)
+        return schemas.TimeOfDayShow.model_validate(time_of_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -581,7 +581,7 @@ class TimeOfDay:
         time_of_day_db.start = time_of_day.start
         time_of_day_db.end = time_of_day.end
         time_of_day_db.time_of_day_enum = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
-        return schemas.TimeOfDay.from_orm(time_of_day_db)
+        return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -594,7 +594,7 @@ class TimeOfDay:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day.id)
         instance_db = db_model.get_for_update(id=pydantic_model.id)
         instance_db.time_of_days.add(time_of_day_db)
-        return type(pydantic_model).from_orm(instance_db)
+        return type(pydantic_model).model_validate(instance_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -603,7 +603,7 @@ class TimeOfDay:
                      f'args: {locals()}')
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
         time_of_day_db.prep_delete = datetime.datetime.utcnow()
-        return schemas.TimeOfDay.from_orm(time_of_day_db)
+        return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -612,7 +612,7 @@ class TimeOfDay:
                      f'args: {locals()}')
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
         time_of_day_db.prep_delete = None
-        return schemas.TimeOfDay.from_orm(time_of_day_db)
+        return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -645,13 +645,13 @@ class TimeOfDayEnum:
     @db_session
     def get(time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
-        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+        return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.TimeOfDayEnumShow]:
         project_db = models.Project.get_for_update(id=project_id)
-        return [schemas.TimeOfDayEnumShow.from_orm(t_o_d_enum) for t_o_d_enum in project_db.time_of_day_enums]
+        return [schemas.TimeOfDayEnumShow.model_validate(t_o_d_enum) for t_o_d_enum in project_db.time_of_day_enums]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -665,7 +665,7 @@ class TimeOfDayEnum:
                                                    project=project_db)
         commit()
         TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
-        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+        return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -673,10 +673,10 @@ class TimeOfDayEnum:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum.id)
-        time_of_day_enum_db.set(**time_of_day_enum.dict(include={'name', 'abbreviation', 'time_index'}))
+        time_of_day_enum_db.set(**time_of_day_enum.model_dump(include={'name', 'abbreviation', 'time_index'}))
         commit()
         TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
-        return schemas.TimeOfDayEnumShow.from_orm(time_of_day_enum_db)
+        return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -709,11 +709,11 @@ class ExcelExportSettings:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         excel_export_settings_db = models.ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
-        # for key, val in excel_export_settings.dict(exclude={'id'}).items():
+        # for key, val in excel_export_settings.model_dump(exclude={'id'}).items():
         #     excel_export_settings_db.__setattr__(key, val)
-        excel_export_settings_db.set(**excel_export_settings.dict(exclude={'id'}))
+        excel_export_settings_db.set(**excel_export_settings.model_dump(exclude={'id'}))
 
-        return schemas.ExcelExportSettings.from_orm(excel_export_settings_db)
+        return schemas.ExcelExportSettings.model_validate(excel_export_settings_db)
 
 
 class Address:
@@ -723,7 +723,7 @@ class Address:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         address_db = models.Address(street=address.street, postal_code=address.postal_code, city=address.city)
-        return schemas.Address.from_orm(address_db)
+        return schemas.Address.model_validate(address_db)
 
     @ staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -731,22 +731,22 @@ class Address:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         address_db = models.Address.get_for_update(lambda a: a.id == address.id)
-        # for key, val in address.dict(include={'street', 'postal_code', 'city'}).items():
+        # for key, val in address.model_dump(include={'street', 'postal_code', 'city'}).items():
         #     address_db.__setattr__(key, val)
-        address_db.set(**address.dict(include={'street', 'postal_code', 'city'}))
-        return schemas.Address.from_orm(address_db)
+        address_db.set(**address.model_dump(include={'street', 'postal_code', 'city'}))
+        return schemas.Address.model_validate(address_db)
 
 
 class PlanPeriod:
     @staticmethod
     @db_session
     def get(plan_period_id: UUID) -> schemas.PlanPeriodShow:
-        return schemas.PlanPeriodShow.from_orm(models.PlanPeriod.get_for_update(id=plan_period_id))
+        return schemas.PlanPeriodShow.model_validate(models.PlanPeriod.get_for_update(id=plan_period_id))
     @staticmethod
     @db_session
     def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriodShow]:
         plan_periods_db = models.PlanPeriod.select(lambda pp: pp.project.id == project_id)
-        return [schemas.PlanPeriodShow.from_orm(p) for p in plan_periods_db]
+        return [schemas.PlanPeriodShow.model_validate(p) for p in plan_periods_db]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -756,7 +756,7 @@ class PlanPeriod:
         team_db = models.Team.get_for_update(id=plan_period.team.id)
         plan_period_db = models.PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
                                            notes=plan_period.notes, team=team_db)
-        return schemas.PlanPeriodShow.from_orm(plan_period_db)
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -775,7 +775,7 @@ class PlanPeriod:
                 if not (plan_period.start <= event <= plan_period.end) and not event.prep_delete:
                     event.prep_delete = datetime.datetime.utcnow()
 
-        return schemas.PlanPeriodShow.from_orm(plan_period_db)
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
 
 class LocationPlanPeriod:
@@ -783,7 +783,7 @@ class LocationPlanPeriod:
     @db_session
     def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
-        return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+        return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -793,7 +793,7 @@ class LocationPlanPeriod:
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
         location_plan_period_db = models.LocationPlanPeriod(plan_period=plan_period_db, location_of_work=location_db)
-        return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+        return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -802,7 +802,7 @@ class LocationPlanPeriod:
                      f'args: {locals()}')
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         location_plan_period_db.set(notes=notes)
-        return schemas.LocationPlanPeriodShow.from_orm(location_plan_period_db)
+        return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
 
 class EventGroup:
@@ -817,14 +817,14 @@ class EventGroup:
         event_group_db = models.EventGroup.get_for_update(id=event_group_id) if event_group_id else None
         new_event_group_db = models.EventGroup(location_plan_period=location_plan_period_db, event_group=event_group_db)
 
-        return schemas.EventGroupShow.from_orm(new_event_group_db)
+        return schemas.EventGroupShow.model_validate(new_event_group_db)
 
     @staticmethod
     @db_session
     def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGroupShow]:
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
 
-        return [schemas.EventGroupShow.from_orm(e) for e in event_group_db.event_groups]
+        return [schemas.EventGroupShow.model_validate(e) for e in event_group_db.event_groups]
 
 
 class Event:
@@ -832,14 +832,14 @@ class Event:
     @db_session
     def get(event_id: UUID) -> schemas.EventShow:
         event_db = models.Event.get_for_update(id=event_id)
-        return schemas.EventShow.from_orm(event_db)
+        return schemas.EventShow.model_validate(event_db)
 
     @staticmethod
     @db_session
     def get_all_from__location_plan_period(location_plan_period_id) -> list[schemas.EventShow]:
         events_db = models.Event.select(lambda e: e.location_plan_period.id == location_plan_period_id)
 
-        return [schemas.EventShow.from_orm(e) for e in events_db]
+        return [schemas.EventShow.model_validate(e) for e in events_db]
 
     @staticmethod
     @db_session
@@ -850,7 +850,7 @@ class Event:
             lambda e: e.location_plan_period == location_plan_period_db and e.date == date and
                        e.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not e.prep_delete)
 
-        return schemas.EventShow.from_orm(event_db)
+        return schemas.EventShow.model_validate(event_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -864,7 +864,7 @@ class Event:
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
             nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group_db.id),
             location_plan_period=location_plan_period_db, fixed_cast=event.fixed_cast)
-        return schemas.EventShow.from_orm(event_db)
+        return schemas.EventShow.model_validate(event_db)
 
 
     @staticmethod
@@ -876,7 +876,7 @@ class Event:
         new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
         event_db.time_of_day = new_time_of_day_db
 
-        return schemas.EventShow.from_orm(event_db)
+        return schemas.EventShow.model_validate(event_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -886,7 +886,7 @@ class Event:
         event_db = models.Event.get_for_update(id=event_id)
         event_db.fixed_cast = fixed_cast
 
-        return schemas.EventShow.from_orm(event_db)
+        return schemas.EventShow.model_validate(event_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -894,7 +894,7 @@ class Event:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         event_db = models.Event.get_for_update(id=event_id)
-        deleted = schemas.EventShow.from_orm(event_db)
+        deleted = schemas.EventShow.model_validate(event_db)
         event_group_db = event_db.event_group
         event_db.delete()
         event_group_db.delete()
@@ -907,7 +907,7 @@ class ActorPlanPeriod:
     @db_session
     def get(actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodShow:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -918,7 +918,7 @@ class ActorPlanPeriod:
         person_db = models.Person.get_for_update(id=person_id)
         actor_plan_period_db = models.ActorPlanPeriod(plan_period=plan_period_db, person=person_db)
 
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -931,12 +931,12 @@ class ActorPlanPeriod:
         for t_o_d in actor_plan_period.time_of_days:
             actor_plan_period_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
         actor_plan_period_db.set(
-            **actor_plan_period.dict(
+            **actor_plan_period.model_dump(
                 include={'notes', 'requested_assignments'}))
 
         '''Es fehlen noch actor_partner_location_prefs, combination_locations_possibles'''
 
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -945,7 +945,7 @@ class ActorPlanPeriod:
                      f'args: {locals()}')
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
         actor_plan_period_db.set(notes=actor_plan_period.notes)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -956,7 +956,7 @@ class ActorPlanPeriod:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         if actor_plan_period_db.time_of_day_standards:
             actor_plan_period_db.time_of_day_standards.remove(time_of_day_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -973,7 +973,7 @@ class ActorPlanPeriod:
                 old_time_of_day_standard_id = t_o_d.id
                 break
         actor_plan_period_db.time_of_day_standards.add(time_of_day_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db), old_time_of_day_standard_id
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db), old_time_of_day_standard_id
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -983,7 +983,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         actor_plan_period_db.combination_locations_possibles.add(comb_loc_possible_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -993,7 +993,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         actor_plan_period_db.combination_locations_possibles.remove(comb_loc_possible_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1003,7 +1003,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         actor_plan_period_db.actor_location_prefs_defaults.add(location_pref_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1013,7 +1013,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         actor_plan_period_db.actor_location_prefs_defaults.remove(location_pref_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1023,7 +1023,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         actor_plan_period_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1033,7 +1033,7 @@ class ActorPlanPeriod:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         actor_plan_period_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
-        return schemas.ActorPlanPeriodShow.from_orm(actor_plan_period_db)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
 
 class AvailDayGroup:
@@ -1041,20 +1041,20 @@ class AvailDayGroup:
     @db_session
     def get(avail_day_group_id: UUID) -> schemas.AvailDayGroupShow:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
-        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+        return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @staticmethod
     @db_session
     def get_master_from__actor_plan_period(actor_plan_period_id: UUID) -> schemas.AvailDayGroupShow:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_day_group_db = actor_plan_period_db.avail_day_group
-        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+        return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @staticmethod
     @db_session
     def get_child_groups_from__parent_group(avail_day_group_id) -> list[schemas.AvailDayGroupShow]:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
-        return [schemas.AvailDayGroupShow.from_orm(adg) for adg in avail_day_group_db.avail_day_groups]
+        return [schemas.AvailDayGroupShow.model_validate(adg) for adg in avail_day_group_db.avail_day_groups]
 
 
     @staticmethod
@@ -1073,7 +1073,7 @@ class AvailDayGroup:
             new_avail_day_group = models.AvailDayGroup(actor_plan_period=actor_plan_period_db,
                                                        avail_day_group=avail_day_group_db)
 
-        return schemas.AvailDayGroupShow.from_orm(new_avail_day_group)
+        return schemas.AvailDayGroupShow.model_validate(new_avail_day_group)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1084,7 +1084,7 @@ class AvailDayGroup:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_group_db.nr_avail_day_groups = nr_avail_day_groups
 
-        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+        return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1094,7 +1094,7 @@ class AvailDayGroup:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_group_db.variation_weight = variation_weight
 
-        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+        return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1105,7 +1105,7 @@ class AvailDayGroup:
         new_parent_db = models.AvailDayGroup.get_for_update(id=new_parent_id)
         avail_day_group_db.avail_day_group = new_parent_db
 
-        return schemas.AvailDayGroupShow.from_orm(avail_day_group_db)
+        return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1121,7 +1121,7 @@ class AvailDay:
     @db_session
     def get(avail_day_id: UUID) -> schemas.AvailDayShow:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session
@@ -1130,21 +1130,21 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(
             lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.date == date and
                        ad.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not ad.prep_delete)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session
     def get_all_from__actor_plan_period(actor_plan_period_id: UUID) -> list[schemas.AvailDayShow]:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_days_db = models.AvailDay.select(lambda a: a.actor_plan_period == actor_plan_period_db)
-        return [schemas.AvailDayShow.from_orm(ad) for ad in avail_days_db]
+        return [schemas.AvailDayShow.model_validate(ad) for ad in avail_days_db]
 
     @staticmethod
     @db_session
     def get_from__avail_day_group(avail_day_group_id):
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_db = avail_day_group_db.avail_day
-        return schemas.AvailDayShow.from_orm(avail_day_db) if avail_day_db else None
+        return schemas.AvailDayShow.model_validate(avail_day_db) if avail_day_db else None
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1160,7 +1160,7 @@ class AvailDay:
             date=avail_day.date, time_of_day=models.TimeOfDay.get_for_update(id=avail_day.time_of_day.id),
             avail_day_group=models.AvailDayGroup.get_for_update(id=avail_day_group_db.id),
             actor_plan_period=actor_plan_period_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1171,7 +1171,7 @@ class AvailDay:
         new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
         avail_day_db.time_of_day = new_time_of_day_db
 
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1182,7 +1182,7 @@ class AvailDay:
         time_of_days_db = [models.TimeOfDay.get_for_update(id=t.id) for t in time_of_days]
         avail_day_db.time_of_days.clear()
         avail_day_db.time_of_days.add(time_of_days_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1190,7 +1190,7 @@ class AvailDay:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
-        deleted = schemas.AvailDayShow.from_orm(avail_day_db)
+        deleted = schemas.AvailDayShow.model_validate(avail_day_db)
         avail_day_group_db = avail_day_db.avail_day_group
         avail_day_db.delete()
         avail_day_group_db.delete()
@@ -1204,7 +1204,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         avail_day_db.combination_locations_possibles.add(comb_loc_possible_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1214,7 +1214,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         avail_day_db.combination_locations_possibles.remove(comb_loc_possible_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1224,7 +1224,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         avail_day_db.actor_location_prefs_defaults.add(location_pref_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1234,7 +1234,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         avail_day_db.actor_location_prefs_defaults.remove(location_pref_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1244,7 +1244,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         avail_day_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1254,7 +1254,7 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         avail_day_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
-        return schemas.AvailDayShow.from_orm(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
 
 
 class CombinationLocationsPossible:
@@ -1268,7 +1268,7 @@ class CombinationLocationsPossible:
         for loc in comb_loc_poss.locations_of_work:
             new_comb_loc_poss.locations_of_work.add(models.LocationOfWork.get_for_update(id=loc.id))
 
-        return schemas.CombinationLocationsPossibleShow.from_orm(new_comb_loc_poss)
+        return schemas.CombinationLocationsPossibleShow.model_validate(new_comb_loc_poss)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1278,7 +1278,7 @@ class CombinationLocationsPossible:
         comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
         comb_loc_poss_db.prep_delete = datetime.datetime.utcnow()
 
-        return schemas.CombinationLocationsPossibleShow.from_orm(comb_loc_poss_db)
+        return schemas.CombinationLocationsPossibleShow.model_validate(comb_loc_poss_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1288,7 +1288,7 @@ class CombinationLocationsPossible:
         comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
         comb_loc_poss_db.prep_delete = None
 
-        return schemas.CombinationLocationsPossibleShow.from_orm(comb_loc_poss_db)
+        return schemas.CombinationLocationsPossibleShow.model_validate(comb_loc_poss_db)
 
 
 class ActorLocationPref:
@@ -1303,7 +1303,7 @@ class ActorLocationPref:
         location_db = models.LocationOfWork.get_for_update(id=actor_loc_pref.location_of_work.id)
         actor_loc_pref_db = models.ActorLocationPref(score=actor_loc_pref.score, project=project_db, person=person_db,
                                                      location_of_work=location_db)
-        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+        return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1313,7 +1313,7 @@ class ActorLocationPref:
         actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         actor_loc_pref_db.prep_delete = datetime.datetime.utcnow()
 
-        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+        return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1323,7 +1323,7 @@ class ActorLocationPref:
         actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         actor_loc_pref_db.prep_delete = None
 
-        return schemas.ActorLocationPrefShow.from_orm(actor_loc_pref_db)
+        return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1358,7 +1358,7 @@ class ActorPartnerLocationPref:
     @db_session
     def get(actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
-        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+        return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1372,7 +1372,7 @@ class ActorPartnerLocationPref:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref(score=actor_partner_loc_pref.score,
                                                                     person=person_db, partner=partner_db,
                                                                     location_of_work=location_db)
-        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+        return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1392,7 +1392,7 @@ class ActorPartnerLocationPref:
         actor_partner_loc_pref_db.avail_days_dafaults.clear()
         actor_partner_loc_pref_db.avail_days_dafaults.add(avail_days_defaults_db)
 
-        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+        return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1402,7 +1402,7 @@ class ActorPartnerLocationPref:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         actor_partner_loc_pref_db.prep_delete = datetime.datetime.utcnow()
 
-        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+        return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1412,7 +1412,7 @@ class ActorPartnerLocationPref:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         actor_partner_loc_pref_db.prep_delete = None
 
-        return schemas.ActorPartnerLocationPrefShow.from_orm(actor_partner_loc_pref_db)
+        return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

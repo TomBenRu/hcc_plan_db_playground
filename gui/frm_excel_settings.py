@@ -10,7 +10,7 @@ class FrmExcelExportSettings(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Exce-Export-Settings')
 
-        self.excel_settings = excel_settings.copy()
+        self.excel_settings = excel_settings.model_copy()
 
         self.layout = QVBoxLayout(self)
 
@@ -34,7 +34,7 @@ class FrmExcelExportSettings(QDialog):
         self.layout.addWidget(self.button_box)
 
     def autofill(self):
-        for i, (key, val) in enumerate(self.excel_settings.dict(exclude={'id'}).items()):
+        for i, (key, val) in enumerate(self.excel_settings.model_dump(exclude={'id'}).items()):
             label = QLabel(key)
             button = QPushButton()
             button.clicked.connect(self.get_color)

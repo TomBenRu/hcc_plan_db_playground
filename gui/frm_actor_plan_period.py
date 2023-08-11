@@ -352,7 +352,7 @@ class ButtonActorLocationPref(QPushButton):
                 curr_loc_pref.score = score
                 db_services.AvailDay.remove_location_pref(avail_days_at_date[0].id, curr_loc_pref.id)
                 if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
                     created_pref = db_services.ActorLocationPref.create(new_pref)
                     db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
             else:
@@ -862,7 +862,7 @@ class FrmActorPlanPeriod(QWidget):
                         avail_day_commands.PutInActorPartnerLocationPref(created_avail_day.id, partner_loc_pref_existing.id)
                     )
 
-                self.reload_actor_plan_period()
+            self.reload_actor_plan_period()
 
         else:
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
@@ -1005,7 +1005,7 @@ class FrmActorPlanPeriod(QWidget):
                 self.controller_actor_loc_prefs.execute(
                     actor_plan_period_commands.RemoveActorLocationPref(self.actor_plan_period.id, curr_loc_pref.id))
                 if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.dict())
+                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
                     create_command = actor_loc_pref_commands.Create(new_pref)
                     self.controller_actor_loc_prefs.execute(create_command)
                     created_pref_id = create_command.get_created_actor_loc_pref()

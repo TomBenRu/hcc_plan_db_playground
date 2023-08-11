@@ -6,7 +6,7 @@ from gui.commands.command_base_classes import Command
 
 class Update(Command):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
-        self.new_data = actor_plan_period.copy()
+        self.new_data = actor_plan_period.model_copy()
         self.old_data = db_services.ActorPlanPeriod.get(actor_plan_period.id)
 
     def execute(self):

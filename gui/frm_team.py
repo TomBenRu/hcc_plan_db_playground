@@ -64,7 +64,7 @@ class FrmTeam(QDialog):
         if self.curr_team.dispatcher:
             self.cb_dispatcher.setCurrentIndex(self.cb_dispatcher.findData(self.curr_team.dispatcher.id))
         if self.curr_team.excel_export_settings:
-            for color in self.curr_team.excel_export_settings.dict(exclude={'id'}).values():
+            for color in self.curr_team.excel_export_settings.model_dump(exclude={'id'}).values():
                 w = QWidget()
                 w.setStyleSheet(f'background-color: {color}; border: 1px solid black;')
                 self.layout_excel_export_settings.addWidget(w)

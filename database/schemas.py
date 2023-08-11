@@ -2,7 +2,7 @@ import datetime
 from typing import Optional, List, Protocol, runtime_checkable, Union
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 from database.enums import Gender
 
@@ -51,6 +51,8 @@ class ModelWithFixedCast(Protocol):
 
 
 class PersonCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     f_name: str
     l_name: str
     email: EmailStr
@@ -60,22 +62,20 @@ class PersonCreate(BaseModel):
     password: str
     address: Optional['AddressCreate']
 
-    class Config:
-        orm_mode = True
-
 
 class Person(PersonCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     project: 'Project'
     address: Optional['Address']
     notes: Optional[str]
     prep_delete: Optional[datetime.datetime]
 
-    class Config:
-        orm_mode = True
-
 
 class PersonShow(Person):
+    model_config = ConfigDict(from_attributes=True)
+
     requested_assignments: Optional[int]
     project: 'Project'
     team_actor_assigns: List['TeamActorAssign']
@@ -86,14 +86,11 @@ class PersonShow(Person):
     actor_location_prefs_defaults: list['ActorLocationPref']
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
 
-    @validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_location_prefs_defaults', 'actor_partner_location_prefs_defaults', 'team_actor_assigns',
-               pre=True, allow_reuse=True)
+    @field_validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards',
+                     'combination_locations_possibles', 'actor_location_prefs_defaults',
+                     'actor_partner_location_prefs_defaults', 'team_actor_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
-
-    class Config:
-        orm_mode = True
 
 
 class ProjectCreate(BaseModel):
@@ -102,13 +99,14 @@ class ProjectCreate(BaseModel):
 
 
 class Project(ProjectCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class ProjectShow(Project):
+    model_config = ConfigDict(from_attributes=True)
+
     admin: Optional[Person]
     teams: List['TeamShow']
     persons: List['Person']
@@ -117,13 +115,9 @@ class ProjectShow(Project):
     time_of_day_enums: List['TimeOfDayEnum']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
-               pre=True, allow_reuse=True)
+    @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class TeamCreate(BaseModel):
@@ -133,27 +127,25 @@ class TeamCreate(BaseModel):
 
 
 class Team(TeamCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     prep_delete: Optional[datetime.datetime]
 
-    class Config:
-        orm_mode = True
-
 
 class TeamShow(Team):
+    model_config = ConfigDict(from_attributes=True)
+
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
     plan_periods: List['PlanPeriod']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns',
-               pre=True, allow_reuse=True)
+    @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns',
+                     'team_location_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
-
-    class Config:
-        orm_mode = True
 
 
 class PlanPeriodCreate(BaseModel):
@@ -166,48 +158,47 @@ class PlanPeriodCreate(BaseModel):
 
 
 class PlanPeriod(PlanPeriodCreate):
-    id: UUID
-    prep_delete: Optional[datetime.datetime]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
+    prep_delete: Optional[datetime.datetime] = None
 
 
 class PlanPeriodShow(PlanPeriod):
+    model_config = ConfigDict(from_attributes=True)
+
     team: Team
-    fixed_cast: Optional[str]
+    fixed_cast: Optional[str] = None
     actor_plan_periods: List['ActorPlanPeriod']
     location_plan_periods: List['LocationPlanPeriod']
     project: Project
 
-    @validator('actor_plan_periods', 'location_plan_periods', pre=True, allow_reuse=True)
+    @field_validator('actor_plan_periods', 'location_plan_periods')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
-    class Config:
-        orm_mode = True
-
 
 class ActorPlanPeriodCreate(BaseModel):
-    notes: Optional[str]
+    notes: Optional[str] = None
     plan_period: PlanPeriod
     person: Person
 
 
 class ActorPlanPeriodUpdate(BaseModel):
     id: UUID
-    notes: Optional[str]
+    notes: Optional[str] = None
 
 
 class ActorPlanPeriod(ActorPlanPeriodCreate):
-    id: UUID
-    prep_delete: Optional[datetime.datetime]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
+    prep_delete: Optional[datetime.datetime] = None
 
 
 class ActorPlanPeriodShow(ActorPlanPeriod):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     person: Person
     time_of_days: List['TimeOfDay']
@@ -219,13 +210,11 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     team: Team
     project: Project
 
-    @validator('time_of_days', 'avail_days', 'time_of_day_standards', 'combination_locations_possibles',
-               'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+    @field_validator('time_of_days', 'avail_days', 'time_of_day_standards',
+                     'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
+                     'actor_location_prefs_defaults')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class AvailDayGroupCreate(BaseModel):
@@ -243,19 +232,16 @@ class AvailDayGroupCreate(BaseModel):
 
 
 class AvailDayGroup(AvailDayGroupCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     created_at: datetime.datetime
     last_modified: datetime.datetime
     nr_avail_day_groups: Optional[int]
 
-    class Config:
-        orm_mode = True
-
 
 class AvailDayGroupShow(AvailDayGroup):
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AvailDayCreate(BaseModel):
@@ -265,6 +251,8 @@ class AvailDayCreate(BaseModel):
 
 
 class AvailDay(AvailDayCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     prep_delete: Optional[datetime.datetime]
     project: Project
@@ -274,26 +262,22 @@ class AvailDay(AvailDayCreate):
     actor_partner_location_prefs_defaults: List['ActorPartnerLocationPref']
     actor_location_prefs_defaults: List['ActorLocationPref']
 
-    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
-               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+    @field_validator('time_of_days', 'combination_locations_possibles',
+                     'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class AvailDayShow(AvailDay):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     project: Project
 
-    @validator('time_of_days', 'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
-               'actor_location_prefs_defaults', pre=True, allow_reuse=True)
+    @field_validator('time_of_days', 'combination_locations_possibles',
+                     'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class TimeOfDayCreate(BaseModel):
@@ -306,16 +290,17 @@ class TimeOfDayCreate(BaseModel):
 
 
 class TimeOfDay(TimeOfDayCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     prep_delete: Optional[datetime.datetime]
     project: Project
     project_standard: Optional[Project]
 
-    class Config:
-        orm_mode = True
-
 
 class TimeOfDayShow(TimeOfDay):
+    model_config = ConfigDict(from_attributes=True)
+
     project_defaults: Optional[Project]
     persons_defaults: List[Person]
     actor_plan_periods_defaults: List[ActorPlanPeriod]
@@ -324,13 +309,10 @@ class TimeOfDayShow(TimeOfDay):
     locations_of_work_defaults: List['LocationOfWork']
     events_defaults: List['Event']
 
-    @validator('persons_defaults', 'actor_plan_periods_defaults', 'location_plan_periods_defaults',
-               'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults', pre=True, allow_reuse=True)
+    @field_validator('persons_defaults', 'actor_plan_periods_defaults', 'location_plan_periods_defaults',
+                     'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class TimeOfDayEnumCreate(BaseModel):
@@ -341,21 +323,19 @@ class TimeOfDayEnumCreate(BaseModel):
 
 
 class TimeOfDayEnum(TimeOfDayEnumCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class TimeOfDayEnumShow(TimeOfDayEnum):
+    model_config = ConfigDict(from_attributes=True)
+
     time_of_days: List[TimeOfDay]
 
-    @validator('time_of_days', pre=True, allow_reuse=True)
+    @field_validator('time_of_days')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
-
-    class Config:
-        orm_mode = True
 
 
 class LocationOfWorkCreate(BaseModel):
@@ -365,29 +345,27 @@ class LocationOfWorkCreate(BaseModel):
 
 
 class LocationOfWork(LocationOfWorkCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     notes: Optional[str]
     address: Optional['Address']
     project: Project
     prep_delete: Optional[datetime.datetime]
 
-    class Config:
-        orm_mode = True
-
 
 class LocationOfWorkShow(LocationOfWork):
+    model_config = ConfigDict(from_attributes=True)
+
     nr_actors: int
     team_location_assigns: List['TeamLocationAssign']
     fixed_cast: Optional[str]
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
 
-    @validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', pre=True, allow_reuse=True)
+    @field_validator('time_of_days', 'time_of_day_standards', 'team_location_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class TeamActorAssignCreate(BaseModel):
@@ -398,18 +376,14 @@ class TeamActorAssignCreate(BaseModel):
 
 
 class TeamActorAssign(TeamActorAssignCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     start: datetime.date
 
-    class Config:
-        orm_mode = True
-
 
 class TeamActorAssignShow(TeamActorAssign):
-    pass
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TeamLocationAssignCreate(BaseModel):
@@ -420,18 +394,14 @@ class TeamLocationAssignCreate(BaseModel):
 
 
 class TeamLocationAssign(TeamLocationAssignCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     start: datetime.date
 
-    class Config:
-        orm_mode = True
-
 
 class TeamLocationAssignShow(TeamLocationAssign):
-    pass
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AddressCreate(BaseModel):
@@ -441,51 +411,45 @@ class AddressCreate(BaseModel):
 
 
 class Address(AddressCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     project: Project
 
-    class Config:
-        orm_mode = True
-
 
 class AddressShow(Address):
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EventCreate(BaseModel):
-    name: Optional[str]
-    notes: Optional[str]
+    name: Optional[str] = None
+    notes: Optional[str] = None
     location_plan_period: 'LocationPlanPeriod'
     date: datetime.date
     time_of_day: TimeOfDay
     nr_actors: Optional[int] = 2
-    fixed_cast: Optional[str]
+    fixed_cast: Optional[str] = None
     flags: List['Flag']
 
 
 class Event(EventCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     prep_delete: Optional[datetime.datetime]
 
-    @validator('flags', pre=True, allow_reuse=True)
+    @field_validator('flags')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
-
 
 class EventShow(Event):
+    model_config = ConfigDict(from_attributes=True)
+
     event_group: 'EventGroup'
 
-    @validator('flags', pre=True, allow_reuse=True)
+    @field_validator('flags')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class EventGroupCreate(BaseModel):
@@ -506,17 +470,13 @@ class EventGroupCreate(BaseModel):
 
 
 class EventGroup(EventGroupCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class EventGroupShow(EventGroup):
-    ...
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LocationPlanPeriodCreate(BaseModel):
@@ -527,24 +487,22 @@ class LocationPlanPeriodCreate(BaseModel):
 
 
 class LocationPlanPeriod(LocationPlanPeriodCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class LocationPlanPeriodShow(LocationPlanPeriod):
+    model_config = ConfigDict(from_attributes=True)
+
     time_of_days: List[TimeOfDay]
     time_of_day_standards: List[TimeOfDay]
     team: Team
     events: List[Event]
 
-    @validator('time_of_days', 'time_of_day_standards', 'events', pre=True, allow_reuse=True)
+    @field_validator('time_of_days', 'time_of_day_standards', 'events')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
-
-    class Config:
-        orm_mode = True
 
 
 class AppointmentCreate(BaseModel):
@@ -554,24 +512,22 @@ class AppointmentCreate(BaseModel):
 
 
 class Appointment(AppointmentCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
 
-    @validator('avail_days', pre=True, allow_reuse=True)
+    @field_validator('avail_days')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class AppointmentShow(Appointment):
+    model_config = ConfigDict(from_attributes=True)
 
-    @validator('avail_days', pre=True, allow_reuse=True)
+
+    @field_validator('avail_days')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class ActorPartnerLocationPrefCreate(BaseModel):
@@ -582,25 +538,23 @@ class ActorPartnerLocationPrefCreate(BaseModel):
 
 
 class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     score: float
     prep_delete: Optional[datetime.datetime]
 
-    class Config:
-        orm_mode = True
-
 
 class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
+    model_config = ConfigDict(from_attributes=True)
+
     person_default: Optional[Person]
     actor_plan_periods_defaults: list[ActorPlanPeriod]
     avail_days_defaults: list[AvailDay]
 
-    @validator('actor_plan_periods_defaults', 'avail_days_defaults', pre=True, allow_reuse=True)
+    @field_validator('actor_plan_periods_defaults', 'avail_days_defaults')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
-
-    class Config:
-        orm_mode = True
 
 
 class ActorLocationPrefCreate(BaseModel):
@@ -610,19 +564,15 @@ class ActorLocationPrefCreate(BaseModel):
 
 
 class ActorLocationPref(ActorLocationPrefCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     project: Project
     prep_delete: Optional[datetime.datetime]
 
-    class Config:
-        orm_mode = True
-
 
 class ActorLocationPrefShow(ActorLocationPref):
-    ...
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FlagCreate(BaseModel):
@@ -631,16 +581,13 @@ class FlagCreate(BaseModel):
 
 
 class Flag(FlagCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class FlagShow(Flag):
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CombinationLocationsPossibleCreate(BaseModel):
@@ -649,26 +596,23 @@ class CombinationLocationsPossibleCreate(BaseModel):
 
 
 class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     prep_delete: Optional[datetime.datetime]
 
-    @validator('locations_of_work', pre=True, allow_reuse=True)
+    @field_validator('locations_of_work')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
 
 
 class CombinationLocationsPossibleShow(CombinationLocationsPossible):
+    model_config = ConfigDict(from_attributes=True)
 
-    @validator('locations_of_work', pre=True, allow_reuse=True)
+
+    @field_validator('locations_of_work')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
-
-    class Config:
-        orm_mode = True
-
 
 class PlanCreate(BaseModel):
     name: str
@@ -677,16 +621,13 @@ class PlanCreate(BaseModel):
 
 
 class Plan(PlanCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class PlanShow(Plan):
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExcelExportSettingsCreate(BaseModel):
@@ -701,43 +642,40 @@ class ExcelExportSettingsCreate(BaseModel):
 
 
 class ExcelExportSettings(ExcelExportSettingsCreate):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: UUID
 
 
 class ExcelExportSettingsShow(ExcelExportSettings):
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-PersonCreate.update_forward_refs(**locals())
-Person.update_forward_refs(**locals())
-PersonShow.update_forward_refs(**locals())
-ProjectShow.update_forward_refs(**locals())
-PlanPeriod.update_forward_refs(**locals())
-PlanPeriodShow.update_forward_refs(**locals())
-ActorPlanPeriodCreate.update_forward_refs(**locals())
-ActorPlanPeriodShow.update_forward_refs(**locals())
-AvailDayGroupCreate.update_forward_refs(**locals())
-AvailDayGroup.update_forward_refs(**locals())
-AvailDayGroupShow.update_forward_refs(**locals())
-AvailDayCreate.update_forward_refs(**locals())
-LocationOfWorkCreate.update_forward_refs(**locals())
-LocationOfWork.update_forward_refs(**locals())
-LocationOfWorkShow.update_forward_refs(**locals())
-TeamShow.update_forward_refs(**locals())
-Event.update_forward_refs(**locals())
-EventCreate.update_forward_refs(**locals())
-EventShow.update_forward_refs(**locals())
-EventGroupCreate.update_forward_refs(**locals())
-EventGroup.update_forward_refs(**locals())
-EventGroupShow.update_forward_refs(**locals())
-TimeOfDayCreate.update_forward_refs()
-TimeOfDay.update_forward_refs()
-TimeOfDayShow.update_forward_refs(**locals())
-AvailDay.update_forward_refs()
-AvailDayShow.update_forward_refs()
+PersonCreate.model_rebuild()
+Person.model_rebuild()
+PersonShow.model_rebuild()
+ProjectShow.model_rebuild()
+PlanPeriod.model_rebuild()
+PlanPeriodShow.model_rebuild()
+ActorPlanPeriodCreate.model_rebuild()
+ActorPlanPeriodShow.model_rebuild()
+AvailDayGroupCreate.model_rebuild()
+AvailDayGroup.model_rebuild()
+AvailDayGroupShow.model_rebuild()
+AvailDayCreate.model_rebuild()
+LocationOfWorkCreate.model_rebuild()
+LocationOfWork.model_rebuild()
+LocationOfWorkShow.model_rebuild()
+TeamShow.model_rebuild()
+Event.model_rebuild()
+EventCreate.model_rebuild()
+EventShow.model_rebuild()
+EventGroupCreate.model_rebuild()
+EventGroup.model_rebuild()
+EventGroupShow.model_rebuild()
+TimeOfDayCreate.model_rebuild()
+TimeOfDay.model_rebuild()
+TimeOfDayShow.model_rebuild()
+AvailDay.model_rebuild()
+AvailDayShow.model_rebuild()
 

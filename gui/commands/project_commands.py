@@ -26,7 +26,7 @@ class UpdateProjectName(Command):
 
 class Update(Command):
     def __init__(self, project: schemas.ProjectShow):
-        self.new_data: schemas.ProjectShow = project.copy()
+        self.new_data: schemas.ProjectShow = project.model_copy()
         self.old_data: schemas.ProjectShow = db_services.Project.get(project.id)
 
     def execute(self):

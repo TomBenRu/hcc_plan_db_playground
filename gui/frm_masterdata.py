@@ -853,7 +853,7 @@ class FrmLocationModify(FrmLocationData):
         return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
 
     def edit_fixed_cast(self):
-        dlg = FrmFixedCast(self, self.location_of_work, self.location_of_work)
+        dlg = FrmFixedCast(self, self.location_of_work, self.location_of_work, None)
         dlg.exec()
 
     def autofill(self):

@@ -359,7 +359,7 @@ class LocationOfWorkShow(LocationOfWork):
 
     nr_actors: int
     team_location_assigns: List['TeamLocationAssign']
-    fixed_cast: Optional[str]
+    fixed_cast: Optional[str] = None
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
 
@@ -499,6 +499,7 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     time_of_day_standards: List[TimeOfDay]
     team: Team
     events: List[Event]
+    fixed_cast: Optional[str] = None
 
     @field_validator('time_of_days', 'time_of_day_standards', 'events')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

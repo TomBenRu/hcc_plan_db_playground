@@ -5,42 +5,47 @@ from uuid import UUID
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
-    QDialogButtonBox, QMessageBox, QDateEdit
+    QDialogButtonBox, QMessageBox, QDateEdit, QMenu
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team, \
     get_persons_of_team_at_date, get_curr_team_of_location_at_date
+from .actions import Action
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmFixedCast(QDialog):
     def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast,
-                 location_of_work: schemas.LocationOfWorkShow):
+                 location_of_work: schemas.LocationOfWorkShow, parent_model: schemas.ModelWithFixedCast | None):
         super().__init__(parent)
         self.setWindowTitle('Fixed Cast')
-        self.col_operator_betw_rows = 2
+        self.col_operator_between_rows = 2
         self.width_cb_actors = 150
         self.width_bt_new_row = 30
         self.width_inner_operator = 50
         self.width_container__add_inner_operator = 60
-        self.width_operator_betw_rows = 50
+        self.width_operator_between_rows = 50
 
         self.object_with_fixed_cast = schema_with_fixed_cast_field
-        self.locatin_of_work = location_of_work
+        self.location_of_work = location_of_work
+        self.parent_model = parent_model
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
-        self.object_name_operatior_between_rows = 'operator_between_rows'
+        self.object_name_operator_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': 'und', 'or': 'oder'}
 
         self.persons: list[schemas.Person] = []
 
         self.layout = QVBoxLayout(self)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         if isinstance(schema_with_fixed_cast_field, (schemas.LocationOfWork, schemas.Event)):
             additional_text = f'die Einrichtung "{schema_with_fixed_cast_field.name}"'
         elif isinstance(schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
             additional_text = f'die Planungsperiode "{schema_with_fixed_cast_field.start}-{schema_with_fixed_cast_field.end}"'
+        elif isinstance(schema_with_fixed_cast_field, schemas.Event):
+            additional_text = f'''das Event am "{schema_with_fixed_cast_field.date.strftime('%d.%m.%y')}"'''
         else:
             raise TypeError(f'{type(schema_with_fixed_cast_field)} ist kein erlaubtes Schema.')
 
@@ -50,14 +55,13 @@ class FrmFixedCast(QDialog):
                                f'Die Besetzung gilt allgemein datumsunabhängig, egal welches Datum ausgewählt ist.\n'
                                f'Die Auswahl des Datums ist dafür da, dass in sich in naher Zukunft ändernde '
                                f'Personalien berücksichtigt werden können.')
-        self.lb_title.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.lb_title.setFixedHeight(40)
         self.layout.addWidget(self.lb_title)
 
         self.layout_date = QHBoxLayout()
         self.layout_date.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.layout.addLayout(self.layout_date)
         self.layout_grid = QGridLayout()
+        self.layout_grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout.addLayout(self.layout_grid)
 
         self.bt_new_row = QPushButton(QIcon('resources/toolbar_icons/icons/plus.png'), None, clicked=self.new_row)
@@ -78,16 +82,35 @@ class FrmFixedCast(QDialog):
         self.layout_date.addWidget(self.lb_date)
         self.layout_date.addWidget(self.de_date)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.bt_reset = QPushButton('Reset')
+        self.bt_reset_make_menu()
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.save_fixed_cast)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
-        # self.plot_eval_str()
+    def bt_reset_make_menu(self):
+        if isinstance(self.object_with_fixed_cast, schemas.LocationOfWork):
+            self.bt_reset.setText('Clear')
+            self.bt_reset.clicked.connect(self.clear_plot)
+        else:
+            menu = QMenu()
+            menu.addActions(
+                [
+                    Action(menu, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
+                           self.clear_plot),
+                    Action(menu, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
+                           'Reset von übergeordetem Modell', None, self.reset_to_parent_value)
+                ]
+            )
+            self.bt_reset.setMenu(menu)
+
 
     def date_changed(self):
         date = self.de_date.date().toPython()
-        team = get_curr_team_of_location_at_date(self.locatin_of_work, date)
+        team = get_curr_team_of_location_at_date(self.location_of_work, date)
         self.persons = sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
         self.reset_fixed_cast_plot()
 
@@ -102,6 +125,16 @@ class FrmFixedCast(QDialog):
         self.object_with_fixed_cast.fixed_cast = result_text
         self.accept()
 
+    def clear_plot(self):
+        self.object_with_fixed_cast.fixed_cast, old_value = None, self.object_with_fixed_cast.fixed_cast
+        self.reset_fixed_cast_plot()
+        self.object_with_fixed_cast.fixed_cast = old_value
+
+    def reset_to_parent_value(self):
+        self.object_with_fixed_cast.fixed_cast, old_value = self.parent_model.fixed_cast, self.object_with_fixed_cast.fixed_cast
+        self.reset_fixed_cast_plot()
+        self.object_with_fixed_cast.fixed_cast = old_value
+
     def grid_to_list(self):
         result_list = []
         for row in range(self.layout_grid.rowCount()):
@@ -113,7 +146,7 @@ class FrmFixedCast(QDialog):
                 if (row, col) == (0, 1):
                     result_list.append([])
                 cb: QComboBox = cell.widget()
-                if cb.objectName() == self.object_name_operatior_between_rows:
+                if cb.objectName() == self.object_name_operator_between_rows:
                     result_list.extend((cb.currentData(), []))
                 if cb.objectName() == self.object_name_actors:
                     result_list[-1].append(f'(UUID("{cb.currentData()}") in team)')
@@ -148,7 +181,7 @@ class FrmFixedCast(QDialog):
             self.layout_grid.addWidget(self.bt_new_row, r + 2, c)
             '''combo operator betw. rows wird erzeugt'''
             combo_op_betw_rows = self.create_combo_operator('between')
-            self.layout_grid.addWidget(combo_op_betw_rows, r, self.col_operator_betw_rows)
+            self.layout_grid.addWidget(combo_op_betw_rows, r, self.col_operator_between_rows)
 
         self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
 
@@ -179,12 +212,12 @@ class FrmFixedCast(QDialog):
         else:
             delete_operator_widget.deleteLater()
             delta = 1  # um diesen Wert werden die Reihen unterhalb noch oben verschoben
-            if cb_operator_between_rows := self.layout_grid.itemAtPosition(r + 1, self.col_operator_betw_rows):  # mehr als 1 reihe vorhanden
+            if cb_operator_between_rows := self.layout_grid.itemAtPosition(r + 1, self.col_operator_between_rows):  # mehr als 1 reihe vorhanden
                 cb_operator_between_rows.widget().deleteLater()  # delete Operater between rows
                 delta = 2
             elif r > 1:
                 delta = 2
-                cb_operator_between_rows_above = self.layout_grid.itemAtPosition(r - 1, self.col_operator_betw_rows)
+                cb_operator_between_rows_above = self.layout_grid.itemAtPosition(r - 1, self.col_operator_between_rows)
                 cb_operator_between_rows_above.widget().deleteLater()
             for col in range(self.layout_grid.columnCount() + 1):
                 for row in range(r+1, self.layout_grid.columnCount() + 1):
@@ -203,7 +236,7 @@ class FrmFixedCast(QDialog):
     def create_combo_operator(self, typ: Literal['inner', 'between']):
         cb_operator = QComboBox()
         cb_operator.setObjectName(self.object_name_inner_operator if typ == 'inner'
-                                  else self.object_name_operatior_between_rows)
+                                  else self.object_name_operator_between_rows)
         cb_operator.setFixedWidth(self.width_inner_operator)
         if typ == 'inner':
             cb_operator.setStyleSheet('background: #d9e193')
@@ -256,7 +289,7 @@ class FrmFixedCast(QDialog):
             if type(row) == str:
                 cb_operator = self.create_combo_operator('between')
                 cb_operator.setCurrentIndex(cb_operator.findData(row))
-                self.layout_grid.addWidget(cb_operator, row_idx, self.col_operator_betw_rows)
+                self.layout_grid.addWidget(cb_operator, row_idx, self.col_operator_between_rows)
             else:
                 self.layout_grid.addWidget(self.create_widget__add_inner_operater(), row_idx, len(row)+1)
                 for col_idx, element in enumerate(row):

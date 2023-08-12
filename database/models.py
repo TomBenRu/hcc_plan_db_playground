@@ -471,6 +471,10 @@ class LocationPlanPeriod(db.Entity):
     def team(self):
         return self.plan_period.team
 
+    @property
+    def project(self):
+        return self.team.project
+
     def before_insert(self):
         self.nr_actors = self.location_of_work.nr_actors
         self.time_of_days.add(self.location_of_work.time_of_days)

@@ -47,7 +47,6 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
         self.group_mode = False
 
-
         self.location_plan_period = location_plan_period
         self.date = date
         self.time_of_day = time_of_day
@@ -149,6 +148,9 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
+        signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
+            lambda event: print(event)
+        )
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen

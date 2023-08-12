@@ -21,6 +21,36 @@ class Update(Command):
         db_services.Person.update(self.new_data)
 
 
+class PutInTimeOfDay(Command):
+    def __init__(self, person_id: UUID, time_of_day_id: UUID):
+        self.person_id = person_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+
+
+class RemoveTimeOfDay(Command):
+    def __init__(self, person_id: UUID, time_of_day_id: UUID):
+        self.person_id = person_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+
+
 class NewTimeOfDayStandard(Command):
     def __init__(self, person_id: UUID, time_of_day_id: UUID):
         self.person_id = person_id

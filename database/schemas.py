@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, List, Protocol, runtime_checkable, Union
+from typing import Optional, List, Protocol, runtime_checkable, Union, Any
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
@@ -13,6 +13,9 @@ class ModelWithTimeOfDays(Protocol):
     time_of_days: list[Union['TimeOfDay', 'TimeOfDayShow']]
     time_of_day_standards: list['TimeOfDay']
 
+    def model_copy(self, deep: bool) -> Any:
+        pass
+
 
 @runtime_checkable
 class ModelWithCombLocPossible(Protocol):
@@ -21,7 +24,7 @@ class ModelWithCombLocPossible(Protocol):
     combination_locations_possibles: list['CombinationLocationsPossible']
     prep_delete: Optional[datetime.datetime]
 
-    def copy(self, deep: bool):
+    def model_copy(self, deep: bool):
         ...
 
 
@@ -31,7 +34,7 @@ class ModelWithActorLocPrefs(Protocol):
     actor_location_prefs_defaults: List['ActorLocationPref']
     prep_delete: datetime.datetime
 
-    def copy(self, deep=bool):
+    def model_copy(self, deep=bool):
         ...
 
 
@@ -41,7 +44,7 @@ class ModelWithPartnerLocPrefs(Protocol):
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
     prep_delete: datetime.datetime
 
-    def copy(self, deep=bool):
+    def model_copy(self, deep=bool):
         ...
 
 
@@ -284,7 +287,7 @@ class TimeOfDayCreate(BaseModel):
     # id: UUID | None = None
     name: str
     time_of_day_enum: 'TimeOfDayEnum'
-    project_standard: Optional[Project]
+    project_standard: Optional[Project] = None
     start: datetime.time
     end: datetime.time
 
@@ -500,6 +503,7 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     team: Team
     events: List[Event]
     fixed_cast: Optional[str] = None
+    project: Project
 
     @field_validator('time_of_days', 'time_of_day_standards', 'events')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

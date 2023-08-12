@@ -387,8 +387,7 @@ class FrmPersonModify(FrmPersonData):
                 create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.project_id)
                 self.controller.execute(create_command)
                 created_t_o_d_id = create_command.time_of_day_id
-                self.person.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
-                self.controller.execute(person_commands.Update(self.person))
+                self.controller.execute(person_commands.PutInTimeOfDay(self.person.id, created_t_o_d_id))
 
                 if dlg.chk_default.isChecked():
                     self.controller.execute(person_commands.NewTimeOfDayStandard(self.person.id, created_t_o_d_id))
@@ -406,11 +405,12 @@ class FrmPersonModify(FrmPersonData):
         if dlg.chk_new_mode.isChecked():
             create_time_of_day()
         elif dlg.to_delete_status:
-            self.person.time_of_days = [t for t in self.person.time_of_days if t.id != dlg.curr_time_of_day.id]
+            self.controller.execute(person_commands.RemoveTimeOfDay(self.person.id, dlg.curr_time_of_day.id))
             self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
-            QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
+            QMessageBox.information(self, 'Tageszeit Löschen',
+                                    f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day.id}, {dlg.curr_time_of_day.name}')
         else:
-            self.person.time_of_days = [t for t in self.person.time_of_days if t.id != dlg.curr_time_of_day.id]
+            self.controller.execute(person_commands.RemoveTimeOfDay(self.person.id, dlg.curr_time_of_day.id))
             self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
             dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
             create_time_of_day()

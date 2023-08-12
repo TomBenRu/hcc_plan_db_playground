@@ -21,6 +21,36 @@ class Update(Command):
         db_services.LocationOfWork.update(self.new_data)
 
 
+class PutInTimeOfDay(Command):
+    def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        self.location_of_work_id = location_of_work_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+
+class RemoveTimeOfDay(Command):
+    def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        self.location_of_work_id = location_of_work_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+
+
 class NewTimeOfDayStandard(Command):
     def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
         self.location_of_work_id = location_of_work_id

@@ -768,8 +768,8 @@ class FrmLocationModify(FrmLocationData):
                 create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.location_of_work.id)
                 self.controller.execute(create_command)
                 created_t_o_d_id = create_command.time_of_day_id
-                self.location_of_work.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
-                self.controller.execute(location_of_work_commands.Update(self.location_of_work))
+                self.controller.execute(
+                    location_of_work_commands.PutInTimeOfDay(self.location_of_work.id, created_t_o_d_id))
 
                 if dlg.chk_default.isChecked():
                     self.controller.execute(location_of_work_commands.NewTimeOfDayStandard(self.location_of_work.id,
@@ -789,20 +789,22 @@ class FrmLocationModify(FrmLocationData):
         if dlg.chk_new_mode.isChecked():
             create_time_of_day()
         elif dlg.to_delete_status:
-            self.location_of_work.time_of_days = [t for t in self.location_of_work.time_of_days
-                                                  if t.id != dlg.curr_time_of_day.id]
-            self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
-                                                                                      dlg.curr_time_of_day.id))
+            self.controller.execute(
+                location_of_work_commands.RemoveTimeOfDay(self.location_of_work.id, dlg.curr_time_of_day.id))
+            self.controller.execute(
+                location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id, dlg.curr_time_of_day.id))
+
             QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
         else:
-            self.location_of_work.time_of_days = [t for t in self.location_of_work.time_of_days
-                                                  if t.id != dlg.curr_time_of_day.id]
-            self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
-                                                                                      dlg.curr_time_of_day.id))
+            self.controller.execute(
+                location_of_work_commands.RemoveTimeOfDay(self.location_of_work.id, dlg.curr_time_of_day.id))
+            self.controller.execute(
+                location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id, dlg.curr_time_of_day.id))
+
             dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
             create_time_of_day()
 
-        self.location_of_work = db_services.Person.get(self.location_of_work.id)
+        self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
         self.fill_time_of_days()
 
     def reset_time_of_days(self):

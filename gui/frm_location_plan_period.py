@@ -15,6 +15,7 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
+from gui.frm_time_of_day import DlgTimeOfDaysEditList
 from gui.observer import signal_handling
 
 
@@ -543,15 +544,13 @@ class FrmLocationPlanPeriod(QWidget):
             button.reset_context_menu(self.location_plan_period)
             button.set_tooltip()
 
-    def edit_time_of_days(self):  # todo: noch implementieren
-        return
-        dlg = TimeOfDaysActorPlanPeriodEditList(self, self.actor_plan_period)
+    def edit_time_of_days(self):
+        dlg = DlgTimeOfDaysEditList(self, self.location_plan_period)
         if dlg.exec():
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)
-            for bt in buttons_avail_day:
-                bt.reset_context_menu(self.actor_plan_period)
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+            buttons_event: list[ButtonEvent] = self.findChildren(ButtonEvent)
+            for bt in buttons_event:
+                bt.reset_context_menu(self.location_plan_period)
             self.reset_chk_field()
 
     def reset_all_event_t_o_ds(self):  # todo: noch implementieren

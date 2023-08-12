@@ -920,7 +920,6 @@ class FrmActorPlanPeriod(QWidget):
             buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)
             for bt in buttons_avail_day:
                 bt.reset_context_menu(self.actor_plan_period)
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             self.reset_chk_field()
 
     def reset_all_avail_t_o_ds(self):  # todo: correct... Wenn mit edit_time_of_day standard eines tim_of_days auf True gesetzt wird, dann der Dialog abgebrochen wird, und danach reset_all_avail_t_o_ds ausgeführt wird, erscheint die entsprechende Reihe trotzdem im checkfield

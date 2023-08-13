@@ -1,8 +1,9 @@
 import datetime
+import time
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Signal, Qt, QTimer
+from PySide6.QtCore import Signal, Qt, QTimer, QCoreApplication, QEventLoop, QThread
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
     QDialogButtonBox, QMessageBox, QDateEdit, QMenu, QSpacerItem, QSizePolicy
@@ -346,11 +347,11 @@ class DlgFixedCast(QDialog):
         self.reload_object_with_fixed_cast()
         for i in range(self.layout_grid.count()):
             self.layout_grid.itemAt(i).widget().deleteLater()
-            self.layout_grid.addWidget(self.bt_new_row, 0, 0)
-        self.plot_eval_str()
+        QTimer.singleShot(10, self.plot_eval_str)
 
     def plot_eval_str(self):
         if not self.object_with_fixed_cast.fixed_cast:
+            self.layout_grid.addWidget(self.bt_new_row, 0, 0)
             return
         form = self.backtranslate_eval_str()
         form_cleaned = self.proof_form_to_not_assigned_persons(form)

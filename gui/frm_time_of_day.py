@@ -305,17 +305,13 @@ class DlgTimeOfDaysEditList(QDialog):
         self.create_time_of_day(dlg=dlg)
 
     def reset_time_of_days(self):
-        project = db_services.Project.get(self.adapter.project_id)
-
         for t_o_d in self.model_with_time_of_days.time_of_days:
             self.controller.execute(self.adapter.remove_command(self.model_with_time_of_days.id, t_o_d.id))
-            print(f'{t_o_d.name=}')
         for t_o_d in self.model_with_time_of_days.time_of_day_standards:
             self.controller.execute(
                 self.adapter.remove_time_of_day_standard_command(self.model_with_time_of_days.id, t_o_d.id))
 
         for t_o_d in self.adapter.parent_time_of_days:
-            print(t_o_d.name)
             self.controller.execute(self.adapter.put_in_command(self.model_with_time_of_days.id, t_o_d.id))
         for t_o_d in self.adapter.parent_time_of_day_standards:
             self.controller.execute(self.adapter.new_time_of_day_standard_command(self.model_with_time_of_days.id, t_o_d.id))

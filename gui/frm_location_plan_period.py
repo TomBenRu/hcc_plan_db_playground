@@ -15,6 +15,7 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
+from gui.frm_fixed_cast import DlgFixedCast
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
 from gui.observer import signal_handling
 
@@ -557,7 +558,12 @@ class FrmLocationPlanPeriod(QWidget):
         ...
 
     def edit_fixed_cast(self):  # todo: noch implementieren
-        ...
+        dlg = DlgFixedCast(self, self.location_plan_period)
+        dlg.de_date.setDate(self.location_plan_period.plan_period.start)
+        dlg.de_date.setDisabled(True)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.reload_location_plan_period()
 
     def reset_all_fixed_cast(self):  # todo: noch implementieren
         ...

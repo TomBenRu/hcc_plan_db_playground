@@ -34,7 +34,7 @@ class ModelWithActorLocPrefs(Protocol):
     actor_location_prefs_defaults: List['ActorLocationPref']
     prep_delete: datetime.datetime
 
-    def model_copy(self, deep=bool):
+    def model_copy(self, deep: bool):
         ...
 
 
@@ -44,7 +44,7 @@ class ModelWithPartnerLocPrefs(Protocol):
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
     prep_delete: datetime.datetime
 
-    def model_copy(self, deep=bool):
+    def model_copy(self, deep: bool):
         ...
 
 
@@ -52,6 +52,9 @@ class ModelWithPartnerLocPrefs(Protocol):
 class ModelWithFixedCast(Protocol):
     id: UUID
     fixed_cast: Optional[str]
+
+    def model_copy(self, deep: bool):
+        ...
 
 
 class PersonCreate(BaseModel):

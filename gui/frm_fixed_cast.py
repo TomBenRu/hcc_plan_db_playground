@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
-    QDialogButtonBox, QMessageBox, QDateEdit, QMenu
+    QDialogButtonBox, QMessageBox, QDateEdit, QMenu, QSpacerItem, QSizePolicy
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team, \
@@ -45,7 +45,7 @@ class AdapterFixedCast:
             )
             self.parent_fixed_cast = self.location_of_work.fixed_cast
             self.info_text = (f'die Planungsperiode '
-                              f'"{self.schema_with_fixed_cast_field.start}-{self.schema_with_fixed_cast_field.end}"')
+                              f'"{self.schema_with_fixed_cast_field.plan_period.start}-{self.schema_with_fixed_cast_field.plan_period.end}"')
             self.update_command = location_plan_period_commands.UpdateFixedCast
             self.model_with_time_of_days__refresh_func = db_services.LocationPlanPeriod.get
         elif isinstance(self.schema_with_fixed_cast_field, schemas.Event):
@@ -81,7 +81,7 @@ class DlgFixedCast(QDialog):
         self.width_container__add_inner_operator = 60
         self.width_operator_between_rows = 50
 
-        self.object_with_fixed_cast = schema_with_fixed_cast_field
+        self.object_with_fixed_cast = schema_with_fixed_cast_field.model_copy()
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
@@ -110,6 +110,8 @@ class DlgFixedCast(QDialog):
         self.layout_grid.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layout.addLayout(self.layout_grid)
 
+        self.layout.addStretch()
+
         self.bt_new_row = QPushButton(QIcon('resources/toolbar_icons/icons/plus.png'), None, clicked=self.new_row)
         self.bt_new_row.setObjectName('bt_new_row')
         self.bt_new_row.setFixedWidth(self.width_bt_new_row)
@@ -124,36 +126,21 @@ class DlgFixedCast(QDialog):
         self.layout_date.addWidget(self.lb_date)
         self.layout_date.addWidget(self.de_date)
 
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.bt_reset = QPushButton('Reset')
+        self.reset_menu: QMenu | None = None
         self.bt_reset_make_menu()
         self.bt_undo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return-180.png'), 'Undo')
         self.bt_undo.clicked.connect(self.undo)
         self.bt_redo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return.png'), 'Redo')
         self.bt_redo.clicked.connect(self.redo)
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_undo, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_redo, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
-
-    def bt_reset_make_menu(self):
-        if self.adapter.parent_fixed_cast:
-            menu = QMenu()
-            menu.addActions(
-                [
-                    Action(menu, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
-                           self.clear_plot),
-                    Action(menu, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
-                           'Reset von übergeordetem Modell', None, self.reset_to_parent_value)
-                ]
-            )
-            self.bt_reset.setMenu(menu)
-        else:
-            self.bt_reset.setText('Clear')
-            self.bt_reset.clicked.connect(self.clear_plot)
 
     def date_changed(self):
         date = self.de_date.date().toPython()
@@ -193,6 +180,20 @@ class DlgFixedCast(QDialog):
         self.controller.execute(
             self.adapter.update_command(self.object_with_fixed_cast.id, self.adapter.parent_fixed_cast))
         self.reset_fixed_cast_plot()
+
+    def bt_reset_make_menu(self):
+        if isinstance(self.object_with_fixed_cast, schemas.LocationOfWork):
+            self.bt_reset.setText('Clear')
+            self.bt_reset.clicked.connect(self.clear_plot)
+        else:
+            self.reset_menu = QMenu()
+            self.reset_menu.addAction(
+                Action(self, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
+                       self.clear_plot))
+            self.reset_menu.addAction(
+                Action(self, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
+                       'Reset von übergeordetem Modell', None, self.reset_to_parent_value))
+            self.bt_reset.setMenu(self.reset_menu)
 
     def grid_to_list(self):
         result_list = []

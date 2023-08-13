@@ -363,6 +363,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.bt_reset = QPushButton('reset')
+        self.reset_menu: QMenu | None = None
         self.configure_bt_reset()
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.layout_foot.addWidget(self.button_box)
@@ -436,13 +437,14 @@ class DlgPartnerLocationPrefs(QDialog):
         if not self.parent_model:
             self.bt_reset.clicked.connect(self.reset_to_ones)
         else:
-            menu = QMenu(self)
-            menu.addAction(Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
-                                  self.reset_to_ones))
-            menu.addAction(Action(self, None, 'Werte von übergeordnetem Modell',
-                                  'Alle Werte werden vom übergeordnten Modell übernommen',
-                                  self.reset_to_parent_values))
-            self.bt_reset.setMenu(menu)
+            self.reset_menu = QMenu(self)
+            self.reset_menu.addAction(
+                Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
+                       self.reset_to_ones))
+            self.reset_menu.addAction(
+                Action(self, None, 'Werte von übergeordnetem Modell',
+                       'Alle Werte werden vom übergeordnten Modell übernommen', self.reset_to_parent_values))
+            self.bt_reset.setMenu(self.reset_menu)
 
     def set_curr_team(self):
         self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())

@@ -173,3 +173,20 @@ class LeaveTeam(Command):
     def change_assignm_end_date(self, assignm_id: UUID, end_date: datetime.date | None):
         command = team_location_assignment_commands.ChangeEndDate(assignm_id, end_date)
         self.controller.execute(command)
+
+
+class UpdateFixedCast(Command):
+    def __init__(self, location_of_work_id: UUID, fixed_cast: str | None):
+        self.location_of_work_id = location_of_work_id
+        self.fixed_cast = fixed_cast
+        self.fixed_cast_old = None
+
+    def execute(self):
+        self.fixed_cast_old = db_services.LocationOfWork.get(self.location_of_work_id).fixed_cast
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast)
+
+    def undo(self):
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old)
+
+    def redo(self):
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast)

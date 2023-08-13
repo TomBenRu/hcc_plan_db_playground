@@ -1,8 +1,8 @@
 import datetime
-from typing import Literal
+from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QTimer
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
     QDialogButtonBox, QMessageBox, QDateEdit, QMenu
@@ -11,14 +11,69 @@ from database import db_services, schemas
 from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team, \
     get_persons_of_team_at_date, get_curr_team_of_location_at_date
 from .actions import Action
+from .commands import location_of_work_commands, location_plan_period_commands, event_commands, command_base_classes
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
-class FrmFixedCast(QDialog):
-    def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast,
-                 location_of_work: schemas.LocationOfWorkShow, parent_model: schemas.ModelWithFixedCast | None):
+class AdapterFixedCast:
+    """Stellt Variablen und Methoden für DlgFixedCast bereit."""
+    def __init__(self, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
+
+        self.schema_with_fixed_cast_field = schema_with_fixed_cast_field
+        self.parent_fixed_cast: str | None = None
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+        self.title_text: str | None = None
+        self.info_text: str | None = None
+        self.model_with_time_of_days__refresh_func: (Callable[[UUID], schemas.ModelWithTimeOfDays] | None) = None
+        self.update_command: (type[location_of_work_commands.UpdateFixedCast] |
+                              type[location_plan_period_commands.UpdateFixedCast] |
+                              type[event_commands.UpdateFixedCast] | None) = None
+
+        self._generate_field_values()
+
+    def _generate_field_values(self):
+        if isinstance(self.schema_with_fixed_cast_field, schemas.LocationOfWork):
+            self.title_text = 'Feste Besetzung einer Einrichtung'
+            self.location_of_work = self.schema_with_fixed_cast_field.model_copy()
+            self.info_text = f'die Einrichtung "{self.schema_with_fixed_cast_field.name}"'
+            self.update_command = location_of_work_commands.UpdateFixedCast
+            self.model_with_time_of_days__refresh_func = db_services.LocationOfWork.get
+        elif isinstance(self.schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
+            self.title_text = 'Feste Besetzung einer Planungsperiode'
+            self.location_of_work = db_services.LocationOfWork.get(
+                self.schema_with_fixed_cast_field.location_of_work.id
+            )
+            self.parent_fixed_cast = self.location_of_work.fixed_cast
+            self.info_text = (f'die Planungsperiode '
+                              f'"{self.schema_with_fixed_cast_field.start}-{self.schema_with_fixed_cast_field.end}"')
+            self.update_command = location_plan_period_commands.UpdateFixedCast
+            self.model_with_time_of_days__refresh_func = db_services.LocationPlanPeriod.get
+        elif isinstance(self.schema_with_fixed_cast_field, schemas.Event):
+            self.title_text = 'Feste Besetzung eines Events'
+            location_plan_period = db_services.LocationPlanPeriod.get(
+                self.schema_with_fixed_cast_field.location_plan_period.id
+            )
+            self.parent_fixed_cast = location_plan_period.fixed_cast
+            self.location_of_work = db_services.LocationOfWork.get(
+                self.schema_with_fixed_cast_field.location_plan_period.location_of_work.id
+            )
+            self.info_text = f'''das Event am "{self.schema_with_fixed_cast_field.date.strftime('%d.%m.%y')}"'''
+            self.update_command = event_commands.UpdateFixedCast
+            self.model_with_time_of_days__refresh_func = db_services.Event.get
+        else:
+            raise TypeError(f'{type(self.schema_with_fixed_cast_field)} ist kein erlaubtes Schema.')
+
+
+class DlgFixedCast(QDialog):
+    def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
         super().__init__(parent)
-        self.setWindowTitle('Fixed Cast')
+
+        self.adapter = AdapterFixedCast(schema_with_fixed_cast_field)
+
+        self.setWindowTitle(self.adapter.title_text)
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
         self.col_operator_between_rows = 2
         self.width_cb_actors = 150
         self.width_bt_new_row = 30
@@ -27,8 +82,6 @@ class FrmFixedCast(QDialog):
         self.width_operator_between_rows = 50
 
         self.object_with_fixed_cast = schema_with_fixed_cast_field
-        self.location_of_work = location_of_work
-        self.parent_model = parent_model
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
@@ -40,14 +93,7 @@ class FrmFixedCast(QDialog):
         self.layout = QVBoxLayout(self)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        if isinstance(schema_with_fixed_cast_field, (schemas.LocationOfWork, schemas.Event)):
-            additional_text = f'die Einrichtung "{schema_with_fixed_cast_field.name}"'
-        elif isinstance(schema_with_fixed_cast_field, schemas.LocationPlanPeriod):
-            additional_text = f'die Planungsperiode "{schema_with_fixed_cast_field.start}-{schema_with_fixed_cast_field.end}"'
-        elif isinstance(schema_with_fixed_cast_field, schemas.Event):
-            additional_text = f'''das Event am "{schema_with_fixed_cast_field.date.strftime('%d.%m.%y')}"'''
-        else:
-            raise TypeError(f'{type(schema_with_fixed_cast_field)} ist kein erlaubtes Schema.')
+        additional_text = self.adapter.info_text
 
         self.lb_title = QLabel(f'Hier können Sie definieren, welche Besetzung für {additional_text} '
                                f'grundsätzlich erforderlich ist.\n'
@@ -69,10 +115,6 @@ class FrmFixedCast(QDialog):
         self.bt_new_row.setFixedWidth(self.width_bt_new_row)
         self.layout_grid.addWidget(self.bt_new_row, 0, 0)
 
-        self.spacer_widget = QLabel()
-        self.spacer_widget.setObjectName('spacer_widget')
-        self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
-
         self.lb_date = QLabel('Datum:')
         self.de_date = QDateEdit()
         self.de_date.setFixedWidth(120)
@@ -84,18 +126,21 @@ class FrmFixedCast(QDialog):
 
         self.bt_reset = QPushButton('Reset')
         self.bt_reset_make_menu()
+        self.bt_undo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return-180.png'), 'Undo')
+        self.bt_undo.clicked.connect(self.undo)
+        self.bt_redo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return.png'), 'Redo')
+        self.bt_redo.clicked.connect(self.redo)
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
-        self.button_box.accepted.connect(self.save_fixed_cast)
+        self.button_box.addButton(self.bt_undo, QDialogButtonBox.ButtonRole.ActionRole)
+        self.button_box.addButton(self.bt_redo, QDialogButtonBox.ButtonRole.ActionRole)
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
     def bt_reset_make_menu(self):
-        if isinstance(self.object_with_fixed_cast, schemas.LocationOfWork):
-            self.bt_reset.setText('Clear')
-            self.bt_reset.clicked.connect(self.clear_plot)
-        else:
+        if self.adapter.parent_fixed_cast:
             menu = QMenu()
             menu.addActions(
                 [
@@ -106,34 +151,48 @@ class FrmFixedCast(QDialog):
                 ]
             )
             self.bt_reset.setMenu(menu)
-
+        else:
+            self.bt_reset.setText('Clear')
+            self.bt_reset.clicked.connect(self.clear_plot)
 
     def date_changed(self):
         date = self.de_date.date().toPython()
-        team = get_curr_team_of_location_at_date(self.location_of_work, date)
+        team = get_curr_team_of_location_at_date(self.adapter.location_of_work, date)
         self.persons = sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
         self.reset_fixed_cast_plot()
 
-    def save_fixed_cast(self):
-        result_list = self.grid_to_list()
-        if not result_list:
-            self.object_with_fixed_cast.fixed_cast = None
-            self.accept()
-            return
+    def accept(self) -> None:
+        super().accept()
 
-        result_text = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
-        self.object_with_fixed_cast.fixed_cast = result_text
-        self.accept()
+    def reject(self) -> None:
+        self.controller.undo_all()
+        super().reject()
+
+    def undo(self):
+        if self.controller.get_undo_stack():
+            self.controller.undo()
+            self.reset_fixed_cast_plot()
+
+    def redo(self):
+        if self.controller.redo_stack:
+            self.controller.redo()
+            self.reset_fixed_cast_plot()
+
+    def save_plot(self):
+        if result_list := self.grid_to_list():
+            fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
+        else:
+            fixed_cast = None
+        self.controller.execute(self.adapter.update_command(self.object_with_fixed_cast.id, fixed_cast))
 
     def clear_plot(self):
-        self.object_with_fixed_cast.fixed_cast, old_value = None, self.object_with_fixed_cast.fixed_cast
+        self.controller.execute(self.adapter.update_command(self.object_with_fixed_cast.id, None))
         self.reset_fixed_cast_plot()
-        self.object_with_fixed_cast.fixed_cast = old_value
 
     def reset_to_parent_value(self):
-        self.object_with_fixed_cast.fixed_cast, old_value = self.parent_model.fixed_cast, self.object_with_fixed_cast.fixed_cast
+        self.controller.execute(
+            self.adapter.update_command(self.object_with_fixed_cast.id, self.adapter.parent_fixed_cast))
         self.reset_fixed_cast_plot()
-        self.object_with_fixed_cast.fixed_cast = old_value
 
     def grid_to_list(self):
         result_list = []
@@ -155,13 +214,14 @@ class FrmFixedCast(QDialog):
         return result_list
 
     def new_row(self):
-        """füg eine neue Reihe mit Zwischenoperator-Auswahl hinzu"""
+        """füg eine neue Reihe mit Zwischenoperator-Auswahl und combo-actor hinzu"""
         r, c, _, _ = self.layout_grid.getItemPosition(self.layout_grid.indexOf(self.bt_new_row))
 
         '''neue reihen werden angelegt'''
         if r == 0:
             '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
             cb_actors = self.create_combo_actors()
+            cb_actors.currentIndexChanged.connect(self.save_plot)
             self.layout_grid.addWidget(cb_actors, r, c + 1)
 
             container_add_inner_operator = self.create_widget__add_inner_operater()
@@ -172,6 +232,7 @@ class FrmFixedCast(QDialog):
         else:
             '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
             cb_actors = self.create_combo_actors()
+            cb_actors.currentIndexChanged.connect(self.save_plot)
             self.layout_grid.addWidget(cb_actors, r + 1, c + 1)
 
             container_add_inner_operator = self.create_widget__add_inner_operater()
@@ -180,10 +241,11 @@ class FrmFixedCast(QDialog):
             '''add-row-button wird um 2 nach unten verschoben'''
             self.layout_grid.addWidget(self.bt_new_row, r + 2, c)
             '''combo operator betw. rows wird erzeugt'''
-            combo_op_betw_rows = self.create_combo_operator('between')
-            self.layout_grid.addWidget(combo_op_betw_rows, r, self.col_operator_between_rows)
+            combo_op_between_rows = self.create_combo_operator('between')
+            combo_op_between_rows.currentIndexChanged.connect(self.save_plot)
+            self.layout_grid.addWidget(combo_op_between_rows, r, self.col_operator_between_rows)
 
-        self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
+        self.save_plot()
 
     def add_actor(self):
         """fügt eine neue Operator-Auswahl mit nachfolgender Actor-Auswahl hinzu"""
@@ -192,12 +254,14 @@ class FrmFixedCast(QDialog):
         r, c, _, _ = self.layout_grid.getItemPosition(self.layout_grid.indexOf(add_operator_widget))
         self.layout_grid.addWidget(add_operator_widget, r, c + 2)
         cb_operator = self.create_combo_operator('inner')
+        cb_operator.currentIndexChanged.connect(self.save_plot)
         self.layout_grid.addWidget(cb_operator, r, c)
 
         cb_actors = self.create_combo_actors()
+        cb_actors.currentIndexChanged.connect(self.save_plot)
         self.layout_grid.addWidget(cb_actors, r, c + 1)
 
-        self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
+        self.save_plot()
 
     def del_actor(self):
         delete_operator_widget = self.sender().parentWidget()
@@ -224,7 +288,7 @@ class FrmFixedCast(QDialog):
                     if cell := self.layout_grid.itemAtPosition(row, col):
                         self.layout_grid.addWidget(cell.widget(), row - delta, col)
 
-        self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
+        QTimer.singleShot(50, self.save_plot)
 
     def create_combo_actors(self):
         cb_actors = QComboBoxToFindData()
@@ -274,9 +338,14 @@ class FrmFixedCast(QDialog):
         for data, text in self.data_text_operator.items():
             combo_operator.addItem(text, data)
 
+    def reload_object_with_fixed_cast(self):
+        self.object_with_fixed_cast = self.adapter.model_with_time_of_days__refresh_func(self.object_with_fixed_cast.id)
+
     def reset_fixed_cast_plot(self):
+        self.reload_object_with_fixed_cast()
         for i in range(self.layout_grid.count()):
             self.layout_grid.itemAt(i).widget().deleteLater()
+            self.layout_grid.addWidget(self.bt_new_row, 0, 0)
         self.plot_eval_str()
 
     def plot_eval_str(self):
@@ -289,6 +358,7 @@ class FrmFixedCast(QDialog):
             if type(row) == str:
                 cb_operator = self.create_combo_operator('between')
                 cb_operator.setCurrentIndex(cb_operator.findData(row))
+                cb_operator.currentIndexChanged.connect(self.save_plot)
                 self.layout_grid.addWidget(cb_operator, row_idx, self.col_operator_between_rows)
             else:
                 self.layout_grid.addWidget(self.create_widget__add_inner_operater(), row_idx, len(row)+1)
@@ -296,14 +366,15 @@ class FrmFixedCast(QDialog):
                     if type(element) == str:
                         cb_operator = self.create_combo_operator('inner')
                         cb_operator.setCurrentIndex(cb_operator.findData(element))
+                        cb_operator.currentIndexChanged.connect(self.save_plot)
                         self.layout_grid.addWidget(cb_operator, row_idx, col_idx+1)
                     else:
                         cb_actors = self.create_combo_actors()
                         cb_actors.setCurrentIndex(cb_actors.findData(element))
+                        cb_actors.currentIndexChanged.connect(self.save_plot)
                         self.layout_grid.addWidget(cb_actors, row_idx, col_idx+1)
 
         self.layout_grid.addWidget(self.bt_new_row, len(form), 0)
-        self.layout_grid.addWidget(self.spacer_widget, self.layout_grid.rowCount(), self.layout_grid.columnCount())
 
     def backtranslate_eval_str(self, str_for_team: str = 'team'):
         form = []

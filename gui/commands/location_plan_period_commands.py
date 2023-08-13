@@ -169,3 +169,20 @@ class RemoveActorPartnerLocationPref(Command):
     def redo(self):
         db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
+
+
+class UpdateFixedCast(Command):
+    def __init__(self, location_plan_period_id: UUID, fixed_cast: str | None):
+        self.location_plan_period_id = location_plan_period_id
+        self.fixed_cast = fixed_cast
+        self.fixed_cast_old = None
+
+    def execute(self):
+        self.fixed_cast_old = db_services.LocationPlanPeriod.get(self.location_plan_period_id).fixed_cast
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast)
+
+    def undo(self):
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old)
+
+    def redo(self):
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast)

@@ -427,6 +427,16 @@ class LocationOfWork:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_fixed_cast(location_of_work_id: UUID, fixed_cast: str) -> schemas.LocationOfWorkShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
+        location_of_work_db.fixed_cast = fixed_cast
+
+        return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(location_id: UUID) -> schemas.LocationOfWork:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
@@ -826,6 +836,7 @@ class LocationPlanPeriod:
     @db_session
     def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @staticmethod
@@ -896,6 +907,16 @@ class LocationPlanPeriod:
                 break
         location_plan_period_db.time_of_day_standards.add(time_of_day_db)
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db), old_time_of_day_standard_id
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_fixed_cast(location_plan_period_id: UUID, fixed_cast: str) -> schemas.LocationPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        location_plan_period_db.fixed_cast = fixed_cast
+
+        return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
 
 class EventGroup:

@@ -36,18 +36,20 @@ class UpdateTimeOfDay(Command):
 
 
 class UpdateFixedCast(Command):
-    def __init__(self, event: schemas.EventShow, fixed_cast: str):
-        self.event = event
+    def __init__(self, event_id: UUID, fixed_cast: str):
+        self.event_id = event_id
         self.fixed_cast = fixed_cast
+        self.fixed_cast_old = None
 
     def execute(self):
-        db_services.Event.update_fixed_cast(self.event.id, self.fixed_cast)
+        self.fixed_cast_old = db_services.Event.get(self.event_id).fixed_cast
+        db_services.Event.update_fixed_cast(self.event_id, self.fixed_cast)
 
     def undo(self):
-        db_services.Event.update_fixed_cast(self.event.id, self.event.fixed_cast)
+        db_services.Event.update_fixed_cast(self.event_id, self.fixed_cast_old)
 
     def redo(self):
-        db_services.Event.update_fixed_cast(self.event.id, self.fixed_cast)
+        db_services.Event.update_fixed_cast(self.event_id, self.fixed_cast)
 
 
 class Delete(Command):

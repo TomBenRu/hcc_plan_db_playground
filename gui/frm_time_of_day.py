@@ -15,6 +15,7 @@ from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
 class AdapterTimeOfDaysEditList:
+    """Stellt Variablen und Methoden für DlgTimeOfDayEditList bereit."""
     def __init__(self, model_with_time_of_days: schemas.ModelWithTimeOfDays):
         self.model_with_time_of_days = model_with_time_of_days
 

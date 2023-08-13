@@ -50,6 +50,7 @@ class ModelWithPartnerLocPrefs(Protocol):
 
 @runtime_checkable
 class ModelWithFixedCast(Protocol):
+    id: UUID
     fixed_cast: Optional[str]
 
 

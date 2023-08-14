@@ -16,6 +16,76 @@ from .commands import location_of_work_commands, location_plan_period_commands, 
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
+class AdapterFixedCastLocationOfWork:
+    def __init__(self, location_of_work: schemas.LocationOfWorkShow):
+        self.object_with_fixed_cast_field = location_of_work
+        self.parent_fixed_cast: str | None = None
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+        self.title_text: str | None = None
+        self.info_text: str | None = None
+        self.model_with_time_of_days__refresh_func: (Callable[[UUID], schemas.ModelWithTimeOfDays] | None) = None
+        self.update_command: type[location_of_work_commands.UpdateFixedCast] | None = None
+        self._generate_field_values()
+
+    def _generate_field_values(self):
+        self.title_text = 'Feste Besetzung einer Einrichtung'
+        self.location_of_work = self.object_with_fixed_cast_field.model_copy()
+        self.info_text = f'die Einrichtung "{self.object_with_fixed_cast_field.name}"'
+        self.update_command = location_of_work_commands.UpdateFixedCast
+        self.model_with_time_of_days__refresh_func = db_services.LocationOfWork.get
+
+
+class AdapterFixedCastLocationPlanPeriod:
+    def __init__(self, location_plan_period: schemas.LocationPlanPeriodShow):
+        self.object_with_fixed_cast_field = location_plan_period
+        self.parent_fixed_cast: str | None = None
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+        self.title_text: str | None = None
+        self.info_text: str | None = None
+        self.model_with_time_of_days__refresh_func: (Callable[[UUID], schemas.ModelWithTimeOfDays] | None) = None
+        self.update_command: type[location_plan_period_commands.UpdateFixedCast] | None = None
+
+        self._generate_field_values()
+
+    def _generate_field_values(self):
+        self.title_text = 'Feste Besetzung einer Planungsperiode'
+        self.location_of_work = db_services.LocationOfWork.get(
+            self.object_with_fixed_cast_field.location_of_work.id
+        )
+        self.parent_fixed_cast = self.location_of_work.fixed_cast
+        self.info_text = (f'die Planungsperiode '
+                          f'"{self.object_with_fixed_cast_field.plan_period.start}-'
+                          f'{self.object_with_fixed_cast_field.plan_period.end}"')
+        self.update_command = location_plan_period_commands.UpdateFixedCast
+        self.model_with_time_of_days__refresh_func = db_services.LocationPlanPeriod.get
+
+
+class AdapterFixedCastEvent:
+    def __init__(self, event: schemas.EventShow):
+        self.object_with_fixed_cast_field = event
+        self.parent_fixed_cast: str | None = None
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+        self.title_text: str | None = None
+        self.info_text: str | None = None
+        self.model_with_time_of_days__refresh_func: (Callable[[UUID], schemas.ModelWithTimeOfDays] | None) = None
+        self.update_command: type[event_commands.UpdateFixedCast] | None = None
+
+        self._generate_field_values()
+
+    def _generate_field_values(self):
+        self.title_text = 'Feste Besetzung eines Events'
+        location_plan_period = db_services.LocationPlanPeriod.get(
+            self.object_with_fixed_cast_field.location_plan_period.id
+        )
+        self.parent_fixed_cast = location_plan_period.fixed_cast
+        self.location_of_work = db_services.LocationOfWork.get(
+            self.object_with_fixed_cast_field.location_plan_period.location_of_work.id
+        )
+        self.info_text = f'''das Event am "{self.object_with_fixed_cast_field.date.strftime('%d.%m.%y')}"'''
+        self.update_command = event_commands.UpdateFixedCast
+        self.model_with_time_of_days__refresh_func = db_services.Event.get
+
+
 class AdapterFixedCast:
     """Stellt Variablen und Methoden für DlgFixedCast bereit."""
     def __init__(self, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
@@ -66,6 +136,9 @@ class AdapterFixedCast:
 
 
 class DlgFixedCast(QDialog):
+    # todo: Handling für den Fall, dass Personen nicht über gesamten Zeitraum einer Planperiode gleich sind.
+    # todo: Lösung Union von Personen erstellen, beim aktivieren eines Events fixed_cast
+    # todo: automatisch korrigieren und Warnung anzeigen.
     def __init__(self, parent: QWidget, schema_with_fixed_cast_field: schemas.ModelWithFixedCast):
         super().__init__(parent)
 
@@ -144,10 +217,35 @@ class DlgFixedCast(QDialog):
         self.layout.addWidget(self.button_box)
 
     def date_changed(self):
-        date = self.de_date.date().toPython()
-        team = get_curr_team_of_location_at_date(self.adapter.location_of_work, date)
-        self.persons = sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
+        print(f'date_changed: {self.de_date.date()=}')
+        if isinstance(self.object_with_fixed_cast, schemas.LocationOfWorkShow):
+            date = self.de_date.date().toPython()
+            team = get_curr_team_of_location_at_date(self.object_with_fixed_cast, date)
+            self.persons = sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
+        elif isinstance(self.object_with_fixed_cast, schemas.LocationPlanPeriodShow):
+            self.persons = self.union_persons(self.object_with_fixed_cast.plan_period)
+        elif isinstance(self.object_with_fixed_cast, schemas.EventShow):
+            team = get_curr_team_of_location_at_date(self.adapter.location_of_work, self.object_with_fixed_cast.date)
+            self.persons = sorted(get_persons_of_team_at_date(team.id, self.object_with_fixed_cast.date),
+                                  key=lambda x: x.f_name)
         self.reset_fixed_cast_plot()
+
+    def union_persons(self, plan_period: schemas.PlanPeriod):
+        days_of_plan_period = [
+            plan_period.start + datetime.timedelta(delta)
+            for delta in range((plan_period.end - plan_period.start).days + 1)
+        ]
+        person_ids = set()
+        same_person_over_period = True
+        for day in days_of_plan_period:
+            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(plan_period.team.id, day)}
+            if day != days_of_plan_period[0] and person_ids_at_day != person_ids:
+                same_person_over_period = False
+            person_ids |= person_ids_at_day
+        if not same_person_over_period:
+            self.lb_title.setText(f'{self.lb_title.text()}\n'
+                                  f'Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!')
+        return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
 
     def accept(self) -> None:
         super().accept()

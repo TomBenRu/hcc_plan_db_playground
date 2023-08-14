@@ -13,7 +13,7 @@ class ModelWithTimeOfDays(Protocol):
     time_of_days: list[Union['TimeOfDay', 'TimeOfDayShow']]
     time_of_day_standards: list['TimeOfDay']
 
-    def model_copy(self, deep: bool) -> Any:
+    def model_copy(self, deep: bool = False) -> Any:
         pass
 
 
@@ -24,7 +24,7 @@ class ModelWithCombLocPossible(Protocol):
     combination_locations_possibles: list['CombinationLocationsPossible']
     prep_delete: Optional[datetime.datetime]
 
-    def model_copy(self, deep: bool):
+    def model_copy(self, deep: bool = False):
         ...
 
 
@@ -34,7 +34,7 @@ class ModelWithActorLocPrefs(Protocol):
     actor_location_prefs_defaults: List['ActorLocationPref']
     prep_delete: datetime.datetime
 
-    def model_copy(self, deep: bool):
+    def model_copy(self, deep: bool = False):
         ...
 
 
@@ -44,7 +44,7 @@ class ModelWithPartnerLocPrefs(Protocol):
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
     prep_delete: datetime.datetime
 
-    def model_copy(self, deep: bool):
+    def model_copy(self, deep: bool = False):
         ...
 
 
@@ -53,7 +53,7 @@ class ModelWithFixedCast(Protocol):
     id: UUID
     fixed_cast: Optional[str]
 
-    def model_copy(self, deep: bool):
+    def model_copy(self, deep: bool = False):
         ...
 
 

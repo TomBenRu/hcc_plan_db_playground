@@ -20,7 +20,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
 from .actions import Action
 from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
     actor_loc_pref_commands, team_actor_assignment_commands
-from .frm_fixed_cast import DlgFixedCast
+from .frm_fixed_cast import DlgFixedCast, AdapterFixedCastLocationOfWork
 from .tabbars import TabBar
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
@@ -855,7 +855,7 @@ class FrmLocationModify(FrmLocationData):
         return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
 
     def edit_fixed_cast(self):
-        dlg = DlgFixedCast(self, self.location_of_work)
+        dlg = AdapterFixedCastLocationOfWork(self, self.location_of_work).dlg_fixed_cast
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)

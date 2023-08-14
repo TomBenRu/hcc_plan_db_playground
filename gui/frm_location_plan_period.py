@@ -15,7 +15,7 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
-from gui.frm_fixed_cast import DlgFixedCast
+from gui.frm_fixed_cast import DlgFixedCast, AdapterFixedCastLocationOfWork, AdapterFixedCastLocationPlanPeriod
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
 from gui.observer import signal_handling
 
@@ -54,12 +54,15 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         self.context_menu = QMenu()
+        self.menu_times_of_day = QMenu('Tageszeiten')
+        self.context_menu.addMenu(self.menu_times_of_day)
+        self.create_actions__fixed_flags_notes()
 
         self.set_stylesheet()
 
         self.actions = []
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
+        self.create_actions_times_of_day()
+        self.menu_times_of_day.addActions(self.actions)
         self.set_tooltip()
 
     def set_stylesheet(self):
@@ -99,13 +102,24 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def contextMenuEvent(self, pos):
         self.context_menu.exec(pos.globalPos())
 
-    def reset_context_menu(self, location_plan_period: schemas.LocationPlanPeriodShow):
+    def create_actions__fixed_flags_notes(self):
+        for text, slot in (('Feste Beseztung', self.edit_fixed_cast), ('Flags', self.edit_flags), ('Notizen', self.edit_notes)):
+            self.context_menu.addAction(Action(self, None, text, None, slot))
+
+    def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
         self.location_plan_period = location_plan_period
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-        for action in self.context_menu.actions():
-            self.context_menu.removeAction(action)
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
+        for action in self.menu_times_of_day.actions():
+            self.menu_times_of_day.removeAction(action)
+        self.create_actions_times_of_day()
+        self.menu_times_of_day.addActions(self.actions)
+
+    def create_actions_times_of_day(self):  # todo: fixed_cast, flags, notes
+        self.actions = [
+            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
+                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                   functools.partial(self.set_new_time_of_day, t))
+            for t in self.t_o_d_for_selection]
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
@@ -115,17 +129,19 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
         self.time_of_day = new_time_of_day
         self.reload_location_plan_period()
-        self.create_actions()
-        self.reset_context_menu(self.location_plan_period)
+        self.create_actions_times_of_day()
+        self.reset_menu_times_of_day(self.location_plan_period)
         self.set_tooltip()
         signal_handling.handler_location_plan_period.reload_location_pp__frm_location_plan_period()
 
-    def create_actions(self):
-        self.actions = [
-            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
-                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-                   functools.partial(self.set_new_time_of_day, t))
-            for t in self.t_o_d_for_selection]
+    def edit_fixed_cast(self):
+        print('edit_fixed_cast')
+
+    def edit_flags(self):
+        print('edit_flags')
+
+    def edit_notes(self):
+        print('edit_notes')
 
     def set_tooltip(self):
         self.setToolTip(f'Rechtsklick:\n'
@@ -477,19 +493,18 @@ class FrmLocationPlanPeriod(QWidget):
         t_o_d = bt.time_of_day
         if bt.isChecked():
             existing_events_on_day = [event for event in self.location_plan_period.events
-                                    if event.date == date and not event.prep_delete]
+                                      if event.date == date and not event.prep_delete]
             event_new = schemas.EventCreate(date=date, location_plan_period=self.location_plan_period,
-                                                   time_of_day=t_o_d, flags=[])
+                                            time_of_day=t_o_d, flags=[])
             save_command = event_commands.Create(event_new)
             self.controller.execute(save_command)
 
             '''Falls es an diesem Tage schon einen oder mehrere Events gibt,
             werden die fixed_casts vom ersten gefundenen Event übernommen, weil, davon ausgegangen
             wird, dass schon evt. geänderte fixed_casts für alle Events an diesem Tag gelten.'''
-            created_event = save_command.created_event
             if existing_events_on_day:
-               self.controller.execute(
-                   event_commands.UpdateFixedCast(save_command.created_event, existing_events_on_day[0].fixed_cast))
+                self.controller.execute(
+                   event_commands.UpdateFixedCast(save_command.created_event.id, existing_events_on_day[0].fixed_cast))
 
             self.reload_location_plan_period()
 
@@ -541,8 +556,8 @@ class FrmLocationPlanPeriod(QWidget):
                 return
             button.setChecked(True)
             button.time_of_day = event.time_of_day
-            button.create_actions()
-            button.reset_context_menu(self.location_plan_period)
+            button.create_actions_times_of_day()
+            button.reset_menu_times_of_day(self.location_plan_period)
             button.set_tooltip()
 
     def edit_time_of_days(self):
@@ -551,17 +566,18 @@ class FrmLocationPlanPeriod(QWidget):
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
             buttons_event: list[ButtonEvent] = self.findChildren(ButtonEvent)
             for bt in buttons_event:
-                bt.reset_context_menu(self.location_plan_period)
+                bt.reset_menu_times_of_day(self.location_plan_period)
             self.reset_chk_field()
 
     def reset_all_event_t_o_ds(self):  # todo: noch implementieren
         ...
 
     def edit_fixed_cast(self):  # todo: noch implementieren
-        dlg = DlgFixedCast(self, self.location_plan_period)
+        dlg = AdapterFixedCastLocationPlanPeriod(self, self.location_plan_period).dlg_fixed_cast
         dlg.de_date.setDate(self.location_plan_period.plan_period.start)
         dlg.de_date.setDisabled(True)
         if dlg.exec():
+            print('exec')
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
 

@@ -156,7 +156,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
 
-class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
+class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Fest Besetzung der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
@@ -171,7 +171,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen
         )
 
 
-class ButtonNotes(QPushButton):  # todo: Fertigstellen
+class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
@@ -183,7 +183,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen
         self.setMinimumHeight(width_height)
 
 
-class ButtonFlags(QPushButton):  # todo: Fertigstellen
+class ButtonFlags(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
@@ -438,7 +438,7 @@ class FrmLocationPlanPeriod(QWidget):
         bt_fixed_cast_reset.setStatusTip('Festgelegte Besetzung für alle Verfügbarkeiten in diesem Zeitraum '
                                    'auf die Standartwerte des Planungszeitraums zurücksetzen.')
         self.layout.addWidget(bt_fixed_cast_reset, row + 2, 0)
-        lb_notes = QLabel('Notizen')
+        lb_notes = QLabel('Notizen')  # todo: zu Button verändern; Notizen aller Events im Zeitraum
         self.layout.addWidget(lb_notes, row + 3, 0)
         lb_flags = QLabel('Besondere Eigensch.')
         self.layout.addWidget(lb_flags, row + 4, 0)

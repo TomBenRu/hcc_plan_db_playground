@@ -57,7 +57,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.context_menu = QMenu()
         self.menu_times_of_day = QMenu('Tageszeiten')
         self.context_menu.addMenu(self.menu_times_of_day)
-        self.create_actions__fixed_flags_notes()
+        self.create_actions__skills_fixed_flags_notes()
 
         self.set_stylesheet()
 
@@ -103,8 +103,9 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def contextMenuEvent(self, pos):
         self.context_menu.exec(pos.globalPos())
 
-    def create_actions__fixed_flags_notes(self):
-        for text, slot in (('Feste Beseztung', self.edit_fixed_cast), ('Flags', self.edit_flags), ('Notizen', self.edit_notes)):
+    def create_actions__skills_fixed_flags_notes(self):
+        for text, slot in (('Skills', self.edit_skills), ('Feste Beseztung', self.edit_fixed_cast),
+                           ('Flags', self.edit_flags), ('Notizen', self.edit_notes)):
             self.context_menu.addAction(Action(self, None, text, None, slot))
 
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
@@ -134,6 +135,9 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.reset_menu_times_of_day(self.location_plan_period)
         self.set_tooltip()
         signal_handling.handler_location_plan_period.reload_location_pp__frm_location_plan_period()
+
+    def edit_skills(self):
+        print('edit_skills')
 
     def edit_fixed_cast(self):
         print('edit_fixed_cast')

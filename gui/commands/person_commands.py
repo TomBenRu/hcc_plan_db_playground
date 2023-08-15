@@ -269,3 +269,33 @@ class LeaveTeam(Command):
     def change_assignm_end_date(self, assignm_id: UUID, end_date: datetime.date | None):
         command = team_actor_assignment_commands.ChangeEndDate(assignm_id, end_date)
         self.controller.execute(command)
+
+
+class PutInFlag(Command):
+    def __init__(self, person_id: UUID, flag_id: UUID):
+        self.person_id = person_id
+        self.flag_id = flag_id
+
+    def execute(self):
+        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+
+    def undo(self):
+        db_services.Person.remove_flag(self.person_id, self.flag_id)
+
+    def redo(self):
+        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+
+
+class RemoveFlag(Command):
+    def __init__(self, person_id: UUID, flag_id: UUID):
+        self.person_id = person_id
+        self.flag_id = flag_id
+
+    def execute(self):
+        db_services.Person.remove_flag(self.person_id, self.flag_id)
+
+    def undo(self):
+        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+
+    def redo(self):
+        db_services.Person.remove_flag(self.person_id, self.flag_id)

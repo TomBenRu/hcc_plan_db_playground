@@ -321,6 +321,26 @@ class Person:
         person_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
         return schemas.PersonShow.model_validate(person_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_flag(person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        flag_db = models.Flag.get_for_update(id=flag_id)
+        person_db.flags.add(flag_db)
+        return schemas.PersonShow.model_validate(person_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_flag(person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        person_db = models.Person.get_for_update(id=person_id)
+        flag_db = models.Flag.get_for_update(id=flag_id)
+        person_db.flags.remove(flag_db)
+        return schemas.PersonShow.model_validate(person_db)
+
 
 class LocationOfWork:
     @staticmethod
@@ -1015,7 +1035,27 @@ class Event:
         event_db.delete()
         event_group_db.delete()
 
-        return deleted
+        return deleted@staticmethod
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_flag(event_id: UUID, flag_id: UUID) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_db = models.Event.get_for_update(id=event_id)
+        flag_db = models.Flag.get_for_update(id=flag_id)
+        event_db.flags.add(flag_db)
+        return schemas.EventShow.model_validate(event_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_flag(event_id: UUID, flag_id: UUID) -> schemas.EventShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_db = models.Event.get_for_update(id=event_id)
+        flag_db = models.Flag.get_for_update(id=flag_id)
+        event_db.flags.remove(flag_db)
+        return schemas.EventShow.model_validate(event_db)
+
 
 
 class ActorPlanPeriod:

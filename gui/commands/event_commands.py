@@ -61,9 +61,37 @@ class Delete(Command):
         db_services.Event.delete(self.event_id)
 
     def undo(self):
-        """todo: Schwierigkeit: Beim Löschen wurden unter Umständen kaskadenweise EventGroups gelöscht.
-           diese können auf diese Weise nicht wiederhergestellt werden."""
         self.event_id = db_services.Event.create(self.event_to_delete)
 
     def redo(self):
         db_services.Event.delete(self.event_id)
+
+
+class PutInFlag(Command):
+    def __init__(self, event_id: UUID, flag_id: UUID):
+        self.event_id = event_id
+        self.flag_id = flag_id
+
+    def execute(self):
+        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+
+    def undo(self):
+        db_services.Event.remove_flag(self.event_id, self.flag_id)
+
+    def redo(self):
+        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+
+
+class RemoveFlag(Command):
+    def __init__(self, event_id: UUID, flag_id: UUID):
+        self.event_id = event_id
+        self.flag_id = flag_id
+
+    def execute(self):
+        db_services.Event.remove_flag(self.event_id, self.flag_id)
+
+    def undo(self):
+        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+
+    def redo(self):
+        db_services.Event.remove_flag(self.event_id, self.flag_id)

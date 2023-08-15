@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu
+from gui import side_menu, frm_flag
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
 from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
@@ -143,8 +143,15 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         if dlg.exec():
             self.reload_location_plan_period()
             # todo: signal an FrmActorPlanPeriod und Tagesconfig-Button fixed_cast?
+
     def edit_flags(self):
-        print('edit_flags')
+        if not self.isChecked():
+            QMessageBox.critical(self, 'Flags',
+                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Flags bearbeiten können.')
+            return
+        event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
+                                                                 self.time_of_day.id)
+        dlg = frm_flag.DlgFlagsBuilderEvent(self, event).dlg_flags
 
     def edit_notes(self):
         print('edit_notes')

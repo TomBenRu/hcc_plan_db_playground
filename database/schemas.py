@@ -98,10 +98,11 @@ class PersonShow(Person):
     combination_locations_possibles: list['CombinationLocationsPossible']
     actor_location_prefs_defaults: list['ActorLocationPref']
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
+    flags: list['Flag']
 
     @field_validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards',
                      'combination_locations_possibles', 'actor_location_prefs_defaults',
-                     'actor_partner_location_prefs_defaults', 'team_actor_assigns', 'skills')
+                     'actor_partner_location_prefs_defaults', 'team_actor_assigns', 'flags', 'skills')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 

@@ -980,11 +980,11 @@ class Event:
     @staticmethod
     @db_session
     def get_from__location_pp_date_tod(location_plan_period_id: UUID, date: datetime.date,
-                                    time_of_day_id) -> schemas.EventShow:
+                                       time_of_day_id) -> schemas.EventShow:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         event_db = models.Event.get_for_update(
             lambda e: e.location_plan_period == location_plan_period_db and e.date == date and
-                       e.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not e.prep_delete)
+                      e.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not e.prep_delete)
 
         return schemas.EventShow.model_validate(event_db)
 
@@ -1035,7 +1035,8 @@ class Event:
         event_db.delete()
         event_group_db.delete()
 
-        return deleted@staticmethod
+        return deleted
+
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def put_in_flag(event_id: UUID, flag_id: UUID) -> schemas.EventShow:

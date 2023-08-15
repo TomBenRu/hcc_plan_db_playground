@@ -42,6 +42,8 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
 
+        self.parent = parent
+
         signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.connect(
             lambda group_mode: self.set_group_mode(group_mode))
         signal_handling.handler_location_plan_period.signal_reload_location_pp__events.connect(
@@ -140,10 +142,13 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         print('edit_skills')
 
     def edit_fixed_cast(self):
-        print('edit_fixed_cast')
+        if not self.isChecked():
+            QMessageBox.critical(self, 'Flags',
+                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Besetzung bearbeiten können.')
+            return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
-        dlg = DlgFixedCastBuilderEvent(self, event).dlg_fixed_cast
+        dlg = DlgFixedCastBuilderEvent(self.parent, event).dlg_fixed_cast
         if dlg.exec():
             self.reload_location_plan_period()
             # todo: signal an FrmActorPlanPeriod und Tagesconfig-Button fixed_cast?
@@ -155,7 +160,9 @@ class ButtonEvent(QPushButton):  # todo: Ändern
             return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
-        dlg = frm_flag.DlgFlagsBuilderEvent(self, event).dlg_flags
+        dlg = frm_flag.DlgFlagsBuilderEvent(self.parent, event).dlg_flags
+        if dlg.exec():
+            ...
 
     def edit_notes(self):
         print('edit_notes')
@@ -601,7 +608,7 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('B8A4139121CC48B69EF1841A14395A91'))
+    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
     window = FrmTabLocationPlanPeriods(None, planperiods[0])
     window.show()
     app.exec()

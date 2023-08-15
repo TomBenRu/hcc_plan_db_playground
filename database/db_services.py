@@ -342,7 +342,9 @@ class LocationOfWork:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
+        print(f'{location.address.model_dump()=}')
         address_db = models.Address(**location.address.model_dump(), project=project_db)
+        print(f'{address_db.to_dict()=}')
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
         return schemas.LocationOfWork.model_validate(location_db)
 

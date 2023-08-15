@@ -533,10 +533,7 @@ class WidgetLocationsOfWork(QWidget):
         self.layout_buttons.addWidget(self.bt_delete)
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
-        try:
-            return db_services.LocationOfWork.get_all_from__project(self.project_id)
-        except ZeroDivisionError as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+        return db_services.LocationOfWork.get_all_from__project(self.project_id)
 
     def refresh_table(self):
         self.locations = self.get_locations()
@@ -572,11 +569,8 @@ class WidgetLocationsOfWork(QWidget):
                                   QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
             location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
-            try:
-                deleted_location = db_services.LocationOfWork.delete(location_id)
-                QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
-            except Exception as e:
-                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+            deleted_location = db_services.LocationOfWork.delete(location_id)
+            QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
         self.refresh_table()
 
 
@@ -669,13 +663,12 @@ class FrmLocationData(QDialog):
     def save_location(self):
         address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
                                         city=self.le_city.text())
+
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
-        try:
-            created = db_services.LocationOfWork.create(location, self.project_id)
-            QMessageBox.information(self, 'Einrichtung angelegt', f'{created}')
-            self.close()
-        except Exception as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+
+        created = db_services.LocationOfWork.create(location, self.project_id)
+        QMessageBox.information(self, 'Einrichtung angelegt', f'{created}')
+        self.close()
 
     def reject(self):
         super().reject()

@@ -80,7 +80,6 @@ class PersonCreate(BaseModel):
 
 
 class Person(PersonCreate):
-    model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     project: 'Project'
@@ -119,7 +118,6 @@ class Project(ProjectCreate):
 
 
 class ProjectShow(Project):
-    model_config = ConfigDict(from_attributes=True)
 
     admin: Optional[Person]
     teams: List['TeamShow']
@@ -151,7 +149,6 @@ class Team(TeamCreate):
 
 
 class TeamShow(Team):
-    model_config = ConfigDict(from_attributes=True)
 
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
@@ -182,7 +179,6 @@ class PlanPeriod(PlanPeriodCreate):
 
 
 class PlanPeriodShow(PlanPeriod):
-    model_config = ConfigDict(from_attributes=True)
 
     team: Team
     fixed_cast: Optional[str] = None
@@ -214,7 +210,6 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
 
 
 class ActorPlanPeriodShow(ActorPlanPeriod):
-    model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     person: Person
@@ -258,7 +253,7 @@ class AvailDayGroup(AvailDayGroupCreate):
 
 
 class AvailDayGroupShow(AvailDayGroup):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class AvailDayCreate(BaseModel):
@@ -286,7 +281,6 @@ class AvailDay(AvailDayCreate):
 
 
 class AvailDayShow(AvailDay):
-    model_config = ConfigDict(from_attributes=True)
 
     skills: list['Skill']
 
@@ -315,7 +309,6 @@ class TimeOfDay(TimeOfDayCreate):
 
 
 class TimeOfDayShow(TimeOfDay):
-    model_config = ConfigDict(from_attributes=True)
 
     project_defaults: Optional[Project]
     persons_defaults: List[Person]
@@ -345,7 +338,6 @@ class TimeOfDayEnum(TimeOfDayEnumCreate):
 
 
 class TimeOfDayEnumShow(TimeOfDayEnum):
-    model_config = ConfigDict(from_attributes=True)
 
     time_of_days: List[TimeOfDay]
 
@@ -364,13 +356,13 @@ class LocationOfWork(LocationOfWorkCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    address: 'Address'
     notes: Optional[str]
     project: Project
     prep_delete: Optional[datetime.datetime]
 
 
 class LocationOfWorkShow(LocationOfWork):
-    model_config = ConfigDict(from_attributes=True)
 
     team_location_assigns: List['TeamLocationAssign']
     fixed_cast: Optional[str] = None
@@ -398,7 +390,7 @@ class TeamActorAssign(TeamActorAssignCreate):
 
 
 class TeamActorAssignShow(TeamActorAssign):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class TeamLocationAssignCreate(BaseModel):
@@ -416,13 +408,13 @@ class TeamLocationAssign(TeamLocationAssignCreate):
 
 
 class TeamLocationAssignShow(TeamLocationAssign):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class AddressCreate(BaseModel):
-    street: str
-    postal_code: str
-    city: str
+    street: str = ''
+    postal_code: str = ''
+    city: str = ''
 
 
 class Address(AddressCreate):
@@ -433,7 +425,7 @@ class Address(AddressCreate):
 
 
 class AddressShow(Address):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class EventCreate(BaseModel):
@@ -457,8 +449,8 @@ class Event(EventCreate):
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
+
 class EventShow(Event):
-    model_config = ConfigDict(from_attributes=True)
 
     event_group: 'EventGroup'
     skill_groups: list['SkillGroup']
@@ -492,7 +484,7 @@ class EventGroup(EventGroupCreate):
 
 
 class EventGroupShow(EventGroup):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class LocationPlanPeriodCreate(BaseModel):
@@ -509,8 +501,6 @@ class LocationPlanPeriod(LocationPlanPeriodCreate):
 
 
 class LocationPlanPeriodShow(LocationPlanPeriod):
-    model_config = ConfigDict(from_attributes=True)
-
     time_of_days: List[TimeOfDay]
     time_of_day_standards: List[TimeOfDay]
     team: Team
@@ -540,8 +530,7 @@ class Appointment(AppointmentCreate):
 
 
 class AppointmentShow(Appointment):
-    model_config = ConfigDict(from_attributes=True)
-
+    pass
 
     @field_validator('avail_days')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
@@ -564,8 +553,6 @@ class ActorPartnerLocationPref(ActorPartnerLocationPrefCreate):
 
 
 class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
-    model_config = ConfigDict(from_attributes=True)
-
     person_default: Optional[Person]
     actor_plan_periods_defaults: list[ActorPlanPeriod]
     avail_days_defaults: list[AvailDay]
@@ -590,7 +577,7 @@ class ActorLocationPref(ActorLocationPrefCreate):
 
 
 class ActorLocationPrefShow(ActorLocationPref):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class FlagCreate(BaseModel):
@@ -606,7 +593,7 @@ class Flag(FlagCreate):
 
 
 class FlagShow(Flag):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class SkillCreate(BaseModel):
@@ -615,10 +602,8 @@ class SkillCreate(BaseModel):
 
 
 class Skill(SkillCreate):
-    """Beschreibt eine bestimmte Fähigkeit...
-...welche die Person (an einem bestimmten AvailDay) beherrscht.
-...welche in der Einrichtung (an einem bestimmten Event) gebraucht wird.
-"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     created_at: datetime.datetime
     last_modified: datetime.datetime
@@ -630,10 +615,6 @@ class Skill(SkillCreate):
 
 
 class SkillShow(Skill):
-    """Beschreibt eine bestimmte Fähigkeit...
-...welche die Person (an einem bestimmten AvailDay) beherrscht.
-...welche in der Einrichtung (an einem bestimmten Event) gebraucht wird.
-"""
     id: UUID
     persons: list[Person]
     avail_days: list[AvailDay]
@@ -654,6 +635,8 @@ class SkillGroupCreate(BaseModel):
 
 class SkillGroup(SkillGroupCreate):
     """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     nr_actors: Optional[int] = None
     location_of_work: Optional[LocationOfWork]
@@ -688,7 +671,7 @@ class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
 
 
 class CombinationLocationsPossibleShow(CombinationLocationsPossible):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
     @field_validator('locations_of_work')
@@ -708,7 +691,7 @@ class Plan(PlanCreate):
 
 
 class PlanShow(Plan):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class ExcelExportSettingsCreate(BaseModel):
@@ -729,7 +712,7 @@ class ExcelExportSettings(ExcelExportSettingsCreate):
 
 
 class ExcelExportSettingsShow(ExcelExportSettings):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 PersonCreate.model_rebuild()

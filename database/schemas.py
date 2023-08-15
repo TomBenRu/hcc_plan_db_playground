@@ -39,6 +39,15 @@ class ModelWithActorLocPrefs(Protocol):
 
 
 @runtime_checkable
+class ModelWithFlags(Protocol):
+    id: UUID
+    flags: List['Flag']
+
+    def model_copy(self, deep: bool = False):
+        ...
+
+
+@runtime_checkable
 class ModelWithPartnerLocPrefs(Protocol):
     id: UUID
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
@@ -75,27 +84,25 @@ class Person(PersonCreate):
 
     id: UUID
     project: 'Project'
-    address: Optional['Address']
-    notes: Optional[str]
+    address: 'Address'
+    notes: Optional[str] = None
     prep_delete: Optional[datetime.datetime]
 
 
 class PersonShow(Person):
-    model_config = ConfigDict(from_attributes=True)
-
     requested_assignments: Optional[int]
-    project: 'Project'
     team_actor_assigns: List['TeamActorAssign']
     teams_of_dispatcher: list['Team']
     time_of_day_standards: list['TimeOfDay']
     time_of_days: list['TimeOfDay']
+    skills: list['Skill']
     combination_locations_possibles: list['CombinationLocationsPossible']
     actor_location_prefs_defaults: list['ActorLocationPref']
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
 
     @field_validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards',
                      'combination_locations_possibles', 'actor_location_prefs_defaults',
-                     'actor_partner_location_prefs_defaults', 'team_actor_assigns')
+                     'actor_partner_location_prefs_defaults', 'team_actor_assigns', 'skills')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -121,8 +128,11 @@ class ProjectShow(Project):
     time_of_day_standards: List['TimeOfDay']
     time_of_day_enums: List['TimeOfDayEnum']
     excel_export_settings: Optional['ExcelExportSettings']
+    skills: list['Skill']
+    flags: list['Flag']
 
-    @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums')
+    @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
+                     'skills', 'flags')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -278,11 +288,10 @@ class AvailDay(AvailDayCreate):
 class AvailDayShow(AvailDay):
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
-    project: Project
+    skills: list['Skill']
 
     @field_validator('time_of_days', 'combination_locations_possibles',
-                     'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults')
+                     'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults', 'skills')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -356,7 +365,6 @@ class LocationOfWork(LocationOfWorkCreate):
 
     id: UUID
     notes: Optional[str]
-    address: Optional['Address']
     project: Project
     prep_delete: Optional[datetime.datetime]
 
@@ -364,13 +372,13 @@ class LocationOfWork(LocationOfWorkCreate):
 class LocationOfWorkShow(LocationOfWork):
     model_config = ConfigDict(from_attributes=True)
 
-    nr_actors: int
     team_location_assigns: List['TeamLocationAssign']
     fixed_cast: Optional[str] = None
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
+    skill_groups: list['SkillGroup']
 
-    @field_validator('time_of_days', 'time_of_day_standards', 'team_location_assigns')
+    @field_validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', 'skill_groups')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -453,8 +461,9 @@ class EventShow(Event):
     model_config = ConfigDict(from_attributes=True)
 
     event_group: 'EventGroup'
+    skill_groups: list['SkillGroup']
 
-    @field_validator('flags')
+    @field_validator('flags', 'skill_groups')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -593,10 +602,73 @@ class Flag(FlagCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    project: Project
 
 
 class FlagShow(Flag):
     model_config = ConfigDict(from_attributes=True)
+
+
+class SkillCreate(BaseModel):
+    name: str
+    level: int
+
+
+class Skill(SkillCreate):
+    """Beschreibt eine bestimmte Fähigkeit...
+...welche die Person (an einem bestimmten AvailDay) beherrscht.
+...welche in der Einrichtung (an einem bestimmten Event) gebraucht wird.
+"""
+    id: UUID
+    created_at: datetime.datetime
+    last_modified: datetime.datetime
+    prep_delete: datetime.datetime
+    project: Project
+
+    def before_update(self):
+        self.last_modified = datetime.datetime.utcnow()
+
+
+class SkillShow(Skill):
+    """Beschreibt eine bestimmte Fähigkeit...
+...welche die Person (an einem bestimmten AvailDay) beherrscht.
+...welche in der Einrichtung (an einem bestimmten Event) gebraucht wird.
+"""
+    id: UUID
+    persons: list[Person]
+    avail_days: list[AvailDay]
+    skill_groups: list['SkillGroup']
+
+    def before_update(self):
+        self.last_modified = datetime.datetime.utcnow()
+
+    @field_validator('persons', 'avail_days', 'skill_groups')
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
+class SkillGroupCreate(BaseModel):
+    """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
+    skill: Skill
+
+
+class SkillGroup(SkillGroupCreate):
+    """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
+    id: UUID
+    nr_actors: Optional[int] = None
+    location_of_work: Optional[LocationOfWork]
+    created_at: datetime.datetime
+    last_modified: datetime.datetime
+    prep_delete: datetime.datetime
+
+
+class SkillGroupShow(SkillGroup):
+    """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
+    events: list[Event]
+
+    @field_validator('events')
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
 
 class CombinationLocationsPossibleCreate(BaseModel):
@@ -687,4 +759,3 @@ TimeOfDay.model_rebuild()
 TimeOfDayShow.model_rebuild()
 AvailDay.model_rebuild()
 AvailDayShow.model_rebuild()
-

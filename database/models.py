@@ -51,6 +51,7 @@ class Person(db.Entity):
     actor_location_prefs = Set('ActorLocationPref')
     actor_location_prefs_defaults = Set('ActorLocationPref', reverse='person_default')
     flags = Set('Flag')
+    skills = Set('Skill')
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
     composite_key(f_name, l_name, project)
@@ -99,6 +100,8 @@ class Project(db.Entity):
     time_of_day_enums = Set('TimeOfDayEnum')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_location_prefs = Set('ActorLocationPref')
+    skills = Set('Skill')
+    flags = Set('Flag')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -140,7 +143,7 @@ class PlanPeriod(db.Entity):
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
-    notes = Optional(str, nullable=True)  # Anmerkungen des Dispatchers.
+    notes = Optional(str, nullable=True)  # Anmerkungen und Mitteilungen des Dispatchers.
     closed = Required(bool, default=False)
     remainder = Required(bool, default=True)
     team = Required(Team)
@@ -230,6 +233,7 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
     time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # todo: kann weg?
+    skills = Set('Skill')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
@@ -318,6 +322,7 @@ class LocationOfWork(db.Entity):
     team_location_assigns = Set('TeamLocationAssign')
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    skill_groups = Set('SkillGroup')
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
     time_of_day_standards = Set(TimeOfDay, reverse='locations_of_work_standard')
@@ -396,6 +401,7 @@ class Event(db.Entity):
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
     nr_actors = Required(int, size=8, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: (Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    skill_groups = Set('SkillGroup')
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     event_group = Required('EventGroup')
@@ -541,8 +547,50 @@ class Flag(db.Entity):
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
+    project = Required(Project)
     persons = Set(Person)
     events = Set(Event)
+
+    composite_key(name, project)
+
+    def before_update(self):
+        self.last_modified = datetime.datetime.utcnow()
+
+
+class Skill(db.Entity):
+    """Beschreibt eine bestimmte Fähigkeit...
+...welche die Person (an einem bestimmten AvailDay) beherrscht.
+...welche in der Einrichtung (an einem bestimmten Event) gebraucht wird.
+"""
+    id = PrimaryKey(UUID, auto=True)
+    name = Required(str)
+    level = Required(int, size=8, default=2, unsigned=True)
+    # Beherrscht den Skill...
+    # o: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
+    persons = Set(Person)
+    avail_days = Set(AvailDay)
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    prep_delete = Optional(datetime.datetime)
+    project = Required(Project)
+    skill_groups = Set('SkillGroup')
+
+    composite_key(name, project)
+
+    def before_update(self):
+        self.last_modified = datetime.datetime.utcnow()
+
+
+class SkillGroup(db.Entity):
+    """Legt fest, wieviele der eingesetzten Personen den Skill beherrschen müssen."""
+    id = PrimaryKey(UUID, auto=True)
+    skill = Required(Skill)
+    nr_actors = Optional(int, size=16)  # Anzahl der Personen die den Skill beherrschen müssen. None: alle
+    location_of_work = Optional(LocationOfWork)
+    events = Set(Event)
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    prep_delete = Optional(datetime.datetime)
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
@@ -651,4 +699,4 @@ class ExcelExportSettings(db.Entity):
 # todo: Das Gleiche gilt für ActorLocationPref
 # todo: Das Gleiche gilt für fixed_cast in LocationOfWork und Event
 # todo (done): In FrameActorPlanPeriod dürfen nur die Termine der Tage des Teams gezeigt werden, an denen die Person dem Team zugeordnet ist.
-# todo: Qualifikation zu Person hinzufügen
+# todo: Skills zu Person hinzufügen

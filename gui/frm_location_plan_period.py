@@ -15,7 +15,8 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
-from gui.frm_fixed_cast import DlgFixedCast, AdapterFixedCastLocationOfWork, AdapterFixedCastLocationPlanPeriod
+from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
+    DlgFixedCastBuilderEvent
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
 from gui.observer import signal_handling
 
@@ -136,7 +137,12 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
     def edit_fixed_cast(self):
         print('edit_fixed_cast')
-
+        event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
+                                                                 self.time_of_day.id)
+        dlg = DlgFixedCastBuilderEvent(self, event).dlg_fixed_cast
+        if dlg.exec():
+            self.reload_location_plan_period()
+            # todo: signal an FrmActorPlanPeriod und Tagesconfig-Button fixed_cast?
     def edit_flags(self):
         print('edit_flags')
 
@@ -573,11 +579,8 @@ class FrmLocationPlanPeriod(QWidget):
         ...
 
     def edit_fixed_cast(self):  # todo: noch implementieren
-        dlg = AdapterFixedCastLocationPlanPeriod(self, self.location_plan_period).dlg_fixed_cast
-        dlg.de_date.setDate(self.location_plan_period.plan_period.start)
-        dlg.de_date.setDisabled(True)
+        dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).dlg_fixed_cast
         if dlg.exec():
-            print('exec')
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
 

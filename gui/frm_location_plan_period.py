@@ -148,7 +148,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
             return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
-        dlg = DlgFixedCastBuilderEvent(self.parent, event).dlg_fixed_cast
+        dlg = DlgFixedCastBuilderEvent(self.parent, event).build()
         if dlg.exec():
             self.reload_location_plan_period()
             # todo: signal an FrmActorPlanPeriod und Tagesconfig-Button fixed_cast?
@@ -597,7 +597,7 @@ class FrmLocationPlanPeriod(QWidget):
         ...
 
     def edit_fixed_cast(self):  # todo: noch implementieren
-        dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).dlg_fixed_cast
+        dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()

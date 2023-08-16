@@ -848,7 +848,7 @@ class FrmLocationModify(FrmLocationData):
         return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
 
     def edit_fixed_cast(self):
-        dlg = DlgFixedCastBuilderLocationOfWork(self, self.location_of_work).dlg_fixed_cast
+        dlg = DlgFixedCastBuilderLocationOfWork(self, self.location_of_work).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)

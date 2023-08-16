@@ -38,14 +38,25 @@ class DlgFixedCastBuilderABC(ABC):
 
     @abstractmethod
     def _generate_field_values(self):
-        ...
+        """self.title_text = ...
+
+        self.location_of_work = ...
+
+        self.info_text = ...
+
+        self.fixed_date = (delete if None)
+
+        self.parent_fixed_cast = (delete if None)
+
+        self.update_command = ...
+
+        self.object_with_fixed_cast__refresh_func = ..."""
 
     @abstractmethod
     def method_date_changed(self, date: datetime.date) -> list[schemas.Person]:
         ...
 
-    @property
-    def dlg_fixed_cast(self) -> 'DlgFixedCast':
+    def build(self) -> 'DlgFixedCast':
         dlg = DlgFixedCast(self.parent_widget, self)
         print(self.__dict__.keys())
         if self.fixed_date:

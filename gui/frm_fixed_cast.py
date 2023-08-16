@@ -1,17 +1,15 @@
 import datetime
-import time
 from abc import ABC, abstractmethod
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Signal, Qt, QTimer, QCoreApplication, QEventLoop, QThread
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QPalette
-from PySide6.QtWidgets import QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout, \
-    QDialogButtonBox, QMessageBox, QDateEdit, QMenu, QSpacerItem, QSizePolicy
+from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
+                               QDialogButtonBox, QDateEdit, QMenu)
 
 from database import db_services, schemas
-from database.special_schema_requests import get_curr_team_of_location, get_curr_persons_of_team, \
-    get_persons_of_team_at_date, get_curr_team_of_location_at_date
+from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
 from .actions import Action
 from .commands import location_of_work_commands, location_plan_period_commands, event_commands, command_base_classes
 from .tools.qcombobox_find_data import QComboBoxToFindData
@@ -22,12 +20,13 @@ class DlgFixedCastBuilderABC(ABC):
 
         self.object_with_fixed_cast: (schemas.LocationOfWorkShow |
                                       schemas.LocationPlanPeriodShow |
-                                      schemas.EventShow | None) = object_with_fixed_cast
+                                      schemas.EventShow | None) = object_with_fixed_cast.model_copy()
         self.parent_widget = parent
         self.parent_fixed_cast: str | None = None
         self.location_of_work: schemas.LocationOfWorkShow | None = None
         self.title_text: str | None = None
         self.info_text: str | None = None
+        self.make_reset_menu: bool = False
         self.fixed_date: datetime.date | None = None
         self.warning_text: str = ''
         self.object_with_fixed_cast__refresh_func: Callable[[UUID], schemas.ModelWithTimeOfDays] | None = None
@@ -43,6 +42,8 @@ class DlgFixedCastBuilderABC(ABC):
         self.location_of_work = ...
 
         self.info_text = ...
+
+        self.make_reset_menu: bool = (delete if False)
 
         self.fixed_date = (delete if None)
 
@@ -93,6 +94,7 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
         self.parent_fixed_cast = self.location_of_work.fixed_cast
         self.info_text = (f'die Planungsperiode "{self.object_with_fixed_cast.plan_period.start}-'
                           f'{self.object_with_fixed_cast.plan_period.end}"')
+        self.make_reset_menu = True
         self.fixed_date = self.object_with_fixed_cast.plan_period.start
         self.update_command = location_plan_period_commands.UpdateFixedCast
         self.object_with_fixed_cast__refresh_func = db_services.LocationPlanPeriod.get
@@ -131,6 +133,7 @@ class DlgFixedCastBuilderEvent(DlgFixedCastBuilderABC):
             self.object_with_fixed_cast.location_plan_period.location_of_work.id
         )
         self.info_text = f'''das Event am "{self.object_with_fixed_cast.date.strftime('%d.%m.%y')}"'''
+        self.make_reset_menu = True
         self.fixed_date = self.object_with_fixed_cast.date
         self.update_command = event_commands.UpdateFixedCast
         self.object_with_fixed_cast__refresh_func = db_services.Event.get
@@ -160,7 +163,7 @@ class DlgFixedCast(QDialog):
         self.width_container__add_inner_operator = 60
         self.width_operator_between_rows = 50
 
-        self.object_with_fixed_cast = self.builder.object_with_fixed_cast.model_copy()
+        self.object_with_fixed_cast = self.builder.object_with_fixed_cast
 
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
@@ -264,18 +267,18 @@ class DlgFixedCast(QDialog):
         self.reset_fixed_cast_plot()
 
     def bt_reset_make_menu(self):
-        if isinstance(self.object_with_fixed_cast, schemas.LocationOfWork):
-            self.bt_reset.setText('Clear')
-            self.bt_reset.clicked.connect(self.clear_plot)
-        else:
+        if self.builder.make_reset_menu:
             self.reset_menu = QMenu()
             self.reset_menu.addAction(
                 Action(self, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
                        self.clear_plot))
             self.reset_menu.addAction(
                 Action(self, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
-                       'Reset von übergeordetem Modell', None, self.reset_to_parent_value))
+                       'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
+        else:
+            self.bt_reset.setText('Clear')
+            self.bt_reset.clicked.connect(self.clear_plot)
 
     def grid_to_list(self):
         result_list = []

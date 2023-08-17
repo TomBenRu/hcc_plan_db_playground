@@ -1,12 +1,14 @@
 import datetime
+import time
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QEventLoop, QProcess
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
-                               QDialogButtonBox, QDateEdit, QMenu)
+                               QDialogButtonBox, QDateEdit, QMenu, QApplication)
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
@@ -29,10 +31,8 @@ class DlgFixedCastBuilderABC(ABC):
         self.make_reset_menu: bool = False
         self.fixed_date: datetime.date | None = None
         self.warning_text: str = ''
-        self.object_with_fixed_cast__refresh_func: Callable[[UUID], schemas.ModelWithTimeOfDays] | None = None
-        self.update_command: (type[location_of_work_commands.UpdateFixedCast] |
-                              type[location_plan_period_commands.UpdateFixedCast] |
-                              type[event_commands.UpdateFixedCast] | None) = None
+        self.object_with_fixed_cast__refresh_func: Callable[[], schemas.ModelWithFixedCast] | None = None
+        self.update_command: Callable[[str | None], command_base_classes.Command] | None = None
         self._generate_field_values()
 
     @abstractmethod
@@ -49,7 +49,7 @@ class DlgFixedCastBuilderABC(ABC):
 
         self.parent_fixed_cast = (delete if None)
 
-        self.update_command = ...
+        self.update_command = ... partial function, which generates the fixed_cast update command with parameter = fixed_cast_str
 
         self.object_with_fixed_cast__refresh_func = ..."""
 
@@ -58,11 +58,7 @@ class DlgFixedCastBuilderABC(ABC):
         ...
 
     def build(self) -> 'DlgFixedCast':
-        dlg = DlgFixedCast(self.parent_widget, self)
-        if self.fixed_date:
-            dlg.de_date.setDate(self.fixed_date)
-            dlg.de_date.setDisabled(True)
-        return dlg
+        return DlgFixedCast(self.parent_widget, self)
 
 
 class DlgFixedCastBuilderLocationOfWork(DlgFixedCastBuilderABC):
@@ -73,8 +69,9 @@ class DlgFixedCastBuilderLocationOfWork(DlgFixedCastBuilderABC):
         self.title_text = 'Feste Besetzung einer Einrichtung'
         self.location_of_work = self.object_with_fixed_cast.model_copy()
         self.info_text = f'die Einrichtung "{self.object_with_fixed_cast.name}"'
-        self.update_command = location_of_work_commands.UpdateFixedCast
-        self.object_with_fixed_cast__refresh_func = db_services.LocationOfWork.get
+        self.update_command = partial(location_of_work_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
+        self.object_with_fixed_cast__refresh_func = partial(db_services.LocationOfWork.get,
+                                                            self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date) -> list[schemas.Person]:
         team = get_curr_team_of_location_at_date(self.object_with_fixed_cast, date)
@@ -95,8 +92,10 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
                           f'{self.object_with_fixed_cast.plan_period.end}"')
         self.make_reset_menu = True
         self.fixed_date = self.object_with_fixed_cast.plan_period.start
-        self.update_command = location_plan_period_commands.UpdateFixedCast
-        self.object_with_fixed_cast__refresh_func = db_services.LocationPlanPeriod.get
+        self.update_command = partial(location_plan_period_commands.UpdateFixedCast,
+                                      self.object_with_fixed_cast.id)
+        self.object_with_fixed_cast__refresh_func = partial(db_services.LocationPlanPeriod.get,
+                                                            self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
         return self.union_persons(self.object_with_fixed_cast.plan_period)
@@ -134,8 +133,8 @@ class DlgFixedCastBuilderEvent(DlgFixedCastBuilderABC):
         self.info_text = f'''das Event am "{self.object_with_fixed_cast.date.strftime('%d.%m.%y')}"'''
         self.make_reset_menu = True
         self.fixed_date = self.object_with_fixed_cast.date
-        self.update_command = event_commands.UpdateFixedCast
-        self.object_with_fixed_cast__refresh_func = db_services.Event.get
+        self.update_command = partial(event_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
+        self.object_with_fixed_cast__refresh_func = partial(db_services.Event.get, self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
         team = get_curr_team_of_location_at_date(self.location_of_work, date)
@@ -205,8 +204,7 @@ class DlgFixedCast(QDialog):
         self.de_date = QDateEdit()
         self.de_date.setFixedWidth(120)
         self.de_date.dateChanged.connect(self.date_changed)
-        self.de_date.setDate(datetime.date.today())
-        self.de_date.setMinimumDate(datetime.date.today())
+        self.de_date__set_initial_value()
         self.layout_date.addWidget(self.lb_date)
         self.layout_date.addWidget(self.de_date)
 
@@ -226,9 +224,16 @@ class DlgFixedCast(QDialog):
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
+    def de_date__set_initial_value(self):
+        if self.builder.fixed_date:
+            self.de_date.setDate(self.builder.fixed_date)
+            self.de_date.setDisabled(True)
+        else:
+            self.de_date.setDate(datetime.date.today())
+            self.de_date.setMinimumDate(datetime.date.today())
+
     def date_changed(self):
         self.persons = self.builder.method_date_changed(self.de_date.date().toPython())
-        print(f'date_changed: {self.de_date.date()=}')
         self.lb_warning.setText(self.builder.warning_text)
         self.reset_fixed_cast_plot()
 
@@ -252,17 +257,18 @@ class DlgFixedCast(QDialog):
     def save_plot(self):
         if result_list := self.grid_to_list():
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
+            print(f'{fixed_cast=}')
         else:
             fixed_cast = None
-        self.controller.execute(self.builder.update_command(self.object_with_fixed_cast.id, fixed_cast))
+        self.controller.execute(self.builder.update_command(fixed_cast))
 
-    def clear_plot(self):
-        self.controller.execute(self.builder.update_command(self.object_with_fixed_cast.id, None))
+    def remove_fixed_cast(self):
+        self.controller.execute(self.builder.update_command(None))
         self.reset_fixed_cast_plot()
 
     def reset_to_parent_value(self):
         self.controller.execute(
-            self.builder.update_command(self.object_with_fixed_cast.id, self.builder.parent_fixed_cast))
+            self.builder.update_command(self.builder.parent_fixed_cast))
         self.reset_fixed_cast_plot()
 
     def bt_reset_make_menu(self):
@@ -270,14 +276,14 @@ class DlgFixedCast(QDialog):
             self.reset_menu = QMenu()
             self.reset_menu.addAction(
                 Action(self, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
-                       self.clear_plot))
+                       self.remove_fixed_cast))
             self.reset_menu.addAction(
                 Action(self, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
                        'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
         else:
             self.bt_reset.setText('Clear')
-            self.bt_reset.clicked.connect(self.clear_plot)
+            self.bt_reset.clicked.connect(self.remove_fixed_cast)
 
     def grid_to_list(self):
         result_list = []
@@ -309,7 +315,7 @@ class DlgFixedCast(QDialog):
             cb_actors.currentIndexChanged.connect(self.save_plot)
             self.layout_grid.addWidget(cb_actors, r, c + 1)
 
-            container_add_inner_operator = self.create_widget__add_inner_operater()
+            container_add_inner_operator = self.create_widget__add_inner_operator()
             self.layout_grid.addWidget(container_add_inner_operator, r, c + 2)
 
             '''add-row-button wird um 1 nach unten verschoben'''
@@ -320,7 +326,7 @@ class DlgFixedCast(QDialog):
             cb_actors.currentIndexChanged.connect(self.save_plot)
             self.layout_grid.addWidget(cb_actors, r + 1, c + 1)
 
-            container_add_inner_operator = self.create_widget__add_inner_operater()
+            container_add_inner_operator = self.create_widget__add_inner_operator()
             self.layout_grid.addWidget(container_add_inner_operator, r + 1, c + 2)
 
             '''add-row-button wird um 2 nach unten verschoben'''
@@ -334,10 +340,10 @@ class DlgFixedCast(QDialog):
 
     def add_actor(self):
         """fügt eine neue Operator-Auswahl mit nachfolgender Actor-Auswahl hinzu"""
-        add_operator_widget = self.sender().parentWidget()
+        add_operator_widget = self.sender().parentWidget()  # plus/minus-Symbol
 
         r, c, _, _ = self.layout_grid.getItemPosition(self.layout_grid.indexOf(add_operator_widget))
-        self.layout_grid.addWidget(add_operator_widget, r, c + 2)
+        self.layout_grid.addWidget(add_operator_widget, r, c + 2)  # plus/minus-Symbol wird um 2 nach links verschoben
         cb_operator = self.create_combo_operator('inner')
         cb_operator.currentIndexChanged.connect(self.save_plot)
         self.layout_grid.addWidget(cb_operator, r, c)
@@ -396,7 +402,8 @@ class DlgFixedCast(QDialog):
 
         return cb_operator
 
-    def create_widget__add_inner_operater(self):
+    def create_widget__add_inner_operator(self):
+        print('create_widget__add_inner_operator')
         container = QWidget()
         container.setFixedWidth(self.width_container__add_inner_operator)
         layout_container = QHBoxLayout()
@@ -424,13 +431,17 @@ class DlgFixedCast(QDialog):
             combo_operator.addItem(text, data)
 
     def reload_object_with_fixed_cast(self):
-        self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func(self.object_with_fixed_cast.id)
+        self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
 
     def reset_fixed_cast_plot(self):
         self.reload_object_with_fixed_cast()
+        self.clear_plot()
+        QTimer.singleShot(20, self.plot_eval_str)
+
+    def clear_plot(self):
         for i in range(self.layout_grid.count()):
             self.layout_grid.itemAt(i).widget().deleteLater()
-        QTimer.singleShot(10, self.plot_eval_str)
+            print(f'{self.layout_grid.itemAt(i).widget().objectName()} deleted')
 
     def plot_eval_str(self):
         if not self.object_with_fixed_cast.fixed_cast:
@@ -446,7 +457,7 @@ class DlgFixedCast(QDialog):
                 cb_operator.currentIndexChanged.connect(self.save_plot)
                 self.layout_grid.addWidget(cb_operator, row_idx, self.col_operator_between_rows)
             else:
-                self.layout_grid.addWidget(self.create_widget__add_inner_operater(), row_idx, len(row)+1)
+                self.layout_grid.addWidget(self.create_widget__add_inner_operator(), row_idx, len(row) + 1)
                 for col_idx, element in enumerate(row):
                     if type(element) == str:
                         cb_operator = self.create_combo_operator('inner')

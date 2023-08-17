@@ -1,5 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Literal, Callable, NewType, Protocol
 from uuid import UUID
 
@@ -9,13 +10,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 
 from database import schemas, db_services
 from .commands import command_base_classes, time_of_day_commands, actor_plan_period_commands, \
-    location_plan_period_commands
+    location_plan_period_commands, person_commands
 from .tools.qcombobox_find_data import QComboBoxToFindData
-
-
-class TimeOfDayEditListCommand(command_base_classes.Command, ABC):
-    def __init__(self, object_with_time_of_days_id: UUID, time_of_day_id):
-        ...
 
 
 class DlgTimeOfDayEditListBuilderABC(ABC):
@@ -26,17 +22,18 @@ class DlgTimeOfDayEditListBuilderABC(ABC):
         self.project_id: UUID | None = None
         self.parent_time_of_days: list[schemas.TimeOfDay] = []
         self.parent_time_of_day_standards: list[schemas.TimeOfDay] = []
-        self.object_with_time_of_days__refresh_func: (Callable[[UUID], schemas.ModelWithTimeOfDays] | None) = None
-        self.put_in_command: type[TimeOfDayEditListCommand] | None = None
-        self.remove_command: type[TimeOfDayEditListCommand] | None = None
-        self.new_time_of_day_standard_command: type[TimeOfDayEditListCommand] | None = None
-        self.remove_time_of_day_standard_command: type[TimeOfDayEditListCommand] | None = None
+        self.object_with_time_of_days__refresh_func: (Callable[[], schemas.ModelWithTimeOfDays] | None) = None
+        self.put_in_command: Callable[[UUID], command_base_classes.Command] | None = None
+        self.remove_command: Callable[[UUID], command_base_classes.Command] | None = None
+        self.new_time_of_day_standard_command: Callable[[UUID], command_base_classes.Command] | None = None
+        self.remove_time_of_day_standard_command: Callable[[UUID], command_base_classes.Command] | None = None
 
         self._generate_field_values()
 
     @abstractmethod
     def _generate_field_values(self):
-        """self.window_title = ...
+        """
+        self.window_title = ...
 
         self.project_id = ...
 
@@ -46,23 +43,51 @@ class DlgTimeOfDayEditListBuilderABC(ABC):
 
         self.model_with_time_of_days__refresh_func = ...
 
-        self.put_in_command = ...
+        self.put_in_command = ... partial function, which generates the time_of_day input command with parameter = time_of_day_id
 
-        self.remove_command = ...
+        self.remove_command = ... partial function, which generates the time_of_day remove command with parameter = time_of_day_id
 
-        self.new_time_of_day_standard_command = ...
+        self.new_time_of_day_standard_command = ... partial function, which generates the new_time_of_day_standard command with parameter = time_of_day_id
 
-        self.remove_time_of_day_standard_command = ..."""
+        self.remove_time_of_day_standard_command = ... partial function, which generates the remove_time_of_day_standard command with parameter = time_of_day_id
+        """
 
     def build(self) -> 'DlgTimeOfDaysEditList':
         return DlgTimeOfDaysEditList(self.parent_widget, self)
+
+
+class DlgTimeOfDayEditListBuilderPerson(DlgTimeOfDayEditListBuilderABC):
+    def __init__(self, parent: QWidget, person: schemas.PersonShow):
+        super().__init__(parent=parent, object_with_time_of_days=person)
+
+        self.object_with_time_of_days: schemas.PersonShow = person.model_copy()
+
+    def _generate_field_values(self):
+        self.window_title = (f'Tageszeiten von '
+                             f'{self.object_with_time_of_days.f_name} {self.object_with_time_of_days.l_name}')
+        self.project_id = self.object_with_time_of_days.project.id
+        project = db_services.Project.get(self.project_id)
+        self.parent_time_of_days = project.time_of_days
+        self.parent_time_of_day_standards = project.time_of_day_standards
+        self.model_with_time_of_days__refresh_func = partial(db_services.Person.get, self.object_with_time_of_days.id)
+        self.put_in_command = partial(person_commands.PutInTimeOfDay, self.object_with_time_of_days.id)
+        self.remove_command = partial(person_commands.RemoveTimeOfDay, self.object_with_time_of_days.id)
+        self.new_time_of_day_standard_command = partial(person_commands.NewTimeOfDayStandard,
+                                                        self.object_with_time_of_days.id)
+        self.remove_time_of_day_standard_command = partial(person_commands.RemoveTimeOfDayStandard,
+                                                           self.object_with_time_of_days.id)
+
+
+
+class DlgTimeOfDayEditListBuilderLocation(DlgTimeOfDayEditListBuilderABC):
+    ...
 
 
 class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC):
     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
         super().__init__(parent=parent, object_with_time_of_days=actor_plan_period)
 
-        self.object_with_time_of_days: schemas.ActorPlanPeriodShow = actor_plan_period
+        self.object_with_time_of_days: schemas.ActorPlanPeriodShow = actor_plan_period.model_copy()
 
     def _generate_field_values(self):
         self.window_title = (f'Tageszeiten des Planungszeitraums, {self.object_with_time_of_days.person.f_name} '
@@ -76,16 +101,21 @@ class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC)
                 t_o_d for t_o_d in db_services.Person.get(self.object_with_time_of_days.person.id).time_of_day_standards
                 if not t_o_d.prep_delete
             ]
-        self.object_with_time_of_days__refresh_func = db_services.ActorPlanPeriod.get
-        self.put_in_command = actor_plan_period_commands.PutInTimeOfDay
-        self.remove_command = actor_plan_period_commands.RemoveTimeOfDay
-        self.new_time_of_day_standard_command = actor_plan_period_commands.NewTimeOfDayStandard
-        self.remove_time_of_day_standard_command = actor_plan_period_commands.RemoveTimeOfDayStandard
+        self.object_with_time_of_days__refresh_func = partial(db_services.ActorPlanPeriod.get,
+                                                              self.object_with_time_of_days.id)
+        self.put_in_command = partial(actor_plan_period_commands.PutInTimeOfDay, self.object_with_time_of_days.id)
+        self.remove_command = partial(actor_plan_period_commands.RemoveTimeOfDay, self.object_with_time_of_days.id)
+        self.new_time_of_day_standard_command = partial(actor_plan_period_commands.NewTimeOfDayStandard,
+                                                        self.object_with_time_of_days.id)
+        self.remove_time_of_day_standard_command = partial(actor_plan_period_commands.RemoveTimeOfDayStandard,
+                                                           self.object_with_time_of_days.id)
 
 
 class DlgTimeOfDayEditListBuilderLocationPlanPeriod(DlgTimeOfDayEditListBuilderABC):
     def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent, object_with_time_of_days=location_plan_period)
+
+        self.object_with_time_of_days: schemas.LocationPlanPeriodShow = location_plan_period.model_copy()
 
     def _generate_field_values(self):
         self.window_title = (f'Tageszeiten des Planungszeitraums, '
@@ -102,11 +132,16 @@ class DlgTimeOfDayEditListBuilderLocationPlanPeriod(DlgTimeOfDayEditListBuilderA
             db_services.LocationOfWork.get(self.object_with_time_of_days.location_of_work.id).time_of_day_standards
             if not t_o_d.prep_delete
         ]
-        self.object_with_time_of_days__refresh_func = db_services.LocationPlanPeriod.get
-        self.put_in_command = location_plan_period_commands.PutInTimeOfDay
-        self.remove_command = location_plan_period_commands.RemoveTimeOfDay
-        self.new_time_of_day_standard_command = location_plan_period_commands.NewTimeOfDayStandard
-        self.remove_time_of_day_standard_command = location_plan_period_commands.RemoveTimeOfDayStandard
+        self.object_with_time_of_days__refresh_func = partial(db_services.LocationPlanPeriod.get,
+                                                              self.object_with_time_of_days.id)
+        self.put_in_command = partial(location_plan_period_commands.PutInTimeOfDay,
+                                      self.object_with_time_of_days.id)
+        self.remove_command = partial(location_plan_period_commands.RemoveTimeOfDay,
+                                      self.object_with_time_of_days.id)
+        self.new_time_of_day_standard_command = partial(location_plan_period_commands.NewTimeOfDayStandard,
+                                                        self.object_with_time_of_days.id)
+        self.remove_time_of_day_standard_command = partial(location_plan_period_commands.RemoveTimeOfDayStandard,
+                                                           self.object_with_time_of_days.id)
 
 
 class DlgTimeOfDayEdit(QDialog):
@@ -304,15 +339,13 @@ class DlgTimeOfDaysEditList(QDialog):
             self.controller.execute(create_command)
             created_t_o_d_id = create_command.time_of_day_id
 
-            self.controller.execute(self.builder.put_in_command(self.object_with_time_of_days.id, created_t_o_d_id))
+            self.controller.execute(self.builder.put_in_command(created_t_o_d_id))
 
             if dlg.chk_default.isChecked():
-                self.controller.execute(self.builder.new_time_of_day_standard_command(self.object_with_time_of_days.id,
-                                                                                      created_t_o_d_id))
+                self.controller.execute(self.builder.new_time_of_day_standard_command(created_t_o_d_id))
             else:
-                self.controller.execute(self.builder.remove_time_of_day_standard_command(self.object_with_time_of_days.id,
-                                                                                         created_t_o_d_id))
-        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func(self.object_with_time_of_days.id)
+                self.controller.execute(self.builder.remove_time_of_day_standard_command(created_t_o_d_id))
+        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func()
         self.setup_table_time_of_days()
 
     def edit_time_of_day(self):
@@ -334,24 +367,23 @@ class DlgTimeOfDaysEditList(QDialog):
             return
         self.object_with_time_of_days.time_of_days = [t for t in self.object_with_time_of_days.time_of_days
                                                      if t.id != dlg.curr_time_of_day.id]
-        self.controller.execute(self.builder.remove_time_of_day_standard_command(self.object_with_time_of_days.id,
-                                                                                 dlg.curr_time_of_day.id))
+        self.controller.execute(self.builder.remove_time_of_day_standard_command(dlg.curr_time_of_day.id))
         dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
         self.create_time_of_day(dlg=dlg)
 
     def reset_time_of_days(self):
         for t_o_d in self.object_with_time_of_days.time_of_days:
-            self.controller.execute(self.builder.remove_command(self.object_with_time_of_days.id, t_o_d.id))
+            self.controller.execute(self.builder.remove_command(t_o_d.id))
         for t_o_d in self.object_with_time_of_days.time_of_day_standards:
             self.controller.execute(
-                self.builder.remove_time_of_day_standard_command(self.object_with_time_of_days.id, t_o_d.id))
+                self.builder.remove_time_of_day_standard_command(t_o_d.id))
 
         for t_o_d in self.builder.parent_time_of_days:
-            self.controller.execute(self.builder.put_in_command(self.object_with_time_of_days.id, t_o_d.id))
+            self.controller.execute(self.builder.put_in_command(t_o_d.id))
         for t_o_d in self.builder.parent_time_of_day_standards:
-            self.controller.execute(self.builder.new_time_of_day_standard_command(self.object_with_time_of_days.id, t_o_d.id))
+            self.controller.execute(self.builder.new_time_of_day_standard_command(t_o_d.id))
 
-        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func(self.object_with_time_of_days.id)
+        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func()
 
         QMessageBox.information(self, 'Tageszeiten reset',
                                 f'Die Tageszeiten wurden zurückgesetzt:\n'
@@ -367,12 +399,11 @@ class DlgTimeOfDaysEditList(QDialog):
 
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
 
-        self.controller.execute(self.builder.remove_command(self.object_with_time_of_days.id, curr_t_o_d_id))
-        self.controller.execute(self.builder.remove_time_of_day_standard_command(self.object_with_time_of_days.id,
-                                                                                 curr_t_o_d_id))
+        self.controller.execute(self.builder.remove_command(curr_t_o_d_id))
+        self.controller.execute(self.builder.remove_time_of_day_standard_command(curr_t_o_d_id))
         curr_time_of_day = db_services.TimeOfDay.get(curr_t_o_d_id)
         QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{curr_time_of_day.name}')
-        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func(self.object_with_time_of_days.id)
+        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func()
         self.setup_table_time_of_days()
 
 

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 
 from database import schemas, db_services
 from .commands import command_base_classes, time_of_day_commands, actor_plan_period_commands, \
-    location_plan_period_commands, person_commands
+    location_plan_period_commands, person_commands, location_of_work_commands
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
@@ -78,9 +78,28 @@ class DlgTimeOfDayEditListBuilderPerson(DlgTimeOfDayEditListBuilderABC):
                                                            self.object_with_time_of_days.id)
 
 
-
 class DlgTimeOfDayEditListBuilderLocation(DlgTimeOfDayEditListBuilderABC):
-    ...
+    def __init__(self, parent: QWidget, location: schemas.LocationOfWorkShow):
+        super().__init__(parent=parent, object_with_time_of_days=location)
+
+        self.object_with_time_of_days: schemas.LocationOfWorkShow = location.model_copy()
+
+    def _generate_field_values(self):
+        self.window_title = (f'Tageszeiten die Einrichtung, {self.object_with_time_of_days.name} '
+                             f'{self.object_with_time_of_days.address.city}')
+        self.project_id = self.object_with_time_of_days.project.id
+        project = db_services.Project.get(self.project_id)
+        self.parent_time_of_days = [t_o_d for t_o_d in project.time_of_days if not t_o_d.prep_delete]
+        self.parent_time_of_day_standards = [t_o_d_st for t_o_d_st in project.time_of_day_standards
+                                             if not t_o_d_st.prep_delete]
+        self.object_with_time_of_days__refresh_func = partial(db_services.LocationOfWork.get,
+                                                              self.object_with_time_of_days.id)
+        self.put_in_command = partial(location_of_work_commands.PutInTimeOfDay, self.object_with_time_of_days.id)
+        self.remove_command = partial(location_of_work_commands.RemoveTimeOfDay, self.object_with_time_of_days.id)
+        self.new_time_of_day_standard_command = partial(location_of_work_commands.NewTimeOfDayStandard,
+                                                        self.object_with_time_of_days.id)
+        self.remove_time_of_day_standard_command = partial(location_of_work_commands.RemoveTimeOfDayStandard,
+                                                           self.object_with_time_of_days.id)
 
 
 class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC):

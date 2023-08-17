@@ -1,6 +1,7 @@
 import json
+from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, Sequence, Literal
+from typing import Callable, Sequence, Literal, TypeAlias
 from uuid import UUID
 
 from PySide6 import QtCore
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidg
                                QApplication, QGridLayout)
 
 from database import schemas, db_services
-from gui.commands import command_base_classes, avail_day_group_commands
+from gui.commands import command_base_classes, avail_day_group_commands, event_commands
 from gui.observer import signal_handling
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
@@ -23,6 +24,42 @@ TREE_HEAD_COLUMN__NR_GROUPS = 3
 TREE_HEAD_COLUMN__PRIORITY = 4
 
 VARIATION_WEIGHT_TEXT = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
+
+
+group_type: TypeAlias = schemas.AvailDayGroup | schemas.EventGroup
+create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_commands.Create]
+delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_commands.Delete]
+
+class DlgGroupModeBuilderABC(ABC):
+    def __init__(self, parent: QWidget,
+                 object_with_groups: schemas.ActorPlanPeriodShow | schemas.LocationPlanPeriodShow):
+
+        self.parent_widget = parent
+        self.object_with_groups = object_with_groups.model_copy()
+        self.master_group: group_type | None = None
+        self.create_group_command: create_group_command_type | None = None
+        self.delete_group_command: delete_group_command_type | None = None
+        self.get_group_from_id: Callable[[UUID], group_type] | None = None
+
+    @abstractmethod
+    def _generate_field_values(self):
+        ...
+
+    def build(self) -> 'DlgGroupMode':
+        return DlgGroupMode(self.parent_widget, self)
+
+
+class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
+    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent=parent, object_with_groups=actor_plan_period)
+
+        self.object_with_groups: schemas.ActorPlanPeriodShow = actor_plan_period
+
+    def _generate_field_values(self):
+        self.master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.object_with_groups.id)
+        self.create_group_command = avail_day_group_commands.Create
+        self.delete_group_command = avail_day_group_commands.Delete
+        self.get_group_from_id = db_services.AvailDayGroup.get
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -331,12 +368,14 @@ class DlgAvailDayGroup(QDialog):
 
 
 class DlgGroupMode(QDialog):
-    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, parent: QWidget, builder: DlgGroupModeBuilderABC):
         super().__init__(parent)
 
         self.setWindowTitle('Gruppenmodus')
         self.resize(280, 400)
-        self.actor_plan_period = actor_plan_period
+
+        self.builder = builder
+        self.object_with_groups = builder.object_with_groups
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -354,7 +393,7 @@ class DlgGroupMode(QDialog):
         self.bt_edit_main_group = QPushButton('Hauptgruppe bearbeiten',
                                               clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
         self.layout_body.addWidget(self.bt_edit_main_group)
-        self.tree_groups = TreeWidget(self.actor_plan_period, self.item_moved)
+        self.tree_groups = TreeWidget(builder.object_with_groups, self.item_moved)
         self.tree_groups.itemDoubleClicked.connect(self.edit_item)
         self.tree_groups.setExpandsOnDoubleClick(False)
         self.layout_body.addWidget(self.tree_groups)
@@ -374,8 +413,7 @@ class DlgGroupMode(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def add_group(self):
-        master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)
-        create_command = avail_day_group_commands.Create(avail_day_group_id=master_group.id)
+        create_command = self.builder.create_group_command(self.builder.master_group.id)
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
 
@@ -389,7 +427,7 @@ class DlgGroupMode(QDialog):
         selected_item = selected_items[0]
         if not selected_items or selected_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
             return
-        data: schemas.AvailDayGroup = selected_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        data: group_type = selected_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         if selected_item.childCount() == 0:
             if parent_item := selected_item.parent():
                 parent_item.removeChild(selected_item)
@@ -398,10 +436,10 @@ class DlgGroupMode(QDialog):
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
-                parent_avd_group = db_services.AvailDayGroup.get(
+                parent_avd_group = self.builder.get_group_from_id(
                     self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
                 )
-            self.controller.execute(avail_day_group_commands.Delete(data.id))
+            self.controller.execute(self.builder.delete_group_command(data.id))
 
             # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
             text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
@@ -549,3 +587,224 @@ class DlgGroupMode(QDialog):
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 
         self.resize(self.size().width(), min(height + 100, screen_height - 40))
+
+
+# class DlgGroupMode(QDialog):
+#     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+#         super().__init__(parent)
+#
+#         self.setWindowTitle('Gruppenmodus')
+#         self.resize(280, 400)
+#         self.actor_plan_period = actor_plan_period
+#
+#         self.controller = command_base_classes.ContrExecUndoRedo()
+#
+#         self.simplified = False
+#
+#         self.layout = QVBoxLayout(self)
+#
+#         self.layout_head = QVBoxLayout()
+#         self.layout_body = QVBoxLayout()
+#         self.layout_foot = QVBoxLayout()
+#         self.layout.addLayout(self.layout_head)
+#         self.layout.addLayout(self.layout_body)
+#         self.layout.addLayout(self.layout_foot)
+#
+#         self.bt_edit_main_group = QPushButton('Hauptgruppe bearbeiten',
+#                                               clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
+#         self.layout_body.addWidget(self.bt_edit_main_group)
+#         self.tree_groups = TreeWidget(self.actor_plan_period, self.item_moved)
+#         self.tree_groups.itemDoubleClicked.connect(self.edit_item)
+#         self.tree_groups.setExpandsOnDoubleClick(False)
+#         self.layout_body.addWidget(self.tree_groups)
+#         self.resize_dialog()
+#
+#         self.layout_mod_buttons = QHBoxLayout()
+#         self.layout_foot.addLayout(self.layout_mod_buttons)
+#         self.bt_add_group = QPushButton('Neue Gruppe', clicked=self.add_group)
+#         self.layout_mod_buttons.addWidget(self.bt_add_group)
+#         self.bt_remove_group = QPushButton('Gruppe entfernen', clicked=self.remove_group)
+#         self.layout_mod_buttons.addWidget(self.bt_remove_group)
+#         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
+#                                            QDialogButtonBox.StandardButton.Cancel)
+#
+#         self.button_box.accepted.connect(self.accept)
+#         self.button_box.rejected.connect(self.reject)
+#         self.layout_foot.addWidget(self.button_box)
+#
+#     def add_group(self):
+#         master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period.id)
+#         create_command = avail_day_group_commands.Create(avail_day_group_id=master_group.id)
+#         self.controller.execute(create_command)
+#         self.tree_groups.nr_main_groups += 1
+#
+#         new_item = TreeWidgetItem(self.tree_groups.invisibleRootItem())
+#         new_item.configure(create_command.created_group, None, self.tree_groups.nr_main_groups, 0)
+#
+#         self.resize_dialog()
+#
+#     def remove_group(self):
+#         selected_items = self.tree_groups.selectedItems()
+#         selected_item = selected_items[0]
+#         if not selected_items or selected_item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
+#             return
+#         data: schemas.AvailDayGroup = selected_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+#         if selected_item.childCount() == 0:
+#             if parent_item := selected_item.parent():
+#                 parent_item.removeChild(selected_item)
+#                 parent_avd_group = db_services.AvailDayGroup.get(
+#                     parent_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#             else:
+#                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
+#                 self.tree_groups.takeTopLevelItem(index)
+#                 parent_avd_group = db_services.AvailDayGroup.get(
+#                     self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+#                 )
+#             self.controller.execute(avail_day_group_commands.Delete(data.id))
+#
+#             # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
+#             text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
+#             if parent_item:
+#                 parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+#             else:
+#                 self.tree_groups.invisibleRootItem().setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+#
+#     def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
+#         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+#
+#         if moved_to:
+#             obj_to_move_to: schemas.AvailDayGroup = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP,
+#                                                                   Qt.ItemDataRole.UserRole)
+#         else:
+#             obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
+#                                                                        Qt.ItemDataRole.UserRole)
+#
+#         self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
+#
+#         # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
+#         if not previous_parent:
+#             return
+#         parent_avd_group = db_services.AvailDayGroup.get(
+#             previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#         text_nr_avg = str(parent_avd_group.nr_avail_day_groups) if parent_avd_group.nr_avail_day_groups else 'alle'
+#         previous_parent.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_avg)
+#
+#     def edit_item(self, item: QTreeWidgetItem):
+#         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+#         data_avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
+#         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
+#         if data_avail_day:
+#             print(item.text(0), data_avail_day.date, data_avail_day.time_of_day.name, f'Gr. {data_parent_group_nr}')
+#             print(f'{data_group=}')
+#         else:
+#             dlg = DlgAvailDayGroup(self, item)
+#             if not dlg.exec():
+#                 return
+#             self.controller.add_to_undo_stack(dlg.controller.undo_stack)
+#             self.reload_actor_plan_period()
+#
+#             self.update_items_after_edit(item)
+#
+#     @staticmethod
+#     def update_items_after_edit(item: TreeWidgetItem):
+#         new_avg_data = db_services.AvailDayGroup.get(
+#             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#         text_nr_groups = str(new_avg_data.nr_avail_day_groups) if new_avg_data.nr_avail_day_groups else 'alle'
+#         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
+#         item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
+#         child_items = (item.child(i) for i in range(item.childCount()))
+#         for child_item in child_items:
+#             new_avg_data = db_services.AvailDayGroup.get(
+#                 child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#             child_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
+#             child_item.setText(TREE_HEAD_COLUMN__PRIORITY, VARIATION_WEIGHT_TEXT[new_avg_data.variation_weight])
+#
+#     def get_all_items(self) -> list[QTreeWidgetItem]:
+#         all_items = []
+#
+#         def recurse(parent_item):
+#             for i in range(parent_item.childCount()):
+#                 child = parent_item.child(i)
+#                 all_items.append(child)
+#                 recurse(child)
+#
+#         recurse(self.tree_groups.invisibleRootItem())
+#         return all_items
+#
+#     def get_child_group_items(self, item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
+#         """returns all child_groups of item"""
+#         return [item.child(i) for i in range(item.childCount())]
+#
+#     def alert_solo_childs(self):
+#         all_items = self.get_all_items()
+#         for item in all_items:
+#             if item.childCount() == 1:
+#                 if avail_day := item.child(0).data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
+#                     QMessageBox.critical(
+#                         self, 'Gruppenmodus',
+#                         f'Mindestens eine Gruppe hat nur einen Termin:\n'
+#                         f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
+#                         f'{avail_day.date.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
+#                         f'Bitte korrigieren Sie das.'
+#                     )
+#                 else:
+#                     QMessageBox.critical(self, 'Gruppenmodus',
+#                                          f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
+#                                          f'Bitte korrigieren Sie das.')
+#                 return True
+#         return False
+#
+#     def delete_unused_groups(self):
+#         all_items = self.get_all_items()
+#         to_delete: list[schemas.AvailDayGroup] = []
+#         for item in all_items:
+#             avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
+#             if not avail_day and not item.childCount():
+#                 to_delete.append(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
+#
+#         if not to_delete:
+#             return self.alert_solo_childs()
+#         else:
+#             self.simplified = True
+#         for group in to_delete:
+#             self.controller.execute(avail_day_group_commands.Delete(group.id))
+#         self.reload_actor_plan_period()
+#         self.refresh_tree()
+#
+#         return self.delete_unused_groups()
+#
+#     def accept(self):
+#         if self.delete_unused_groups():
+#             return
+#         if self.simplified:
+#             QMessageBox.information(self, 'Gruppenmodus',
+#                                     'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+#         super().accept()
+#
+#     def reject(self) -> None:
+#         self.controller.undo_all()
+#         self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
+#         if self.alert_solo_childs():  # ...um nach Löschung eines avail_day Solo-Childs zu korrigieren.
+#             return
+#         super().reject()
+#
+#     def reload_actor_plan_period(self):
+#         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+#
+#     def refresh_tree(self):
+#         self.tree_groups.refresh_tree()
+#         self.resize_dialog()
+#
+#     def resize_dialog(self):
+#         height = self.tree_groups.header().height()
+#         for item in self.get_all_items():
+#             height += self.tree_groups.visualItemRect(item).height()
+#
+#         if self.tree_groups.horizontalScrollBar().isVisible():
+#             height += self.tree_groups.horizontalScrollBar().height()
+#
+#         with open('config.json') as f:
+#             json_data = json.load(f)
+#         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
+#
+#         self.resize(self.size().width(), min(height + 100, screen_height - 40))

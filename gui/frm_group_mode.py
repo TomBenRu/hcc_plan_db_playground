@@ -12,13 +12,13 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidg
                                QApplication, QGridLayout)
 
 from database import schemas, db_services
-from gui.commands import command_base_classes, avail_day_group_commands, event_commands
+from gui.commands import command_base_classes, avail_day_group_commands, event_group_commands
 from gui.observer import signal_handling
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
-TREE_ITEM_DATA_COLUMN__GROUP = 4
+TREE_ITEM_DATA_COLUMN__GROUP = 4  # todo: verallgemeinern
 TREE_ITEM_DATA_COLUMN__AVAIL_DAY = 5
 TREE_HEAD_COLUMN__NR_GROUPS = 3
 TREE_HEAD_COLUMN__PRIORITY = 4
@@ -27,8 +27,10 @@ VARIATION_WEIGHT_TEXT = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
 
 
 group_type: TypeAlias = schemas.AvailDayGroup | schemas.EventGroup
-create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_commands.Create]
-delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_commands.Delete]
+create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_group_commands.Create]
+delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_group_commands.Delete]
+set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.SetNewParent] |
+                                                type[event_group_commands.SetNewParent])
 
 class DlgGroupModeBuilderABC(ABC):
     def __init__(self, parent: QWidget,
@@ -452,13 +454,12 @@ class DlgGroupMode(QDialog):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
         if moved_to:
-            obj_to_move_to: schemas.AvailDayGroup = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP,
-                                                                  Qt.ItemDataRole.UserRole)
+            obj_to_move_to: group_type = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         else:
             obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
                                                                        Qt.ItemDataRole.UserRole)
 
-        self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))
+        self.controller.execute(avail_day_group_commands.SetNewParent(object_to_move.id, obj_to_move_to.id))ööö
 
         # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
         if not previous_parent:

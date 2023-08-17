@@ -943,6 +943,26 @@ class LocationPlanPeriod:
 
 class EventGroup:
     @staticmethod
+    @db_session
+    def get(event_group_id: UUID) -> schemas.EventGroupShow:
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        return schemas.EventGroupShow.model_validate(event_group_db)
+
+    @staticmethod
+    @db_session
+    def get_master_from__location_plan_period(location_plan_period_id: UUID) -> schemas.EventGroupShow:
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        event_group_db = location_plan_period_db.event_group
+        return schemas.EventGroupShow.model_validate(event_group_db)
+
+    @staticmethod
+    @db_session
+    def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGroupShow]:
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+
+        return [schemas.EventGroupShow.model_validate(e) for e in event_group_db.event_groups]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, location_plan_period_id: Optional[UUID] = None,
                event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
@@ -956,11 +976,43 @@ class EventGroup:
         return schemas.EventGroupShow.model_validate(new_event_group_db)
 
     @staticmethod
-    @db_session
-    def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGroupShow]:
+    @db_session(sql_debug=True, show_values=True)
+    def update_nr_event_groups(event_group_id: UUID, nr_event_groups: int | None) -> schemas.EventGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        event_group_db.nr_event_groups = nr_event_groups
 
-        return [schemas.EventGroupShow.model_validate(e) for e in event_group_db.event_groups]
+        return schemas.EventGroupShow.model_validate(event_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_variation_weight(event_group_id: UUID, variation_weight: int) -> schemas.EventGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        event_group_db.variation_weight = variation_weight
+
+        return schemas.EventGroupShow.model_validate(event_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_new_parent(event_group_id: UUID, new_parent_id: UUID) -> schemas.EventGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        new_parent_db = models.EventGroup.get_for_update(id=new_parent_id)
+        event_group_db.event_group = new_parent_db
+
+        return schemas.EventGroupShow.model_validate(event_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(event_group_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        event_group_db.delete()
 
 
 class Event:

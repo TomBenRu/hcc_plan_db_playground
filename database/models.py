@@ -433,7 +433,7 @@ class EventGroup(db.Entity):
     same_group_cast_pref = Required(int, size=8, default=0, unsigned=True)
     # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
     # Gewichtungen wie same_day_cast_pref
-    nr_eventgroups = Optional(int, unsigned=True)
+    nr_event_groups = Optional(int, unsigned=True)
     # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_eventgroups auch geringer sein.

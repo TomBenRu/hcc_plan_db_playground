@@ -469,7 +469,7 @@ class EventGroupCreate(BaseModel):
     same_group_cast_pref: int
     # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
     # Gewichtungen wie same_day_cast_pref
-    nr_eventgroups: Optional[int]
+    nr_event_groups: Optional[int] = None
     # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_eventgroups auch geringer sein.

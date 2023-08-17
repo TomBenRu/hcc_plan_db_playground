@@ -16,7 +16,8 @@ from line_profiler_pycharm import profile
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
-from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode
+from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode, \
+    frm_time_of_day
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
@@ -914,7 +915,7 @@ class FrmActorPlanPeriod(QWidget):
             button.set_tooltip()
 
     def edit_time_of_days(self):
-        dlg = DlgTimeOfDaysEditList(self, self.actor_plan_period)
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)

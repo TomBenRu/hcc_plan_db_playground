@@ -59,7 +59,6 @@ class DlgFixedCastBuilderABC(ABC):
 
     def build(self) -> 'DlgFixedCast':
         dlg = DlgFixedCast(self.parent_widget, self)
-        print(self.__dict__.keys())
         if self.fixed_date:
             dlg.de_date.setDate(self.fixed_date)
             dlg.de_date.setDisabled(True)

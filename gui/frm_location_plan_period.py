@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag
+from gui import side_menu, frm_flag, frm_time_of_day
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
 from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
@@ -585,7 +585,7 @@ class FrmLocationPlanPeriod(QWidget):
             button.set_tooltip()
 
     def edit_time_of_days(self):
-        dlg = DlgTimeOfDaysEditList(self, self.location_plan_period)
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
             buttons_event: list[ButtonEvent] = self.findChildren(ButtonEvent)

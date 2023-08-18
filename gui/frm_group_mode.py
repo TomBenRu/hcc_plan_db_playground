@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, Sequence, Literal, TypeAlias
+from typing import Callable, Sequence, Literal, TypeAlias, NewType
 from uuid import UUID
 
 from PySide6 import QtCore
@@ -33,6 +33,7 @@ create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | t
 delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_group_commands.Delete]
 set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.SetNewParent] |
                                                 type[event_group_commands.SetNewParent])
+group_id_type = NewType('group_id', UUID)
 
 
 class DlgGroupModeBuilderABC(ABC):
@@ -43,7 +44,9 @@ class DlgGroupModeBuilderABC(ABC):
         self.master_group: group_type | None = None
         self.create_group_command: create_group_command_type | None = None
         self.delete_group_command: delete_group_command_type | None = None
-        self.get_group_from_id: Callable[[UUID], group_type] | None = None
+        self.update_nr_groups_command: Callable[[group_id_type, int | None], command_base_classes.Command] | None = None
+        self.update_variation_weight_command: Callable[[group_id_type, int], command_base_classes.Command] | None = None
+        self.get_group_from_id: Callable[[group_id_type], group_type] | None = None
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
@@ -74,6 +77,8 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.object_with_groups.id)
         self.create_group_command = avail_day_group_commands.Create
         self.delete_group_command = avail_day_group_commands.Delete
+        self.update_nr_groups_command = avail_day_group_commands.UpdateNrAvailDayGroups
+        self.update_variation_weight_command = avail_day_group_commands.UpdateVariationWeight
         self.get_group_from_id = db_services.AvailDayGroup.get
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
@@ -264,16 +269,18 @@ class TreeWidget(QTreeWidget):
 
 
 class DlgAvailDayGroup(QDialog):
-    def __init__(self, parent: QWidget, item: QTreeWidgetItem):
+    def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
         super().__init__(parent=parent)
 
         self.item = item
+        self.builder = builder
+
         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
         self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}'
                             if self.group_nr else 'Eigenschaften der Hauptgruppe')
 
-        self.avail_day_group = db_services.AvailDayGroup.get(
+        self.group = self.builder.get_group_from_id(
             self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         self.child_items = [self.item.child(i) for i in range(self.item.childCount())]
         self.child_groups = [
@@ -325,26 +332,25 @@ class DlgAvailDayGroup(QDialog):
     def nr_childs_changed(self, value: int):
         if self.chk_none.isChecked():
             return
-        self.controller.execute(avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, value))
+        self.controller.execute(self.builder.update_nr_groups_command(group_id_type(self.group.id), value))
         self.lb_slider_nr_childs_value.setText(f'{value}')
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         if not clicked:
             return
         if checked:
-            self.controller.execute(avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, None))
+            self.controller.execute(self.builder.update_nr_groups_command(group_id_type(self.group.id), None))
             self.slider_nr_childs.setValue(len(self.child_groups))
             self.lb_slider_nr_childs_value.setText(f'{len(self.child_groups)}')
             self.slider_nr_childs.setEnabled(False)
         else:
             self.controller.execute(
-                avail_day_group_commands.UpdateNrAvailDayGroups(self.avail_day_group.id, self.slider_nr_childs.value()))
+                self.builder.update_nr_groups_command(group_id_type(self.group.id), self.slider_nr_childs.value()))
             self.slider_nr_childs.setEnabled(True)
 
     def variation_weight_changed(self, child_id: UUID, value: int):
         self.sliders_variation_weights[child_id]['lb_value'].setText(f'{self.variation_weight_text[value]}')
-        self.controller.execute(avail_day_group_commands.UpdateVariationWeight(child_id, value))
-
+        self.controller.execute(self.builder.update_variation_weight_command(group_id_type(child_id), value))
 
     def setup_sliders(self):
         self.slider_nr_childs.setTickPosition(QSlider.TickPosition.TicksBelow)
@@ -353,19 +359,21 @@ class DlgAvailDayGroup(QDialog):
         self.slider_nr_childs.setMaximum(len(self.child_groups))
         self.slider_nr_childs.setMinimumWidth(max(150, 30 * (len(self.child_groups) - 1)))
         self.slider_nr_childs.valueChanged.connect(self.nr_childs_changed)
-        self.slider_nr_childs.setValue(self.avail_day_group.nr_avail_day_groups or len(self.child_groups))
-        self.lb_slider_nr_childs_value.setText(f'{self.avail_day_group.nr_avail_day_groups or len(self.child_groups)}')
+        nr_groups = self.builder.get_nr_groups_from_group(self.group)
+        self.slider_nr_childs.setValue(nr_groups or len(self.child_groups))
+        self.lb_slider_nr_childs_value.setText(f'{nr_groups or len(self.child_groups)}')
         self.chk_none.toggled.connect(lambda val: self.chk_none_toggled(checked=val, clicked=True))
-        self.chk_none.setChecked(not self.avail_day_group.nr_avail_day_groups)
+        self.chk_none.setChecked(not nr_groups)
 
         for row, child_item in enumerate(self.child_items):
             child_item: TreeWidgetItem
-            child_group: schemas.AvailDayGroup = child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            child_group: group_type = child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             if child_group_nr := child_item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole):
                 text_child_group = f'Gruppe {child_group_nr:02}'
             else:
-                avail_day = child_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole)
-                text_child_group = f'{avail_day.date.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})'
+                date_object: date_object_type = child_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT,
+                                                                Qt.ItemDataRole.UserRole)
+                text_child_group = f'{date_object.date.strftime("%d.%m.%y")} ({date_object.time_of_day.name})'
             lb_slider = QLabel(text_child_group)
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider.setTickInterval(1)
@@ -379,8 +387,6 @@ class DlgAvailDayGroup(QDialog):
             self.layout_group_child_variation_weights.addWidget(slider, row, 1)
             self.layout_group_child_variation_weights.addWidget(lb_val, row, 2)
             self.sliders_variation_weights[child_group.id] = {'slider': slider, 'lb_value': lb_val}
-
-
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         self.slider_nr_childs.setMinimumWidth(0)
@@ -496,7 +502,7 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_date_object.date, data_date_object.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            dlg = DlgAvailDayGroup(self, item)
+            dlg = DlgAvailDayGroup(self, item, self.builder)
             if not dlg.exec():
                 return
             self.controller.add_to_undo_stack(dlg.controller.undo_stack)

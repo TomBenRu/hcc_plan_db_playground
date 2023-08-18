@@ -885,8 +885,6 @@ class FrmActorPlanPeriod(QWidget):
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
     def change_mode__avd_group(self):
-
-        #dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
         dlg = frm_group_mode.DlgGroupModeBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')

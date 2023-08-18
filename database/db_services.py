@@ -1031,6 +1031,13 @@ class Event:
 
     @staticmethod
     @db_session
+    def get_from__event_group(event_group_id) -> schemas.EventShow | None:
+        event_group_db = models.EventGroup.get_for_update(id=event_group_id)
+        event_db = event_group_db.event
+        return schemas.EventShow.model_validate(event_db) if event_db else None
+
+    @staticmethod
+    @db_session
     def get_from__location_pp_date_tod(location_plan_period_id: UUID, date: datetime.date,
                                        time_of_day_id) -> schemas.EventShow:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1372,7 +1379,7 @@ class AvailDay:
 
     @staticmethod
     @db_session
-    def get_from__avail_day_group(avail_day_group_id):
+    def get_from__avail_day_group(avail_day_group_id) -> schemas.AvailDayShow | None:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_db = avail_day_group_db.avail_day
         return schemas.AvailDayShow.model_validate(avail_day_db) if avail_day_db else None

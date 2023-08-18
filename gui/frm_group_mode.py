@@ -90,10 +90,36 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.object_with_groups = db_services.ActorPlanPeriod.get(self.object_with_groups.id)
 
 
-class TreeWidgetItem(QTreeWidgetItem):
+class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
+    def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):
+        super().__init__(parent=parent, object_with_groups=location_plan_period)
 
-    def configure(self, group: group_type,
-                  date_object: date_object_type | None, group_nr: int | None, parent_group_nr: int):
+        self.object_with_groups: schemas.LocationPlanPeriodShow = location_plan_period
+
+    def _generate_field_values(self):
+        self.master_group = db_services.EventGroup.get_master_from__location_plan_period(self.object_with_groups.id)
+        self.create_group_command = event_group_commands.Create
+        self.delete_group_command = event_group_commands.Delete
+        self.update_nr_groups_command = event_group_commands.UpdateNrEventGroups
+        self.update_variation_weight_command = event_group_commands.UpdateVariationWeight
+        self.get_group_from_id = db_services.EventGroup.get
+        self.set_new_parent_group_command = event_group_commands.SetNewParent
+        self.get_nr_groups_from_group = lambda group: group.nr_event_groups
+        self.get_date_object_from_group_id = db_services.Event.get_from__event_group
+        self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
+        self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_location_plan_period.change_location_plan_period_group_mode
+
+    def reload_object_with_groups(self):
+        self.object_with_groups = db_services.LocationPlanPeriod.get(self.object_with_groups.id)
+
+
+class TreeWidgetItem(QTreeWidgetItem):
+    def __init__(self, builder: DlgGroupModeBuilderABC, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
+        super().__init__(tree_widget_item)
+        self.builder = builder
+
+    def configure(self, group: group_type, date_object: date_object_type | None,
+                  group_nr: int | None, parent_group_nr: int):
         text_variation_weight = VARIATION_WEIGHT_TEXT[group.variation_weight]
         if date_object:
             self.setText(0, 'Verfügbar')
@@ -106,8 +132,8 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setForeground(2, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
-            text_nr_avail_day_groups = (str(group.nr_avail_day_groups)
-                                        if group.nr_avail_day_groups else 'alle')
+            nr_groups = self.builder.get_nr_groups_from_group(group)
+            text_nr_avail_day_groups = (str(nr_groups) if nr_groups else 'alle')
             self.setText(0, f'Gruppe_{group_nr:02}')
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
@@ -135,7 +161,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             elif not my_date_object and other_date_object:
                 return sort_order == Qt.SortOrder.AscendingOrder
             elif not my_date_object and not other_date_object:
-                has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(my_group_id)
+                has_child_groups = self.builder.get_child_groups_from__parent_group_id(my_group_id)
                 return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
             else:
                 return self.text(column) < other.text(column)
@@ -144,7 +170,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         if my_date_object:
             my_value = f'{my_date_object.date} {my_date_object.time_of_day.time_of_day_enum.time_index:02}'
         elif not other_date_object:
-            has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(my_group_id)
+            has_child_groups = self.builder.get_child_groups_from__parent_group_id(my_group_id)
             return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
         else:
             return sort_order == Qt.SortOrder.AscendingOrder
@@ -152,7 +178,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         if other_date_object:
             other_value = f'{other_date_object.date} {other_date_object.time_of_day.time_of_day_enum.time_index:02}'
         elif not my_date_object:
-            has_child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(other_group_id)
+            has_child_groups = self.builder.get_child_groups_from__parent_group_id(other_group_id)
             return sort_order == (Qt.SortOrder.AscendingOrder if has_child_groups else Qt.SortOrder.DescendingOrder)
         else:
             return sort_order == Qt.SortOrder.DescendingOrder
@@ -223,7 +249,7 @@ class TreeWidget(QTreeWidget):
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
                 if date_object := self.builder.get_date_object_from_group_id(child.id):
-                    item = TreeWidgetItem(parent)
+                    item = TreeWidgetItem(self.builder, parent)
                     item.configure(child, date_object, None, parent_group_nr)
                     self.builder.signal_handler_change__object_with_groups__group_mode(
                         signal_handling.DataGroupMode(True,
@@ -233,14 +259,13 @@ class TreeWidget(QTreeWidget):
                     )
                 else:
                     self.nr_main_groups += 1
-                    item = TreeWidgetItem(parent)
+                    item = TreeWidgetItem(self.builder, parent)
                     item.configure(child, None, self.nr_main_groups, parent_group_nr)
                     add_children(item, child)
 
         for child in self.builder.get_child_groups_from__parent_group_id(self.builder.master_group.id):
             if date_object := self.builder.get_date_object_from_group_id(child.id):
-                item = TreeWidgetItem(
-                    self)
+                item = TreeWidgetItem(self.builder, self)
                 item.configure(child, date_object, None, 0)
                 self.builder.signal_handler_change__object_with_groups__group_mode(
                     signal_handling.DataGroupMode(True,
@@ -250,7 +275,7 @@ class TreeWidget(QTreeWidget):
                 )
             else:
                 self.nr_main_groups += 1
-                item = TreeWidgetItem(self)
+                item = TreeWidgetItem(self.builder, self)
                 item.configure(child, None, self.nr_main_groups, 0)
                 add_children(item, child)
 
@@ -284,7 +309,7 @@ class DlgAvailDayGroup(QDialog):
             self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         self.child_items = [self.item.child(i) for i in range(self.item.childCount())]
         self.child_groups = [
-            db_services.AvailDayGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            self.builder.get_group_from_id(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             for item in self.child_items]
         self.variation_weight_text = VARIATION_WEIGHT_TEXT
 
@@ -442,7 +467,7 @@ class DlgGroupMode(QDialog):
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
 
-        new_item = TreeWidgetItem(self.tree_groups.invisibleRootItem())
+        new_item = TreeWidgetItem(self.builder, self.tree_groups.invisibleRootItem())
         new_item.configure(create_command.created_group, None, self.tree_groups.nr_main_groups, 0)
 
         self.resize_dialog()

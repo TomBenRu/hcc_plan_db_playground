@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag, frm_time_of_day
+from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
 from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
@@ -553,18 +553,16 @@ class FrmLocationPlanPeriod(QWidget):
         )
 
     def change_mode__event_group(self):  # todo: noch implementieren
-        return
-
-        dlg = frm_group_mode.DlgGroupMode(self, self.actor_plan_period)
+        dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
-            self.reload_actor_plan_period()
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_days(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
+            self.reload_location_plan_period()
+            signal_handling.handler_location_plan_period.reload_location_pp__events(
+                signal_handling.DataLocationPPWithDate(self.location_plan_period))
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 
-        signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
+        signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
 
     def get_events(self):

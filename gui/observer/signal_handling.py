@@ -33,8 +33,6 @@ class HandlerActorPlanPeriod(QObject):
     signal_reload_actor_pp__frm_actor_plan_period = Signal(object)
     signal_change_actor_plan_period_group_mode = Signal(object)
 
-
-
     def reload_actor_pp__avail_configs(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_configs.emit(data)
 

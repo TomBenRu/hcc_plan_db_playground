@@ -5,12 +5,14 @@ from gui.commands.command_base_classes import Command
 
 
 class Create(Command):
-    def __init__(self, *, actor_plan_period_id: UUID = None, avail_day_group_id: UUID = None):
-        if not actor_plan_period_id and not avail_day_group_id:
+    """Die seltsame Benennung der Parameter ist der gemeinsamen DlgGroupMode-Klasse geschuldet."""
+    def __init__(self, *, loc_act_plan_period_id: UUID = None, event_avail_day_group_id: UUID = None):
+        """Die Parameter 'loc_act_plan_period_id' und 'event_avail_day_group_id' können nicht beide None sein."""
+        if not loc_act_plan_period_id and not event_avail_day_group_id:
             raise AttributeError('Die Parameter "actor_plan_period_id" und "avail_day_group_id" '
                                  'können nicht beide None sein.')
-        self.actor_plan_period_id = actor_plan_period_id
-        self.avail_day_group_id = avail_day_group_id
+        self.actor_plan_period_id = loc_act_plan_period_id
+        self.avail_day_group_id = event_avail_day_group_id
 
         self.created_group: schemas.AvailDayGroupShow | None = None
 

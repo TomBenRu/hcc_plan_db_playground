@@ -47,6 +47,8 @@ class DlgGroupModeBuilderABC(ABC):
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
 
+        self._generate_field_values()
+
     @abstractmethod
     def _generate_field_values(self):
         ...
@@ -247,6 +249,7 @@ class TreeWidget(QTreeWidget):
     def expand_all(self):
         self.expandAll()
         for i in range(self.columnCount()): self.resizeColumnToContents(i)
+
     def reload_actor_plan_period(self):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
@@ -466,7 +469,6 @@ class DlgGroupMode(QDialog):
             obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
                                                                        Qt.ItemDataRole.UserRole)
 
-        print(f'{self.builder.set_new_parent_group_command=}')
         self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
 
         # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:

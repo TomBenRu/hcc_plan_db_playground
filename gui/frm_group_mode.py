@@ -26,18 +26,20 @@ TREE_HEAD_COLUMN__PRIORITY = 4
 VARIATION_WEIGHT_TEXT = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
 
 
+object_with_group_type: TypeAlias = schemas.ActorPlanPeriodShow | schemas.LocationPlanPeriodShow
 group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.EventGroupShow
 create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_group_commands.Create]
 delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_group_commands.Delete]
 set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.SetNewParent] |
                                                 type[event_group_commands.SetNewParent])
 
+
 class DlgGroupModeBuilderABC(ABC):
-    def __init__(self, parent: QWidget,
-                 object_with_groups: schemas.ActorPlanPeriodShow | schemas.LocationPlanPeriodShow):
+    def __init__(self, parent: QWidget, object_with_groups: object_with_group_type):
 
         self.parent_widget = parent
         self.object_with_groups = object_with_groups.model_copy()
+        self.reload_object_with_groups: Callable[[UUID], object_with_group_type] | None = None
         self.master_group: group_type | None = None
         self.create_group_command: create_group_command_type | None = None
         self.delete_group_command: delete_group_command_type | None = None
@@ -60,6 +62,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.object_with_groups: schemas.ActorPlanPeriodShow = actor_plan_period
 
     def _generate_field_values(self):
+        self.reload_object_with_groups = db_services.ActorPlanPeriod.get
         self.master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.object_with_groups.id)
         self.create_group_command = avail_day_group_commands.Create
         self.delete_group_command = avail_day_group_commands.Delete
@@ -463,6 +466,7 @@ class DlgGroupMode(QDialog):
             obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
                                                                        Qt.ItemDataRole.UserRole)
 
+        print(f'{self.builder.set_new_parent_group_command=}')
         self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
 
         # Weil sich nr_avail_day_groups durch Inkonsistenzen geändert haben könnte:
@@ -490,18 +494,19 @@ class DlgGroupMode(QDialog):
 
             self.update_items_after_edit(item)
 
-    def update_items_after_edit(self, item: TreeWidgetItem):üüü
-        new_avg_data = self.builder.get_group_from_id(
+    def update_items_after_edit(self, item: TreeWidgetItem):
+        new_avg_evg_data = self.builder.get_group_from_id(
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-        text_nr_groups = str(new_avg_data.nr_avail_day_groups) if new_avg_data.nr_avail_day_groups else 'alle'
-        item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
+        nr_groups = self.builder.get_nr_groups_from_group(new_avg_evg_data)
+        text_nr_groups = str(nr_groups) if nr_groups else 'alle'
+        item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_evg_data)
         item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
         child_items = (item.child(i) for i in range(item.childCount()))
         for child_item in child_items:
-            new_avg_data = db_services.AvailDayGroup.get(
+            new_avg_evg_data = self.builder.get_group_from_id(
                 child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-            child_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_data)
-            child_item.setText(TREE_HEAD_COLUMN__PRIORITY, VARIATION_WEIGHT_TEXT[new_avg_data.variation_weight])
+            child_item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_avg_evg_data)
+            child_item.setText(TREE_HEAD_COLUMN__PRIORITY, VARIATION_WEIGHT_TEXT[new_avg_evg_data.variation_weight])
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []
@@ -523,12 +528,12 @@ class DlgGroupMode(QDialog):
         all_items = self.get_all_items()
         for item in all_items:
             if item.childCount() == 1:
-                if avail_day := item.child(0).data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
+                if avail_day_event := item.child(0).data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole):
                     QMessageBox.critical(
                         self, 'Gruppenmodus',
                         f'Mindestens eine Gruppe hat nur einen Termin:\n'
                         f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
-                        f'{avail_day.date.strftime("%d.%m.%y")} ({avail_day.time_of_day.name})\n'
+                        f'{avail_day_event.date.strftime("%d.%m.%y")} ({avail_day_event.time_of_day.name})\n'
                         f'Bitte korrigieren Sie das.'
                     )
                 else:
@@ -540,10 +545,10 @@ class DlgGroupMode(QDialog):
 
     def delete_unused_groups(self):
         all_items = self.get_all_items()
-        to_delete: list[schemas.AvailDayGroup] = []
+        to_delete: list[group_type] = []
         for item in all_items:
-            avail_day = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
-            if not avail_day and not item.childCount():
+            avail_day_event = item.data(TREE_ITEM_DATA_COLUMN__AVAIL_DAY, Qt.ItemDataRole.UserRole)
+            if not avail_day_event and not item.childCount():
                 to_delete.append(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
 
         if not to_delete:
@@ -551,7 +556,7 @@ class DlgGroupMode(QDialog):
         else:
             self.simplified = True
         for group in to_delete:
-            self.controller.execute(avail_day_group_commands.Delete(group.id))
+            self.controller.execute(self.builder.delete_group_command(group.id))
         self.reload_object_with_groups()
         self.refresh_tree()
 
@@ -573,7 +578,7 @@ class DlgGroupMode(QDialog):
         super().reject()
 
     def reload_object_with_groups(self):
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.object_with_groups = self.builder.reload_object_with_groups(self.object_with_groups.id)
 
     def refresh_tree(self):
         self.tree_groups.refresh_tree()

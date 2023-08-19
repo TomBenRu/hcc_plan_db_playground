@@ -760,7 +760,7 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(label, 0, col, 1, count)
             col += count
 
-    def set_chk_field(self):
+    def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
         person = db_services.Person.get(self.actor_plan_period.person.id)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)

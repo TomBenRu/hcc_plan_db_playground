@@ -450,7 +450,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(label, 0, col, 1, count)
             col += count
 
-    def set_chk_field(self):
+    def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
         location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
 
         # Tageszeiten Reihen-Bezeichner:

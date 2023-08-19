@@ -18,7 +18,7 @@ from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
-TREE_ITEM_DATA_COLUMN__GROUP = 4  # todo: verallgemeinern
+TREE_ITEM_DATA_COLUMN__GROUP = 4
 TREE_ITEM_DATA_COLUMN__DATE_OBJECT = 5
 TREE_HEAD_COLUMN__NR_GROUPS = 3
 TREE_HEAD_COLUMN__PRIORITY = 4
@@ -633,3 +633,8 @@ class DlgGroupMode(QDialog):
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 
         self.resize(self.size().width(), min(height + 200, screen_height - 40))
+
+
+# todo: Toolset, um bestimmte Gruppierungs-Abläufe automatisiert festzulegen (Periodenweit, Tagesweit)...
+#       Z.B.: nur 1 Schicht am Tag, die gleiche Schicht, pro Woche...
+#       Voreinstellungen in: Project, Person, PlanPeriod, ActorPlanPeriod

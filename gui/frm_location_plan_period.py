@@ -547,8 +547,11 @@ class FrmLocationPlanPeriod(QWidget):
                     self.change_mode__event_group()
 
         bt.reload_location_plan_period()
-        # events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
+
         signal_handling.handler_location_plan_period.reload_location_pp__events(
+            signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
+        )
+        signal_handling.handler_location_plan_period.reload_location_pp__event_configs(
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
@@ -567,7 +570,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def get_events(self):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
-                      if not e.prep_delete)
+                  if not e.prep_delete)
         for event in events:
             button: ButtonEvent = self.findChild(ButtonEvent, f'{event.date}-{event.time_of_day.time_of_day_enum.name}')
             if not button:
@@ -606,7 +609,8 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
-    window = FrmTabLocationPlanPeriods(None, planperiods[0])
+    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
+                    if not pp.prep_delete]
+    window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()
     app.exec()

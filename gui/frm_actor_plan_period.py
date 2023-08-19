@@ -760,7 +760,7 @@ class FrmActorPlanPeriod(QWidget):
             self.layout.addWidget(label, 0, col, 1, count)
             col += count
 
-    def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
+    def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Umsetzung automatisch über Group-Mode.
         person = db_services.Person.get(self.actor_plan_period.person.id)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
@@ -1098,8 +1098,9 @@ class FrmActorPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    planperiods = db_services.PlanPeriod.get_all_from__project(UUID('B8A4139121CC48B69EF1841A14395A91'))
-    window = FrmTabActorPlanPeriods(None, planperiods[0])
+    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
+                    if not pp.prep_delete]
+    window = FrmTabActorPlanPeriods(None, plan_periods[0])
     window.show()
     app.exec()
 

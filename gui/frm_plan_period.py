@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QGridLayout, QLabel, QComboBox, 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_team_of_person_at_date, get_locations_of_team_at_date, \
     get_persons_of_team_at_date
-from gui.commands import command_base_classes
+from gui.commands import command_base_classes, plan_period_commands
 
 
 class DlgPlanPeriodData(QDialog):
@@ -82,8 +82,8 @@ class DlgPlanPeriodData(QDialog):
         team: schemas.TeamShow = self.cb_teams.currentData()
         if not team:
             return
-        if team.plan_periods:
-            self.max_end_plan_periods = max(p.end for p in team.plan_periods if not p.prep_delete)
+        if plan_periods := [pp for pp in team.plan_periods if not pp.prep_delete]:
+            self.max_end_plan_periods = max(p.end for p in plan_periods)
             self.de_start.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
             self.de_end.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         else:
@@ -158,7 +158,6 @@ class DlgPlanPeriodEdit(QDialog):
 
         self.project_id = project_id
         self.curr_plan_periods: list[schemas.PlanPeriod] = []
-        self.delete_status = False
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -282,5 +281,10 @@ class DlgPlanPeriodEdit(QDialog):
             self.de_start.setDate(self.de_end.date())
 
     def delete(self):
-        self.delete_status = True
-        self.accept()
+        reply = QMessageBox.question(self, 'Planungsperiode löschen',
+                                     'Wollen Sie diese Planungsperiode wirklich löschen?')
+        print(f'{reply=}')
+        if reply == QMessageBox.StandardButton.Yes:
+            print('accepted')
+            plan_period_commands.Delete(self.cb_planperiods.currentData().id).execute()
+            self.accept()

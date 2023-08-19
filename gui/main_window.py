@@ -165,12 +165,7 @@ class MainWindow(QMainWindow):
         else:
             dlg = DlgPlanPeriodEdit(self, self.project_id)
             if dlg.exec():
-                print(dlg.delete_status)
-                print(dlg.cb_planperiods.currentData().notes)
-                if dlg.delete_status:  # todo: Löschen von Planperiode implementieren.
-                    ...
-                else:
-                    plan_period = dlg.cb_planperiods.currentData()
+                ...
 
 
     def open_plan(self):
@@ -232,7 +227,7 @@ class MainWindow(QMainWindow):
                 for team in teams}
 
     def goto_team(self, team: schemas.TeamShow):
-        for plan_period in team.plan_periods:
+        for plan_period in (pp for pp in team.plan_periods if not pp.prep_delete):
             widget_pp_tab = QWidget(self)  # Widget für Datum
             self.tabs_planungsmasken.addTab(
                 widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')

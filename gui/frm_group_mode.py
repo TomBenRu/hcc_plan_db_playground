@@ -52,6 +52,7 @@ class DlgGroupModeBuilderABC(ABC):
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
         self.get_date_object_from_group_id: Callable[[UUID], date_object_type] | None = None
         self.signal_handler_change__object_with_groups__group_mode: Callable[[signal_handling.DataGroupMode], None] = None
+        self.text_date_object: str = ''
 
         self._generate_field_values()
 
@@ -85,6 +86,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.get_date_object_from_group_id = db_services.AvailDay.get_from__avail_day_group
         self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
+        self.text_date_object = 'verfügbar'
 
     def reload_object_with_groups(self):
         self.object_with_groups = db_services.ActorPlanPeriod.get(self.object_with_groups.id)
@@ -108,6 +110,7 @@ class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
         self.get_date_object_from_group_id = db_services.Event.get_from__event_group
         self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_location_plan_period.change_location_plan_period_group_mode
+        self.text_date_object = 'gesetzt'
 
     def reload_object_with_groups(self):
         self.object_with_groups = db_services.LocationPlanPeriod.get(self.object_with_groups.id)
@@ -122,7 +125,7 @@ class TreeWidgetItem(QTreeWidgetItem):
                   group_nr: int | None, parent_group_nr: int):
         text_variation_weight = VARIATION_WEIGHT_TEXT[group.variation_weight]
         if date_object:
-            self.setText(0, 'Verfügbar')
+            self.setText(0, self.builder.text_date_object)
             self.setText(1, date_object.date.strftime('%d.%m.%y'))
             self.setText(2, date_object.time_of_day.name)
             self.setText(4, text_variation_weight)

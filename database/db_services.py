@@ -852,6 +852,36 @@ class PlanPeriod:
 
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(plan_period_id: UUID) -> schemas.PlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        print(f'{plan_period_db=}')
+        plan_period_db.prep_delete = datetime.datetime.utcnow()
+        print(f'{plan_period_db.prep_delete=}')
+
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(plan_period_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        plan_period_db.prep_delete = None
+
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes(team_id: UUID):
+        pp_with_prep_deletes_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id and pp.Prep_delete)
+        for plan_period in pp_with_prep_deletes_db:
+            plan_period.delete()
+
+
 
 class LocationPlanPeriod:
     @staticmethod
@@ -1059,8 +1089,8 @@ class Event:
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
             nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group_db.id),
             location_plan_period=location_plan_period_db, fixed_cast=event.fixed_cast)
-        return schemas.EventShow.model_validate(event_db)
 
+        return schemas.EventShow.model_validate(event_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)

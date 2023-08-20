@@ -292,6 +292,7 @@ class AvailDayShow(AvailDay):
 
 
 class TimeOfDayCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True, revalidate_instances='always')
     # id: UUID | None = None
     name: str
     time_of_day_enum: 'TimeOfDayEnum'

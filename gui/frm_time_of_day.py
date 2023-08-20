@@ -284,7 +284,7 @@ class DlgTimeOfDaysEditList(QDialog):
         self.table_time_of_days: QTableWidget | None = None
         self.setup_table_time_of_days()
 
-        self.bt_new = QPushButton('Neu...', clicked=self.create_time_of_day)
+        self.bt_new = QPushButton('Neu...', clicked=self.new_time_of_day)
         self.bt_edit = QPushButton('Berabeiten...', clicked=self.edit_time_of_day)
         self.bt_delete = QPushButton('Löschen', clicked=self.delete_time_of_day)
         self.bt_reset = QPushButton('Reset', clicked=self.reset_time_of_days)
@@ -339,31 +339,16 @@ class DlgTimeOfDaysEditList(QDialog):
         db_services.TimeOfDay.delete_unused(self.builder.project_id)
         super().reject()
 
-    def create_time_of_day(self, dlg=None):
-        if not dlg:
-            project = db_services.Project.get(self.builder.project_id)
-            dlg = DlgTimeOfDayEdit(self, None, project, False)
-            dlg.set_new_mode(True)
-            dlg.set_new_mode_disabled()
-            dlg.set_delete_disabled()
+    def new_time_of_day(self):
+        project = db_services.Project.get(self.builder.project_id)
+        dlg = DlgTimeOfDayEdit(self, None, project, False)
+        dlg.set_new_mode(True)
+        dlg.set_new_mode_disabled()
+        dlg.set_delete_disabled()
 
-            if not dlg.exec():
-                return
-
-        if dlg.new_time_of_day.name in [t.name for t in self.object_with_time_of_days.time_of_days if not t.prep_delete]:
-            '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-            QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-        else:
-            create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.builder.project_id)
-            self.controller.execute(create_command)
-            created_t_o_d_id = create_command.time_of_day_id
-
-            self.controller.execute(self.builder.put_in_command(created_t_o_d_id))
-
-            if dlg.chk_default.isChecked():
-                self.controller.execute(self.builder.new_time_of_day_standard_command(created_t_o_d_id))
-            else:
-                self.controller.execute(self.builder.remove_time_of_day_standard_command(created_t_o_d_id))
+        if not dlg.exec():
+            return
+        self.create_time_of_day(dlg.new_time_of_day, dlg.chk_default.isChecked())
         self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func()
         self.setup_table_time_of_days()
 
@@ -384,13 +369,36 @@ class DlgTimeOfDaysEditList(QDialog):
 
         if not dlg.exec():
             return
+
+        self.controller.execute(self.builder.remove_command(dlg.curr_time_of_day.id))
+        curr_time_of_day_standards = [t_o_d.id for t_o_d in self.builder.object_with_time_of_days.time_of_day_standards
+                                      if not t_o_d.prep_delete]
+        if not standard and (curr_t_o_d_id in curr_time_of_day_standards):
+            self.controller.execute(self.builder.remove_time_of_day_standard_command(curr_t_o_d_id))
         self.object_with_time_of_days.time_of_days = [t for t in self.object_with_time_of_days.time_of_days
                                                       if t.id != dlg.curr_time_of_day.id]
-        if dlg.curr_time_of_day.id in self.builder.object_with_time_of_days.time_of_day_standards:
-            self.controller.execute(self.builder.remove_time_of_day_standard_command(dlg.curr_time_of_day.id))
-        self.controller.execute(self.builder.remove_command(dlg.curr_time_of_day.id))
-        dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
-        self.create_time_of_day(dlg=dlg)
+        new_time_of_day = schemas.TimeOfDayCreate.model_validate(dlg.curr_time_of_day)
+        # alternativ: new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
+        self.create_time_of_day(new_time_of_day, dlg.chk_default.isChecked())
+
+        self.object_with_time_of_days = self.builder.object_with_time_of_days__refresh_func()
+        self.setup_table_time_of_days()
+
+    def create_time_of_day(self, time_of_day: schemas.TimeOfDayCreate, standard: bool):
+        if time_of_day.name in [t.name for t in self.object_with_time_of_days.time_of_days if not t.prep_delete]:
+            '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
+            QMessageBox.critical(self, 'Fehler', f'Die Tageszeit "{time_of_day.name}" ist schon vorhanden.')
+            return
+        create_command = time_of_day_commands.Create(time_of_day, self.builder.project_id)
+        self.controller.execute(create_command)
+        created_t_o_d_id = create_command.time_of_day_id
+
+        self.controller.execute(self.builder.put_in_command(created_t_o_d_id))
+
+        curr_time_of_day_standards = [t_o_d.id for t_o_d in self.builder.object_with_time_of_days.time_of_day_standards
+                                      if not t_o_d.prep_delete]
+        if standard and (created_t_o_d_id not in curr_time_of_day_standards):
+            self.controller.execute(self.builder.new_time_of_day_standard_command(created_t_o_d_id))
 
     def reset_time_of_days(self):
         for t_o_d in self.object_with_time_of_days.time_of_days:

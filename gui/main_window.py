@@ -15,7 +15,7 @@ from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
-from .frm_project_settings import SettingsProject
+from .frm_project_settings import DlgSettingsProject
 from .tabbars import TabBar
 from .toolbars import MainToolBar
 
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         ...
 
     def settings_project(self):
-        dlg = SettingsProject(self, self.project_id)
+        dlg = DlgSettingsProject(self, self.project_id)
         dlg.exec()
 
     def edit_team(self, team: schemas.Team):

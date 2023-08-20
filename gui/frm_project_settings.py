@@ -12,7 +12,7 @@ from .frm_team import FrmTeam
 from .frm_time_of_day import FrmTimeOfDayEnum
 
 
-class SettingsProject(QDialog):
+class DlgSettingsProject(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
         self.setWindowTitle('Projekt-Einstellungen')
@@ -98,14 +98,6 @@ class SettingsProject(QDialog):
             self.cb_admin.addItem('kein Admin', None)
             self.cb_admin.setCurrentText('kein Admin')
 
-    # def fill_time_of_days(self):
-    #     self.cb_time_of_days.clear()
-    #     for t in sorted([tod for tod in self.project.time_of_days if not tod.prep_delete],
-    #                     key=lambda t: t.start):
-    #         self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
-    #                                      f'{t.name} ({t.start.hour:02}:{t.start.minute:02} - '
-    #                                      f'{t.end.hour:02}:{t.end.minute:02})', t)
-
     def fill_time_of_day_enums(self):
         self.cb_time_of_day_enums.clear()
         for t_o_d_enum in sorted(self.project.time_of_day_enums, key=lambda x: x.time_index):
@@ -159,7 +151,6 @@ class SettingsProject(QDialog):
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
-            # self.fill_time_of_days()
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

@@ -17,7 +17,7 @@ from .tools.qcombobox_find_data import QComboBoxToFindData
 class DlgTimeOfDayEditListBuilderABC(ABC):
     def __init__(self, parent: QWidget, object_with_time_of_days: schemas.ModelWithTimeOfDays):
         self.parent_widget = parent
-        self.object_with_time_of_days = object_with_time_of_days.model_copy()
+        self.object_with_time_of_days: schemas.ModelWithTimeOfDays = object_with_time_of_days.model_copy()
         self.window_title: str = ''
         self.project_id: UUID | None = None
         self.parent_time_of_days: list[schemas.TimeOfDay] = []
@@ -385,8 +385,10 @@ class DlgTimeOfDaysEditList(QDialog):
         if not dlg.exec():
             return
         self.object_with_time_of_days.time_of_days = [t for t in self.object_with_time_of_days.time_of_days
-                                                     if t.id != dlg.curr_time_of_day.id]
-        self.controller.execute(self.builder.remove_time_of_day_standard_command(dlg.curr_time_of_day.id))
+                                                      if t.id != dlg.curr_time_of_day.id]
+        if dlg.curr_time_of_day.id in self.builder.object_with_time_of_days.time_of_day_standards:
+            self.controller.execute(self.builder.remove_time_of_day_standard_command(dlg.curr_time_of_day.id))
+        self.controller.execute(self.builder.remove_command(dlg.curr_time_of_day.id))
         dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
         self.create_time_of_day(dlg=dlg)
 

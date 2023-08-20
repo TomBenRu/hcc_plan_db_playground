@@ -339,3 +339,4 @@ class MainWindow(QMainWindow):
                     self.put_actions_to_menu(menu, value())
 
 
+# todo: Funktion zur Komprimierung der Datenbank hinzufügen.

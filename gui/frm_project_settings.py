@@ -137,50 +137,14 @@ class SettingsProject(QDialog):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderProject(self, self.project).build()
         if dlg.exec():
             self.project = db_services.Project.get(self.project.id)
-        return
-
-        def create_time_of_day():
-            if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days if not t.prep_delete]:
-                '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-                QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            else:
-                create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.project_id)
-                controller.execute(create_command)
-                created_t_o_d_id = create_command.time_of_day_id
-                self.project.time_of_days.append(db_services.TimeOfDay.get(created_t_o_d_id))
-                controller.execute(project_commands.Update(self.project))
-
-                if dlg.chk_default.isChecked():
-                    controller.execute(project_commands.NewTimeOfDayStandard(self.project_id, created_t_o_d_id))
-                else:
-                    controller.execute(project_commands.RemoveTimeOfDayStandard(self.project_id, created_t_o_d_id))
-
-        controller = command_base_classes.ContrExecUndoRedo()
-
-        curr_time_of_day = self.cb_time_of_days.currentData()
-        standard = curr_time_of_day.id in [t.id for t in self.project.time_of_day_standards] if curr_time_of_day else None
-
-        dlg = frm_time_of_day.DlgTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, standard)
-
-        if not dlg.exec():
-            return
-
-        if dlg.chk_new_mode.isChecked():
-            create_time_of_day()
-        elif dlg.to_delete_status:
-            self.project.time_of_days = [t for t in self.project.time_of_days if not t.id == dlg.curr_time_of_day.id]
-            controller.execute(project_commands.RemoveTimeOfDayStandard(self.project_id, dlg.curr_time_of_day.id))
-            QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
-        else:
-            self.project.time_of_days = [t for t in self.project.time_of_days if not t.id == dlg.curr_time_of_day.id]
-            controller.execute(project_commands.RemoveTimeOfDayStandard(self.project_id, dlg.curr_time_of_day.id))
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
-            create_time_of_day()
-
-        self.project = db_services.Project.get(self.project_id)
-        self.fill_time_of_days()
 
     def edit_time_of_day_enums(self):
+        # todo: Löschen von Enums führt zur Löschung von time_of_days, welche damit related sind. Und zur Löschung von
+        #  events und avail_days welche mit den time_of_days related sind.
+        #  Workaround: 2 Felder in Project für time_of_day_enum anlegen.
+        #  1.: time_of_day_enums, welche im Projekt verwendet werden.
+        #  2.: time_of_day_enums, welche Standard für künftige Planungen sind.
+        #  Löschen von time_of_das_enums bedeutet, dass diese aus den Standards entfernt werden.
         dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
         if dlg.exec():
             if dlg.chk_new_mode.isChecked():

@@ -588,7 +588,7 @@ class FrmLocationPlanPeriod(QWidget):
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
-            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+            self.reload_location_plan_period()
             buttons_event: list[ButtonEvent] = self.findChildren(ButtonEvent)
             for bt in buttons_event:
                 bt.reset_menu_times_of_day(self.location_plan_period)

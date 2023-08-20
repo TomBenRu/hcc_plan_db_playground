@@ -293,22 +293,10 @@ class FrmPersonModify(FrmPersonData):
         self.person = person
 
         self.controller = command_base_classes.ContrExecUndoRedo()
-        self.reset_time_of_days_mode = False
 
         self.sp_nr_requ_assignm = QSpinBox()
         self.sp_nr_requ_assignm.setMinimum(0)
-        self.cb_time_of_days = QComboBox()
-        self.bt_time_of_days = QPushButton('bearbeiten')
-        self.menu_bt_time_of_days = QMenu(self.bt_time_of_days)
-        self.bt_time_of_days.setMenu(self.menu_bt_time_of_days)
-        self.action_time_of_days_reset = Action(self, None, 'Reset von Projekt', None, self.reset_time_of_days)
-        self.action_time_of_days_edit = Action(self, None, 'Ändern...', None, self.edit_time_of_days)
-        self.menu_bt_time_of_days.addActions([self.action_time_of_days_edit, self.action_time_of_days_reset])
-        self.widget_time_of_days_combi = QWidget()
-        self.h_box_time_of_days_combi = QHBoxLayout(self.widget_time_of_days_combi)
-        self.h_box_time_of_days_combi.setContentsMargins(0, 0, 0, 0)
-        self.h_box_time_of_days_combi.addWidget(self.cb_time_of_days)
-        self.h_box_time_of_days_combi.addWidget(self.bt_time_of_days)
+        self.bt_time_of_days = QPushButton('bearbeiten', clicked=self.edit_time_of_days)
         self.bt_comb_loc_possible = QPushButton('Einrichtungskombinationen...', clicked=self.edit_comb_loc_possible)
         self.bt_actor_loc_prefs = QPushButton('Einrichtungspräferenzen', clicked=self.edit_location_prefs)
         self.bt_actor_partner_loc_prefs = QPushButton('Mitarbeiterpräferenzen',
@@ -320,7 +308,7 @@ class FrmPersonModify(FrmPersonData):
         self.layout.addWidget(self.group_specific_data)
 
         self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.sp_nr_requ_assignm)
-        self.group_specific_data_layout.addRow('Tageszeiten', self.widget_time_of_days_combi)
+        self.group_specific_data_layout.addRow('Tageszeiten', self.bt_time_of_days)
         self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow('Einrichtungspräferenzen', self.bt_actor_loc_prefs)
         self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', self.bt_actor_partner_loc_prefs)
@@ -352,7 +340,6 @@ class FrmPersonModify(FrmPersonData):
     def autofill(self):
         self.fill_person_data()
         self.fill_address_data()
-        self.fill_time_of_days()
         self.fill_requested_assignm()
 
     def fill_person_data(self):
@@ -370,78 +357,14 @@ class FrmPersonModify(FrmPersonData):
     def fill_requested_assignm(self):
         self.sp_nr_requ_assignm.setValue(self.person.requested_assignments)
 
-    def fill_time_of_days(self):
-        self.cb_time_of_days.clear()
-        time_of_days = sorted([t for t in self.person.time_of_days if not t.prep_delete], key=lambda x: x.start)
-        for t in time_of_days:
-            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
-                                         f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
-                                         f'{t.end.hour:02}:{t.end.minute:02}', t)
-
     def edit_time_of_days(self):
-        def create_time_of_day():
-            if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days if not t.prep_delete]:
-                '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-                QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            else:
-                create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.project_id)
-                self.controller.execute(create_command)
-                created_t_o_d_id = create_command.time_of_day_id
-                self.controller.execute(person_commands.PutInTimeOfDay(self.person.id, created_t_o_d_id))
-
-                if dlg.chk_default.isChecked():
-                    self.controller.execute(person_commands.NewTimeOfDayStandard(self.person.id, created_t_o_d_id))
-                else:
-                    self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, created_t_o_d_id))
-
-        curr_time_of_day = self.cb_time_of_days.currentData()
-        standard = curr_time_of_day.id in [t.id for t in self.person.time_of_day_standards]
-
-        dlg = frm_time_of_day.DlgTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, standard)
-
-        if not dlg.exec():
-            return
-
-        if dlg.chk_new_mode.isChecked():
-            create_time_of_day()
-        elif dlg.to_delete_status:
-            self.controller.execute(person_commands.RemoveTimeOfDay(self.person.id, dlg.curr_time_of_day.id))
-            self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
-            QMessageBox.information(self, 'Tageszeit Löschen',
-                                    f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day.id}, {dlg.curr_time_of_day.name}')
-        else:
-            self.controller.execute(person_commands.RemoveTimeOfDay(self.person.id, dlg.curr_time_of_day.id))
-            self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, dlg.curr_time_of_day.id))
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
-            create_time_of_day()
-
-        self.person = db_services.Person.get(self.person.id)
-        self.fill_time_of_days()
-
-    def reset_time_of_days(self):
-        self.person.time_of_days.clear()
-        for t_o_d in self.person.time_of_day_standards:
-            self.controller.execute(person_commands.RemoveTimeOfDayStandard(self.person.id, t_o_d.id))
-        for t_o_d in [t for t in self.project.time_of_days if not t.prep_delete]:
-            self.person.time_of_days.append(t_o_d)
-            if t_o_d.project_standard:
-                self.controller.execute(person_commands.NewTimeOfDayStandard(self.person.id, t_o_d.id))
-
-        self.controller.execute(person_commands.Update(self.person))
-        self.person = db_services.Person.get(self.person.id)
-
-        QMessageBox.information(self, 'Tageszeiten reset',
-                                f'Die Tageszeiten wurden zurückgesetzt:\n'
-                                f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.person.time_of_days]}')
-        self.fill_time_of_days()
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderPerson(self, self.person).build()
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.person = db_services.Person.get(self.person.id)
 
     def edit_comb_loc_possible(self):
         team_at_date_factory = parent_model_factory = partial(get_curr_team_of_person_at_date, self.person)
-        # if not curr_team:
-        #     QMessageBox.critical(self, 'Einrichtungskombinationen',
-        #                          'Diese Person ist nicht Mitarbeiter*in eines Teams.\n'
-        #                          'Es können keine Einrichtungskombinationen festgelegt werden.')
-        #     return
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, parent_model_factory, team_at_date_factory)
         if dlg.exec():
@@ -696,41 +619,24 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work = self.get_location_of_work()
 
         self.group_specific_data = QGroupBox('Spezielles')
-        self.group_specific_data_layout = QGridLayout(self.group_specific_data)
-        self.group_specific_data_layout.setColumnStretch(0, 1)
-        self.group_specific_data_layout.setColumnStretch(1, 10)
-        self.group_specific_data_layout.setColumnStretch(2, 1)
+        self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
-        self.lb_nr_actors = QLabel('Besetzungsstärke')
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
-        self.lb_teams = QLabel('Team')
+        self.layout_teams = QVBoxLayout()
         self.cb_teams = QComboBoxToFindData()
         self.cb_teams.currentIndexChanged.connect(self.change_team)
         self.lb_teams_info = QLabel()
-        self.lb_time_of_days = QLabel('Tageszeiten')
-        self.cb_time_of_days = QComboBox()
-        self.bt_time_of_days = QPushButton('bearbeiten')
-        self.menu_bt_time_of_days = QMenu(self.bt_time_of_days)
-        self.bt_time_of_days.setMenu(self.menu_bt_time_of_days)
-        self.action_time_of_days_reset = Action(self, None, 'Reset von Projekt', None, self.reset_time_of_days)
-        self.action_time_of_days_edit = Action(self, None, 'Ändern...', None, self.edit_time_of_days)
-        self.menu_bt_time_of_days.addActions([self.action_time_of_days_edit, self.action_time_of_days_reset])
-        self.lb_fixed_cast = QLabel('Besetung erwünscht')
+        self.layout_teams.addWidget(self.cb_teams)
+        self.layout_teams.addWidget(self.lb_teams_info)
+        self.bt_time_of_days = QPushButton('bearbeiten', clicked=self.edit_time_of_days)
         self.bt_fixed_cast = QPushButton('bearbeiten', clicked=self.edit_fixed_cast)
 
-        self.group_specific_data_layout.addWidget(self.lb_nr_actors, 0, 0)
-        self.group_specific_data_layout.addWidget(self.spin_nr_actors, 0, 1)
-        self.group_specific_data_layout.addWidget(self.lb_time_of_days, 1, 0)
-        self.group_specific_data_layout.addWidget(self.cb_time_of_days, 1, 1)
-        self.group_specific_data_layout.addWidget(self.bt_time_of_days, 1, 2)
-        self.group_specific_data_layout.addWidget(self.lb_teams, 2, 0)
-        self.group_specific_data_layout.addWidget(self.cb_teams, 2, 1)
-        self.group_specific_data_layout.addWidget(self.lb_teams_info, 2, 2)
-        self.group_specific_data_layout.addWidget(self.lb_fixed_cast, 3, 0)
-        self.group_specific_data_layout.addWidget(self.bt_fixed_cast, 3, 2)
-
+        self.layout_group_specific_data.addRow('Besetzungsstärke', self.spin_nr_actors)
+        self.layout_group_specific_data.addRow('Tageszeiten', self.bt_time_of_days)
+        self.layout_group_specific_data.addRow('Team', self.layout_teams)
+        self.layout_group_specific_data.addRow('Besetzung erwünscht', self.bt_fixed_cast)
         self.layout.addWidget(self.button_box)
 
         self.autofill()
@@ -753,77 +659,10 @@ class FrmLocationModify(FrmLocationData):
         return db_services.LocationOfWork.get(self.location_id)
 
     def edit_time_of_days(self):
-        def create_time_of_day():
-            if dlg.new_time_of_day.name in [t.name for t in self.location_of_work.time_of_days if not t.prep_delete]:
-                '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-                QMessageBox.critical(dlg, 'Fehler', f'Die Tageszeit "{dlg.new_time_of_day.name}" ist schon vorhanden.')
-            else:
-                create_command = time_of_day_commands.Create(dlg.new_time_of_day, self.location_of_work.id)
-                self.controller.execute(create_command)
-                created_t_o_d_id = create_command.time_of_day_id
-                self.controller.execute(
-                    location_of_work_commands.PutInTimeOfDay(self.location_of_work.id, created_t_o_d_id))
-
-                if dlg.chk_default.isChecked():
-                    self.controller.execute(location_of_work_commands.NewTimeOfDayStandard(self.location_of_work.id,
-                                                                                           created_t_o_d_id))
-                else:
-                    self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id,
-                                                                                              created_t_o_d_id))
-
-        curr_time_of_day = self.cb_time_of_days.currentData()
-        standard = curr_time_of_day.id in [t.id for t in self.location_of_work.time_of_day_standards]
-
-        dlg = frm_time_of_day.DlgTimeOfDayEdit(self, self.cb_time_of_days.currentData(), self.project, standard)
-
-        if not dlg.exec():
-            return
-
-        if dlg.chk_new_mode.isChecked():
-            create_time_of_day()
-        elif dlg.to_delete_status:
-            self.controller.execute(
-                location_of_work_commands.RemoveTimeOfDay(self.location_of_work.id, dlg.curr_time_of_day.id))
-            self.controller.execute(
-                location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id, dlg.curr_time_of_day.id))
-
-            QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{dlg.curr_time_of_day}')
-        else:
-            self.controller.execute(
-                location_of_work_commands.RemoveTimeOfDay(self.location_of_work.id, dlg.curr_time_of_day.id))
-            self.controller.execute(
-                location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id, dlg.curr_time_of_day.id))
-
-            dlg.new_time_of_day = schemas.TimeOfDayCreate(**dlg.curr_time_of_day.model_dump())
-            create_time_of_day()
-
-        self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
-        self.fill_time_of_days()
-
-    def reset_time_of_days(self):
-        self.location_of_work.time_of_days.clear()
-        for t_o_d in self.location_of_work.time_of_day_standards:
-            self.controller.execute(location_of_work_commands.RemoveTimeOfDayStandard(self.location_of_work.id, t_o_d.id))
-        for t_o_d in [t for t in self.project.time_of_days if not t.prep_delete]:
-            self.location_of_work.time_of_days.append(t_o_d)
-            if t_o_d.project_standard:
-                self.controller.execute(location_of_work_commands.NewTimeOfDayStandard(self.location_of_work.id, t_o_d.id))
-
-        self.controller.execute(location_of_work_commands.Update(self.location_of_work))
-        self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
-
-        QMessageBox.information(self, 'Tageszeiten reset',
-                                f'Die Tageszeiten wurden zurückgesetzt:\n'
-                                f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.location_of_work.time_of_days]}')
-        self.fill_time_of_days()
-
-    def fill_time_of_days(self):
-        self.cb_time_of_days.clear()
-        time_of_days = sorted([t for t in self.location_of_work.time_of_days if not t.prep_delete], key=lambda t: t.start)
-        for t in time_of_days:
-            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
-                                         f'{t.name} -> {t.start.hour:02}:{t.start.minute:02} - '
-                                         f'{t.end.hour:02}:{t.end.minute:02}', t)
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocation(self, self.location_of_work).build()
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
 
     def fill_teams(self):
         self.cb_teams.blockSignals(True)
@@ -860,7 +699,7 @@ class FrmLocationModify(FrmLocationData):
         self.le_city.setText(self.location_of_work.address.city)
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
         self.fill_teams()
-        self.fill_time_of_days()
+        # self.fill_time_of_days()
 
     def get_teams(self):
         return db_services.Team.get_all_from__project(self.project_id)
@@ -872,7 +711,6 @@ class FrmLocationModify(FrmLocationData):
         dlg = frm_assign_to_team.DlgAssignDate(self, curr_team_id, new_team_id)
         if dlg.exec():
             start_date = dlg.start_date_new_team
-            # command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
             if new_team_id:
                 command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
             else:

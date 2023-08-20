@@ -39,6 +39,36 @@ class Update(Command):
         db_services.Project.update(self.new_data)
 
 
+class PutInTimeOfDay(Command):
+    def __init__(self, project_id: UUID, time_of_day_id: UUID):
+        self.project_id = project_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+
+
+class RemoveTimeOfDay(Command):
+    def __init__(self, project_id: UUID, time_of_day_id: UUID):
+        self.project_id = project_id
+        self.time_of_day_id = time_of_day_id
+
+    def execute(self):
+        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+
+    def undo(self):
+        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+
+    def redo(self):
+        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+
+
 class NewTimeOfDayStandard(Command):
     def __init__(self, project_id: UUID, time_of_day_id: UUID):
         self.project_id = project_id

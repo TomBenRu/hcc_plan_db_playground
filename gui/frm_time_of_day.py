@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 
 from database import schemas, db_services
 from .commands import command_base_classes, time_of_day_commands, actor_plan_period_commands, \
-    location_plan_period_commands, person_commands, location_of_work_commands
+    location_plan_period_commands, person_commands, location_of_work_commands, project_commands
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
@@ -20,8 +20,8 @@ class DlgTimeOfDayEditListBuilderABC(ABC):
         self.object_with_time_of_days: schemas.ModelWithTimeOfDays = object_with_time_of_days.model_copy()
         self.window_title: str = ''
         self.project_id: UUID | None = None
-        self.parent_time_of_days: list[schemas.TimeOfDay] = []
-        self.parent_time_of_day_standards: list[schemas.TimeOfDay] = []
+        self.parent_time_of_days: list[schemas.TimeOfDay] | None = None
+        self.parent_time_of_day_standards: list[schemas.TimeOfDay] | None = None
         self.put_in_command: Callable[[UUID], command_base_classes.Command] | None = None
         self.remove_command: Callable[[UUID], command_base_classes.Command] | None = None
         self.new_time_of_day_standard_command: Callable[[UUID], command_base_classes.Command] | None = None
@@ -55,6 +55,26 @@ class DlgTimeOfDayEditListBuilderABC(ABC):
 
     def build(self) -> 'DlgTimeOfDaysEditList':
         return DlgTimeOfDaysEditList(self.parent_widget, self)
+
+
+class DlgTimeOfDayEditListBuilderProject(DlgTimeOfDayEditListBuilderABC):
+    def __init__(self, parent: QWidget, project: schemas.ProjectShow):
+        super().__init__(parent=parent, object_with_time_of_days=project)
+
+        self.object_with_time_of_days: schemas.ProjectShow = project.model_copy()
+
+    def _generate_field_values(self):
+        self.window_title = f'Tageszeiten des Projekts {self.object_with_time_of_days.name}'
+        self.project_id = self.object_with_time_of_days.id
+        self.put_in_command = partial(project_commands.PutInTimeOfDay, self.object_with_time_of_days.id)
+        self.remove_command = partial(project_commands.RemoveTimeOfDay, self.object_with_time_of_days.id)
+        self.new_time_of_day_standard_command = partial(project_commands.NewTimeOfDayStandard,
+                                                        self.object_with_time_of_days.id)
+        self.remove_time_of_day_standard_command = partial(project_commands.RemoveTimeOfDayStandard,
+                                                           self.object_with_time_of_days.id)
+
+    def reload_object_with_time_of_days(self):
+        self.object_with_time_of_days = db_services.Project.get(self.object_with_time_of_days.id)
 
 
 class DlgTimeOfDayEditListBuilderPerson(DlgTimeOfDayEditListBuilderABC):
@@ -292,6 +312,8 @@ class DlgTimeOfDaysEditList(QDialog):
         self.bt_edit = QPushButton('Berabeiten...', clicked=self.edit_time_of_day)
         self.bt_delete = QPushButton('Löschen', clicked=self.delete_time_of_day)
         self.bt_reset = QPushButton('Reset', clicked=self.reset_time_of_days)
+        if self.builder.parent_time_of_days is None:
+            self.bt_reset.setDisabled(True)
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.setCenterButtons(True)
         self.button_box.accepted.connect(self.accept)

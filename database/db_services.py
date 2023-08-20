@@ -54,6 +54,28 @@ class Project:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def put_in_time_of_day(project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        project_db.time_of_days.add(time_of_day_db)
+
+        return schemas.ProjectShow.model_validate(project_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_in_time_of_day(project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        project_db.time_of_days.remove(time_of_day_db)
+
+        return schemas.ProjectShow.model_validate(project_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def new_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ProjectShow, UUID | None]:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

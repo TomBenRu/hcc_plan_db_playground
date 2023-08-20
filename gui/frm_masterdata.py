@@ -296,10 +296,10 @@ class FrmPersonModify(FrmPersonData):
 
         self.sp_nr_requ_assignm = QSpinBox()
         self.sp_nr_requ_assignm.setMinimum(0)
-        self.bt_time_of_days = QPushButton('bearbeiten', clicked=self.edit_time_of_days)
-        self.bt_comb_loc_possible = QPushButton('Einrichtungskombinationen...', clicked=self.edit_comb_loc_possible)
-        self.bt_actor_loc_prefs = QPushButton('Einrichtungspräferenzen', clicked=self.edit_location_prefs)
-        self.bt_actor_partner_loc_prefs = QPushButton('Mitarbeiterpräferenzen',
+        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
+        self.bt_comb_loc_possible = QPushButton('Bearbeiten...', clicked=self.edit_comb_loc_possible)
+        self.bt_actor_loc_prefs = QPushButton('Bearbeiten...', clicked=self.edit_location_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton('Bearbeiten...',
                                                       clicked=self.edit_partner_location_prefs)
 
         self.group_auth_data.close()
@@ -630,8 +630,8 @@ class FrmLocationModify(FrmLocationData):
         self.lb_teams_info = QLabel()
         self.layout_teams.addWidget(self.cb_teams)
         self.layout_teams.addWidget(self.lb_teams_info)
-        self.bt_time_of_days = QPushButton('bearbeiten', clicked=self.edit_time_of_days)
-        self.bt_fixed_cast = QPushButton('bearbeiten', clicked=self.edit_fixed_cast)
+        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
+        self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
 
         self.layout_group_specific_data.addRow('Besetzungsstärke', self.spin_nr_actors)
         self.layout_group_specific_data.addRow('Tageszeiten', self.bt_time_of_days)

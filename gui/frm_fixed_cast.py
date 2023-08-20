@@ -257,7 +257,6 @@ class DlgFixedCast(QDialog):
     def save_plot(self):
         if result_list := self.grid_to_list():
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
-            print(f'{fixed_cast=}')
         else:
             fixed_cast = None
         self.controller.execute(self.builder.update_command(fixed_cast))
@@ -403,7 +402,6 @@ class DlgFixedCast(QDialog):
         return cb_operator
 
     def create_widget__add_inner_operator(self):
-        print('create_widget__add_inner_operator')
         container = QWidget()
         container.setFixedWidth(self.width_container__add_inner_operator)
         layout_container = QHBoxLayout()
@@ -441,7 +439,6 @@ class DlgFixedCast(QDialog):
     def clear_plot(self):
         for i in range(self.layout_grid.count()):
             self.layout_grid.itemAt(i).widget().deleteLater()
-            print(f'{self.layout_grid.itemAt(i).widget().objectName()} deleted')
 
     def plot_eval_str(self):
         if not self.object_with_fixed_cast.fixed_cast:

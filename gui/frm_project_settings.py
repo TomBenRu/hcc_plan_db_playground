@@ -36,7 +36,7 @@ class SettingsProject(QDialog):
         self.lb_admin = QLabel('Admin')
         self.cb_admin = QComboBox()
         self.lb_time_of_days = QLabel('Tageszeiten')
-        self.cb_time_of_days = QComboBox()
+        # self.cb_time_of_days = QComboBox()
         self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
         self.cb_time_of_day_enums = QComboBox()
         self.lb_excel_export_settings = QLabel('Excel-Settings')
@@ -62,7 +62,7 @@ class SettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.cb_admin, 2, 1)
         self.layout_group_project_data.addWidget(self.bt_admin, 2, 2)
         self.layout_group_project_data.addWidget(self.lb_time_of_days, 3, 0)
-        self.layout_group_project_data.addWidget(self.cb_time_of_days, 3, 1)
+        #self.layout_group_project_data.addWidget(self.cb_time_of_days, 3, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day, 3, 2)
         self.layout_group_project_data.addWidget(self.lb_time_of_day_enums, 4, 0)
         self.layout_group_project_data.addWidget(self.cb_time_of_day_enums, 4, 1)
@@ -79,7 +79,7 @@ class SettingsProject(QDialog):
         self.le_name.setText(self.project.name)
         self.fill_teams()
         self.fill_admins()
-        self.fill_time_of_days()
+        #self.fill_time_of_days()
         self.fill_excel_colors()
         self.fill_time_of_day_enums()
 
@@ -98,13 +98,13 @@ class SettingsProject(QDialog):
             self.cb_admin.addItem('kein Admin', None)
             self.cb_admin.setCurrentText('kein Admin')
 
-    def fill_time_of_days(self):
-        self.cb_time_of_days.clear()
-        for t in sorted([tod for tod in self.project.time_of_days if not tod.prep_delete],
-                        key=lambda t: t.start):
-            self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
-                                         f'{t.name} ({t.start.hour:02}:{t.start.minute:02} - '
-                                         f'{t.end.hour:02}:{t.end.minute:02})', t)
+    # def fill_time_of_days(self):
+    #     self.cb_time_of_days.clear()
+    #     for t in sorted([tod for tod in self.project.time_of_days if not tod.prep_delete],
+    #                     key=lambda t: t.start):
+    #         self.cb_time_of_days.addItem(QIcon('resources/toolbar_icons/icons/clock-select.png'),
+    #                                      f'{t.name} ({t.start.hour:02}:{t.start.minute:02} - '
+    #                                      f'{t.end.hour:02}:{t.end.minute:02})', t)
 
     def fill_time_of_day_enums(self):
         self.cb_time_of_day_enums.clear()
@@ -134,6 +134,11 @@ class SettingsProject(QDialog):
         self.fill_admins()
 
     def edit_time_of_day(self):
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderProject(self, self.project).build()
+        if dlg.exec():
+            self.project = db_services.Project.get(self.project.id)
+        return
+
         def create_time_of_day():
             if dlg.new_time_of_day.name in [t.name for t in self.project.time_of_days if not t.prep_delete]:
                 '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
@@ -190,7 +195,7 @@ class SettingsProject(QDialog):
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
-            self.fill_time_of_days()
+            # self.fill_time_of_days()
 
     def edit_excel_export_settings(self):
         dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)

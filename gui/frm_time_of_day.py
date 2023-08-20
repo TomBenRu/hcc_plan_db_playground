@@ -463,7 +463,7 @@ class DlgTimeOfDaysEditList(QDialog):
         self.setup_table_time_of_days()
 
 
-class FrmTimeOfDayEnum(QDialog):
+class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. Option 'standard' hinzufügen.
     def __init__(self, parent: QWidget, project: schemas.ProjectShow,
                  time_of_day_enum: schemas.TimeOfDayEnumShow | None):
         super().__init__(parent)

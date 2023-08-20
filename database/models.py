@@ -91,13 +91,14 @@ class Project(db.Entity):
     time_of_days_all = Set('TimeOfDay', reverse='project')
     time_of_days = Set('TimeOfDay', reverse='project_defaults')
     time_of_day_standards = Set('TimeOfDay', reverse='project_standard')
+    time_of_day_enums = Set('TimeOfDayEnum')
+    time_of_day_enum_standards = Set('TimeOfDayEnum', reverse='project_standard')
     # Hier wird festgelegt,
     # weche konkreten Tageszeiten für die jeweiligen Enums als Standard für das Projekt gelten sollen.
     # Diese Standards werden von nachfolgenden Models übernommen,
     # können da aber durch zuweisen der Enums zu anderen Tageszeiten
     # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
-    time_of_day_enums = Set('TimeOfDayEnum')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_location_prefs = Set('ActorLocationPref')
     skills = Set('Skill')
@@ -299,6 +300,7 @@ class TimeOfDayEnum(db.Entity):
     time_index = Required(int, size=8, unsigned=True)  # Einordnung im Tagesverlauf
     time_of_days = Set(TimeOfDay)
     project = Required(Project)
+    project_standard = Optional(Project, reverse='time_of_day_enum_standards')
 
     composite_key(name, project)
     composite_key(abbreviation, project)

@@ -6,7 +6,7 @@ class SliderWithPressEvent(QSlider):
     """works eventually also for vertical orientation"""
 
     def mousePressEvent(self, e):
-        if e.button() != Qt.LeftButton:
+        if e.button() != Qt.MouseButton.LeftButton:
             return super().mousePressEvent(e)
         e.accept()
         if self.orientation() == Qt.Orientation.Horizontal:

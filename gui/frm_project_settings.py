@@ -9,7 +9,7 @@ from . import frm_time_of_day, frm_comb_loc_possible
 from .commands import command_base_classes, time_of_day_commands, project_commands
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
-from .frm_time_of_day import FrmTimeOfDayEnum
+from .frm_time_of_day import DlgTimeOfDayEnum
 
 
 class DlgSettingsProject(QDialog):
@@ -133,11 +133,11 @@ class DlgSettingsProject(QDialog):
     def edit_time_of_day_enums(self):
         # todo: Löschen von Enums führt zur Löschung von time_of_days, welche damit related sind. Und zur Löschung von
         #  events und avail_days welche mit den time_of_days related sind.
-        #  Workaround: 2 Felder in Project für time_of_day_enum anlegen.
+        #  DONE: Workaround: 2 Felder in Project für time_of_day_enum anlegen.
         #  1.: time_of_day_enums, welche im Projekt verwendet werden.
         #  2.: time_of_day_enums, welche Standard für künftige Planungen sind.
         #  Löschen von time_of_das_enums bedeutet, dass diese aus den Standards entfernt werden.
-        dlg = FrmTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
+        dlg = DlgTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
         if dlg.exec():
             if dlg.chk_new_mode.isChecked():
                 created_time_of_day_enum = db_services.TimeOfDayEnum.create(dlg.new_time_of_day_enum)

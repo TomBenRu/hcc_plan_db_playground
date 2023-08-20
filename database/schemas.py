@@ -126,12 +126,13 @@ class ProjectShow(Project):
     time_of_days: List['TimeOfDay']
     time_of_day_standards: List['TimeOfDay']
     time_of_day_enums: List['TimeOfDayEnum']
+    time_of_day_enum_standards: List['TimeOfDayEnum']
     excel_export_settings: Optional['ExcelExportSettings']
     skills: list['Skill']
     flags: list['Flag']
 
     @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
-                     'skills', 'flags')
+                     'time_of_day_enum_standards', 'skills', 'flags')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -337,6 +338,7 @@ class TimeOfDayEnum(TimeOfDayEnumCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    project_standard: Optional[Project]
 
 
 class TimeOfDayEnumShow(TimeOfDayEnum):

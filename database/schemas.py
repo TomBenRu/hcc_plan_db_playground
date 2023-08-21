@@ -332,10 +332,12 @@ class TimeOfDayEnumCreate(BaseModel):
     abbreviation: str
     time_index: int
     project: Project
+    project_standard: Optional[Project]
 
 
 class TimeOfDayEnum(TimeOfDayEnumCreate):
     model_config = ConfigDict(from_attributes=True)
+    prep_delete: Optional[datetime.datetime]
 
     id: UUID
     project_standard: Optional[Project]

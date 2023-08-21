@@ -82,7 +82,7 @@ class Project:
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         old_time_of_day_standard_id = None
-        for t_o_d in project_db.time_of_day_standards:
+        for t_o_d in project_db.time_of_day_standards:  # todo: dieser Prozess muss auf höhere Ebene verlagert werden!
             if t_o_d.time_of_day_enum.id == time_of_day_db.time_of_day_enum.id:
                 project_db.time_of_day_standards.remove(t_o_d)
                 old_time_of_day_standard_id = t_o_d.id
@@ -99,6 +99,26 @@ class Project:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
         project_db.time_of_day_standards.remove(time_of_day_db)
         return schemas.ProjectShow.model_validate(project_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def new_time_of_day_enum_standard(time_of_day_enum_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get(id=time_of_day_enum_id)
+        time_of_day_enum_db.project.time_of_day_enum_standards.add(time_of_day_enum_db)
+
+        return schemas.ProjectShow.model_validate(time_of_day_enum_db.project)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_time_of_day_enum_standard(time_of_day_enum_id: UUID) -> schemas.ProjectShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get(id=time_of_day_enum_id)
+        time_of_day_enum_db.project.time_of_day_enum_standards.remove(time_of_day_enum_db)
+
+        return schemas.ProjectShow.model_validate(time_of_day_enum_db.project)
 
 
 class Team:
@@ -752,27 +772,56 @@ class TimeOfDayEnum:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(time_of_day_enum: schemas.TimeOfDayEnumCreate) -> schemas.TimeOfDayEnumShow:
+    def create(time_of_day_enum: schemas.TimeOfDayEnumCreate,
+               time_of_day_enum_id: UUID = None) -> schemas.TimeOfDayEnumShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=time_of_day_enum.project.id)
-        time_of_day_enum_db = models.TimeOfDayEnum(name=time_of_day_enum.name,
-                                                   abbreviation=time_of_day_enum.abbreviation,
-                                                   time_index=time_of_day_enum.time_index,
-                                                   project=project_db)
-        commit()
-        TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
+        if time_of_day_enum_id:
+            time_of_day_enum_db = models.TimeOfDayEnum(id=time_of_day_enum_id,
+                                                       name=time_of_day_enum.name,
+                                                       abbreviation=time_of_day_enum.abbreviation,
+                                                       time_index=time_of_day_enum.time_index,
+                                                       project=project_db
+                                                       )
+        else:
+            time_of_day_enum_db = models.TimeOfDayEnum(name=time_of_day_enum.name,
+                                                       abbreviation=time_of_day_enum.abbreviation,
+                                                       time_index=time_of_day_enum.time_index,
+                                                       project=project_db)
+
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def update(time_of_day_enum: schemas.TimeOfDayEnumShow) -> schemas.TimeOfDayEnumShow:
+    def update(time_of_day_enum: schemas.TimeOfDayEnum) -> schemas.TimeOfDayEnumShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum.id)
         time_of_day_enum_db.set(**time_of_day_enum.model_dump(include={'name', 'abbreviation', 'time_index'}))
-        commit()
-        TimeOfDayEnum.__consolidate_indexes(time_of_day_enum.project.id)
+
+        return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def prep_delete(time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
+        project_id = time_of_day_enum_db.project.id
+        time_of_day_enum_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undo_prep_delete(time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
+        project_id = time_of_day_enum_db.project.id
+        time_of_day_enum_db.prep_delete = None
+
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @staticmethod
@@ -783,16 +832,14 @@ class TimeOfDayEnum:
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
         project_id = time_of_day_enum_db.project.id
         time_of_day_enum_db.delete()
-        commit()
-        TimeOfDayEnum.__consolidate_indexes(project_id)
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def __consolidate_indexes(project_id: UUID):
+    def consolidate_indexes(project_id: UUID):
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         project_db = models.Project.get_for_update(id=project_id)
-        time_of_day_enums = TimeOfDayEnum.get_all_from__project(project_id)
+        time_of_day_enums = (t for t in TimeOfDayEnum.get_all_from__project(project_id) if not t.prep_delete)
         for i, t_o_d_enum in enumerate(sorted(time_of_day_enums, key=lambda x: x.time_index), start=1):
             t_o_d_enum_db = models.TimeOfDayEnum.get_for_update(id=t_o_d_enum.id)
             t_o_d_enum_db.time_index = i

@@ -100,3 +100,31 @@ class RemoveTimeOfDayStandard(Command):
 
     def redo(self):
         db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+
+
+class NewTimeOfDayEnumStandard(Command):
+    def __init__(self, time_of_day_enum_id: UUID):
+        self.time_of_day_enum_id = time_of_day_enum_id
+
+    def execute(self):
+        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+    def undo(self):
+        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+    def redo(self):
+        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+
+class RemoveTimeOfDayEnumStandard(Command):
+    def __init__(self, time_of_day_enum_id: UUID):
+        self.time_of_day_enum_id = time_of_day_enum_id
+
+    def execute(self):
+        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+    def undo(self):
+        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+    def redo(self):
+        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)

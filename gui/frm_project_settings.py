@@ -9,7 +9,7 @@ from . import frm_time_of_day, frm_comb_loc_possible
 from .commands import command_base_classes, time_of_day_commands, project_commands
 from .frm_excel_settings import FrmExcelExportSettings
 from .frm_team import FrmTeam
-from .frm_time_of_day import DlgTimeOfDayEnum
+from .frm_time_of_day_enum import DlgTimeOfDayEnumsEditList
 
 
 class DlgSettingsProject(QDialog):
@@ -137,6 +137,12 @@ class DlgSettingsProject(QDialog):
         #  1.: time_of_day_enums, welche im Projekt verwendet werden.
         #  2.: time_of_day_enums, welche Standard für künftige Planungen sind.
         #  Löschen von time_of_das_enums bedeutet, dass diese aus den Standards entfernt werden.
+
+        dlg = DlgTimeOfDayEnumsEditList(self, self.project)
+        if dlg.exec():
+            self.project = db_services.Project.get(self.project.id)
+
+        return
         dlg = DlgTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
         if dlg.exec():
             if dlg.chk_new_mode.isChecked():

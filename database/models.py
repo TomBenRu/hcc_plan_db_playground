@@ -295,6 +295,9 @@ Für LocationOfWork... gilt das gleiche Schema."""
 class TimeOfDayEnum(db.Entity):
     """Zeigt durch den Index die Position im Tagesablauf an."""
     id = PrimaryKey(UUID, auto=True)
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    prep_delete = Optional(datetime.datetime)
     name = Required(str, 50)
     abbreviation = Required(str, 10)
     time_index = Required(int, size=8, unsigned=True)  # Einordnung im Tagesverlauf

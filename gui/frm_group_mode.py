@@ -296,7 +296,7 @@ class TreeWidget(QTreeWidget):
         for i in range(self.columnCount()): self.resizeColumnToContents(i)
 
 
-class DlgAvailDayGroup(QDialog):
+class DlgGroupProperties(QDialog):
     def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
         super().__init__(parent=parent)
 
@@ -529,7 +529,7 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_date_object.date, data_date_object.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            dlg = DlgAvailDayGroup(self, item, self.builder)
+            dlg = DlgGroupProperties(self, item, self.builder)
             if not dlg.exec():
                 return
             self.controller.add_to_undo_stack(dlg.controller.undo_stack)

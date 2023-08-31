@@ -303,7 +303,7 @@ class TimeOfDayEnum(db.Entity):
     time_index = Required(int, size=8, unsigned=True)  # Einordnung im Tagesverlauf
     time_of_days = Set(TimeOfDay)
     project = Required(Project)
-    project_standard = Optional(Project, reverse='time_of_day_enum_standards')
+    project_standard = Optional(Project, reverse='time_of_day_enum_standards')  # todo: Vielleicht unnötig!
 
     composite_key(name, project)
     composite_key(abbreviation, project)
@@ -704,4 +704,4 @@ class ExcelExportSettings(db.Entity):
 # todo: Das Gleiche gilt für ActorLocationPref
 # todo: Das Gleiche gilt für fixed_cast in LocationOfWork und Event
 # todo (done): In FrameActorPlanPeriod dürfen nur die Termine der Tage des Teams gezeigt werden, an denen die Person dem Team zugeordnet ist.
-# todo: Skills zu Person hinzufügen
+# todo (done): Skills zu Person hinzufügen

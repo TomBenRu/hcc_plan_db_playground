@@ -118,7 +118,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.create_actions_times_of_day()
         self.menu_times_of_day.addActions(self.actions)
 
-    def create_actions_times_of_day(self):  # todo: fixed_cast, flags, notes
+    def create_actions_times_of_day(self):
         self.actions = [
             Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
                    f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
@@ -609,7 +609,7 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
+    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('A2997911589B405D9F5C8CB36DB1D48C'))
                     if not pp.prep_delete]
     window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()

@@ -11,7 +11,7 @@ import sympy
 from PySide6.QtCore import Qt, QTimer, QEventLoop, QProcess
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
-                               QDialogButtonBox, QDateEdit, QMenu, QApplication)
+                               QDialogButtonBox, QDateEdit, QMenu, QApplication, QMessageBox)
 from sympy.logic.boolalg import BooleanFunction, to_dnf
 
 from database import db_services, schemas
@@ -316,6 +316,10 @@ class DlgFixedCast(QDialog):
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
             simplifier = SimplifyFixedCastAndInfo(fixed_cast)
             fixed_cast = simplifier.simplified_fixed_cast
+            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
+                QMessageBox.warning(self, 'Fixed Cast',
+                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
+                                    f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
         else:
             fixed_cast = None
         self.controller.execute(self.builder.update_command(fixed_cast))

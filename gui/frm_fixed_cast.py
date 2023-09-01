@@ -1,14 +1,18 @@
 import datetime
+import itertools
+import re
 import time
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
+import sympy
 from PySide6.QtCore import Qt, QTimer, QEventLoop, QProcess
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
                                QDialogButtonBox, QDateEdit, QMenu, QApplication)
+from sympy.logic.boolalg import BooleanFunction, to_dnf
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
@@ -141,6 +145,59 @@ class DlgFixedCastBuilderEvent(DlgFixedCastBuilderABC):
         return sorted(get_persons_of_team_at_date(team.id, self.object_with_fixed_cast.date), key=lambda x: x.f_name)
 
 
+class SimplifyFixedCastAndInfo:
+    def __init__(self, fixed_cast: str):
+        self.fixed_cast = fixed_cast
+        self.simplified_fixed_cast: str = ''
+        self.min_nr_actors: int = 0
+        self.symbols = {}
+        self.simplify()
+        self.find_min_nr_actors()
+
+    def fixed_cast_to_logical_sentence(self) -> str:
+        def replacement(match):
+            self.symbols[match.group(1).replace('"', '')] = sympy.symbols(match.group(1).replace('"', ''))
+            return f'symbols[{match.group(1)}]'
+
+        new_string = re.sub(r'UUID\((.+?)\)', replacement, self.fixed_cast)
+        new_string = new_string.replace('in team', '')
+        new_string = new_string.replace('not ', '~ ').replace('and ', '& ').replace('or ', '| ')
+
+        return new_string
+
+    def simplify_to_boolean_function(self, sentence: str) -> BooleanFunction:
+        return to_dnf(eval(sentence, {'symbols': self.symbols}), simplify=True, force=True)
+
+    def back_translate_to_fixed_cast(self, expr: BooleanFunction) -> str:
+        expr_str = str(expr).replace('(', '( ').replace(')', ' )')
+        exclude = {'~': ' not ', '&': ' and ', '|': ' or ', '(': '(', ')': ')'}
+        expr_str_list = expr_str.split(' ')
+
+        # alleinstehende ID-Strings werden mit Klammern versehen
+        expr_str_list_corr = []
+        for i, val in enumerate(expr_str_list):
+            if val in self.symbols and (i == 0 or (expr_str_list[i - 1] != '(' and expr_str_list[i + 1 != ')'])):
+                expr_str_list_corr.extend(['(', val, ')'])
+            else:
+                expr_str_list_corr.append(val)
+
+        expr_str_list_res = [f'(UUID("{x}") in team)' if x not in exclude else exclude[x] for x in expr_str_list_corr]
+        return '(' + ''.join(expr_str_list_res) + ')'
+
+    def simplify(self):
+        logical_sentence = self.fixed_cast_to_logical_sentence()
+        simplified_boolean_function = self.simplify_to_boolean_function(logical_sentence)
+        self.simplified_fixed_cast = self.back_translate_to_fixed_cast(simplified_boolean_function)
+
+    def find_min_nr_actors(self):
+        all_person_ids = {UUID(x) for x in self.symbols}
+        for n in range(1, len(all_person_ids) + 1):
+            for comb in itertools.combinations(all_person_ids, n):
+                if eval(self.simplified_fixed_cast, {'team': comb, 'UUID': UUID}):
+                    self.min_nr_actors = n
+                    return
+
+
 class DlgFixedCast(QDialog):
     # todo: Handling für den Fall, dass Personen nicht über gesamten Zeitraum einer Planperiode gleich sind.
     # todo: Lösung Union von Personen erstellen, beim aktivieren eines Events fixed_cast
@@ -257,6 +314,8 @@ class DlgFixedCast(QDialog):
     def save_plot(self):
         if result_list := self.grid_to_list():
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
+            simplifier = SimplifyFixedCastAndInfo(fixed_cast)
+            fixed_cast = simplifier.simplified_fixed_cast
         else:
             fixed_cast = None
         self.controller.execute(self.builder.update_command(fixed_cast))

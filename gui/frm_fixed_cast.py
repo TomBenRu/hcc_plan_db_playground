@@ -296,14 +296,15 @@ class DlgFixedCast(QDialog):
 
     def accept(self) -> None:
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
-        simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
-        fixed_cast_simplified = simplifier.simplified_fixed_cast
-        self.controller.execute(self.builder.update_command(fixed_cast_simplified))
+        if self.object_with_fixed_cast.fixed_cast:
+            simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
+            fixed_cast_simplified = simplifier.simplified_fixed_cast
+            self.controller.execute(self.builder.update_command(fixed_cast_simplified))
 
-        if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
-            QMessageBox.warning(self, 'Fixed Cast',
-                                f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
-                                f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
+            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
+                QMessageBox.warning(self, 'Fixed Cast',
+                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
+                                    f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
         super().accept()
 
     def reject(self) -> None:

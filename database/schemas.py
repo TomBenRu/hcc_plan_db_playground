@@ -61,6 +61,7 @@ class ModelWithPartnerLocPrefs(Protocol):
 class ModelWithFixedCast(Protocol):
     id: UUID
     fixed_cast: Optional[str]
+    nr_actors: int
 
     def model_copy(self, deep: bool = False):
         ...

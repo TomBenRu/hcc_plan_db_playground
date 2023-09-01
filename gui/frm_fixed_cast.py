@@ -295,6 +295,15 @@ class DlgFixedCast(QDialog):
         self.reset_fixed_cast_plot()
 
     def accept(self) -> None:
+        self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
+        simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
+        fixed_cast_simplified = simplifier.simplified_fixed_cast
+        self.controller.execute(self.builder.update_command(fixed_cast_simplified))
+
+        if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
+            QMessageBox.warning(self, 'Fixed Cast',
+                                f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
+                                f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
         super().accept()
 
     def reject(self) -> None:
@@ -314,12 +323,6 @@ class DlgFixedCast(QDialog):
     def save_plot(self):
         if result_list := self.grid_to_list():
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
-            simplifier = SimplifyFixedCastAndInfo(fixed_cast)
-            fixed_cast = simplifier.simplified_fixed_cast
-            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
-                QMessageBox.warning(self, 'Fixed Cast',
-                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
-                                    f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
         else:
             fixed_cast = None
         self.controller.execute(self.builder.update_command(fixed_cast))

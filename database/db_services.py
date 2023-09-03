@@ -1114,6 +1114,30 @@ class EventGroup:
         event_group_db.delete()
 
 
+class CastGroup:
+    @staticmethod
+    @db_session
+    def get(cast_group_id: UUID) -> schemas.CastGroupShow:
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(location_plan_period_id: UUID) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup(location_plan_period=cast_group.location_plan_period)
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cast_group_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.delete()
+
+
 class Event:
     @staticmethod
     @db_session
@@ -1153,11 +1177,13 @@ class Event:
                      f'args: {locals()}')
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=event.location_plan_period.id)
         master_event_group_db = location_plan_period_db.event_group
-        event_group_db = EventGroup.create(event_group_id=master_event_group_db.id)
+        event_group = EventGroup.create(event_group_id=master_event_group_db.id)
+        cast_group = CastGroup.create(event.location_plan_period.id)
         event_db = models.Event(
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
-            nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group_db.id),
-            location_plan_period=location_plan_period_db, fixed_cast=event.fixed_cast)
+            nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group.id),
+            cast_group=models.CastGroup.get_for_update(id=cast_group.id),
+            location_plan_period=location_plan_period_db)
 
         return schemas.EventShow.model_validate(event_db)
 
@@ -1190,8 +1216,10 @@ class Event:
         event_db = models.Event.get_for_update(id=event_id)
         deleted = schemas.EventShow.model_validate(event_db)
         event_group_db = event_db.event_group
+        cast_group_db = event_db.cast_group
         event_db.delete()
         event_group_db.delete()
+        cast_group_db.delete()
 
         return deleted
 

@@ -442,12 +442,13 @@ class EventCreate(BaseModel):
     date: datetime.date
     time_of_day: TimeOfDay
     nr_actors: Optional[int] = 2
-    fixed_cast: Optional[str] = None
     flags: List['Flag']
 
 
 class Event(EventCreate):
     model_config = ConfigDict(from_attributes=True)
+    event_group: 'EventGroup'
+    cast_group: 'CastGroup'
 
     id: UUID
     prep_delete: Optional[datetime.datetime]
@@ -458,8 +459,6 @@ class Event(EventCreate):
 
 
 class EventShow(Event):
-
-    event_group: 'EventGroup'
     skill_groups: list['SkillGroup']
 
     @field_validator('flags', 'skill_groups')
@@ -492,6 +491,27 @@ class EventGroup(EventGroupCreate):
 
 class EventGroupShow(EventGroup):
     pass
+
+
+class CastGroupCreate(BaseModel):
+    location_plan_period: 'LocationPlanPeriod'
+
+
+class CastGroup(CastGroupCreate):
+    id: UUID
+    fixed_cast: Optional[str]
+    cast_group: Optional['CastGroup']
+    same_cast: bool
+    event: Optional[Event]
+    alternating_cast: bool
+
+
+class CastGroupShow(CastGroup):
+    cast_groups: List['CastGroup']
+
+    @field_validator('cast_groups')
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+        return [t for t in values]
 
 
 class LocationPlanPeriodCreate(BaseModel):

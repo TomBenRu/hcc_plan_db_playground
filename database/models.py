@@ -405,7 +405,6 @@ class Event(db.Entity):
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
     nr_actors = Required(int, size=8, unsigned=True)
-    fixed_cast = Optional(str, nullable=True)  # Form: (Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     skill_groups = Set('SkillGroup')
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
@@ -433,12 +432,6 @@ class EventGroup(db.Entity):
        Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
-    same_day_cast_pref = Required(int, size=8, default=2, unsigned=True)  # todo: kann evt. gestrichen werden
-    # Wenn am selben Tag mehrere Events der gleichen Location stattfinden bedeuten:
-    # 0: beliebige Besetzungen, 1: möglichst die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
-    same_group_cast_pref = Required(int, size=8, default=0, unsigned=True)
-    # Gibt an, ob innerhalb einer Eventgroup die gleiche Besetzung präferiert werden soll.
-    # Gewichtungen wie same_day_cast_pref
     nr_event_groups = Optional(int, unsigned=True)
     # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
@@ -466,10 +459,10 @@ class EventGroup(db.Entity):
 class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Required('LocationPlanPeriod')
-    fixed_cast = Optional(str)
+    fixed_cast = Optional(str, nullable=True)
     cast_groups = Set('CastGroup', reverse='cast_group')
     cast_group = Optional('CastGroup', reverse='cast_groups')
-    same_cast = Required(bool, default=True)
+    same_cast = Required(bool, default=False)
     event = Optional(Event)
     alternating_cast = Required(bool, default=False)
 

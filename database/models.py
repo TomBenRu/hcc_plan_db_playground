@@ -410,6 +410,7 @@ class Event(db.Entity):
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     event_group = Required('EventGroup')
+    cast_group = Required('CastGroup')
     location_plan_period = Required('LocationPlanPeriod')
 
     @property
@@ -462,6 +463,18 @@ class EventGroup(db.Entity):
                               'oder genau einer Location PlanPeriod zugeordnet sein.')
 
 
+class CastGroup(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    location_plan_period = Required('LocationPlanPeriod')
+    fixed_cast = Optional(str)
+    cast_groups = Set('CastGroup', reverse='cast_group')
+    cast_group = Optional('CastGroup', reverse='cast_groups')
+    same_cast = Required(bool, default=True)
+    event = Optional(Event)
+    alternating_cast = Required(bool, default=False)
+
+
+
 class LocationPlanPeriod(db.Entity):
     """nr_actors wird von neuer Instanz von Event übernommen.
        Jede LocationPlanPeriod enthält genau 1 Eventgroup."""
@@ -476,6 +489,7 @@ class LocationPlanPeriod(db.Entity):
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     event_group = Optional('EventGroup')
+    cast_groups = Set(CastGroup)
     events = Set(Event)
 
     @property

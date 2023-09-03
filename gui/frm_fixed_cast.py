@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QTimer, QEventLoop, QProcess
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
                                QDialogButtonBox, QDateEdit, QMenu, QApplication, QMessageBox)
-from sympy.logic.boolalg import BooleanFunction, to_dnf
+from sympy.logic.boolalg import BooleanFunction, to_dnf, simplify_logic
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
@@ -166,7 +166,7 @@ class SimplifyFixedCastAndInfo:
         return new_string
 
     def simplify_to_boolean_function(self, sentence: str) -> BooleanFunction:
-        return to_dnf(eval(sentence, {'symbols': self.symbols}), simplify=True, force=True)
+        return simplify_logic(eval(sentence, {'symbols': self.symbols}), force=True)
 
     def back_translate_to_fixed_cast(self, expr: BooleanFunction) -> str:
         expr_str = str(expr).replace('(', '( ').replace(')', ' )')
@@ -303,7 +303,7 @@ class DlgFixedCast(QDialog):
 
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
                 QMessageBox.warning(self, 'Fixed Cast',
-                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors} übersteigt die '
+                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors}) übersteigt die '
                                     f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
         super().accept()
 

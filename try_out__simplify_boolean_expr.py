@@ -5,7 +5,7 @@ import re
 
 import sympy
 from sympy.logic.boolalg import to_dnf, BooleanFunction
-from sympy.abc import a, b, c, d
+from sympy.abc import a, b, c, d, e, f, g, h, i
 
 
 def translate(expr: str) -> str:
@@ -31,6 +31,7 @@ def back_translate(expr: str) -> str:
 
 
 exp1 = '(not ((b or not c) and (not a or not c))) or (not (c or not (b and c))) or (a and not c) and (not a or (a and b and c) or (a and ((b and not c) or (not b))))'
+exp3 = '(not ((b or not c) and (not a or not c))) or (not (e or not (f and c))) or (f and not c) and (not a or (h and b and i) or (a and ((i and not c) or (not b))))'
 exp2 = '(not (a and not b) or (not c and b)) and (not b) or (not a and b and not c) or (a and not b)'
 
 example_1 = '(((UUID("2ce4ed15-0212-442f-ab0b-73f8940ad217") in team) and (UUID("52521e7f-b7ef-4189-bdd0-bf109c0bbc45") in team)) or ((UUID("d83be6e6-e2a4-44e5-8a3b-2d7e40bcb5a5") in team)) or ((UUID("e86bcadd-bb3a-4fcd-950e-9f5179abbc10") in team)))'
@@ -58,6 +59,7 @@ def find_min_nr_actors(all_person_ids: set[UUID], fixed_cast: str):
 
 print('exp1:', '\n', eval(translate(exp1)), '\n', to_dnf(eval(translate(exp1)), simplify=True, force=True))
 print('exp2:', '\n', eval(translate(exp2)), '\n', to_dnf(eval(translate(exp2)), simplify=True, force=True))
+print('exp3:', '\n', eval(translate(exp3)), '\n', to_dnf(eval(translate(exp3)), simplify=True, force=True))
 print('example_1:', '\n', eval(translate(fixed_cast_to_logical_sentence(example_1))), '\n', simple := to_dnf(eval(translate(fixed_cast_to_logical_sentence(example_1))), simplify=True, force=True))
 
 print(f'{simple=}')

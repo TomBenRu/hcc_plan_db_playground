@@ -463,9 +463,10 @@ class CastGroup(db.Entity):
     cast_groups = Set('CastGroup', reverse='cast_group')
     cast_group = Optional('CastGroup', reverse='cast_groups')
     same_cast = Required(bool, default=False)
-    event = Optional(Event)
+    same_cast_pref = Required(int, size=8, default=2, unsigned=True)
+    # 0: beliebige Besetzungen, 1: möglichst die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
     alternating_cast = Required(bool, default=False)
-
+    event = Optional(Event)
 
 
 class LocationPlanPeriod(db.Entity):

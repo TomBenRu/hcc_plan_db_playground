@@ -48,11 +48,7 @@ class Delete(Command):
         location_plan_period_id = (self.event_group.location_plan_period.id
                                    if self.event_group.location_plan_period else None)
         event_group_id = self.event_group.event_group.id if self.event_group.event_group else None
-        db_services.EventGroup.create(
-            location_plan_period_id=location_plan_period_id,
-            event_group_id=event_group_id,
-            undo_id=self.event_group_id
-        )
+        db_services.EventGroup.create(location_plan_period_id, event_group_id)
         if self.parent_nr_event_groups:
             db_services.EventGroup.update_nr_event_groups(self.event_group.event_group.id, self.parent_nr_event_groups)
 

@@ -109,7 +109,8 @@ class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
         self.get_nr_groups_from_group = lambda group: group.nr_event_groups
         self.get_date_object_from_group_id = db_services.Event.get_from__event_group
         self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
-        self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_location_plan_period.change_location_plan_period_group_mode
+        self.signal_handler_change__object_with_groups__group_mode = (
+            signal_handling.handler_location_plan_period.change_location_plan_period_group_mode)
         self.text_date_object = 'gesetzt'
 
     def reload_object_with_groups(self):

@@ -1123,10 +1123,14 @@ class CastGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(location_plan_period_id: UUID) -> schemas.CastGroupShow:
+    def create(location_plan_period_id: UUID, parent_cast_group_id: UUID = None) -> schemas.CastGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        cast_group_db = models.CastGroup(location_plan_period=cast_group.location_plan_period)
+        parent_cast_group_db = (models.CastGroup.get_for_update(id=parent_cast_group_id)
+                                if parent_cast_group_id else None)
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        cast_group_db = models.CastGroup(location_plan_period=location_plan_period_db,
+                                         cast_group = parent_cast_group_db)
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @staticmethod

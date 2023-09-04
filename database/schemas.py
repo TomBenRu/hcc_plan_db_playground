@@ -447,8 +447,6 @@ class EventCreate(BaseModel):
 
 class Event(EventCreate):
     model_config = ConfigDict(from_attributes=True)
-    event_group: 'EventGroup'
-    cast_group: 'CastGroup'
 
     id: UUID
     prep_delete: Optional[datetime.datetime]
@@ -459,6 +457,8 @@ class Event(EventCreate):
 
 
 class EventShow(Event):
+    event_group: 'EventGroup'
+    cast_group: 'CastGroup'
     skill_groups: list['SkillGroup']
 
     @field_validator('flags', 'skill_groups')
@@ -492,6 +492,8 @@ class CastGroupCreate(BaseModel):
 
 
 class CastGroup(CastGroupCreate):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     fixed_cast: Optional[str]
     cast_group: Optional['CastGroup']

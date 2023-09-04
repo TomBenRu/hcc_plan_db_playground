@@ -1,12 +1,14 @@
-from typing import Callable
+from typing import Callable, Sequence
 
+from PySide6 import QtCore
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QDropEvent, QColor
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, cast_group_commands
-
+from gui.observer import signal_handling
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -20,11 +22,177 @@ class TreeWidgetItem(QTreeWidgetItem):
     def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
         super().__init__(tree_widget_item)
 
+    def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
+                  group_nr: int | None, parent_group_nr: int):
+        if event:
+            self.setText(0, 'gesetzt')
+            self.setText(1, event.date.strftime('%d.%m.%y'))
+            self.setText(2, event.time_of_day.name)
+            self.setText(5, group.fixed_cast or '')
+
+            self.setForeground(0, QColor('#5a009f'))
+            self.setForeground(1, QColor('blue'))
+            self.setForeground(2, QColor('#9f0057'))
+            self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
+        else:
+            self.setText(0, f'Gruppe_{group_nr:02}')
+            self.setText(3, 'gleiche Besetzung' if group.same_cast else 'alternierende Besetzung')
+            self.setText(4, str(group.same_cast_pref))
+            self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
+            self.setBackground(0, QColor('#e1ffde'))
+            self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
+
+        self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
+        self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
+
+    def __lt__(self, other):
+        column = self.treeWidget().sortColumn()
+        my_event: schemas.Event = self.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.UserRole)
+        other_event: schemas.Event = other.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.UserRole)
+        my_group: schemas.CastGroupShow = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        other_group: schemas.CastGroupShow = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        sort_order = self.treeWidget().header().sortIndicatorOrder()
+
+        if column != 1:
+            # Verwende die Standard-Sortierreihenfolge für andere Spalten
+            if my_event and not other_event:
+                return sort_order == Qt.SortOrder.DescendingOrder
+            elif not my_event and other_event:
+                return sort_order == Qt.SortOrder.AscendingOrder
+            elif not my_event and not other_event:
+                has_child_groups = my_group.cast_groups
+                return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
+            else:
+                return self.text(column) < other.text(column)
+
+        # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__DATE_OBJECT
+        if my_event:
+            my_value = f'{my_event.date} {my_event.time_of_day.time_of_day_enum.time_index:02}'
+        elif not other_event:
+            has_child_groups = my_group.cast_groups
+            return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
+        else:
+            return sort_order == Qt.SortOrder.AscendingOrder
+
+        if other_event:
+            other_value = f'{other_event.date} {other_event.time_of_day.time_of_day_enum.time_index:02}'
+        elif not my_event:
+            has_child_groups = other_group.cast_groups
+            return sort_order == (Qt.SortOrder.AscendingOrder if has_child_groups else Qt.SortOrder.DescendingOrder)
+        else:
+            return sort_order == Qt.SortOrder.DescendingOrder
+
+        return my_value < other_value
+
 
 class TreeWidget(QTreeWidget):
     def __init__(self, location_plan_period: schemas.LocationPlanPeriodShow,
                  slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None]):
         super().__init__()
+
+        self.location_plan_period = location_plan_period
+
+        self.setColumnCount(6)
+        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", "modus", "same_cast_pref", "fixed_cast"])
+        self.setDragDropMode(QTreeWidget.InternalMove)
+        self.setSortingEnabled(True)
+        # self.invisibleRootItem().setData(
+        #     TREE_ITEM_DATA_COLUMN__GROUP,
+        #     Qt.ItemDataRole.UserRole,
+        #     self.builder.master_group
+        # )
+
+        self.slot_item_moved = slot_item_moved
+
+        self.nr_main_groups = 0
+
+        self.curr_item: QTreeWidgetItem | None = None
+
+        self.setup_tree()
+        self.expand_all()
+
+    def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
+        self.curr_item = items[0]
+        return super().mimeData(items)
+
+    def send_signal_to_date_object(self, parent_group_nr: int):
+        if date_object := self.curr_item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+            signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+                signal_handling.DataGroupMode(True,
+                                              date_object.date,
+                                              date_object.time_of_day.time_of_day_enum.time_index,
+                                              parent_group_nr)
+            )
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        item_to_move_to = self.itemAt(event.position().toPoint())
+        previous_parent = self.curr_item.parent()
+        if item_to_move_to and item_to_move_to.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+            event.ignore()
+        else:
+            super().dropEvent(event)
+            new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                                   if item_to_move_to else 0)
+
+            self.send_signal_to_date_object(new_parent_group_nr)
+
+            self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole,
+                                   new_parent_group_nr)
+            self.expandAll()
+            for i in range(self.columnCount()): self.resizeColumnToContents(i)
+            self.slot_item_moved(self.curr_item, item_to_move_to, previous_parent)
+
+    def setup_tree(self):
+        def add_children(parent: QTreeWidgetItem, parent_group: schemas.CastGroupShow):
+            children = parent_group.cast_groups
+            parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+            for child in children:
+                if date_object := child.event:
+                    item = TreeWidgetItem(parent)
+                    item.configure(child, date_object, None, parent_group_nr)
+                    signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+                        signal_handling.DataGroupMode(True,
+                                                      date_object.date,
+                                                      date_object.time_of_day.time_of_day_enum.time_index,
+                                                      parent_group_nr)
+                    )
+                else:
+                    self.nr_main_groups += 1
+                    item = TreeWidgetItem(parent)
+                    item.configure(child, None, self.nr_main_groups, parent_group_nr)
+                    add_children(item, db_services.CastGroup.get(child.id))
+
+        cast_groups = db_services.CastGroup.get_all_from__location_plan_period(self.location_plan_period.id)
+        most_top_cast_groups = [cg for cg in cast_groups if not cg.cast_group]
+
+        for child in most_top_cast_groups:
+            if event := child.event:
+                item = TreeWidgetItem(self)
+                item.configure(child, event, None, 0)
+                signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+                    signal_handling.DataGroupMode(True,
+                                                  event.date,
+                                                  event.time_of_day.time_of_day_enum.time_index,
+                                                  0)
+                )
+            else:
+                self.nr_main_groups += 1
+                item = TreeWidgetItem(self)
+                item.configure(child, None, self.nr_main_groups, 0)
+                add_children(item, child)
+
+        self.sortByColumn(1, Qt.SortOrder.AscendingOrder)
+
+    def refresh_tree(self):
+        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        self.clear()
+        self.nr_main_groups = 0
+        self.setup_tree()
+        self.expand_all()
+
+    def expand_all(self):
+        self.expandAll()
+        for i in range(self.columnCount()): self.resizeColumnToContents(i)
 
 
 class DlgCastGroups(QDialog):
@@ -91,14 +259,6 @@ class DlgCastGroups(QDialog):
                     self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
                 )
             self.controller.execute(cast_group_commands.Delete(data.id))
-
-            # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:
-            nr_groups = self.builder.get_nr_groups_from_group(parent_group)
-            text_nr_groups = str(nr_groups) if nr_groups else 'alle'
-            if parent_item:
-                parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
-            else:
-                self.tree_groups.invisibleRootItem().setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
 
     def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)

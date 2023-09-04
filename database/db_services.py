@@ -1122,6 +1122,13 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @staticmethod
+    @db_session
+    def get_all_from__location_plan_period(location_plan_period_id: UUID) -> list[schemas.CastGroupShow]:
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+
+        return [schemas.CastGroupShow.model_validate(cg) for cg in location_plan_period_db.cast_groups]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(location_plan_period_id: UUID, parent_cast_group_id: UUID = None) -> schemas.CastGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'

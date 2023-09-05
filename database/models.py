@@ -463,9 +463,13 @@ class CastGroup(db.Entity):
     cast_groups = Set('CastGroup', reverse='cast_group')
     cast_group = Optional('CastGroup', reverse='cast_groups')
     same_cast = Required(bool, default=False)
-    same_cast_pref = Required(int, size=8, default=2, unsigned=True)
-    # 0: beliebige Besetzungen, 1: möglichst die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
     alternating_cast = Required(bool, default=False)
+    strict_alternating = Required(bool, default=False)
+    # in einer Gruppe mit mehr als 2 zeitlich geordneten Terminen: Bes. A | Bes. B | Bes. A usw.
+    strict_cast_pref = Required(int, size=8, default=2, unsigned=True)
+    # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
+    custom_rule = Optional(str, nullable=True)
+    # Eigene Regel für Terminreihen (z.B.: ABC). Je nach Länge der Terminreihe wird die Regel wiederholt.
     event = Optional(Event)
 
 

@@ -498,9 +498,13 @@ class CastGroup(CastGroupCreate):
     fixed_cast: Optional[str]
     cast_group: Optional['CastGroup']
     same_cast: bool
-    same_cast_pref: int = 2
-    # 0: beliebige Besetzungen, 1: möglichsts die gleiche Besetzung, 2 unbedingt die gleiche Besetzung.
     alternating_cast: bool
+    strict_alternating: bool
+    # in einer Gruppe mit mehr als 2 zeitlich geordneten Terminen: Bes. A | Bes. B | Bes. A usw.
+    strict_cast_pref: int = 2
+    # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
+    custom_rule: Optional[str]
+    # Eigene Regel für Terminreihen (z.B.: ABC). Je nach Länge der Terminreihe wird die Regel wiederholt.
     event: Optional[Event]
 
 

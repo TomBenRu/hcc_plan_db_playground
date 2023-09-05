@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
-                               QLineEdit, QComboBox, QSlider)
+                               QLineEdit, QComboBox, QSlider, QSpinBox)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, cast_group_commands
@@ -230,6 +230,8 @@ class DlgGroupProperties(QDialog):
         self.le_rule = QLineEdit()
         self.lb_new_rule = QLabel('Neue Regel erstellen')
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
+        self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
+        self.spin_nr_actors = QSpinBox()
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
@@ -238,15 +240,17 @@ class DlgGroupProperties(QDialog):
 
         self.layout_body.addWidget(self.lb_fixed_cast, 0, 0)
         self.layout_body.addWidget(self.bt_fixed_cast, 0, 1)
-        self.layout_body.addWidget(self.lb_fixed_cast_value, 0, 3)
+        self.layout_body.addWidget(self.lb_fixed_cast_value, 0, 2)
         self.layout_body.addWidget(self.lb_rule, 1, 0)
         self.layout_body.addWidget(self.combo_rules, 1, 1)
         self.layout_body.addWidget(self.le_rule, 1, 2)
         self.layout_body.addWidget(self.lb_new_rule, 2, 0)
         self.layout_body.addWidget(self.bt_new_rule, 2, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref, 3, 0)
-        self.layout_body.addWidget(self.slider_strict_cast_pref, 3, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 3, 2)
+        self.layout_body.addWidget(self.lb_nr_actors, 3, 0)
+        self.layout_body.addWidget(self.spin_nr_actors, 3, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref, 4, 0)
+        self.layout_body.addWidget(self.slider_strict_cast_pref, 4, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 4, 2)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -273,14 +277,17 @@ class DlgGroupProperties(QDialog):
             if self.group.cast_rule and self.group.cast_rule.id == rule.id:
                 curr_combo_index = i
         self.combo_rules.setCurrentIndex(curr_combo_index)
+        self.combo_rules.currentIndexChanged.connect(self.combo_rules_changed)
         self.le_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
+        self.spin_nr_actors.setValue(self.group.nr_actors)
+        self.spin_nr_actors.valueChanged.connect(self.nr_actors_changed)
         self.slider_strict_cast_pref.setMinimum(0)
         self.slider_strict_cast_pref.setMaximum(2)
         self.slider_strict_cast_pref.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.slider_strict_cast_pref.setFixedWidth(150)
         self.slider_strict_cast_pref.setValue(self.group.strict_cast_pref)
         self.lb_strict_cast_pref_value_text.setText(self.strict_cast_pref_texts[self.group.strict_cast_pref])
-        self.slider_strict_cast_pref.valueChanged.connect(self.save_strict_cast_pref)
+        self.slider_strict_cast_pref.valueChanged.connect(self.strict_cast_pref_changed)
         self.slider_strict_cast_pref.valueChanged.connect(
             lambda: self.lb_strict_cast_pref_value_text.setText(
                 self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
@@ -291,7 +298,13 @@ class DlgGroupProperties(QDialog):
     def new_rule(self):
         ...
 
-    def save_strict_cast_pref(self):
+    def combo_rules_changed(self):
+        ...
+
+    def strict_cast_pref_changed(self):
+        ...
+
+    def nr_actors_changed(self):
         ...
 
 

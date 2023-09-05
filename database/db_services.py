@@ -1072,7 +1072,6 @@ class EventGroup:
         event_group_db = models.EventGroup.get_for_update(id=event_group_id) if event_group_id else None
 
         if undo_group_id:
-            print(f'{location_plan_period_id=}, {event_group_id=}, {undo_group_id=}')
             new_event_group_db = models.EventGroup(id=undo_group_id, location_plan_period=location_plan_period_db,
                                                    event_group=event_group_db)
         else:
@@ -1150,6 +1149,17 @@ class CastGroup:
         else:
             cast_group_db = models.CastGroup(location_plan_period=location_plan_period_db,
                                              cast_group=parent_cast_group_db)
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_new_parent(cast_group_id: UUID, new_parent_id: UUID | None) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        new_parent_db = models.CastGroup.get_for_update(id=new_parent_id) if new_parent_id else None
+        cast_group_db.cast_group = new_parent_db
+
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @staticmethod

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode
+from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands
 from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
@@ -407,7 +407,8 @@ class FrmLocationPlanPeriod(QWidget):
 
         self.set_headers_months()
         self.set_chk_field()
-        self.bt_toggle__avd_group_mode: QPushButton | None = None
+        self.bt_event_group_mode: QPushButton | None = None
+        self.bt_cast_group_mode: QPushButton | None = None
         self.setup_controllers()
         self.get_events()
 
@@ -508,8 +509,10 @@ class FrmLocationPlanPeriod(QWidget):
 
     def setup_controllers(self):
         """Buttons im Bereich self.layout_controllers"""
-        self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__event_group)
-        self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
+        self.bt_event_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__event_group)
+        self.layout_controllers.addWidget(self.bt_event_group_mode)
+        self.bt_cast_group_mode = QPushButton('zum Fixed Cast Gruppenmodus', clicked=self.change_mode__cast_group)
+        self.layout_controllers.addWidget(self.bt_cast_group_mode)
 
     def save_event(self, bt: ButtonEvent):
 
@@ -567,6 +570,11 @@ class FrmLocationPlanPeriod(QWidget):
 
         signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
+
+    def change_mode__cast_group(self):
+        dlg = frm_cast_group.DlgCastGroups(self, self.location_plan_period)
+        if dlg.exec():
+            print('done')
 
     def get_events(self):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)

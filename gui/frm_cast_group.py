@@ -35,8 +35,10 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setForeground(2, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
+            text_mode = (None if not(group.same_cast or group.alternating_cast)
+                         else 'gleiche Besetzung' if group.same_cast else 'alternierende Besetzung')
             self.setText(0, f'Gruppe_{group_nr:02}')
-            self.setText(3, 'gleiche Besetzung' if group.same_cast else 'alternierende Besetzung')
+            self.setText(3, text_mode)
             self.setText(4, str(group.same_cast_pref))
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setBackground(0, QColor('#e1ffde'))
@@ -195,6 +197,131 @@ class TreeWidget(QTreeWidget):
         for i in range(self.columnCount()): self.resizeColumnToContents(i)
 
 
+# class DlgGroupProperties(QDialog):
+#     def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
+#         super().__init__(parent=parent)
+#
+#         self.item = item
+#         self.builder = builder
+#
+#         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+#
+#         self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}'
+#                             if self.group_nr else 'Eigenschaften der Hauptgruppe')
+#
+#         self.group = self.builder.get_group_from_id(
+#             self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#         self.child_items = [self.item.child(i) for i in range(self.item.childCount())]
+#         self.child_groups = [
+#             self.builder.get_group_from_id(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+#             for item in self.child_items]
+#         self.variation_weight_text = VARIATION_WEIGHT_TEXT
+#
+#         self.controller = command_base_classes.ContrExecUndoRedo()
+#
+#         self.layout = QVBoxLayout(self)
+#
+#         self.layout_head = QVBoxLayout()
+#         self.layout_body = QFormLayout()
+#         self.layout_foot = QVBoxLayout()
+#         self.layout.addLayout(self.layout_head)
+#         self.layout.addLayout(self.layout_body)
+#         self.layout.addLayout(self.layout_foot)
+#
+#         self.group_nr_childs = QGroupBox('Anzahl direkt untergeordneter Gruppen/Termine')
+#         self.layout_body.addWidget(self.group_nr_childs)
+#         self.layout_group_nr_childs = QHBoxLayout(self.group_nr_childs)
+#         self.group_child_variation_weights = QGroupBox('Priorisierung der untergeordneten Gruppen/Termine')
+#         self.layout_body.addWidget(self.group_child_variation_weights)
+#         self.layout_group_child_variation_weights = QGridLayout(self.group_child_variation_weights)
+#
+#         self.lb_nr_childs = QLabel('Anzahl:')
+#         self.slider_nr_childs = SliderWithPressEvent(Qt.Orientation.Horizontal)
+#         self.lb_slider_nr_childs_value = QLabel()
+#         self.chk_none = QCheckBox('Alle dir. untergeordneten Elemente')
+#         self.layout_group_nr_childs.addWidget(self.lb_nr_childs)
+#         self.layout_group_nr_childs.addWidget(self.slider_nr_childs)
+#         self.layout_group_nr_childs.addWidget(self.lb_slider_nr_childs_value)
+#         self.layout_group_nr_childs.addWidget(self.chk_none)
+#
+#         self.button_box = QDialogButtonBox(
+#             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+#         self.button_box.accepted.connect(self.accept)
+#         self.button_box.rejected.connect(self.reject)
+#         self.layout_foot.addWidget(self.button_box)
+#
+#         self.sliders_variation_weights = {}
+#
+#         self.setup_sliders()
+#
+#     def reject(self) -> None:
+#         self.controller.undo_all()
+#         super().reject()
+#
+#     def nr_childs_changed(self, value: int):
+#         if self.chk_none.isChecked():
+#             return
+#         self.controller.execute(self.builder.update_nr_groups_command(group_id_type(self.group.id), value))
+#         self.lb_slider_nr_childs_value.setText(f'{value}')
+#
+#     def chk_none_toggled(self, checked: bool, clicked=False):
+#         if not clicked:
+#             return
+#         if checked:
+#             self.controller.execute(self.builder.update_nr_groups_command(group_id_type(self.group.id), None))
+#             self.slider_nr_childs.setValue(len(self.child_groups))
+#             self.lb_slider_nr_childs_value.setText(f'{len(self.child_groups)}')
+#             self.slider_nr_childs.setEnabled(False)
+#         else:
+#             self.controller.execute(
+#                 self.builder.update_nr_groups_command(group_id_type(self.group.id), self.slider_nr_childs.value()))
+#             self.slider_nr_childs.setEnabled(True)
+#
+#     def variation_weight_changed(self, child_id: UUID, value: int):
+#         self.sliders_variation_weights[child_id]['lb_value'].setText(f'{self.variation_weight_text[value]}')
+#         self.controller.execute(self.builder.update_variation_weight_command(group_id_type(child_id), value))
+#
+#     def setup_sliders(self):
+#         self.slider_nr_childs.setTickPosition(QSlider.TickPosition.TicksBelow)
+#         self.slider_nr_childs.setTickInterval(1)
+#         self.slider_nr_childs.setMinimum(1)
+#         self.slider_nr_childs.setMaximum(len(self.child_groups))
+#         self.slider_nr_childs.setMinimumWidth(max(150, 30 * (len(self.child_groups) - 1)))
+#         self.slider_nr_childs.valueChanged.connect(self.nr_childs_changed)
+#         nr_groups = self.builder.get_nr_groups_from_group(self.group)
+#         self.slider_nr_childs.setValue(nr_groups or len(self.child_groups))
+#         self.lb_slider_nr_childs_value.setText(f'{nr_groups or len(self.child_groups)}')
+#         self.chk_none.toggled.connect(lambda val: self.chk_none_toggled(checked=val, clicked=True))
+#         self.chk_none.setChecked(not nr_groups)
+#
+#         for row, child_item in enumerate(self.child_items):
+#             child_item: TreeWidgetItem
+#             child_group: group_type = child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+#             if child_group_nr := child_item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole):
+#                 text_child_group = f'Gruppe {child_group_nr:02}'
+#             else:
+#                 date_object: date_object_type = child_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT,
+#                                                                 Qt.ItemDataRole.UserRole)
+#                 text_child_group = f'{date_object.date.strftime("%d.%m.%y")} ({date_object.time_of_day.name})'
+#             lb_slider = QLabel(text_child_group)
+#             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
+#             slider.setTickInterval(1)
+#             slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+#             slider.setMinimum(0)
+#             slider.setMaximum(2)
+#             slider.setValue(child_group.variation_weight)
+#             slider.valueChanged.connect(partial(self.variation_weight_changed, child_group.id))
+#             lb_val = QLabel(f'{self.variation_weight_text[child_group.variation_weight]}')
+#             self.layout_group_child_variation_weights.addWidget(lb_slider, row, 0)
+#             self.layout_group_child_variation_weights.addWidget(slider, row, 1)
+#             self.layout_group_child_variation_weights.addWidget(lb_val, row, 2)
+#             self.sliders_variation_weights[child_group.id] = {'slider': slider, 'lb_value': lb_val}
+#
+#     def resizeEvent(self, event: QResizeEvent) -> None:
+#         self.slider_nr_childs.setMinimumWidth(0)
+#         super().resizeEvent(event)
+
+
 class DlgCastGroups(QDialog):
     def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
@@ -250,14 +377,9 @@ class DlgCastGroups(QDialog):
         if selected_item.childCount() == 0:
             if parent_item := selected_item.parent():
                 parent_item.removeChild(selected_item)
-                parent_group = db_services.CastGroup.get(
-                    parent_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
-                parent_group = db_services.CastGroup.get(
-                    self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
-                )
             self.controller.execute(cast_group_commands.Delete(data.id))
 
     def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
@@ -270,23 +392,18 @@ class DlgCastGroups(QDialog):
             obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
                                                                        Qt.ItemDataRole.UserRole)
 
-        self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
-
-        # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:
-        if not previous_parent:
-            return
-        parent_group = self.builder.get_group_from_id(
-            previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-        nr_groups = self.builder.get_nr_groups_from_group(parent_group)
-        text_nr_groups = str(nr_groups) if nr_groups else 'alle'
-        previous_parent.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
+        new_parent_id = obj_to_move_to.id if obj_to_move_to else None
+        self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id,
+                                                                 new_parent_id))
 
     def edit_item(self, item: QTreeWidgetItem):
+        print('edit item')
+        return
         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        data_date_object = item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole)
+        data_event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
-        if data_date_object:
-            print(item.text(0), data_date_object.date, data_date_object.time_of_day.name, f'Gr. {data_parent_group_nr}')
+        if data_event:
+            print(item.text(0), data_event.date, data_event.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
             dlg = DlgGroupProperties(self, item, self.builder)

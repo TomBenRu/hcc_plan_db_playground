@@ -10,7 +10,7 @@ class Create(Command):
         self.created_cast_group: schemas.CastGroupShow | None = None
 
     def execute(self):
-        self.created_cast_group = db_services.CastGroup.create(self.location_plan_period_id)
+        self.created_cast_group = db_services.CastGroup.create(location_plan_period_id=self.location_plan_period_id)
 
     def undo(self):
         db_services.CastGroup.delete(self.created_cast_group.id)
@@ -41,6 +41,15 @@ class SetNewParent(Command):
         """new_parent_id ist die id der parent-cast_group."""
         self.cast_group_id = cast_group_id
         self.new_parent_id = new_parent_id
-        self.old_parent_id: UUID | None = None
-        self.old_parent_nr_event_groups: int | None = None
+        self.old_parent = db_services.CastGroup.get(cast_group_id).cast_group
+        self.old_parent_id: UUID = self.old_parent.id if self.old_parent else None
+
+    def execute(self):
+        db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
+
+    def undo(self):
+        db_services.CastGroup.set_new_parent(self.cast_group_id, self.old_parent_id)
+
+    def redo(self):
+        db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
 

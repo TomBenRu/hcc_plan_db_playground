@@ -1064,13 +1064,20 @@ class EventGroup:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, location_plan_period_id: Optional[UUID] = None,
-               event_group_id: Optional[UUID] = None) -> schemas.EventGroupShow:
+               event_group_id: Optional[UUID] = None, undo_group_id: UUID = None) -> schemas.EventGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         location_plan_period_db = (models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
                                    if location_plan_period_id else None)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id) if event_group_id else None
-        new_event_group_db = models.EventGroup(location_plan_period=location_plan_period_db, event_group=event_group_db)
+
+        if undo_group_id:
+            print(f'{location_plan_period_id=}, {event_group_id=}, {undo_group_id=}')
+            new_event_group_db = models.EventGroup(id=undo_group_id, location_plan_period=location_plan_period_db,
+                                                   event_group=event_group_db)
+        else:
+            new_event_group_db = models.EventGroup(location_plan_period=location_plan_period_db,
+                                                   event_group=event_group_db)
 
         return schemas.EventGroupShow.model_validate(new_event_group_db)
 
@@ -1130,14 +1137,19 @@ class CastGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(location_plan_period_id: UUID, parent_cast_group_id: UUID = None) -> schemas.CastGroupShow:
+    def create(*, location_plan_period_id: UUID, parent_cast_group_id: UUID = None,
+               undo_cast_group_id: UUID = None) -> schemas.CastGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         parent_cast_group_db = (models.CastGroup.get_for_update(id=parent_cast_group_id)
                                 if parent_cast_group_id else None)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
-        cast_group_db = models.CastGroup(location_plan_period=location_plan_period_db,
-                                         cast_group = parent_cast_group_db)
+        if undo_cast_group_id:
+            cast_group_db = models.CastGroup(id=undo_cast_group_id, location_plan_period=location_plan_period_db,
+                                             cast_group=parent_cast_group_db)
+        else:
+            cast_group_db = models.CastGroup(location_plan_period=location_plan_period_db,
+                                             cast_group=parent_cast_group_db)
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @staticmethod

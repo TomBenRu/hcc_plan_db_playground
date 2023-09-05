@@ -18,13 +18,15 @@ class Create(Command):
 
     def execute(self):
         self.created_group = db_services.EventGroup.create(location_plan_period_id=self.location_plan_period_id,
-                                                           event_group_id=self.event_group_id)
+                                                           event_group_id=self.event_group_id, undo_group_id=None)
 
     def undo(self):
         db_services.EventGroup.delete(self.created_group.id)
 
     def redo(self):
-        self.created_group = db_services.EventGroup.create(self.location_plan_period_id, self.event_group_id)
+        self.created_group = db_services.EventGroup.create(location_plan_period_id=self.location_plan_period_id,
+                                                           event_group_id=self.event_group_id,
+                                                           undo_group_id=self.created_group.id)
 
 
 class Delete(Command):
@@ -47,8 +49,10 @@ class Delete(Command):
     def undo(self):
         location_plan_period_id = (self.event_group.location_plan_period.id
                                    if self.event_group.location_plan_period else None)
-        event_group_id = self.event_group.event_group.id if self.event_group.event_group else None
-        db_services.EventGroup.create(location_plan_period_id, event_group_id)
+        parent_event_group_id = self.event_group.event_group.id if self.event_group.event_group else None
+        db_services.EventGroup.create(location_plan_period_id=location_plan_period_id,
+                                      event_group_id=parent_event_group_id,
+                                      undo_group_id=self.event_group_id)
         if self.parent_nr_event_groups:
             db_services.EventGroup.update_nr_event_groups(self.event_group.event_group.id, self.parent_nr_event_groups)
 

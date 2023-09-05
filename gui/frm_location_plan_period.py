@@ -14,9 +14,8 @@ from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group
 from gui.actions import Action
-from gui.commands import command_base_classes, event_commands
-from gui.frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork, DlgFixedCastBuilderLocationPlanPeriod, \
-    DlgFixedCastBuilderEvent
+from gui.commands import command_base_classes, event_commands, cast_group_commands
+from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
 from gui.observer import signal_handling
 
@@ -148,7 +147,8 @@ class ButtonEvent(QPushButton):  # todo: Ändern
             return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
-        dlg = DlgFixedCastBuilderEvent(self.parent, event).build()
+        cast_group = db_services.CastGroup.get(event.cast_group.id)
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group).build()
         if dlg.exec():
             self.reload_location_plan_period()
             # todo: signal an FrmActorPlanPeriod und Tagesconfig-Button fixed_cast?
@@ -529,9 +529,11 @@ class FrmLocationPlanPeriod(QWidget):
             '''Falls es an diesem Tage schon einen oder mehrere Events gibt,
             werden die fixed_casts vom ersten gefundenen Event übernommen, weil, davon ausgegangen
             wird, dass schon evt. geänderte fixed_casts für alle Events an diesem Tag gelten.'''
-            if existing_events_on_day:
+            if existing_events_on_day:  # fixme
+                fixed_cast_first_event = db_services.Event.get(existing_events_on_day[0].id).cast_group.fixed_cast
                 self.controller.execute(
-                   event_commands.UpdateFixedCast(save_command.created_event.id, existing_events_on_day[0].fixed_cast))
+                   cast_group_commands.UpdateFixedCast(save_command.created_event.cast_group.id,
+                                                       fixed_cast_first_event))
 
             self.reload_location_plan_period()
 

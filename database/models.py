@@ -405,7 +405,6 @@ class Event(db.Entity):
     date = Required(datetime.date)
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
-    nr_actors = Required(int, size=8, unsigned=True)
     skill_groups = Set('SkillGroup')
     appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
@@ -418,11 +417,9 @@ class Event(db.Entity):
         return self.location_plan_period.plan_period
 
     def before_insert(self):
-        self.nr_actors = self.location_plan_period.nr_actors
         for t_o_d in self.location_plan_period.time_of_days:
             if not t_o_d.prep_delete:
                 self.time_of_days.add(t_o_d)
-        self.fixed_cast = self.location_plan_period.fixed_cast
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
@@ -461,6 +458,7 @@ class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Required('LocationPlanPeriod')
     fixed_cast = Optional(str, nullable=True)
+    nr_actors = Required(int, size=16, unsigned=True)
     cast_groups = Set('CastGroup', reverse='cast_group')
     cast_group = Optional('CastGroup', reverse='cast_groups')
     event = Optional(Event)
@@ -472,6 +470,10 @@ class CastGroup(db.Entity):
     @property
     def project(self):
         return self.location_plan_period.project
+
+    def before_insert(self):
+        self.nr_actors = self.location_plan_period.nr_actors
+        self.fixed_cast = self.location_plan_period.fixed_cast
 
 
 class CastRule(db.Entity):

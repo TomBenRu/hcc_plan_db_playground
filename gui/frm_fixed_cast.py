@@ -17,7 +17,8 @@ from sympy.logic.boolalg import BooleanFunction, to_dnf, simplify_logic
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
 from .actions import Action
-from .commands import location_of_work_commands, location_plan_period_commands, event_commands, command_base_classes
+from .commands import location_of_work_commands, location_plan_period_commands, event_commands, command_base_classes, \
+    cast_group_commands
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
@@ -121,12 +122,14 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
         return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
 
 
-class DlgFixedCastBuilderEvent(DlgFixedCastBuilderABC):
-    def __init__(self, parent, event: schemas.EventShow):
-        super().__init__(parent=parent, object_with_fixed_cast=event)
+class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
+    def __init__(self, parent, cast_group: schemas.CastGroupShow):
+        super().__init__(parent=parent, object_with_fixed_cast=cast_group)
+        self.object_with_fixed_cast: schemas.CastGroupShow = cast_group.model_copy()
 
     def _generate_field_values(self):
-        self.title_text = 'Feste Besetzung eines Events'
+        self.title_text = ('Feste Besetzung eines Events' if self.object_with_fixed_cast.event
+                           else 'Feste Besetzung einer Besetzungsgruppe')
         location_plan_period = db_services.LocationPlanPeriod.get(
             self.object_with_fixed_cast.location_plan_period.id
         )
@@ -134,15 +137,17 @@ class DlgFixedCastBuilderEvent(DlgFixedCastBuilderABC):
         self.location_of_work = db_services.LocationOfWork.get(
             self.object_with_fixed_cast.location_plan_period.location_of_work.id
         )
-        self.info_text = f'''das Event am "{self.object_with_fixed_cast.date.strftime('%d.%m.%y')}"'''
+        self.info_text = (f'''das Event am "{self.object_with_fixed_cast.event.date.strftime('%d.%m.%y')}"'''
+                          if self.object_with_fixed_cast.event else 'die Besetzungsgruppe')
         self.make_reset_menu = True
-        self.fixed_date = self.object_with_fixed_cast.date
-        self.update_command = partial(event_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
-        self.object_with_fixed_cast__refresh_func = partial(db_services.Event.get, self.object_with_fixed_cast.id)
+        self.fixed_date = (self.object_with_fixed_cast.event.date if self.object_with_fixed_cast.event
+                           else self.object_with_fixed_cast.location_plan_period.plan_period.start)  # fixme: for castgroup without event
+        self.update_command = partial(cast_group_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
+        self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
         team = get_curr_team_of_location_at_date(self.location_of_work, date)
-        return sorted(get_persons_of_team_at_date(team.id, self.object_with_fixed_cast.date), key=lambda x: x.f_name)
+        return sorted(get_persons_of_team_at_date(team.id, self.fixed_date), key=lambda x: x.f_name)  # fixme: for castgroup without event
 
 
 class SimplifyFixedCastAndInfo:
@@ -301,7 +306,7 @@ class DlgFixedCast(QDialog):
             fixed_cast_simplified = simplifier.simplified_fixed_cast
             self.controller.execute(self.builder.update_command(fixed_cast_simplified))
 
-            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
+            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:  # fixme for cast_groups without event
                 QMessageBox.warning(self, 'Fixed Cast',
                                     f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors}) übersteigt die '
                                     f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')

@@ -61,7 +61,7 @@ class ModelWithPartnerLocPrefs(Protocol):
 class ModelWithFixedCast(Protocol):
     id: UUID
     fixed_cast: Optional[str]
-    nr_actors: int
+    # nr_actors: int
 
     def model_copy(self, deep: bool = False):
         ...
@@ -442,7 +442,6 @@ class EventCreate(BaseModel):
     location_plan_period: 'LocationPlanPeriod'
     date: datetime.date
     time_of_day: TimeOfDay
-    nr_actors: Optional[int] = 2
     flags: List['Flag']
 
 
@@ -497,6 +496,7 @@ class CastGroup(CastGroupCreate):
 
     id: UUID
     fixed_cast: Optional[str]
+    nr_actors: int
     cast_group: Optional['CastGroup']
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.

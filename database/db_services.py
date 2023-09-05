@@ -1137,17 +1137,20 @@ class CastGroup:
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(*, location_plan_period_id: UUID, parent_cast_group_id: UUID = None,
-               undo_cast_group_id: UUID = None) -> schemas.CastGroupShow:
+               restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         parent_cast_group_db = (models.CastGroup.get_for_update(id=parent_cast_group_id)
                                 if parent_cast_group_id else None)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
-        if undo_cast_group_id:
-            cast_group_db = models.CastGroup(id=undo_cast_group_id, location_plan_period=location_plan_period_db,
+        if restore_cast_group:
+            cast_group_db = models.CastGroup(id=restore_cast_group.id, nr_actors=0,
+                                             location_plan_period=location_plan_period_db,
                                              cast_group=parent_cast_group_db)
+            cast_group_db.set(restore_cast_group.model_dump(
+                include={'nr_actors', 'fixed_cast', 'custom_rule', 'cast_rule', 'strict_cast_pref'}))
         else:
-            cast_group_db = models.CastGroup(location_plan_period=location_plan_period_db,
+            cast_group_db = models.CastGroup(nr_actors=0, location_plan_period=location_plan_period_db,
                                              cast_group=parent_cast_group_db)
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
@@ -1159,6 +1162,16 @@ class CastGroup:
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
         new_parent_db = models.CastGroup.get_for_update(id=new_parent_id) if new_parent_id else None
         cast_group_db.cast_group = new_parent_db
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_fixed_cast(cast_group_id: UUID, fixed_cast: str) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.fixed_cast = fixed_cast
 
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
@@ -1228,7 +1241,7 @@ class Event:
         cast_group = CastGroup.create(location_plan_period_id=event.location_plan_period.id)
         event_db = models.Event(
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
-            nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group.id),
+            event_group=models.EventGroup.get_for_update(id=event_group.id),
             cast_group=models.CastGroup.get_for_update(id=cast_group.id),
             location_plan_period=location_plan_period_db)
 
@@ -1242,16 +1255,6 @@ class Event:
         event_db = models.Event.get_for_update(id=event_id)
         new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
         event_db.time_of_day = new_time_of_day_db
-
-        return schemas.EventShow.model_validate(event_db)
-
-    @staticmethod
-    @db_session(sql_debug=True, show_values=True)
-    def update_fixed_cast(event_id: UUID, fixed_cast: str) -> schemas.EventShow:
-        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
-                     f'args: {locals()}')
-        event_db = models.Event.get_for_update(id=event_id)
-        event_db.fixed_cast = fixed_cast
 
         return schemas.EventShow.model_validate(event_db)
 

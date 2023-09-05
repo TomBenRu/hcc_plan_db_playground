@@ -146,8 +146,33 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
         self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
-        team = get_curr_team_of_location_at_date(self.location_of_work, date)
-        return sorted(get_persons_of_team_at_date(team.id, self.fixed_date), key=lambda x: x.f_name)  # fixme: for castgroup without event
+        if self.object_with_fixed_cast.event:
+            team = get_curr_team_of_location_at_date(self.location_of_work, self.object_with_fixed_cast.event.date)
+            return get_persons_of_team_at_date(team.id, date)
+        return self.union_persons()
+
+    def union_persons(self):
+        days_of_cast_group: list[datetime.date] = []
+
+        def find_recursive(cast_group: schemas.CastGroup):
+            for child_group in cast_group.cast_groups:
+                if child_group.event:
+                    days_of_cast_group.append(child_group.event.date)
+                else:
+                    find_recursive(child_group)
+
+        find_recursive(self.object_with_fixed_cast)
+        person_ids = set()
+        same_person_over_period = True
+        for day in days_of_cast_group:
+            team = get_curr_team_of_location_at_date(self.location_of_work, day)
+            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(team.id, day)}
+            if day != days_of_cast_group[0] and person_ids_at_day != person_ids:
+                same_person_over_period = False
+            person_ids |= person_ids_at_day
+        if not same_person_over_period:
+            self.warning_text = 'Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!'
+        return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
 
 
 class SimplifyFixedCastAndInfo:
@@ -565,6 +590,7 @@ class DlgFixedCast(QDialog):
         return form
 
     def proof_form_to_not_assigned_persons(self, form: list[list | str]):
+        print(self.persons)
         person_ids = [p.id for p in self.persons]
         for i, expression in enumerate(form):
             if isinstance(expression, str):

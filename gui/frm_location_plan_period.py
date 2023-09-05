@@ -529,7 +529,7 @@ class FrmLocationPlanPeriod(QWidget):
             '''Falls es an diesem Tage schon einen oder mehrere Events gibt,
             werden die fixed_casts vom ersten gefundenen Event übernommen, weil, davon ausgegangen
             wird, dass schon evt. geänderte fixed_casts für alle Events an diesem Tag gelten.'''
-            if existing_events_on_day:  # fixme
+            if existing_events_on_day:
                 fixed_cast_first_event = db_services.Event.get(existing_events_on_day[0].id).cast_group.fixed_cast
                 self.controller.execute(
                    cast_group_commands.UpdateFixedCast(save_command.created_event.cast_group.id,
@@ -619,7 +619,7 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('A2997911589B405D9F5C8CB36DB1D48C'))
+    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('0EC2EC2174D444948E6ACAE1B94F7E13'))
                     if not pp.prep_delete]
     window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()

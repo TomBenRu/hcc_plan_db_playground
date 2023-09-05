@@ -307,6 +307,18 @@ class DlgGroupProperties(QDialog):
     def nr_actors_changed(self):
         ...
 
+    def get_all_items(self) -> list[QTreeWidgetItem]:
+        all_items = []
+
+        def recurse(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                all_items.append(child)
+                recurse(child)
+
+        recurse(self.item)
+        return all_items
+
 
 class DlgCastGroups(QDialog):
     def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):

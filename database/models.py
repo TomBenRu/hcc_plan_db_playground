@@ -94,15 +94,16 @@ class Project(db.Entity):
     time_of_day_enums = Set('TimeOfDayEnum')
     time_of_day_enum_standards = Set('TimeOfDayEnum', reverse='project_standard')
     # Hier wird festgelegt,
-    # weche konkreten Tageszeiten für die jeweiligen Enums als Standard für das Projekt gelten sollen.
+    # welche konkreten Tageszeiten für die jeweiligen Enums als Standard für das Projekt gelten sollen.
     # Diese Standards werden von nachfolgenden Models übernommen,
-    # können da aber durch zuweisen der Enums zu anderen Tageszeiten
+    # können da aber durch Zuweisen der Enums zu anderen Tageszeiten
     # oder Entfernen des Standards verändert werden.
     excel_export_settings = Optional('ExcelExportSettings')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_location_prefs = Set('ActorLocationPref')
     skills = Set('Skill')
     flags = Set('Flag')
+    cast_rules = Set('CastRule')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -462,15 +463,32 @@ class CastGroup(db.Entity):
     fixed_cast = Optional(str, nullable=True)
     cast_groups = Set('CastGroup', reverse='cast_group')
     cast_group = Optional('CastGroup', reverse='cast_groups')
-    same_cast = Required(bool, default=False)
-    alternating_cast = Required(bool, default=False)
-    strict_alternating = Required(bool, default=False)
-    # in einer Gruppe mit mehr als 2 zeitlich geordneten Terminen: Bes. A | Bes. B | Bes. A usw.
+    event = Optional(Event)
+    custom_rule = Optional(str, nullable=True)
+    cast_rule = Optional('CastRule')
     strict_cast_pref = Required(int, size=8, default=2, unsigned=True)
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
-    custom_rule = Optional(str, nullable=True)
-    # Eigene Regel für Terminreihen (z.B.: ABC). Je nach Länge der Terminreihe wird die Regel wiederholt.
-    event = Optional(Event)
+
+    @property
+    def project(self):
+        return self.location_plan_period.project
+
+
+class CastRule(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    project = Required(Project)
+    name = Required(str, 50, unique=True)
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    prep_delete = Optional(datetime.datetime)
+    rule = Optional(str)
+    # Literale z.B. "ABAC": stehen für Besetzungen
+    # *: beliebige Besetzung
+    # ~: gleiche Besetzung
+    # -: andere Besetzung
+    # ... in Bezug auf den vorangegangenen Termin.
+    # Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.
+    cast_groups = Set(CastGroup)
 
 
 class LocationPlanPeriod(db.Entity):

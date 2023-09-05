@@ -1171,6 +1171,20 @@ class CastGroup:
         cast_group_db.delete()
 
 
+class CastRule:
+    @staticmethod
+    @db_session
+    def get(cast_rule_id: UUID) -> schemas.CastRuleShow:
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
+        return schemas.CastRuleShow.model_validate(cast_rule_db)
+
+    @staticmethod
+    @db_session
+    def get_all_from__project(project_id: UUID) -> list[schemas.CastRuleShow]:
+        project_db = models.Project.get_for_update(id=project_id)
+        return [schemas.CastRuleShow.model_validate(cl) for cl in project_db.cast_rules]
+
+
 class Event:
     @staticmethod
     @db_session
@@ -1211,7 +1225,7 @@ class Event:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=event.location_plan_period.id)
         master_event_group_db = location_plan_period_db.event_group
         event_group = EventGroup.create(event_group_id=master_event_group_db.id)
-        cast_group = CastGroup.create(event.location_plan_period.id)
+        cast_group = CastGroup.create(location_plan_period_id=event.location_plan_period.id)
         event_db = models.Event(
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
             nr_actors=event.nr_actors, event_group=models.EventGroup.get_for_update(id=event_group.id),

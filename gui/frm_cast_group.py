@@ -2,10 +2,10 @@ from typing import Callable, Sequence
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor
+from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
-                               QLineEdit)
+                               QLineEdit, QComboBox, QSlider)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, cast_group_commands
@@ -37,11 +37,10 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setForeground(2, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
-            text_mode = (None if not(group.same_cast or group.alternating_cast)
-                         else 'gleiche Besetzung' if group.same_cast else 'alternierende Besetzung')
+            ["Bezeichnung", "Datum", "Tageszeit", "strict_cast_pref", "fixed_cast"]
             self.setText(0, f'Gruppe_{group_nr:02}')
-            self.setText(3, text_mode)
-            self.setText(4, str(group.strict_cast_pref))
+            self.setText(3, str(group.strict_cast_pref))
+            self.setText(4, group.fixed_cast)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setBackground(0, QColor('#e1ffde'))
             self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
@@ -96,8 +95,8 @@ class TreeWidget(QTreeWidget):
 
         self.location_plan_period = location_plan_period
 
-        self.setColumnCount(6)
-        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", "modus", "same_cast_pref", "fixed_cast"])
+        self.setColumnCount(5)
+        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", "strict_cast_pref", "fixed_cast"])
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
 
@@ -206,6 +205,10 @@ class DlgGroupProperties(QDialog):
 
         self.group: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
+        self.strict_cast_pref_texts = {0: 'Besetzungsregel nicht beachten',
+                                       1: 'möglichst nah an Besetzungsregel',
+                                       2: 'unbedingt Besetzungsregel beachten'}
+
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout(self)
@@ -217,29 +220,33 @@ class DlgGroupProperties(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_same_cast = QLabel('gleiche Besetzung aller Termine')
-        self.chk_same_cast = QCheckBox('aktivieren?')
-        self.lb_alternating_cast = QLabel('unterschiedl. Besetzung 2er aufeinanderfolgender Termine')
-        self.chk_alternating_cast = QCheckBox('aktivieren?')
-        self.lb_strict_alternating = QLabel('Terminreihen strikt alternieren (A | B | A usw.)')
-        self.chk_strict_alternating = QCheckBox('aktivieren?')
-        self.lb_custom_rule = QLabel('Eigene Regel')
-        self.le_custom_rule = QLineEdit()
+        self.lb_info = QLabel()
+
+        self.lb_fixed_cast = QLabel('Feste Besetzung')
+        self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
+        self.lb_fixed_cast_value = QLabel()
+        self.lb_rule = QLabel('Eigene Regel')
+        self.combo_rules = QComboBox()
+        self.le_rule = QLineEdit()
+        self.lb_new_rule = QLabel('Neue Regel erstellen')
+        self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
 
-        self.layout_body.addWidget(self.lb_same_cast, 0, 0)
-        self.layout_body.addWidget(self.chk_same_cast, 0, 1)
-        self.layout_body.addWidget(self.lb_alternating_cast, 1, 0)
-        self.layout_body.addWidget(self.chk_alternating_cast, 1, 1)
-        self.layout_body.addWidget(self.lb_strict_alternating, 2, 0)
-        self.layout_body.addWidget(self.chk_strict_alternating, 2, 1)
-        self.layout_body.addWidget(self.lb_custom_rule, 3, 0)
-        self.layout_body.addWidget(self.le_custom_rule, 3, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref, 4, 0)
-        self.layout_body.addWidget(self.slider_strict_cast_pref, 4, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 4, 2)
+        self.layout_head.addWidget(self.lb_info)
+
+        self.layout_body.addWidget(self.lb_fixed_cast, 0, 0)
+        self.layout_body.addWidget(self.bt_fixed_cast, 0, 1)
+        self.layout_body.addWidget(self.lb_fixed_cast_value, 0, 3)
+        self.layout_body.addWidget(self.lb_rule, 1, 0)
+        self.layout_body.addWidget(self.combo_rules, 1, 1)
+        self.layout_body.addWidget(self.le_rule, 1, 2)
+        self.layout_body.addWidget(self.lb_new_rule, 2, 0)
+        self.layout_body.addWidget(self.bt_new_rule, 2, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref, 3, 0)
+        self.layout_body.addWidget(self.slider_strict_cast_pref, 3, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 3, 2)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -249,13 +256,42 @@ class DlgGroupProperties(QDialog):
 
         self.sliders_variation_weights = {}
 
-        self.setup_sliders()
+        self.setup_widgets()
 
     def reject(self) -> None:
         self.controller.undo_all()
         super().reject()
 
-    def setup_sliders(self):
+    def setup_widgets(self):
+        self.lb_info.setText('Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.')
+        self.lb_fixed_cast_value.setText(self.group.fixed_cast)
+        curr_combo_index = 0
+        self.combo_rules.addItem('keine Regel')
+        rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
+        for i, rule in enumerate(rules, start=1):
+            self.combo_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
+            if self.group.cast_rule and self.group.cast_rule.id == rule.id:
+                curr_combo_index = i
+        self.combo_rules.setCurrentIndex(curr_combo_index)
+        self.le_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
+        self.slider_strict_cast_pref.setMinimum(0)
+        self.slider_strict_cast_pref.setMaximum(2)
+        self.slider_strict_cast_pref.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_strict_cast_pref.setFixedWidth(150)
+        self.slider_strict_cast_pref.setValue(self.group.strict_cast_pref)
+        self.lb_strict_cast_pref_value_text.setText(self.strict_cast_pref_texts[self.group.strict_cast_pref])
+        self.slider_strict_cast_pref.valueChanged.connect(self.save_strict_cast_pref)
+        self.slider_strict_cast_pref.valueChanged.connect(
+            lambda: self.lb_strict_cast_pref_value_text.setText(
+                self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
+
+    def edit_fixed_cast(self):
+        ...
+
+    def new_rule(self):
+        ...
+
+    def save_strict_cast_pref(self):
         ...
 
 

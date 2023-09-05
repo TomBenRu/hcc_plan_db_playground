@@ -131,6 +131,7 @@ class ProjectShow(Project):
     excel_export_settings: Optional['ExcelExportSettings']
     skills: list['Skill']
     flags: list['Flag']
+    cast_rules: list['CastRule']
 
     @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
                      'time_of_day_enum_standards', 'skills', 'flags')
@@ -497,10 +498,6 @@ class CastGroup(CastGroupCreate):
     id: UUID
     fixed_cast: Optional[str]
     cast_group: Optional['CastGroup']
-    same_cast: bool
-    alternating_cast: bool
-    strict_alternating: bool
-    # in einer Gruppe mit mehr als 2 zeitlich geordneten Terminen: Bes. A | Bes. B | Bes. A usw.
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
     custom_rule: Optional[str]
@@ -510,10 +507,41 @@ class CastGroup(CastGroupCreate):
 
 class CastGroupShow(CastGroup):
     cast_groups: List['CastGroup']
+    cast_rule: Optional['CastRule']
+    project: Project
 
     @field_validator('cast_groups')
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
+
+
+class CastRuleCreate(BaseModel):
+    name: str
+    rule: Optional[str] = None
+    # Literale z.B. "ABAC": stehen für Besetzungen
+    # *: beliebige Besetzung
+    # ~: gleiche Besetzung
+    # -: andere Besetzung
+    # ... in Bezug auf den vorangegangenen Termin.
+    # Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.
+
+
+class CastRule(CastRuleCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    project: Project
+    name: str
+    created_at: datetime.datetime
+    last_modified: datetime.datetime
+    prep_delete: Optional[datetime.datetime]
+
+
+class CastRuleShow(CastRule):
+    cast_groups: List[CastGroup]
+
+    @field_validator('cast_groups')
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
 
 class LocationPlanPeriodCreate(BaseModel):

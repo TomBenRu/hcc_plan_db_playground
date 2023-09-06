@@ -590,7 +590,6 @@ class DlgFixedCast(QDialog):
         return form
 
     def proof_form_to_not_assigned_persons(self, form: list[list | str]):
-        print(self.persons)
         person_ids = [p.id for p in self.persons]
         for i, expression in enumerate(form):
             if isinstance(expression, str):

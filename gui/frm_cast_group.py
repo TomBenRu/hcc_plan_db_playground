@@ -1,3 +1,4 @@
+import json
 from typing import Callable, Sequence
 
 from PySide6 import QtCore
@@ -5,10 +6,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
-                               QLineEdit, QComboBox, QSlider, QSpinBox)
+                               QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, cast_group_commands
+from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
@@ -204,6 +206,7 @@ class DlgGroupProperties(QDialog):
         self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}')
 
         self.group: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        print(f'{self.group.cast_groups=}')
 
         self.strict_cast_pref_texts = {0: 'Besetzungsregel nicht beachten',
                                        1: 'möglichst nah an Besetzungsregel',
@@ -293,7 +296,11 @@ class DlgGroupProperties(QDialog):
                 self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
 
     def edit_fixed_cast(self):
-        ...
+        dlg = DlgFixedCastBuilderCastGroup(self, self.group).build()
+        if dlg.exec():
+            print('done')
+        else:
+            print('aboard')
 
     def new_rule(self):
         ...
@@ -330,6 +337,8 @@ class DlgCastGroups(QDialog):
         self.location_plan_period = location_plan_period
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.simplified = False
 
         self.layout = QVBoxLayout(self)
 
@@ -391,11 +400,10 @@ class DlgCastGroups(QDialog):
                                                                        Qt.ItemDataRole.UserRole)
 
         new_parent_id = obj_to_move_to.id if obj_to_move_to else None
-        self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id,
-                                                                 new_parent_id))
+        self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id, new_parent_id))
+        self.update_all_items()
 
     def edit_item(self, item: QTreeWidgetItem):
-        print('edit item')
         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         data_event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
@@ -409,4 +417,93 @@ class DlgCastGroups(QDialog):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
-            # self.update_items_after_edit(item)
+        self.update_all_items()
+
+    def update_all_items(self):
+        for item in self.get_all_items():
+            cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
+            item.setText(4, cast_group.fixed_cast)
+            item.setText(3, str(cast_group.strict_cast_pref))
+
+    def get_all_items(self) -> list[QTreeWidgetItem]:
+        all_items = []
+
+        def recurse(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                all_items.append(child)
+                recurse(child)
+
+        recurse(self.tree_groups.invisibleRootItem())
+        return all_items
+
+    def alert_solo_childs(self):
+        all_items = self.get_all_items()
+        for item in all_items:
+            if item.childCount() == 1:
+                if event := item.child(0).data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+                    QMessageBox.critical(
+                        self, 'Gruppenmodus',
+                        f'Mindestens eine Gruppe hat nur einen Termin:\n'
+                        f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
+                        f'{event.date.strftime("%d.%m.%y")} ({event.time_of_day.name})\n'
+                        f'Bitte korrigieren Sie das.'
+                    )
+                else:
+                    QMessageBox.critical(self, 'Gruppenmodus',
+                                         f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
+                                         f'Bitte korrigieren Sie das.')
+                return True
+        return False
+
+    def delete_unused_groups(self):
+        all_items = self.get_all_items()
+        to_delete: list[schemas.CastGroup] = []
+        for item in all_items:
+            event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
+            if not event and not item.childCount():
+                to_delete.append(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
+
+        if not to_delete:
+            return self.alert_solo_childs()
+        else:
+            self.simplified = True
+        for group in to_delete:
+            self.controller.execute(cast_group_commands.Delete(group.id))
+        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        self.refresh_tree()
+
+        return self.delete_unused_groups()
+
+    def accept(self):
+        if self.delete_unused_groups():
+            return
+        if self.simplified:
+            QMessageBox.information(self, 'Gruppenmodus',
+                                    'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+        super().accept()
+
+    def reject(self) -> None:
+        self.controller.undo_all()
+        self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
+        if self.alert_solo_childs():  # ...um nach Löschung eines Solo-Childs zu korrigieren.
+            return
+        super().reject()
+
+    def refresh_tree(self):
+        self.tree_groups.refresh_tree()
+
+    def resize_dialog(self):
+        height = self.tree_groups.header().height()
+        for item in self.get_all_items():
+            height += self.tree_groups.visualItemRect(item).height()
+
+        if self.tree_groups.horizontalScrollBar().isVisible():
+            height += self.tree_groups.horizontalScrollBar().height()
+
+        with open('config.json') as f:
+            json_data = json.load(f)
+        screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
+
+        self.resize(self.size().width(), min(height + 200, screen_height - 40))

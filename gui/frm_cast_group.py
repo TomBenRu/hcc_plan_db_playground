@@ -236,6 +236,10 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast = QLabel('Feste Besetzung')
         self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
         self.lb_fixed_cast_value = QLabel()
+        self.lb_fixed_cast_warning = QLabel()
+        self.lb_fixed_cast_warning.setObjectName('fixed_cast_warning')
+        self.bt_correct_childs_fixed_cast = QPushButton('Feste Besetzung untergeordneter Elemente korrigieren',
+                                                        clicked=self.correct_childs_fixed_cast)
         self.lb_rule = QLabel('Eigene Regel')
         self.combo_rules = QComboBox()
         self.le_rule = QLineEdit()
@@ -245,6 +249,8 @@ class DlgGroupProperties(QDialog):
         self.spin_nr_actors = QSpinBox()
         self.lb_nr_actors_warning = QLabel()
         self.lb_nr_actors_warning.setObjectName('nr_actors_warning')
+        self.bt_correct_childs_nr_actors = QPushButton('Besetzungsgröße untergeordneter Elemente korrigieren',
+                                                       clicked=self.correct_childs_nr_actors)
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
@@ -254,17 +260,20 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.lb_fixed_cast, 0, 0)
         self.layout_body.addWidget(self.bt_fixed_cast, 0, 1)
         self.layout_body.addWidget(self.lb_fixed_cast_value, 0, 2)
-        self.layout_body.addWidget(self.lb_rule, 1, 0)
-        self.layout_body.addWidget(self.combo_rules, 1, 1)
-        self.layout_body.addWidget(self.le_rule, 1, 2)
-        self.layout_body.addWidget(self.lb_new_rule, 2, 0)
-        self.layout_body.addWidget(self.bt_new_rule, 2, 1)
-        self.layout_body.addWidget(self.lb_nr_actors, 3, 0)
-        self.layout_body.addWidget(self.spin_nr_actors, 3, 1)
-        self.layout_body.addWidget(self.lb_nr_actors_warning, 3, 2)
-        self.layout_body.addWidget(self.lb_strict_cast_pref, 4, 0)
-        self.layout_body.addWidget(self.slider_strict_cast_pref, 4, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 4, 2)
+        self.layout_body.addWidget(self.lb_fixed_cast_warning, 1, 2)
+        self.layout_body.addWidget(self.bt_correct_childs_fixed_cast, 2, 2)
+        self.layout_body.addWidget(self.lb_rule, 3, 0)
+        self.layout_body.addWidget(self.combo_rules, 3, 1)
+        self.layout_body.addWidget(self.le_rule, 3, 2)
+        self.layout_body.addWidget(self.lb_new_rule, 4, 0)
+        self.layout_body.addWidget(self.bt_new_rule, 4, 1)
+        self.layout_body.addWidget(self.lb_nr_actors, 5, 0)
+        self.layout_body.addWidget(self.spin_nr_actors, 5, 1)
+        self.layout_body.addWidget(self.lb_nr_actors_warning, 5, 2)
+        self.layout_body.addWidget(self.bt_correct_childs_nr_actors, 6, 2)
+        self.layout_body.addWidget(self.lb_strict_cast_pref, 7, 0)
+        self.layout_body.addWidget(self.slider_strict_cast_pref, 7, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 7, 2)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -281,11 +290,13 @@ class DlgGroupProperties(QDialog):
         super().reject()
 
     def setup_widgets(self):
-        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.\n'
-                             'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der übergeordneten '
-                             'Gruppe. Das gilt für: fixed_cast, nr_actors.' if self.group.event
-                             else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.')
+        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.' if self.group.event
+                             else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.\n'
+                                  'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der '
+                                  'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.'
+                             )
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
+        self.set_fixed_cast_warning()
         curr_combo_index = 0
         self.combo_rules.addItem('keine Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
@@ -311,12 +322,20 @@ class DlgGroupProperties(QDialog):
                 self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
 
     def set_nr_actors_warning(self):
-        if self.check_nr_actors_are_different():
+        if self.check_childs_nr_actors_are_different():
             self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: orangered}')
             self.lb_nr_actors_warning.setText('Untergeordnete Elemente haben eine andere Besetzungsstärke.')
         else:
             self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: green}')
-            self.lb_nr_actors_warning.setText('Alles in Ordnung')
+            self.lb_nr_actors_warning.setText('Alles in Ordnung.')
+
+    def set_fixed_cast_warning(self):
+        if self.check_childs_fixed_cast_are_different():
+            self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: orangered}')
+            self.lb_fixed_cast_warning.setText('Untergeordnete Elemente haben eine andere feste Besetzung.')
+        else:
+            self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: green}')
+            self.lb_fixed_cast_warning.setText('Alles in Ordnung.')
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderCastGroup(self, self.group).build()
@@ -325,6 +344,8 @@ class DlgGroupProperties(QDialog):
             self.group = db_services.CastGroup.get(self.group.id)
             self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast)
                                              if self.group.fixed_cast else None)
+            self.group = db_services.CastGroup.get(self.group.id)
+            self.set_fixed_cast_warning()
         else:
             print('aboard')
 
@@ -339,12 +360,34 @@ class DlgGroupProperties(QDialog):
 
     def nr_actors_changed(self):
         self.controller.execute(cast_group_commands.UpdateNrActors(self.group.id, self.spin_nr_actors.value()))
-        self.group.nr_actors = self.spin_nr_actors.value()
+        self.group = db_services.CastGroup.get(self.group.id)
         self.set_nr_actors_warning()
 
-    def check_nr_actors_are_different(self) -> bool:
-        return any(self.group.nr_actors != cg.data(
-            TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).nr_actors for cg in self.get_all_items())
+    def check_childs_nr_actors_are_different(self) -> bool:
+        for child in self.get_all_items():
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            if db_services.CastGroup.get(child_group_id).nr_actors != self.group.nr_actors:
+                return True
+
+    def check_childs_fixed_cast_are_different(self) -> bool:
+        for child in self.get_all_items():
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            if (child_fixed_cast := db_services.CastGroup.get(child_group_id).fixed_cast) is None:
+                continue
+            if child_fixed_cast != self.group.fixed_cast:
+                return True
+
+    def correct_childs_fixed_cast(self):
+        for child in self.get_all_items():
+            child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            self.controller.execute(cast_group_commands.UpdateFixedCast(child_group.id, self.group.fixed_cast))
+        self.set_fixed_cast_warning()
+
+    def correct_childs_nr_actors(self):
+        for child in self.get_all_items():
+            child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            self.controller.execute(cast_group_commands.UpdateNrActors(child_group.id, self.group.nr_actors))
+        self.set_nr_actors_warning()
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []

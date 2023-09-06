@@ -66,7 +66,13 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None):
                 clear_list.append(str(generate_recursive(item)))
         return clear_list[0] if len(clear_list) == 1 else '(' + ' '.join(clear_list) + ')'
     item = backtranslate_eval_str(fixed_cast)
-    return generate_recursive(item or [])[1:-1]
+    clear_text = generate_recursive(item or [])
+    if clear_text.startswith('('):
+        clear_text = clear_text[1:]
+    if clear_text.endswith(')'):
+        clear_text = clear_text[:-1]
+
+    return clear_text
 
 
 class DlgFixedCastBuilderABC(ABC):

@@ -244,7 +244,7 @@ class DlgGroupProperties(QDialog):
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
         self.spin_nr_actors = QSpinBox()
         self.lb_nr_actors_warning = QLabel()
-        self.lb_nr_actors_warning.setObjectName('nr_actor_warning')
+        self.lb_nr_actors_warning.setObjectName('nr_actors_warning')
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
@@ -312,10 +312,10 @@ class DlgGroupProperties(QDialog):
 
     def set_nr_actors_warning(self):
         if self.check_nr_actors_are_different():
-            self.lb_nr_actors_warning.setStyleSheet('color: red')
+            self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: orangered}')
             self.lb_nr_actors_warning.setText('Untergeordnete Elemente haben eine andere Besetzungsstärke.')
         else:
-            self.lb_nr_actors_warning.setStyleSheet('color: green')
+            self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: green}')
             self.lb_nr_actors_warning.setText('Alles in Ordnung')
 
     def edit_fixed_cast(self):

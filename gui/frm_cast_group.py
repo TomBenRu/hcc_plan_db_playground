@@ -32,7 +32,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setText(0, 'gesetzt')
             self.setText(1, event.date.strftime('%d.%m.%y'))
             self.setText(2, event.time_of_day.name)
-            self.setText(5, group.fixed_cast or '')
+            self.setText(4, group.fixed_cast)
 
             self.setForeground(0, QColor('#5a009f'))
             self.setForeground(1, QColor('blue'))

@@ -576,7 +576,15 @@ class FrmLocationPlanPeriod(QWidget):
     def change_mode__cast_group(self):
         dlg = frm_cast_group.DlgCastGroups(self, self.location_plan_period)
         if dlg.exec():
-            print('done')
+            QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
+            self.reload_location_plan_period()
+            signal_handling.handler_location_plan_period.reload_location_pp__events(
+                signal_handling.DataLocationPPWithDate(self.location_plan_period))
+        else:
+            QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
+
+        signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+            signal_handling.DataGroupMode(False))
 
     def get_events(self):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)

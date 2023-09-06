@@ -70,3 +70,21 @@ class UpdateFixedCast(Command):
     def redo(self):
         db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast)
 
+
+class UpdateNrActors(Command):
+    def __init__(self, cast_group_id: UUID, nr_actors: int):
+        self.cast_group_id = cast_group_id
+        self.nr_actors = nr_actors
+        self.nr_actors_old = db_services.CastGroup.get(cast_group_id).nr_actors
+
+    def execute(self):
+        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
+
+    def undo(self):
+        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors_old)
+
+    def redo(self):
+        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
+
+
+

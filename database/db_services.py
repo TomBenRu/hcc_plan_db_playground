@@ -1177,6 +1177,16 @@ class CastGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_nr_actors(cast_group_id: UUID, nr_actors: int) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.nr_actors = nr_actors
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cast_group_id: UUID):
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

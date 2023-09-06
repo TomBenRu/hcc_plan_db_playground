@@ -3,7 +3,7 @@ from typing import Callable, Sequence
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor, QIcon
+from PySide6.QtGui import QDropEvent, QColor, QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
                                QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox)
@@ -21,8 +21,9 @@ TREE_ITEM_DATA_COLUMN__EVENT = 5
 TREE_HEAD_COLUMN__TITEL = 0
 TREE_HEAD_COLUMN__DATE = 1
 TREE_HEAD_COLUMN__TIME_OF_DAY = 2
-TREE_HEAD_COLUMN__STRICT_CAST_PREF = 3
+TREE_HEAD_COLUMN__NR_ACTORS = 3
 TREE_HEAD_COLUMN__FIXED_CAST = 4
+TREE_HEAD_COLUMN__STRICT_CAST_PREF = 5
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -37,17 +38,18 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setText(TREE_HEAD_COLUMN__DATE, event.date.strftime('%d.%m.%y'))
             self.setText(TREE_HEAD_COLUMN__TIME_OF_DAY, event.time_of_day.name)
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
+            self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
 
             self.setForeground(TREE_HEAD_COLUMN__TITEL, QColor('#5a009f'))
             self.setForeground(TREE_HEAD_COLUMN__DATE, QColor('blue'))
             self.setForeground(TREE_HEAD_COLUMN__TIME_OF_DAY, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
-            ["Bezeichnung", "Datum", "Tageszeit", "strict_cast_pref", "fixed_cast"]
             self.setText(TREE_HEAD_COLUMN__TITEL, f'Gruppe_{group_nr:02}')
             self.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(group.strict_cast_pref))
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
+            self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
             self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor('#e1ffde'))
             self.setToolTip(TREE_HEAD_COLUMN__TITEL, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
 
@@ -101,8 +103,8 @@ class TreeWidget(QTreeWidget):
 
         self.location_plan_period = location_plan_period
 
-        self.setColumnCount(5)
-        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", "strict_cast_pref", "fixed_cast"])
+        self.setColumnCount(6)
+        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "strict_cast_pref"])
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
 
@@ -208,7 +210,8 @@ class DlgGroupProperties(QDialog):
 
         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
-        self.group: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        item_data: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        self.group = item_data.model_copy()
 
         self.setWindowTitle('Eigenschaften des Termins' if self.group.event
                             else f'Eigenschaften von Gruppe {self.group_nr:02}')
@@ -240,6 +243,8 @@ class DlgGroupProperties(QDialog):
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
         self.spin_nr_actors = QSpinBox()
+        self.lb_nr_actors_warning = QLabel()
+        self.lb_nr_actors_warning.setObjectName('nr_actor_warning')
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
@@ -256,6 +261,7 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.bt_new_rule, 2, 1)
         self.layout_body.addWidget(self.lb_nr_actors, 3, 0)
         self.layout_body.addWidget(self.spin_nr_actors, 3, 1)
+        self.layout_body.addWidget(self.lb_nr_actors_warning, 3, 2)
         self.layout_body.addWidget(self.lb_strict_cast_pref, 4, 0)
         self.layout_body.addWidget(self.slider_strict_cast_pref, 4, 1)
         self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 4, 2)
@@ -275,7 +281,9 @@ class DlgGroupProperties(QDialog):
         super().reject()
 
     def setup_widgets(self):
-        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.' if self.group.event
+        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.\n'
+                             'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der übergeordneten '
+                             'Gruppe. Das gilt für: fixed_cast, nr_actors.' if self.group.event
                              else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.')
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         curr_combo_index = 0
@@ -290,6 +298,7 @@ class DlgGroupProperties(QDialog):
         self.le_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
         self.spin_nr_actors.setValue(self.group.nr_actors)
         self.spin_nr_actors.valueChanged.connect(self.nr_actors_changed)
+        self.set_nr_actors_warning()
         self.slider_strict_cast_pref.setMinimum(0)
         self.slider_strict_cast_pref.setMaximum(2)
         self.slider_strict_cast_pref.setTickPosition(QSlider.TickPosition.TicksBelow)
@@ -300,6 +309,14 @@ class DlgGroupProperties(QDialog):
         self.slider_strict_cast_pref.valueChanged.connect(
             lambda: self.lb_strict_cast_pref_value_text.setText(
                 self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
+
+    def set_nr_actors_warning(self):
+        if self.check_nr_actors_are_different():
+            self.lb_nr_actors_warning.setStyleSheet('color: red')
+            self.lb_nr_actors_warning.setText('Untergeordnete Elemente haben eine andere Besetzungsstärke.')
+        else:
+            self.lb_nr_actors_warning.setStyleSheet('color: green')
+            self.lb_nr_actors_warning.setText('Alles in Ordnung')
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderCastGroup(self, self.group).build()
@@ -321,7 +338,13 @@ class DlgGroupProperties(QDialog):
         ...
 
     def nr_actors_changed(self):
-        ...
+        self.controller.execute(cast_group_commands.UpdateNrActors(self.group.id, self.spin_nr_actors.value()))
+        self.group.nr_actors = self.spin_nr_actors.value()
+        self.set_nr_actors_warning()
+
+    def check_nr_actors_are_different(self) -> bool:
+        return any(self.group.nr_actors != cg.data(
+            TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).nr_actors for cg in self.get_all_items())
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []
@@ -412,14 +435,10 @@ class DlgCastGroups(QDialog):
         self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id, new_parent_id))
         self.update_all_items()
 
-    def edit_item(self, item: QTreeWidgetItem):
-        data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        data_event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
-        data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
-
+    def edit_item(self, item: QTreeWidgetItem):  # todo: Möglichkeit zum Anpassen von Eigenschaften der Childs hinzufügen
         dlg = DlgGroupProperties(self, item)
 
-        if data_event:
+        if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
             for widget in (dlg.lb_rule, dlg.combo_rules, dlg.le_rule, dlg.lb_new_rule, dlg.bt_new_rule,
                            dlg.lb_strict_cast_pref, dlg.slider_strict_cast_pref, dlg.lb_strict_cast_pref_value_text):
                 widget.setParent(None)
@@ -432,14 +451,15 @@ class DlgCastGroups(QDialog):
         self.update_all_items()
 
     def update_all_items(self):
-        for item in self.get_all_items():
+        for item in self.get_all_child_items():
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
-            item.setText(4, generate_fixed_cast_clear_text(cast_group.fixed_cast))
+            item.setText(TREE_HEAD_COLUMN__FIXED_CAST, generate_fixed_cast_clear_text(cast_group.fixed_cast))
             if not item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-                item.setText(3, str(cast_group.strict_cast_pref))
+                item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(cast_group.strict_cast_pref))
+            item.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(cast_group.nr_actors))
 
-    def get_all_items(self) -> list[QTreeWidgetItem]:
+    def get_all_child_items(self, item: QTreeWidgetItem = None) -> list[QTreeWidgetItem]:
         all_items = []
 
         def recurse(parent_item):
@@ -448,11 +468,12 @@ class DlgCastGroups(QDialog):
                 all_items.append(child)
                 recurse(child)
 
-        recurse(self.tree_groups.invisibleRootItem())
+        root_item = item or self.tree_groups.invisibleRootItem()
+        recurse(root_item)
         return all_items
 
     def alert_solo_childs(self):
-        all_items = self.get_all_items()
+        all_items = self.get_all_child_items()
         for item in all_items:
             if item.childCount() == 1:
                 if event := item.child(0).data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
@@ -471,7 +492,7 @@ class DlgCastGroups(QDialog):
         return False
 
     def delete_unused_groups(self):
-        all_items = self.get_all_items()
+        all_items = self.get_all_child_items()
         to_delete: list[schemas.CastGroup] = []
         for item in all_items:
             event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
@@ -509,7 +530,7 @@ class DlgCastGroups(QDialog):
 
     def resize_dialog(self):
         height = self.tree_groups.header().height()
-        for item in self.get_all_items():
+        for item in self.get_all_child_items():
             height += self.tree_groups.visualItemRect(item).height()
 
         if self.tree_groups.horizontalScrollBar().isVisible():

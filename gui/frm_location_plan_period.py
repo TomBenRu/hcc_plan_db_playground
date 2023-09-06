@@ -23,6 +23,9 @@ from gui.observer import signal_handling
 def disconnect_event_button_signals():
     try:
         signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.disconnect()
+    except Exception as e:
+        print(f'Fehler: {e}')
+    try:
         signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect()
     except Exception as e:
         print(f'Fehler: {e}')

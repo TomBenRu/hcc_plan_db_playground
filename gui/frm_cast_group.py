@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPush
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, cast_group_commands
-from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup
+from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
@@ -18,8 +18,11 @@ TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
 TREE_ITEM_DATA_COLUMN__GROUP = 4
 TREE_ITEM_DATA_COLUMN__EVENT = 5
-TREE_HEAD_COLUMN__NR_GROUPS = 3
-TREE_HEAD_COLUMN__PRIORITY = 4
+TREE_HEAD_COLUMN__TITEL = 0
+TREE_HEAD_COLUMN__DATE = 1
+TREE_HEAD_COLUMN__TIME_OF_DAY = 2
+TREE_HEAD_COLUMN__STRICT_CAST_PREF = 3
+TREE_HEAD_COLUMN__FIXED_CAST = 4
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -28,24 +31,25 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
+        fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast)
         if event:
-            self.setText(0, 'gesetzt')
-            self.setText(1, event.date.strftime('%d.%m.%y'))
-            self.setText(2, event.time_of_day.name)
-            self.setText(4, group.fixed_cast)
+            self.setText(TREE_HEAD_COLUMN__TITEL, 'gesetzt')
+            self.setText(TREE_HEAD_COLUMN__DATE, event.date.strftime('%d.%m.%y'))
+            self.setText(TREE_HEAD_COLUMN__TIME_OF_DAY, event.time_of_day.name)
+            self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
 
-            self.setForeground(0, QColor('#5a009f'))
-            self.setForeground(1, QColor('blue'))
-            self.setForeground(2, QColor('#9f0057'))
+            self.setForeground(TREE_HEAD_COLUMN__TITEL, QColor('#5a009f'))
+            self.setForeground(TREE_HEAD_COLUMN__DATE, QColor('blue'))
+            self.setForeground(TREE_HEAD_COLUMN__TIME_OF_DAY, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
             ["Bezeichnung", "Datum", "Tageszeit", "strict_cast_pref", "fixed_cast"]
-            self.setText(0, f'Gruppe_{group_nr:02}')
-            self.setText(3, str(group.strict_cast_pref))
-            self.setText(4, group.fixed_cast)
+            self.setText(TREE_HEAD_COLUMN__TITEL, f'Gruppe_{group_nr:02}')
+            self.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(group.strict_cast_pref))
+            self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
-            self.setBackground(0, QColor('#e1ffde'))
-            self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
+            self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor('#e1ffde'))
+            self.setToolTip(TREE_HEAD_COLUMN__TITEL, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
 
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
@@ -147,6 +151,7 @@ class TreeWidget(QTreeWidget):
             children = parent_group.cast_groups
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
+                child = db_services.CastGroup.get(child.id)
                 if date_object := child.event:
                     item = TreeWidgetItem(parent)
                     item.configure(child, date_object, None, parent_group_nr)
@@ -160,7 +165,7 @@ class TreeWidget(QTreeWidget):
                     self.nr_main_groups += 1
                     item = TreeWidgetItem(parent)
                     item.configure(child, None, self.nr_main_groups, parent_group_nr)
-                    add_children(item, db_services.CastGroup.get(child.id))
+                    add_children(item, child)
 
         cast_groups = db_services.CastGroup.get_all_from__location_plan_period(self.location_plan_period.id)
         most_top_cast_groups = [cg for cg in cast_groups if not cg.cast_group]
@@ -203,10 +208,10 @@ class DlgGroupProperties(QDialog):
 
         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
-        self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}')
-
         self.group: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        print(f'{self.group.cast_groups=}')
+
+        self.setWindowTitle('Eigenschaften des Termins' if self.group.event
+                            else f'Eigenschaften von Gruppe {self.group_nr:02}')
 
         self.strict_cast_pref_texts = {0: 'Besetzungsregel nicht beachten',
                                        1: 'möglichst nah an Besetzungsregel',
@@ -270,8 +275,9 @@ class DlgGroupProperties(QDialog):
         super().reject()
 
     def setup_widgets(self):
-        self.lb_info.setText('Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.')
-        self.lb_fixed_cast_value.setText(self.group.fixed_cast)
+        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.' if self.group.event
+                             else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.')
+        self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         curr_combo_index = 0
         self.combo_rules.addItem('keine Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
@@ -298,7 +304,10 @@ class DlgGroupProperties(QDialog):
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderCastGroup(self, self.group).build()
         if dlg.exec():
-            print('done')
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.group = db_services.CastGroup.get(self.group.id)
+            self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast)
+                                             if self.group.fixed_cast else None)
         else:
             print('aboard')
 
@@ -407,15 +416,18 @@ class DlgCastGroups(QDialog):
         data_group = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         data_event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
         data_parent_group_nr = item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)
+
+        dlg = DlgGroupProperties(self, item)
+
         if data_event:
-            print(item.text(0), data_event.date, data_event.time_of_day.name, f'Gr. {data_parent_group_nr}')
-            print(f'{data_group=}')
-        else:
-            dlg = DlgGroupProperties(self, item)
-            if not dlg.exec():
-                return
-            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+            for widget in (dlg.lb_rule, dlg.combo_rules, dlg.le_rule, dlg.lb_new_rule, dlg.bt_new_rule,
+                           dlg.lb_strict_cast_pref, dlg.slider_strict_cast_pref, dlg.lb_strict_cast_pref_value_text):
+                widget.setParent(None)
+
+        if not dlg.exec():
+            return
+        self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
         self.update_all_items()
 
@@ -423,8 +435,9 @@ class DlgCastGroups(QDialog):
         for item in self.get_all_items():
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
-            item.setText(4, cast_group.fixed_cast)
-            item.setText(3, str(cast_group.strict_cast_pref))
+            item.setText(4, generate_fixed_cast_clear_text(cast_group.fixed_cast))
+            if not item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+                item.setText(3, str(cast_group.strict_cast_pref))
 
     def get_all_items(self) -> list[QTreeWidgetItem]:
         all_items = []

@@ -4,7 +4,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Literal, Callable
+from typing import Literal, Callable, TypeAlias
 from uuid import UUID
 
 import sympy
@@ -22,12 +22,57 @@ from .commands import location_of_work_commands, location_plan_period_commands, 
 from .tools.qcombobox_find_data import QComboBoxToFindData
 
 
+object_with_fixed_cast_type: TypeAlias = (schemas.LocationOfWorkShow |
+                                          schemas.LocationPlanPeriodShow |
+                                          schemas.CastGroupShow)
+
+
+def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
+    form = []
+    eval_str = fixed_cast
+    if not eval_str:
+        return
+    e_s = eval_str.replace('and', ',"and",').replace('or', ',"or",').replace(f'in {str_for_team}', '')
+    e_s = eval(e_s)
+    if type(e_s) != tuple:
+        e_s = (e_s,)
+    for element in e_s:
+        if type(element) == tuple:
+            break
+    else:
+        e_s = [e_s]
+    for val in e_s:
+        if type(val) in [int, UUID]:
+            form.append([val])
+        elif type(val) == str:
+            form.append(val)
+        else:
+            form.append(list(val))
+    return form
+
+
+def generate_fixed_cast_clear_text(fixed_cast: str | None):
+    replace_map = {'and': 'und', 'or': 'oder'}
+
+    def generate_recursive(item_list: list):
+        clear_list = []
+        for item in item_list:
+            if isinstance(item, str):
+                clear_list.append(replace_map[item])
+            elif isinstance(item, UUID):
+                person = db_services.Person.get(item)
+                clear_list.append(f'{person.f_name} {person.l_name}')
+            else:
+                clear_list.append(str(generate_recursive(item)))
+        return clear_list[0] if len(clear_list) == 1 else '(' + ' '.join(clear_list) + ')'
+    item = backtranslate_eval_str(fixed_cast)
+    return generate_recursive(item or [])[1:-1]
+
+
 class DlgFixedCastBuilderABC(ABC):
     def __init__(self, parent: QWidget, object_with_fixed_cast: schemas.ModelWithFixedCast):
 
-        self.object_with_fixed_cast: (schemas.LocationOfWorkShow |
-                                      schemas.LocationPlanPeriodShow |
-                                      schemas.EventShow | None) = object_with_fixed_cast.model_copy()
+        self.object_with_fixed_cast: (object_with_fixed_cast_type | None) = object_with_fixed_cast.model_copy()
         self.parent_widget = parent
         self.parent_fixed_cast: str | None = None
         self.location_of_work: schemas.LocationOfWorkShow | None = None
@@ -541,7 +586,7 @@ class DlgFixedCast(QDialog):
         if not self.object_with_fixed_cast.fixed_cast:
             self.layout_grid.addWidget(self.bt_new_row, 0, 0)
             return
-        form = self.backtranslate_eval_str()
+        form = backtranslate_eval_str(self.object_with_fixed_cast.fixed_cast)
         form_cleaned = self.proof_form_to_not_assigned_persons(form)
 
         for row_idx, row in enumerate(form_cleaned):
@@ -565,29 +610,6 @@ class DlgFixedCast(QDialog):
                         self.layout_grid.addWidget(cb_actors, row_idx, col_idx+1)
 
         self.layout_grid.addWidget(self.bt_new_row, len(form), 0)
-
-    def backtranslate_eval_str(self, str_for_team: str = 'team'):
-        form = []
-        eval_str = self.object_with_fixed_cast.fixed_cast
-        if not eval_str:
-            return
-        e_s = eval_str.replace('and', ',"and",').replace('or', ',"or",').replace(f'in {str_for_team}', '')
-        e_s = eval(e_s)
-        if type(e_s) != tuple:
-            e_s = (e_s,)
-        for element in e_s:
-            if type(element) == tuple:
-                break
-        else:
-            e_s = [e_s]
-        for val in e_s:
-            if type(val) in [int, UUID]:
-                form.append([val])
-            elif type(val) == str:
-                form.append(val)
-            else:
-                form.append(list(val))
-        return form
 
     def proof_form_to_not_assigned_persons(self, form: list[list | str]):
         person_ids = [p.id for p in self.persons]

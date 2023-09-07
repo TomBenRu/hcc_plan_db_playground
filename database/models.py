@@ -483,7 +483,7 @@ class CastRule(db.Entity):
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
-    rule = Optional(str)
+    rule = Required(str)
     # Literale z.B. "ABAC": stehen für Besetzungen
     # *: beliebige Besetzung
     # ~: gleiche Besetzung

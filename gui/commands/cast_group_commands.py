@@ -122,8 +122,9 @@ class UpdateCustomRule(Command):
 class UpdateCastRule(Command):
     def __init__(self, cast_group_id: UUID, cast_rule_id: UUID | None):
         self.cast_group_id = cast_group_id
+        self.cast_group = db_services.CastGroup.get(cast_group_id)
         self.cast_rule_id = cast_rule_id
-        self.cast_rule_id_old = db_services.CastGroup.get(cast_group_id).cast_rule.id
+        self.cast_rule_id_old = self.cast_group.cast_rule.id if self.cast_group.cast_rule else None
 
     def execute(self):
         db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id)

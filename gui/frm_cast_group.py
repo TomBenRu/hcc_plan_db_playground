@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPush
                                QTreeWidgetItem, QGridLayout, QLabel, QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
 
 from database import schemas, db_services
+from gui import frm_cast_rule
 from gui.actions import Action
 from gui.commands import command_base_classes, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
@@ -305,15 +306,7 @@ class DlgGroupProperties(QDialog):
         self.bt_correct_childs_fixed_cast__menu_config()
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         self.set_fixed_cast_warning()
-        curr_combo_index = 0
-        self.combo_cast_rules.addItem('Eigene Regel')
-        rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
-        for i, rule in enumerate(rules, start=1):
-            self.combo_cast_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
-            if self.group.cast_rule and self.group.cast_rule.id == rule.id:
-                curr_combo_index = i
-        self.combo_cast_rules.setCurrentIndex(curr_combo_index)
-        self.combo_cast_rules.currentIndexChanged.connect(self.combo_rules_changed)
+        self.setup_combo_cast_rules()
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
         self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*#~-'))
         self.le_custom_rule.textChanged.connect(self.custom_rule_changed)
@@ -356,6 +349,20 @@ class DlgGroupProperties(QDialog):
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: green}')
             self.lb_fixed_cast_warning.setText('Alles in Ordnung.')
 
+    def setup_combo_cast_rules(self):
+        self.combo_cast_rules.clear()
+        self.combo_cast_rules.blockSignals(True)
+        curr_combo_index = 0
+        self.combo_cast_rules.addItem('Eigene Regel')
+        rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
+        for i, rule in enumerate(rules, start=1):
+            self.combo_cast_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
+            if self.group.cast_rule and (self.group.cast_rule.id == rule.id):
+                curr_combo_index = i
+        self.combo_cast_rules.setCurrentIndex(curr_combo_index)
+        self.combo_cast_rules.currentIndexChanged.connect(self.combo_rules_changed)
+        self.combo_cast_rules.blockSignals(False)
+
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderCastGroup(self, self.group).build()
         if dlg.exec():
@@ -369,7 +376,15 @@ class DlgGroupProperties(QDialog):
             print('aboard')
 
     def new_rule(self):
-        ...
+        dlg = frm_cast_rule.DlgCastRule(self, self.group.project.id)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, dlg.created_cast_rule.id))
+            self.group = db_services.CastGroup.get(self.group.id)
+            self.setup_combo_cast_rules()
+            self.le_custom_rule.blockSignals(True)
+            self.le_custom_rule.setText(self.group.cast_rule.rule)
+            self.le_custom_rule.blockSignals(False)
 
     def combo_rules_changed(self):
         if self.changing_cast_rules:
@@ -387,7 +402,9 @@ class DlgGroupProperties(QDialog):
             return
         self.changing_custom_rules = True
         self.changing_cast_rules = True
-        self.combo_cast_rules.setCurrentIndex(0)
+        if self.combo_cast_rules.currentIndex() != 0:
+            self.combo_cast_rules.setCurrentIndex(0)
+            self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, None))
         self.changing_cast_rules = False
         self.le_custom_rule.setText(self.le_custom_rule.text().upper())
         if not (rule_to_save := self.le_custom_rule.text()):

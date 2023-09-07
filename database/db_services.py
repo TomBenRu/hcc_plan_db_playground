@@ -1238,6 +1238,27 @@ class CastRule:
         project_db = models.Project.get_for_update(id=project_id)
         return [schemas.CastRuleShow.model_validate(cl) for cl in project_db.cast_rules]
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(project_id: UUID, name: str, rule: str, restore_id: UUID | None = None) -> schemas.CastRuleShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        project_db = models.Project.get_for_update(id=project_id)
+        if restore_id:
+            cast_rule_db = models.CastRule(id=restore_id, project=project_db, name=name, rule=rule)
+        else:
+            cast_rule_db = models.CastRule(project=project_db, name=name, rule=rule)
+
+        return schemas.CastRuleShow.model_validate(cast_rule_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cast_rule_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
+        cast_rule_db.delete()
+
 
 class Event:
     @staticmethod

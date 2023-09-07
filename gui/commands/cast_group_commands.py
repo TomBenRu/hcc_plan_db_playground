@@ -87,4 +87,36 @@ class UpdateNrActors(Command):
         db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
 
 
+class UpdateStrictCastPref(Command):
+    def __init__(self, cast_group_id: UUID, strict_cast_pref: int):
+        self.cast_group_id = cast_group_id
+        self.strict_cast_pref = strict_cast_pref
+        self.strict_cast_pref_old = db_services.CastGroup.get(cast_group_id).strict_cast_pref
+
+    def execute(self):
+        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
+
+    def undo(self):
+        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref_old)
+
+    def redo(self):
+        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
+
+
+class UpdateCustomRule(Command):
+    def __init__(self, cast_group_id: UUID, custom_rule: str | None):
+        self.cast_group_id = cast_group_id
+        self.custom_rule = custom_rule
+        self.custom_rule_old = db_services.CastGroup.get(cast_group_id).custom_rule
+
+    def execute(self):
+        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule)
+
+    def undo(self):
+        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule_old)
+
+    def redo(self):
+        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule)
+
+
 

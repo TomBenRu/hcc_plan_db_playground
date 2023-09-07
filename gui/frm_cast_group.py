@@ -13,6 +13,7 @@ from gui.actions import Action
 from gui.commands import command_base_classes, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
+from gui.tools import custom_validators
 from gui.tools.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
@@ -223,6 +224,8 @@ class DlgGroupProperties(QDialog):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
+        self.changing_custom_rules = False
+
         self.layout = QVBoxLayout(self)
 
         self.layout_head = QVBoxLayout()
@@ -243,8 +246,8 @@ class DlgGroupProperties(QDialog):
         self.menu_bt_correct_childs_fixed_cast = QMenu()
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
         self.lb_rule = QLabel('Eigene Regel')
-        self.combo_rules = QComboBox()
-        self.le_rule = QLineEdit()
+        self.combo_cast_rules = QComboBox()
+        self.le_custom_rule = QLineEdit()
         self.lb_new_rule = QLabel('Neue Regel erstellen')
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
@@ -266,8 +269,8 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.lb_fixed_cast_warning, 1, 2)
         self.layout_body.addWidget(self.bt_correct_childs_fixed_cast, 2, 2)
         self.layout_body.addWidget(self.lb_rule, 3, 0)
-        self.layout_body.addWidget(self.combo_rules, 3, 1)
-        self.layout_body.addWidget(self.le_rule, 3, 2)
+        self.layout_body.addWidget(self.combo_cast_rules, 3, 1)
+        self.layout_body.addWidget(self.le_custom_rule, 3, 2)
         self.layout_body.addWidget(self.lb_new_rule, 4, 0)
         self.layout_body.addWidget(self.bt_new_rule, 4, 1)
         self.layout_body.addWidget(self.lb_nr_actors, 5, 0)
@@ -302,15 +305,17 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         self.set_fixed_cast_warning()
         curr_combo_index = 0
-        self.combo_rules.addItem('keine Regel')
+        self.combo_cast_rules.addItem('keine Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
         for i, rule in enumerate(rules, start=1):
-            self.combo_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
+            self.combo_cast_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
             if self.group.cast_rule and self.group.cast_rule.id == rule.id:
                 curr_combo_index = i
-        self.combo_rules.setCurrentIndex(curr_combo_index)
-        self.combo_rules.currentIndexChanged.connect(self.combo_rules_changed)
-        self.le_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
+        self.combo_cast_rules.setCurrentIndex(curr_combo_index)
+        self.combo_cast_rules.currentIndexChanged.connect(self.combo_rules_changed)
+        self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
+        self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*#~-'))
+        self.le_custom_rule.textChanged.connect(self.custom_rule_changed)
         self.spin_nr_actors.setValue(self.group.nr_actors)
         self.spin_nr_actors.valueChanged.connect(self.nr_actors_changed)
         self.set_nr_actors_warning()
@@ -368,8 +373,20 @@ class DlgGroupProperties(QDialog):
     def combo_rules_changed(self):
         ...
 
+    def custom_rule_changed(self):
+        if self.changing_custom_rules:
+            return
+        self.changing_custom_rules = True
+        self.le_custom_rule.setText(self.le_custom_rule.text().upper())
+        if not (rule_to_save := self.le_custom_rule.text()):
+            rule_to_save = None
+        self.controller.execute(cast_group_commands.UpdateCustomRule(self.group.id, rule_to_save))
+        self.changing_custom_rules = False
+
     def strict_cast_pref_changed(self):
-        ...
+        self.controller.execute(
+            cast_group_commands.UpdateStrictCastPref(self.group.id, self.slider_strict_cast_pref.value()))
+        self.group = db_services.CastGroup.get(self.group.id)
 
     def nr_actors_changed(self):
         self.controller.execute(cast_group_commands.UpdateNrActors(self.group.id, self.spin_nr_actors.value()))
@@ -496,7 +513,7 @@ class DlgCastGroups(QDialog):
         dlg = DlgGroupProperties(self, item)
 
         if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-            for widget in (dlg.lb_rule, dlg.combo_rules, dlg.le_rule, dlg.lb_new_rule, dlg.bt_new_rule,
+            for widget in (dlg.lb_rule, dlg.combo_cast_rules, dlg.le_custom_rule, dlg.lb_new_rule, dlg.bt_new_rule,
                            dlg.lb_strict_cast_pref, dlg.slider_strict_cast_pref, dlg.lb_strict_cast_pref_value_text):
                 widget.setParent(None)
 

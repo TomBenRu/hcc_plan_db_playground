@@ -743,7 +743,7 @@ class TimeOfDay:
             empty_check = [t_o_d.persons_defaults, t_o_d.actor_plan_periods_defaults,
                            t_o_d.avail_days_defaults, t_o_d.avail_days, t_o_d.locations_of_work_defaults,
                            t_o_d.location_plan_periods_defaults, t_o_d.events_defaults, t_o_d.events]
-            if all([(not t_o_d.project_defaults), all([default.is_empty() for default in empty_check])]):
+            if all([not t_o_d.project_defaults, all(default.is_empty() for default in empty_check)]):
                 t_o_d.prep_delete = datetime.datetime.utcnow()
 
     @staticmethod
@@ -1187,6 +1187,26 @@ class CastGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_strict_cast_pref(cast_group_id: UUID, strict_cast_pref: int) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.strict_cast_pref = strict_cast_pref
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_custom_rule(cast_group_id: UUID, custom_rule: str) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.custom_rule = custom_rule
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cast_group_id: UUID):
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
@@ -1302,7 +1322,6 @@ class Event:
         flag_db = models.Flag.get_for_update(id=flag_id)
         event_db.flags.remove(flag_db)
         return schemas.EventShow.model_validate(event_db)
-
 
 
 class ActorPlanPeriod:
@@ -1762,7 +1781,7 @@ class ActorLocationPref:
             if a_l_pref.prep_delete:
                 continue
             empty_check = [a_l_pref.actor_plan_periods_defaults, a_l_pref.avail_days_defaults]
-            if all([default.is_empty() for default in empty_check]) and not a_l_pref.person_default:
+            if all(default.is_empty() for default in empty_check) and not a_l_pref.person_default:
                 a_l_pref.prep_delete = datetime.datetime.utcnow()
                 deleted_a_l_pref_ids.append(a_l_pref.id)
         return deleted_a_l_pref_ids

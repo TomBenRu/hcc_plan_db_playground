@@ -500,7 +500,7 @@ class CastGroup(CastGroupCreate):
     cast_group: Optional['CastGroup']
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
-    custom_rule: Optional[str]
+    custom_rule: Optional[str] = None
     # Eigene Regel für Terminreihen (z.B.: ABC). Je nach Länge der Terminreihe wird die Regel wiederholt.
     event: Optional[Event]
 

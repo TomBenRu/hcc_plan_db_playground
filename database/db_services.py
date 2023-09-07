@@ -1207,6 +1207,17 @@ class CastGroup:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_cast_rule(cast_group_id: UUID, cast_rule_id: UUID | None) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id) if cast_rule_id else None
+        cast_group_db.cast_rule = cast_rule_db
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cast_group_id: UUID):
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

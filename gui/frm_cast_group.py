@@ -225,6 +225,7 @@ class DlgGroupProperties(QDialog):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.changing_custom_rules = False
+        self.changing_cast_rules = False
 
         self.layout = QVBoxLayout(self)
 
@@ -245,7 +246,7 @@ class DlgGroupProperties(QDialog):
         self.bt_correct_childs_fixed_cast = QPushButton('Feste Besetzung untergeordneter Elemente korrigieren')
         self.menu_bt_correct_childs_fixed_cast = QMenu()
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
-        self.lb_rule = QLabel('Eigene Regel')
+        self.lb_rule = QLabel('Besetzungsregel')
         self.combo_cast_rules = QComboBox()
         self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, letter_spacing=4)
         self.lb_new_rule = QLabel('Neue Regel erstellen')
@@ -305,7 +306,7 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         self.set_fixed_cast_warning()
         curr_combo_index = 0
-        self.combo_cast_rules.addItem('keine Regel')
+        self.combo_cast_rules.addItem('Eigene Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
         for i, rule in enumerate(rules, start=1):
             self.combo_cast_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
@@ -371,12 +372,23 @@ class DlgGroupProperties(QDialog):
         ...
 
     def combo_rules_changed(self):
-        ...
+        if self.changing_cast_rules:
+            return
+        self.changing_cast_rules = True
+        cast_rule: schemas.CastRuleShow | None = self.combo_cast_rules.currentData()
+        self.changing_custom_rules = True
+        self.le_custom_rule.setText(cast_rule.rule if cast_rule else None)
+        self.changing_custom_rules = False
+        self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, cast_rule.id if cast_rule else None))
+        self.changing_cast_rules = False
 
     def custom_rule_changed(self):
         if self.changing_custom_rules:
             return
         self.changing_custom_rules = True
+        self.changing_cast_rules = True
+        self.combo_cast_rules.setCurrentIndex(0)
+        self.changing_cast_rules = False
         self.le_custom_rule.setText(self.le_custom_rule.text().upper())
         if not (rule_to_save := self.le_custom_rule.text()):
             rule_to_save = None

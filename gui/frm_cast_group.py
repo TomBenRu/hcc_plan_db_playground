@@ -1,14 +1,15 @@
 import json
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Literal
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
-                               QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox)
+                               QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
 
 from database import schemas, db_services
+from gui.actions import Action
 from gui.commands import command_base_classes, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
@@ -238,8 +239,9 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast_value = QLabel()
         self.lb_fixed_cast_warning = QLabel()
         self.lb_fixed_cast_warning.setObjectName('fixed_cast_warning')
-        self.bt_correct_childs_fixed_cast = QPushButton('Feste Besetzung untergeordneter Elemente korrigieren',
-                                                        clicked=self.correct_childs_fixed_cast)
+        self.bt_correct_childs_fixed_cast = QPushButton('Feste Besetzung untergeordneter Elemente korrigieren')
+        self.menu_bt_correct_childs_fixed_cast = QMenu()
+        self.bt_correct_childs_fixed_cast.setFixedWidth(370)
         self.lb_rule = QLabel('Eigene Regel')
         self.combo_rules = QComboBox()
         self.le_rule = QLineEdit()
@@ -251,6 +253,7 @@ class DlgGroupProperties(QDialog):
         self.lb_nr_actors_warning.setObjectName('nr_actors_warning')
         self.bt_correct_childs_nr_actors = QPushButton('Besetzungsgröße untergeordneter Elemente korrigieren',
                                                        clicked=self.correct_childs_nr_actors)
+        self.bt_correct_childs_nr_actors.setFixedWidth(370)
         self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
@@ -295,6 +298,7 @@ class DlgGroupProperties(QDialog):
                                   'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der '
                                   'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.'
                              )
+        self.bt_correct_childs_fixed_cast__menu_config()
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         self.set_fixed_cast_warning()
         curr_combo_index = 0
@@ -320,6 +324,15 @@ class DlgGroupProperties(QDialog):
         self.slider_strict_cast_pref.valueChanged.connect(
             lambda: self.lb_strict_cast_pref_value_text.setText(
                 self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
+
+    def bt_correct_childs_fixed_cast__menu_config(self):
+        self.bt_correct_childs_fixed_cast.setMenu(self.menu_bt_correct_childs_fixed_cast)
+        self.menu_bt_correct_childs_fixed_cast.addAction(
+            Action(self, None, 'Besetzungen löschen', None,
+                   lambda: self.correct_childs_fixed_cast('set_None')))
+        self.menu_bt_correct_childs_fixed_cast.addAction(
+            Action(self, None, 'Besetzung übernehmen', None,
+                   lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
 
     def set_nr_actors_warning(self):
         if self.check_childs_nr_actors_are_different():
@@ -377,10 +390,11 @@ class DlgGroupProperties(QDialog):
             if child_fixed_cast != self.group.fixed_cast:
                 return True
 
-    def correct_childs_fixed_cast(self):
+    def correct_childs_fixed_cast(self, mode: Literal['set_None', 'set_fixed_cast']):
         for child in self.get_all_items():
             child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-            self.controller.execute(cast_group_commands.UpdateFixedCast(child_group.id, self.group.fixed_cast))
+            new_fixed_cast = self.group.fixed_cast if mode == 'set_fixed_cast' else None
+            self.controller.execute(cast_group_commands.UpdateFixedCast(child_group.id, new_fixed_cast))
         self.set_fixed_cast_warning()
 
     def correct_childs_nr_actors(self):

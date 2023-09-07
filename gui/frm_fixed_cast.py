@@ -206,6 +206,7 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
         days_of_cast_group: list[datetime.date] = []
 
         def find_recursive(cast_group: schemas.CastGroup):
+            cast_group = db_services.CastGroup.get(cast_group.id)
             for child_group in cast_group.cast_groups:
                 if child_group.event:
                     days_of_cast_group.append(child_group.event.date)
@@ -615,7 +616,7 @@ class DlgFixedCast(QDialog):
                         cb_actors.currentIndexChanged.connect(self.save_plot)
                         self.layout_grid.addWidget(cb_actors, row_idx, col_idx+1)
 
-        self.layout_grid.addWidget(self.bt_new_row, len(form), 0)
+        self.layout_grid.addWidget(self.bt_new_row, len(form_cleaned), 0)
 
     def proof_form_to_not_assigned_persons(self, form: list[list | str]):
         person_ids = [p.id for p in self.persons]
@@ -636,6 +637,6 @@ class DlgFixedCast(QDialog):
                 if i > 0:
                     form[i - 1] = None
         form = [e for e in form if e is not None]
-        if isinstance(form[0], str):
+        if form and isinstance(form[0], str):
             form.pop(0)
         return form

@@ -457,32 +457,23 @@ class DlgFixedCast(QDialog):
         r, c, _, _ = self.layout_grid.getItemPosition(self.layout_grid.indexOf(self.bt_new_row))
 
         '''neue reihen werden angelegt'''
-        if r == 0:
-            '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
-            cb_actors = self.create_combo_actors()
-            cb_actors.currentIndexChanged.connect(self.save_plot)
-            self.layout_grid.addWidget(cb_actors, r, c + 1)
-
-            container_add_inner_operator = self.create_widget__add_inner_operator()
-            self.layout_grid.addWidget(container_add_inner_operator, r, c + 2)
-
-            '''add-row-button wird um 1 nach unten verschoben'''
-            self.layout_grid.addWidget(self.bt_new_row, r + 1, c)
-        else:
-            '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
-            cb_actors = self.create_combo_actors()
-            cb_actors.currentIndexChanged.connect(self.save_plot)
-            self.layout_grid.addWidget(cb_actors, r + 1, c + 1)
-
-            container_add_inner_operator = self.create_widget__add_inner_operator()
-            self.layout_grid.addWidget(container_add_inner_operator, r + 1, c + 2)
-
-            '''add-row-button wird um 2 nach unten verschoben'''
-            self.layout_grid.addWidget(self.bt_new_row, r + 2, c)
+        if r != 0:
             '''combo operator betw. rows wird erzeugt'''
             combo_op_between_rows = self.create_combo_operator('between')
             combo_op_between_rows.currentIndexChanged.connect(self.save_plot)
             self.layout_grid.addWidget(combo_op_between_rows, r, self.col_operator_between_rows)
+            r += 1
+
+        '''aktuelle Zeile wird mit combo-actor und bt_add_inner_operator befüllt'''
+        cb_actors = self.create_combo_actors()
+        cb_actors.currentIndexChanged.connect(self.save_plot)
+        self.layout_grid.addWidget(cb_actors, r, c + 1)
+
+        container_add_inner_operator = self.create_widget__add_inner_operator()
+        self.layout_grid.addWidget(container_add_inner_operator, r, c + 2)
+
+        '''add-row-button wird nach unten verschoben'''
+        self.layout_grid.addWidget(self.bt_new_row, r + 1, c)
 
         self.save_plot()
 

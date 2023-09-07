@@ -234,7 +234,7 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     actor_plan_period = Required(ActorPlanPeriod)
     avail_day_group = Required('AvailDayGroup')
     time_of_day = Required('TimeOfDay', reverse='avail_days')
-    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # todo: kann weg?
+    time_of_days = Set('TimeOfDay', reverse='avail_days_defaults')  # not_sure: kann weg?
     skills = Set('Skill')
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
@@ -304,7 +304,7 @@ class TimeOfDayEnum(db.Entity):
     time_index = Required(int, size=8, unsigned=True)  # Einordnung im Tagesverlauf
     time_of_days = Set(TimeOfDay)
     project = Required(Project)
-    project_standard = Optional(Project, reverse='time_of_day_enum_standards')  # todo: Vielleicht unnötig!
+    project_standard = Optional(Project, reverse='time_of_day_enum_standards')  # not_sure: Vielleicht unnötig!
 
     composite_key(name, project)
     composite_key(abbreviation, project)

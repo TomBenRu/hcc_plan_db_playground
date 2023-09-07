@@ -26,7 +26,8 @@ TREE_HEAD_COLUMN__DATE = 1
 TREE_HEAD_COLUMN__TIME_OF_DAY = 2
 TREE_HEAD_COLUMN__NR_ACTORS = 3
 TREE_HEAD_COLUMN__FIXED_CAST = 4
-TREE_HEAD_COLUMN__STRICT_CAST_PREF = 5
+TREE_HEAD_COLUMN__RULE = 5
+TREE_HEAD_COLUMN__STRICT_CAST_PREF = 6
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -35,6 +36,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
+        group = db_services.CastGroup.get(group.id)
         fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast)
         if event:
             self.setText(TREE_HEAD_COLUMN__TITEL, 'gesetzt')
@@ -48,11 +50,13 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setForeground(TREE_HEAD_COLUMN__TIME_OF_DAY, QColor('#9f0057'))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
+            rule_text = group.cast_rule.name if group.cast_rule else group.custom_rule
             self.setText(TREE_HEAD_COLUMN__TITEL, f'Gruppe_{group_nr:02}')
             self.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(group.strict_cast_pref))
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
+            self.setText(TREE_HEAD_COLUMN__RULE, rule_text)
             self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor('#e1ffde'))
             self.setToolTip(TREE_HEAD_COLUMN__TITEL, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
 
@@ -106,8 +110,9 @@ class TreeWidget(QTreeWidget):
 
         self.location_plan_period = location_plan_period
 
-        self.setColumnCount(6)
-        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "strict_cast_pref"])
+        self.setColumnCount(7)
+        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "Regel",
+                              "strict_cast_pref"])
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
 
@@ -249,7 +254,7 @@ class DlgGroupProperties(QDialog):
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
         self.lb_rule = QLabel('Besetzungsregel')
         self.combo_cast_rules = QComboBox()
-        self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, letter_spacing=4)
+        self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, bold=True, letter_spacing=4)
         self.lb_new_rule = QLabel('Neue Regel erstellen')
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
@@ -467,7 +472,7 @@ class DlgCastGroups(QDialog):
         super().__init__(parent=parent)
 
         self.setWindowTitle('Cast Groups')
-        self.resize(400, 400)
+        self.resize(800, 400)
 
         self.location_plan_period = location_plan_period
 
@@ -560,9 +565,11 @@ class DlgCastGroups(QDialog):
             item.setText(TREE_HEAD_COLUMN__FIXED_CAST, generate_fixed_cast_clear_text(cast_group.fixed_cast))
             if not item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
                 item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(cast_group.strict_cast_pref))
+                rule_text = cast_group.cast_rule.name if cast_group.cast_rule else cast_group.custom_rule
+                item.setText(TREE_HEAD_COLUMN__RULE, rule_text)
             item.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(cast_group.nr_actors))
 
-    def get_all_child_items(self, item: QTreeWidgetItem = None) -> list[QTreeWidgetItem]:
+    def get_all_child_items(self, item: QTreeWidgetItem = None) -> list[TreeWidgetItem]:
         all_items = []
 
         def recurse(parent_item):
@@ -644,3 +651,18 @@ class DlgCastGroups(QDialog):
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 
         self.resize(self.size().width(), min(height + 200, screen_height - 40))
+
+
+# todo: Toolset, um bestimmte Gruppierungs-Abläufe automatisiert festzulegen (Periodenweit, Tagesweit)...
+#       Z.B.: nur 1 Schicht am Tag, die gleiche Schicht, pro Woche...
+#       Voreinstellungen in: Project, Person, PlanPeriod, ActorPlanPeriod
+# todo: Gruppenmodus für Besetzung
+#       Besetzung in CastGroups verlagern.
+#       Modus für: gleiche Besetzung aller Childs, alternierende ungleiche Besetzung aller Childs
+#                  Dafür jeweils Konsistenzüberprüfung.
+#       Regeln: Wenn same_cast = True dann alternating_cast = False und umgekehrt
+#               Wenn same_cast dann fixed_cast möglich, child-groups haben kein fixed_cast, cast_group möglich
+#               Wenn fixed_cast und cast_groups, dass same_cast = True
+#               Wenn alternating_cast = True dann fixed_cast = None, child-groups fixed_cast möglich, cast_group = None (sinnlos)
+#               Wenn event dann same_cast = False, alternating_cast = False, fixed_cast möglich
+#       Makros für bestimmte Aufgaben wie: gleiche, ungleiche Besetzung am Tag etc.

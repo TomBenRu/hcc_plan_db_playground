@@ -29,12 +29,18 @@ class DlgCastRule(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_info = QLabel('Hier können Sie eine neue Besetzungsregel erstellen.')
+        self.lb_info = QLabel('Hier können Sie eine neue Besetzungsregel erstellen.\n'
+                              'Symbole:\n'
+                              '        *: beliebige Besetzung\n'
+                              '        ~: gleiche Besetzung\n'
+                              '        -: andere Besetzung\n'
+                              '...in Bezug auf den zeitlich vorangegangenen Termin.\n'
+                              'Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.')
         self.layout_head.addWidget(self.lb_info)
 
         self.le_name = QLineEdit()
         self.le_cast_rule = LineEditWithCustomFont(parent=None, font=None, letter_spacing=4)
-        self.le_cast_rule.setValidator(LettersAndSymbolsValidator('*~#-'))
+        self.le_cast_rule.setValidator(LettersAndSymbolsValidator('*~-'))
         self.le_cast_rule.textChanged.connect(self.le_cast_rule_changed)
 
         self.layout_body.addRow('Name', self.le_name)

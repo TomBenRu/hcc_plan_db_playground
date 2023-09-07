@@ -454,6 +454,7 @@ class EventGroup(db.Entity):
                               'oder genau einer Location PlanPeriod zugeordnet sein.')
 
 
+# not_sure: CastGroup für location_plan_period-übergreifende Einstellungen hinzufügen
 class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Required('LocationPlanPeriod')

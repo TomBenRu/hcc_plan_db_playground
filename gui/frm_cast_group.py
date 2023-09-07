@@ -308,7 +308,7 @@ class DlgGroupProperties(QDialog):
         self.set_fixed_cast_warning()
         self.setup_combo_cast_rules()
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
-        self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*#~-'))
+        self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*~-'))
         self.le_custom_rule.textChanged.connect(self.custom_rule_changed)
         self.spin_nr_actors.setValue(self.group.nr_actors)
         self.spin_nr_actors.valueChanged.connect(self.nr_actors_changed)
@@ -327,10 +327,10 @@ class DlgGroupProperties(QDialog):
     def bt_correct_childs_fixed_cast__menu_config(self):
         self.bt_correct_childs_fixed_cast.setMenu(self.menu_bt_correct_childs_fixed_cast)
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            Action(self, None, 'Besetzungen löschen', None,
+            Action(self, None, 'Untergeordnete Besetzungen löschen', None,
                    lambda: self.correct_childs_fixed_cast('set_None')))
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            Action(self, None, 'Besetzung übernehmen', None,
+            Action(self, None, 'Untergeordnete Besetzungen angleichen', None,
                    lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
 
     def set_nr_actors_warning(self):

@@ -1,23 +1,20 @@
 import datetime
-import time
 from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import QCoreApplication, QTimer
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import Qt, QResizeEvent
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QSlider, QGridLayout, QLabel, \
-    QDialogButtonBox, QPushButton, QHBoxLayout, QCheckBox, QBoxLayout, QGroupBox, QMenu, QStatusBar, QDateEdit, \
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel, \
+    QDialogButtonBox, QPushButton, QHBoxLayout, QGroupBox, QMenu, QDateEdit, \
     QApplication
-from line_profiler_pycharm import profile
 
 from database import schemas, db_services
-from database.special_schema_requests import get_curr_persons_of_team, get_curr_locations_of_team, \
-    get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
+from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
 from gui.actions import Action
 from gui.commands import command_base_classes, actor_partner_loc_pref_commands, person_commands, \
     actor_plan_period_commands, avail_day_commands
-from gui.tools.slider_with_press_event import SliderWithPressEvent
+from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 
 def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,

@@ -8,9 +8,9 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayou
     QDialogButtonBox, QPushButton, QDateEdit, QHBoxLayout
 
 from database import schemas, db_services
-from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date, \
+from database.special_schema_requests import get_locations_of_team_at_date, \
     get_curr_assignment_of_person
-from gui.tools.slider_with_press_event import SliderWithPressEvent
+from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 
 class DlgActorLocPref(QDialog):

@@ -1,25 +1,24 @@
 import datetime
 import itertools
 import re
-import time
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Literal, Callable, TypeAlias
 from uuid import UUID
 
 import sympy
-from PySide6.QtCore import Qt, QTimer, QEventLoop, QProcess
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
-                               QDialogButtonBox, QDateEdit, QMenu, QApplication, QMessageBox)
-from sympy.logic.boolalg import BooleanFunction, to_dnf, simplify_logic
+                               QDialogButtonBox, QDateEdit, QMenu, QMessageBox)
+from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
 from .actions import Action
-from .commands import location_of_work_commands, location_plan_period_commands, event_commands, command_base_classes, \
+from .commands import location_of_work_commands, location_plan_period_commands, command_base_classes, \
     cast_group_commands
-from .tools.qcombobox_find_data import QComboBoxToFindData
+from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 object_with_fixed_cast_type: TypeAlias = (schemas.LocationOfWorkShow |

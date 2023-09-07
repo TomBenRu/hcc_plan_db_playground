@@ -1,17 +1,17 @@
 import datetime
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Literal, Callable, NewType, Protocol
+from typing import Callable
 from uuid import UUID
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem
+from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
+    QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem
 
 from database import schemas, db_services
 from .commands import command_base_classes, time_of_day_commands, actor_plan_period_commands, \
     location_plan_period_commands, person_commands, location_of_work_commands, project_commands
-from .tools.qcombobox_find_data import QComboBoxToFindData
+from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class DlgTimeOfDayEditListBuilderABC(ABC):

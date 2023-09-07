@@ -1,10 +1,10 @@
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QComboBox, QHBoxLayout, QGridLayout, QPushButton, \
+from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QHBoxLayout, QPushButton, \
     QMessageBox, QFormLayout, QCheckBox, QDialogButtonBox
 from pony.orm import TransactionIntegrityError
 
 from database import schemas, db_services
-from gui.tools.qcombobox_find_data import QComboBoxToFindData
+from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmTeam(QDialog):

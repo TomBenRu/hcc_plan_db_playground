@@ -5,24 +5,22 @@ from uuid import UUID
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QGridLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QMenu, QFormLayout, QHeaderView
+    QFormLayout, QHeaderView
 from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
-from database.special_schema_requests import get_curr_team_of_location, get_curr_team_of_person_at_date, \
-    get_curr_locations_of_team, get_locations_of_team_at_date, get_persons_of_team_at_date, \
+from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team
-from .actions import Action
-from .commands import time_of_day_commands, command_base_classes, person_commands, location_of_work_commands, \
-    actor_loc_pref_commands, team_actor_assignment_commands
-from .frm_fixed_cast import DlgFixedCast, DlgFixedCastBuilderLocationOfWork
+from .commands import command_base_classes, person_commands, location_of_work_commands, \
+    actor_loc_pref_commands
+from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from .tabbars import TabBar
-from .tools.qcombobox_find_data import QComboBoxToFindData
+from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmMasterData(QWidget):

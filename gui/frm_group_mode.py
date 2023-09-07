@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, Sequence, Literal, TypeAlias, NewType
+from typing import Callable, Sequence, TypeAlias, NewType
 from uuid import UUID
 
 from PySide6 import QtCore
@@ -9,12 +9,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
                                QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
-                               QApplication, QGridLayout)
+                               QGridLayout)
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, avail_day_group_commands, event_group_commands
 from gui.observer import signal_handling
-from gui.tools.slider_with_press_event import SliderWithPressEvent
+from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1

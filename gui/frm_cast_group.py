@@ -3,10 +3,9 @@ from typing import Callable, Sequence, Literal
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor, QIcon, QPalette
+from PySide6.QtGui import QDropEvent, QColor, QIcon, QFont
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
-                               QTreeWidgetItem, QFormLayout, QGroupBox, QGridLayout, QLabel, QCheckBox, QTextEdit,
-                               QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
+                               QTreeWidgetItem, QGridLayout, QLabel, QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
 
 from database import schemas, db_services
 from gui.actions import Action
@@ -14,7 +13,8 @@ from gui.commands import command_base_classes, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
 from gui.tools import custom_validators
-from gui.tools.slider_with_press_event import SliderWithPressEvent
+from gui.tools.custom_widgets.custom_line_edits import LineEditWithCustomFont
+from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -247,7 +247,7 @@ class DlgGroupProperties(QDialog):
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
         self.lb_rule = QLabel('Eigene Regel')
         self.combo_cast_rules = QComboBox()
-        self.le_custom_rule = QLineEdit()
+        self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, letter_spacing=4)
         self.lb_new_rule = QLabel('Neue Regel erstellen')
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')

@@ -1,11 +1,11 @@
 from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QDialog, QGridLayout, QTableWidget, QPushButton, QDialogButtonBox, \
-    QAbstractItemView, QTableWidgetItem, QMessageBox, QFormLayout, QLineEdit, QCheckBox, QSpinBox
+    QAbstractItemView, QTableWidgetItem, QMessageBox, QFormLayout, QLineEdit, QCheckBox
 
 from database import schemas, db_services
 from gui.commands import command_base_classes, time_of_day_enum_commands, project_commands
-from gui.tools.custom_spin_boxes import CustomSpinBoxDisallowedValues
+from gui.tools.custom_widgets.custom_spin_boxes import CustomSpinBoxDisallowedValues
 
 
 class DlgTimeOfDayEnumEdit(QDialog):

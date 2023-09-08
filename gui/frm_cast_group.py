@@ -30,6 +30,12 @@ TREE_HEAD_COLUMN__RULE = 5
 TREE_HEAD_COLUMN__STRICT_CAST_PREF = 6
 
 
+class ConsistenceProof:
+    # todo: alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst.
+    ...
+
+
+
 class TreeWidgetItem(QTreeWidgetItem):
     def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
         super().__init__(tree_widget_item)
@@ -543,7 +549,7 @@ class DlgCastGroups(QDialog):
         self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id, new_parent_id))
         self.update_all_items()
 
-    def edit_item(self, item: QTreeWidgetItem):  # todo: Möglichkeit zum Anpassen von Eigenschaften der Childs hinzufügen
+    def edit_item(self, item: QTreeWidgetItem):
         dlg = DlgGroupProperties(self, item)
 
         if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
@@ -655,4 +661,5 @@ class DlgCastGroups(QDialog):
 
 # todo: Gruppenmodus für Besetzung:
 #       Konsistenzprüfung:...?
+#       Wenn eine cast_rule in einer cast_group existiert, dann dürfen untergeordnete cast_groups keine cast_rule haben.
 #       Makros für bestimmte Aufgaben wie: gleiche, ungleiche Besetzung am Tag etc.

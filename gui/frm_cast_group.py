@@ -653,16 +653,6 @@ class DlgCastGroups(QDialog):
         self.resize(self.size().width(), min(height + 200, screen_height - 40))
 
 
-# todo: Toolset, um bestimmte Gruppierungs-Abläufe automatisiert festzulegen (Periodenweit, Tagesweit)...
-#       Z.B.: nur 1 Schicht am Tag, die gleiche Schicht, pro Woche...
-#       Voreinstellungen in: Project, Person, PlanPeriod, ActorPlanPeriod
-# todo: Gruppenmodus für Besetzung
-#       Besetzung in CastGroups verlagern.
-#       Modus für: gleiche Besetzung aller Childs, alternierende ungleiche Besetzung aller Childs
-#                  Dafür jeweils Konsistenzüberprüfung.
-#       Regeln: Wenn same_cast = True dann alternating_cast = False und umgekehrt
-#               Wenn same_cast dann fixed_cast möglich, child-groups haben kein fixed_cast, cast_group möglich
-#               Wenn fixed_cast und cast_groups, dass same_cast = True
-#               Wenn alternating_cast = True dann fixed_cast = None, child-groups fixed_cast möglich, cast_group = None (sinnlos)
-#               Wenn event dann same_cast = False, alternating_cast = False, fixed_cast möglich
+# todo: Gruppenmodus für Besetzung:
+#       Konsistenzprüfung:...?
 #       Makros für bestimmte Aufgaben wie: gleiche, ungleiche Besetzung am Tag etc.

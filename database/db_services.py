@@ -1144,11 +1144,13 @@ class CastGroup:
                                 if parent_cast_group_id else None)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         if restore_cast_group:
+            cast_rule_db = (models.CastRule.get_for_update(id=restore_cast_group.cast_rule.id)
+                            if restore_cast_group.cast_rule else None)
             cast_group_db = models.CastGroup(id=restore_cast_group.id, nr_actors=0,
                                              location_plan_period=location_plan_period_db,
-                                             cast_group=parent_cast_group_db)
-            cast_group_db.set(restore_cast_group.model_dump(
-                include={'nr_actors', 'fixed_cast', 'custom_rule', 'cast_rule', 'strict_cast_pref'}))
+                                             cast_group=parent_cast_group_db, cast_rule=cast_rule_db)
+            commit()
+            cast_group_db.set(**restore_cast_group.model_dump(include={'nr_actors', 'fixed_cast', 'strict_cast_pref'}))
         else:
             cast_group_db = models.CastGroup(nr_actors=0, location_plan_period=location_plan_period_db,
                                              cast_group=parent_cast_group_db)

@@ -1,5 +1,6 @@
+import dataclasses
 import json
-from typing import Callable, Sequence, Literal
+from typing import Callable, Sequence, Literal, Tuple
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
@@ -30,10 +31,77 @@ TREE_HEAD_COLUMN__RULE = 5
 TREE_HEAD_COLUMN__STRICT_CAST_PREF = 6
 
 
+def get_all_child_items(item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
+    all_items = []
+
+    def recurse(parent_item):
+        for i in range(parent_item.childCount()):
+            child = parent_item.child(i)
+            all_items.append(child)
+            recurse(child)
+
+    recurse(item)
+    return all_items
+
+
+@dataclasses.dataclass
+class ProofResult:
+    all_correct: bool
+    solo_item: QTreeWidgetItem | None
+    unused_groups: list[schemas.CastGroup] | None
+
+
 class ConsistenceProof:
     # todo: alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst.
-    ...
 
+    @classmethod
+    def check_childs_nr_actors_are_different(cls, cast_group: schemas.CastGroup, item: QTreeWidgetItem) -> bool:
+        for child in get_all_child_items(item):
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            if db_services.CastGroup.get(child_group_id).nr_actors != cast_group.nr_actors:
+                return True
+
+    @classmethod
+    def check_childs_fixed_cast_are_different(cls, cast_group: schemas.CastGroup, item: QTreeWidgetItem) -> bool:
+        for child in get_all_child_items(item):
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            if (child_fixed_cast := db_services.CastGroup.get(child_group_id).fixed_cast) is None:
+                continue
+            if child_fixed_cast != cast_group.fixed_cast:
+                return True
+        return False
+
+    @classmethod
+    def proof_solo_childs(cls, item: QTreeWidgetItem) -> QTreeWidgetItem:
+        for item in get_all_child_items(item):
+            if item.childCount() == 1:
+                return item
+
+    @classmethod
+    def proof_for_unused_groups(cls, item) -> list[schemas.CastGroup]:
+        to_delete: list[schemas.CastGroup] = []
+        for item in get_all_child_items(item):
+            event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
+            if not event and not item.childCount():
+                to_delete.append(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
+        return to_delete
+
+    @classmethod
+    def proof_for_unused_groups_and_solo_childs(cls, item: QTreeWidgetItem) -> ProofResult:
+        to_delete_unused_groups = cls.proof_for_unused_groups(item)
+        if not to_delete_unused_groups:
+            return (ProofResult(False, solo_item, None) if (solo_item := cls.proof_solo_childs(item))
+                    else ProofResult(True, None, None))
+            # accept wird, falls solo_item, abgebrochen, damit solo_items gelöscht werden können.
+            # andernfalls wird accept ohne weitere Maßnahme durchgeführt.
+        elif solo_item := cls.proof_solo_childs(item):
+            return ProofResult(False, solo_item, None)
+            # accept wird abgebrochen, damit solo_items gelöscht werden können.
+        else:
+            return ProofResult(False, None, to_delete_unused_groups)
+            # unused_groups müssen gelöscht werden, der status self.simplified wird auf True gesetzt
+            # und proof_for_unused_groups_and_solo_childs wird automatisch erneut aufgerufen
+            # (wobei dieses Mal logischerweise sofort in die erste Bedingung gesprungen wird)
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -565,7 +633,7 @@ class DlgCastGroups(QDialog):
         self.update_all_items()
 
     def update_all_items(self):
-        for item in self.get_all_child_items():
+        for item in get_all_child_items(self.tree_groups.invisibleRootItem()):
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
             item.setText(TREE_HEAD_COLUMN__FIXED_CAST, generate_fixed_cast_clear_text(cast_group.fixed_cast))
@@ -575,70 +643,49 @@ class DlgCastGroups(QDialog):
                 item.setText(TREE_HEAD_COLUMN__RULE, rule_text)
             item.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(cast_group.nr_actors))
 
-    def get_all_child_items(self, item: QTreeWidgetItem = None) -> list[TreeWidgetItem]:
-        all_items = []
-
-        def recurse(parent_item):
-            for i in range(parent_item.childCount()):
-                child = parent_item.child(i)
-                all_items.append(child)
-                recurse(child)
-
-        root_item = item or self.tree_groups.invisibleRootItem()
-        recurse(root_item)
-        return all_items
-
-    def alert_solo_childs(self):
-        all_items = self.get_all_child_items()
-        for item in all_items:
-            if item.childCount() == 1:
-                if event := item.child(0).data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-                    QMessageBox.critical(
-                        self, 'Gruppenmodus',
-                        f'Mindestens eine Gruppe hat nur einen Termin:\n'
-                        f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
-                        f'{event.date.strftime("%d.%m.%y")} ({event.time_of_day.name})\n'
-                        f'Bitte korrigieren Sie das.'
-                    )
-                else:
-                    QMessageBox.critical(self, 'Gruppenmodus',
-                                         f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
-                                         f'Bitte korrigieren Sie das.')
-                return True
-        return False
-
-    def delete_unused_groups(self):
-        all_items = self.get_all_child_items()
-        to_delete: list[schemas.CastGroup] = []
-        for item in all_items:
-            event = item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)
-            if not event and not item.childCount():
-                to_delete.append(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
-
-        if not to_delete:
-            return self.alert_solo_childs()
+    def show_message_solo_childs(self, item: TreeWidgetItem):
+        if event := item.child(0).data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+            QMessageBox.critical(
+                self, 'Gruppenmodus',
+                f'Mindestens eine Gruppe hat nur einen Termin:\n'
+                f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
+                f'{event.date.strftime("%d.%m.%y")} ({event.time_of_day.name})\n'
+                f'Bitte korrigieren Sie das.'
+            )
         else:
-            self.simplified = True
-        for group in to_delete:
-            self.controller.execute(cast_group_commands.Delete(group.id))
-        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+            QMessageBox.critical(self, 'Gruppenmodus',
+                                 f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
+                                 f'Bitte korrigieren Sie das.')
+
+    def tree_is_consistent(self) -> bool:
+        proof_result = ConsistenceProof.proof_for_unused_groups_and_solo_childs(
+            self.tree_groups.invisibleRootItem())
+        if proof_result.all_correct:
+            return True
+        if proof_result.solo_item:
+            # falls solo_childs vorhanden sind
+            self.show_message_solo_childs(proof_result.solo_item)
+            return False
+        if proof_result.unused_groups:
+            # falls unused_groups vorhanden sind
+            for cg in proof_result.unused_groups:
+                self.controller.execute(cast_group_commands.Delete(cg.id))
+                self.simplified = True
+            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         self.refresh_tree()
 
-        return self.delete_unused_groups()
+        return self.tree_is_consistent()
 
     def accept(self):
-        if self.delete_unused_groups():
-            return
-        if self.simplified:
-            QMessageBox.information(self, 'Gruppenmodus',
-                                    'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
-        super().accept()
+        if self.tree_is_consistent():
+            if self.simplified:
+                QMessageBox.information(self, 'Gruppenmodus',
+                                        'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+            super().accept()
 
     def reject(self) -> None:
         self.controller.undo_all()
         self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
-        if self.alert_solo_childs():  # ...um nach Löschung eines Solo-Childs zu korrigieren.
-            return
         super().reject()
 
     def refresh_tree(self):
@@ -646,7 +693,7 @@ class DlgCastGroups(QDialog):
 
     def resize_dialog(self):
         height = self.tree_groups.header().height()
-        for item in self.get_all_child_items():
+        for item in get_all_child_items(self.tree_groups.invisibleRootItem()):
             height += self.tree_groups.visualItemRect(item).height()
 
         if self.tree_groups.horizontalScrollBar().isVisible():

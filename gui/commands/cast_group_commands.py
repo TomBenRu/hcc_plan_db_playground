@@ -28,8 +28,9 @@ class Delete(Command):
         db_services.CastGroup.delete(self.cast_group_id)
 
     def undo(self):
+        parent_cast_group_id = self.cast_group.cast_group.id if self.cast_group.cast_group else None
         db_services.CastGroup.create(location_plan_period_id=self.cast_group.location_plan_period.id,
-                                     parent_cast_group_id=self.cast_group.cast_group.id,
+                                     parent_cast_group_id=parent_cast_group_id,
                                      restore_cast_group=self.cast_group)
 
     def redo(self):

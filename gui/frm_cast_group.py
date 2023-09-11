@@ -1,6 +1,7 @@
 import dataclasses
 import json
 from typing import Callable, Sequence, Literal, Tuple
+from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
@@ -55,19 +56,42 @@ class ConsistenceProof:
     # todo: alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst.
 
     @classmethod
-    def check_childs_nr_actors_are_different(cls, cast_group: schemas.CastGroup, item: QTreeWidgetItem) -> bool:
-        for child in get_all_child_items(item):
-            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
-            if db_services.CastGroup.get(child_group_id).nr_actors != cast_group.nr_actors:
+    def check_conflict_childs_for_cast_rule(cls, item: 'TreeWidgetItem'):
+        """Es wird nur auf den speziellen Fall: parent.cast_rule == '-' oder None und child.cast_rule == '~' oder None geprüft.
+        Nur die direkten Childs werden geprüft."""
+        cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        cast_group_rule = (cast_group.cast_rule and cast_group.cast_rule.rule) or cast_group.custom_rule
+        if not cast_group_rule:
+            return False
+        for child in (item.child(i) for i in range(item.childCount())):
+            child_group_id: UUID = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            child_group = db_services.CastGroup.get(child_group_id)
+            child_group_rule = (child_group.cast_rule and child_group.cast_rule.rule) or child_group.custom_rule
+            if cast_group_rule == '-' and (child_group_rule and child_group_rule != '~'):
                 return True
+            elif cast_group_rule != '-' and child_group_rule:
+                return True
+        return False
 
     @classmethod
-    def check_childs_fixed_cast_are_different(cls, cast_group: schemas.CastGroup, item: QTreeWidgetItem) -> bool:
+    def check_childs_nr_actors_are_different(cls, item: QTreeWidgetItem) -> bool:
+        parent_group_id = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        parent_group = db_services.CastGroup.get(parent_group_id)
+        for child in get_all_child_items(item):
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            if db_services.CastGroup.get(child_group_id).nr_actors != parent_group.nr_actors:
+                return True
+        return False
+
+    @classmethod
+    def check_childs_fixed_cast_are_different(cls, item: QTreeWidgetItem) -> bool:
+        parent_group_id = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        parent_group = db_services.CastGroup.get(parent_group_id)
         for child in get_all_child_items(item):
             child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
             if (child_fixed_cast := db_services.CastGroup.get(child_group_id).fixed_cast) is None:
                 continue
-            if child_fixed_cast != cast_group.fixed_cast:
+            if child_fixed_cast != parent_group.fixed_cast:
                 return True
         return False
 
@@ -331,6 +355,8 @@ class DlgGroupProperties(QDialog):
         self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, bold=True, letter_spacing=4)
         self.lb_new_rule = QLabel('Neue Regel erstellen')
         self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
+        self.lb_cast_rule_warning = QLabel()
+        self.lb_cast_rule_warning.setObjectName('cast_rule_warning')
         self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
         self.spin_nr_actors = QSpinBox()
         self.lb_nr_actors_warning = QLabel()
@@ -354,6 +380,7 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.le_custom_rule, 3, 2)
         self.layout_body.addWidget(self.lb_new_rule, 4, 0)
         self.layout_body.addWidget(self.bt_new_rule, 4, 1)
+        self.layout_body.addWidget(self.lb_cast_rule_warning, 4, 2)
         self.layout_body.addWidget(self.lb_nr_actors, 5, 0)
         self.layout_body.addWidget(self.spin_nr_actors, 5, 1)
         self.layout_body.addWidget(self.lb_nr_actors_warning, 5, 2)
@@ -380,7 +407,12 @@ class DlgGroupProperties(QDialog):
         self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.' if self.group.event
                              else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.\n'
                                   'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der '
-                                  'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.'
+                                  'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.\n\n'
+                                  'cast_rule:\n'
+                                  '- Falls Untergruppen gleiche Besetzungen haben oder Events beinhalten, kann eine '
+                                  'cast_rule festgelegt werden.\n'
+                                  'Falls Untergruppen fixed_cast beinhalten oder kompliziertere Besetzungsregeln, ist'
+                                  'eine genauere Konsistenzprüfung erforderlich.'
                              )
         self.bt_correct_childs_fixed_cast__menu_config()
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
@@ -389,6 +421,7 @@ class DlgGroupProperties(QDialog):
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
         self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*~-'))
         self.le_custom_rule.textChanged.connect(self.custom_rule_changed)
+        self.set_cast_rule_warning()
         self.spin_nr_actors.setValue(self.group.nr_actors)
         self.spin_nr_actors.valueChanged.connect(self.nr_actors_changed)
         self.set_nr_actors_warning()
@@ -413,7 +446,7 @@ class DlgGroupProperties(QDialog):
                    lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
 
     def set_nr_actors_warning(self):
-        if self.check_childs_nr_actors_are_different():
+        if ConsistenceProof.check_childs_nr_actors_are_different(self.item):
             self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: orangered}')
             self.lb_nr_actors_warning.setText('Untergeordnete Elemente haben eine andere Besetzungsstärke.')
         else:
@@ -421,12 +454,20 @@ class DlgGroupProperties(QDialog):
             self.lb_nr_actors_warning.setText('Alles in Ordnung.')
 
     def set_fixed_cast_warning(self):
-        if self.check_childs_fixed_cast_are_different():
+        if ConsistenceProof.check_childs_fixed_cast_are_different(self.item):
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: orangered}')
             self.lb_fixed_cast_warning.setText('Untergeordnete Elemente haben eine andere feste Besetzung.')
         else:
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: green}')
             self.lb_fixed_cast_warning.setText('Alles in Ordnung.')
+
+    def set_cast_rule_warning(self):
+        if ConsistenceProof.check_conflict_childs_for_cast_rule(self.item):
+            self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: orangered}')
+            self.lb_cast_rule_warning.setText('Untergeordnete Elemente dürfen keine Besetzungsregel haben.')
+        else:
+            self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: green}')
+            self.lb_cast_rule_warning.setText('Alles in Ordnung.')
 
     def setup_combo_cast_rules(self):
         self.combo_cast_rules.clear()
@@ -474,7 +515,9 @@ class DlgGroupProperties(QDialog):
         self.le_custom_rule.setText(cast_rule.rule if cast_rule else None)
         self.changing_custom_rules = False
         self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, cast_rule.id if cast_rule else None))
+        self.controller.execute(cast_group_commands.UpdateCustomRule(self.group.id, None))
         self.changing_cast_rules = False
+        self.set_cast_rule_warning()
 
     def custom_rule_changed(self):
         if self.changing_custom_rules:
@@ -490,6 +533,7 @@ class DlgGroupProperties(QDialog):
             rule_to_save = None
         self.controller.execute(cast_group_commands.UpdateCustomRule(self.group.id, rule_to_save))
         self.changing_custom_rules = False
+        self.set_cast_rule_warning()
 
     def strict_cast_pref_changed(self):
         self.controller.execute(
@@ -501,44 +545,18 @@ class DlgGroupProperties(QDialog):
         self.group = db_services.CastGroup.get(self.group.id)
         self.set_nr_actors_warning()
 
-    def check_childs_nr_actors_are_different(self) -> bool:
-        for child in self.get_all_items():
-            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
-            if db_services.CastGroup.get(child_group_id).nr_actors != self.group.nr_actors:
-                return True
-
-    def check_childs_fixed_cast_are_different(self) -> bool:
-        for child in self.get_all_items():
-            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
-            if (child_fixed_cast := db_services.CastGroup.get(child_group_id).fixed_cast) is None:
-                continue
-            if child_fixed_cast != self.group.fixed_cast:
-                return True
-
     def correct_childs_fixed_cast(self, mode: Literal['set_None', 'set_fixed_cast']):
-        for child in self.get_all_items():
+        for child in get_all_child_items(self.item):
             child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             new_fixed_cast = self.group.fixed_cast if mode == 'set_fixed_cast' else None
             self.controller.execute(cast_group_commands.UpdateFixedCast(child_group.id, new_fixed_cast))
         self.set_fixed_cast_warning()
 
     def correct_childs_nr_actors(self):
-        for child in self.get_all_items():
+        for child in get_all_child_items(self.item):
             child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             self.controller.execute(cast_group_commands.UpdateNrActors(child_group.id, self.group.nr_actors))
         self.set_nr_actors_warning()
-
-    def get_all_items(self) -> list[QTreeWidgetItem]:
-        all_items = []
-
-        def recurse(parent_item):
-            for i in range(parent_item.childCount()):
-                child = parent_item.child(i)
-                all_items.append(child)
-                recurse(child)
-
-        recurse(self.item)
-        return all_items
 
 
 class DlgCastGroups(QDialog):

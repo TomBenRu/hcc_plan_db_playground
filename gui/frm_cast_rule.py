@@ -1,9 +1,10 @@
+import string
 from uuid import UUID
 
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QLineEdit, QDialogButtonBox,
                                QMessageBox)
 
-from database import schemas
+from database import schemas, db_services
 from gui.commands import command_base_classes, cast_rule_commands
 from gui.tools.custom_validators import LettersAndSymbolsValidator
 from gui.tools.custom_widgets.custom_line_edits import LineEditWithCustomFont
@@ -15,12 +16,15 @@ def simplify_cast_rule(cast_rule: str) -> str | None:
 
     string_part = cast_rule
     for i in range(1, len(cast_rule)):
-        if len(cast_rule) % i == 0:  # nur wenn die Länge von s durch i teilbar ist
-            if cast_rule[:i] * (len(cast_rule) // i) == cast_rule:  # überprüfen, ob der Teilstring den gesamten String bildet
-                string_part = cast_rule[:i]
-                break
+        if len(cast_rule) % i == 0 and cast_rule[:i] * (len(cast_rule) // i) == cast_rule:
+            string_part = cast_rule[:i]
+            break
+    if string_part == '*':
+        string_part = None
+    if len(string_part) == 1 and string_part in string.ascii_letters:
+        string_part = '~'
 
-    return string_part if string_part != '*' else None
+    return string_part
 
 
 class DlgCastRule(QDialog):
@@ -68,6 +72,9 @@ class DlgCastRule(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def accept(self) -> None:
+        project_cast_rules = [cr for cr in db_services.CastRule.get_all_from__project(self.project_id)
+                              if not cr.prep_delete]
+
         if not (self.le_name.text().strip() and self.le_cast_rule.text()):
             QMessageBox.critical(self, 'Besetzungsregel', 'Felder "Name" und "Besetzungsregel" dürfen nicht leer sein.')
             return
@@ -81,6 +88,18 @@ class DlgCastRule(QDialog):
                                      'Durch Vereinfachung is die Besetzungsregel nun None. '
                                      'Bitte wählen Sie eine Besetzungsregel deren Equivalent nicht None ist.')
                 return
+
+        if (name := self.le_name.text().strip()) in {cr.name for cr in project_cast_rules}:
+            QMessageBox.critical(self, 'Besetzungsregel',
+                                 f'Der Name "{name}" ist schon in den Besetzungsregeln des Projekts vorhanden.')
+            return
+
+        if same_cast_rule := next((cr for cr in project_cast_rules if cr.rule == cast_rule), None):
+            QMessageBox.critical(self, 'Besetzungsregel',
+                                 f'Die Besetzungsregel "{cast_rule}" ist schon in den Besetzungsregeln des Projekts '
+                                 f'vorhanden.\nSie ist unter dem Namen "{same_cast_rule.name}" gespeichert.')
+            return
+
         create_command = cast_rule_commands.Create(
             self.project_id, self.le_name.text().strip(), cast_rule)
         self.controller.execute(create_command)

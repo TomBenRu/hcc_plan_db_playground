@@ -1,3 +1,5 @@
+import string
+
 from PySide6.QtGui import QValidator
 
 
@@ -7,7 +9,7 @@ class LettersAndSymbolsValidator(QValidator):
         self._symbols = symbols
 
     def validate(self, value, pos):
-        if all(char.isalpha() or char in self._symbols for char in value):
+        if all((char in string.ascii_letters) or char in self._symbols for char in value):
             return QValidator.State.Acceptable, value, pos
         else:
             return QValidator.State.Invalid, value, pos

@@ -9,6 +9,20 @@ from gui.tools.custom_validators import LettersAndSymbolsValidator
 from gui.tools.custom_widgets.custom_line_edits import LineEditWithCustomFont
 
 
+def simplify_cast_rule(cast_rule: str) -> str | None:
+    if not cast_rule:  # leerer String
+        return None
+
+    string_part = cast_rule
+    for i in range(1, len(cast_rule)):
+        if len(cast_rule) % i == 0:  # nur wenn die Länge von s durch i teilbar ist
+            if cast_rule[:i] * (len(cast_rule) // i) == cast_rule:  # überprüfen, ob der Teilstring den gesamten String bildet
+                string_part = cast_rule[:i]
+                break
+
+    return string_part if string_part != '*' else None
+
+
 class DlgCastRule(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
@@ -57,8 +71,18 @@ class DlgCastRule(QDialog):
         if not (self.le_name.text().strip() and self.le_cast_rule.text()):
             QMessageBox.critical(self, 'Besetzungsregel', 'Felder "Name" und "Besetzungsregel" dürfen nicht leer sein.')
             return
+        cast_rule = simplify_cast_rule(self.le_cast_rule.text())
+        if cast_rule != self.le_cast_rule.text():
+            QMessageBox.information(self, 'Besetzungsregel',
+                                    f'Die Besetzungsregel wurde vereinfacht:\n'
+                                    f'original: {self.le_cast_rule.text()}\nvereinfacht: {cast_rule}')
+            if not cast_rule:
+                QMessageBox.critical(self, 'Besetzungsregel',
+                                     'Durch Vereinfachung is die Besetzungsregel nun None. '
+                                     'Bitte wählen Sie eine Besetzungsregel deren Equivalent nicht None ist.')
+                return
         create_command = cast_rule_commands.Create(
-            self.project_id, self.le_name.text().strip(), self.le_cast_rule.text())
+            self.project_id, self.le_name.text().strip(), cast_rule)
         self.controller.execute(create_command)
         self.created_cast_rule = create_command.created_cast_rule
 

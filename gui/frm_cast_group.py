@@ -1,18 +1,19 @@
 import dataclasses
 import json
-from typing import Callable, Sequence, Literal, Tuple
+from typing import Callable, Sequence, Literal
 from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor, QIcon, QFont
+from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
-                               QTreeWidgetItem, QGridLayout, QLabel, QLineEdit, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
+                               QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
 
 from database import schemas, db_services
 from gui import frm_cast_rule
 from gui.actions import Action
 from gui.commands import command_base_classes, cast_group_commands
+from gui.frm_cast_rule import simplify_cast_rule
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
 from gui.tools import custom_validators
@@ -54,31 +55,42 @@ class ProofResultSoloUnusedGroups:
 
 @dataclasses.dataclass
 class ProofResultCastRule:
-    all_correct: bool
-    child_rule_conflict: bool
-    fixed_cast_conflict: bool
+    all_correct: bool = True
+    child_rule_conflict: bool = False
+    fixed_cast_conflict: bool = False
+
+    def set(self, *, all_correct: bool = None, child_rule_conflict: bool = None, fixed_cast_conflict: bool = None):
+        self.all_correct = self.all_correct if all_correct is None else all_correct
+        self.child_rule_conflict = self.child_rule_conflict if child_rule_conflict is None else child_rule_conflict
+        self.fixed_cast_conflict = self.fixed_cast_conflict if fixed_cast_conflict is None else fixed_cast_conflict
 
 
 class ConsistenceProof:
     # todo: alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst.
 
     @classmethod
-    def check_conflict_childs_for_cast_rule(cls, item: 'TreeWidgetItem') -> ProofResultCastRule:
+    def check_conflict_for_cast_rule(cls, item: 'TreeWidgetItem') -> ProofResultCastRule:
         """Es wird nur auf den speziellen Fall: parent.cast_rule == '-' oder None und child.cast_rule == '~' oder None geprüft.
         Nur die direkten Childs werden geprüft."""
+        proof_result = ProofResultCastRule(True, False, False)
         cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         cast_group_rule = (cast_group.cast_rule and cast_group.cast_rule.rule) or cast_group.custom_rule
-        if not cast_group_rule:
-            return ProofResultCastRule(True, False, False)
+        cast_group_rule = simplify_cast_rule(cast_group_rule)
+        if cast_group_rule and cast_group_rule != '~' and cast_group.fixed_cast:
+            proof_result.set(all_correct=False, fixed_cast_conflict=True)
         for child in (item.child(i) for i in range(item.childCount())):
             child_group_id: UUID = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
             child_group = db_services.CastGroup.get(child_group_id)
             child_group_rule = (child_group.cast_rule and child_group.cast_rule.rule) or child_group.custom_rule
+            child_group_rule = simplify_cast_rule(child_group_rule)
             if cast_group_rule == '-' and (child_group_rule and child_group_rule != '~'):
-                return ProofResultCastRule(False, True, False)
-            elif cast_group_rule != '-' and child_group_rule:
-                return ProofResultCastRule(False, True, False)
-        return ProofResultCastRule(True, False, False)
+                proof_result.set(all_correct=False, child_rule_conflict=True)
+            elif (not child_group.event and cast_group_rule == '~'
+                  and (not child_group.fixed_cast and child_group_rule != '~')):
+                proof_result.set(all_correct=False, child_rule_conflict=True)
+            elif cast_group_rule and len(cast_group_rule) > 1 and child_group_rule:
+                proof_result.set(all_correct=False, child_rule_conflict=True)
+        return proof_result
 
     @classmethod
     def check_childs_nr_actors_are_different(cls, item: QTreeWidgetItem) -> bool:
@@ -471,27 +483,29 @@ class DlgGroupProperties(QDialog):
             self.lb_fixed_cast_warning.setText('Alles in Ordnung.')
 
     def set_cast_rule_warning(self):
-        consistence_proof_result = ConsistenceProof.check_conflict_childs_for_cast_rule(self.item)
+        consistence_proof_result = ConsistenceProof.check_conflict_for_cast_rule(self.item)
 
-        if ConsistenceProof.check_conflict_childs_for_cast_rule(self.item).child_rule_conflict:
-            text_conflict_child_rules = 'Konflikt mit direkt untergeordneten Elementen.'
-        else:
-            text_conflict_child_rules = None
-        if ConsistenceProof.check_conflict_childs_for_cast_rule(self.item).fixed_cast_conflict:
-            text_conflict_cast_rules = 'Es darf keine feste Besetzung festgelegt werden.'
-        else:
-            text_conflict_cast_rules = None
         if consistence_proof_result.all_correct:
             self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: green}')
             self.lb_cast_rule_warning.setText('Alles in Ordnung.')
         else:
             self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: orangered}')
+            text_conflict_cast_rules = (
+                'Es darf keine feste Besetzung festgelegt werden.'
+                if consistence_proof_result.fixed_cast_conflict
+                else None
+            )
+            text_conflict_child_rules = (
+                'Konflikt mit direkt untergeordneten Elementen.'
+                if consistence_proof_result.child_rule_conflict
+                else None
+            )
             self.lb_cast_rule_warning.setText(
                 '\n'.join([text for text in (text_conflict_child_rules, text_conflict_cast_rules) if text]))
 
     def setup_combo_cast_rules(self):
-        self.combo_cast_rules.clear()
         self.combo_cast_rules.blockSignals(True)
+        self.combo_cast_rules.clear()
         curr_combo_index = 0
         self.combo_cast_rules.addItem('Eigene Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.project.id), key=lambda x: x.name)
@@ -525,6 +539,7 @@ class DlgGroupProperties(QDialog):
             self.le_custom_rule.blockSignals(True)
             self.le_custom_rule.setText(self.group.cast_rule.rule)
             self.le_custom_rule.blockSignals(False)
+            self.set_cast_rule_warning()
 
     def combo_rules_changed(self):
         if self.changing_cast_rules:
@@ -549,8 +564,7 @@ class DlgGroupProperties(QDialog):
             self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, None))
         self.changing_cast_rules = False
         self.le_custom_rule.setText(self.le_custom_rule.text().upper())
-        if not (rule_to_save := self.le_custom_rule.text()):
-            rule_to_save = None
+        rule_to_save = simplify_cast_rule(self.le_custom_rule.text())
         self.controller.execute(cast_group_commands.UpdateCustomRule(self.group.id, rule_to_save))
         self.changing_custom_rules = False
         self.set_cast_rule_warning()

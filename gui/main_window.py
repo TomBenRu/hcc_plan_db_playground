@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, 1200, 600))
 
-        # db_services.Project.create('Humor Hilft Heilen')
+        db_services.Project.create('Humor Hilft Heilen')
 
         self.project_id = UUID('A2997911589B405D9F5C8CB36DB1D48C')
 

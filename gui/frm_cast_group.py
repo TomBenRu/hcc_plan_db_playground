@@ -429,7 +429,7 @@ class DlgGroupProperties(QDialog):
                                   'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.\n\n'
                                   'cast_rule:\n'
                                   '- Falls Besetzungsregel und  Besetzungsregel != ~, darf kein fixed_cast festgelegt '
-                                  'werden.'
+                                  'werden.\n'
                                   '- Falls Untergruppen gleiche Besetzungen haben oder Events beinhalten, kann eine '
                                   'cast_rule festgelegt werden.\n'
                                   '-- Falls Untergruppen fixed_cast beinhalten oder kompliziertere Besetzungsregeln, '
@@ -526,6 +526,7 @@ class DlgGroupProperties(QDialog):
                                              if self.group.fixed_cast else None)
             self.group = db_services.CastGroup.get(self.group.id)
             self.set_fixed_cast_warning()
+            self.set_cast_rule_warning()
         else:
             print('aboard')
 

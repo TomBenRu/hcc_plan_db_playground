@@ -21,7 +21,7 @@ def simplify_cast_rule(cast_rule: str) -> str | None:
             break
     if string_part == '*':
         string_part = None
-    if len(string_part) == 1 and string_part in string.ascii_letters:
+    if string_part and len(string_part) == 1 and string_part in string.ascii_letters:
         string_part = '~'
 
     return string_part

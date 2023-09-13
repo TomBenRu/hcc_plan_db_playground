@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import json
 from typing import Callable, Sequence, Literal
 from uuid import UUID
@@ -180,44 +181,28 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
+    def calculate_earliest_date_object(self, cast_group: schemas.CastGroup) -> tuple[datetime.date, int]:
+        cast_group = db_services.CastGroup.get(cast_group.id)
+        if not ((event := cast_group.event) or cast_group.cast_groups):
+            return datetime.date(2000, 1, 1), 0
+        if event:
+            return event.date, event.time_of_day.time_of_day_enum.time_index
+        return min(self.calculate_earliest_date_object(cg) for cg in cast_group.cast_groups)
+
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
-        my_event: schemas.Event = self.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.UserRole)
-        other_event: schemas.Event = other.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.UserRole)
         my_group: schemas.CastGroupShow = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         other_group: schemas.CastGroupShow = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        sort_order = self.treeWidget().header().sortIndicatorOrder()
 
         if column != 1:
-            # Verwende die Standard-Sortierreihenfolge für andere Spalten
-            if my_event and not other_event:
-                return sort_order == Qt.SortOrder.DescendingOrder
-            elif not my_event and other_event:
-                return sort_order == Qt.SortOrder.AscendingOrder
-            elif not my_event and not other_event:
-                has_child_groups = my_group.cast_groups
-                return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
-            else:
-                return self.text(column) < other.text(column)
+            return False
 
         # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__DATE_OBJECT
-        if my_event:
-            my_value = f'{my_event.date} {my_event.time_of_day.time_of_day_enum.time_index:02}'
-        elif not other_event:
-            has_child_groups = my_group.cast_groups
-            return sort_order == (Qt.SortOrder.DescendingOrder if has_child_groups else Qt.SortOrder.AscendingOrder)
-        else:
-            return sort_order == Qt.SortOrder.AscendingOrder
-
-        if other_event:
-            other_value = f'{other_event.date} {other_event.time_of_day.time_of_day_enum.time_index:02}'
-        elif not my_event:
-            has_child_groups = other_group.cast_groups
-            return sort_order == (Qt.SortOrder.AscendingOrder if has_child_groups else Qt.SortOrder.DescendingOrder)
-        else:
-            return sort_order == Qt.SortOrder.DescendingOrder
-
-        return my_value < other_value
+        my_earliest_event = self.calculate_earliest_date_object(my_group)
+        other_earliest_event = self.calculate_earliest_date_object(other_group)
+        if my_earliest_event[0] == other_earliest_event[0]:
+            return my_earliest_event[1] < other_earliest_event[1]
+        return my_earliest_event[0] < other_earliest_event[0]
 
 
 class TreeWidget(QTreeWidget):

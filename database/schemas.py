@@ -484,7 +484,7 @@ class EventGroup(EventGroupCreate):
 
 
 class EventGroupShow(EventGroup):
-    pass
+    event_groups: List[EventGroup]
 
 
 class CastGroupCreate(BaseModel):

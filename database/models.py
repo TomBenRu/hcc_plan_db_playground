@@ -454,7 +454,12 @@ class EventGroup(db.Entity):
                               'oder genau einer Location PlanPeriod zugeordnet sein.')
 
 
-# not_sure: CastGroup für location_plan_period-übergreifende Einstellungen hinzufügen
+# todo fixme: CastGroup für location_plan_period-übergreifende Einstellungen hinzufügen
+#             location_plan_period kommt weg - project kommt dazu -
+#             aus cast_groups wird child_groups - aus cast_group wird parent_group.
+#             Besetzungsgruppen werden in einem Dialog bearbeitet, der unabhängig von Planungsperiode und Location ist.
+#             Filterfunktionen des Dialogs sind:
+#             - Zeitraum (evtl. Planungsperiode), Location
 class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Required('LocationPlanPeriod')

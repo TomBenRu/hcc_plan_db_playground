@@ -124,6 +124,7 @@ class Team(db.Entity):
     team_actor_assigns = Set('TeamActorAssign')
     team_location_assigns = Set('TeamLocationAssign')
     dispatcher = Optional(Person, reverse='teams_of_dispatcher')
+    cast_groups = Set('CastGroup')
     plan_periods = Set('PlanPeriod')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     excel_export_settings = Optional('ExcelExportSettings')
@@ -455,18 +456,18 @@ class EventGroup(db.Entity):
 
 
 # todo fixme: CastGroup für location_plan_period-übergreifende Einstellungen hinzufügen
-#             location_plan_period kommt weg - project kommt dazu -
+#             location_plan_period kommt weg - team kommt dazu -
 #             aus cast_groups wird child_groups - aus cast_group wird parent_group.
 #             Besetzungsgruppen werden in einem Dialog bearbeitet, der unabhängig von Planungsperiode und Location ist.
 #             Filterfunktionen des Dialogs sind:
 #             - Zeitraum (evtl. Planungsperiode), Location
 class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    location_plan_period = Required('LocationPlanPeriod')
+    team = Required(Team)
+    parent_groups = Set('CastGroup', reverse='child_groups')
+    child_groups = Set('CastGroup', reverse='parent_groups')
     fixed_cast = Optional(str, nullable=True)
     nr_actors = Required(int, size=16, unsigned=True)
-    cast_groups = Set('CastGroup', reverse='cast_group')
-    cast_group = Optional('CastGroup', reverse='cast_groups')
     event = Optional(Event)
     custom_rule = Optional(str, nullable=True)
     cast_rule = Optional('CastRule')
@@ -475,11 +476,7 @@ class CastGroup(db.Entity):
 
     @property
     def project(self):
-        return self.location_plan_period.project
-
-    def before_insert(self):
-        self.nr_actors = self.location_plan_period.nr_actors
-        self.fixed_cast = self.location_plan_period.fixed_cast
+        return self.team.project
 
 
 class CastRule(db.Entity):
@@ -513,7 +510,6 @@ class LocationPlanPeriod(db.Entity):
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     event_group = Optional('EventGroup')
-    cast_groups = Set(CastGroup)
     events = Set(Event)
 
     @property

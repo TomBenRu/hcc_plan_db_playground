@@ -149,13 +149,15 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
-    def calculate_earliest_date_object(self, event_group: schemas.EventGroup) -> tuple[datetime.date, int]:
-        event_group = db_services.EventGroup.get(event_group.id)
-        if not ((event := event_group.event) or event_group.event_groups):
+    def calculate_earliest_date_object(self, group: group_type) -> tuple[datetime.date, int]:
+        group = self.builder.get_group_from_id(group_id_type(group.id))
+        date_object = self.builder.get_date_object_from_group_id(group.id)
+        child_groups = self.builder.get_child_groups_from__parent_group_id(group.id)
+        if not (date_object or child_groups):
             return datetime.date(2000, 1, 1), 0
-        if event:
-            return event.date, event.time_of_day.time_of_day_enum.time_index
-        return min(self.calculate_earliest_date_object(cg) for cg in event_group.event_groups)
+        if date_object:
+            return date_object.date, date_object.time_of_day.time_of_day_enum.time_index
+        return min(self.calculate_earliest_date_object(cg) for cg in child_groups)
 
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()

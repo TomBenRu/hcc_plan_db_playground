@@ -157,10 +157,11 @@ class TeamShow(Team):
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
     plan_periods: List['PlanPeriod']
+    cast_groups: List['CastGroup']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns',
+    @field_validator('plan_periods', 'cast_groups', 'combination_locations_possibles', 'team_actor_assigns',
                      'team_location_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
@@ -488,7 +489,7 @@ class EventGroupShow(EventGroup):
 
 
 class CastGroupCreate(BaseModel):
-    location_plan_period: 'LocationPlanPeriod'
+    team: Team
 
 
 class CastGroup(CastGroupCreate):
@@ -497,7 +498,6 @@ class CastGroup(CastGroupCreate):
     id: UUID
     fixed_cast: Optional[str]
     nr_actors: int
-    cast_group: Optional['CastGroup']
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
     custom_rule: Optional[str] = None
@@ -506,12 +506,13 @@ class CastGroup(CastGroupCreate):
 
 
 class CastGroupShow(CastGroup):
-    cast_groups: List['CastGroup']
+    parent_groups: List['CastGroup']
+    child_groups: List['CastGroup']
     cast_rule: Optional['CastRule']
     project: Project
 
-    @field_validator('cast_groups')
-    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+    @field_validator('parent_groups', 'child_groups')
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
 

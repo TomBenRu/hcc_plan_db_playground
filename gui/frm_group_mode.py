@@ -329,7 +329,6 @@ class DlgGroupProperties(QDialog):
         self.layout_group_nr_childs.addWidget(self.slider_nr_childs, 0, 1)
         self.layout_group_nr_childs.addWidget(self.lb_slider_nr_childs_value, 0, 2)
         self.layout_group_nr_childs.addWidget(self.chk_none, 0, 3)
-        self.setup_mandatory_nr_avail_days()
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -351,12 +350,6 @@ class DlgGroupProperties(QDialog):
         self.controller.execute(self.builder.update_nr_groups_command(group_id_type(self.group.id), value))
         self.lb_slider_nr_childs_value.setText(f'{value}')
         self.group = self.builder.get_group_from_id(group_id_type(self.group.id))
-        if self.builder.mandatory_nr_group_field:
-            self.update_mandatory_nr_avail_days(
-                len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
-                self.group.nr_avail_day_groups)
-
-
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         if not clicked:
@@ -371,10 +364,6 @@ class DlgGroupProperties(QDialog):
                 self.builder.update_nr_groups_command(group_id_type(self.group.id), self.slider_nr_childs.value()))
             self.slider_nr_childs.setEnabled(True)
         self.group = self.builder.get_group_from_id(group_id_type(self.group.id))
-        if self.builder.mandatory_nr_group_field:
-            self.update_mandatory_nr_avail_days(
-                len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
-                self.group.nr_avail_day_groups)
 
     def variation_weight_changed(self, child_id: UUID, value: int):
         self.sliders_variation_weights[child_id]['lb_value'].setText(f'{self.variation_weight_text[value]}')
@@ -416,39 +405,69 @@ class DlgGroupProperties(QDialog):
             self.layout_group_child_variation_weights.addWidget(lb_val, row, 2)
             self.sliders_variation_weights[child_group.id] = {'slider': slider, 'lb_value': lb_val}
 
-    def setup_mandatory_nr_avail_days(self):
-        if self.builder.mandatory_nr_group_field:
-            self.lb_mandatory_nr_avail_day_groups = QLabel('Bedingung Anzahl Einsätze')
-            self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
-            self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)
-            self.slider_mandatory_nr_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
-            self.slider_mandatory_nr_avail_day_groups.setMinimum(2)
-            self.slider_mandatory_nr_avail_day_groups.setMaximum(
-                min([len(db_services.AvailDayGroup.get_child_groups_from__parent_group(self.group.id)),
-                     self.group.nr_avail_day_groups or 1000])
-            )
-            self.lb_without_mandatory = QLabel('...Ohne Bedingung')
-            self.lb_without_mandatory.setStyleSheet('color: green')
-            self.lb_mandatory_nr_avail_day_groups_value = QLabel()
-            self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
-            self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
-            self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
-            self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        self.slider_nr_childs.setMinimumWidth(0)
+        super().resizeEvent(event)
 
-            if (value_mandatory_nr := self.group.mandatory_nr_avail_day_groups) is None:
-                self.chk_mandatory_nr_avail_day_groups.setChecked(False)
-                self.lb_mandatory_nr_avail_day_groups_value.setText('1')
-                self.layout_group_nr_childs.addWidget(self.lb_without_mandatory, 1, 1)
-            else:
-                self.chk_mandatory_nr_avail_day_groups.setChecked(True)
-                self.slider_mandatory_nr_avail_day_groups.setValue(value_mandatory_nr)
-                self.lb_mandatory_nr_avail_day_groups_value.setText(str(value_mandatory_nr))
-                self.layout_group_nr_childs.addWidget(self.slider_mandatory_nr_avail_day_groups, 1, 1)
 
-            self.slider_mandatory_nr_avail_day_groups.valueChanged.connect(self.slider_mandatory_value_changed)
-            self.chk_mandatory_nr_avail_day_groups.toggled.connect(self.chk_mandatory_nr_toggled)
+class DlgGroupPropertiesAvailDay(DlgGroupProperties):
+    def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
+        self.mandatory_widgets_are_available = False
 
-    def update_mandatory_nr_avail_days(self, nr_child_groups: int, nr_avail_day_groups: int | None):
+        super().__init__(parent, item, builder)
+
+        self.setup_mandatory_widgets()
+        self.setup_mandatory_widget_values()
+
+        self.mandatory_widgets_are_available = True
+
+    def nr_childs_changed(self, value: int):
+        super().nr_childs_changed(value)
+        self.update_mandatory_widgets(
+            len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
+            self.group.nr_avail_day_groups)
+
+    def chk_none_toggled(self, checked: bool, clicked=False):
+        super().chk_none_toggled(checked, clicked)
+        self.update_mandatory_widgets(
+            len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
+            self.group.nr_avail_day_groups)
+
+    def setup_mandatory_widgets(self):
+        self.lb_mandatory_nr_avail_day_groups = QLabel('Bedingung Anzahl Einsätze')
+        self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
+        self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)
+        self.slider_mandatory_nr_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_mandatory_nr_avail_day_groups.setMinimum(2)
+        self.slider_mandatory_nr_avail_day_groups.setMaximum(
+            min([len(db_services.AvailDayGroup.get_child_groups_from__parent_group(self.group.id)),
+                 self.group.nr_avail_day_groups or 1000])
+        )
+        self.lb_without_mandatory = QLabel('...Ohne Bedingung')
+        self.lb_without_mandatory.setStyleSheet('color: green')
+        self.lb_mandatory_nr_avail_day_groups_value = QLabel()
+        self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
+        self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
+        self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
+        self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)
+
+    def setup_mandatory_widget_values(self):
+        if (value_mandatory_nr := self.group.mandatory_nr_avail_day_groups) is None:
+            self.chk_mandatory_nr_avail_day_groups.setChecked(False)
+            self.lb_mandatory_nr_avail_day_groups_value.setText('1')
+            self.layout_group_nr_childs.addWidget(self.lb_without_mandatory, 1, 1)
+        else:
+            self.chk_mandatory_nr_avail_day_groups.setChecked(True)
+            self.slider_mandatory_nr_avail_day_groups.setValue(value_mandatory_nr)
+            self.lb_mandatory_nr_avail_day_groups_value.setText(str(value_mandatory_nr))
+            self.layout_group_nr_childs.addWidget(self.slider_mandatory_nr_avail_day_groups, 1, 1)
+
+        self.slider_mandatory_nr_avail_day_groups.valueChanged.connect(self.slider_mandatory_value_changed)
+        self.chk_mandatory_nr_avail_day_groups.toggled.connect(self.chk_mandatory_nr_toggled)
+
+    def update_mandatory_widgets(self, nr_child_groups: int, nr_avail_day_groups: int | None):
+        if not self.mandatory_widgets_are_available:
+            return
         max_value_mandatory_nr = min([nr_child_groups, nr_avail_day_groups or 1000])
         if max_value_mandatory_nr < 2:
             self.chk_mandatory_nr_avail_day_groups.setChecked(False)
@@ -480,10 +499,6 @@ class DlgGroupProperties(QDialog):
         self.controller.execute(avail_day_group_commands.UpdateMandatoryNrAvailDayGroups(
                 self.group.id, self.slider_mandatory_nr_avail_day_groups.value()))
         self.lb_mandatory_nr_avail_day_groups_value.setText(str(self.slider_mandatory_nr_avail_day_groups.value()))
-
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self.slider_nr_childs.setMinimumWidth(0)
-        super().resizeEvent(event)
 
 
 class DlgGroupMode(QDialog):
@@ -594,7 +609,10 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_date_object.date, data_date_object.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            dlg = DlgGroupProperties(self, item, self.builder)
+            if self.builder.mandatory_nr_group_field:
+                dlg = DlgGroupPropertiesAvailDay(self, item, self.builder)
+            else:
+                dlg = DlgGroupProperties(self, item, self.builder)
             if not dlg.exec():
                 return
             self.controller.add_to_undo_stack(dlg.controller.undo_stack)

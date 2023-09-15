@@ -207,6 +207,7 @@ class AvailDayGroup(db.Entity):
     # Falls alle AvailDayGroups innerhalb der AvailDayGroup stattfinden können, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
+    mandatory_nr_avail_day_groups = Optional(int, size=8, unsigned=True)
     avail_day_group = Optional('AvailDayGroup', reverse='avail_day_groups')
     avail_day_groups = Set('AvailDayGroup', reverse='avail_day_group')
     avail_day = Optional('AvailDay')

@@ -255,6 +255,7 @@ class AvailDayGroup(AvailDayGroupCreate):
     created_at: datetime.datetime
     last_modified: datetime.datetime
     nr_avail_day_groups: Optional[int]
+    mandatory_nr_avail_day_groups: Optional[int]
 
 
 class AvailDayGroupShow(AvailDayGroup):

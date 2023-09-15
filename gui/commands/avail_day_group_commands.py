@@ -104,6 +104,25 @@ class UpdateVariationWeight(Command):
         db_services.AvailDayGroup.update_variation_weight(self.avail_day_group_id, self.variation_weight)
 
 
+class UpdateMandatoryNrAvailDayGroups(Command):
+    def __init__(self, avail_day_group_id: UUID, mandatory_nr_avail_day_groups: int | None):
+        self.avail_day_group_id = avail_day_group_id
+        self.mandatory_nr_avail_day_groups = mandatory_nr_avail_day_groups
+        self.mandatory_nr_avail_day_groups_old = db_services.AvailDayGroup.get(avail_day_group_id).mandatory_nr_avail_day_groups
+
+    def execute(self):
+        db_services.AvailDayGroup.update_mandatory_nr_avail_day_groups(
+            self.avail_day_group_id, self.mandatory_nr_avail_day_groups)
+
+    def undo(self):
+        db_services.AvailDayGroup.update_mandatory_nr_avail_day_groups(
+            self.avail_day_group_id, self.mandatory_nr_avail_day_groups_old)
+
+    def redo(self):
+        db_services.AvailDayGroup.update_mandatory_nr_avail_day_groups(
+            self.avail_day_group_id, self.mandatory_nr_avail_day_groups)
+
+
 class SetNewParent(Command):
     def __init__(self, avail_day_group_id: UUID, new_parent_id: UUID):
         """new_parent_id ist die id der parent-avail_day_group."""

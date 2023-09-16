@@ -157,12 +157,10 @@ class TeamShow(Team):
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
     plan_periods: List['PlanPeriod']
-    cast_groups: List['CastGroup']
     combination_locations_possibles: List['CombinationLocationsPossible']
     excel_export_settings: Optional['ExcelExportSettings']
 
-    @field_validator('plan_periods', 'cast_groups', 'combination_locations_possibles', 'team_actor_assigns',
-                     'team_location_assigns')
+    @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -189,9 +187,10 @@ class PlanPeriodShow(PlanPeriod):
     fixed_cast: Optional[str] = None
     actor_plan_periods: List['ActorPlanPeriod']
     location_plan_periods: List['LocationPlanPeriod']
+    cast_groups: List['CastGroup']
     project: Project
 
-    @field_validator('actor_plan_periods', 'location_plan_periods')
+    @field_validator('actor_plan_periods', 'location_plan_periods', 'cast_groups')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -490,7 +489,7 @@ class EventGroupShow(EventGroup):
 
 
 class CastGroupCreate(BaseModel):
-    team: Team
+    plan_period: PlanPeriod
 
 
 class CastGroup(CastGroupCreate):

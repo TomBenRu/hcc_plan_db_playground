@@ -124,7 +124,6 @@ class Team(db.Entity):
     team_actor_assigns = Set('TeamActorAssign')
     team_location_assigns = Set('TeamLocationAssign')
     dispatcher = Optional(Person, reverse='teams_of_dispatcher')
-    cast_groups = Set('CastGroup')
     plan_periods = Set('PlanPeriod')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     excel_export_settings = Optional('ExcelExportSettings')
@@ -152,6 +151,7 @@ class PlanPeriod(db.Entity):
     team = Required(Team)
     actor_plan_periods = Set('ActorPlanPeriod')
     location_plan_periods = Set('LocationPlanPeriod')
+    cast_groups = Set('CastGroup')
     plans = Set('Plan')
 
     @property
@@ -464,7 +464,7 @@ class EventGroup(db.Entity):
 #             - Zeitraum (evtl. Planungsperiode), Location
 class CastGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    team = Required(Team)
+    plan_period = Required(PlanPeriod)
     parent_groups = Set('CastGroup', reverse='child_groups')
     child_groups = Set('CastGroup', reverse='parent_groups')
     fixed_cast = Optional(str, nullable=True)

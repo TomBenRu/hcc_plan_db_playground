@@ -70,6 +70,9 @@ class DlgGroupModeBuilderABC(ABC):
                                                    controller: command_base_classes.ContrExecUndoRedo):
         ...
 
+    def all_child_groups_have_avail_day(self, avail_day_group: schemas.AvailDayGroup) -> bool:
+        ...
+
     def get_max_value_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
         ...
 
@@ -110,9 +113,14 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         controller.execute(avail_day_group_commands.UpdateMandatoryNrAvailDayGroups(
             avail_day_group_id, mandatory_nr_avail_day_groups))
 
+    def all_child_groups_have_avail_day(self, avail_day_group: schemas.AvailDayGroup,
+                                        child_groups: list[schemas.AvailDayGroupShow] = None) -> bool:
+        child_groups = child_groups or db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
+        return all(db_services.AvailDay.get_from__avail_day_group(child_group.id) for child_group in child_groups)
+
     def get_max_value_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
         child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
-        if not all(db_services.AvailDay.get_from__avail_day_group(child_group.id) for child_group in child_groups):
+        if not self.all_child_groups_have_avail_day(avail_day_group, child_groups):
             return 1
         return min([len(child_groups), avail_day_group.nr_avail_day_groups or 1000])
 
@@ -456,15 +464,11 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
 
     def nr_childs_changed(self, value: int):
         super().nr_childs_changed(value)
-        self.update_mandatory_widget_values(
-            len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
-            self.group.nr_avail_day_groups)
+        self.update_mandatory_widget_values()
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         super().chk_none_toggled(checked, clicked)
-        self.update_mandatory_widget_values(
-            len(self.builder.get_child_groups_from__parent_group_id(group_id_type(self.group.id))),
-            self.group.nr_avail_day_groups)
+        self.update_mandatory_widget_values()
 
     def setup_mandatory_widgets(self):
         self.lb_mandatory_nr_avail_day_groups = QLabel('Bedingung Anzahl Einsätze')
@@ -483,6 +487,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
 
     def setup_mandatory_widget_values(self):
         self.slider_mandatory_nr_avail_day_groups.valueChanged.connect(self.slider_mandatory_value_changed)
+        # self.update_mandatory_widget_values()
 
         if (value_mandatory_nr := self.group.mandatory_nr_avail_day_groups) is None:
             self.chk_mandatory_nr_avail_day_groups.setChecked(False)
@@ -494,22 +499,22 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self.lb_mandatory_nr_avail_day_groups_value.setText(str(value_mandatory_nr))
             self.layout_group_nr_childs.addWidget(self.slider_mandatory_nr_avail_day_groups, 1, 1)
 
-        self.slider_mandatory_nr_avail_day_groups.setMaximum(
-            self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group))
-        self.builder.get_child_groups_from__parent_group_id(self.group.id)
+        max_value_mandatory_nr_avail_day_groups = self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group)
+        self.slider_mandatory_nr_avail_day_groups.setMaximum(max_value_mandatory_nr_avail_day_groups)
 
-        child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(self.group.id)
-        if not all(db_services.AvailDay.get_from__avail_day_group(child.id) for child in child_groups):
+        if max_value_mandatory_nr_avail_day_groups == 1:
             self.chk_mandatory_nr_avail_day_groups.setChecked(False)
             self.chk_mandatory_nr_avail_day_groups.setDisabled(True)
+
+        if not self.builder.all_child_groups_have_avail_day(self.group):
             self.chk_mandatory_nr_avail_day_groups_is_locked = True
 
         self.chk_mandatory_nr_avail_day_groups.toggled.connect(self.chk_mandatory_nr_toggled)
 
-    def update_mandatory_widget_values(self, nr_child_groups: int, nr_avail_day_groups: int | None):
+    def update_mandatory_widget_values(self):
         if not self.mandatory_widgets_are_available:
             return
-        max_value_mandatory_nr = min([nr_child_groups, nr_avail_day_groups or 1000])
+        max_value_mandatory_nr = self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group)
         if max_value_mandatory_nr < 2:
             self.chk_mandatory_nr_avail_day_groups.setChecked(False)
             self.chk_mandatory_nr_avail_day_groups.setDisabled(True)
@@ -536,7 +541,6 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self.lb_mandatory_nr_avail_day_groups_value.setText('1')
 
     def slider_mandatory_value_changed(self):
-        print('value changed')
         new_value = self.slider_mandatory_nr_avail_day_groups.value()
         if new_value < 2:
             new_value = None

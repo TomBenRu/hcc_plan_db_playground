@@ -279,7 +279,7 @@ class TreeWidget(QTreeWidget):
                     item.configure(child, None, self.nr_main_groups, parent_group_nr)
                     add_children(item, child)
 
-        cast_groups = db_services.CastGroup.get_all_from__location_plan_period(self.location_plan_period.id)
+        cast_groups = db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
         most_top_cast_groups = [cg for cg in cast_groups if not cg.cast_group]
 
         for child in most_top_cast_groups:
@@ -620,7 +620,7 @@ class DlgCastGroups(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def add_group(self):
-        create_command = cast_group_commands.Create(self.location_plan_period.id)
+        create_command = cast_group_commands.Create(self.location_plan_period.plan_period.id)
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
 

@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session, commit
+from pony.orm import db_session, commit, select
 
 from . import schemas
 from .authentication import hash_psw
@@ -1129,31 +1129,32 @@ class CastGroup:
 
     @staticmethod
     @db_session
-    def get_all_from__location_plan_period(location_plan_period_id: UUID) -> list[schemas.CastGroupShow]:
-        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+    def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.CastGroupShow]:
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
 
-        return [schemas.CastGroupShow.model_validate(cg) for cg in location_plan_period_db.cast_groups]
+        return [schemas.CastGroupShow.model_validate(cg) for cg in plan_period_db.cast_groups]
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(*, location_plan_period_id: UUID, parent_cast_group_id: UUID = None,
-               restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:
+    def create(*, plan_period_id: UUID, restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        parent_cast_group_db = (models.CastGroup.get_for_update(id=parent_cast_group_id)
-                                if parent_cast_group_id else None)
-        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         if restore_cast_group:
             cast_rule_db = (models.CastRule.get_for_update(id=restore_cast_group.cast_rule.id)
                             if restore_cast_group.cast_rule else None)
+            parent_groups_db = select(cg for cg in models.CastGroup.select(lambda x: x.plan_period == plan_period_db)
+                                      if cg.id in [c.id for c in restore_cast_group.parent_groups])
+            child_groups_db = select(cg for cg in models.CastGroup.select(lambda x: x.plan_period == plan_period_db)
+                                      if cg.id in [c.id for c in restore_cast_group.child_groups])
             cast_group_db = models.CastGroup(id=restore_cast_group.id, nr_actors=0,
-                                             location_plan_period=location_plan_period_db,
-                                             cast_group=parent_cast_group_db, cast_rule=cast_rule_db)
+                                             plan_period=plan_period_db, cast_rule=cast_rule_db)
             commit()
+            cast_group_db.parent_groups.add(parent_groups_db)
+            cast_group_db.child_groups.add(child_groups_db)
             cast_group_db.set(**restore_cast_group.model_dump(include={'nr_actors', 'fixed_cast', 'strict_cast_pref'}))
         else:
-            cast_group_db = models.CastGroup(nr_actors=0, location_plan_period=location_plan_period_db,
-                                             cast_group=parent_cast_group_db)
+            cast_group_db = models.CastGroup(nr_actors=0, plan_period=plan_period_db)
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @staticmethod
@@ -1302,7 +1303,10 @@ class Event:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=event.location_plan_period.id)
         master_event_group_db = location_plan_period_db.event_group
         event_group = EventGroup.create(event_group_id=master_event_group_db.id)
-        cast_group = CastGroup.create(location_plan_period_id=event.location_plan_period.id)
+        cast_group = CastGroup.create(plan_period_id=event.location_plan_period.plan_period.id)
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group.id)
+        cast_group_db.nr_actors = location_plan_period_db.nr_actors
+        cast_group_db.fixed_cast = location_plan_period_db.fixed_cast
         event_db = models.Event(
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
             event_group=models.EventGroup.get_for_update(id=event_group.id),

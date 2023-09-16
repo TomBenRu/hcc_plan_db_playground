@@ -5,18 +5,18 @@ from gui.commands.command_base_classes import Command
 
 
 class Create(Command):
-    def __init__(self, location_plan_period_id: UUID):
-        self.location_plan_period_id = location_plan_period_id
+    def __init__(self, plan_period_id: UUID):
+        self.plan_period_id = plan_period_id
         self.created_cast_group: schemas.CastGroupShow | None = None
 
     def execute(self):
-        self.created_cast_group = db_services.CastGroup.create(location_plan_period_id=self.location_plan_period_id)
+        self.created_cast_group = db_services.CastGroup.create(plan_period_id=self.plan_period_id)
 
     def undo(self):
         db_services.CastGroup.delete(self.created_cast_group.id)
 
     def redo(self):
-        self.created_cast_group = db_services.CastGroup.create(self.location_plan_period_id)
+        self.created_cast_group = db_services.CastGroup.create(self.plan_period_id)
 
 
 class Delete(Command):

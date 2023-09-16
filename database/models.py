@@ -477,7 +477,7 @@ class CastGroup(db.Entity):
 
     @property
     def project(self):
-        return self.team.project
+        return self.plan_period.team.project
 
 
 class CastRule(db.Entity):

@@ -509,7 +509,6 @@ class CastGroupShow(CastGroup):
     parent_groups: List['CastGroup']
     child_groups: List['CastGroup']
     cast_rule: Optional['CastRule']
-    project: Project
 
     @field_validator('parent_groups', 'child_groups')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

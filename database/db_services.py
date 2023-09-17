@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
+from icecream import ic
 from pony.orm import db_session, commit, select
 
 from . import schemas
@@ -1163,8 +1164,19 @@ class CastGroup:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
-        new_parent_db = models.CastGroup.get_for_update(id=new_parent_id) if new_parent_id else None
-        cast_group_db.cast_group = new_parent_db
+        new_parent_db = models.CastGroup.get_for_update(id=new_parent_id)
+        cast_group_db.parent_groups.add(new_parent_db)
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_from_parent(cast_group_id: UUID, parent_group_id: UUID | None) -> schemas.CastGroupShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        parent_group_db = models.CastGroup.get_for_update(id=parent_group_id)
+        cast_group_db.parent_groups.remove(parent_group_db)
 
         return schemas.CastGroupShow.model_validate(cast_group_db)
 

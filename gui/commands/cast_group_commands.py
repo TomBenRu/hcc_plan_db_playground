@@ -42,17 +42,33 @@ class SetNewParent(Command):
         """new_parent_id ist die id der parent-cast_group."""
         self.cast_group_id = cast_group_id
         self.new_parent_id = new_parent_id
-        self.old_parent = db_services.CastGroup.get(cast_group_id).cast_group
-        self.old_parent_id: UUID = self.old_parent.id if self.old_parent else None
+        self.old_parent = db_services.CastGroup.get(cast_group_id).parent_groups
+        self.old_parent_ids: UUID = self.old_parent.id if self.old_parent else None
 
     def execute(self):
         db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
 
     def undo(self):
-        db_services.CastGroup.set_new_parent(self.cast_group_id, self.old_parent_id)
+        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.new_parent_id)
 
     def redo(self):
         db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
+
+
+class RemoveFromParent(Command):
+    def __init__(self, cast_group_id: UUID, parent_group_id: UUID):
+        self.cast_group_id = cast_group_id
+        self.parent_group_id = parent_group_id
+
+    def execute(self):
+        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.parent_group_id)
+
+    def undo(self):
+        db_services.CastGroup.set_new_parent(self.cast_group_id, self.parent_group_id)
+
+    def redo(self):
+        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.parent_group_id)
+
 
 
 class UpdateFixedCast(Command):

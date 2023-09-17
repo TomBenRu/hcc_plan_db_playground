@@ -577,7 +577,8 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.DataGroupMode(False))
 
     def change_mode__cast_group(self):
-        dlg = frm_cast_group.DlgCastGroups(self, self.location_plan_period)
+        plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)
+        dlg = frm_cast_group.DlgCastGroups(self, plan_period, self.location_plan_period)
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
             self.reload_location_plan_period()
@@ -630,7 +631,7 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('0EC2EC2174D444948E6ACAE1B94F7E13'))
+    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('72F1D1E9BF554F11AE44916411A9819E'))
                     if not pp.prep_delete]
     window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()

@@ -1144,10 +1144,8 @@ class CastGroup:
         if restore_cast_group:
             cast_rule_db = (models.CastRule.get_for_update(id=restore_cast_group.cast_rule.id)
                             if restore_cast_group.cast_rule else None)
-            parent_groups_db = select(cg for cg in models.CastGroup.select(lambda x: x.plan_period == plan_period_db)
-                                      if cg.id in [c.id for c in restore_cast_group.parent_groups])
-            child_groups_db = select(cg for cg in models.CastGroup.select(lambda x: x.plan_period == plan_period_db)
-                                      if cg.id in [c.id for c in restore_cast_group.child_groups])
+            parent_groups_db = [models.CastGroup.get_for_update(id=cg.id) for cg in restore_cast_group.parent_groups]
+            child_groups_db = [models.CastGroup.get_for_update(id=cg.id) for cg in restore_cast_group.child_groups]
             cast_group_db = models.CastGroup(id=restore_cast_group.id, nr_actors=0,
                                              plan_period=plan_period_db, cast_rule=cast_rule_db)
             commit()

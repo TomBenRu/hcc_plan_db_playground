@@ -75,9 +75,11 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None):
 
 
 class DlgFixedCastBuilderABC(ABC):
-    def __init__(self, parent: QWidget, object_with_fixed_cast: schemas.ModelWithFixedCast):
+    def __init__(self, parent: QWidget, object_with_fixed_cast: schemas.ModelWithFixedCast,
+                 location_plan_period: schemas.LocationPlanPeriodShow | None = None):
 
         self.object_with_fixed_cast: (object_with_fixed_cast_type | None) = object_with_fixed_cast.model_copy()
+        self.location_plan_period: schemas.LocationPlanPeriodShow | None = location_plan_period
         self.parent_widget = parent
         self.parent_fixed_cast: str | None = None
         self.location_of_work: schemas.LocationOfWorkShow | None = None
@@ -173,52 +175,57 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
 
 
 class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
-    def __init__(self, parent, cast_group: schemas.CastGroupShow):
-        super().__init__(parent=parent, object_with_fixed_cast=cast_group)
+    def __init__(self, parent, cast_group: schemas.CastGroupShow,
+                 location_plan_period: schemas.LocationPlanPeriodShow = None):
+        super().__init__(parent=parent, object_with_fixed_cast=cast_group, location_plan_period=location_plan_period)
         self.object_with_fixed_cast: schemas.CastGroupShow = cast_group.model_copy()
 
     def _generate_field_values(self):
         self.title_text = ('Feste Besetzung eines Events' if self.object_with_fixed_cast.event
                            else 'Feste Besetzung einer Besetzungsgruppe')
-        location_plan_period = db_services.LocationPlanPeriod.get(
-            self.object_with_fixed_cast.location_plan_period.id
-        )
-        self.parent_fixed_cast = location_plan_period.fixed_cast
-        self.location_of_work = db_services.LocationOfWork.get(
-            self.object_with_fixed_cast.location_plan_period.location_of_work.id
-        )
+        # location_plan_period = db_services.LocationPlanPeriod.get(
+        #     self.object_with_fixed_cast.location_plan_period.id
+        # )
+        # self.parent_fixed_cast = location_plan_period.fixed_cast
+        if self.location_plan_period:
+            self.location_of_work = db_services.LocationOfWork.get(
+                self.location_plan_period.location_of_work.id
+            )
         self.info_text = (f'''das Event am "{self.object_with_fixed_cast.event.date.strftime('%d.%m.%y')}"'''
                           if self.object_with_fixed_cast.event else 'die Besetzungsgruppe')
-        self.make_reset_menu = True
+        self.make_reset_menu = bool(self.location_plan_period)
         self.fixed_date = (self.object_with_fixed_cast.event.date if self.object_with_fixed_cast.event
-                           else self.object_with_fixed_cast.location_plan_period.plan_period.start)  # fixme: for castgroup without event
+                           else self.object_with_fixed_cast.plan_period.start)  # fixme: for castgroup without event
         self.update_command = partial(cast_group_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
         self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
         if self.object_with_fixed_cast.event:
-            team = get_curr_team_of_location_at_date(self.location_of_work, self.object_with_fixed_cast.event.date)
+            location_of_work = db_services.LocationOfWork.get(
+                self.object_with_fixed_cast.event.location_plan_period.location_of_work.id)
+            team = get_curr_team_of_location_at_date(location_of_work, self.object_with_fixed_cast.event.date)
             return get_persons_of_team_at_date(team.id, date)
         return self.union_persons()
 
     def union_persons(self):
-        days_of_cast_group: list[datetime.date] = []
+        events: list[schemas.Event] = []
 
         def find_recursive(cast_group: schemas.CastGroup):
             cast_group = db_services.CastGroup.get(cast_group.id)
-            for child_group in cast_group.cast_groups:
+            for child_group in cast_group.child_groups:
                 if child_group.event:
-                    days_of_cast_group.append(child_group.event.date)
+                    events.append(child_group.event)
                 else:
                     find_recursive(child_group)
 
         find_recursive(self.object_with_fixed_cast)
         person_ids = set()
         same_person_over_period = True
-        for day in days_of_cast_group:
-            team = get_curr_team_of_location_at_date(self.location_of_work, day)
-            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(team.id, day)}
-            if day != days_of_cast_group[0] and person_ids_at_day != person_ids:
+        for event in events:
+            location_of_work = db_services.LocationOfWork.get(event.location_plan_period.location_of_work.id)
+            team = get_curr_team_of_location_at_date(location_of_work, event.date)
+            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(team.id, event.date)}
+            if event != events[0] and person_ids_at_day != person_ids:
                 same_person_over_period = False
             person_ids |= person_ids_at_day
         if not same_person_over_period:

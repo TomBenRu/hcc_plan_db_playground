@@ -28,9 +28,7 @@ class Delete(Command):
         db_services.CastGroup.delete(self.cast_group_id)
 
     def undo(self):
-        parent_cast_group_id = self.cast_group.cast_group.id if self.cast_group.cast_group else None
-        db_services.CastGroup.create(location_plan_period_id=self.cast_group.location_plan_period.id,
-                                     parent_cast_group_id=parent_cast_group_id,
+        db_services.CastGroup.create(plan_period_id=self.cast_group.plan_period.id,
                                      restore_cast_group=self.cast_group)
 
     def redo(self):
@@ -38,12 +36,10 @@ class Delete(Command):
 
 
 class SetNewParent(Command):
-    def __init__(self, cast_group_id: UUID, new_parent_id: UUID | None):
+    def __init__(self, cast_group_id: UUID, new_parent_id: UUID):
         """new_parent_id ist die id der parent-cast_group."""
         self.cast_group_id = cast_group_id
         self.new_parent_id = new_parent_id
-        self.old_parent = db_services.CastGroup.get(cast_group_id).parent_groups
-        self.old_parent_ids: UUID = self.old_parent.id if self.old_parent else None
 
     def execute(self):
         db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)

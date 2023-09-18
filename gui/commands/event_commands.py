@@ -39,6 +39,7 @@ class Delete(Command):
     def __init__(self, event_id):
         self.event_id = event_id
         self.event_to_delete = db_services.Event.get(event_id)
+        self.containing_cast_groups = db_services.CastGroup.get(self.event_to_delete.cast_group.id).parent_groups
 
     def execute(self):
         db_services.Event.delete(self.event_id)

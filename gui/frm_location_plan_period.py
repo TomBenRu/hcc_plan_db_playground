@@ -279,6 +279,9 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.scroll_area_events = QScrollArea()
 
+        self.bt_cast_groups_plan_period = QPushButton('Besetzungen der Planungsperiode bearbeiten...',
+                                                      clicked=self.edit_cast_groups_plan_period)
+
         self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()
         self.layout_notes_location = QVBoxLayout()
@@ -293,6 +296,8 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.layout_notes_location_pp.addWidget(self.te_notes_pp)
         self.layout_notes_location.addWidget(self.lb_notes_location)
         self.layout_notes_location.addWidget(self.te_notes_location)
+
+        self.layout.addWidget(self.bt_cast_groups_plan_period)
 
         self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
 
@@ -375,6 +380,11 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location.notes = self.te_notes_location.toPlainText()
         updated_location = db_services.LocationOfWork.update_notes(
             self.location_id, self.te_notes_location.toPlainText())
+
+    def edit_cast_groups_plan_period(self):
+        dlg = frm_cast_group.DlgCastGroups(self, self.plan_period)
+        if dlg.exec():
+            print('ausgeführt')
 
 
 class FrmLocationPlanPeriod(QWidget):
@@ -545,14 +555,22 @@ class FrmLocationPlanPeriod(QWidget):
             del_command = event_commands.Delete(event.id)
             self.controller.execute(del_command)
             self.reload_location_plan_period()
-            if not (master_group := del_command.event_to_delete.event_group.event_group).location_plan_period:
-                if len(childs := db_services.EventGroup.get_child_groups_from__parent_group(master_group.id)) < 2:
+            if not (event_group := del_command.event_to_delete.event_group.event_group).location_plan_period:
+                if len(childs := db_services.EventGroup.get_child_groups_from__parent_group(event_group.id)) < 2:
                     solo_event = childs[0].event
                     QMessageBox.critical(self, 'Verfügbarkeitsgruppen',
                                          f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
                                          f'Termin: {solo_event.date.strftime("%d.%m.%y")}\n'
                                          f'Bitte korrigieren Sie dies im folgenden Dialog.')
                     self.change_mode__event_group()
+            if del_command.containing_cast_groups:
+                for parent_cast_group in del_command.containing_cast_groups:
+                    if len(db_services.CastGroup.get(parent_cast_group.id).child_groups) < 2:
+                        QMessageBox.critical(self, 'Besetzungsgruppen',
+                                             f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
+                                             f'Termin oder eine einzelne Untergruppe.'
+                                             f'Bitte korrigieren Sie dies im folgenden Dialog.')
+                        self.parent.edit_cast_groups_plan_period()
 
         bt.reload_location_plan_period()
 

@@ -59,7 +59,7 @@ class DlgPlanPeriodData(QDialog):
         self.data_input_layout.addRow(self.chk_remainder)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.save)
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
@@ -84,10 +84,10 @@ class DlgPlanPeriodData(QDialog):
             return
         if plan_periods := [pp for pp in team.plan_periods if not pp.prep_delete]:
             self.max_end_plan_periods = max(p.end for p in plan_periods)
-            self.de_start.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
-            self.de_end.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         else:
             self.max_end_plan_periods = datetime.date.today()
+        self.de_start.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
+        self.de_end.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         self.de_start.setDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         self.de_end.setDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         self.de_deadline.setDate(datetime.date.today())
@@ -113,7 +113,7 @@ class DlgPlanPeriodData(QDialog):
                 get_persons_of_team_at_date(self.cb_teams.currentData().id, start + datetime.timedelta(days=delta))}
         return location_ids, actor_ids
 
-    def save(self):
+    def accept(self) -> None:
         if not self.cb_teams.currentData():
             QMessageBox.critical(self, 'Planungszeitraum', 'Wie müssen zuerst ein Team auswählen.')
             return
@@ -134,7 +134,7 @@ class DlgPlanPeriodData(QDialog):
         for actor_id in actor_ids:
             self.create_actor_plan_periods(plan_period_created.id, actor_id)
 
-        self.accept()
+        super().accept()
 
     def create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
         new_location_plan_period = db_services.LocationPlanPeriod.create(plan_period_id, loc_id)

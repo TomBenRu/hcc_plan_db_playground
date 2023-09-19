@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
         return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.',
-                            lambda event=1, t=team: self.goto_team(t)) for team in teams)
+                            lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams)
 
     def put_teams_to__teams_edit_menu(self) -> dict[str, list[Action]] | None:
         try:
@@ -226,7 +226,8 @@ class MainWindow(QMainWindow):
                                    functools.partial(self.edit_excel_export_settings, team))]
                 for team in teams}
 
-    def goto_team(self, team: schemas.TeamShow):
+    def goto_team(self, team_id: UUID):
+        team = db_services.Team.get(team_id)
         for plan_period in (pp for pp in team.plan_periods if not pp.prep_delete):
             widget_pp_tab = QWidget(self)  # Widget für Datum
             self.tabs_planungsmasken.addTab(

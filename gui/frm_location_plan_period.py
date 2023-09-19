@@ -605,9 +605,6 @@ class FrmLocationPlanPeriod(QWidget):
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 
-        signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
-            signal_handling.DataGroupMode(False))
-
     def get_events(self):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
                   if not e.prep_delete)

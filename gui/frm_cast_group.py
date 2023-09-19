@@ -790,12 +790,19 @@ class DlgCastGroups(QDialog):
             if self.simplified:
                 QMessageBox.information(self, 'Gruppenmodus',
                                         'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+            self.replace_group_nrs_from_events()
             super().accept()
 
     def reject(self) -> None:
         self.controller.undo_all()
         self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
+        self.replace_group_nrs_from_events()
         super().reject()
+
+    @staticmethod
+    def replace_group_nrs_from_events():
+        signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+            signal_handling.DataGroupMode(False))
 
     def refresh_tree(self):
         self.tree_groups.refresh_tree()

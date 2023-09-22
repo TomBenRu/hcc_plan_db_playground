@@ -382,7 +382,8 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.location_id, self.te_notes_location.toPlainText())
 
     def edit_cast_groups_plan_period(self):
-        dlg = frm_cast_group.DlgCastGroups(self, self.plan_period)
+        visible_plan_period_ids = {location_pp.id for location_pp in self.plan_period.location_plan_periods}
+        dlg = frm_cast_group.DlgCastGroups(self, self.plan_period, visible_plan_period_ids)
         if dlg.exec():
             print('ausgeführt')
 
@@ -596,7 +597,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def change_mode__cast_group(self):
         plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)
-        dlg = frm_cast_group.DlgCastGroups(self, plan_period, self.location_plan_period)
+        dlg = frm_cast_group.DlgCastGroups(self, plan_period, {self.location_plan_period.id})
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
             self.reload_location_plan_period()

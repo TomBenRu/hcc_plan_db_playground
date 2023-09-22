@@ -2,11 +2,12 @@ import dataclasses
 import datetime
 import json
 import sys
+import time
 from typing import Callable, Sequence, Literal
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
@@ -166,10 +167,8 @@ class ConsistenceProof:
 
 
 class TreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None,
-                 location_plan_period: schemas.LocationPlanPeriodShow | None = None):
+    def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
         super().__init__(tree_widget_item)
-        self.location_plan_period = location_plan_period
 
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
@@ -201,29 +200,26 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
-    def calculate_earliest_date_object(self, cast_group: schemas.CastGroup) -> tuple[datetime.date, int]:
-        cast_group = db_services.CastGroup.get(cast_group.id)
-        if not ((event := cast_group.event) or cast_group.child_groups):
+    def calculate_earliest_date_object(self, item: 'TreeWidgetItem') -> tuple[datetime.date, int]:
+        print(f'{item.text(TREE_HEAD_COLUMN__TITEL)}, {item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)}, {item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)=}')
+        cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        if not ((event := cast_group.event) or item.childCount()):
             return datetime.date(2000, 1, 1), 0
         if event:
-            if self.location_plan_period:
-                if event.location_plan_period.id == self.location_plan_period.id:
-                    return event.date, event.time_of_day.time_of_day_enum.time_index
-                return datetime.date(2000, 1, 1), 0
             return event.date, event.time_of_day.time_of_day_enum.time_index
-        return min(self.calculate_earliest_date_object(cg) for cg in cast_group.child_groups)
+        visible_childs = [item.child(idx) for idx in range(item.childCount()) if not item.child(idx).isHidden()]
+        return (min(self.calculate_earliest_date_object(child) for child in visible_childs)
+                if visible_childs else (datetime.date(2000, 1, 1), 0))
 
-    def __lt__(self, other):
+    def __lt__(self, other: 'TreeWidgetItem'):
         column = self.treeWidget().sortColumn()
-        my_group: schemas.CastGroupShow = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        other_group: schemas.CastGroupShow = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
         if column != 1:
             return False
 
         # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__DATE_OBJECT
-        my_earliest_event = self.calculate_earliest_date_object(my_group)
-        other_earliest_event = self.calculate_earliest_date_object(other_group)
+        my_earliest_event = self.calculate_earliest_date_object(self)
+        other_earliest_event = self.calculate_earliest_date_object(other)
         if my_earliest_event[0] == other_earliest_event[0]:
             return my_earliest_event[1] < other_earliest_event[1]
         return my_earliest_event[0] < other_earliest_event[0]
@@ -232,11 +228,11 @@ class TreeWidgetItem(QTreeWidgetItem):
 class TreeWidget(QTreeWidget):
     def __init__(self, plan_period: schemas.PlanPeriodShow,
                  slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None],
-                 location_plan_period: schemas.LocationPlanPeriodShow | None):
+                 visible_location_plan_period_ids: set[UUID]):
         super().__init__()
 
         self.plan_period = plan_period
-        self.location_plan_period = location_plan_period
+        self.visible_location_plan_period_ids = visible_location_plan_period_ids
 
         self.setColumnCount(8)
         self.setHeaderLabels(["Bezeichnung", "Location", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "Regel",
@@ -287,14 +283,13 @@ class TreeWidget(QTreeWidget):
     def setup_tree(self):
         def add_children(parent: QTreeWidgetItem, parent_group: schemas.CastGroupShow):
             children = parent_group.child_groups
-            if self.location_plan_period:
-                children = [cg for cg in children
-                            if self.location_plan_period.id in location_plan_period_ids__from_cast_group(cg)]
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
                 child = db_services.CastGroup.get(child.id)
                 if date_object := child.event:
-                    item = TreeWidgetItem(parent, self.location_plan_period)
+                    item = TreeWidgetItem(parent)
+                    if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
+                        item.setHidden(True)
                     item.configure(child, date_object, None, parent_group_nr)
                     signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
                         signal_handling.DataGroupMode(True,
@@ -304,19 +299,18 @@ class TreeWidget(QTreeWidget):
                     )
                 else:
                     self.nr_main_groups += 1
-                    item = TreeWidgetItem(parent, self.location_plan_period)
+                    item = TreeWidgetItem(parent)
                     item.configure(child, None, self.nr_main_groups, parent_group_nr)
                     add_children(item, child)
 
         cast_groups = db_services.CastGroup.get_all_from__plan_period(self.plan_period.id)
-        if self.location_plan_period:
-            cast_groups = [cg for cg in cast_groups
-                           if self.location_plan_period.id in location_plan_period_ids__from_cast_group(cg)]
 
         most_top_cast_groups = [cg for cg in cast_groups if not cg.parent_groups]
 
         for child in most_top_cast_groups:
-            item = TreeWidgetItem(self, self.location_plan_period)
+            item = TreeWidgetItem(self)
+            if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
+                item.setHidden(True)
             if event := child.event:
                 item.configure(child, event, None, 0)
                 signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
@@ -333,10 +327,6 @@ class TreeWidget(QTreeWidget):
         self.sortByColumn(1, Qt.SortOrder.AscendingOrder)
 
     def refresh_tree(self):
-        if self.location_plan_period:
-            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
-        else:
-            self.plan_period = db_services.PlanPeriod.get(self.plan_period.id)
         self.clear()
         self.nr_main_groups = 0
         self.setup_tree()
@@ -348,12 +338,12 @@ class TreeWidget(QTreeWidget):
 
 
 class DlgGroupProperties(QDialog):
-    def __init__(self, parent: QWidget, item: QTreeWidgetItem,
-                 location_plan_period: schemas.LocationPlanPeriodShow = None):
+    def __init__(self, parent: QWidget, item: QTreeWidgetItem, visible_location_plan_period_ids: set[UUID]):
         super().__init__(parent=parent)
 
         self.item = item
-        self.location_plan_period = location_plan_period
+        self.location_plan_period = (db_services.LocationPlanPeriod.get(visible_location_plan_period_ids.copy().pop())
+                                     if len(visible_location_plan_period_ids) == 1 else None)
 
         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
@@ -618,7 +608,7 @@ class DlgGroupProperties(QDialog):
 
 class DlgCastGroups(QDialog):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriodShow,
-                 location_plan_period: schemas.LocationPlanPeriodShow | None = None):
+                 visible_location_plan_period_ids: set[UUID]):
         """Wenn location_plan_period angegeben ist, werden nur die events und cast_groups
         der location_plan_period angezeigt"""
         super().__init__(parent=parent)
@@ -627,7 +617,7 @@ class DlgCastGroups(QDialog):
         self.resize(800, 400)
 
         self.plan_period = plan_period
-        self.location_plan_period = location_plan_period
+        self.visible_location_plan_period_ids = visible_location_plan_period_ids
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -642,7 +632,8 @@ class DlgCastGroups(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.tree_groups = TreeWidget(self.plan_period, self.item_moved, self.location_plan_period)
+        self.tree_groups = TreeWidget(self.plan_period, self.item_moved,
+                                      self.visible_location_plan_period_ids)
         self.tree_groups.itemDoubleClicked.connect(self.edit_item)
         self.tree_groups.setExpandsOnDoubleClick(False)
         self.layout_body.addWidget(self.tree_groups)
@@ -664,11 +655,12 @@ class DlgCastGroups(QDialog):
         create_command = cast_group_commands.Create(self.plan_period.id)
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
-        if self.location_plan_period:
+        if len(self.visible_location_plan_period_ids) == 1:
+            location_plan_period = db_services.LocationPlanPeriod.get(self.visible_location_plan_period_ids.pop())
             self.controller.execute(cast_group_commands.UpdateFixedCast(
-                create_command.created_cast_group.id, self.location_plan_period.fixed_cast))
+                create_command.created_cast_group.id, location_plan_period.fixed_cast))
             self.controller.execute(cast_group_commands.UpdateNrActors(
-                create_command.created_cast_group.id, self.location_plan_period.nr_actors))
+                create_command.created_cast_group.id, location_plan_period.nr_actors))
 
         new_item = TreeWidgetItem(self.tree_groups.invisibleRootItem())
         new_item.configure(create_command.created_cast_group, None, self.tree_groups.nr_main_groups, 0)
@@ -710,11 +702,12 @@ class DlgCastGroups(QDialog):
 
     def edit_item(self, item: QTreeWidgetItem):
         if event := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-            event: schemas  .Event
-            location_plan_period = db_services.LocationPlanPeriod.get(event.location_plan_period.id)
+            event: schemas.Event
+            visible_location_plan_period_ids = {event.location_plan_period.id}
         else:
-            location_plan_period = self.location_plan_period
-        dlg = DlgGroupProperties(self, item, location_plan_period)
+            visible_location_plan_period_ids = location_plan_period_ids__from_cast_group(
+                item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
+        dlg = DlgGroupProperties(self, item, visible_location_plan_period_ids)
 
         if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
             for widget in (dlg.lb_rule, dlg.combo_cast_rules, dlg.le_custom_rule, dlg.lb_new_rule, dlg.bt_new_rule,
@@ -724,19 +717,12 @@ class DlgCastGroups(QDialog):
         if not dlg.exec():
             return
         self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-        if self.location_plan_period:
-            self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
         self.update_all_items()
 
     def update_all_items(self):
         all_items = get_all_child_items(self.tree_groups.invisibleRootItem())
-        if self.location_plan_period:
-            all_items = [
-                item for item in all_items if self.location_plan_period.id in location_plan_period_ids__from_cast_group(
-                    item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-                )
-            ]
+
         for item in all_items:
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
@@ -770,28 +756,32 @@ class DlgCastGroups(QDialog):
             return True
         if proof_result.solo_item:
             # falls solo_childs vorhanden sind
-            self.show_message_solo_childs(proof_result.solo_item)
+            group = proof_result.solo_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            if not ((new_location_pp_ids := location_plan_period_ids__from_cast_group(group))
+                    & self.visible_location_plan_period_ids):
+                self.visible_location_plan_period_ids |= new_location_pp_ids
+                self.refresh_tree()
+                self.tree_is_consistent()
+            else:
+                self.show_message_solo_childs(proof_result.solo_item)
             return False
         if proof_result.unused_groups:
             # falls unused_groups vorhanden sind
             for cg in proof_result.unused_groups:
                 self.controller.execute(cast_group_commands.Delete(cg.id))
                 self.simplified = True
-            if self.location_plan_period:
-                self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
-            else:
-                self.plan_period = db_services.PlanPeriod.get(self.plan_period.id)
-        self.refresh_tree()
+            self.tree_groups.setSortingEnabled(False)  # fixme: Wenn Sorting enabled, gibt es beim Sortieren Fehler
+            self.refresh_tree()
 
         return self.tree_is_consistent()
 
     def accept(self):
         if self.tree_is_consistent():
+            self.replace_group_nrs_from_events()
+            super().accept()
             if self.simplified:
                 QMessageBox.information(self, 'Gruppenmodus',
                                         'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
-            self.replace_group_nrs_from_events()
-            super().accept()
 
     def reject(self) -> None:
         self.controller.undo_all()

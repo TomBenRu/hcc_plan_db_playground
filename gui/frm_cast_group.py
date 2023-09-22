@@ -757,6 +757,7 @@ class DlgCastGroups(QDialog):
         if proof_result.solo_item:
             # falls solo_childs vorhanden sind
             group = proof_result.solo_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            # falls das solo_child nicht in der aktuellen Ansicht sichtbar ist, wird die Ansicht erweitert.
             if not ((new_location_pp_ids := location_plan_period_ids__from_cast_group(group))
                     & self.visible_location_plan_period_ids):
                 self.visible_location_plan_period_ids |= new_location_pp_ids

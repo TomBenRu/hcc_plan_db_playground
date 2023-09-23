@@ -201,7 +201,6 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
     def calculate_earliest_date_object(self, item: 'TreeWidgetItem') -> tuple[datetime.date, int]:
-        print(f'{item.text(TREE_HEAD_COLUMN__TITEL)}, {item.data(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole)}, {item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)=}')
         cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         if not ((event := cast_group.event) or item.childCount()):
             return datetime.date(2000, 1, 1), 0
@@ -786,7 +785,7 @@ class DlgCastGroups(QDialog):
 
     def reject(self) -> None:
         self.controller.undo_all()
-        self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
+        # self.refresh_tree()  # notwendig, falls der Dialog automatisch aufgerufen wurde,...
         self.replace_group_nrs_from_events()
         super().reject()
 

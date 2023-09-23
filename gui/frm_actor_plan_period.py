@@ -17,7 +17,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode, \
-    frm_time_of_day
+    frm_time_of_day, widget_styles
 from gui.actions import Action
 from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
 from gui.frm_time_of_day import DlgTimeOfDaysEditList
@@ -66,18 +66,7 @@ class ButtonAvailDay(QPushButton):
         self.set_tooltip()
 
     def set_stylesheet(self):
-        if self.time_of_day.time_of_day_enum.time_index == 1:
-            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                               "QPushButton::checked { background-color: #002aaa; border: none;}"
-                               "QPushButton::disabled { background-color: #6a7585;}")
-        elif self.time_of_day.time_of_day_enum.time_index == 2:
-            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                               "QPushButton::checked { background-color: #ff4600; border: none;}"
-                               "QPushButton::disabled { background-color: #7f7f7f;}")
-        elif self.time_of_day.time_of_day_enum.time_index == 3:
-            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
-                               "QPushButton::checked { background-color: #84033c; border: none;}"
-                               "QPushButton::disabled { background-color: #674b56;}")
+        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
 
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode

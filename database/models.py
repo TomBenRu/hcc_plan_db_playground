@@ -248,6 +248,10 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
         return self.actor_plan_period.project
 
     @property
+    def plan_period(self):
+        return self.actor_plan_period.plan_period
+
+    @property
     def team(self):
         return self.actor_plan_period.team
 

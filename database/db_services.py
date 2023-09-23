@@ -1282,6 +1282,14 @@ class Event:
 
     @staticmethod
     @db_session
+    def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.EventShow]:
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        events_db = models.Event.select(lambda e: e.plan_period == plan_period_db)
+
+        return [schemas.EventShow.model_validate(e) for e in events_db]
+
+    @staticmethod
+    @db_session
     def get_all_from__location_plan_period(location_plan_period_id) -> list[schemas.EventShow]:
         events_db = models.Event.select(lambda e: e.location_plan_period.id == location_plan_period_id)
 
@@ -1641,6 +1649,14 @@ class AvailDay:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_days_db = models.AvailDay.select(lambda a: a.actor_plan_period == actor_plan_period_db)
         return [schemas.AvailDayShow.model_validate(ad) for ad in avail_days_db]
+
+    @staticmethod
+    @db_session
+    def get_all_from__plan_period_date(plan_period_id: UUID, date: datetime.date) -> list[schemas.AvailDayShow]:
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        avail_days_db = models.AvailDay.select(lambda a: a.plan_period == plan_period_db and a.date == date)
+
+        return [schemas.AvailDayShow.model_validate(avd) for avd in avail_days_db]
 
     @staticmethod
     @db_session

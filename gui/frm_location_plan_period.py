@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group
+from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles
 from gui.actions import Action
 from gui.commands import command_base_classes, event_commands, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
@@ -71,18 +71,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.set_tooltip()
 
     def set_stylesheet(self):
-        if self.time_of_day.time_of_day_enum.time_index == 1:
-            self.setStyleSheet("QPushButton {background-color: #cae4f4}"
-                               "QPushButton::checked { background-color: #002aaa; border: none;}"
-                               "QPushButton::disabled { background-color: #6a7585;}")
-        elif self.time_of_day.time_of_day_enum.time_index == 2:
-            self.setStyleSheet("QPushButton {background-color: #fff4d6}"
-                               "QPushButton::checked { background-color: #ff4600; border: none;}"
-                               "QPushButton::disabled { background-color: #7f7f7f;}")
-        elif self.time_of_day.time_of_day_enum.time_index == 3:
-            self.setStyleSheet("QPushButton {background-color: #daa4c9}"
-                               "QPushButton::checked { background-color: #84033c; border: none;}"
-                               "QPushButton::disabled { background-color: #674b56;}")
+        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
 
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode

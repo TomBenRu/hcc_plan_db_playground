@@ -53,6 +53,9 @@ class AppointmentCast:
     def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.remove(avail_day)
 
+    def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
+        return random.choice(self.avail_days)
+
     def add_avail_day_first_cast(self, avail_day: schemas.AvailDayShow) -> Literal['filled', 'same person', 'full']:
         if len(self.avail_days) < self.event.cast_group.nr_actors:
             person_id = avail_day.actor_plan_period.person.id if avail_day else None
@@ -84,6 +87,12 @@ class DateCast:
 
     def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.remove(avail_day)
+    
+    def pick_random_appointments(self, nr_appointments: int) -> list[AppointmentCast]:
+        return [random.choice(self.appointments) for _ in range(nr_appointments)]
+
+    def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
+        return random.choice(self.avail_days)
 
     def initialize_first_cast(self):  # not_sure: kann weggelassen werden
         appointments_indexes = list(range(len(self.appointments)))
@@ -124,6 +133,9 @@ class PlanPeriodCast:
                 self.date_casts[event.date] = DateCast(event.date, avail_days_at_date)
             self.date_casts[event.date].add_appointment(event)
 
+    def pick_random_date_cast(self) -> DateCast:
+        return random.choice(list(self.date_casts.values()))
+    
     def calculate_initial_casts(self):  # not_sure: kann weggelassen werden
         for date_cast in self.date_casts.values():
             date_cast.initialize_first_cast()

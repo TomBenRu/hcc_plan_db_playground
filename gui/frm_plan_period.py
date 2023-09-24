@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QP
 from database import db_services, schemas
 from database.special_schema_requests import get_locations_of_team_at_date, \
     get_persons_of_team_at_date
-from gui.commands.database_commands import plan_period_commands
+from commands.database_commands import plan_period_commands
 
 
 class DlgPlanPeriodData(QDialog):

@@ -1,8 +1,8 @@
 import datetime
 from uuid import UUID
 
-from database import db_services, schemas, special_schema_requests
-from gui.commands.command_base_classes import Command
+from database import db_services, schemas
+from commands.command_base_classes import Command
 
 
 class Create(Command):

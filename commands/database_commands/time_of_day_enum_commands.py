@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from database import schemas, db_services
-from gui.commands.command_base_classes import Command
+from commands.command_base_classes import Command
 
 
 class Create(Command):

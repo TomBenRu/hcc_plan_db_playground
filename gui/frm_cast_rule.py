@@ -5,8 +5,8 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabe
                                QMessageBox)
 
 from database import schemas, db_services
-from gui.commands import command_base_classes
-from gui.commands.database_commands import cast_rule_commands
+from commands import command_base_classes
+from commands.database_commands import cast_rule_commands
 from gui.tools.custom_validators import LettersAndSymbolsValidator
 from gui.tools.custom_widgets.custom_line_edits import LineEditWithCustomFont
 

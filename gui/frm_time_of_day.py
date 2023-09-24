@@ -9,9 +9,9 @@ from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QTimeEdit, QPushButto
     QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem
 
 from database import schemas, db_services
-from .commands import command_base_classes
-from .commands.database_commands import actor_plan_period_commands, project_commands, person_commands, \
-    time_of_day_commands, location_of_work_commands, location_plan_period_commands
+from commands import command_base_classes
+from commands.database_commands import actor_plan_period_commands, location_plan_period_commands, project_commands, \
+    person_commands, location_of_work_commands, time_of_day_commands
 from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 

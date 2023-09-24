@@ -12,9 +12,9 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
 from gui.actions import Action
-from gui.commands import command_base_classes
-from gui.commands.database_commands import actor_partner_loc_pref_commands, actor_plan_period_commands, \
-    avail_day_commands, person_commands
+from commands import command_base_classes
+from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
+    avail_day_commands
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 

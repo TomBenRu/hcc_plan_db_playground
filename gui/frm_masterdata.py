@@ -16,8 +16,8 @@ from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team
-from .commands import command_base_classes
-from .commands.database_commands import actor_loc_pref_commands, person_commands, location_of_work_commands
+from commands import command_base_classes
+from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from .tabbars import TabBar
 from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData

@@ -13,8 +13,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidg
                                QGridLayout)
 
 from database import schemas, db_services
-from gui.commands import command_base_classes
-from gui.commands.database_commands import avail_day_group_commands, event_group_commands
+from commands import command_base_classes
+from commands.database_commands import event_group_commands
+from commands.database_commands import avail_day_group_commands
 from gui.observer import signal_handling
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 

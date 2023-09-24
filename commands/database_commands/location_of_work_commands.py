@@ -2,8 +2,8 @@ import datetime
 from uuid import UUID
 
 from database import db_services, schemas
-from gui.commands.database_commands import team_location_assignment_commands
-from gui.commands.command_base_classes import Command, ContrExecUndoRedo
+from commands.database_commands import team_location_assignment_commands
+from commands.command_base_classes import Command, ContrExecUndoRedo
 
 
 class Update(Command):

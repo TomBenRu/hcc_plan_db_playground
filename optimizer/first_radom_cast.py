@@ -1,6 +1,8 @@
 import dataclasses
 import datetime
 import random
+import time
+from typing import Literal
 from uuid import UUID
 
 from dateutil.relativedelta import relativedelta
@@ -40,65 +42,94 @@ class AvailDayParts:
         return ', '.join([str(ts) for ts in self.time_spans])
 
 
-date_casts: dict[datetime.date, 'DateCast'] = {}
-
 @dataclasses.dataclass
-class AppointmentCalc:
+class AppointmentCast:
     event: schemas.EventShow
     avail_days: list[schemas.AvailDayShow] = dataclasses.field(default_factory=list)
 
-    def add_avail_day(self, avail_day: schemas.AvailDayShow) -> bool:
+    def add_avail_day(self, avail_day: schemas.AvailDayShow) -> Literal['filled', 'same person', 'full']:
         if len(self.avail_days) < self.event.cast_group.nr_actors:
-            self.avail_days.append(avail_day)
-            return True
-        return False
+            person_id = avail_day.actor_plan_period.person.id if avail_day else None
+            if person_id not in {avd.actor_plan_period.person.id for avd in self.avail_days if avd}:
+                self.avail_days.append(avail_day)
+                return 'filled'
+            else:
+                return 'same person'
+        return 'full'
 
     def __str__(self):
         return (f'{self.event.date:%d.%m.} ({self.event.time_of_day.name}): '
                 f'{self.event.location_plan_period.location_of_work.name}, '
-                f'Cast ({self.event.cast_group.nr_actors}): {", ".join(avd.actor_plan_period.person.f_name for avd in self.avail_days)}')
+                f'Cast ({self.event.cast_group.nr_actors}): '
+                f'{", ".join(avd.actor_plan_period.person.f_name if avd else "unbesetzt" for avd in self.avail_days)}')
 
 
 class DateCast:
     def __init__(self, date: datetime.date, avail_days: list[schemas.AvailDayShow]):
         self.date = date
-        self.appointments: list[AppointmentCalc] = []
+        self.appointments: list[AppointmentCast] = []
         self.avail_days: list[schemas.AvailDayShow] = avail_days
 
     def add_appointment(self, event: schemas.EventShow):
-        self.appointments.append(AppointmentCalc(event))
+        self.appointments.append(AppointmentCast(event))
 
     def add_avail_day(self, avail_day: schemas.AvailDayShow):
         self.avail_days.append(avail_day)
 
-    def initialize_cast(self):
+    def initialize_first_cast(self):  # not_sure: kann weggelassen werden
         appointments_indexes = list(range(len(self.appointments)))
         avail_days_indexes = list(range(len(self.avail_days)))
         random.shuffle(avail_days_indexes)
+        time_start = time.time()
         while appointments_indexes and avail_days_indexes:
             avd_idx = avail_days_indexes.pop()
             appointm_idx = random.choice(appointments_indexes)
-            if not self.appointments[appointm_idx].add_avail_day(self.avail_days[avd_idx]):
+            result = self.appointments[appointm_idx].add_avail_day(self.avail_days[avd_idx])
+            if result == 'full':
                 avail_days_indexes.append(avd_idx)
                 appointments_indexes.remove(appointm_idx)
+            elif result == 'same person' and (time.time() - time_start < 5):
+                avail_days_indexes.append(avd_idx)
+
+    def __str__(self):
+        return '\n'.join([str(appointment) for appointment in self.appointments])
+
+
+@dataclasses.dataclass
+class PlanPeriodCast:
+    plan_period_id: UUID
+    date_casts: dict[datetime.date, 'DateCast'] = dataclasses.field(default_factory=dict)
+
+    def calculate_date_casts(self):
+        events = get_all_events_from__plan_period(self.plan_period_id)
+        for event in events:
+            if not self.date_casts.get(event.date):
+                avail_days_at_date = db_services.AvailDay.get_all_from__plan_period_date(
+                    self.plan_period_id, event.date)
+                avail_days_at_date += [None] * sum(e.cast_group.nr_actors for e in events)
+                self.date_casts[event.date] = DateCast(event.date, avail_days_at_date)
+            self.date_casts[event.date].add_appointment(event)
+
+    def calculate_initial_casts(self):  # not_sure: kann weggelassen werden
+        for date_cast in self.date_casts.values():
+            date_cast.initialize_first_cast()
+
+    def __str__(self):
+        return '\n----------------\n'.join([str(date_cast) for date_cast in self.date_casts.values()])
+
+
+def generate_initial_plan_period_cast(plan_period_id: UUID) -> PlanPeriodCast:
+    plan_period_cast = PlanPeriodCast(plan_period_id)
+    plan_period_cast.calculate_date_casts()
+    plan_period_cast.calculate_initial_casts()  # not_sure: kann weggelassen werden
+
+    return plan_period_cast
 
 
 if __name__ == '__main__':
-    plan_period_id = UUID('0923404BCA2A47579ADE85188CF4EA7F')
+    initial_cast = generate_initial_plan_period_cast(UUID('0923404BCA2A47579ADE85188CF4EA7F'))
 
-    plan_period = db_services.PlanPeriod.get(plan_period_id)
-    events = get_all_events_from__plan_period(plan_period_id)
+    print(initial_cast)
 
-    for e in events:
-        if not date_casts.get(e.date):
-            avail_days_at_date = db_services.AvailDay.get_all_from__plan_period_date(plan_period_id, e.date)
-            date_casts[e.date] = DateCast(e.date, avail_days_at_date)
-        date_casts[e.date].add_appointment(e)
 
-    for date_cast in date_casts.values():
-        date_cast.initialize_cast()
-
-    for date_cast in date_casts.values():
-        for appointment in date_cast.appointments:
-            print(appointment)
-        print('--------------------------------------------------------------------')
+# todo: Controller und Commands für Auspoppen und Einsetzten von Personen in Appointments im DateCast

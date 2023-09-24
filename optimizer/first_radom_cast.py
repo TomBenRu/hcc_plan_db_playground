@@ -45,9 +45,15 @@ class AvailDayParts:
 @dataclasses.dataclass
 class AppointmentCast:
     event: schemas.EventShow
-    avail_days: list[schemas.AvailDayShow] = dataclasses.field(default_factory=list)
+    avail_days: list[schemas.AvailDayShow | None] = dataclasses.field(default_factory=list)
 
-    def add_avail_day(self, avail_day: schemas.AvailDayShow) -> Literal['filled', 'same person', 'full']:
+    def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
+        self.avail_days.append(avail_day)
+
+    def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
+        self.avail_days.remove(avail_day)
+
+    def add_avail_day_first_cast(self, avail_day: schemas.AvailDayShow) -> Literal['filled', 'same person', 'full']:
         if len(self.avail_days) < self.event.cast_group.nr_actors:
             person_id = avail_day.actor_plan_period.person.id if avail_day else None
             if person_id not in {avd.actor_plan_period.person.id for avd in self.avail_days if avd}:
@@ -68,28 +74,36 @@ class DateCast:
     def __init__(self, date: datetime.date, avail_days: list[schemas.AvailDayShow]):
         self.date = date
         self.appointments: list[AppointmentCast] = []
-        self.avail_days: list[schemas.AvailDayShow] = avail_days
+        self.avail_days: list[schemas.AvailDayShow | None] = avail_days
 
     def add_appointment(self, event: schemas.EventShow):
         self.appointments.append(AppointmentCast(event))
 
-    def add_avail_day(self, avail_day: schemas.AvailDayShow):
+    def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.append(avail_day)
+
+    def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
+        self.avail_days.remove(avail_day)
 
     def initialize_first_cast(self):  # not_sure: kann weggelassen werden
         appointments_indexes = list(range(len(self.appointments)))
         avail_days_indexes = list(range(len(self.avail_days)))
         random.shuffle(avail_days_indexes)
-        time_start = time.time()
+
+        avd_to_remove_indexes = []
         while appointments_indexes and avail_days_indexes:
             avd_idx = avail_days_indexes.pop()
             appointm_idx = random.choice(appointments_indexes)
-            result = self.appointments[appointm_idx].add_avail_day(self.avail_days[avd_idx])
+            result = self.appointments[appointm_idx].add_avail_day_first_cast(self.avail_days[avd_idx])
             if result == 'full':
                 avail_days_indexes.append(avd_idx)
                 appointments_indexes.remove(appointm_idx)
-            elif result == 'same person' and (time.time() - time_start < 5):
+            elif result == 'same person':
                 avail_days_indexes.append(avd_idx)
+            else:
+                avd_to_remove_indexes.append(avd_idx)
+        self.avail_days = [avd for idx, avd in enumerate(self.avail_days) if idx not in avd_to_remove_indexes]
+
 
     def __str__(self):
         return '\n'.join([str(appointment) for appointment in self.appointments])

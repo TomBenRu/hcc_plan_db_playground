@@ -2,7 +2,7 @@ import datetime
 from uuid import UUID
 
 from database import db_services, schemas
-from gui.commands import team_actor_assignment_commands
+from gui.commands.database_commands import team_actor_assignment_commands
 from gui.commands.command_base_classes import Command, ContrExecUndoRedo
 
 

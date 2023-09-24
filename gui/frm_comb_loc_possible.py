@@ -1,18 +1,17 @@
 import datetime
-import sys
-from typing import Callable, Any
+from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout, QComboBox, QSpinBox, QTableWidget, QAbstractItemView, QHeaderView, \
+from PySide6.QtWidgets import QDialog, QWidget, QLabel, QPushButton, QGridLayout, QMessageBox, \
+    QDialogButtonBox, QCheckBox, QTableWidget, QAbstractItemView, QHeaderView, \
     QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_assignment_of_person
-from gui.commands import command_base_classes, comb_loc_possible_commands, team_commands, person_commands, \
-    actor_plan_period_commands, avail_day_commands
+from gui.commands import command_base_classes
+from gui.commands.database_commands import comb_loc_possible_commands, actor_plan_period_commands, avail_day_commands, \
+    person_commands, team_commands
 
 
 class DlgNewCombLocPossible(QDialog):

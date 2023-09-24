@@ -5,7 +5,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import QTimer, QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -19,10 +19,9 @@ from database.special_schema_requests import get_locations_of_team_at_date, get_
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode, \
     frm_time_of_day, widget_styles
 from gui.actions import Action
-from gui.commands import command_base_classes, avail_day_commands, actor_plan_period_commands, actor_loc_pref_commands
-from gui.frm_time_of_day import DlgTimeOfDaysEditList
-from gui.observer import events, signal_handling
-from gui.tools import clear_layout
+from gui.commands import command_base_classes
+from gui.commands.database_commands import actor_loc_pref_commands, actor_plan_period_commands, avail_day_commands
+from gui.observer import signal_handling
 
 
 def disconnect_avail_button_signals():

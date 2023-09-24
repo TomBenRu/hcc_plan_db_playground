@@ -4,7 +4,8 @@ from PySide6.QtWidgets import QWidget, QDialog, QGridLayout, QTableWidget, QPush
     QAbstractItemView, QTableWidgetItem, QMessageBox, QFormLayout, QLineEdit, QCheckBox
 
 from database import schemas, db_services
-from gui.commands import command_base_classes, time_of_day_enum_commands, project_commands
+from gui.commands import command_base_classes
+from gui.commands.database_commands import project_commands, time_of_day_enum_commands
 from gui.tools.custom_widgets.custom_spin_boxes import CustomSpinBoxDisallowedValues
 
 

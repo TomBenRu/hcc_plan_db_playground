@@ -10,10 +10,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
                                QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
-                               QGridLayout, QSpinBox, QLineEdit)
+                               QGridLayout)
 
 from database import schemas, db_services
-from gui.commands import command_base_classes, avail_day_group_commands, event_group_commands
+from gui.commands import command_base_classes
+from gui.commands.database_commands import avail_day_group_commands, event_group_commands
 from gui.observer import signal_handling
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 

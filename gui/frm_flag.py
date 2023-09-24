@@ -7,7 +7,8 @@ from PySide6.QtWidgets import QWidget, QDialog, QVBoxLayout, QLabel, QTableWidge
     QPushButton
 
 from database import schemas, db_services, enums
-from gui.commands import person_commands, event_commands, command_base_classes
+from gui.commands import command_base_classes
+from gui.commands.database_commands import person_commands, event_commands
 
 
 class DlgFlagsBuilderABC(ABC):

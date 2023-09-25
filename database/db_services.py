@@ -1669,13 +1669,19 @@ class AvailDay:
 
     @staticmethod
     @db_session
-    def get_all_from__plan_period__date__time_of_day__locations(
+    def get_all_from__plan_period__date__time_of_day__location_prefs(
             plan_period_id: UUID, date: datetime.date, time_of_day_index: int,
             location_of_work_ids: set[UUID]) -> list[schemas.AvailDayShow]:
+        """location_of_work_ids: locations aller Events welche an diesem Tag zu dieser Tageszeit gesetzt sind.
+        Gibt alle avail_day zurück, welche in der Planperiode zu einer Tageszeit eines Tages gesetzt sind.
+        Wenn der Actor eines avail_days in keiner Location der Tageszeit eingesetzt werden will,
+        wird dieser avail_day aussortiert"""
         plan_period_db = models.PlanPeriod.get(id=plan_period_id)
         avail_days_db = models.AvailDay.select(
             lambda a: a.plan_period == plan_period_db and a.date == date
                       and a.time_of_day.time_of_day_enum.time_index == time_of_day_index)
+        # Wenn der Actor eines avail_days in keiner Location der Tageszeit eingesetzt werden will,
+        # wird dieser avail_day aussortiert:
         avail_days_db = [
             avd for avd in avail_days_db
             if any(
@@ -1683,26 +1689,6 @@ class AvailDay:
                     lambda alp: alp.location_of_work.id == location_of_work_id and alp.score == 0
                 ).first() for location_of_work_id in location_of_work_ids
             )
-        ]
-
-        return [schemas.AvailDayShow.model_validate(avd) for avd in avail_days_db]
-
-    @staticmethod
-    @db_session
-    def get_all_from__plan_period__time_of_day__location(
-            plan_period_id: UUID, date: datetime.date, time_of_day: schemas.TimeOfDay,
-            location_of_work_id: UUID) -> list[schemas.AvailDayShow]:
-        plan_period_db = models.PlanPeriod.get(id=plan_period_id)
-        location_of_work_db = models.LocationOfWork.get(id=location_of_work_id)
-        avail_days_db = models.AvailDay.select(
-            lambda a: a.plan_period == plan_period_db
-                      and a.date == date
-                      and a.time_of_day.start <= time_of_day.start
-                      and a.time_of_day.end >= time_of_day.end
-        )
-        avail_days_db = [
-            avd for avd in avail_days_db if not avd.actor_location_prefs_defaults.select(
-                lambda alp: alp.location_of_work == location_of_work_db and alp.score == 0).get()
         ]
 
         return [schemas.AvailDayShow.model_validate(avd) for avd in avail_days_db]

@@ -76,10 +76,50 @@ class AppointmentCast:
                 f'{", ".join(avd.actor_plan_period.person.f_name if avd else "unbesetzt" for avd in self.avail_days)}')
 
 
-class EventCast:
-    def __init__(self, event: schemas.EventShow, avail_days: list[schemas.AvailDayShow]):
-        self.event = event
+class TimeOfDayCast:
+    def __init__(self, date: datetime.date, time_of_day_enum: schemas.TimeOfDayEnum,
+                 avail_days: list[schemas.AvailDayShow | None]):
+        self.date = date
+        self.time_of_day_enum = time_of_day_enum
+        self.appointments: list[AppointmentCast] = []
         self.avail_days = avail_days
+
+    def add_appointment(self, appointment: AppointmentCast):
+        self.appointments.append(appointment)
+
+    def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
+        self.avail_days.append(avail_day)
+
+    def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
+        self.avail_days.remove(avail_day)
+
+    def pick_random_appointments(self, nr_appointments: int) -> list[AppointmentCast]:
+        return [random.choice(self.appointments) for _ in range(nr_appointments)]
+
+    def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
+        return random.choice(self.avail_days)
+
+    def initialize_first_cast(self):  # not_sure: kann weggelassen werden
+        appointments_indexes = list(range(len(self.appointments)))
+        avail_days_indexes = list(range(len(self.avail_days)))
+        random.shuffle(avail_days_indexes)
+
+        avd_to_remove_indexes = []
+        while appointments_indexes and avail_days_indexes:
+            avd_idx = avail_days_indexes.pop()
+            appointm_idx = random.choice(appointments_indexes)
+            result = self.appointments[appointm_idx].add_avail_day_first_cast(self.avail_days[avd_idx])
+            if result == 'full':
+                avail_days_indexes.append(avd_idx)
+                appointments_indexes.remove(appointm_idx)
+            elif result == 'same person':
+                avail_days_indexes.append(avd_idx)
+            else:
+                avd_to_remove_indexes.append(avd_idx)
+        self.avail_days = [avd for idx, avd in enumerate(self.avail_days) if idx not in avd_to_remove_indexes]
+
+    def __str__(self):
+        return '\n'.join([str(appointment) for appointment in self.appointments])
 
 
 class DateCast:
@@ -133,7 +173,7 @@ class DateCast:
 class PlanPeriodCast:
     plan_period_id: UUID
     date_casts: dict[datetime.date, 'DateCast'] = dataclasses.field(default_factory=dict)
-    event_casts: list[EventCast] = dataclasses.field(default_factory=list)
+    time_of_day_casts: dict[(datetime.date, int), TimeOfDayCast] = dataclasses.field(default_factory=dict)
 
     def generate_date_casts(self):
         events = get_all_events_from__plan_period(self.plan_period_id)
@@ -145,30 +185,52 @@ class PlanPeriodCast:
                 self.date_casts[event.date] = DateCast(event.date, avail_days_at_date)
             self.date_casts[event.date].add_appointment(event)
 
-    def generate_event_casts(self):
+    def generate_time_of_day_casts(self):
         events = get_all_events_from__plan_period(self.plan_period_id)
         for event in events:
-            avail_days_fits_event = db_services.AvailDay.get_all_from__plan_period__time_of_day__location(
-                self.plan_period_id, event.date, event.time_of_day,
-                event.location_plan_period.location_of_work.id)
-            print([avd.actor_plan_period.person.f_name for avd in avail_days_fits_event])
-            self.event_casts.append(EventCast(event, avail_days_fits_event))
+            key = (event.date, event.time_of_day.time_of_day_enum.time_index)
+            if not self.time_of_day_casts.get(key):
+                events_at_time_of_day = db_services.Event.get_all_from__plan_period_date_time_of_day(
+                    self.plan_period_id, event.date, event.time_of_day.time_of_day_enum.time_index
+                )
+                location_of_work_ids = {e.location_plan_period.location_of_work.id for e in events_at_time_of_day}
+                avail_days_fits__date_time_of_day = (
+                    db_services.AvailDay.get_all_from__plan_period__date__time_of_day__locations(
+                        self.plan_period_id, event.date,
+                        event.time_of_day.time_of_day_enum.time_index,
+                        location_of_work_ids)
+                )
+                self.time_of_day_casts[key] = TimeOfDayCast(
+                    event.date, event.time_of_day.time_of_day_enum, avail_days_fits__date_time_of_day
+                )
+            self.time_of_day_casts[key].add_appointment(AppointmentCast(event))
+        for time_of_day_cast in self.time_of_day_casts.values():
+            time_of_day_cast.avail_days += [None] * sum(a.event.cast_group.nr_actors
+                                                        for a in time_of_day_cast.appointments)
+        # for time_of_day_cast in sorted(self.time_of_day_casts.values(), key=lambda x: x.date):
+        #     print(time_of_day_cast)
 
     def pick_random_date_cast(self) -> DateCast:
         return random.choice(list(self.date_casts.values()))
+
+    def pick_random_time_of_day_cast(self) -> TimeOfDayCast:
+        return random.choice(list(self.time_of_day_casts.values()))
     
     def calculate_initial_casts(self):  # not_sure: kann weggelassen werden
-        for date_cast in self.date_casts.values():
-            date_cast.initialize_first_cast()
+        # for date_cast in self.date_casts.values():
+        #     date_cast.initialize_first_cast()
+        for time_of_day_cast in self.time_of_day_casts.values():
+            time_of_day_cast.initialize_first_cast()
 
     def __str__(self):
-        return '\n----------------\n'.join([str(date_cast) for date_cast in self.date_casts.values()])
+        # return '\n----------------\n'.join([str(date_cast) for date_cast in self.date_casts.values()])
+        return '\n----------------\n'.join(sorted(str(tod_cast) for tod_cast in self.time_of_day_casts.values()))
 
 
 def generate_initial_plan_period_cast(plan_period_id: UUID) -> PlanPeriodCast:
     plan_period_cast = PlanPeriodCast(plan_period_id)
     plan_period_cast.generate_date_casts()
-    plan_period_cast.generate_event_casts()
+    plan_period_cast.generate_time_of_day_casts()
     plan_period_cast.calculate_initial_casts()  # not_sure: kann weggelassen werden
 
     return plan_period_cast

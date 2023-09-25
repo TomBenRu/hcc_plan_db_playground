@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from line_profiler_pycharm import profile
+
 from commands import command_base_classes
 from commands.optimizer_commands import pop_out_pop_in_commands
 from optimizer.first_radom_cast import generate_initial_plan_period_cast, AppointmentCast, PlanPeriodCast
@@ -29,35 +31,43 @@ def switch_avail_days(plan_period_cast: PlanPeriodCast, nr_random_appointments: 
         controller.execute(pop_out_pop_in_commands.PutInAvailDay(plan_period_cast, appointment, avail_day_to_put_in))
 
 
-def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast):
-    best_fitness = 1000
+def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appointments: int):
+    best_fitness = float('inf')
     nr_iterations = 0
+    curr_fitness = fitness_of_plan_period_cast(plan_period_cast)
     while True:
         controller = command_base_classes.ContrExecUndoRedo()
-        fitness_old = fitness_of_plan_period_cast(initial_cast)
 
-        switch_avail_days(initial_cast, NR_RANDOM_APPOINTMENTS, controller)
+        switch_avail_days(plan_period_cast, nr_random_appointments, controller)
 
         nr_iterations += 1
 
-        fitness_new = fitness_of_plan_period_cast(initial_cast)
-        if fitness_new > fitness_old:
+        fitness_new = fitness_of_plan_period_cast(plan_period_cast)
+        if fitness_new > curr_fitness:
             controller.undo_all()
+        else:
+            curr_fitness = fitness_new
 
-        if not nr_iterations % 10000:
-            if (best_curr_fitness := min(fitness_new, fitness_old)) >= best_fitness:
-                print(initial_cast)
+        # if not nr_iterations % 100:
+        #     print(f'{nr_iterations=}, {curr_fitness=}')
+
+        if not nr_iterations % 2000:
+            if curr_fitness >= best_fitness:
+                print(plan_period_cast)
                 print(f'{best_fitness=}')
                 print(f'nr of switches: {nr_iterations}')
                 break
             else:
-                best_fitness = best_curr_fitness
+                best_fitness = curr_fitness
                 print(f'{nr_iterations=}, {best_fitness=}')
 
 
 if __name__ == '__main__':
     PLAN_PERIOD_ID = UUID('0923404BCA2A47579ADE85188CF4EA7F')
-    NR_RANDOM_APPOINTMENTS = 2
+    NR_RANDOM_APPOINTMENTS = 1
     initial_cast = generate_initial_cast(PLAN_PERIOD_ID)
 
-    optimize_plan_period_cast(initial_cast)
+    initial_fitness = fitness_of_plan_period_cast(initial_cast)
+    print(f'{initial_fitness=}')
+
+    optimize_plan_period_cast(initial_cast, NR_RANDOM_APPOINTMENTS)

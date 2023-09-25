@@ -241,6 +241,7 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
+    # actor_partner_location_prefs, die nicht im Set vorkommen werden mit Score=1 gewertet.
     actor_location_prefs_defaults = Set('ActorLocationPref')
 
     @property

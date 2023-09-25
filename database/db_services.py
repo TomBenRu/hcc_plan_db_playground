@@ -1660,6 +1660,27 @@ class AvailDay:
 
     @staticmethod
     @db_session
+    def get_all_from__plan_period__time_of_day__location(
+            plan_period_id: UUID, date: datetime.date, time_of_day: schemas.TimeOfDay,
+            location_of_work_id: UUID) -> list[schemas.AvailDayShow]:
+        plan_period_db = models.PlanPeriod.get(id=plan_period_id)
+        location_of_work_db = models.LocationOfWork.get(id=location_of_work_id)
+        avail_days_db = models.AvailDay.select(
+            lambda a: a.plan_period == plan_period_db
+                      and a.date == date
+                      and a.time_of_day.start <= time_of_day.start
+                      and a.time_of_day.end >= time_of_day.end
+        )
+        persons_fits_for_event_db = [avd.actor_plan_period.person for avd in avail_days_db]
+        avail_days_db = [
+            avd for avd in avail_days_db if not avd.actor_location_prefs_defaults.select(
+                lambda alp: alp.location_of_work == location_of_work_db and alp.score == 0).get()
+        ]
+
+        return [schemas.AvailDayShow.model_validate(avd) for avd in avail_days_db]
+
+    @staticmethod
+    @db_session
     def get_from__avail_day_group(avail_day_group_id) -> schemas.AvailDayShow | None:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_db = avail_day_group_db.avail_day

@@ -53,6 +53,9 @@ class AppointmentCast:
     def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.remove(avail_day)
 
+    def pop_last_avail_day(self):
+        self.avail_days.pop()
+
     def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
         return random.choice(self.avail_days)
 
@@ -73,6 +76,12 @@ class AppointmentCast:
                 f'{", ".join(avd.actor_plan_period.person.f_name if avd else "unbesetzt" for avd in self.avail_days)}')
 
 
+class EventCast:
+    def __init__(self, event: schemas.EventShow, avail_days: list[schemas.AvailDayShow]):
+        self.event = event
+        self.avail_days = avail_days
+
+
 class DateCast:
     def __init__(self, date: datetime.date, avail_days: list[schemas.AvailDayShow]):
         self.date = date
@@ -87,6 +96,9 @@ class DateCast:
 
     def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.remove(avail_day)
+
+    def pop_last_avail_day(self):
+        self.avail_days.pop()
     
     def pick_random_appointments(self, nr_appointments: int) -> list[AppointmentCast]:
         return [random.choice(self.appointments) for _ in range(nr_appointments)]
@@ -113,7 +125,6 @@ class DateCast:
                 avd_to_remove_indexes.append(avd_idx)
         self.avail_days = [avd for idx, avd in enumerate(self.avail_days) if idx not in avd_to_remove_indexes]
 
-
     def __str__(self):
         return '\n'.join([str(appointment) for appointment in self.appointments])
 
@@ -122,8 +133,9 @@ class DateCast:
 class PlanPeriodCast:
     plan_period_id: UUID
     date_casts: dict[datetime.date, 'DateCast'] = dataclasses.field(default_factory=dict)
+    event_casts: list[EventCast] = dataclasses.field(default_factory=list)
 
-    def calculate_date_casts(self):
+    def generate_date_casts(self):
         events = get_all_events_from__plan_period(self.plan_period_id)
         for event in events:
             if not self.date_casts.get(event.date):
@@ -132,6 +144,15 @@ class PlanPeriodCast:
                 avail_days_at_date += [None] * sum(e.cast_group.nr_actors for e in events)
                 self.date_casts[event.date] = DateCast(event.date, avail_days_at_date)
             self.date_casts[event.date].add_appointment(event)
+
+    def generate_event_casts(self):
+        events = get_all_events_from__plan_period(self.plan_period_id)
+        for event in events:
+            avail_days_fits_event = db_services.AvailDay.get_all_from__plan_period__time_of_day__location(
+                self.plan_period_id, event.date, event.time_of_day,
+                event.location_plan_period.location_of_work.id)
+            print([avd.actor_plan_period.person.f_name for avd in avail_days_fits_event])
+            self.event_casts.append(EventCast(event, avail_days_fits_event))
 
     def pick_random_date_cast(self) -> DateCast:
         return random.choice(list(self.date_casts.values()))
@@ -146,7 +167,8 @@ class PlanPeriodCast:
 
 def generate_initial_plan_period_cast(plan_period_id: UUID) -> PlanPeriodCast:
     plan_period_cast = PlanPeriodCast(plan_period_id)
-    plan_period_cast.calculate_date_casts()
+    plan_period_cast.generate_date_casts()
+    plan_period_cast.generate_event_casts()
     plan_period_cast.calculate_initial_casts()  # not_sure: kann weggelassen werden
 
     return plan_period_cast

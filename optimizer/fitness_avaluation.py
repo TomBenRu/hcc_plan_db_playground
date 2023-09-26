@@ -9,6 +9,13 @@ from optimizer import score_factor_tables
 from optimizer.first_radom_cast import PlanPeriodCast, AppointmentCast
 
 
+def score_factor_translation(score: float, score_factor_table: dict[int, int]) -> float:
+    original_scores = np.array(list(score_factor_table.keys()))
+    translate_scores = np.array(list(score_factor_table.values()))
+
+    return np.interp(score, original_scores, translate_scores)
+
+
 def fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast: PlanPeriodCast) -> float:
     errors: dict[str, int] = {'nones': 0, 'duplications': 0, 'partner_location_pref': 0, 'location_prefs': 0}
     for time_of_day_cast in plan_period_cast.time_of_day_casts.values():
@@ -29,13 +36,6 @@ def partner_location_pref(appointment: AppointmentCast) -> float:
     """Berechnung: ((score_1-1)/(nr_actors-1)+1)*(score_2-1)/(nr_actors-1)+1)*Wertungsfaktor = score_result
     für den entsprechenden Actor.
     Dies wird für jede Actor-Partner-Kombi durchgeführt und anschließend summiert."""
-
-    def score_factor_translation(score: float) -> float:
-        score_factors = score_factor_tables.actor_partner_location_pref
-        original_scores = np.array(list(score_factors.keys()))
-        translate_scores = np.array(list(score_factors.values()))
-
-        return np.interp(score, original_scores, translate_scores)
 
     location_of_work_id = appointment.event.location_plan_period.location_of_work.id
     nr_of_avail_days = len(appointment.avail_days)
@@ -65,7 +65,7 @@ def partner_location_pref(appointment: AppointmentCast) -> float:
 
         score_partners = score_1 * score_2
 
-        score_results.append(score_factor_translation(score_partners))
+        score_results.append(score_factor_translation(score_partners, score_factor_tables.actor_partner_location_pref))
 
     return sum(score_results) / len(score_results) if score_results else 0
 

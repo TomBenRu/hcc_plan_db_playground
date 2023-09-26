@@ -565,7 +565,10 @@ class ActorPartnerLocationPref(db.Entity):
     """score: 2 - volle Zustimmung, 1 - normale Zustimmung, 0 - volle Ablehnung.
     Präferenz-Instanz kann direkt von nächster Planungsebene übernommen werden, oder abgeändert als neue Instanz
     gespeichert werden.
-    ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatisch von ActorPlanPeriod."""
+    ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatisch von ActorPlanPeriod.
+    Spezialfall: Wenn der Actor in einer Einrichtung 0 bei allen Partnern hat, kann er trotzdem solo eingesetzt werden,
+    und die Bewertung des Plans wird nicht schlechter. Einstellungen, die grundsätzlich die Einrichtungen betreffen,
+    müssen in ActorLocationPref vorgenommen werden."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())

@@ -147,6 +147,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
             slider_location.setFixedWidth(200)
             slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
 
+            self.show_slider_text(lb_slider_val, 0)  # für die Initialisierung der 0-Values notwendig
             slider_location.valueChanged.connect(partial(self.show_slider_text, lb_slider_val))
 
             self.layout_options.addWidget(lb_location, row, 0)
@@ -251,7 +252,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
             slider_partner.setFixedWidth(200)
             slider_partner.setTickPosition(QSlider.TickPosition.TicksBelow)
 
-            # slider_partner.valueChanged.connect(partial(self.save_pref_loc, partner))
+            self.show_slider_text(lb_slider_val, 0)  # für die Initialisierung der 0-Values notwendig
             slider_partner.valueChanged.connect(partial(self.show_slider_text, lb_slider_val))
 
             self.layout_options.addWidget(lb_partner, row, 0)

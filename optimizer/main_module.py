@@ -67,7 +67,7 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
 
 
 if __name__ == '__main__':
-    PLAN_PERIOD_ID = UUID('0923404BCA2A47579ADE85188CF4EA7F')
+    PLAN_PERIOD_ID = UUID('0BD5C3876C4E48D1B84D6F395CD74C65')
     NR_RANDOM_APPOINTMENTS = 1
     initial_cast = generate_initial_cast(PLAN_PERIOD_ID)
 

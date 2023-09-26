@@ -17,7 +17,12 @@ def score_factor_translation(score: float, score_factor_table: dict[int, int]) -
 
 
 def fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast: PlanPeriodCast) -> float:
-    errors: dict[str, int] = {'nones': 0, 'duplications': 0, 'partner_location_pref': 0, 'location_prefs': 0}
+    errors: dict[str, int] = {
+        'nones': 0,
+        'duplications': 0,
+        'partner_location_pref': 0,
+        'location_prefs': 0
+    }
     for time_of_day_cast in plan_period_cast.time_of_day_casts.values():
         for appointment in time_of_day_cast.appointments:
             errors['nones'] += appointment.avail_days.count(None)
@@ -25,11 +30,23 @@ def fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast: PlanPeriodCa
                 (avd.actor_plan_period.person.id for avd in appointment.avail_days if avd is not None))
             errors['duplications'] += sum(count for count in duplication_counter.values() if count > 1)
             errors['partner_location_pref'] += partner_location_pref(appointment)
+            errors['location_prefs'] += location_prefs(appointment)
     return sum(errors.values())
 
 
 def location_prefs(appointment: AppointmentCast) -> float:
-    ...
+    location_of_work_id = appointment.event.location_plan_period.location_of_work.id
+
+    score_result = 0
+
+    for avail_day in appointment.avail_days:
+        if not avail_day:
+            continue
+        location_pref = next((alp.score for alp in avail_day.actor_location_prefs_defaults
+                              if alp.location_of_work.id == location_of_work_id and not alp.prep_delete), 1)
+        score_result += score_factor_translation(location_pref, score_factor_tables.actor_location_prefs)
+
+    return score_result
 
 
 def partner_location_pref(appointment: AppointmentCast) -> float:
@@ -65,7 +82,7 @@ def partner_location_pref(appointment: AppointmentCast) -> float:
 
         score_partners = score_1 * score_2
 
-        score_results.append(score_factor_translation(score_partners, score_factor_tables.actor_partner_location_pref))
+        score_results.append(score_factor_translation(score_partners, score_factor_tables.actor_partner_location_prefs))
 
     return sum(score_results) / len(score_results) if score_results else 0
 

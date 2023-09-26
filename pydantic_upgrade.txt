@@ -1,0 +1,10 @@
+schemas:
+@validator -> @field_validator, pre u. reuse kommen weg
+class Config: kommt weg, dafür model_config = ConfigDict(from_attributes=True) an den Anfang der Klasse
+Felder mit Optional sind nicht automatisch None, wenn kein Wert übergeben wird.
+update_forward_refs wird durch model_rebuild ersetzt
+
+Model-Methoden:
+.from_orm wird zu .model_validate
+.dict() wird zu .model_dump()
+.copy() wird zu .model_copy()

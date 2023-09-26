@@ -55,7 +55,7 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
         # if not nr_iterations % 100:
         #     print(f'{nr_iterations=}, {curr_fitness=}')
 
-        if not nr_iterations % 1000:
+        if not nr_iterations % 500:
             if curr_fitness >= best_fitness:
                 print(plan_period_cast)
                 print(f'{best_fitness=}')

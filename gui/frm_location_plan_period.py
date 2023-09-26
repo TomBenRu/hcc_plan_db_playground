@@ -641,3 +641,5 @@ if __name__ == '__main__':
     window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()
     app.exec()
+
+# todo: Reset-Buttons in event-frame sollten Signale senden

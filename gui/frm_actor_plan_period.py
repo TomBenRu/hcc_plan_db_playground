@@ -1094,3 +1094,4 @@ if __name__ == '__main__':
 
 
 # todo: Wenn Tageszeit-Button geklickt wird und vor dem Loslassen weggezogen wird -> Fehlermeldung
+# todo: Reset-Buttons in avail-day-frame sollten Signale senden

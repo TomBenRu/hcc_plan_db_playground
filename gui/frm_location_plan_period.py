@@ -417,6 +417,8 @@ class FrmLocationPlanPeriod(QWidget):
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
+        bt_nr_actors = QPushButton('Besetzungsstärke')
+        self.side_menu.add_button(bt_nr_actors, clicked=self.set_nr_actors)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
         bt_reset_all_event_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_event_t_o_ds)
@@ -611,6 +613,9 @@ class FrmLocationPlanPeriod(QWidget):
             button.create_actions_times_of_day()
             button.reset_menu_times_of_day(self.location_plan_period)
             button.set_tooltip()
+
+    def set_nr_actors(self):  # todo: noch implementieren
+        ...
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()

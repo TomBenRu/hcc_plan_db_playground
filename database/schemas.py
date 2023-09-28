@@ -87,6 +87,7 @@ class Person(PersonCreate):
     address: 'Address'
     notes: Optional[str] = None
     prep_delete: Optional[datetime.datetime]
+    requested_assignments: int
 
 
 class PersonShow(Person):
@@ -217,6 +218,7 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
 
     id: UUID
     person: Person
+    requested_assignments: int
     time_of_days: List['TimeOfDay']
     time_of_day_standards: List['TimeOfDay']
     avail_days: List['AvailDay']

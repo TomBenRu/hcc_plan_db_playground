@@ -17,7 +17,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
 from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode, \
-    frm_time_of_day, widget_styles
+    frm_time_of_day, widget_styles, frm_requested_assignments
 from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
@@ -707,6 +707,8 @@ class FrmActorPlanPeriod(QWidget):
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
+        bt_requested_assignments = QPushButton('Anz. gewünschter Einsätze', clicked=self.set_requested_assignments)
+        self.side_menu.add_button(bt_requested_assignments)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
         bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
@@ -900,6 +902,11 @@ class FrmActorPlanPeriod(QWidget):
             button.create_actions()
             button.reset_context_menu(self.actor_plan_period)
             button.set_tooltip()
+
+    def set_requested_assignments(self):
+        dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
+        if dlg.exec():
+            self.reload_actor_plan_period()
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()

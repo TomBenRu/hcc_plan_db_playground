@@ -183,3 +183,20 @@ class RemoveActorPartnerLocationPref(Command):
     def redo(self):
         db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
+
+
+class UpdateRequestedAssignments(Command):
+    def __init__(self, actor_plan_period_id: UUID, requested_assignments: int):
+        self.actor_plan_period_id = actor_plan_period_id
+        self.requested_assignments = requested_assignments
+        self.requested_assignments_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).requested_assignments
+
+    def execute(self):
+        db_services.ActorPlanPeriod.update_requested_assignments(self.actor_plan_period_id, self.requested_assignments)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.update_requested_assignments(
+            self.actor_plan_period_id, self.requested_assignments_old)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.update_requested_assignments(self.actor_plan_period_id, self.requested_assignments)

@@ -1436,6 +1436,16 @@ class ActorPlanPeriod:
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_requested_assignments(actor_plan_period_id: UUID,
+                                     requested_assignments: int) -> schemas.ActorPlanPeriodShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        actor_plan_period_db.set(requested_assignments=requested_assignments)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
     def put_in_time_of_day(actor_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.ActorPlanPeriodShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')

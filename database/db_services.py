@@ -203,6 +203,14 @@ class Person:
         return [schemas.PersonShow.model_validate(p) for p in persons_in_db]
 
     @staticmethod
+    @db_session
+    def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PersonShow]:
+        plan_period_db = models.PlanPeriod.get(id=plan_period_id)
+        persons_db = models.Person.select(lambda p: p.actor_plan_periods.select(lambda app: app.plan_period == plan_period_db))
+
+        return [schemas.PersonShow.model_validate(p) for p in persons_db]
+
+    @staticmethod
     @db_session(sql_debug=True, show_values=True)
     def create(person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'

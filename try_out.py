@@ -1,72 +1,21 @@
-from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QSpinBox
+import re
 
 
-class CustomSpinBox(QSpinBox):
-    def __init__(self, values, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.values = values
-        self.setRange(min(values), max(values))
-        self.setValue(min(values))
+def replace_uuid_except_nth(text):
+    pattern = r'UUID\(.*?\)'
+    occurrences = len(re.findall(pattern, text))
 
-    def stepBy(self, steps):
-        current_index = self.values.index(self.value())
-        new_index = current_index + steps
-        if new_index < 0:
-            new_index = 0
-        elif new_index >= len(self.values):
-            new_index = len(self.values) - 1
-        self.setValue(self.values[new_index])
+    for i in range(1, occurrences + 1):
+        count = [0]
 
+        def replacer(match):
+            count[0] += 1
+            return match.group(0) if count[0] == i else 'None'
 
-class CustomSpinBox2(QSpinBox):
-    def __init__(self, disallowed_values, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.disallowed_values = disallowed_values
+        replaced_text = re.sub(pattern, replacer, text)
+        yield f"Ersetzen Sie alle außer dem {i}. Vorkommen:\n{replaced_text}\n"
 
-    def setMinimum(self, value):
-        super().setMinimum(value)
-        if self.value() in self.disallowed_values:
-            new_value = self.value()
-            while new_value in self.disallowed_values:
-                new_value += 1
-            self.setValue(new_value)
-
-    def validate(self, text, pos):
-        value = int(text)
-        if value in self.disallowed_values:
-            return QValidator.State.Invalid, text, pos
-        else:
-            return super().validate(text, pos)
-
-    def fixup(self, text):
-        value = int(text)
-        if value in self.disallowed_values:
-            if value > min(self.disallowed_values):
-                self.setValue(value - 1)
-            else:
-                self.setValue(value + 1)
-
-    def stepBy(self, steps):
-        new_value = self.value() + steps
-        while new_value in self.disallowed_values:
-            if (steps > 0 and new_value >= self.maximum()) or (steps < 0 and new_value <= self.minimum()):
-                return
-            new_value += steps
-        self.setValue(new_value)
-
-app = QApplication([])
-
-window = QWidget()
-layout = QVBoxLayout(window)
-
-spinbox1 = CustomSpinBox([2, 3, 5])
-spinbox2 = CustomSpinBox2([1, 2, 4])
-spinbox2.setMinimum(1)
-
-layout.addWidget(spinbox1)
-layout.addWidget(spinbox2)
-
-window.show()
-
-app.exec_()
+# Testen Sie die Funktion
+text = 'Dies ist ein Text mit UUID(1234-5678-9101), UUID(1122-3344-5566), UUID(2233-4455-6677) und UUID(3344-5566-7788).'
+for t in replace_uuid_except_nth(text):
+    print(t)

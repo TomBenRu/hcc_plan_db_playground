@@ -5,7 +5,7 @@ from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.optimizer_commands import pop_out_pop_in_commands
-from database import db_services
+from database import db_services, schemas
 from optimizer.first_radom_cast import generate_initial_plan_period_cast, AppointmentCast, PlanPeriodCast
 from optimizer.fitness_avaluation import fitness_of_plan_period_cast__time_of_day_cast, potential_assignments_of_persons
 
@@ -58,11 +58,11 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
         else:
             curr_fitness, curr_errors = fitness_new, new_errors
 
-        # if not nr_iterations % 100:
-        #     print(f'{nr_iterations=}, {curr_fitness=}')
-        #     print(f'{curr_errors=}')
+        if not nr_iterations % 100:
+            print(f'{nr_iterations=}, {curr_fitness=}')
+            print(f'{curr_errors=}')
 
-        if not nr_iterations % 1000:
+        if not nr_iterations % 2000:
             if curr_fitness >= best_fitness:
                 print(plan_period_cast)
                 print(f'{best_fitness=}')
@@ -77,7 +77,7 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
 
 if __name__ == '__main__':
     PLAN_PERIOD_ID = UUID('0BD5C3876C4E48D1B84D6F395CD74C65')
-    NR_RANDOM_APPOINTMENTS = 1
+    NR_RANDOM_APPOINTMENTS = 2
     initial_cast = generate_initial_cast(PLAN_PERIOD_ID)
 
     plan_period = db_services.PlanPeriod.get(PLAN_PERIOD_ID)

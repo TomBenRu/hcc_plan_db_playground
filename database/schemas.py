@@ -212,13 +212,13 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
 
     id: UUID
     prep_delete: Optional[datetime.datetime] = None
+    requested_assignments: int
 
 
 class ActorPlanPeriodShow(ActorPlanPeriod):
 
     id: UUID
     person: Person
-    requested_assignments: int
     time_of_days: List['TimeOfDay']
     time_of_day_standards: List['TimeOfDay']
     avail_days: List['AvailDay']

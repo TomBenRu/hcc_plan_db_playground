@@ -1,12 +1,28 @@
 import collections
 from itertools import permutations, combinations
+from uuid import UUID
 
 import numpy as np
 from line_profiler_pycharm import profile
 
-from database import schemas
-from optimizer import score_factor_tables
+from database import schemas, db_services
+from optimizer import score_factor_tables, score_factors
 from optimizer.first_radom_cast import PlanPeriodCast, AppointmentCast
+
+
+def potential_assignments_of_persons(plan_period_cast: PlanPeriodCast, plan_period_id: UUID) -> dict[UUID, int]:
+    appointments = [appointment
+                    for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
+                    for appointment in time_of_day_cast.appointments]
+
+    potential_assignments = collections.defaultdict(int)
+    for appointment in appointments:
+        potential_avail_days = db_services.AvailDay.get_all_from__plan_period__date__time_of_day__location_prefs(
+            plan_period_id, appointment.event.date, appointment.event.time_of_day.time_of_day_enum.time_index,
+            {appointment.event.location_plan_period.location_of_work.id})
+        for avail_day in potential_avail_days:
+            potential_assignments[avail_day.actor_plan_period.person.id] += 1
+    return potential_assignments
 
 
 def score_factor_translation(score: float, score_factor_table: dict[int, int]) -> float:
@@ -16,22 +32,41 @@ def score_factor_translation(score: float, score_factor_table: dict[int, int]) -
     return np.interp(score, original_scores, translate_scores)
 
 
-def fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast: PlanPeriodCast) -> float:
+def fitness_of_plan_period_cast__time_of_day_cast(
+        plan_period_cast: PlanPeriodCast, plan_period: schemas.PlanPeriodShow,
+        potential_assignments_of_actors: dict[UUID, int]) -> tuple[float, dict[str, int]]:
     errors: dict[str, int] = {
         'nones': 0,
         'duplications': 0,
         'partner_location_pref': 0,
-        'location_prefs': 0
+        'location_prefs': 0,
+        'standard_deviation': 0
     }
+
+    requested_assignments: dict[UUID: int] = {app.person.id: app.requested_assignments
+                                              for app in plan_period.actor_plan_periods}
+    current_assignments: dict[UUID, int] = {person_id: 0 for person_id in requested_assignments}
+
     for time_of_day_cast in plan_period_cast.time_of_day_casts.values():
         for appointment in time_of_day_cast.appointments:
             errors['nones'] += appointment.avail_days.count(None)
             duplication_counter = collections.Counter(
                 (avd.actor_plan_period.person.id for avd in appointment.avail_days if avd is not None))
-            errors['duplications'] += sum(count for count in duplication_counter.values() if count > 1)
+            errors['duplications'] += (sum(count for count in duplication_counter.values() if count > 1)
+                                       * score_factors.duplication)
             errors['partner_location_pref'] += partner_location_pref(appointment)
             errors['location_prefs'] += location_prefs(appointment)
-    return sum(errors.values())
+
+            for avail_day in appointment.avail_days:
+                if avail_day is None:
+                    continue
+                person_id = avail_day.actor_plan_period.person.id
+                current_assignments[person_id] += 1
+    requested_assignments = generate_adjusted_requested_assignments(
+        plan_period_cast, errors['nones'], requested_assignments, potential_assignments_of_actors)
+    errors['standard_deviation'] = standard_deviation_score(requested_assignments, current_assignments)
+
+    return sum(errors.values()), errors
 
 
 def location_prefs(appointment: AppointmentCast) -> float:
@@ -87,3 +122,53 @@ def partner_location_pref(appointment: AppointmentCast) -> float:
     return sum(score_results) / len(score_results) if score_results else 0
 
 
+def generate_adjusted_requested_assignments(
+        plan_period_cast: PlanPeriodCast, unoccupied: int, requested_assignments: dict[UUID, int],
+        potential_assignments_of_actors: dict[UUID, int]):
+    requested_assignments_adjusted = collections.defaultdict(int)
+    appointments = [appointment
+                    for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
+                    for appointment in time_of_day_cast.appointments]
+    sum_taken_assignments: int = sum(appointment.event.cast_group.nr_actors for appointment in appointments) - unoccupied
+
+    for person_id, potential_nr in requested_assignments.items():
+        requested_assignments_adjusted[person_id] = min(potential_nr, potential_assignments_of_actors.get(person_id, 0))
+
+    requested_assignments_new: dict[UUID: int] = {}
+    avail_assignments: int = sum_taken_assignments
+    while True:
+        mean_nr_assignments: float = avail_assignments / len(requested_assignments_adjusted)
+        requested_greater_than_mean: dict[UUID: int] = {}
+        requested_smaller_than_mean: dict[UUID: int] = {}
+        for p_id, requested in requested_assignments_adjusted.items():
+            if requested >= mean_nr_assignments:
+                requested_greater_than_mean[p_id] = requested
+            else:
+                requested_smaller_than_mean[p_id] = requested
+
+        if not requested_smaller_than_mean:
+            requested_assignments_new.update({p_id: avail_assignments / len(requested_greater_than_mean)
+                                              for p_id in requested_greater_than_mean})
+            break
+        else:
+            requested_assignments_new.update(requested_smaller_than_mean)
+            avail_assignments -= sum(requested_smaller_than_mean.values())
+            requested_assignments_adjusted = requested_greater_than_mean.copy()
+            if not requested_assignments_adjusted:
+                break
+    return requested_assignments_new
+
+
+
+
+
+
+def standard_deviation_score(requested_assignments: dict[UUID: int], current_assignments: dict[UUID, int]) -> int:
+    relative_deviations = [
+        (requested - current) / (requested if requested else 0.001)
+        * score_factor_tables.requested_assignments.get(requested, 1)
+        for requested, current in zip(requested_assignments.values(), current_assignments.values())
+    ]
+    standard_deviation = np.std(relative_deviations) * score_factors.standard_deviation_factor
+
+    return standard_deviation

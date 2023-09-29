@@ -5,8 +5,9 @@ from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.optimizer_commands import pop_out_pop_in_commands
+from database import db_services
 from optimizer.first_radom_cast import generate_initial_plan_period_cast, AppointmentCast, PlanPeriodCast
-from optimizer.fitness_avaluation import fitness_of_plan_period_cast__time_of_day_cast
+from optimizer.fitness_avaluation import fitness_of_plan_period_cast__time_of_day_cast, potential_assignments_of_persons
 
 
 def generate_initial_cast(plan_period_id: UUID) -> PlanPeriodCast:
@@ -36,9 +37,13 @@ def switch_avail_days__time_of_day_cast(plan_period_cast: PlanPeriodCast, nr_ran
 
 @profile
 def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appointments: int):
-    best_fitness = float('inf')
+    plan_period = db_services.PlanPeriod.get(plan_period_cast.plan_period_id)
+    potential_assignments_of_actors = potential_assignments_of_persons(plan_period_cast, plan_period_cast.plan_period_id)
+
+    best_fitness, best_errors = float('inf'), {}
     nr_iterations = 0
-    curr_fitness = fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast)
+    curr_fitness, curr_errors = fitness_of_plan_period_cast__time_of_day_cast(
+        plan_period_cast, plan_period, potential_assignments_of_actors)
     while True:
         controller = command_base_classes.ContrExecUndoRedo()
 
@@ -46,24 +51,28 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
 
         nr_iterations += 1
 
-        fitness_new = fitness_of_plan_period_cast__time_of_day_cast(plan_period_cast)
+        fitness_new, new_errors = fitness_of_plan_period_cast__time_of_day_cast(
+            plan_period_cast, plan_period, potential_assignments_of_actors)
         if fitness_new > curr_fitness:
             controller.undo_all()
         else:
-            curr_fitness = fitness_new
+            curr_fitness, curr_errors = fitness_new, new_errors
 
         # if not nr_iterations % 100:
         #     print(f'{nr_iterations=}, {curr_fitness=}')
+        #     print(f'{curr_errors=}')
 
-        if not nr_iterations % 500:
+        if not nr_iterations % 1000:
             if curr_fitness >= best_fitness:
                 print(plan_period_cast)
                 print(f'{best_fitness=}')
-                print(f'nr of switches: {nr_iterations}')
+                print(f'{best_errors=}')
+                print(f'nr of switches: {nr_iterations=}')
                 break
             else:
-                best_fitness = curr_fitness
+                best_fitness, best_errors = curr_fitness, curr_errors
                 print(f'{nr_iterations=}, {best_fitness=}')
+                print(f'{best_errors=}')
 
 
 if __name__ == '__main__':
@@ -71,7 +80,6 @@ if __name__ == '__main__':
     NR_RANDOM_APPOINTMENTS = 1
     initial_cast = generate_initial_cast(PLAN_PERIOD_ID)
 
-    initial_fitness = fitness_of_plan_period_cast__time_of_day_cast(initial_cast)
-    print(f'{initial_fitness=}')
+    plan_period = db_services.PlanPeriod.get(PLAN_PERIOD_ID)
 
     optimize_plan_period_cast(initial_cast, NR_RANDOM_APPOINTMENTS)

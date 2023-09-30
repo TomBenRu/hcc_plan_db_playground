@@ -586,6 +586,7 @@ class DlgGroupProperties(QDialog):
         self.group = db_services.CastGroup.get(self.group.id)
 
     def nr_actors_changed(self):
+        # fixme: Überprüfung, ob Anzahl zu gering für fixed_cast ist mit: frm_fixed_cast.SimplifyFixedCastAndInfo
         self.controller.execute(cast_group_commands.UpdateNrActors(self.group.id, self.spin_nr_actors.value()))
         self.group = db_services.CastGroup.get(self.group.id)
         self.set_nr_actors_warning()

@@ -134,7 +134,7 @@ def fixed_cast_score(plan_period_cast: PlanPeriodCast, all_persons_from__plan_pe
             person_ids_for_matching: set[UUID] = {p_id for p_id in person_ids if p_id}
             teams_which_matches = (
                 team for team in
-                itertools.combinations(all_persons_from__plan_period, len(appointment.avail_days))
+                itertools.combinations(all_persons_from__plan_period, len(person_ids))
                 if eval(fixed_cast, {'team': team, 'UUID': UUID})
             )
             best_nr_of_match = 0

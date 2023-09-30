@@ -1,8 +1,10 @@
+import random
+
 from line_profiler_pycharm import profile
 
 from database import schemas
 from commands.command_base_classes import Command
-from optimizer.first_radom_cast import AppointmentCast, PlanPeriodCast
+from optimizer.first_radom_cast import AppointmentCast, PlanPeriodCast, EventGroupCast
 
 
 class TimeOfDayCastPopOutAvailDay(Command):
@@ -47,3 +49,30 @@ class TimeOfDayCastPutInAvailDay(Command):
     def redo(self):
         self.appointment_cast.add_avail_day(self.avail_day_to_put_in)
         self.plan_period_cast.time_of_day_casts[self.key_time_of_day_cast].remove_avail_day(self.avail_day_to_put_in)
+
+
+class SwitchEventGroupCast(Command):
+    def __init__(self, event_group_cast: EventGroupCast):
+        self.event_group_cast = event_group_cast
+        self.popped_child_group: EventGroupCast | None = None
+        self.popped_active_group: EventGroupCast | None = None
+
+    def execute(self):
+        self.popped_child_group = self.event_group_cast.child_groups.pop(
+            random.randrange(len(self.event_group_cast.child_groups)))
+        self.popped_active_group = self.event_group_cast.active_groups.pop(
+            random.randrange(len(self.event_group_cast.active_groups)))
+        self.event_group_cast.active_groups.append(self.popped_child_group)
+        self.event_group_cast.child_groups.append(self.popped_active_group)
+
+    def undo(self):
+        self.event_group_cast.active_groups.remove(self.popped_child_group)
+        self.event_group_cast.child_groups.remove(self.popped_active_group)
+        self.event_group_cast.active_groups.append(self.popped_active_group)
+        self.event_group_cast.child_groups.append(self.popped_child_group)
+
+    def redo(self):
+        self.event_group_cast.active_groups.remove(self.popped_active_group)
+        self.event_group_cast.child_groups.remove(self.popped_child_group)
+        self.event_group_cast.active_groups.append(self.popped_child_group)
+        self.event_group_cast.child_groups.append(self.popped_active_group)

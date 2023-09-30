@@ -21,10 +21,9 @@ def score_factor_translation(score: float, score_factor_table: dict[int, int]) -
 
 
 def appointments_from__plan_period_cast(plan_period_cast: PlanPeriodCast) -> list[AppointmentCast]:
-    appointments = [appointment
-                    for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
-                    for appointment in time_of_day_cast.appointments]
-    return appointments
+    return [appointment
+            for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
+            for appointment in time_of_day_cast.appointments]
 
 
 def fitness_of_plan_period_cast__time_of_day_cast(
@@ -127,8 +126,7 @@ def fixed_cast_score(plan_period_cast: PlanPeriodCast, all_persons_from__plan_pe
     appointments = appointments_from__plan_period_cast(plan_period_cast)
     score_result = 0
     for appointment in appointments:
-        fixed_cast = appointment.event.cast_group.fixed_cast
-        if fixed_cast:
+        if fixed_cast := appointment.event.cast_group.fixed_cast:
             person_ids: list[UUID, None] = [avd.actor_plan_period.person.id
                                             if avd else None for avd in appointment.avail_days]
             person_ids_for_matching: set[UUID] = {p_id for p_id in person_ids if p_id}
@@ -190,7 +188,7 @@ def generate_adjusted_requested_assignments(
                                               for p_id in requested_greater_than_mean})
             break
         else:
-            requested_assignments_new.update(requested_smaller_than_mean)
+            requested_assignments_new |= requested_smaller_than_mean
             avail_assignments -= sum(requested_smaller_than_mean.values())
             requested_assignments_adjusted = requested_greater_than_mean.copy()
             if not requested_assignments_adjusted:
@@ -200,10 +198,9 @@ def generate_adjusted_requested_assignments(
 
 def standard_deviation_score(requested_assignments: dict[UUID: int], current_assignments: dict[UUID, int]) -> int:
     relative_deviations = [
-        (requested - current) / (requested if requested else 0.001)
+        (requested - current) / (requested or 0.001)
         * score_factor_tables.requested_assignments.get(requested, 1)
         for requested, current in zip(requested_assignments.values(), current_assignments.values())
     ]
-    standard_deviation = np.std(relative_deviations) * score_factors.standard_deviation_factor
+    return np.std(relative_deviations) * score_factors.standard_deviation_factor
 
-    return standard_deviation

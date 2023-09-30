@@ -2,11 +2,13 @@ import dataclasses
 import datetime
 import random
 import time
-from typing import Literal
+from typing import Literal, Self
 from uuid import UUID
 
 from dateutil.relativedelta import relativedelta
 
+from commands import command_base_classes
+from commands.optimizer_commands import pop_out_pop_in_commands
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date
 
@@ -16,30 +18,36 @@ def get_all_events_from__plan_period(plan_period_id: UUID) -> list[schemas.Event
 
 
 @dataclasses.dataclass
-class TimeSpan:
-    start: datetime.datetime
-    span: relativedelta
+class EventGroupCast:
+    event_group: schemas.EventGroupShow
+    parent_group: Self = None
+    child_groups: list[Self] = dataclasses.field(default_factory=list)
+    active_groups: list[Self] = dataclasses.field(default_factory=list)
+    controller = command_base_classes.ContrExecUndoRedo()
 
-    def __str__(self):
-        return f'{self.start:%d.-%H:%M}, {self.span.hours:02}:{self.span.minutes:02}'
+    def fill_child_groups(self):
+        for event_group in self.event_group.event_groups:
+            event_group = db_services.EventGroup.get(event_group.id)
+            new_event_group_cast = EventGroupCast(event_group, self)
+            new_event_group_cast.fill_child_groups()
+            new_event_group_cast.initialize_first_cast()
+            self.child_groups.append(new_event_group_cast)
 
+    def initialize_first_cast(self):
+        if not self.event_group.event:
+            for _ in range(self.event_group.nr_event_groups):
+                child = random.choice(self.child_groups)
+                self.child_groups.remove(child)
+                self.active_groups.append(child)
 
-class AvailDayParts:
-    def __init__(self, avail_day: schemas.AvailDayShow):
-        self.avail_day = avail_day
-        self.time_spans: list[TimeSpan] = []
+    def switch_active_groups(self, nr_to_switch: int = 1):
+        self.controller.undo_stack.clear()
+        if not self.event_group.event and self.event_group.nr_event_groups:
+            for _ in range(min(nr_to_switch, self.event_group.nr_event_groups)):
+                self.controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(self))
 
-        self.initialize_time_spans()
-
-    def initialize_time_spans(self):
-        time_start = datetime.datetime.combine(self.avail_day.date, self.avail_day.time_of_day.start)
-        time_end = datetime.datetime.combine(self.avail_day.date, self.avail_day.time_of_day.end)
-        if self.avail_day.time_of_day.start > self.avail_day.time_of_day.end:
-            time_end += datetime.timedelta(days=1)
-        self.time_spans.append(TimeSpan(time_start, relativedelta(dt1=time_end, dt2=time_start)))
-
-    def __str__(self):
-        return ', '.join([str(ts) for ts in self.time_spans])
+    def undo_switch_active_groups(self):
+        self.controller.undo_all()
 
 
 @dataclasses.dataclass
@@ -52,9 +60,6 @@ class AppointmentCast:
 
     def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.remove(avail_day)
-
-    def pop_last_avail_day(self):
-        self.avail_days.pop()
 
     def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
         return random.choice(self.avail_days)

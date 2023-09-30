@@ -1,21 +1,29 @@
 import re
+from itertools import combinations
 
 
-def replace_uuid_except_nth(text):
+def replace_uuid_except_n(fixed_cast_text):
     pattern = r'UUID\(.*?\)'
-    occurrences = len(re.findall(pattern, text))
+    matches = re.findall(pattern, fixed_cast_text)
+    occurrences = len(matches)
 
-    for i in range(1, occurrences + 1):
-        count = [0]
+    for i in range(occurrences + 1):
+        for combo in combinations(range(occurrences), i):
+            count = [0]
+            none_count = [0]
 
-        def replacer(match):
-            count[0] += 1
-            return match.group(0) if count[0] == i else 'None'
+            def replacer(match):
+                count[0] += 1
+                if count[0] - 1 in combo:
+                    return match.group(0)
+                else:
+                    none_count[0] += 1
+                    return f"'None{none_count[0]:02d}'"
 
-        replaced_text = re.sub(pattern, replacer, text)
-        yield f"Ersetzen Sie alle außer dem {i}. Vorkommen:\n{replaced_text}\n"
+            replaced_text = re.sub(pattern, replacer, fixed_cast_text)
+            yield replaced_text
 
 # Testen Sie die Funktion
 text = 'Dies ist ein Text mit UUID(1234-5678-9101), UUID(1122-3344-5566), UUID(2233-4455-6677) und UUID(3344-5566-7788).'
-for t in replace_uuid_except_nth(text):
-    print(t)
+for replaced_text in replace_uuid_except_n(text):
+    print(replaced_text)

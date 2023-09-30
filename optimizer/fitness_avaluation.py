@@ -1,4 +1,6 @@
 import collections
+import datetime
+import itertools
 import re
 from itertools import permutations, combinations
 from uuid import UUID
@@ -27,7 +29,8 @@ def appointments_from__plan_period_cast(plan_period_cast: PlanPeriodCast) -> lis
 
 def fitness_of_plan_period_cast__time_of_day_cast(
         plan_period_cast: PlanPeriodCast, plan_period: schemas.PlanPeriodShow,
-        potential_assignments_of_actors: dict[UUID, int]) -> tuple[float, dict[str, int]]:
+        potential_assignments_of_actors: dict[UUID, int],
+        all_persons_from__plan_period: list[UUID]) -> tuple[float, dict[str, int]]:
 
     appointments = appointments_from__plan_period_cast(plan_period_cast)
 
@@ -61,7 +64,7 @@ def fitness_of_plan_period_cast__time_of_day_cast(
     requested_assignments = generate_adjusted_requested_assignments(
         plan_period_cast, errors['nones'], requested_assignments, potential_assignments_of_actors)
     errors['standard_deviation'] = standard_deviation_score(requested_assignments, current_assignments)
-    errors['fixed_cast'] += fixed_cast_score(plan_period_cast)
+    errors['fixed_cast'] += fixed_cast_score(plan_period_cast, all_persons_from__plan_period)
 
     return sum(errors.values()), errors
 
@@ -119,39 +122,28 @@ def partner_location_pref(appointment: AppointmentCast) -> float:
     return sum(score_results) / len(score_results) if score_results else 0
 
 
-def fixed_cast_score(plan_period_cast: PlanPeriodCast) -> float:
+def fixed_cast_score(plan_period_cast: PlanPeriodCast, all_persons_from__plan_period: list[UUID]) -> float:
     # fixme: gilt bislang nur für unterste Ebene
-    def replace_uuid_except_nth(fixed_cast_text):
-        pattern = r'UUID\(.*?\)'
-        occurrences = len(re.findall(pattern, fixed_cast_text))
-
-        for i in range(1, occurrences + 1):
-            count = [0]
-
-            def replacer(match):
-                count[0] += 1
-                return match.group(0) if count[0] == i else 'None'
-
-            replaced_text = re.sub(pattern, replacer, fixed_cast_text)
-            yield replaced_text
-
     appointments = appointments_from__plan_period_cast(plan_period_cast)
     score_result = 0
     for appointment in appointments:
         fixed_cast = appointment.event.cast_group.fixed_cast
         if fixed_cast:
-            person_ids: list[UUID | None] = [avd.actor_plan_period.person.id if avd else None
-                                             for avd in appointment.avail_days]
-            conditions_met = eval(fixed_cast, {'team': person_ids, 'UUID': UUID})
-            if not conditions_met:
-                for modified_fixed_cast in replace_uuid_except_nth(fixed_cast):
-                    # print(f'{modified_fixed_cast=}')
-                    modified_conditions_met = eval(modified_fixed_cast, {'team': person_ids, 'UUID': UUID})
-                    score_result += score_factors.fixed_cast if not modified_conditions_met else 0
+            person_ids: list[UUID, None] = [avd.actor_plan_period.person.id
+                                            if avd else None for avd in appointment.avail_days]
+            person_ids_for_matching: set[UUID] = {p_id for p_id in person_ids if p_id}
+            teams_which_matches = (
+                team for team in
+                itertools.combinations(all_persons_from__plan_period, len(appointment.avail_days))
+                if eval(fixed_cast, {'team': team, 'UUID': UUID})
+            )
+            best_nr_of_match = 0
+            for team in teams_which_matches:
+                if (curr_nr_of_match := len(set(team) & person_ids_for_matching)) > best_nr_of_match:
+                    best_nr_of_match = curr_nr_of_match
 
-
-
-            # score_result += score_factors.fixed_cast if not conditions_met else 0
+            score_result += ((len(person_ids) - best_nr_of_match) * score_factors.fixed_cast
+                             + (len(person_ids_for_matching) - best_nr_of_match) * score_factors.fixed_cast)
 
     return score_result
 

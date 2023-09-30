@@ -38,12 +38,18 @@ def switch_avail_days__time_of_day_cast(plan_period_cast: PlanPeriodCast, nr_ran
 @profile
 def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appointments: int):
     plan_period = db_services.PlanPeriod.get(plan_period_cast.plan_period_id)
-    potential_assignments_of_actors = potential_assignments_of_persons(plan_period_cast, plan_period_cast.plan_period_id)
+    potential_assignments_of_actors = potential_assignments_of_persons(plan_period_cast,
+                                                                       plan_period_cast.plan_period_id)
+    all_persons_from__plan_period: list[UUID] = [
+        p.id for p in db_services.Person.get_all_from__plan_period(plan_period_cast.plan_period_id)
+    ]
 
     best_fitness, best_errors = float('inf'), {}
     nr_iterations = 0
     curr_fitness, curr_errors = fitness_of_plan_period_cast__time_of_day_cast(
-        plan_period_cast, plan_period, potential_assignments_of_actors)
+        plan_period_cast, plan_period, potential_assignments_of_actors,
+        all_persons_from__plan_period
+    )
     while True:
         controller = command_base_classes.ContrExecUndoRedo()
 
@@ -52,7 +58,9 @@ def optimize_plan_period_cast(plan_period_cast: PlanPeriodCast, nr_random_appoin
         nr_iterations += 1
 
         fitness_new, new_errors = fitness_of_plan_period_cast__time_of_day_cast(
-            plan_period_cast, plan_period, potential_assignments_of_actors)
+            plan_period_cast, plan_period, potential_assignments_of_actors,
+            all_persons_from__plan_period
+        )
         if fitness_new > curr_fitness:
             controller.undo_all()
         else:

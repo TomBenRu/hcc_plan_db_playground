@@ -10,7 +10,7 @@ from line_profiler_pycharm import profile
 
 from database import schemas, db_services
 from optimizer import score_factor_tables, score_factors
-from optimizer.first_radom_cast import PlanPeriodCast, AppointmentCast
+from optimizer.cast_classes import PlanPeriodCast, AppointmentCast
 
 
 def score_factor_translation(score: float, score_factor_table: dict[int, int]) -> float:
@@ -23,7 +23,7 @@ def score_factor_translation(score: float, score_factor_table: dict[int, int]) -
 def appointments_from__plan_period_cast(plan_period_cast: PlanPeriodCast) -> list[AppointmentCast]:
     return [appointment
             for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
-            for appointment in time_of_day_cast.appointments]
+            for appointment in time_of_day_cast.appointments_active]
 
 
 def fitness_of_plan_period_cast__time_of_day_cast(
@@ -146,14 +146,16 @@ def fixed_cast_score(plan_period_cast: PlanPeriodCast, all_persons_from__plan_pe
     return score_result
 
 
-def potential_assignments_of_persons(plan_period_cast: PlanPeriodCast, plan_period_id: UUID) -> dict[UUID, int]:
+def potential_assignments_of_persons(plan_period_cast: PlanPeriodCast) -> dict[UUID, int]:
     appointments = appointments_from__plan_period_cast(plan_period_cast)
 
     potential_assignments = collections.defaultdict(int)
     for appointment in appointments:
         potential_avail_days = db_services.AvailDay.get_all_from__plan_period__date__time_of_day__location_prefs(
-            plan_period_id, appointment.event.date, appointment.event.time_of_day.time_of_day_enum.time_index,
-            {appointment.event.location_plan_period.location_of_work.id})
+            plan_period_cast.plan_period_id, appointment.event.date,
+            appointment.event.time_of_day.time_of_day_enum.time_index,
+            {appointment.event.location_plan_period.location_of_work.id}
+        )
         for avail_day in potential_avail_days:
             potential_assignments[avail_day.actor_plan_period.person.id] += 1
     return potential_assignments
@@ -165,7 +167,7 @@ def generate_adjusted_requested_assignments(
     requested_assignments_adjusted = collections.defaultdict(int)
     appointments = [appointment
                     for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
-                    for appointment in time_of_day_cast.appointments]
+                    for appointment in time_of_day_cast.appointments_active]
     sum_taken_assignments: int = sum(appointment.event.cast_group.nr_actors for appointment in appointments) - unoccupied
 
     for person_id, potential_nr in requested_assignments.items():

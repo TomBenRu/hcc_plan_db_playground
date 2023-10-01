@@ -1,12 +1,15 @@
 from commands import command_base_classes
 from commands.optimizer_commands import pop_out_pop_in_commands
-from optimizer.first_radom_cast import PlanPeriodCast, AppointmentCast
+from optimizer.cast_classes import PlanPeriodCast, AppointmentCast
 
 
 def switch_avail_days__time_of_day_cast(plan_period_cast: PlanPeriodCast, nr_random_appointments: int,
                                         controller: command_base_classes.ContrExecUndoRedo):
-    random_time_of_day_cast = plan_period_cast.pick_random_time_of_day_cast()
-    random_appointments = random_time_of_day_cast.pick_random_appointments(nr_random_appointments)
+    # Weil es sein kann, dass - wegen event_groups - Tageszeiten keine Appointments besitzen:
+    random_appointments = []
+    while not random_appointments:
+        random_time_of_day_cast = plan_period_cast.pick_random_time_of_day_cast()
+        random_appointments = random_time_of_day_cast.pick_random_appointments(nr_random_appointments)
 
     modified_appointments: list[AppointmentCast] = []
 

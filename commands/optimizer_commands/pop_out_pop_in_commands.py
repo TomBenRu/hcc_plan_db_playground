@@ -4,7 +4,7 @@ from line_profiler_pycharm import profile
 
 from database import schemas
 from commands.command_base_classes import Command
-from optimizer.first_radom_cast import AppointmentCast, PlanPeriodCast, EventGroupCast
+from optimizer.cast_classes import AppointmentCast, PlanPeriodCast, EventGroupCast
 
 
 class TimeOfDayCastPopOutAvailDay(Command):

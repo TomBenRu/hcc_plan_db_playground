@@ -2,7 +2,7 @@ from uuid import UUID
 
 from commands import command_base_classes
 from database import db_services
-from optimizer.first_radom_cast import PlanPeriodCast
+from optimizer.cast_classes import PlanPeriodCast
 from optimizer.fitness_avaluation import potential_assignments_of_persons, fitness_of_plan_period_cast__time_of_day_cast
 from optimizer.switchers import switch_avail_days__time_of_day_cast
 
@@ -14,9 +14,8 @@ class TimeOfDaysOptimizer:
         self.plan_period = db_services.PlanPeriod.get(self.plan_period_cast.plan_period_id)
 
     def optimize(self):
-        potential_assignments_of_actors = potential_assignments_of_persons(self.plan_period_cast,
-                                                                           self.plan_period_cast.plan_period_id)
-        all_persons_from__plan_period: list[UUID] = [
+        potential_assignments_of_actors = potential_assignments_of_persons(self.plan_period_cast)
+        all_persons_from__plan_period: list[UUID] = [  # wird für fixed_cast_score benötigt
             p.id for p in db_services.Person.get_all_from__plan_period(self.plan_period_cast.plan_period_id)
         ]
 

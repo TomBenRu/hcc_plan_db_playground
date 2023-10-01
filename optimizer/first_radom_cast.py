@@ -35,7 +35,8 @@ class EventGroupCast:
                 self.child_groups.remove(child)
                 self.active_groups.append(child)
                 if child.event_group.event:
-                    handler_event_for_plan_period_cast.send_event_to_all_events(child.event_group.event)
+                    event = db_services.Event.get(child.event_group.event.id)
+                    handler_event_for_plan_period_cast.send_event_to_all_events(event)
 
 
 @dataclasses.dataclass
@@ -121,8 +122,7 @@ class PlanPeriodCast:
     plan_period_id: UUID
     time_of_day_casts: dict[(datetime.date, int), TimeOfDayCast] = dataclasses.field(default_factory=dict)
 
-    def generate_time_of_day_casts(self):
-        events = get_all_events_from__plan_period(self.plan_period_id)
+    def generate_time_of_day_casts(self, events: list[schemas.EventShow]):
         for event in events:
             key = (event.date, event.time_of_day.time_of_day_enum.time_index)
             if not self.time_of_day_casts.get(key):
@@ -155,15 +155,9 @@ class PlanPeriodCast:
         return '\n----------------\n'.join(sorted(str(tod_cast) for tod_cast in self.time_of_day_casts.values()))
 
 
-def generate_initial_plan_period_cast(plan_period_id: UUID) -> PlanPeriodCast:
+def generate_initial_plan_period_cast(plan_period_id: UUID, events: list[schemas.EventShow]) -> PlanPeriodCast:
     plan_period_cast = PlanPeriodCast(plan_period_id)
-    plan_period_cast.generate_time_of_day_casts()
+    plan_period_cast.generate_time_of_day_casts(events)
     plan_period_cast.calculate_initial_casts()
 
     return plan_period_cast
-
-
-if __name__ == '__main__':
-    initial_cast = generate_initial_plan_period_cast(UUID('0923404BCA2A47579ADE85188CF4EA7F'))
-
-    print(initial_cast)

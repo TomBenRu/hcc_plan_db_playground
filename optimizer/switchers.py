@@ -22,3 +22,10 @@ def switch_avail_days__time_of_day_cast(plan_period_cast: PlanPeriodCast, nr_ran
         avail_day_to_put_in = random_time_of_day_cast.pick_random_avail_day()
         controller.execute(pop_out_pop_in_commands.TimeOfDayCastPutInAvailDay(
             plan_period_cast, appointment, avail_day_to_put_in))
+
+
+def switch_event_group_casts(event_group_cast, nr_to_switch: int, controller):
+    controller.undo_stack.clear()
+    if not event_group_cast.event_group.event and event_group_cast.event_group.nr_event_groups:
+        for _ in range(min(nr_to_switch, event_group_cast.event_group.nr_event_groups)):
+            controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(event_group_cast))

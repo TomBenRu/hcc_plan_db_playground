@@ -4,50 +4,38 @@ import random
 import time
 from typing import Literal, Self
 from uuid import UUID
-
-from dateutil.relativedelta import relativedelta
-
-from commands import command_base_classes
-from commands.optimizer_commands import pop_out_pop_in_commands
 from database import db_services, schemas
-from database.special_schema_requests import get_persons_of_team_at_date
+from optimizer.signal_handling import handler_event_for_plan_period_cast
 
 
 def get_all_events_from__plan_period(plan_period_id: UUID) -> list[schemas.EventShow]:
     return db_services.Event.get_all_from__plan_period(plan_period_id)
 
 
-@dataclasses.dataclass
 class EventGroupCast:
-    event_group: schemas.EventGroupShow
-    parent_group: Self = None
-    child_groups: list[Self] = dataclasses.field(default_factory=list)
-    active_groups: list[Self] = dataclasses.field(default_factory=list)
-    controller = command_base_classes.ContrExecUndoRedo()
+    def __init__(self, event_group: schemas.EventGroupShow, parent_group: Self = None):
+        self.event_group = event_group
+        self.parent_group: Self = parent_group
+        self.child_groups: list['EventGroupCast'] = []
+        self.active_groups: list['EventGroupCast'] = []
+
+        self.fill_child_groups()
+        self.initialize_first_cast()
 
     def fill_child_groups(self):
         for event_group in self.event_group.event_groups:
             event_group = db_services.EventGroup.get(event_group.id)
             new_event_group_cast = EventGroupCast(event_group, self)
-            new_event_group_cast.fill_child_groups()
-            new_event_group_cast.initialize_first_cast()
             self.child_groups.append(new_event_group_cast)
 
     def initialize_first_cast(self):
         if not self.event_group.event:
-            for _ in range(self.event_group.nr_event_groups):
-                child = random.choice(self.child_groups)
+            for _ in range(self.event_group.nr_event_groups or len(self.event_group.event_groups)):
+                child: 'EventGroupCast' = random.choice(self.child_groups)
                 self.child_groups.remove(child)
                 self.active_groups.append(child)
-
-    def switch_active_groups(self, nr_to_switch: int = 1):
-        self.controller.undo_stack.clear()
-        if not self.event_group.event and self.event_group.nr_event_groups:
-            for _ in range(min(nr_to_switch, self.event_group.nr_event_groups)):
-                self.controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(self))
-
-    def undo_switch_active_groups(self):
-        self.controller.undo_all()
+                if child.event_group.event:
+                    handler_event_for_plan_period_cast.send_event_to_all_events(child.event_group.event)
 
 
 @dataclasses.dataclass
@@ -65,6 +53,7 @@ class AppointmentCast:
         return random.choice(self.avail_days)
 
     def add_avail_day_first_cast(self, avail_day: schemas.AvailDayShow) -> Literal['filled', 'same person', 'full']:
+        # fixme: zu umständlich
         if len(self.avail_days) < self.event.cast_group.nr_actors:
             person_id = avail_day.actor_plan_period.person.id if avail_day else None
             if person_id not in {avd.actor_plan_period.person.id for avd in self.avail_days if avd}:
@@ -104,7 +93,7 @@ class TimeOfDayCast:
     def pick_random_avail_day(self) -> schemas.AvailDayShow | None:
         return random.choice(self.avail_days)
 
-    def initialize_first_cast(self):  # not_sure: kann weggelassen werden
+    def initialize_first_cast(self):  # fixme: zu umständlich
         appointments_indexes = list(range(len(self.appointments)))
         avail_days_indexes = list(range(len(self.avail_days)))
         random.shuffle(avail_days_indexes)

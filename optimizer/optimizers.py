@@ -7,7 +7,7 @@ from optimizer.fitness_avaluation import potential_assignments_of_persons, fitne
 from optimizer.switchers import switch_avail_days__time_of_day_cast
 
 
-class TimeOfDays:
+class TimeOfDaysOptimizer:
     def __init__(self, plan_period_cast: PlanPeriodCast, nr_random_appointments: int):
         self.plan_period_cast = plan_period_cast
         self.nr_random_appointments = nr_random_appointments

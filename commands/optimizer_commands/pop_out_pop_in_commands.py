@@ -4,11 +4,11 @@ from line_profiler_pycharm import profile
 
 from database import schemas
 from commands.command_base_classes import Command
-from optimizer.cast_classes import AppointmentCast, PlanPeriodCast, EventGroupCast
+from optimizer.base_cast_classes import BaseEventGroupCast, BaseAppointmentCast, BasePlanPeriodCast
 
 
 class TimeOfDayCastPopOutAvailDay(Command):
-    def __init__(self, plan_period_cast: PlanPeriodCast, appointment_cast: AppointmentCast,
+    def __init__(self, plan_period_cast: BasePlanPeriodCast, appointment_cast: BaseAppointmentCast,
                  avail_day_to_pop: schemas.AvailDayShow | None):
         self.plan_period_cast = plan_period_cast
         self.appointment_cast = appointment_cast
@@ -30,7 +30,7 @@ class TimeOfDayCastPopOutAvailDay(Command):
 
 
 class TimeOfDayCastPutInAvailDay(Command):
-    def __init__(self, plan_period_cast: PlanPeriodCast, appointment_cast: AppointmentCast,
+    def __init__(self, plan_period_cast: BasePlanPeriodCast, appointment_cast: BaseAppointmentCast,
                  avail_day_to_put_in: schemas.AvailDayShow | None):
         self.plan_period_cast = plan_period_cast
         self.appointment_cast = appointment_cast
@@ -52,27 +52,26 @@ class TimeOfDayCastPutInAvailDay(Command):
 
 
 class SwitchEventGroupCast(Command):
-    def __init__(self, event_group_cast: EventGroupCast):
+    def __init__(self, event_group_cast: BaseEventGroupCast,
+                 child_group_to_pop: BaseEventGroupCast, active_group_to_pop: BaseEventGroupCast):
         self.event_group_cast = event_group_cast
-        self.popped_child_group: EventGroupCast | None = None
-        self.popped_active_group: EventGroupCast | None = None
+        self.child_group_to_pop = child_group_to_pop
+        self.active_group_to_pop = active_group_to_pop
 
     def execute(self):
-        self.popped_child_group = self.event_group_cast.child_groups.pop(
-            random.randrange(len(self.event_group_cast.child_groups)))
-        self.popped_active_group = self.event_group_cast.active_groups.pop(
-            random.randrange(len(self.event_group_cast.active_groups)))
-        self.event_group_cast.active_groups.append(self.popped_child_group)
-        self.event_group_cast.child_groups.append(self.popped_active_group)
+        self.event_group_cast.child_groups.remove(self.child_group_to_pop)
+        self.event_group_cast.active_groups.remove(self.active_group_to_pop)
+        self.event_group_cast.active_groups.add(self.child_group_to_pop)
+        self.event_group_cast.child_groups.add(self.active_group_to_pop)
 
     def undo(self):
-        self.event_group_cast.active_groups.remove(self.popped_child_group)
-        self.event_group_cast.child_groups.remove(self.popped_active_group)
-        self.event_group_cast.active_groups.append(self.popped_active_group)
-        self.event_group_cast.child_groups.append(self.popped_child_group)
+        self.event_group_cast.active_groups.remove(self.child_group_to_pop)
+        self.event_group_cast.child_groups.remove(self.active_group_to_pop)
+        self.event_group_cast.active_groups.add(self.active_group_to_pop)
+        self.event_group_cast.child_groups.add(self.active_group_to_pop)
 
     def redo(self):
-        self.event_group_cast.active_groups.remove(self.popped_active_group)
-        self.event_group_cast.child_groups.remove(self.popped_child_group)
-        self.event_group_cast.active_groups.append(self.popped_child_group)
-        self.event_group_cast.child_groups.append(self.popped_active_group)
+        self.event_group_cast.child_groups.remove(self.child_group_to_pop)
+        self.event_group_cast.active_groups.remove(self.active_group_to_pop)
+        self.event_group_cast.active_groups.add(self.child_group_to_pop)
+        self.event_group_cast.child_groups.add(self.active_group_to_pop)

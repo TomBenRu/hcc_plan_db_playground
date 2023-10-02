@@ -4,19 +4,17 @@ import random
 import time
 from typing import Literal, Self, Optional
 from uuid import UUID
+
+from commands.optimizer_commands import pop_out_pop_in_commands
 from database import db_services, schemas
+from optimizer.base_cast_classes import BaseEventGroupCast, BaseAppointmentCast, BasePlanPeriodCast, BaseTimeOfDayCast
 from optimizer.signal_handling import handler_event_for_plan_period_cast, EventSignalData
 
 
-class EventGroupCast:
+class EventGroupCast(BaseEventGroupCast):
     def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['EventGroupCast'], level: int,
                  active: bool = False):
-        self.active = active
-        self.level = level
-        self.event_group = event_group
-        self.parent_group: 'EventGroupCast' = parent_group
-        self.child_groups: list['EventGroupCast'] = []
-        self.active_groups: list['EventGroupCast'] = []
+        super().__init__(event_group, parent_group, level, active)
 
         self.fill_child_groups()
 
@@ -24,7 +22,7 @@ class EventGroupCast:
         for event_group in self.event_group.event_groups:
             event_group = db_services.EventGroup.get(event_group.id)
             new_event_group_cast = EventGroupCast(event_group, self, self.level + 1)
-            self.child_groups.append(new_event_group_cast)
+            self.child_groups.add(new_event_group_cast)
             if event_group.event:
                 event = db_services.Event.get(event_group.event.id)
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, False))
@@ -33,20 +31,30 @@ class EventGroupCast:
         if self.event_group.event:
             return
         for _ in range(self.event_group.nr_event_groups or len(self.event_group.event_groups)):
-            child: 'EventGroupCast' = random.choice(self.child_groups)
+            child: 'EventGroupCast' = random.choice(list(self.child_groups))
             self.child_groups.remove(child)
-            self.active_groups.append(child)
+            self.active_groups.add(child)
             child.active = True
             child.initialize_first_cast()
             if child.event_group.event:
                 event = db_services.Event.get(child.event_group.event.id)
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, True))
 
+    def switch_event_group_casts(self, nr_to_switch: int):
+        self.controller.undo_stack.clear()
+        if ((not self.event_group.event)
+                and self.event_group.nr_event_groups
+                and self.event_group.nr_event_groups < len(self.event_group.event_groups)):
+            for _ in range(min(nr_to_switch, self.event_group.nr_event_groups)):
+                child_group_to_pop = random.choice(list(self.child_groups))
+                active_group_to_pop = random.choice(list(self.active_groups))
+                self.controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(
+                    self, child_group_to_pop, active_group_to_pop))
 
-@dataclasses.dataclass
-class AppointmentCast:
-    event: schemas.EventShow
-    avail_days: list[schemas.AvailDayShow | None] = dataclasses.field(default_factory=list)
+
+class AppointmentCast(BaseAppointmentCast):
+    def __init__(self, event: schemas.EventShow):
+        super().__init__(event)
 
     def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
         self.avail_days.append(avail_day)
@@ -75,14 +83,10 @@ class AppointmentCast:
                 f'{", ".join(avd.actor_plan_period.person.f_name if avd else "unbesetzt" for avd in self.avail_days)}')
 
 
-class TimeOfDayCast:
+class TimeOfDayCast(BaseTimeOfDayCast):
     def __init__(self, date: datetime.date, time_of_day_enum: schemas.TimeOfDayEnum,
                  avail_days: list[schemas.AvailDayShow | None]):
-        self.date = date
-        self.time_of_day_enum = time_of_day_enum
-        self.appointments_active: list[AppointmentCast] = []
-        self.appointments_pool: list[AppointmentCast] = []
-        self.avail_days = avail_days
+        super().__init__(date, time_of_day_enum, avail_days)
 
     def add_appointment_to_pool(self, appointment: AppointmentCast):
         self.appointments_pool.append(appointment)
@@ -127,12 +131,9 @@ class TimeOfDayCast:
         return '\n'.join([str(appointment) for appointment in self.appointments_active])
 
 
-class PlanPeriodCast:
-    def __init__(self, plan_period_id: UUID, ):
-
-        self.plan_period_id = plan_period_id
-        self.time_of_day_casts: dict[(datetime.date, int), TimeOfDayCast] = {}
-        handler_event_for_plan_period_cast.signal_new_event.connect(lambda e: self.generate_time_of_day_casts(e))
+class PlanPeriodCast(BasePlanPeriodCast):
+    def __init__(self, plan_period_id: UUID):
+        super().__init__(plan_period_id)
 
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):
         key = (event_signal_data.event.date, event_signal_data.event.time_of_day.time_of_day_enum.time_index)

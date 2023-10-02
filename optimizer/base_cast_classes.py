@@ -4,7 +4,7 @@ from typing import Optional, Literal
 from uuid import UUID
 
 from commands import command_base_classes
-from database import schemas
+from database import schemas, db_services
 from optimizer.signal_handling import handler_event_for_plan_period_cast, EventSignalData
 
 
@@ -14,6 +14,7 @@ class BaseEventGroupCast(ABC):
         self.active = active
         self.level = level
         self.event_group: schemas.EventGroupShow = event_group
+        self.event_of_event_group = db_services.Event.get(event_group.event.id) if event_group.event else None
         self.parent_group: 'BaseEventGroupCast' = parent_group
         self.child_groups: set['BaseEventGroupCast'] = set()
         self.active_groups: set['BaseEventGroupCast'] = set()
@@ -32,6 +33,14 @@ class BaseEventGroupCast(ABC):
     def switch_event_group_casts(self, nr_to_switch: int):
         ...
 
+    @abstractmethod
+    def set_inaktive(self):
+        ...
+
+    @abstractmethod
+    def set_active(self):
+        ...
+
 
 class BaseAppointmentCast(ABC):
     def __init__(self, event: schemas.EventShow):
@@ -40,11 +49,11 @@ class BaseAppointmentCast(ABC):
         self.avail_days: list[schemas.AvailDayShow] = []
 
     @abstractmethod
-    def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
+    def add_avail_day(self, avail_day: schemas.AvailDayShow | None) -> None:
         ...
 
     @abstractmethod
-    def remove_avail_day(self, avail_day: schemas.AvailDayShow | None):
+    def remove_avail_day(self, avail_day: schemas.AvailDayShow | None) -> None:
         ...
 
     @abstractmethod

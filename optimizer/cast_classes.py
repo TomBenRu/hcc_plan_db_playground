@@ -8,7 +8,8 @@ from uuid import UUID
 from commands.optimizer_commands import pop_out_pop_in_commands
 from database import db_services, schemas
 from optimizer.base_cast_classes import BaseEventGroupCast, BaseAppointmentCast, BasePlanPeriodCast, BaseTimeOfDayCast
-from optimizer.signal_handling import handler_event_for_plan_period_cast, EventSignalData
+from optimizer.signal_handling import handler_event_for_plan_period_cast, EventSignalData, \
+    handler_switch_appointment_for_time_of_day_cast
 
 
 class EventGroupCast(BaseEventGroupCast):
@@ -22,9 +23,9 @@ class EventGroupCast(BaseEventGroupCast):
         for event_group in self.event_group.event_groups:
             event_group = db_services.EventGroup.get(event_group.id)
             new_event_group_cast = EventGroupCast(event_group, self, self.level + 1)
+            # input(f'{new_event_group_cast.event_of_event_group=}')
             self.child_groups.add(new_event_group_cast)
-            if event_group.event:
-                event = db_services.Event.get(event_group.event.id)
+            if event := new_event_group_cast.event_of_event_group:
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, False))
 
     def initialize_first_cast(self):
@@ -36,8 +37,7 @@ class EventGroupCast(BaseEventGroupCast):
             self.active_groups.add(child)
             child.active = True
             child.initialize_first_cast()
-            if child.event_group.event:
-                event = db_services.Event.get(child.event_group.event.id)
+            if event := child.event_of_event_group:
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, True))
 
     def switch_event_group_casts(self, nr_to_switch: int):
@@ -46,10 +46,32 @@ class EventGroupCast(BaseEventGroupCast):
                 and self.event_group.nr_event_groups
                 and self.event_group.nr_event_groups < len(self.event_group.event_groups)):
             for _ in range(min(nr_to_switch, self.event_group.nr_event_groups)):
-                child_group_to_pop = random.choice(list(self.child_groups))
-                active_group_to_pop = random.choice(list(self.active_groups))
+                child_group_to_pop: 'EventGroupCast' = random.choice(list(self.child_groups))
+                active_group_to_pop: 'EventGroupCast' = random.choice(list(self.active_groups))
                 self.controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(
                     self, child_group_to_pop, active_group_to_pop))
+
+    def set_inaktive(self):
+        self.active = False
+        if self.event_group.event:
+            event = db_services.Event.get(self.event_group.event.id)
+            handler_switch_appointment_for_time_of_day_cast.switch_appointment(EventSignalData(event, False))
+        else:
+            for evg in self.active_groups:
+                self.active_groups.remove(evg)
+                self.child_groups.add(evg)
+                evg.set_inaktive()
+
+    def set_active(self):
+        self.active = True
+        if self.event_group.event:
+            event = db_services.Event.get(self.event_group.event.id)
+            handler_switch_appointment_for_time_of_day_cast.switch_appointment(EventSignalData(event, True))
+        else:
+            for evg in self.child_groups:
+                self.child_groups.remove(evg)
+                self.active_groups.add(evg)
+                evg.set_active()
 
 
 class AppointmentCast(BaseAppointmentCast):
@@ -134,6 +156,8 @@ class TimeOfDayCast(BaseTimeOfDayCast):
 class PlanPeriodCast(BasePlanPeriodCast):
     def __init__(self, plan_period_id: UUID):
         super().__init__(plan_period_id)
+
+
 
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):
         key = (event_signal_data.event.date, event_signal_data.event.time_of_day.time_of_day_enum.time_index)

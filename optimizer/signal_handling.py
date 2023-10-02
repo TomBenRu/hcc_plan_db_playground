@@ -26,3 +26,4 @@ class HandlerSwitchAppointmentForTimeOfDayCast(QObject):
 
 
 handler_event_for_plan_period_cast = HandlerEventForPlanPeriodCast()
+handler_switch_appointment_for_time_of_day_cast = HandlerSwitchAppointmentForTimeOfDayCast()

@@ -53,9 +53,9 @@ class EventGroupCast(BaseEventGroupCast):
 
     def set_inaktive(self):
         self.active = False
-        if self.event_group.event:
-            event = db_services.Event.get(self.event_group.event.id)
-            handler_switch_appointment_for_time_of_day_cast.switch_appointment(EventSignalData(event, False))
+        if self.event_of_event_group:
+            handler_switch_appointment_for_time_of_day_cast.switch_appointment(
+                EventSignalData(self.event_of_event_group, False))
         else:
             for evg in self.active_groups:
                 self.active_groups.remove(evg)
@@ -64,9 +64,9 @@ class EventGroupCast(BaseEventGroupCast):
 
     def set_active(self):
         self.active = True
-        if self.event_group.event:
-            event = db_services.Event.get(self.event_group.event.id)
-            handler_switch_appointment_for_time_of_day_cast.switch_appointment(EventSignalData(event, True))
+        if self.event_of_event_group:
+            handler_switch_appointment_for_time_of_day_cast.switch_appointment(
+                EventSignalData(self.event_of_event_group, True))
         else:
             for evg in self.child_groups:
                 self.child_groups.remove(evg)

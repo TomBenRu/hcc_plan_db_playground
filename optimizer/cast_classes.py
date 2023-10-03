@@ -1,8 +1,7 @@
-import dataclasses
+import collections
 import datetime
 import random
-import time
-from typing import Literal, Self, Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from commands.optimizer_commands import pop_out_pop_in_commands
@@ -12,18 +11,21 @@ from optimizer.signal_handling import handler_event_for_plan_period_cast, EventS
     handler_switch_appointment_for_time_of_day_cast
 
 
+event_group_cast_levels: collections.defaultdict[int, list['EventGroupCast']] = collections.defaultdict(list)
+
+
 class EventGroupCast(BaseEventGroupCast):
     def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['EventGroupCast'], level: int,
                  active: bool = False):
         super().__init__(event_group, parent_group, level, active)
 
         self.fill_child_groups()
+        self.put_to_group_levels()
 
     def fill_child_groups(self):
         for event_group in self.event_group.event_groups:
             event_group = db_services.EventGroup.get(event_group.id)
             new_event_group_cast = EventGroupCast(event_group, self, self.level + 1)
-            # input(f'{new_event_group_cast.event_of_event_group=}')
             self.child_groups.add(new_event_group_cast)
             if event := new_event_group_cast.event_of_event_group:
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, False))
@@ -51,6 +53,9 @@ class EventGroupCast(BaseEventGroupCast):
                 self.controller.execute(pop_out_pop_in_commands.SwitchEventGroupCast(
                     self, child_group_to_pop, active_group_to_pop))
 
+    def undo_switch_event_group_casts(self):
+        self.controller.undo_all()
+
     def set_inaktive(self):
         self.active = False
         if self.event_of_event_group:
@@ -72,6 +77,26 @@ class EventGroupCast(BaseEventGroupCast):
                 self.child_groups.remove(evg)
                 self.active_groups.add(evg)
                 evg.set_active()
+
+    def put_to_group_levels(self, level: int | None = None):
+        if self.group_cast_level_done:  # Wenn die event_grou_cast schon den event_group_cast_levels zugeführt wurde
+            return
+        if level:  # Aufruf kommt von child
+            group_level = level
+        # unterste Ebene mit nur event_groups die events enthalten...
+        elif self.event_group.event_groups and all(evg.event for evg in self.event_group.event_groups):
+            group_level = 0
+        else:
+            return
+        # Wenn der Aufruf von einem child kommt und die aktuelle Gruppe nicht alle childs zulässt, ...
+        if self.event_group.nr_event_groups and self.event_group.nr_event_groups < len(self.event_group.event_groups):
+            # ...wird die event_group_cast den event_group_cast_levels zugeführt ...
+            event_group_cast_levels[group_level].append(self)
+            self.group_cast_level_done = True
+            # ... und das level um 1 erhöht, um damit die parent-group aufzurufen.
+            group_level += 1
+        if self.parent_group:
+            self.parent_group.put_to_group_levels(group_level)
 
 
 class AppointmentCast(BaseAppointmentCast):
@@ -156,8 +181,6 @@ class TimeOfDayCast(BaseTimeOfDayCast):
 class PlanPeriodCast(BasePlanPeriodCast):
     def __init__(self, plan_period_id: UUID):
         super().__init__(plan_period_id)
-
-
 
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):
         key = (event_signal_data.event.date, event_signal_data.event.time_of_day.time_of_day_enum.time_index)

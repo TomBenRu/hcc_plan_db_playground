@@ -19,6 +19,8 @@ class BaseEventGroupCast(ABC):
         self.child_groups: set['BaseEventGroupCast'] = set()
         self.active_groups: set['BaseEventGroupCast'] = set()
 
+        self.group_cast_level_done = False
+
         self.controller = command_base_classes.ContrExecUndoRedo()
 
     @abstractmethod
@@ -34,11 +36,19 @@ class BaseEventGroupCast(ABC):
         ...
 
     @abstractmethod
+    def undo_switch_event_group_casts(self):
+        ...
+
+    @abstractmethod
     def set_inaktive(self):
         ...
 
     @abstractmethod
     def set_active(self):
+        ...
+
+    @abstractmethod
+    def put_to_group_levels(self, level: int | None):
         ...
 
 

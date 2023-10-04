@@ -9,10 +9,10 @@ from optimizer.signal_handling import handler_event_for_plan_period_cast, EventS
 
 
 class BaseEventGroupCast(ABC):
-    def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['BaseEventGroupCast'], level: int,
+    def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['BaseEventGroupCast'],
                  active: bool = False):
         self.active = active
-        self.level = level
+        self.level: int | None = None
         self.event_group: schemas.EventGroupShow = event_group
         self.event_of_event_group = db_services.Event.get(event_group.event.id) if event_group.event else None
         self.parent_group: 'BaseEventGroupCast' = parent_group
@@ -118,7 +118,10 @@ class BasePlanPeriodCast(ABC):
 
         self.plan_period_id = plan_period_id
         self.time_of_day_casts: dict[(datetime.date, int), BaseTimeOfDayCast] = {}
-        handler_event_for_plan_period_cast.signal_new_event.connect(lambda e: self.generate_time_of_day_casts(e))
+
+    @abstractmethod
+    def switch_appointment(self, event_signal_data: EventSignalData):
+        ...
 
     @abstractmethod
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):
@@ -130,4 +133,8 @@ class BasePlanPeriodCast(ABC):
 
     @abstractmethod
     def calculate_initial_casts(self):
+        ...
+
+    @abstractmethod
+    def add_nones_to_time_of_day_casts(self):
         ...

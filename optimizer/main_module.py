@@ -5,6 +5,7 @@ from database import db_services, schemas
 from optimizer import optimizers
 from optimizer.base_cast_classes import BaseEventGroupCast, BasePlanPeriodCast
 from optimizer.cast_classes import EventGroupCast, PlanPeriodCast, event_group_cast_levels
+from optimizer.optimizers import EventGroupCastOptimizer
 from optimizer.signal_handling import handler_event_for_plan_period_cast
 
 
@@ -20,25 +21,32 @@ class Optimizer:
                                   for lpp in self.location_plan_periods]
         self.initial_main_event_group_casts: list[EventGroupCast] = []
 
-        self.best_group_cast_state: bytes | None = None
-        self.best_plan_period_cast_fitness = float('inf')
-        self.best_plan_period_cast_state: bytes | None = None
-
     def optimize_plan_period_cast(self):
         self.generate_event_group_casts()
+        self.plan_period_cast.add_nones_to_time_of_day_casts()
+        print(f'{self.plan_period_cast=}')
+        print('\n----------------\n'.join(sorted(str(tod_cast) for tod_cast in self.plan_period_cast.time_of_day_casts.values())))
         self.plan_period_cast.calculate_initial_casts()
 
-        optimizer_time_of_day_cast = optimizers.TimeOfDayCastOptimizer(self.plan_period_cast,
-                                                                       self.nr_random_appointment_switches)
-        curr_fitness_of_plan_period_cast = optimizer_time_of_day_cast.optimize()
-        if curr_fitness_of_plan_period_cast < self.best_plan_period_cast_fitness:
-            self.best_plan_period_cast_fitness = curr_fitness_of_plan_period_cast
-            self.pickle_current_states_to_best()
+        # plan_period = db_services.PlanPeriod.get(self.plan_period_id)
+        # optimizer_time_of_day_cast = optimizers.TimeOfDayCastOptimizer(plan_period,
+        #                                                                self.nr_random_appointment_switches)
+        # optimizer_time_of_day_cast.optimize(self.plan_period_cast)
 
-        self.print_event_group_cast_levels()
+        event_group_cast_optimizer = EventGroupCastOptimizer(
+            self.plan_period_cast,
+            self.initial_main_event_group_casts,
+            1,
+            self.nr_random_appointment_switches
+        )
+        fitness, plan_period_cast = event_group_cast_optimizer.optimize()
+        print(f'{fitness=}')
+        print(f'{plan_period_cast=}')
+        print('\n----------------\n'.join(
+            sorted(str(tod_cast) for tod_cast in self.plan_period_cast.time_of_day_casts.values())))
 
     def generate_event_group_casts(self):
-        self.initial_main_event_group_casts = [EventGroupCast(evg, None, 0, True) for evg in self.main_event_groups]
+        self.initial_main_event_group_casts = [EventGroupCast(evg, None, True) for evg in self.main_event_groups]
         for egc in self.initial_main_event_group_casts:
             egc.initialize_first_cast()
 
@@ -50,12 +58,6 @@ class Optimizer:
         group_state: list[BaseEventGroupCast] = pickle.loads(self.best_group_cast_state)
         plan_period_state: BasePlanPeriodCast = pickle.loads(self.best_plan_period_cast_state)
         return group_state, plan_period_state
-
-    def print_event_group_cast_levels(self):
-        print('#####################################################################################')
-        print([f'{level}: {[f"(childs: {len(egc.child_groups) + len(egc.active_groups)}, nr_event_groups: {egc.event_group.nr_event_groups})" for egc in egcs]}'
-               for level, egcs in event_group_cast_levels.items()])
-        print('#####################################################################################')
 
 
 if __name__ == '__main__':

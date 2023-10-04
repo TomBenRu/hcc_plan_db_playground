@@ -15,9 +15,9 @@ event_group_cast_levels: collections.defaultdict[int, list['EventGroupCast']] = 
 
 
 class EventGroupCast(BaseEventGroupCast):
-    def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['EventGroupCast'], level: int,
+    def __init__(self, event_group: schemas.EventGroupShow, parent_group: Optional['EventGroupCast'],
                  active: bool = False):
-        super().__init__(event_group, parent_group, level, active)
+        super().__init__(event_group, parent_group, active)
 
         self.fill_child_groups()
         self.put_to_group_levels()
@@ -25,7 +25,7 @@ class EventGroupCast(BaseEventGroupCast):
     def fill_child_groups(self):
         for event_group in self.event_group.event_groups:
             event_group = db_services.EventGroup.get(event_group.id)
-            new_event_group_cast = EventGroupCast(event_group, self, self.level + 1)
+            new_event_group_cast = EventGroupCast(event_group, self)
             self.child_groups.add(new_event_group_cast)
             if event := new_event_group_cast.event_of_event_group:
                 handler_event_for_plan_period_cast.send_new_event(EventSignalData(event, False))
@@ -57,46 +57,60 @@ class EventGroupCast(BaseEventGroupCast):
         self.controller.undo_all()
 
     def set_inaktive(self):
+        if not self.active:
+            return
+
         self.active = False
         if self.event_of_event_group:
             handler_switch_appointment_for_time_of_day_cast.switch_appointment(
                 EventSignalData(self.event_of_event_group, False))
         else:
             for evg in self.active_groups:
-                self.active_groups.remove(evg)
-                self.child_groups.add(evg)
                 evg.set_inaktive()
+            self.child_groups |= self.active_groups
+            self.active_groups.clear()
 
     def set_active(self):
+        if self.active:
+            return
         self.active = True
         if self.event_of_event_group:
             handler_switch_appointment_for_time_of_day_cast.switch_appointment(
                 EventSignalData(self.event_of_event_group, True))
         else:
-            for evg in self.child_groups:
-                self.child_groups.remove(evg)
-                self.active_groups.add(evg)
-                evg.set_active()
+            for _ in range(self.event_group.nr_event_groups or len(self.event_group.event_groups)):
+                child: 'EventGroupCast' = random.choice(list(self.child_groups))
+                self.child_groups.remove(child)
+                self.active_groups.add(child)
+                child.set_active()
 
     def put_to_group_levels(self, level: int | None = None):
-        if self.group_cast_level_done:  # Wenn die event_grou_cast schon den event_group_cast_levels zugeführt wurde
-            return
-        if level:  # Aufruf kommt von child
-            group_level = level
-        # unterste Ebene mit nur event_groups die events enthalten...
-        elif self.event_group.event_groups and all(evg.event for evg in self.event_group.event_groups):
-            group_level = 0
-        else:
-            return
-        # Wenn der Aufruf von einem child kommt und die aktuelle Gruppe nicht alle childs zulässt, ...
-        if self.event_group.nr_event_groups and self.event_group.nr_event_groups < len(self.event_group.event_groups):
-            # ...wird die event_group_cast den event_group_cast_levels zugeführt ...
-            event_group_cast_levels[group_level].append(self)
-            self.group_cast_level_done = True
-            # ... und das level um 1 erhöht, um damit die parent-group aufzurufen.
-            group_level += 1
+
+        if level is not None:  # Aufruf kommt von child
+            if self.level is not None:
+                if level > self.level:
+                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
+                    event_group_cast_levels[self.level].remove(self)
+                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
+                    level = self.level = max(level, self.level)
+                    event_group_cast_levels[self.level].append(self)
+                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
+                    level += 1
+
+            # Wenn die aktuelle Gruppe nicht alle childs zulässt, ...
+            elif self.event_group.nr_event_groups and self.event_group.nr_event_groups < len(
+                    self.event_group.event_groups):
+                # ...wird die event_group_cast den event_group_cast_levels zugefügt ...
+                event_group_cast_levels[level].append(self)
+                self.group_cast_level_done = True
+                self.level = level
+                # ... und das level um 1 erhöht, um damit die parent-group aufzurufen.
+                level += 1
+        elif self.event_group.event:
+            level = 0
+
         if self.parent_group:
-            self.parent_group.put_to_group_levels(group_level)
+            self.parent_group.put_to_group_levels(level)
 
 
 class AppointmentCast(BaseAppointmentCast):
@@ -182,6 +196,36 @@ class PlanPeriodCast(BasePlanPeriodCast):
     def __init__(self, plan_period_id: UUID):
         super().__init__(plan_period_id)
 
+        handler_event_for_plan_period_cast.signal_new_event.connect(lambda e: self.generate_time_of_day_casts(e))
+        handler_switch_appointment_for_time_of_day_cast.signal_switch_appointment.connect(
+            lambda e: self.switch_appointment(e))
+
+    def switch_appointment(self, event_signal_data: EventSignalData):
+        key = (event_signal_data.event.date, event_signal_data.event.time_of_day.time_of_day_enum.time_index)
+        if event_signal_data.move_to_active:
+            appointment_to_move = next(
+                (a for a in self.time_of_day_casts[key].appointments_pool
+                 if a.event == event_signal_data.event), None)
+            if not appointment_to_move:
+                breakpoint()
+            self.time_of_day_casts[key].appointments_pool.remove(appointment_to_move)
+            self.time_of_day_casts[key].add_appointment_to_activ(appointment_to_move)
+            for _ in range(appointment_to_move.event.cast_group.nr_actors):
+                try:
+                    avd_idx = random.choice(range(len(self.time_of_day_casts[key].avail_days)))
+                except:
+                    breakpoint()
+                avd = self.time_of_day_casts[key].avail_days.pop(avd_idx)
+                appointment_to_move.add_avail_day(avd)
+        else:
+            appointment_to_move = next(
+                (a for a in self.time_of_day_casts[key].appointments_active
+                 if a.event == event_signal_data.event))
+            self.time_of_day_casts[key].appointments_active.remove(appointment_to_move)
+            self.time_of_day_casts[key].add_appointment_to_pool(appointment_to_move)
+            self.time_of_day_casts[key].avail_days.extend(appointment_to_move.avail_days)
+            appointment_to_move.avail_days.clear()
+
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):
         key = (event_signal_data.event.date, event_signal_data.event.time_of_day.time_of_day_enum.time_index)
         if not event_signal_data.move_to_active:
@@ -209,7 +253,13 @@ class PlanPeriodCast(BasePlanPeriodCast):
                  if a.event == event_signal_data.event))
             self.time_of_day_casts[key].appointments_pool.remove(appointment_to_move)
             self.time_of_day_casts[key].add_appointment_to_activ(appointment_to_move)
-            self.time_of_day_casts[key].avail_days += [None] * appointment_to_move.event.cast_group.nr_actors
+
+    def add_nones_to_time_of_day_casts(self):
+        for time_of_day in self.time_of_day_casts.values():
+            possible_nr_of_appointments = len(time_of_day.appointments_active) + len(time_of_day.appointments_pool)
+            max_nr_actors = max(a.event.cast_group.nr_actors
+                                for a in (time_of_day.appointments_pool + time_of_day.appointments_active))
+            time_of_day.avail_days += [None] * possible_nr_of_appointments * max_nr_actors
 
     def pick_random_time_of_day_cast(self) -> TimeOfDayCast:
         return random.choice(list(self.time_of_day_casts.values()))

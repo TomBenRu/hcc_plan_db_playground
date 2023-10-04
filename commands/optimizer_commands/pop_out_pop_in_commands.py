@@ -63,14 +63,14 @@ class SwitchEventGroupCast(Command):
         self.event_group_cast.active_groups.remove(self.active_group_to_pop)
         self.event_group_cast.active_groups.add(self.child_group_to_pop)
         self.event_group_cast.child_groups.add(self.active_group_to_pop)
-        self.child_group_to_pop.set_active()
         self.active_group_to_pop.set_inaktive()
+        self.child_group_to_pop.set_active()
 
     def undo(self):
         self.event_group_cast.active_groups.remove(self.child_group_to_pop)
         self.event_group_cast.child_groups.remove(self.active_group_to_pop)
         self.event_group_cast.active_groups.add(self.active_group_to_pop)
-        self.event_group_cast.child_groups.add(self.active_group_to_pop)
+        self.event_group_cast.child_groups.add(self.child_group_to_pop)
         self.child_group_to_pop.set_inaktive()
         self.active_group_to_pop.set_active()
 
@@ -79,5 +79,5 @@ class SwitchEventGroupCast(Command):
         self.event_group_cast.active_groups.remove(self.active_group_to_pop)
         self.event_group_cast.active_groups.add(self.child_group_to_pop)
         self.event_group_cast.child_groups.add(self.active_group_to_pop)
-        self.child_group_to_pop.set_active()
         self.active_group_to_pop.set_inaktive()
+        self.child_group_to_pop.set_active()

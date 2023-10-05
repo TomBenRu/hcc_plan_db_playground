@@ -115,13 +115,13 @@ class EventGroupCastOptimizer:
     def optimize(self) -> tuple[float, PlanPeriodCast]:
         print({level: [id(egc) for egc in egcs] for level, egcs in event_group_cast_levels.items()})
         for level in self.event_group_cast_level_to_optimize():
-            print('0:', [id(egc) for egc in event_group_cast_levels[0] if egc.active])
-            print('1:', [id(egc) for egc in event_group_cast_levels[1] if egc.active])
-            print('2:', [id(egc) for egc in event_group_cast_levels[2] if egc.active])
+            print('        0:', [id(egc) for egc in event_group_cast_levels[0] if egc.active])
+            print('        1:', [id(egc) for egc in event_group_cast_levels[1] if egc.active])
+            print('        2:', [id(egc) for egc in event_group_cast_levels[2] if egc.active])
             print(f'{level=}', end=', ')
             fitness = self.optimize_level(level)
             print(f'{fitness=}')
-            if fitness < self.best_plan_period_cast_fitness:
+            if fitness < self.best_plan_period_cast_fitness:  # fixme: ...
                 print('better fitness')
                 self.best_plan_period_cast_fitness = fitness
                 self.best_group_cast_state = pickle.dumps(self.event_group_casts)
@@ -157,6 +157,17 @@ class EventGroupCastOptimizer:
                     break
                 else:
                     best_fitness = curr_fitness
+                print(f'{best_fitness=}')
+                print([[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]]
+                        for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values()
+                       if list(todc.appointments_active)])
+
+        print('.......................................................................................')
+        print(f'{best_fitness=}')
+        print([[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]]
+                for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values()
+               if list(todc.appointments_active)])
+        print('.......................................................................................')
 
         return best_fitness
 
@@ -175,14 +186,12 @@ class EventGroupCastOptimizer:
             self.curr_group_for_switching: EventGroupCast = random.choice(
                 [egc for egc in event_group_cast_levels[level] if egc.active])
         except IndexError:
-            # Kann vorkommen, wenn einzelne Termine mit Cast-Groups in einer zu einer Parent-Cast-Group gehören
+            # Kann vorkommen, wenn einzelne Termine mit Cast-Groups zu einer Parent-Cast-Group gehören
             return
         self.curr_group_for_switching.switch_event_group_casts(self.nr_event_group_casts_to_switch)
 
     def undo_switch_event_group_casts(self):
         self.curr_group_for_switching.undo_switch_event_group_casts()
-
-
 
     def print_event_group_cast_levels(self):
         print('#####################################################################################')

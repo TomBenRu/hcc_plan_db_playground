@@ -47,6 +47,7 @@ class Optimizer:
 
     def generate_event_group_casts(self):
         self.initial_main_event_group_casts = [EventGroupCast(evg, None, True) for evg in self.main_event_groups]
+
         for egc in self.initial_main_event_group_casts:
             egc.initialize_first_cast()
 

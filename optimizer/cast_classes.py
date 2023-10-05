@@ -89,12 +89,9 @@ class EventGroupCast(BaseEventGroupCast):
         if level is not None:  # Aufruf kommt von child
             if self.level is not None:
                 if level > self.level:
-                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
                     event_group_cast_levels[self.level].remove(self)
-                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
                     level = self.level = max(level, self.level)
                     event_group_cast_levels[self.level].append(self)
-                    input(f'{self.level=}, {[id(egc) for egc in event_group_cast_levels[self.level]]}')
                     level += 1
 
             # Wenn die aktuelle Gruppe nicht alle childs zulässt, ...

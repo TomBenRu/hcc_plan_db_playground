@@ -24,9 +24,9 @@ class Optimizer:
     def optimize_plan_period_cast(self):
         self.generate_event_group_casts()
         self.plan_period_cast.add_nones_to_time_of_day_casts()
+        self.plan_period_cast.calculate_initial_casts()
         print(f'{self.plan_period_cast=}')
         print('\n----------------\n'.join(sorted(str(tod_cast) for tod_cast in self.plan_period_cast.time_of_day_casts.values())))
-        self.plan_period_cast.calculate_initial_casts()
 
         # plan_period = db_services.PlanPeriod.get(self.plan_period_id)
         # optimizer_time_of_day_cast = optimizers.TimeOfDayCastOptimizer(plan_period,
@@ -43,7 +43,7 @@ class Optimizer:
         print(f'{fitness=}')
         print(f'{plan_period_cast=}')
         print('\n----------------\n'.join(
-            sorted(str(tod_cast) for tod_cast in self.plan_period_cast.time_of_day_casts.values())))
+            sorted(str(tod_cast) for tod_cast in plan_period_cast.time_of_day_casts.values())))
 
     def generate_event_group_casts(self):
         self.initial_main_event_group_casts = [EventGroupCast(evg, None, True) for evg in self.main_event_groups]

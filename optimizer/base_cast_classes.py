@@ -83,6 +83,7 @@ class BaseTimeOfDayCast:
         self.appointments_active: list[BaseAppointmentCast] = []
         self.appointments_pool: list[BaseAppointmentCast] = []
         self.avail_days = avail_days
+        self.curr_switched_out_avail_days: dict[UUID, list[schemas.AvailDayShow]] = {}
 
     @abstractmethod
     def add_appointment_to_pool(self, appointment: BaseAppointmentCast):

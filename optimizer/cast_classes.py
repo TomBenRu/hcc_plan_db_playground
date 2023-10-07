@@ -203,17 +203,18 @@ class PlanPeriodCast(BasePlanPeriodCast):
             appointment_to_move = next(
                 (a for a in self.time_of_day_casts[key].appointments_pool
                  if a.event == event_signal_data.event), None)
-            if not appointment_to_move:
-                breakpoint()
             self.time_of_day_casts[key].appointments_pool.remove(appointment_to_move)
             self.time_of_day_casts[key].add_appointment_to_activ(appointment_to_move)
-            for _ in range(appointment_to_move.event.cast_group.nr_actors):
-                try:
+            if self.time_of_day_casts[key].curr_switched_out_avail_days.get(appointment_to_move.event.id):
+                for avd in self.time_of_day_casts[key].curr_switched_out_avail_days[appointment_to_move.event.id]:
+                    self.time_of_day_casts[key].avail_days.remove(avd)
+                    appointment_to_move.add_avail_day(avd)
+                del self.time_of_day_casts[key].curr_switched_out_avail_days[appointment_to_move.event.id]
+            else:
+                for _ in range(appointment_to_move.event.cast_group.nr_actors):
                     avd_idx = random.choice(range(len(self.time_of_day_casts[key].avail_days)))
-                except:
-                    breakpoint()
-                avd = self.time_of_day_casts[key].avail_days.pop(avd_idx)
-                appointment_to_move.add_avail_day(avd)
+                    avd = self.time_of_day_casts[key].avail_days.pop(avd_idx)
+                    appointment_to_move.add_avail_day(avd)
         else:
             appointment_to_move = next(
                 (a for a in self.time_of_day_casts[key].appointments_active
@@ -221,6 +222,7 @@ class PlanPeriodCast(BasePlanPeriodCast):
             self.time_of_day_casts[key].appointments_active.remove(appointment_to_move)
             self.time_of_day_casts[key].add_appointment_to_pool(appointment_to_move)
             self.time_of_day_casts[key].avail_days.extend(appointment_to_move.avail_days)
+            self.time_of_day_casts[key].curr_switched_out_avail_days[appointment_to_move.event.id] = appointment_to_move.avail_days[:]
             appointment_to_move.avail_days.clear()
 
     def generate_time_of_day_casts(self, event_signal_data: EventSignalData):

@@ -111,11 +111,18 @@ class EventGroupCastOptimizer:
         self.best_plan_period_cast_state: bytes | None = None
 
         self.curr_group_for_switching: EventGroupCast | None = None
+        self.plan_period_cast_before_switch = None
+        self.group_cast_state_before_switch = None
 
     def optimize(self) -> tuple[float, PlanPeriodCast]:
-        for level in self.event_group_cast_level_to_optimize():
+
+        # def optimize_recursive(level: int) ->  float:
+        for level in self.event_group_cast_level_to_optimize(self.highest_level):
             print(f'{level=}')
-            fitness = self.optimize_level(level)
+            if level == 0:
+                fitness = self.optimize_level(level)
+
+
             if fitness < self.best_plan_period_cast_fitness:  # fixme: ...
                 print('better fitness')
                 self.best_plan_period_cast_fitness = fitness
@@ -188,14 +195,14 @@ class EventGroupCastOptimizer:
 
         return best_fitness
 
-    def event_group_cast_level_to_optimize(self) -> Generator[int, None, None]:
+    def event_group_cast_level_to_optimize(self, base_level: int) -> Generator[int, None, None]:
 
         def recursive_level(level):
             yield level
             for sub_level in range(level):
                 yield from recursive_level(sub_level)
 
-        for level in range(self.highest_level + 1):
+        for level in range(base_level + 1):
             yield from recursive_level(level)
 
     def switch_event_group_casts(self, level: int) -> bool:
@@ -206,12 +213,16 @@ class EventGroupCastOptimizer:
             # Kann vorkommen, wenn einzelne Termine mit Cast-Groups zu einer Parent-Cast-Group gehören
             self.curr_group_for_switching = None
             return False
+        self.group_cast_state_before_switch = pickle.dumps(self.event_group_casts)
+        self.plan_period_cast_before_switch = pickle.dumps(self.plan_period_cast)
         self.curr_group_for_switching.switch_event_group_casts(self.nr_event_group_casts_to_switch)
         return True
 
     def undo_switch_event_group_casts(self):
         if self.curr_group_for_switching:
-            self.curr_group_for_switching.undo_switch_event_group_casts()
+            # self.curr_group_for_switching.undo_switch_event_group_casts()
+            self.event_group_casts = pickle.loads(self.group_cast_state_before_switch)
+            self.plan_period_cast = pickle.loads(self.plan_period_cast_before_switch)
 
     def print_event_group_cast_levels(self):
         print('#####################################################################################')

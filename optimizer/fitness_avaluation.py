@@ -10,6 +10,7 @@ from line_profiler_pycharm import profile
 
 from database import schemas, db_services
 from optimizer import score_factor_tables, score_factors
+from optimizer.base_cast_classes import BaseAppointmentCast
 from optimizer.cast_classes import PlanPeriodCast, AppointmentCast
 
 
@@ -20,7 +21,7 @@ def score_factor_translation(score: float, score_factor_table: dict[int, int]) -
     return np.interp(score, original_scores, translate_scores)
 
 
-def appointments_from__plan_period_cast(plan_period_cast: PlanPeriodCast) -> list[AppointmentCast]:
+def appointments_from__plan_period_cast(plan_period_cast: PlanPeriodCast) -> list[BaseAppointmentCast]:
     return [appointment
             for time_of_day_cast in plan_period_cast.time_of_day_casts.values()
             for appointment in time_of_day_cast.appointments_active]

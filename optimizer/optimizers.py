@@ -93,16 +93,16 @@ class TimeOfDayCastOptimizer:
 
 class EventGroupCastOptimizer:
     def __init__(self, plan_period_cast: PlanPeriodCast, initial_event_group_casts: list[EventGroupCast],
-                 nr_event_group_casts_to_switch: int, nr_random_appointments: int):
+                 nr_event_group_casts_to_switch: int, nr_random_appointments: int, highest_level: int = None):
         self.event_group_casts = initial_event_group_casts
         self.plan_period = db_services.PlanPeriod.get(plan_period_cast.plan_period_id)
         self.plan_period_cast = plan_period_cast
         self.nr_event_group_casts_to_switch = nr_event_group_casts_to_switch
         self.nr_random_appointments = nr_random_appointments
         self.event_group_cast_levels = event_group_cast_levels
-        self.highest_level = max(self.event_group_cast_levels)
+        self.highest_level = max(self.event_group_cast_levels) if highest_level is None else highest_level
 
-        self.nr_iterations_for_best_check = {0: 32, 1: 16, 2: 8, 3: 4, 4: 2, 5: 2, 6: 1}
+        self.nr_iterations_for_best_check = {0: 16, 1: 8, 2: 4, 3: 4, 4: 2, 5: 2, 6: 1}
 
         self.time_of_day_cast_optimizer = TimeOfDayCastOptimizer(self.plan_period, nr_random_appointments)
 
@@ -114,26 +114,43 @@ class EventGroupCastOptimizer:
         self.plan_period_cast_before_switch = None
         self.group_cast_state_before_switch = None
 
-    def optimize(self) -> tuple[float, PlanPeriodCast]:
+    def optimize(self, level: int | None = None) -> tuple[float, PlanPeriodCast]:
 
-        # def optimize_recursive(level: int) ->  float:
-        for level in self.event_group_cast_level_to_optimize(self.highest_level):
-            print(f'{level=}')
-            if level == 0:
-                fitness = self.optimize_level(level)
+        # def optimize_recursive(level: int) -> float:
+        #     if level == 0:
+        #         return self.optimize_level(level)
+        #     for level in self.event_group_cast_level_to_optimize(level):
+        #         print(f'{level=}')
+        #         return optimize_recursive(level)
 
-
+        for level in self.event_group_cast_level_to_optimize(self.highest_level if level is None else level):
+            print(f'optimize({level=})')
+            fitness = self.optimize_level(level)
             if fitness < self.best_plan_period_cast_fitness:  # fixme: ...
+                print(f'optimize({level=})')
                 print('better fitness')
+                print(f'try: {fitness=}')
+                print(f'try: {[[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]] for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values() if list(todc.appointments_active)]}')
                 self.best_plan_period_cast_fitness = fitness
                 self.best_group_cast_state = pickle.dumps(self.event_group_casts)
                 self.best_plan_period_cast_state = pickle.dumps(self.plan_period_cast)
             elif fitness > self.best_plan_period_cast_fitness:
+                print(f'optimize({level=})')
                 print('worse')
+                print(f'try: {fitness=}')
+                print(
+                    f'try: {[[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]] for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values() if list(todc.appointments_active)]}')
+
                 self.event_group_casts = pickle.loads(self.best_group_cast_state)
                 self.plan_period_cast = pickle.loads(self.best_plan_period_cast_state)
             else:
+                print(f'optimize({level=})')
                 print('equal')
+                print(f'try: {fitness=}')
+                print(
+                    f'try: {[[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]] for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values() if list(todc.appointments_active)]}')
+            if level > 0:
+                input(f'stop: {level=}')
 
         print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         print(f'{self.best_plan_period_cast_fitness=}')
@@ -153,20 +170,31 @@ class EventGroupCastOptimizer:
         while True:
             nr_iterations += 1
 
-            if not self.switch_event_group_casts(level):
+            switch_success = self.switch_event_group_casts(level)
+            if not switch_success:
                 if nr_iterations > self.nr_iterations_for_best_check[level]:
                     break
                 continue
 
-            fitness_new, new_errors = self.time_of_day_cast_optimizer.optimize(self.plan_period_cast)
+            print(f'..................... switch: {level=} ......................................')
+
+            if level > 0:
+                new_event_group_cast_optimizer = EventGroupCastOptimizer(
+                    self.plan_period_cast, self.event_group_casts,
+                    self.nr_event_group_casts_to_switch, self.nr_random_appointments, level - 1)
+                fitness_new, _ = new_event_group_cast_optimizer.optimize(level - 1)
+                new_errors = {'from': 'sublevel'}
+            else:
+                fitness_new, new_errors = self.time_of_day_cast_optimizer.optimize(self.plan_period_cast)
 
             if fitness_new > curr_fitness:
-                input(f'before undo'
+                print(f'before undo'
                       f'{[[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]] for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values() if list(todc.appointments_active)]}')
                 self.undo_switch_event_group_casts()
-                input(f' after undo'
+                print(f' after undo'
                       f'{[[[a.event.date, [avd.actor_plan_period.person.f_name if avd else None for avd in a.avail_days]] for a in todc.appointments_active] for todc in self.plan_period_cast.time_of_day_casts.values() if list(todc.appointments_active)]}')
             else:
+                print('no undo')
                 curr_fitness = fitness_new
                 curr_errors = new_errors
 

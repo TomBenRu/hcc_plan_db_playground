@@ -1,5 +1,4 @@
 from collections import defaultdict
-import dataclasses
 import datetime
 from typing import Optional
 from uuid import UUID
@@ -54,7 +53,7 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
 
     def __init__(self, shifts: dict[tuple[int, int], IntVar], unassigned_shifts_per_event: list[IntVar],
                  avail_days: list[schemas.AvailDayShow], events: list[schemas.EventShow],
-                 sum_assigned_shifts: list[IntVar], sum_squared_deviations: IntVar, limit: int):
+                 sum_assigned_shifts: dict[UUID, IntVar], sum_squared_deviations: IntVar, limit: int):
         cp_model.CpSolverSolutionCallback.__init__(self)
         self._shifts = shifts
         self._unassigned_shifts_per_event = unassigned_shifts_per_event
@@ -78,11 +77,11 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
                     is_working = True
                     print(f"  Employee {avd.actor_plan_period.person.f_name} "
                           f"works in {event.location_plan_period.location_of_work.name:}")
-                if not is_working:
+                if not is_working and avd.date == event.date:
                     print(f"  Employee {avd.actor_plan_period.person.f_name} does not work")
         print('unassigned_shifts_per_event:',
               [self.Value(unassigned_shifts) for unassigned_shifts in self._unassigned_shifts_per_event])
-        print(f'sum_assigned_shifts_of_employees: {[self.Value(s) for s in self._sum_assigned_shifts]}')
+        print(f'sum_assigned_shifts_of_employees: {[self.Value(s) for s in self._sum_assigned_shifts.values()]}')
         print(f'sum_squared_deviations: {self.Value(self._sum_squared_deviations)}')
         if self._solution_count >= self._solution_limit:
             print(f"Stop search after {self._solution_limit} solutions")
@@ -173,7 +172,7 @@ def create_constraints(
 
     # Create a list to represent the number of unassigned shifts for each event.
     unassigned_shifts_per_event = [
-        model.NewIntVar(0, sum(e.nr_employees for e in events), f'unassigned_shifts_event_{e}')
+        model.NewIntVar(0, sum(e.cast_group.nr_actors for e in events), f'unassigned_shifts_event_{e}')
         for e in range(len(events))]
 
     # Add a constraint for each event that the number of assigned employees is at most the number of needed employees,
@@ -215,12 +214,12 @@ def create_constraints(
                                                        'average_relative_shift_deviation')
     sum_relative_shift_deviations = model.NewIntVar(-len(events)*100_000_000, len(events)*100_000_000,
                                                     'sum_relative_shift_deviations')
-    model.AddAbsEquality(sum_relative_shift_deviations, sum(relative_shift_deviations))
+    model.AddAbsEquality(sum_relative_shift_deviations, sum(relative_shift_deviations.values()))
     model.AddDivisionEquality(average_relative_shift_deviation, sum_relative_shift_deviations, len(actor_plan_periods))
 
     # Create a list to represent the squared deviations from the average for each actor_plan_period.
     squared_deviations = {
-        app.id: model.NewIntVar(0, (len(events) * 100_000_000) ** 2, f'squared_deviation_{app.person.f_name}')
+        app.id: model.NewIntVar(0, (len(events) * 10_000_000) ** 2, f'squared_deviation_{app.person.f_name}')
         for app in actor_plan_periods
     }
 
@@ -228,7 +227,7 @@ def create_constraints(
     # that the squared deviation is equal to (relative shift deviation - average)^2.
     dif_average__relative_shift_deviations = {}
     for app in actor_plan_periods:
-        dif_average__relative_shift_deviations[app.id] == model.NewIntVar(
+        dif_average__relative_shift_deviations[app.id] = model.NewIntVar(
             -100_000_000, 100_000_000, f'dif_average__relative_shift_deviation {app.id}')
         model.AddAbsEquality(dif_average__relative_shift_deviations[app.id],
                              relative_shift_deviations[app.id] - average_relative_shift_deviation)
@@ -239,7 +238,7 @@ def create_constraints(
 
     # Add a constraint that the sum_squared_deviations is equal to the sum(squared_deviations).
     sum_squared_deviations = model.NewIntVar(0, 10**16, 'sum_squared_deviations')
-    model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations))
+    model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations.values()))
 
     return unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations
 
@@ -306,8 +305,9 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: EmployeePartia
     if solution_printer:
         print(f"  - solutions found: {solution_printer.solution_count()}")
     print(f'{sum(solver.Value(u) for u in unassigned_shifts_per_event)=}')
+    print(f'{[solver.Value(u) for u in unassigned_shifts_per_event]}')
     print(f'{solver.Value(sum_squared_deviations)=}')
-    print(f'{sum(solver.Value(a) for a in sum_assigned_shifts)=}')
+    print(f'{sum(solver.Value(a) for a in sum_assigned_shifts.values())=}')
 
 
 def print_solver_status(status: CpSolverStatus):
@@ -330,7 +330,7 @@ def call_solver_with_unadjusted_requested_assignments() -> int:
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
     print_solver_status(solver_status)
-    return sum(solver.Value(a) for a in sum_assigned_shifts)
+    return sum(solver.Value(a) for a in sum_assigned_shifts.values())
 
 
 def call_solver_with_adjusted_requested_assignments(

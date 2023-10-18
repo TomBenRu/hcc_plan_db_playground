@@ -3,6 +3,7 @@ import datetime
 from typing import Optional
 from uuid import UUID
 
+from anytree import NodeMixin
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
@@ -115,6 +116,7 @@ class EventGroupCast:
         self.event_of_event_group = db_services.Event.get(event_group.event.id) if event_group.event else None
         self.parent_group: 'EventGroupCast' = parent_group
         self.child_groups: list['EventGroupCast'] = []
+        self.nr_child_groups_to_activate: int | None = event_group.nr_event_groups
 
         self.find_event()
         self.fill_child_groups()
@@ -136,6 +138,7 @@ class AvailDayGroupCast:
         self.avail_day_of_avail_day_group: schemas.AvailDayShow | None = None
         self.parent_group = parent_group
         self.child_groups: list['AvailDayGroupCast'] = []
+        self.nr_child_groups_to_activate: int | None = avail_day_group.nr_avail_day_groups
 
         self.find_avail_day()
         self.fill_child_groups()

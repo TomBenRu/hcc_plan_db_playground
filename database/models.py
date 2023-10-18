@@ -444,7 +444,7 @@ class EventGroup(db.Entity):
     event_group = Optional('EventGroup', reverse='event_groups')
     event_groups = Set('EventGroup', reverse='event_group')
     event = Optional(Event)
-    variation_weight = Required(int, size=8, default=1, unsigned=True)  # Falls weniger Eventgroups in einer Eventgroup als nr_events der Eventgroup können den Events unterschiedliche Gewichtungen verliehen werden.
+    variation_weight = Required(int, size=8, default=1, unsigned=True)  # Falls mehr Eventgroups in einer Eventgroup als nr_events der Eventgroup können den Eventgroups unterschiedliche Gewichtungen verliehen werden.
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Optional(datetime.datetime)
 

@@ -3,7 +3,6 @@ import datetime
 from typing import Optional
 from uuid import UUID
 
-from anytree import NodeMixin
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar

@@ -26,9 +26,12 @@ class EventGroup(NodeMixin):
     @property
     def event(self):
         if self._event is None:
-            self._event = (db_services.Event.get(self.event_group_db.event.id)
-                           if (self.event_group_db and self.event_group_db.event) else None)
+            self._event = self.get_event_from_db()
         return self._event
+
+    def get_event_from_db(self):
+        return (db_services.Event.get(self.event_group_db.event.id)
+                if (self.event_group_db and self.event_group_db.event) else None)
 
     def __repr__(self):
         event_date = self.event.date.strftime('%d.%m.%y') if self.event else None

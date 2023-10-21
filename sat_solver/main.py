@@ -8,6 +8,7 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
+from sat_solver.event_group_tree import get_event_group_tree
 
 
 def generate_adjusted_requested_assignments(events: list[schemas.EventShow],
@@ -264,7 +265,7 @@ def define_objective__fixed_unsigned_squared_deviation(
 
 def solve_model_with_solver_solution_callback(
         model: cp_model.CpModel, shifts: dict[tuple[int, int], IntVar], unassigned_shifts_per_event: list[IntVar],
-        sum_assigned_shifts: list[IntVar],
+        sum_assigned_shifts: dict[UUID, IntVar],
         sum_squared_deviations: IntVar) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
@@ -387,8 +388,10 @@ def main():
 
 if __name__ == '__main__':
     PLAN_PERIOD_ID = UUID('0BD5C3876C4E48D1B84D6F395CD74C65')
+    event_group_tree = get_event_group_tree(PLAN_PERIOD_ID)
     plan_period = db_services.PlanPeriod.get(PLAN_PERIOD_ID)
     actor_plan_periods = [db_services.ActorPlanPeriod.get(app.id) for app in plan_period.actor_plan_periods]
     avail_days = db_services.AvailDay.get_all_from__plan_period(PLAN_PERIOD_ID)
-    events = db_services.Event.get_all_from__plan_period(PLAN_PERIOD_ID)
+    # events = db_services.Event.get_all_from__plan_period(PLAN_PERIOD_ID)
+    events = [leave.event for leave in event_group_tree.root.leaves if leave.event]
     main()

@@ -14,7 +14,7 @@ class EventGroup(NodeMixin):
         self.event_group_id = event_group_db.id if event_group_db else 0
         self.name = str(self.event_group_id)
         self.event_group_db = event_group_db
-        self.event = self.get_event()
+        self._event = None
         self.parent: Optional['EventGroup'] = parent
         self.children: list['EventGroup'] = children if children is not None else []
         self.weight = event_group_db.variation_weight if event_group_db else None
@@ -23,9 +23,12 @@ class EventGroup(NodeMixin):
     def _post_detach(self, parent):
         self.weight = None
 
-    def get_event(self) -> schemas.EventShow | None:
-        return (db_services.Event.get(self.event_group_db.event.id)
-                if (self.event_group_db and self.event_group_db.event) else None)
+    @property
+    def event(self):
+        if self._event is None:
+            self._event = (db_services.Event.get(self.event_group_db.event.id)
+                           if (self.event_group_db and self.event_group_db.event) else None)
+        return self._event
 
     def __repr__(self):
         event_date = self.event.date.strftime('%d.%m.%y') if self.event else None

@@ -24,7 +24,7 @@ class EventGroup(NodeMixin):
         self.weight = None
 
     @property
-    def event(self):
+    def event(self) -> schemas.EventShow:
         if self._event is None:
             self._event = self.get_event_from_db()
         return self._event

@@ -319,7 +319,6 @@ def solve_model_with_solver_solution_callback(
                                                       sum_squared_deviations, 20)
 
     status = solver.Solve(model, solution_printer)
-    print_solver_status(status)
 
     return solver, solution_printer, status
 

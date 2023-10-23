@@ -76,9 +76,11 @@ class EventGroupTree:
 
 def get_event_group_tree(plan_period_id: UUID) -> EventGroupTree:
     location_plan_periods = db_services.PlanPeriod.get(plan_period_id).location_plan_periods
-    event_group_tree = EventGroupTree([lpp.id for lpp in location_plan_periods])
+    return EventGroupTree([lpp.id for lpp in location_plan_periods])
+
+
+def render_event_group_tree(event_group_tree: EventGroupTree):
     print(RenderTree(event_group_tree.root, ContRoundStyle))
-    return event_group_tree
 
 
 if __name__ == '__main__':

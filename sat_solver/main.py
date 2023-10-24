@@ -48,7 +48,8 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
     """Print intermediate solutions."""
 
     def __init__(self, unassigned_shifts_per_event: list[IntVar],
-                 sum_assigned_shifts: dict[UUID, IntVar], sum_squared_deviations: IntVar, limit: int):
+                 sum_assigned_shifts: dict[UUID, IntVar], sum_squared_deviations: IntVar, limit: int | None,
+                 print_results: bool):
         cp_model.CpSolverSolutionCallback.__init__(self)
         self._unassigned_shifts_per_event = unassigned_shifts_per_event
         self._solution_count = 0
@@ -56,11 +57,24 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
         self._sum_squared_deviations = sum_squared_deviations
         self._solution_limit = limit
         self._max_assigned_shifts: defaultdict[UUID, int] = defaultdict(int)
+        self._print_results = print_results
 
     def on_solution_callback(self):
         self._solution_count += 1
+        if self._print_results:
+            self.print_results()
+        for app_id, s in self._sum_assigned_shifts.items():
+            self._max_assigned_shifts[app_id] = max(self._max_assigned_shifts[app_id], self.Value(s))
+
+        if self._solution_limit and self._solution_count >= self._solution_limit:
+            print(f"Stop search after {self._solution_limit} solutions")
+            self.StopSearch()
+
+    def print_results(self):
         print(f"Solution {self._solution_count}")
         for event_group in entities.event_groups_with_event.values():
+            if not self.Value(entities.event_group_vars[event_group.event_group_id]):
+                continue
             print(f"Day {event_group.event.date: '%d.%m.%y'}")
             for actor_plan_period in entities.actor_plan_periods.values():
                 is_working = False
@@ -73,15 +87,10 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
                     print(f"  Employee {actor_plan_period.person.f_name} does not work")
         print('unassigned_shifts_per_event:',
               [self.Value(unassigned_shifts) for unassigned_shifts in self._unassigned_shifts_per_event])
-        for app_id, s in self._sum_assigned_shifts.items():
-            self._max_assigned_shifts[app_id] = max(self._max_assigned_shifts[app_id], self.Value(s))
         sum_assigned_shifts_per_employee = {entities.actor_plan_periods[app_id].person.f_name: self.Value(s)
                                             for app_id, s in self._sum_assigned_shifts.items()}
         print(f'sum_assigned_shifts_of_employees: {sum_assigned_shifts_per_employee}')
         print(f'sum_squared_deviations: {self.Value(self._sum_squared_deviations)}')
-        if self._solution_count >= self._solution_limit:
-            print(f"Stop search after {self._solution_limit} solutions")
-            self.StopSearch()
 
     def get_max_assigned_shifts(self):
         return self._max_assigned_shifts
@@ -138,7 +147,8 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree):
         if event_group.children or event_group.event
     }
 
-    entities.event_groups_with_event = {leave.event_group_id: leave for leave in event_group_tree.root.leaves if leave.event}
+    entities.event_groups_with_event = {leave.event_group_id: leave for leave in event_group_tree.root.leaves
+                                        if leave.event}
 
     entities.shift_vars = {}
     for avd_id in entities.avail_days:
@@ -307,16 +317,18 @@ def define_objective__fixed_unsigned_squared_deviation(
 def solve_model_with_solver_solution_callback(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar],
         sum_assigned_shifts: dict[UUID, IntVar],
-        sum_squared_deviations: IntVar) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
+        sum_squared_deviations: IntVar,
+        print_solution_printer_results: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
-    solver.parameters.log_search_progress = False
+    solver.parameters.log_search_progress = LOG_SEARCH_PROCESS
     solver.parameters.randomize_search = True
     solver.parameters.linearization_level = 0
     solver.parameters.enumerate_all_solutions = True
     solution_printer = EmployeePartialSolutionPrinter(unassigned_shifts_per_event,
                                                       sum_assigned_shifts,
-                                                      sum_squared_deviations, 20)
+                                                      sum_squared_deviations, None,
+                                                      print_solution_printer_results)
 
     status = solver.Solve(model, solution_printer)
 
@@ -326,7 +338,7 @@ def solve_model_with_solver_solution_callback(
 def solve_model_to_optimum(model: cp_model.CpModel) -> tuple[cp_model.CpSolver, CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
-    solver.parameters.log_search_progress = False
+    solver.parameters.log_search_progress = LOG_SEARCH_PROCESS
     solver.parameters.linearization_level = 0
     solver.parameters.enumerate_all_solutions = False
 
@@ -376,14 +388,15 @@ def call_solver_with_unadjusted_requested_assignments(
     return sum(solver.Value(a) for a in sum_assigned_shifts.values()), unassigned_shifts
 
 
-def call_solver_with_fixed_unassigned_shifts(event_group_tree: EventGroupTree, unassigned_shifts: int):
+def call_solver_with_fixed_unassigned_shifts(event_group_tree: EventGroupTree, unassigned_shifts: int,
+                                             print_solution_printer_results: bool):
     model = cp_model.CpModel()
     create_vars(model, event_group_tree)
     unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations = create_constraints(model)
     define_objective__fixed_unassigned(model, unassigned_shifts, unassigned_shifts_per_event)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
-        sum_squared_deviations)
+        sum_squared_deviations, print_solution_printer_results)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
 
@@ -413,7 +426,8 @@ def call_solver_with_adjusted_requested_assignments(
 
 
 def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
-        event_group_tree: EventGroupTree, unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int):
+        event_group_tree: EventGroupTree, unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
+        print_solution_printer_results: bool):
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree)
@@ -424,7 +438,7 @@ def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
     )
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
-        sum_squared_deviations)
+        sum_squared_deviations, print_solution_printer_results)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
@@ -438,15 +452,18 @@ def main(plan_period_id: UUID):
     event_group_tree = get_event_group_tree(plan_period_id)
 
     assigned_shifts, unassigned_shifts = call_solver_with_unadjusted_requested_assignments(event_group_tree)
-    max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree, unassigned_shifts)
+    max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(
+        event_group_tree, unassigned_shifts, False)
     (sum_squared_deviations_res,
      unassigned_shifts_per_event_res) = call_solver_with_adjusted_requested_assignments(
         event_group_tree, assigned_shifts, max_shifts_per_app)
     call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(event_group_tree,
                                                                       unassigned_shifts_per_event_res,
-                                                                      sum_squared_deviations_res)
+                                                                      sum_squared_deviations_res,
+                                                                      True)
 
 
 if __name__ == '__main__':
+    LOG_SEARCH_PROCESS = False
     PLAN_PERIOD_ID = UUID('0BD5C3876C4E48D1B84D6F395CD74C65')
     main(PLAN_PERIOD_ID)

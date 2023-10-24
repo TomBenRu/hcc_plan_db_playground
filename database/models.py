@@ -468,6 +468,10 @@ class EventGroup(db.Entity):
 #             Filterfunktionen des Dialogs sind:
 #             - Zeitraum (evtl. Planungsperiode), Location
 class CastGroup(db.Entity):
+    """child_groups können mehr als 1 parent_group haben. Ein Grund dafür könnte z.B. sein:
+    Die Besetzungen von 2 aufeinanderfolgenden Tage haben jeweils Regeln (1. Tag: gleiche Besetzung von Spät-
+    und Nachtschicht, 2. Tag: ungleiche Besetzung von Früh- und Nachmittagsschicht). Außerdem soll die Nachtschicht und
+    die Frühschicht ungleich besetzt sein."""
     id = PrimaryKey(UUID, auto=True)
     plan_period = Required(PlanPeriod)
     parent_groups = Set('CastGroup', reverse='child_groups')

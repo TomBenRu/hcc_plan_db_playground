@@ -75,7 +75,7 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
         for event_group in entities.event_groups_with_event.values():
             if not self.Value(entities.event_group_vars[event_group.event_group_id]):
                 continue
-            print(f"Day {event_group.event.date: '%d.%m.%y'}")
+            print(f"Day {event_group.event.date: '%d.%m.%y'} ({event_group.event.time_of_day.name})")
             for actor_plan_period in entities.actor_plan_periods.values():
                 is_working = False
                 if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
@@ -318,7 +318,8 @@ def solve_model_with_solver_solution_callback(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar],
         sum_assigned_shifts: dict[UUID, IntVar],
         sum_squared_deviations: IntVar,
-        print_solution_printer_results: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
+        print_solution_printer_results: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter,
+                                                       CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
     solver.parameters.log_search_progress = LOG_SEARCH_PROCESS

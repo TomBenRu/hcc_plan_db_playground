@@ -1,4 +1,4 @@
-pony~=0.7.16
+pony~=0.7.17
 pydantic[email]~=2.4
 py-events
 pyside6~=6.5

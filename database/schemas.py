@@ -260,7 +260,13 @@ class AvailDayGroup(AvailDayGroupCreate):
 
 
 class AvailDayGroupShow(AvailDayGroup):
+    avail_day_groups: List[AvailDayGroup]
+    avail_day: Optional['AvailDay']
     pass
+
+    @field_validator('avail_day_groups')
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [t for t in values]
 
 
 class AvailDayCreate(BaseModel):

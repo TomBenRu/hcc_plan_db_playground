@@ -111,7 +111,6 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
 @dataclasses.dataclass
 class Entities:
     actor_plan_periods: dict[UUID, schemas.ActorPlanPeriodShow] = dataclasses.field(default_factory=dict)
-    # avail_days: dict[UUID, schemas.AvailDayShow] = dataclasses.field(default_factory=dict)
     avail_day_groups: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
     avail_day_groups_with_avail_day: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
     avail_day_group_vars: dict[UUID, IntVar] = dataclasses.field(default_factory=dict)

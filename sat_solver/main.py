@@ -236,6 +236,24 @@ def add_constraints_shifts_in_avail_day_groups(model: cp_model.CpModel):
         model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
 
 
+def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
+    max_value_of_weight = 2
+    weight_vars = []
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
+        if children := avail_day_group.children:
+            children: tuple[AvailDayGroup]
+            mean_weights = sum(c.weight for c in children) / len(children)
+            for c in children:
+                adjusted_weight = c.weight / mean_weights if mean_weights else 1
+                shift_vars_curr = [var for (adg_id, _), var in entities.shift_vars.items()
+                                   if adg_id == c.avail_day_group_id]
+                for shift_var in shift_vars_curr:
+                    weight_vars.append(model.NewIntVar(0, 1000, ''))
+                    model.Add(weight_vars[-1] == shift_var * round((max_value_of_weight - adjusted_weight) * 100))
+
+    return weight_vars
+
+
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
     unassigned_shifts_per_event = {
         event_group_id: model.NewIntVar(
@@ -328,7 +346,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
     return sum_assigned_shifts, sum_squared_deviations
 
 
-def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar]:
+def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -344,10 +362,14 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     # Add constraints for unsigned shifts:
     unassigned_shifts_per_event = add_constraints_unsigned_shifts(model)
 
+    # Add constraints for weights in avail_day_groups:
+    constraints_weights_in_avail_day_groups = add_constraints_weights_in_avail_day_groups(model)
+
     # Add constraints for relative shift deviations:
     sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)
 
-    return unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations
+    return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
+            constraints_weights_in_avail_day_groups)
 
 
 def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_event: dict[UUID, IntVar],

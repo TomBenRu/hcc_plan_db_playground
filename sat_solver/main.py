@@ -232,12 +232,8 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
 
 
 def add_constraints_shifts_in_avail_day_groups(model: cp_model.CpModel):
-    rating_signed_shifts: list[IntVar] = []
     for (adg_id, event_group_id), shift_var in entities.shift_vars.items():
-        rating_var = model.NewBoolVar('')
-        model.AddMultiplicationEquality(rating_var, [shift_var, 1 - entities.avail_day_group_vars[adg_id]])
-        rating_signed_shifts.append(rating_var)
-    model.Add(sum(rating_signed_shifts) == 0)
+        model.AddMultiplicationEquality(0, [shift_var, 1 - entities.avail_day_group_vars[adg_id]])
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
@@ -342,7 +338,7 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     # Add constraints for activity of avail_day groups:
     add_constraints_avail_day_groups_activity(model)
 
-    # Add constaints for shifts in inactive avail_day_groups:
+    # Add constraints for shifts in inactive avail_day_groups:
     add_constraints_shifts_in_avail_day_groups(model)
 
     # Add constraints for unsigned shifts:

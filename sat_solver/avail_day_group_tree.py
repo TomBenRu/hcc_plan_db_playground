@@ -27,10 +27,10 @@ class AvailDayGroup(NodeMixin):
     @property
     def avail_day(self) -> schemas.AvailDayShow:
         if self._avail_day is None:
-            self._avail_day = self.get_avail_day_from_db()
+            self._avail_day = self._get_avail_day_from_db()
         return self._avail_day
 
-    def get_avail_day_from_db(self):
+    def _get_avail_day_from_db(self):
         return (db_services.AvailDay.get(self.avail_day_group_db.avail_day.id)
                 if (self.avail_day_group_db and self.avail_day_group_db.avail_day) else None)
 

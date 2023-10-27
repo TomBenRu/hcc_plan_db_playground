@@ -233,7 +233,7 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
 
 def add_constraints_shifts_in_avail_day_groups(model: cp_model.CpModel):
     for (adg_id, event_group_id), shift_var in entities.shift_vars.items():
-        model.AddMultiplicationEquality(0, [shift_var, 1 - entities.avail_day_group_vars[adg_id]])
+        model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:

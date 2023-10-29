@@ -33,7 +33,8 @@ class CastGroup(NodeMixin):
                 if (self.cast_group_db and self.cast_group_db.event) else None)
 
     def __repr__(self):
-        return f'cast group with event {self.event.date: %d.%m.%y}' if self.event else 'cast group'
+        return (f'cast group with event {self.event.date: %d.%m.%y} ({self.event.time_of_day.name})'
+                if self.event else 'cast group')
 
 
 class CastGroupTree:

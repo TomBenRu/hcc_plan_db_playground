@@ -1,4 +1,5 @@
 # weights for sat-solver objective:
+from typing import Callable
 from uuid import UUID
 
 WEIGHT_UNASSIGNED_SHIFTS = 100_000
@@ -23,4 +24,4 @@ def any_cast(cast_1: set[UUID], cast_2: set[UUID]) -> bool:
     return True
 
 
-CAST_RULES = {'~': same_cast, '-': different_cast, '*': any_cast}
+CAST_RULES: dict[str, Callable[[set[UUID], set[UUID]], bool]] = {'~': same_cast, '-': different_cast, '*': any_cast}

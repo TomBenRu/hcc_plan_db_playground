@@ -9,6 +9,8 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
+from database.constants_and_rules import WEIGHT_UNASSIGNED_SHIFTS, WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS, \
+    WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS, WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
 
@@ -401,12 +403,12 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_weights_in_event_groups: list[IntVar]):
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
-    weight_unassigned_shifts = 100_000
-    weight_sum_squared_shift_deviations = 0.001 / len(entities.actor_plan_periods)
-    weight_constraints_weights_in_avail_day_groups = 1
-    weight_constraints_weights_in_event_groups = 1
-    model.Minimize(weight_unassigned_shifts*sum(unassigned_shifts_per_event.values())
-                   + weight_sum_squared_shift_deviations*sum_squared_deviations
+    weight_unassigned_shifts = WEIGHT_UNASSIGNED_SHIFTS
+    weight_sum_squared_shift_deviations = WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS / len(entities.actor_plan_periods)
+    weight_constraints_weights_in_avail_day_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS
+    weight_constraints_weights_in_event_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS
+    model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
+                   + weight_sum_squared_shift_deviations * sum_squared_deviations
                    + weight_constraints_weights_in_avail_day_groups * sum(constraints_weights_in_avail_day_groups)
                    + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups))
 

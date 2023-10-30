@@ -79,10 +79,12 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
 
     def print_results(self):
         print(f"Solution {self._solution_count}")
-        for event_group in entities.event_groups_with_event.values():
+        for event_group in sorted(list(entities.event_groups_with_event.values()),
+                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             if not self.Value(entities.event_group_vars[event_group.event_group_id]):
                 continue
-            print(f"Day {event_group.event.date: '%d.%m.%y'} ({event_group.event.time_of_day.name})")
+            print(f"Day {event_group.event.date: '%d.%m.%y'} ({event_group.event.time_of_day.name}) "
+                  f"in {event_group.event.location_plan_period.location_of_work.name}")
             for actor_plan_period in entities.actor_plan_periods.values():
                 is_working = False
                 if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
@@ -98,13 +100,14 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
                                             for app_id, s in self._sum_assigned_shifts.items()}
         print(f'sum_assigned_shifts_of_employees: {sum_assigned_shifts_per_employee}')
         print(f'sum_squared_deviations: {self.Value(self._sum_squared_deviations)}')
-        for app_id, app in entities.actor_plan_periods.items():
-            group_vars = {
-                entities.avail_day_groups_with_avail_day[adg_id].avail_day.date: self.Value(var)
-                for adg_id, var in entities.avail_day_group_vars.items()
-                if (adg_id in entities.avail_day_groups_with_avail_day
-                    and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id == app_id)}
-            print(f'active_avail_day_groups of {app.person.f_name}: {group_vars}')
+        print('-----------------------------------------------------------------------------------------------------')
+        # for app_id, app in entities.actor_plan_periods.items():
+        #     group_vars = {
+        #         entities.avail_day_groups_with_avail_day[adg_id].avail_day.date: self.Value(var)
+        #         for adg_id, var in entities.avail_day_group_vars.items()
+        #         if (adg_id in entities.avail_day_groups_with_avail_day
+        #             and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id == app_id)}
+        #     print(f'active_avail_day_groups of {app.person.f_name}: {group_vars}')
 
     def get_max_assigned_shifts(self):
         return self._max_assigned_shifts
@@ -173,6 +176,7 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
     }
 
     entities.cast_groups = {cast_group.cast_group_id: cast_group for cast_group in cast_group_tree.root.descendants}
+    entities.cast_groups |= {cast_group_tree.root.cast_group_id: cast_group_tree.root}
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
@@ -275,7 +279,10 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
-    # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children)
+    # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
+    #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
+    #       wird.
+    # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
     def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
         for app_id in entities.actor_plan_periods:
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
@@ -319,6 +326,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         parent = entities.cast_groups[cg_id]
         if not (rule := parent.cast_rule):
             continue
+
         for idx in range(len(cast_groups) - 1):
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group

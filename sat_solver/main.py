@@ -275,6 +275,37 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
+    def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
+        for app_id in entities.actor_plan_periods:
+            shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                          if eg_id in {event_group_1_id, event_group_2_id}
+                          and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+            (model.Add(sum(shift_vars.values()) <= 1).
+             OnlyEnforceIf(entities.event_group_vars[event_group_1_id]).
+             OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+
+    def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
+        event_group_1_id = cast_group_1.event.event_group.id
+        event_group_2_id = cast_group_2.event.event_group.id
+        applied_shifts_1: dict[UUID, IntVar] = {app_id: model.NewIntVar(0, 100, '')
+                                                for app_id in entities.actor_plan_periods}
+        applied_shifts_2: dict[UUID, IntVar] = {app_id: model.NewIntVar(0, 100, '')
+                                                for app_id in entities.actor_plan_periods}
+        for app_id in entities.actor_plan_periods:
+            shift_vars_1 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                            if eg_id == event_group_1_id
+                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+            shift_vars_2 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                            if eg_id == event_group_2_id
+                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+            model.Add(applied_shifts_1[app_id] == sum(shift_vars_1.values()))
+            model.Add(applied_shifts_2[app_id] == sum(shift_vars_2.values()))
+
+        for var_1, var_2 in zip(applied_shifts_1.values(), applied_shifts_2.values()):
+            (model.Add(var_1 == var_2)
+             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+
     cast_groups_level_1 = collections.defaultdict(list)
     for cast_group in entities.cast_groups_with_event.values():
         cast_groups_level_1[cast_group.parent.cast_group_id].append(cast_group)
@@ -282,21 +313,17 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
     for cast_groups in cast_groups_level_1.values():
         cast_groups.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
 
-    cast_rule_vars: list[IntVar] = []
     for cg_id, cast_groups in cast_groups_level_1.items():
+        cast_groups: list[CastGroup]
         parent = entities.cast_groups[cg_id]
-        if not (rule := parent.custom_rule):
+        if not (rule := parent.cast_rule):
             continue
         for idx in range(len(cast_groups) - 1):
-            cast_rule_vars.append(model.NewBoolVar(''))
-            rule_func = CAST_RULES[rule]
-            cast_1 = cast_groups[idx].
-            model.Add(cast_rule_vars[-1] == CAST_RULES[rule]())
+            event_group_1 = cast_groups[idx].event.event_group
+            event_group_2 = cast_groups[idx + 1].event.event_group
 
-
-
-
-    pprint.pprint(cast_groups_level_1)
+            # different_cast(event_group_1.id, event_group_2.id)
+            same_cast(cast_groups[idx], cast_groups[idx + 1])
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
@@ -545,7 +572,7 @@ def call_solver_with_fixed_unassigned_shifts(
     define_objective__fixed_unassigned(model, unassigned_shifts, unassigned_shifts_per_event)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
-        sum_squared_deviations, print_solution_printer_results, None)
+        sum_squared_deviations, print_solution_printer_results, 100)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
 
@@ -596,7 +623,7 @@ def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
         weights_shifts_in_avail_day_groups_res, weights_in_event_groups_res)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
-        sum_squared_deviations, print_solution_printer_results, None)
+        sum_squared_deviations, print_solution_printer_results, 100)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)

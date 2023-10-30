@@ -16,7 +16,7 @@ def same_cast(cast_1: set[UUID], cast_2: set[UUID]) -> bool:
 
 def different_cast(cast_1: set[UUID], cast_2: set[UUID]) -> bool:
     """Cast im direkt nachfolgenden Event der Gruppe (cast_2) muss (zu cast_1) unterschiedlich sein"""
-    return not cast_1 | cast_2
+    return not cast_1 & cast_2
 
 
 def any_cast(cast_1: set[UUID], cast_2: set[UUID]) -> bool:

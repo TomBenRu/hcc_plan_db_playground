@@ -275,6 +275,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
+    # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children)
     def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
         for app_id in entities.actor_plan_periods:
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()

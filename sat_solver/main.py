@@ -322,9 +322,12 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         for idx in range(len(cast_groups) - 1):
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group
-
-            # different_cast(event_group_1.id, event_group_2.id)
-            same_cast(cast_groups[idx], cast_groups[idx + 1])
+            if rule == '-':
+                different_cast(event_group_1.id, event_group_2.id)
+            elif rule == '~':
+                same_cast(cast_groups[idx], cast_groups[idx + 1])
+            else:
+                continue
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:

@@ -313,9 +313,9 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
         # works probably also with different nr_actors
         ################################################################################################################
-        is_equal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
         is_equal_1 = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # equal Nones
         is_equal_2 = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # equal Trues
+        is_equal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # sum of equal Trues and equal Nones
         for i in range(len(applied_shifts_1)):
             model.AddMultiplicationEquality(is_equal_1[i], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
             model.AddMultiplicationEquality(is_equal_2[i], [applied_shifts_1[i], applied_shifts_2[i]])

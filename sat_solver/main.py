@@ -281,7 +281,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 def add_constraints_cast_rules(model: cp_model.CpModel):
     # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
     #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
-    #       wird.
+    #       wird. Bei same_cast funktioniert es nur, wenn nr_actors bei allen gleich sind.
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
     def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
         for app_id in entities.actor_plan_periods:
@@ -597,10 +597,11 @@ def call_solver_with_adjusted_requested_assignments(
         cast_group_tree: CastGroupTree,
         assigned_shifts: int,
         possible_assignment_per_app: dict[UUID, int]) -> tuple[int, list[int], int, int]:
-    print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print([app.requested_assignments for app in entities.actor_plan_periods.values()])
+    print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
+    print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
     generate_adjusted_requested_assignments(assigned_shifts, possible_assignment_per_app)
-    print([app.requested_assignments for app in entities.actor_plan_periods.values()])
+    print('------------------------ Adjusted Assignments ----------------------------------')
+    print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
 
     # Create the CP-SAT model.
     model = cp_model.CpModel()

@@ -295,24 +295,46 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
     def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
         event_group_1_id = cast_group_1.event.event_group.id
         event_group_2_id = cast_group_2.event.event_group.id
-        applied_shifts_1: dict[UUID, IntVar] = {app_id: model.NewIntVar(0, 100, '')
-                                                for app_id in entities.actor_plan_periods}
-        applied_shifts_2: dict[UUID, IntVar] = {app_id: model.NewIntVar(0, 100, '')
-                                                for app_id in entities.actor_plan_periods}
-        for app_id in entities.actor_plan_periods:
+        applied_shifts_1: list[IntVar] = [model.NewIntVar(0, 100, '')
+                                          for _ in entities.actor_plan_periods]
+        applied_shifts_2: list[IntVar] = [model.NewIntVar(0, 100, '')
+                                          for _ in entities.actor_plan_periods]
+        for i, app_id in enumerate(entities.actor_plan_periods):
             shift_vars_1 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                             if eg_id == event_group_1_id
                             and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
             shift_vars_2 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                             if eg_id == event_group_2_id
                             and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
-            model.Add(applied_shifts_1[app_id] == sum(shift_vars_1.values()))
-            model.Add(applied_shifts_2[app_id] == sum(shift_vars_2.values()))
+            model.Add(applied_shifts_1[i] == sum(shift_vars_1.values()))
+            model.Add(applied_shifts_2[i] == sum(shift_vars_2.values()))
 
-        for var_1, var_2 in zip(applied_shifts_1.values(), applied_shifts_2.values()):
-            (model.Add(var_1 == var_2)
-             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+        # works probably also with different nr_actors
+        ################################################################################################################
+        is_equal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
+        is_equal_1 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]
+        is_equal_2 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]
+        for i in range(len(applied_shifts_1)):
+            model.AddMultiplicationEquality(is_equal_1[i], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
+            model.AddMultiplicationEquality(is_equal_2[i], [applied_shifts_1[i], applied_shifts_2[i]])
+        for i in range(len(applied_shifts_1)):
+            model.Add(is_equal[i] == is_equal_1[i] + is_equal_2[i])
+
+        is_unequal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
+        for i, var in enumerate(is_equal):
+            model.AddAbsEquality(is_unequal[i], var.Not())
+        (model.Add(sum(is_unequal) == 0 + abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+         .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+         .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+        ################################################################################################################
+
+        # works only with same nr_actors
+        ################################################################################################################
+        # for var_1, var_2 in zip(applied_shifts_1, applied_shifts_2):
+        #     (model.Add(var_1 == var_2)
+        #      .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+        #      .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+        ################################################################################################################
 
     cast_groups_level_1 = collections.defaultdict(list)
     for cast_group in entities.cast_groups_with_event.values():

@@ -293,11 +293,13 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
              OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
 
     def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
+        """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
+        vorkommen. Die überschüssige Position des Events mit der größeren Besetzung kann beliebig besetzt sein."""
         event_group_1_id = cast_group_1.event.event_group.id
         event_group_2_id = cast_group_2.event.event_group.id
-        applied_shifts_1: list[IntVar] = [model.NewIntVar(0, 100, '')
+        applied_shifts_1: list[IntVar] = [model.NewIntVar(0, 2, '')
                                           for _ in entities.actor_plan_periods]
-        applied_shifts_2: list[IntVar] = [model.NewIntVar(0, 100, '')
+        applied_shifts_2: list[IntVar] = [model.NewIntVar(0, 2, '')
                                           for _ in entities.actor_plan_periods]
         for i, app_id in enumerate(entities.actor_plan_periods):
             shift_vars_1 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
@@ -312,8 +314,8 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         # works probably also with different nr_actors
         ################################################################################################################
         is_equal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
-        is_equal_1 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]
-        is_equal_2 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]
+        is_equal_1 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]  # equal Nones
+        is_equal_2 = [model.NewIntVar(0, 10, '') for _ in entities.actor_plan_periods]  # equal Trues
         for i in range(len(applied_shifts_1)):
             model.AddMultiplicationEquality(is_equal_1[i], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
             model.AddMultiplicationEquality(is_equal_2[i], [applied_shifts_1[i], applied_shifts_2[i]])
@@ -323,7 +325,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         is_unequal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
         for i, var in enumerate(is_equal):
             model.AddAbsEquality(is_unequal[i], var.Not())
-        (model.Add(sum(is_unequal) == 0 + abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+        (model.Add(sum(is_unequal) == abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
          .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
          .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
         ################################################################################################################

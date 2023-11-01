@@ -12,7 +12,8 @@ from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
 from database.constants_and_rules import WEIGHT_UNASSIGNED_SHIFTS, WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS, \
-    WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS, WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS, CAST_RULES
+    WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS, WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS, CAST_RULES, \
+    WEIGHT_CONSTRAINTS_LOCATION_PREFS, WEIGHT_VARS_LOCATION_PREFS
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -92,8 +93,8 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
                     is_working = True
                     print(f"  !!! {actor_plan_period.person.f_name} "
                           f"works in {event_group.event.location_plan_period.location_of_work.name:}")
-                else:
-                    print(f"      {actor_plan_period.person.f_name} does not work")
+                # else:
+                #     print(f"      {actor_plan_period.person.f_name} does not work")
         print('unassigned_shifts_per_event:',
               [self.Value(unassigned_shifts) for unassigned_shifts in self._unassigned_shifts_per_event])
         sum_assigned_shifts_per_employee = {entities.actor_plan_periods[app_id].person.f_name: self.Value(s)
@@ -259,6 +260,27 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                     model.Add(weight_vars[-1] == shift_var * round((max_value_of_weight - adjusted_weight) * 100))
 
     return weight_vars
+
+
+def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
+    loc_prep_vars = []
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups_with_avail_day.items():
+        avail_day = avail_day_group.avail_day
+        for loc_pref in [alp for alp in avail_day_group.avail_day.actor_location_prefs_defaults if not alp.prep_delete]:
+            for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+                event = entities.event_groups[eg_id].event
+                event_time_of_day_index = event.time_of_day.time_of_day_enum.time_index
+                event_location_id = event.location_plan_period.location_of_work.id
+                if (adg_id == avail_day_group_id and event.date == avail_day.date
+                        and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
+                        and event_location_id == loc_pref.location_of_work.id):
+                    loc_prep_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
+                                                         WEIGHT_VARS_LOCATION_PREFS[0], ''))
+                    model.Add(loc_prep_vars[-1] == shift_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
+
+    return loc_prep_vars
+
+
 
 
 def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
@@ -456,7 +478,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
 
 
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
-                                                         list[IntVar]]:
+                                                         list[IntVar], list[IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -468,6 +490,9 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     # Add constraints for shifts in inactive avail_day_groups:
     add_constraints_shifts_in_avail_day_groups(model)
+
+    # Add constraints for location prefs in avail.days:
+    constraints_location_prefs = add_constraints_location_prefs(model)
 
     # Add constraints for unsigned shifts:
     unassigned_shifts_per_event = add_constraints_unsigned_shifts(model)
@@ -485,22 +510,25 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)
 
     return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-            constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups)
+            constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups, constraints_location_prefs)
 
 
 def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_event: dict[UUID, IntVar],
                               sum_squared_deviations: IntVar, constraints_weights_in_avail_day_groups: list[IntVar],
-                              constraints_weights_in_event_groups: list[IntVar]):
+                              constraints_weights_in_event_groups: list[IntVar],
+                              constraints_location_prefs: list[IntVar]):
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
     weight_unassigned_shifts = WEIGHT_UNASSIGNED_SHIFTS
     weight_sum_squared_shift_deviations = WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS / len(entities.actor_plan_periods)
     weight_constraints_weights_in_avail_day_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS
     weight_constraints_weights_in_event_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS
+    weight_constraints_location_prefs = WEIGHT_CONSTRAINTS_LOCATION_PREFS
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
                    + weight_sum_squared_shift_deviations * sum_squared_deviations
                    + weight_constraints_weights_in_avail_day_groups * sum(constraints_weights_in_avail_day_groups)
-                   + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups))
+                   + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups)
+                   + weight_constraints_location_prefs * sum(constraints_location_prefs))
 
 
 def define_objective__fixed_unassigned(model: cp_model.CpModel,
@@ -512,12 +540,14 @@ def define_objective__fixed_unassigned(model: cp_model.CpModel,
 def define_objective__fixed_constraint_results(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar], sum_squared_deviations: IntVar,
         constraints_weights_in_avail_day_groups: list[IntVar], constraints_weights_in_event_groups: list[IntVar],
-        unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
-        weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int):
+        constraints_location_prefs: list[IntVar], unassigned_shifts_per_event_res: list[int],
+        sum_squared_deviations_res: int, weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int,
+        sum_location_prefs_res: int):
     model.Add(sum(unassigned_shifts_per_event) == sum(unassigned_shifts_per_event_res))
     model.Add(sum_squared_deviations == sum_squared_deviations_res)
     model.Add(sum(constraints_weights_in_avail_day_groups) == weights_shifts_in_avail_day_groups_res)
     model.Add(sum(constraints_weights_in_event_groups) == weights_in_event_groups_res)
+    model.Add(sum(constraints_location_prefs) == sum_location_prefs_res)
 
 
 def solve_model_with_solver_solution_callback(
@@ -587,9 +617,11 @@ def call_solver_with_unadjusted_requested_assignments(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups) = create_constraints(model)
+     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+     constraints_location_prefs) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups)
+                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+                              constraints_location_prefs)
     solver, solver_status = solve_model_to_optimum(model)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
@@ -605,7 +637,8 @@ def call_solver_with_fixed_unassigned_shifts(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups) = create_constraints(model)
+     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+     constraints_location_prefs) = create_constraints(model)
     define_objective__fixed_unassigned(model, unassigned_shifts, unassigned_shifts_per_event)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
@@ -621,7 +654,7 @@ def call_solver_with_adjusted_requested_assignments(
         avail_day_group_tree: AvailDayGroupTree,
         cast_group_tree: CastGroupTree,
         assigned_shifts: int,
-        possible_assignment_per_app: dict[UUID, int]) -> tuple[int, list[int], int, int]:
+        possible_assignment_per_app: dict[UUID, int]) -> tuple[int, list[int], int, int, int]:
     print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
     generate_adjusted_requested_assignments(assigned_shifts, possible_assignment_per_app)
@@ -632,33 +665,37 @@ def call_solver_with_adjusted_requested_assignments(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups) = create_constraints(model)
+     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+     constraints_location_prefs) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups)
+                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+                              constraints_location_prefs)
     solver, solver_status = solve_model_to_optimum(model)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations)
     print_solver_status(solver_status)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
-            sum(solver.Value(w) for w in constraints_weights_in_event_groups))
+            sum(solver.Value(w) for w in constraints_weights_in_event_groups),
+            sum(solver.Value(lp) for lp in constraints_location_prefs))
 
 
 def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
-        weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int,
+        weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
         print_solution_printer_results: bool):
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups) = create_constraints(model)
+     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+     constraints_location_prefs) = create_constraints(model)
     define_objective__fixed_constraint_results(
         model, list(unassigned_shifts_per_event.values()), sum_squared_deviations,
         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-        unassigned_shifts_per_event_res, sum_squared_deviations_res,
-        weights_shifts_in_avail_day_groups_res, weights_in_event_groups_res)
+        constraints_location_prefs, unassigned_shifts_per_event_res, sum_squared_deviations_res,
+        weights_shifts_in_avail_day_groups_res, weights_in_event_groups_res, sum_location_prefs_res)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, print_solution_printer_results, 100)
@@ -680,7 +717,7 @@ def main(plan_period_id: UUID):
     max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(
         event_group_tree, avail_day_group_tree, cast_group_tree, unassigned_shifts, False)
     (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
-     sum_weights_in_event_groups) = call_solver_with_adjusted_requested_assignments(
+     sum_weights_in_event_groups, sum_location_prefs_res) = call_solver_with_adjusted_requested_assignments(
         event_group_tree, avail_day_group_tree, cast_group_tree, assigned_shifts, max_shifts_per_app)
     call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(event_group_tree,
                                                                       avail_day_group_tree,
@@ -689,6 +726,7 @@ def main(plan_period_id: UUID):
                                                                       sum_squared_deviations_res,
                                                                       sum_weights_shifts_in_avail_day_groups,
                                                                       sum_weights_in_event_groups,
+                                                                      sum_location_prefs_res,
                                                                       True)
 
 

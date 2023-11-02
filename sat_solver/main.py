@@ -91,7 +91,7 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
                 if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
                        for avd_id in (avd.avail_day_group.id for avd in actor_plan_period.avail_days)):
                     is_working = True
-                    print(f"  !!! {actor_plan_period.person.f_name} "
+                    print(f"   {actor_plan_period.person.f_name} "
                           f"works in {event_group.event.location_plan_period.location_of_work.name:}")
                 # else:
                 #     print(f"      {actor_plan_period.person.f_name} does not work")
@@ -216,6 +216,23 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
                 )
 
 
+def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
+    max_value_of_weights = 2
+    weight_vars: list[IntVar] = []
+    for event_group_id, event_group in entities.event_groups.items():
+        if children := event_group.children:
+            children: tuple[EventGroup]
+            mean_weight = sum(c.weight for c in children) / len(children)
+            for c in children:
+                adjusted_weight = c.weight / mean_weight if mean_weight else 1
+                shift_vars_curr = [var for (_, eg_id), var in entities.shift_vars.items() if eg_id == c.event_group_id]
+                for shift_var in shift_vars_curr:
+                    weight_vars.append(model.NewIntVar(0, 1000, ''))
+                    model.Add(weight_vars[-1] == shift_var * round((max_value_of_weights - adjusted_weight) * 100))
+
+    return weight_vars
+
+
 def add_constraints_avail_day_groups_activity(model: cp_model):
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
         if avail_day_group.children:
@@ -236,7 +253,7 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
                 )
 
 
-def add_constraints_shifts_in_avail_day_groups(model: cp_model.CpModel):
+def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
     """Wenn die BoolVar einer avail_day_group mit avail_day wegen Einschränkungen durch nr_avail_day_groups
     auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity(), müssen auch die zugehörigen
     BoolVars der shifts auf False gesetzt sein."""
@@ -279,25 +296,6 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                     model.Add(loc_prep_vars[-1] == shift_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
 
     return loc_prep_vars
-
-
-
-
-def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
-    max_value_of_weights = 2
-    weight_vars: list[IntVar] = []
-    for event_group_id, event_group in entities.event_groups.items():
-        if children := event_group.children:
-            children: tuple[EventGroup]
-            mean_weight = sum(c.weight for c in children) / len(children)
-            for c in children:
-                adjusted_weight = c.weight / mean_weight if mean_weight else 1
-                shift_vars_curr = [var for (_, eg_id), var in entities.shift_vars.items() if eg_id == c.event_group_id]
-                for shift_var in shift_vars_curr:
-                    weight_vars.append(model.NewIntVar(0, 1000, ''))
-                    model.Add(weight_vars[-1] == shift_var * round((max_value_of_weights - adjusted_weight) * 100))
-
-    return weight_vars
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
@@ -395,7 +393,7 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
 
     for event_group_id, event_group in entities.event_groups_with_event.items():
         num_assigned_employees = sum(
-            entities.shift_vars[(adg_id, event_group_id)] for adg_id in (entities.avail_day_groups_with_avail_day)
+            entities.shift_vars[(adg_id, event_group_id)] for adg_id in entities.avail_day_groups_with_avail_day
         )
         model.Add(
             num_assigned_employees <= (entities.event_group_vars[event_group.event_group_id]
@@ -489,16 +487,16 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     add_constraints_avail_day_groups_activity(model)
 
     # Add constraints for shifts in inactive avail_day_groups:
-    add_constraints_shifts_in_avail_day_groups(model)
+    add_constraints_num_shifts_in_avail_day_groups(model)
+
+    # Add constraints for weights in avail_day_groups:
+    constraints_weights_in_avail_day_groups = add_constraints_weights_in_avail_day_groups(model)
 
     # Add constraints for location prefs in avail.days:
     constraints_location_prefs = add_constraints_location_prefs(model)
 
     # Add constraints for unsigned shifts:
     unassigned_shifts_per_event = add_constraints_unsigned_shifts(model)
-
-    # Add constraints for weights in avail_day_groups:
-    constraints_weights_in_avail_day_groups = add_constraints_weights_in_avail_day_groups(model)
 
     # Add constraints for weights in event_groups:
     constraints_weights_in_event_groups = add_constraints_weights_in_event_groups(model)

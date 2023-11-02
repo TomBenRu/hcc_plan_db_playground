@@ -334,21 +334,25 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
         # works probably also with different nr_actors
         ################################################################################################################
-        is_equal_1 = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # equal Nones
-        is_equal_2 = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # equal Trues
-        is_equal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]  # sum of equal Trues and equal Nones
-        for i in range(len(applied_shifts_1)):
-            model.AddMultiplicationEquality(is_equal_1[i], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
-            model.AddMultiplicationEquality(is_equal_2[i], [applied_shifts_1[i], applied_shifts_2[i]])
-        for i in range(len(applied_shifts_1)):
-            model.Add(is_equal[i] == is_equal_1[i] + is_equal_2[i])
 
-        is_unequal = [model.NewBoolVar('') for _ in entities.actor_plan_periods]
-        for i, var in enumerate(is_equal):
-            model.AddAbsEquality(is_unequal[i], var.Not())
+        # equal Nones, equal Trues, equal Nones and Trues, unequal Nones and Trues:
+        is_equal_1, is_equal_2, is_equal, is_unequal = [], [], [], []
+
+        for i in range(len(entities.actor_plan_periods)):
+            is_equal_1.append(model.NewBoolVar(''))
+            is_equal_2.append(model.NewBoolVar(''))
+            is_equal.append(model.NewBoolVar(''))
+            is_unequal.append(model.NewBoolVar(''))
+
+            model.AddMultiplicationEquality(is_equal_1[-1], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
+            model.AddMultiplicationEquality(is_equal_2[-1], [applied_shifts_1[i], applied_shifts_2[i]])
+            model.Add(is_equal[-1] == is_equal_1[-1] + is_equal_2[-1])
+            model.AddAbsEquality(is_unequal[-1], is_equal[-1].Not())
+
         (model.Add(sum(is_unequal) == abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
          .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
          .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+
         ################################################################################################################
 
         # works only with same nr_actors

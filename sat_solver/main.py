@@ -176,8 +176,10 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
         leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
     }
 
-    entities.cast_groups = {cast_group.cast_group_id: cast_group for cast_group in cast_group_tree.root.descendants}
-    entities.cast_groups |= {cast_group_tree.root.cast_group_id: cast_group_tree.root}
+    entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
+        cast_group.cast_group_id: cast_group
+        for cast_group in cast_group_tree.root.descendants
+    }
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
@@ -385,6 +387,10 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
                 same_cast(cast_groups[idx], cast_groups[idx + 1])
             else:
                 continue
+
+
+def add_constraints_fixed_cast(model: cp_model.CpModel):
+    '(((UUID("fe8db3be-069d-4a71-91cf-2d9cb5a31916") in team)) and ((UUID("0360700e-98d5-43b0-beea-2d691feeebf1") in team) or ((UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363") in team))))'
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:

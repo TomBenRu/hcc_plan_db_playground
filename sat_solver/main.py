@@ -391,6 +391,13 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
 def add_constraints_fixed_cast(model: cp_model.CpModel):
     '(((UUID("fe8db3be-069d-4a71-91cf-2d9cb5a31916") in team)) and ((UUID("0360700e-98d5-43b0-beea-2d691feeebf1") in team) or ((UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363") in team))))'
+    for cg_id, cast_group in entities.cast_groups_with_event.items():
+        if not cast_group.fixed_cast:
+            continue
+        model.Add(sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
+                      if eg_id == cast_group.event.event_group.id and
+                      entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363")) == 1)
+
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
@@ -513,6 +520,9 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     # Add constraints for cast_rules:
     add_constraints_cast_rules(model)
+
+    # Add constraints for fixed_cast:
+    add_constraints_fixed_cast(model)
 
     # Add constraints for relative shift deviations:
     sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)

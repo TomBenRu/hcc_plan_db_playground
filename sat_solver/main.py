@@ -390,14 +390,57 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
 
 def add_constraints_fixed_cast(model: cp_model.CpModel):
-    '(((UUID("fe8db3be-069d-4a71-91cf-2d9cb5a31916") in team)) and ((UUID("0360700e-98d5-43b0-beea-2d691feeebf1") in team) or ((UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363") in team))))'
-    for cg_id, cast_group in entities.cast_groups_with_event.items():
+    fc = '(((UUID("fe8db3be-069d-4a71-91cf-2d9cb5a31916") in team)) and ((UUID("0360700e-98d5-43b0-beea-2d691feeebf1") in team) or ((UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363") in team))))'
+    for cast_group in entities.cast_groups_with_event.values():
         if not cast_group.fixed_cast:
             continue
-        model.Add(sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
-                      if eg_id == cast_group.event.event_group.id and
-                      entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == UUID("5ecfd1ef-d28f-4a96-a0da-95f61e6a4363")) == 1)
 
+        # e_s = fc.replace('and', ',"and",').replace('or', ',"or",').replace('in team', '')
+        # print('+++++++++++++++++++++++++++++++++++++', eval(e_s))
+        # for element in eval(e_s):
+        #     print(f'{element=}')
+
+        fixed_cast_as_list = eval(cast_group.fixed_cast
+                                  .replace('and', ',"and",')
+                                  .replace('or', ',"or",')
+                                  .replace('in team', ''))
+
+        fixed_cast_as_list = [fixed_cast_as_list] if isinstance(fixed_cast_as_list, UUID) else fixed_cast_as_list
+
+        person_ids = [p_id for p_id in fixed_cast_as_list if isinstance(p_id, UUID)]
+
+        ################################# Or-Verknüpfung 1 #############################################################
+        # person_id_in_shift_vars = []
+        # for person_id in person_ids:
+        #     person_id_in_shift_vars.append(model.NewIntVar(0, 10, ''))
+        #     (
+        #         model.AddAbsEquality(
+        #             person_id_in_shift_vars[-1],
+        #             sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
+        #                 if eg_id == cast_group.event.event_group.id
+        #                 and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id
+        #                 == person_id)
+        #         )
+        #     )
+        # model.Add(sum(person_id_in_shift_vars) >= 1).OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id])
+        ################################################################################################################
+
+        ########################### Or-Veknüpfung 2 ####################################################################
+        (model.Add(sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
+                       if eg_id == cast_group.event.event_group.id
+                       and (entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id
+                       in list(person_ids))) >= 1)
+         .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
+        ################################################################################################################
+
+        ########################### And-Verknüpfung 2 ##################################################################
+        # for person_id in person_ids:
+        #     (model.Add(sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
+        #                    if eg_id == cast_group.event.event_group.id
+        #                    and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id
+        #                    == person_id) == 1)
+        #      .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
+        ################################################################################################################
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:

@@ -391,7 +391,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
 def add_constraints_fixed_cast(model: cp_model.CpModel):
     
-    def check_pers_id_in_shift_var(pers_id: UUID, cast_group: CastGroup):
+    def check_pers_id_in_shift_var(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')
         model.Add(var == sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
                              if eg_id == cast_group.event.event_group.id
@@ -399,17 +399,17 @@ def add_constraints_fixed_cast(model: cp_model.CpModel):
                              == pers_id))
         return var
 
-    def create_var_and(var_list: list[IntVar]):
+    def create_var_and(var_list: list[IntVar]) -> IntVar:
         var = model.NewBoolVar('')
         model.AddMultiplicationEquality(var, var_list)
         return var
 
-    def create_var_or(var_list: list[IntVar]):
+    def create_var_or(var_list: list[IntVar]) -> IntVar:
         var = model.NewBoolVar('')
         model.Add(var == sum(var_list))
         return var
 
-    def recursive(fixed_cast_list: list | UUID, cast_group: CastGroup):
+    def proof_recursive(fixed_cast_list: list | UUID, cast_group: CastGroup) -> IntVar:
         if isinstance(fixed_cast_list, UUID):
             return check_pers_id_in_shift_var(fixed_cast_list, cast_group)
         pers_ids = [v for i, v in enumerate(fixed_cast_list) if not i % 2]
@@ -420,9 +420,9 @@ def add_constraints_fixed_cast(model: cp_model.CpModel):
             operator = operators[0]
 
         if operator == 'and':
-            return create_var_and([recursive(p_id, cast_group) for p_id in pers_ids])
+            return create_var_and([proof_recursive(p_id, cast_group) for p_id in pers_ids])
         else:
-            return create_var_or([recursive(p_id, cast_group) for p_id in pers_ids])
+            return create_var_or([proof_recursive(p_id, cast_group) for p_id in pers_ids])
 
     for cast_group in entities.cast_groups_with_event.values():
         if not cast_group.fixed_cast:
@@ -433,7 +433,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel):
                                   .replace('or', ',"or",')
                                   .replace('in team', ''))
 
-        model.Add(recursive(fixed_cast_as_list, cast_group) == 1)
+        model.Add(proof_recursive(fixed_cast_as_list, cast_group) == 1)
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:

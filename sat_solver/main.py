@@ -687,9 +687,6 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: EmployeePartia
 
 
 def print_solver_status(status: CpSolverStatus):
-    print()
-    print()
-    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     if status == cp_model.MODEL_INVALID:
         print('########################### INVALID MODEL ######################################')
         sys.exit()
@@ -713,6 +710,9 @@ def call_solver_with_unadjusted_requested_assignments(
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_fixed_cast_conflicts)
+    print()
+    print()
+    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model)
 
     print_solver_status(solver_status)
@@ -742,10 +742,14 @@ def call_solver_with_fixed_unassigned_shifts(
                                        unassigned_shifts_per_event,
                                        constraints_location_prefs,
                                        constraints_fixed_cast_conflicts)
+    print()
+    print()
+    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
         print_solution_printer_results, 500)
+    print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
 
@@ -774,6 +778,9 @@ def call_solver_with_adjusted_requested_assignments(
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_fixed_cast_conflicts)
     solver, solver_status = solve_model_to_optimum(model)
+    print()
+    print()
+    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
@@ -802,6 +809,9 @@ def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
         constraints_location_prefs, constraints_fixed_cast_conflicts, unassigned_shifts_per_event_res,
         sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res, weights_in_event_groups_res,
         sum_location_prefs_res, sum_fixed_cast_conflicts_res)
+    print()
+    print()
+    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,

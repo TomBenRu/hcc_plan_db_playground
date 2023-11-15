@@ -1,5 +1,6 @@
 import collections
 import dataclasses
+import itertools
 import pprint
 import sys
 from collections import defaultdict
@@ -14,7 +15,8 @@ from ortools.sat.python.cp_model import IntVar
 from database import db_services, schemas
 from database.constants_and_rules import WEIGHT_UNASSIGNED_SHIFTS, WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS, \
     WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS, WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS, CAST_RULES, \
-    WEIGHT_CONSTRAINTS_LOCATION_PREFS, WEIGHT_VARS_LOCATION_PREFS, WEIGHT_CONSTRAINTS_FIXED_CASTS_CONFLICTS
+    WEIGHT_CONSTRAINTS_LOCATION_PREFS, WEIGHT_VARS_LOCATION_PREFS, WEIGHT_CONSTRAINTS_FIXED_CASTS_CONFLICTS, \
+    WEIGHT_VARS_PARTNER_LOC_PREFS
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -306,6 +308,39 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
     return loc_prep_vars
 
 
+def add_constraints_partner_location_prefs(model: cp_model.CpModel):
+    for eg_id, event_group in entities.event_groups_with_event.items():
+        if event_group.event.cast_group.nr_actors < 2:
+            continue
+        plp_pref_vars = []
+        avail_day_groups = [
+            adg for adg in entities.avail_day_groups_with_avail_day.values()
+            if adg.avail_day.date == event_group.event.date
+               and adg.avail_day.time_of_day.time_of_day_enum.time_index
+               == event_group.event.time_of_day.time_of_day_enum.time_index]
+        duo_combs = itertools.combinations(avail_day_groups, 2)
+        used_combs: set[frozenset[UUID]] = set()
+        for combo in duo_combs:
+            combo: tuple[AvailDayGroup, AvailDayGroup]
+            if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
+                continue
+            if frozenset(adg.avail_day.actor_plan_period.id for adg in combo) in used_combs:
+                continue
+            used_combs.add(frozenset(adg.avail_day.actor_plan_period.id for adg in combo))
+            plp_pref_vars.append(model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
+                                                 WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2, ''))
+            score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
+                            if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id), 1)
+            score_1 = next((plp for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
+                            if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id), 1)
+            ((model.Add(plp_pref_vars[-1] == (WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
+                                              + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
+                        // (event_group.event.cast_group.nr_actors - 1))
+             .OnlyEnforceIf(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)]))
+             .OnlyEnforceIf(entities.shift_vars[(combo[1].avail_day_group_id, eg_id)])
+             .OnlyEnforceIf(entities.event_group_vars[eg_id]))
+
+
 def add_constraints_cast_rules(model: cp_model.CpModel):
     # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
     #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
@@ -560,6 +595,9 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     # Add constraints for location prefs in avail.days:
     constraints_location_prefs = add_constraints_location_prefs(model)
+
+    # Add constraints for partner-location prefs in avail.days:
+    add_constraints_partner_location_prefs(model)
 
     # Add constraints for unsigned shifts:
     unassigned_shifts_per_event = add_constraints_unsigned_shifts(model)

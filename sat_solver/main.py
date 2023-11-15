@@ -687,6 +687,9 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: EmployeePartia
 
 
 def print_solver_status(status: CpSolverStatus):
+    print()
+    print()
+    print('++++++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     if status == cp_model.MODEL_INVALID:
         print('########################### INVALID MODEL ######################################')
         sys.exit()

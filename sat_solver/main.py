@@ -309,29 +309,31 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
 
 
 def add_constraints_partner_location_prefs(model: cp_model.CpModel):
+    plp_pref_vars: list[IntVar] = []
     for eg_id, event_group in entities.event_groups_with_event.items():
         if event_group.event.cast_group.nr_actors < 2:
             continue
-        plp_pref_vars = []
-        avail_day_groups = [
+        avail_day_groups = (
             adg for adg in entities.avail_day_groups_with_avail_day.values()
             if adg.avail_day.date == event_group.event.date
                and adg.avail_day.time_of_day.time_of_day_enum.time_index
-               == event_group.event.time_of_day.time_of_day_enum.time_index]
+               == event_group.event.time_of_day.time_of_day_enum.time_index
+        )
         duo_combs = itertools.combinations(avail_day_groups, 2)
-        used_combs: set[frozenset[UUID]] = set()
         for combo in duo_combs:
             combo: tuple[AvailDayGroup, AvailDayGroup]
+            if not any(len(adg.avail_day.actor_partner_location_prefs_defaults) for adg in combo):
+                continue
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
-            if frozenset(adg.avail_day.actor_plan_period.id for adg in combo) in used_combs:
-                continue
-            used_combs.add(frozenset(adg.avail_day.actor_plan_period.id for adg in combo))
+            print(f'{event_group.event.date}, {event_group.event.time_of_day.name}: '
+                  f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
+                  f'{combo[1].avail_day.actor_plan_period.person.f_name}')
             plp_pref_vars.append(model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
                                                  WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2, ''))
             score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id), 1)
-            score_1 = next((plp for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
+            score_1 = next((plp.score for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id), 1)
             ((model.Add(plp_pref_vars[-1] == (WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
                                               + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])

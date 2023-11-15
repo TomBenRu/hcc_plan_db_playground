@@ -391,7 +391,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
 def add_constraints_fixed_cast(model: cp_model.CpModel):
     
-    def check_pers_id_in_shift_var(pers_id: UUID, cast_group: CastGroup) -> IntVar:
+    def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')
         model.Add(var == sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
                              if eg_id == cast_group.event.event_group.id
@@ -411,7 +411,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel):
 
     def proof_recursive(fixed_cast_list: list | UUID, cast_group: CastGroup) -> IntVar:
         if isinstance(fixed_cast_list, UUID):
-            return check_pers_id_in_shift_var(fixed_cast_list, cast_group)
+            return check_pers_id_in_shift_vars(fixed_cast_list, cast_group)
         pers_ids = [v for i, v in enumerate(fixed_cast_list) if not i % 2]
         operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]
         if any(o != operators[0] for o in operators):

@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import pprint
+import sys
 from collections import defaultdict
 import datetime
 from typing import Optional
@@ -602,8 +603,12 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
 
 
 def define_objective__fixed_unassigned(model: cp_model.CpModel,
-                                       unassigned_shifts: int,
-                                       unassigned_shifts_per_event: dict[UUID, IntVar]):
+                                       unassigned_shifts: int, sum_location_prefs: int, sum_fixed_cast_conflicts: int,
+                                       unassigned_shifts_per_event: dict[UUID, IntVar],
+                                       constraints_location_prefs: list[IntVar],
+                                       constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
+    model.Add(sum(constraints_location_prefs) == sum_location_prefs)
+    model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)
 
 
@@ -682,7 +687,10 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: EmployeePartia
 
 
 def print_solver_status(status: CpSolverStatus):
-    if status == cp_model.OPTIMAL:
+    if status == cp_model.MODEL_INVALID:
+        print('########################### INVALID MODEL ######################################')
+        sys.exit()
+    elif status == cp_model.OPTIMAL:
         print('########################### OPTIMAL ############################################')
     elif status == cp_model.FEASIBLE:
         print('########################### FEASIBLE ############################################')
@@ -692,7 +700,7 @@ def print_solver_status(status: CpSolverStatus):
 
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-        cast_group_tree: CastGroupTree) -> tuple[int, int]:
+        cast_group_tree: CastGroupTree) -> tuple[int, int, int, int]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
@@ -703,23 +711,34 @@ def call_solver_with_unadjusted_requested_assignments(
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_fixed_cast_conflicts)
     solver, solver_status = solve_model_to_optimum(model)
+
+    print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
-    print_solver_status(solver_status)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
-    return sum(solver.Value(a) for a in sum_assigned_shifts.values()), unassigned_shifts
+    return (sum(solver.Value(a) for a in sum_assigned_shifts.values()),
+            unassigned_shifts,
+            solver.Value(sum(constraints_location_prefs)),
+            solver.Value(sum(constraints_fixed_cast_conflicts.values())))
 
 
 def call_solver_with_fixed_unassigned_shifts(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
-        unassigned_shifts: int, print_solution_printer_results: bool):
+        unassigned_shifts: int, sum_location_prefs: int, sum_fixed_cast_conflicts: int,
+        print_solution_printer_results: bool):
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_fixed_cast_conflicts) = create_constraints(model)
-    define_objective__fixed_unassigned(model, unassigned_shifts, unassigned_shifts_per_event)
+    define_objective__fixed_unassigned(model,
+                                       unassigned_shifts,
+                                       sum_location_prefs,
+                                       sum_fixed_cast_conflicts,
+                                       unassigned_shifts_per_event,
+                                       constraints_location_prefs,
+                                       constraints_fixed_cast_conflicts)
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
@@ -752,9 +771,9 @@ def call_solver_with_adjusted_requested_assignments(
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_fixed_cast_conflicts)
     solver, solver_status = solve_model_to_optimum(model)
+    print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
-    print_solver_status(solver_status)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(w) for w in constraints_weights_in_event_groups),
@@ -797,10 +816,16 @@ def main(plan_period_id: UUID):
     avail_day_group_tree = get_avail_day_group_tree(plan_period_id)
     cast_group_tree = get_cast_group_tree(plan_period_id)
 
-    assigned_shifts, unassigned_shifts = call_solver_with_unadjusted_requested_assignments(
+    (assigned_shifts, unassigned_shifts, sum_location_prefs,
+     sum_fixed_cast_conflicts) = call_solver_with_unadjusted_requested_assignments(
         event_group_tree, avail_day_group_tree, cast_group_tree)
-    max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(
-        event_group_tree, avail_day_group_tree, cast_group_tree, unassigned_shifts, False)
+    max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
+                                                                  avail_day_group_tree,
+                                                                  cast_group_tree,
+                                                                  unassigned_shifts,
+                                                                  sum_location_prefs,
+                                                                  sum_fixed_cast_conflicts,
+                                                                  False)
     (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
      sum_weights_in_event_groups, sum_location_prefs_res,
      sum_fixed_cast_conflicts_res) = call_solver_with_adjusted_requested_assignments(

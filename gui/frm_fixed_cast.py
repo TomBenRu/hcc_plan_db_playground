@@ -254,7 +254,8 @@ class SimplifyFixedCastAndInfo:
         return new_string
 
     def simplify_to_boolean_function(self, sentence: str) -> BooleanFunction:
-        return simplify_logic(eval(sentence, {'symbols': self.symbols}), force=True)
+        # form='cnf' oder form=None produziert bei der Constraint-Erstellung falsche Ergebnisse.
+        return simplify_logic(eval(sentence, {'symbols': self.symbols}), form='dnf', force=True)
 
     def back_translate_to_fixed_cast(self, expr: BooleanFunction) -> str:
         expr_str = str(expr).replace('(', '( ').replace(')', ' )')

@@ -290,7 +290,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
 
 
 def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
-    loc_prep_vars = []
+    loc_pref_vars = []
     for avail_day_group_id, avail_day_group in entities.avail_day_groups_with_avail_day.items():
         avail_day = avail_day_group.avail_day
         for loc_pref in [alp for alp in avail_day_group.avail_day.actor_location_prefs_defaults if not alp.prep_delete]:
@@ -301,14 +301,17 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                 if (adg_id == avail_day_group_id and event.date == avail_day.date
                         and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
                         and event_location_id == loc_pref.location_of_work.id):
-                    loc_prep_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
+                    loc_pref_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
                                                          WEIGHT_VARS_LOCATION_PREFS[0], ''))
+                    # Zwischen-Variable, die es ermöglicht, die Variable von Location-Pref in Abhängigkeit der jew.
+                    # Shift-Variable und Event-Group-Variable zu berechnen:
                     all_active_var = model.NewBoolVar('')
+
                     model.AddMultiplicationEquality(
                         all_active_var, [shift_var, entities.event_group_vars[eg_id]])
-                    model.Add(loc_prep_vars[-1] == all_active_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
+                    model.Add(loc_pref_vars[-1] == all_active_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
 
-    return loc_prep_vars
+    return loc_pref_vars
 
 
 def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntVar]:

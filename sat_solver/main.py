@@ -319,6 +319,7 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
                and adg.avail_day.time_of_day.time_of_day_enum.time_index
                == event_group.event.time_of_day.time_of_day_enum.time_index
         )
+
         duo_combs = itertools.combinations(avail_day_groups, 2)
         for combo in duo_combs:
             combo: tuple[AvailDayGroup, AvailDayGroup]
@@ -326,22 +327,22 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
                 continue
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
-            print(f'{event_group.event.date}, {event_group.event.time_of_day.name}: '
-                  f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
-                  f'{combo[1].avail_day.actor_plan_period.person.f_name}')
             plp_pref_vars.append(model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
-                                                 WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2, ''))
+                                                 WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
+                                                 f'{event_group.event.date:%d.%m.%y}, '
+                                                 f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
+                                                 f'{combo[1].avail_day.actor_plan_period.person.f_name}'))
             score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id), 1)
             score_1 = next((plp.score for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id), 1)
+
             (model.Add(plp_pref_vars[-1] == round((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
                                                    + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
                                                   / (event_group.event.cast_group.nr_actors - 1)))
-             .OnlyEnforceIf(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)])
-             .OnlyEnforceIf(entities.shift_vars[(combo[1].avail_day_group_id, eg_id)])
-             .OnlyEnforceIf(entities.event_group_vars[eg_id]))
-            print((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0] + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1]) // (event_group.event.cast_group.nr_actors - 1))
+             .OnlyEnforceIf(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
+                            entities.shift_vars[(combo[1].avail_day_group_id, eg_id)],
+                            entities.event_group_vars[eg_id]))
 
     return plp_pref_vars
 
@@ -470,7 +471,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         else:
             return create_var_or([proof_recursive(p_id, cast_group) for p_id in pers_ids])
 
-    fixed_cast_vars = {}
+    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy'): model.NewBoolVar('')}
     for cast_group in entities.cast_groups_with_event.values():
         if not cast_group.fixed_cast:
             continue
@@ -485,7 +486,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         (model.Add(fixed_cast_vars[key] == proof_recursive(fixed_cast_as_list, cast_group).Not())
          .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
 
-        return fixed_cast_vars
+    return fixed_cast_vars
 
 
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
@@ -769,6 +770,7 @@ def call_solver_with_unadjusted_requested_assignments(
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
+    print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
     return (sum(solver.Value(a) for a in sum_assigned_shifts.values()),
             unassigned_shifts,
             solver.Value(sum(constraints_location_prefs)),

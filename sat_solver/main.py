@@ -332,17 +332,26 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
                                                  f'{event_group.event.date:%d.%m.%y}, '
                                                  f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
                                                  f'{combo[1].avail_day.actor_plan_period.person.f_name}'))
+
             score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id), 1)
             score_1 = next((plp.score for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
                             if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id), 1)
 
-            (model.Add(plp_pref_vars[-1] == round((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
-                                                   + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
-                                                  / (event_group.event.cast_group.nr_actors - 1)))
-             .OnlyEnforceIf(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
-                            entities.shift_vars[(combo[1].avail_day_group_id, eg_id)],
-                            entities.event_group_vars[eg_id]))
+            plp_weight_var = model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
+                                             WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
+                                             '')
+            shift_active_var = model.NewBoolVar('')
+            all_active_var = model.NewBoolVar('')
+
+            model.Add(plp_weight_var == round((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
+                                               + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
+                                              / (event_group.event.cast_group.nr_actors - 1)))
+            model.AddMultiplicationEquality(shift_active_var,
+                                            [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
+                                             entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
+            model.AddMultiplicationEquality(all_active_var, [shift_active_var, entities.event_group_vars[eg_id]])
+            model.AddMultiplicationEquality(plp_pref_vars[-1], [plp_weight_var, all_active_var])
 
     return plp_pref_vars
 
@@ -886,7 +895,7 @@ def main(plan_period_id: UUID):
      sum_fixed_cast_conflicts) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
                                                                                    avail_day_group_tree,
                                                                                    cast_group_tree)
-    input(f'pause: {sum_partner_loc_prefs=}')
+    print(f'pause: {sum_partner_loc_prefs=}')
     max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
                                                                   avail_day_group_tree,
                                                                   cast_group_tree,

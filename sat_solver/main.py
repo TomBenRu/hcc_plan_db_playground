@@ -303,7 +303,10 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                         and event_location_id == loc_pref.location_of_work.id):
                     loc_prep_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
                                                          WEIGHT_VARS_LOCATION_PREFS[0], ''))
-                    model.Add(loc_prep_vars[-1] == shift_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
+                    all_active_var = model.NewBoolVar('')
+                    model.AddMultiplicationEquality(
+                        all_active_var, [shift_var, entities.event_group_vars[eg_id]])
+                    model.Add(loc_prep_vars[-1] == all_active_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
 
     return loc_prep_vars
 

@@ -305,7 +305,7 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                                                          WEIGHT_VARS_LOCATION_PREFS[0], ''))
                     # Zwischen-Variable, die es ermöglicht, die Variable von Location-Pref in Abhängigkeit der jew.
                     # Shift-Variable und Event-Group-Variable zu berechnen:
-                    all_active_var = model.NewBoolVar('')
+                    all_active_var = model.NewBoolVar('')  # temporäre Zwischen-Variable
 
                     model.AddMultiplicationEquality(
                         all_active_var, [shift_var, entities.event_group_vars[eg_id]])

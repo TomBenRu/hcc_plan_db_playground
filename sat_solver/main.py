@@ -344,6 +344,8 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             plp_weight_var = model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
                                              WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
                                              '')
+            # Zwischen-Variablen, die es ermöglichen die Variable von Partner-Location-Pref in Abhängigkeit der jew.
+            # Shift-Variablen und Event-Group-Variable zu berechnen:
             shift_active_var = model.NewBoolVar('')
             all_active_var = model.NewBoolVar('')
 

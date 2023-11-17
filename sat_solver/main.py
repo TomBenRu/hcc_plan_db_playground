@@ -650,6 +650,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
+
     weight_unassigned_shifts = WEIGHT_UNASSIGNED_SHIFTS
     weight_sum_squared_shift_deviations = WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS / len(entities.actor_plan_periods)
     weight_constraints_weights_in_avail_day_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS

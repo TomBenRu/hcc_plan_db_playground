@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
-from . import frm_comb_loc_possible
+from . import frm_comb_loc_possible, frm_calclate_plan
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         # db_services.Project.create('Humor Hilft Heilen')
 
         self.project_id = UUID('72F1D1E9BF554F11AE44916411A9819E')
+        self.curr_team: schemas.TeamShow | None = None
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -227,8 +228,8 @@ class MainWindow(QMainWindow):
                 for team in teams}
 
     def goto_team(self, team_id: UUID):
-        team = db_services.Team.get(team_id)
-        for plan_period in (pp for pp in team.plan_periods if not pp.prep_delete):
+        self.curr_team = db_services.Team.get(team_id)
+        for plan_period in (pp for pp in self.curr_team.plan_periods if not pp.prep_delete):
             widget_pp_tab = QWidget(self)  # Widget für Datum
             self.tabs_planungsmasken.addTab(
                 widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
@@ -262,7 +263,14 @@ class MainWindow(QMainWindow):
         ...
 
     def calculate_plans(self):
-        ...
+        print('calculate_plans')
+        if not self.curr_team:
+            QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
+            return
+
+        dlg = frm_calclate_plan.Calculate(self, self.curr_team.id)
+        if dlg.exec():
+            print('Plan erstellt.')
 
     def plan_infos(self):
         ...

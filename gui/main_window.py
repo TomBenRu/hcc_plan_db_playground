@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
-from . import frm_comb_loc_possible, frm_calclate_plan
+from . import frm_comb_loc_possible, frm_calclate_plan, frm_plan
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -131,8 +131,8 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
-        self.tabs_right = TabBar(self.central_widget, 'west', 16, 200)
-        self.tabs_right.currentChanged.connect(self.toggled_plan_events)
+        self.tabs_left = TabBar(self.central_widget, 'west', 16, 200)
+        self.tabs_left.currentChanged.connect(self.toggled_plan_events)
 
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
@@ -141,10 +141,8 @@ class MainWindow(QMainWindow):
 
         self.tabs_plans = TabBar(self.widget_plans, None, 10, 25)
         self.tabs_plans.setObjectName('plans')
-        self.tabs_right.addTab(self.tabs_planungsmasken, 'Planungsmasken')
-        self.tabs_right.addTab(self.tabs_plans, 'Einsatzpläne')
-        self.tabs_plans.addTab(QWidget(), 'Planung 1')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
-        self.tabs_plans.addTab(QWidget(), 'Planung 2')  # statt QWidget wird das jew. Widget für die Planungsmaske der Actors verwendet.
+        self.tabs_left.addTab(self.tabs_planungsmasken, 'Planungsmasken')
+        self.tabs_left.addTab(self.tabs_plans, 'Einsatzpläne')
 
         self.frm_master_data = None
 
@@ -248,14 +246,14 @@ class MainWindow(QMainWindow):
         self.frm_master_data.showNormal()
 
     def show_plans(self):
-        for i in range(self.tabs_right.count()):
-            if self.tabs_right.widget(i).objectName() == 'plans':
-                self.tabs_right.setCurrentIndex(i)
+        for i in range(self.tabs_left.count()):
+            if self.tabs_left.widget(i).objectName() == 'plans':
+                self.tabs_left.setCurrentIndex(i)
 
     def show_masks(self):
-        for i in range(self.tabs_right.count()):
-            if self.tabs_right.widget(i).objectName() == 'masks':
-                self.tabs_right.setCurrentIndex(i)
+        for i in range(self.tabs_left.count()):
+            if self.tabs_left.widget(i).objectName() == 'masks':
+                self.tabs_left.setCurrentIndex(i)
 
     def show_availables(self):
         ...
@@ -272,6 +270,7 @@ class MainWindow(QMainWindow):
                                f'{a.event.location_plan_period.location_of_work.name}: '
                                f'{[avd.actor_plan_period.person.f_name for avd in a.avail_days]}'
                                for a in schedule_version])
+                self.new_plan_tab(schedule_version)
 
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
@@ -280,6 +279,12 @@ class MainWindow(QMainWindow):
         dlg = frm_calclate_plan.Calculate(self, self.curr_team.id)
         if dlg.exec():
             QTimer.singleShot(50, print_schedule_versions)
+
+    def new_plan_tab(self, schedule_version: list[schemas.AppointmentCreate]):
+        self.tabs_plans.addTab(frm_plan.FrmTabPlan(self.tabs_plans, schedule_version),
+                               f'Neu '
+                               f'{schedule_version[-1].event.location_plan_period.plan_period.start:%d.%m.%y}-'
+                               f'{schedule_version[-1].event.location_plan_period.plan_period.end:%d.%m.%y}')
 
     def plan_infos(self):
         ...
@@ -319,7 +324,7 @@ class MainWindow(QMainWindow):
 
     def toggled_plan_events(self):
         menu: QMenu = self.main_menu.findChild(QMenu, 'Spielplan')
-        if self.tabs_right.currentWidget().objectName() == 'masks':
+        if self.tabs_left.currentWidget().objectName() == 'masks':
             menu.setDisabled(True)
             self.actions['show_masks'].setChecked(True)
             for action in menu.actions():

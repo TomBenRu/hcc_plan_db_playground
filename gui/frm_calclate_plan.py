@@ -1,12 +1,39 @@
 import pprint
+import random
 from uuid import UUID
 
 from PySide6.QtCore import QThread, Signal, QObject, Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
-    QProgressDialog
+    QProgressDialog, QFormLayout, QSpinBox
 
 import sat_solver.solver_main
+from commands import command_base_classes
+from commands.database_commands import plan_commands, appointment_commands
 from database import db_services, schemas
+
+
+class DlgAskNrPlansToSave(QDialog):
+    def __init__(self, parent: QWidget, poss_nr_plans: int):
+        super().__init__(parent=parent)
+
+        self.poss_nr_plans = poss_nr_plans
+
+        self.layout = QFormLayout(self)
+        self.lb_question = QLabel(f'Es wurden insgesamt {poss_nr_plans} berechnet.\n'
+                                  f'Wie viele davon möchten Sie verwenden?')
+        self.spin_nr_plans = QSpinBox()
+        self.spin_nr_plans.setRange(1, poss_nr_plans)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        self.layout.addRow(self.lb_question)
+        self.layout.addRow('Anzahl Pläne:', self.spin_nr_plans)
+        self.layout.addRow(self.button_box)
+
+    def get_nr_versions_to_use(self):
+        return self.spin_nr_plans.value()
+
 
 
 class SolverThread(QThread):
@@ -22,13 +49,15 @@ class SolverThread(QThread):
         self.finished.emit(schedule_versions)  # Emit the finished signal when the solver completes
 
 
-class Calculate(QDialog):
+class DlgCalculate(QDialog):
     def __init__(self, parent: QWidget, team_id: UUID):
         super().__init__(parent)
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
         self._schedule_versions: list[list[schemas.AppointmentCreate]] | None = None
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout(self)
 
@@ -71,6 +100,7 @@ class Calculate(QDialog):
         # Create the solver thread and connect the finished signal to close the progress dialog
         solver_thread = SolverThread(self, self.curr_plan_period_id)
         solver_thread.finished.connect(progress_dialog.close)
+        solver_thread.finished.connect(lambda schedule_versions: self.save_plan_to_db(schedule_versions))
         solver_thread.finished.connect(lambda schedule_versions: self.set_schedule_versions(schedule_versions))
         solver_thread.finished.connect(self.accept)
 
@@ -100,6 +130,25 @@ class Calculate(QDialog):
     def set_schedule_versions(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
         self._schedule_versions = schedule_versions
         self.get_schedule_versions()
+
+    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
+        nr_versions_to_use = (len_versions := len(schedule_versions))
+        if len_versions > 1:
+            dlg = DlgAskNrPlansToSave(self, len_versions)
+            if dlg.exec():
+                nr_versions_to_use = dlg.get_nr_versions_to_use()
+
+        versions_to_use = random.sample(schedule_versions, k=nr_versions_to_use)
+
+        for i, version in enumerate(versions_to_use):
+            version: list[schemas.AppointmentCreate]
+            plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
+            name_plan = f'{plan_period.start:%d.%m.%y}-{plan_period.end: %d.%m.%y} ({i})'
+            plan_create_command = plan_commands.Create(self.curr_plan_period_id, name_plan)
+            self.controller.execute(plan_create_command)
+            plan_id = plan_create_command.plan.id
+            for appointment in version:
+                self.controller.execute(appointment_commands.Create(appointment, plan_id))
 
     def get_schedule_versions(self):
         return self._schedule_versions

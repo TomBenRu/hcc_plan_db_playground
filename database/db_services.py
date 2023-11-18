@@ -2020,3 +2020,70 @@ class ActorPartnerLocationPref:
         for apl_pref in apl_prefs_form__person:
             if apl_pref.prep_delete:
                 apl_pref.delete()
+
+
+class Plan:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(plan_period_id: UUID, name: str, notes: str = '') -> schemas.PlanShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        plan_db = models.Plan(name=name, plan_period=plan_period_db, notes=notes)
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(plan_id: UUID) -> schemas.PlanShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        plan_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(plan_id: UUID) -> schemas.PlanShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        plan_db.prep_delete = None
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+
+class Appointment:
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.AppointmentShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        event_db = models.Event.get_for_update(id=appointment.event.id)
+        avail_days_db = [models.AvailDay.get_for_update(id=avd.id) for avd in appointment.avail_days]
+        appointment_db = models.Appointment(
+            avail_days=avail_days_db, event=event_db, plan=plan_db, notes=appointment.notes)
+
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(appointment_id: UUID) -> schemas.AppointmentShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        appointment_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(appointment_id: UUID) -> schemas.AppointmentShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        appointment_db.prep_delete = None
+
+        return schemas.AppointmentShow.model_validate(appointment_db)

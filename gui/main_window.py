@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
 
-        dlg = frm_calclate_plan.Calculate(self, self.curr_team.id)
+        dlg = frm_calclate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():
             QTimer.singleShot(50, show_schedule_versions)
 

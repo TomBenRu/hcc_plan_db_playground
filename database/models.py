@@ -546,6 +546,7 @@ class Appointment(db.Entity):
     notes = Optional(str, nullable=True)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    prep_delete = Optional(datetime.datetime)
     avail_days = Set(AvailDay)  # je nach Besetzung werden mehrere Inst. von AvailDay zugeordnet.
     event = Required(Event)
     plan = Required('Plan')

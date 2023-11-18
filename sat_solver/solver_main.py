@@ -312,6 +312,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
 
 
 def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
+    # todo: Schleifen können vermutlich vereinfacht werden, indem zuerst über entities.shift_vars iteriert wird.
     loc_pref_vars = []
     for avail_day_group_id, avail_day_group in entities.avail_day_groups_with_avail_day.items():
         avail_day = avail_day_group.avail_day

@@ -62,7 +62,7 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
     def __init__(self, unassigned_shifts_per_event: list[IntVar],
                  sum_assigned_shifts: dict[UUID, IntVar], sum_squared_deviations: IntVar,
                  fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar], limit: int | None,
-                 print_results: bool):
+                 print_results: bool, collect_schedule_versions=False):
         cp_model.CpSolverSolutionCallback.__init__(self)
         self._unassigned_shifts_per_event = unassigned_shifts_per_event
         self._solution_count = 0
@@ -72,17 +72,35 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
         self._solution_limit = limit
         self._max_assigned_shifts: defaultdict[UUID, int] = defaultdict(int)
         self._print_results = print_results
+        self._collect_schedule_versions = collect_schedule_versions
+
+        self._schedule_versions: list[list[schemas.AppointmentCreate]] = []
 
     def on_solution_callback(self):
         self._solution_count += 1
         if self._print_results:
             self.print_results()
+        if self._collect_schedule_versions:
+            self.collect_schedule_versions()
         for app_id, s in self._sum_assigned_shifts.items():
             self._max_assigned_shifts[app_id] = max(self._max_assigned_shifts[app_id], self.Value(s))
 
         if self._solution_limit and self._solution_count >= self._solution_limit:
             print(f"Stop search after {self._solution_limit} solutions")
             self.StopSearch()
+
+    def collect_schedule_versions(self):
+        self._schedule_versions.append([])
+
+        assigned_avail_day_groups: defaultdict[UUID, list[UUID]] = defaultdict(list)
+        for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+            if self.Value(shift_var):
+                assigned_avail_day_groups[eg_id].append(adg_id)
+        for eg_id, adg_ids in assigned_avail_day_groups.items():
+            event = entities.event_groups_with_event[eg_id].event
+            avail_days = [entities.avail_day_groups_with_avail_day[adg_id].avail_day for adg_id in adg_ids]
+            appointment = schemas.AppointmentCreate(avail_days=avail_days, event=event)
+            self._schedule_versions[-1].append(appointment)
 
     def print_results(self):
         print(f"Solution {self._solution_count}")
@@ -121,6 +139,9 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
 
     def get_max_assigned_shifts(self):
         return self._max_assigned_shifts
+
+    def get_schedule_versions(self):
+        return self._schedule_versions
 
     def solution_count(self):
         return self._solution_count
@@ -705,7 +726,8 @@ def solve_model_with_solver_solution_callback(
         constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str]],
         print_solution_printer_results: bool,
         limit: int | None,
-        log_search_process: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
+        log_search_process: bool,
+        collect_schedule_versions: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
     solver.parameters.log_search_progress = log_search_process
@@ -716,7 +738,8 @@ def solve_model_with_solver_solution_callback(
                                                       sum_assigned_shifts,
                                                       sum_squared_deviations,
                                                       constraints_fixed_cast_conflicts,
-                                                      limit, print_solution_printer_results)
+                                                      limit, print_solution_printer_results,
+                                                      collect_schedule_versions)
 
     status = solver.Solve(model, solution_printer)
 
@@ -803,7 +826,7 @@ def call_solver_with_unadjusted_requested_assignments(
 def call_solver_with_fixed_unassigned_shifts(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
         unassigned_shifts: int, sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int,
-        print_solution_printer_results: bool, log_search_process: bool):
+        print_solution_printer_results: bool, log_search_process: bool, collect_schedule_versions: bool):
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
@@ -823,7 +846,7 @@ def call_solver_with_fixed_unassigned_shifts(
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
-        print_solution_printer_results, 500, log_search_process)
+        print_solution_printer_results, 500, log_search_process, collect_schedule_versions)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
@@ -868,12 +891,12 @@ def call_solver_with_adjusted_requested_assignments(
             solver.Value(sum(constraints_fixed_cast_conflicts.values())))
 
 
-def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
+def call_solver_with__fixed_constraint_results(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
         weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
         sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, print_solution_printer_results: bool,
-        log_search_process: bool):
+        log_search_process: bool, collect_schedule_versions: bool) -> EmployeePartialSolutionPrinter:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
@@ -892,10 +915,12 @@ def call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
-        print_solution_printer_results, 100, log_search_process)
+        print_solution_printer_results, 100, log_search_process, collect_schedule_versions)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
+
+    return solution_printer
 
 
 def solve(plan_period_id: UUID, log_search_process=False):
@@ -920,7 +945,8 @@ def solve(plan_period_id: UUID, log_search_process=False):
                                                                   sum_partner_loc_prefs,
                                                                   sum_fixed_cast_conflicts,
                                                                   False,
-                                                                  log_search_process)
+                                                                  log_search_process,
+                                                                  False)
     (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
      sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res,
      sum_fixed_cast_conflicts_res) = call_solver_with_adjusted_requested_assignments(event_group_tree,
@@ -929,18 +955,20 @@ def solve(plan_period_id: UUID, log_search_process=False):
                                                                                      assigned_shifts,
                                                                                      max_shifts_per_app,
                                                                                      log_search_process)
-    call_solver_with__fixed_unassigned_shifts_fixed_squared_deviation(event_group_tree,
-                                                                      avail_day_group_tree,
-                                                                      cast_group_tree,
-                                                                      unassigned_shifts_per_event_res,
-                                                                      sum_squared_deviations_res,
-                                                                      sum_weights_shifts_in_avail_day_groups,
-                                                                      sum_weights_in_event_groups,
-                                                                      sum_location_prefs_res,
-                                                                      sum_partner_loc_prefs_res,
-                                                                      sum_fixed_cast_conflicts_res,
-                                                                      True,
-                                                                      log_search_process)
+    solution_printer = call_solver_with__fixed_constraint_results(event_group_tree,
+                                                                  avail_day_group_tree,
+                                                                  cast_group_tree,
+                                                                  unassigned_shifts_per_event_res,
+                                                                  sum_squared_deviations_res,
+                                                                  sum_weights_shifts_in_avail_day_groups,
+                                                                  sum_weights_in_event_groups,
+                                                                  sum_location_prefs_res,
+                                                                  sum_partner_loc_prefs_res,
+                                                                  sum_fixed_cast_conflicts_res,
+                                                                  True,
+                                                                  log_search_process,
+                                                                  True)
+    return solution_printer.get_schedule_versions()
 
 
 if __name__ == '__main__':

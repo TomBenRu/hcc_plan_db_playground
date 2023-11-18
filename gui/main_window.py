@@ -1,9 +1,10 @@
 import datetime
 import functools
+import pprint
 import sys
 from uuid import UUID
 
-from PySide6.QtCore import QRect
+from PySide6.QtCore import QRect, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout
 
@@ -263,14 +264,22 @@ class MainWindow(QMainWindow):
         ...
 
     def calculate_plans(self):
-        print('calculate_plans')
+        def print_schedule_versions():
+            schedule_versions = dlg.get_schedule_versions()
+            for schedule_version in schedule_versions:
+                schedule_version.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+                pprint.pprint([f'{a.event.date:%d.%m.%y} ({a.event.time_of_day.name}), '
+                               f'{a.event.location_plan_period.location_of_work.name}: '
+                               f'{[avd.actor_plan_period.person.f_name for avd in a.avail_days]}'
+                               for a in schedule_version])
+
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
 
         dlg = frm_calclate_plan.Calculate(self, self.curr_team.id)
         if dlg.exec():
-            print('Plan erstellt.')
+            QTimer.singleShot(50, print_schedule_versions)
 
     def plan_infos(self):
         ...

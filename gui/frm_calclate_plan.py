@@ -1,3 +1,4 @@
+import pprint
 from uuid import UUID
 
 from PySide6.QtCore import QThread, Signal, QObject, Qt
@@ -5,11 +6,11 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, 
     QProgressDialog
 
 import sat_solver.solver_main
-from database import db_services
+from database import db_services, schemas
 
 
 class SolverThread(QThread):
-    finished = Signal()  # Signal emitted when the solver finishes
+    finished = Signal(object)  # Signal emitted when the solver finishes
 
     def __init__(self, parent: QObject, plan_period_id: UUID):
         super().__init__(parent)
@@ -17,8 +18,8 @@ class SolverThread(QThread):
 
     def run(self):
         # Call the solver function here
-        sat_solver.solver_main.solve(self.plan_period_id)
-        self.finished.emit()  # Emit the finished signal when the solver completes
+        schedule_versions = sat_solver.solver_main.solve(self.plan_period_id)
+        self.finished.emit(schedule_versions)  # Emit the finished signal when the solver completes
 
 
 class Calculate(QDialog):
@@ -27,6 +28,7 @@ class Calculate(QDialog):
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
+        self._schedule_versions: list[list[schemas.AppointmentCreate]] | None = None
 
         self.layout = QVBoxLayout(self)
 
@@ -48,12 +50,12 @@ class Calculate(QDialog):
                                            | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
 
-        self.button_box.accepted.connect(self.accept)
+        self.button_box.accepted.connect(self.calculate_schedule_versions)
         self.button_box.rejected.connect(self.reject)
 
         self.fill_out_widgets()
 
-    def accept(self):
+    def calculate_schedule_versions(self):
         if not self.curr_plan_period_id:
             QMessageBox.critical(self, 'Zeitraum', 'Bitte wählen Sie zuerst einen Zeitraum.')
             return
@@ -63,24 +65,26 @@ class Calculate(QDialog):
         progress_dialog.setLabelText("Solving...")
         progress_dialog.setRange(0, 0)  # Indeterminate progress bar
         progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)  # Set as modal window
+        progress_dialog.setFixedWidth(300)
         progress_dialog.setCancelButton(None)
 
         # Create the solver thread and connect the finished signal to close the progress dialog
         solver_thread = SolverThread(self, self.curr_plan_period_id)
         solver_thread.finished.connect(progress_dialog.close)
+        solver_thread.finished.connect(lambda schedule_versions: self.set_schedule_versions(schedule_versions))
+        solver_thread.finished.connect(self.accept)
 
         # Show the progress dialog and start the solver thread
         progress_dialog.show()
         solver_thread.start()
-
-        super().accept()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)
 
         self.setWindowTitle(f'Einsatzplan-Erstellung {team.name}')
 
-        self.lb_explanation.setText('Sie können automatisch Spielpläne für einen gewählten Planungszeitraum erstellen.')
+        self.lb_explanation.setText(f'Sie können automatisch für das Team {team.name}\n'
+                                    f'Spielpläne für einen gewählten Planungszeitraum erstellen.')
 
         plan_periods = sorted([pp for pp in team.plan_periods if not pp.prep_delete],
                               key=lambda x: x.start, reverse=True)
@@ -92,3 +96,10 @@ class Calculate(QDialog):
 
     def combo_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
+
+    def set_schedule_versions(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
+        self._schedule_versions = schedule_versions
+        self.get_schedule_versions()
+
+    def get_schedule_versions(self):
+        return self._schedule_versions

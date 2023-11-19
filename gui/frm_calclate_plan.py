@@ -127,6 +127,7 @@ class DlgCalculate(QDialog):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
 
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
+        plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
         nr_versions_to_use = (len_versions := len(schedule_versions))
         if len_versions > 1:
             dlg = DlgAskNrPlansToSave(self, len_versions)
@@ -135,10 +136,16 @@ class DlgCalculate(QDialog):
 
         versions_to_use = random.sample(schedule_versions, k=nr_versions_to_use)
 
-        for i, version in enumerate(versions_to_use):
+        saved_plan_names = self.get_saved_plan_period_names()
+        plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
+        new_first_plan_index = 0
+        while f'{plan_base_name} ({new_first_plan_index})' in saved_plan_names:
+            new_first_plan_index += 1
+
+        for i, version in enumerate(versions_to_use, start=new_first_plan_index):
             version: list[schemas.AppointmentCreate]
-            plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
-            name_plan = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y} ({i})'
+            name_plan = f'{plan_base_name} ({i:0>2})'
+
             plan_create_command = plan_commands.Create(self.curr_plan_period_id, name_plan)
             self.controller.execute(plan_create_command)
             self._created_plan_ids.append(plan_create_command.plan.id)
@@ -146,8 +153,8 @@ class DlgCalculate(QDialog):
                 self.controller.execute(
                     appointment_commands.Create(appointment, self._created_plan_ids[-1]))
 
-    def get_saved_plan_period_names(self):
-        ...
+    def get_saved_plan_period_names(self) -> set[str]:
+        return {p.name for p in db_services.Plan.get_all_from__team(self.team_id)}
 
     def get_created_plan_ids(self):
         return self._created_plan_ids

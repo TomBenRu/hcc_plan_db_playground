@@ -283,7 +283,9 @@ class MainWindow(QMainWindow):
                     self.new_plan_tab(plan)
 
     def new_plan_tab(self, plan: schemas.PlanShow):
-        self.tabs_plans.addTab(frm_plan.FrmTabPlan(self.tabs_plans, plan), plan.name)
+        new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
+        self.tabs_plans.addTab(new_widget, plan.name)
+        self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')
 
     def plan_infos(self):
         ...

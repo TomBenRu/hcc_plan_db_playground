@@ -2067,6 +2067,16 @@ class Plan:
 
         return [schemas.PlanShow.model_validate(p) for p in plans_db]
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes_from__team(team_id: UUID):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        team_db = models.Team.get_for_update(id=team_id)
+        plans_to_delete = models.Plan.select(lambda x: x.plan_period.team == team_db and x.prep_delete)
+        for plan in plans_to_delete:
+            plan.delete()
+
 
 class Appointment:
     @staticmethod

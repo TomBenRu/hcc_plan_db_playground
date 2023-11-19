@@ -71,6 +71,8 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
         self._fixed_cast_conflicts = fixed_cast_conflicts
         self._solution_limit = limit
         self._max_assigned_shifts: defaultdict[UUID, int] = defaultdict(int)
+        self._sum_max_assigned = 0
+        self._count_same_max_assigned = 0
         self._print_results = print_results
         self._collect_schedule_versions = collect_schedule_versions
 
@@ -82,12 +84,21 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
             self.print_results()
         if self._collect_schedule_versions:
             self.collect_schedule_versions()
+
         for app_id, s in self._sum_assigned_shifts.items():
             self._max_assigned_shifts[app_id] = max(self._max_assigned_shifts[app_id], self.Value(s))
 
         if self._solution_limit and self._solution_count >= self._solution_limit:
-            print(f"Stop search after {self._solution_limit} solutions")
+            print(f"Stop search after {self._solution_count} solutions")
             self.StopSearch()
+
+    def count_same_max_assigned_shifts(self):
+        old_sum_max_assigned = self._sum_max_assigned
+        if (new_sum_max_assigned := sum(self._max_assigned_shifts.values())) != old_sum_max_assigned:
+            self._sum_max_assigned = new_sum_max_assigned
+            self._count_same_max_assigned = 0
+        else:
+            self._count_same_max_assigned += 1
 
     def collect_schedule_versions(self):
         self._schedule_versions.append([])
@@ -383,6 +394,12 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
                                              entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
             model.AddMultiplicationEquality(all_active_var, [shift_active_var, entities.event_group_vars[eg_id]])
             model.AddMultiplicationEquality(plp_pref_vars[-1], [plp_weight_var, all_active_var])
+
+            # Falls eine der Personen absolut nicht mit der anderen Person besetzt werden soll
+            # und die Besetzungsstärke 2 ist, wird nur 1 dieser Personen besetzt:
+            exclusive = 0 if (score_0 and score_1) or event_group.event.cast_group.nr_actors >= 3 else 1
+            model.Add(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)] 
+                      + entities.shift_vars[(combo[1].avail_day_group_id, eg_id)] < 2).OnlyEnforceIf(exclusive)
 
     return plp_pref_vars
 
@@ -847,7 +864,7 @@ def call_solver_with_fixed_unassigned_shifts(
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
-        print_solution_printer_results, 500, log_search_process, collect_schedule_versions)
+        print_solution_printer_results, 1000, log_search_process, collect_schedule_versions)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
@@ -937,7 +954,6 @@ def solve(plan_period_id: UUID, log_search_process=False):
                                                                                    avail_day_group_tree,
                                                                                    cast_group_tree,
                                                                                    log_search_process)
-    print(f'pause: {sum_partner_loc_prefs=}')
     max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
                                                                   avail_day_group_tree,
                                                                   cast_group_tree,

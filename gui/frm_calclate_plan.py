@@ -55,7 +55,7 @@ class DlgCalculate(QDialog):
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
-        self._schedule_versions: list[list[schemas.AppointmentCreate]] | None = None
+        self._created_plan_ids: list[UUID] = []
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -101,7 +101,6 @@ class DlgCalculate(QDialog):
         solver_thread = SolverThread(self, self.curr_plan_period_id)
         solver_thread.finished.connect(progress_dialog.close)
         solver_thread.finished.connect(lambda schedule_versions: self.save_plan_to_db(schedule_versions))
-        solver_thread.finished.connect(lambda schedule_versions: self.set_schedule_versions(schedule_versions))
         solver_thread.finished.connect(self.accept)
 
         # Show the progress dialog and start the solver thread
@@ -127,10 +126,6 @@ class DlgCalculate(QDialog):
     def combo_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
 
-    def set_schedule_versions(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
-        self._schedule_versions = schedule_versions
-        self.get_schedule_versions()
-
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
         nr_versions_to_use = (len_versions := len(schedule_versions))
         if len_versions > 1:
@@ -143,12 +138,13 @@ class DlgCalculate(QDialog):
         for i, version in enumerate(versions_to_use):
             version: list[schemas.AppointmentCreate]
             plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
-            name_plan = f'{plan_period.start:%d.%m.%y}-{plan_period.end: %d.%m.%y} ({i})'
+            name_plan = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y} ({i})'
             plan_create_command = plan_commands.Create(self.curr_plan_period_id, name_plan)
             self.controller.execute(plan_create_command)
-            plan_id = plan_create_command.plan.id
+            self._created_plan_ids.append(plan_create_command.plan.id)
             for appointment in version:
-                self.controller.execute(appointment_commands.Create(appointment, plan_id))
+                self.controller.execute(
+                    appointment_commands.Create(appointment, self._created_plan_ids[-1]))
 
-    def get_schedule_versions(self):
-        return self._schedule_versions
+    def get_created_plan_ids(self):
+        return self._created_plan_ids

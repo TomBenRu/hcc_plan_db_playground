@@ -743,6 +743,7 @@ class CombinationLocationsPossibleShow(CombinationLocationsPossible):
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
+
 class PlanCreate(BaseModel):
     name: str
     notes: str = ''
@@ -756,7 +757,11 @@ class Plan(PlanCreate):
 
 
 class PlanShow(Plan):
-    pass
+    appointments: List[Appointment]
+
+    @field_validator('appointments')
+    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+        return [t for t in values]
 
 
 class ExcelExportSettingsCreate(BaseModel):

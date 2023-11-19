@@ -2053,6 +2053,20 @@ class Plan:
 
         return schemas.PlanShow.model_validate(plan_db)
 
+    @staticmethod
+    @db_session
+    def get(plan_id: UUID) -> schemas.PlanShow:
+        plan_db = models.Plan.get(id=plan_id)
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @staticmethod
+    @db_session
+    def get_all_from__team(team_id: UUID) -> list[schemas.PlanShow]:
+        plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id)
+
+        return [schemas.PlanShow.model_validate(p) for p in plans_db]
+
 
 class Appointment:
     @staticmethod

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QRect, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QIcon
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout, QInputDialog
 
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
@@ -158,8 +158,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def edit_plan_period(self):
-        plan_periods = db_services.PlanPeriod.get_all_from__project(self.project_id)
-        if not plan_periods:
+        if not (plan_periods := db_services.PlanPeriod.get_all_from__project(self.project_id)):
             QMessageBox.critical(self, 'Planungszeitraum Ändern', 'Es wurden noch keine Planungszeiträume angelegt.')
             return
         else:
@@ -167,9 +166,19 @@ class MainWindow(QMainWindow):
             if dlg.exec():
                 ...
 
-
     def open_plan(self):
-        ...
+        if not self.curr_team:
+            QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
+            return
+        plans = {p.name: p for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
+                                           key=lambda x: (x.plan_period.start, x.name), reverse=True)}
+        # Zeige den Dialog an, um einen Plan auszuwählen
+        chosen_plan_name, ok = QInputDialog.getItem(self, "Plan auswählen", "Wähle einen Plan aus:",
+                                                    list(plans), editable=False)
+        plan = plans[chosen_plan_name] if ok else None
+
+        if ok:
+            self.new_plan_tab(plan)
 
     def settings_project(self):
         dlg = DlgSettingsProject(self, self.project_id)
@@ -262,25 +271,19 @@ class MainWindow(QMainWindow):
         ...
 
     def calculate_plans(self):
-        def show_schedule_versions():
-            schedule_versions = dlg.get_schedule_versions()
-            for schedule_version in schedule_versions:
-                schedule_version.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
-                self.new_plan_tab(schedule_version)
-
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
 
         dlg = frm_calclate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():
-            QTimer.singleShot(50, show_schedule_versions)
+            if QMessageBox.question(self, 'Plänen anzeigen', 'Sollen die erstellten Pläne angezeigt werden?'):
+                for plan_id in dlg.get_created_plan_ids():
+                    plan = db_services.Plan.get(plan_id)
+                    self.new_plan_tab(plan)
 
-    def new_plan_tab(self, schedule_version: list[schemas.AppointmentCreate]):
-        self.tabs_plans.addTab(frm_plan.FrmTabPlan(self.tabs_plans, schedule_version),
-                               f'Neu '
-                               f'{schedule_version[-1].event.location_plan_period.plan_period.start:%d.%m.%y}-'
-                               f'{schedule_version[-1].event.location_plan_period.plan_period.end:%d.%m.%y}')
+    def new_plan_tab(self, plan: schemas.PlanShow):
+        self.tabs_plans.addTab(frm_plan.FrmTabPlan(self.tabs_plans, plan), plan.name)
 
     def plan_infos(self):
         ...

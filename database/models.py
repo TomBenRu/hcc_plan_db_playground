@@ -697,7 +697,7 @@ class ActorLocationPref(db.Entity):
 
 class Plan(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    name = Required(str, 50, unique=True)
+    name = Required(str, 50)
     notes = Optional(str, nullable=True)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
@@ -706,6 +706,8 @@ class Plan(db.Entity):
     plan_period = Required(PlanPeriod)
     location_columns = Required(Json, default="{}")  # type -> dict[int, list[int]] ({weekday_nr: [Institution.id]})
     excel_export_settings = Optional('ExcelExportSettings')
+
+    composite_key(name, plan_period)
 
     @property
     def team(self):

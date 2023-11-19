@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('72F1D1E9BF554F11AE44916411A9819E')
+        self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
         self.curr_team: schemas.TeamShow | None = None
 
         self.actions = {

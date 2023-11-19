@@ -146,5 +146,8 @@ class DlgCalculate(QDialog):
                 self.controller.execute(
                     appointment_commands.Create(appointment, self._created_plan_ids[-1]))
 
+    def get_saved_plan_period_names(self):
+        ...
+
     def get_created_plan_ids(self):
         return self._created_plan_ids

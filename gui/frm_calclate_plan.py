@@ -138,13 +138,14 @@ class DlgCalculate(QDialog):
 
         saved_plan_names = self.get_saved_plan_period_names()
         plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
-        new_first_plan_index = 0
-        while f'{plan_base_name} ({new_first_plan_index})' in saved_plan_names:
-            new_first_plan_index += 1
+        new_first_plan_index = 1
 
-        for i, version in enumerate(versions_to_use, start=new_first_plan_index):
+        for version in versions_to_use:
+            while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
+                new_first_plan_index += 1
             version: list[schemas.AppointmentCreate]
-            name_plan = f'{plan_base_name} ({i:0>2})'
+            name_plan = f'{plan_base_name} ({new_first_plan_index:0>2})'
+            new_first_plan_index += 1
 
             plan_create_command = plan_commands.Create(self.curr_plan_period_id, name_plan)
             self.controller.execute(plan_create_command)

@@ -34,7 +34,8 @@ class FrmMasterData(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.tab_bar = TabBar(self, 'north', 12, 20, 200, False, 'tabbar_masterdata')
+        self.tab_bar = TabBar(self, 'north', 12, 20, 200, False, True,
+                              None, 'tabbar_masterdata')
         self.layout.addWidget(self.tab_bar)
 
         self.widget_persons = WidgetPerson(project_id)

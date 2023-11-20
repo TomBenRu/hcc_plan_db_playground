@@ -4,10 +4,12 @@ import pprint
 import sys
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QTimer
+from PySide6.QtCore import QRect, QTimer, QPoint
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout, QInputDialog
 
+from commands import command_base_classes
+from commands.database_commands import plan_commands
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
 from . import frm_comb_loc_possible, frm_calclate_plan, frm_plan
@@ -15,6 +17,7 @@ from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from .actions import Action
+from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_settings import DlgSettingsProject
 from .tabbars import TabBar
@@ -31,6 +34,8 @@ class MainWindow(QMainWindow):
 
         self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
         self.curr_team: schemas.TeamShow | None = None
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.actions = {
             Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
@@ -70,6 +75,9 @@ class MainWindow(QMainWindow):
                    'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
             Action(self, 'resources/toolbar_icons/icons/gear.png', 'Einstellungen...',
                    'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
+            Action(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
+                   f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
+                   self.plans_of_team_delete_prep_deletes),
             Action(self, None, 'Events aus Plan zu Events-Maske...',
                    'Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.',
                    self.apply_events__plan_to_mask),
@@ -107,7 +115,8 @@ class MainWindow(QMainWindow):
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
                            self.actions['plan_calculation_settings'], None,
-                           self.actions['open_plan'], self.actions['save_plan'], None,
+                           self.actions['open_plan'], self.actions['save_plan'],
+                           self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
@@ -136,10 +145,12 @@ class MainWindow(QMainWindow):
 
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
+
         self.tabs_planungsmasken = TabBar(self.widget_planungsmasken, None, 10, 25)
         self.tabs_planungsmasken.setObjectName('masks')
 
-        self.tabs_plans = TabBar(self.widget_plans, None, 10, 25)
+        self.tabs_plans = TabBar(self.widget_plans, None, 10, 25, None, True,
+                                 True, lambda point, index: self.context_menu_tabs_plans(point, index))
         self.tabs_plans.setObjectName('plans')
         self.tabs_left.addTab(self.tabs_planungsmasken, 'Planungsmasken')
         self.tabs_left.addTab(self.tabs_plans, 'Einsatzpläne')
@@ -171,7 +182,15 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
             return
         plans = {p.name: p for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
-                                           key=lambda x: (x.plan_period.start, x.name), reverse=True)}
+                                           key=lambda x: (x.plan_period.start, x.name), reverse=True)
+                 if not p.prep_delete
+                 and p.id not in {tab.plan.id
+                                  for tab in [self.tabs_plans.widget(i)for i in range(self.tabs_plans.count())]}}
+        if not plans:
+            QMessageBox.critical(self, 'Plan öffnen',
+                                 f'Es sind keine Pläne des Teams {self.curr_team.name} vorhanden. ')
+            return
+
         # Zeige den Dialog an, um einen Plan auszuwählen
         chosen_plan_name, ok = QInputDialog.getItem(self, "Plan auswählen", "Wähle einen Plan aus:",
                                                     list(plans), editable=False)
@@ -179,6 +198,33 @@ class MainWindow(QMainWindow):
 
         if ok:
             self.new_plan_tab(plan)
+
+    def context_menu_tabs_plans(self, point: QPoint, index: int):
+        context_menu = QMenu()
+        context_menu.addAction(Action(context_menu, None, 'Tab schließen', None,
+                                      lambda: self.remove_plan(index)))
+        context_menu.addAction(Action(context_menu, None, 'Plan löschen...', None,
+                                      lambda: self.delete_plan(index)))
+        context_menu.exec(self.tabs_plans.mapToGlobal(point))
+
+    def remove_plan(self, index: int):
+        self.tabs_plans.removeTab(index)
+
+    def delete_plan(self, index: int):
+        widget: FrmTabPlan = self.tabs_plans.widget(index)
+        confirmation = QMessageBox.question(self, 'Plan löschen',
+                                            f'Möchten Sie den Plan {widget.plan.name} wirklich löschen?')
+        if confirmation == QMessageBox.Yes:
+            self.remove_plan(index)
+            self.controller.execute(plan_commands.Delete(widget.plan.id))
+
+    def plans_of_team_delete_prep_deletes(self):
+        confirmation = QMessageBox.question(self, 'Pläne endgültig löschen',
+                                            f'Sollen wirklich alle zum Löschen markierte Pläne des '
+                                            f'Teams {self.curr_team.name} endgültig gelöscht werden?'
+                                            f'\ndieser Vorgang kann nicht rückgängig gemacht werden.')
+        if confirmation == QMessageBox.Yes:
+            db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)
 
     def settings_project(self):
         dlg = DlgSettingsProject(self, self.project_id)
@@ -202,7 +248,11 @@ class MainWindow(QMainWindow):
         ...
 
     def save_plan(self):
-        ...
+        if not self.tabs_plans.count():
+            QMessageBox.critical(self, 'Plan speichern', 'Sie müssen zuerst ein Plan öffnen.')
+            return
+        active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        print(f'{active_widget.plan.name=}')
 
     def sheets_for_availables(self):
         ...

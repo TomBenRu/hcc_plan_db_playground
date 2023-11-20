@@ -752,6 +752,7 @@ class PlanCreate(BaseModel):
 
 class Plan(PlanCreate):
     model_config = ConfigDict(from_attributes=True)
+    prep_delete: Optional[datetime.datetime]
 
     id: UUID
 

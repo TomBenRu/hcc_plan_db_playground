@@ -32,3 +32,19 @@ class Delete(Command):
 
     def redo(self):
         db_services.Plan.delete(self.plan_id)
+
+
+class UpdateName(Command):
+    def __init__(self, plan_id, new_name: str):
+        self.plan_id = plan_id
+        self.new_name = new_name
+        self.old_name = db_services.Plan.get(plan_id).name
+
+    def execute(self):
+        db_services.Plan.update_name(self.plan_id, self.new_name)
+
+    def undo(self):
+        db_services.Plan.update_name(self.plan_id, self.old_name)
+
+    def redo(self):
+        db_services.Plan.update_name(self.plan_id, self.new_name)

@@ -254,6 +254,8 @@ class MainWindow(QMainWindow):
         active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
         print(f'{active_widget.plan.name=}')
 
+        # self.controller.execute(plan_commands.UpdateName(active_widget.plan.id, active_widget.plan.name))
+
     def sheets_for_availables(self):
         ...
 

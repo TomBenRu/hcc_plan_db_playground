@@ -2077,6 +2077,16 @@ class Plan:
         for plan in plans_to_delete:
             plan.delete()
 
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_name(plan_id: UUID, new_name: str) -> schemas.PlanShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(i=plan_id)
+        plan_db.name = new_name
+
+        return schemas.PlanShow.model_validate(plan_db)
+
 
 class Appointment:
     @staticmethod

@@ -253,6 +253,7 @@ class MainWindow(QMainWindow):
             return
         active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
         print(f'{active_widget.plan.name=}')
+        # todo: Komplettieren!
 
         # self.controller.execute(plan_commands.UpdateName(active_widget.plan.id, active_widget.plan.name))
 

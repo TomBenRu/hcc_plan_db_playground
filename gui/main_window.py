@@ -228,10 +228,10 @@ class MainWindow(QMainWindow):
             return
 
         confirmation = QMessageBox.warning(self, 'Pläne endgültig löschen',
-                                            f'Sollen wirklich alle {num_plans_to_delete} zum Löschen markierte Pläne '
-                                            f'des Teams {self.curr_team.name} endgültig gelöscht werden?\n'
-                                            f'Dieser Vorgang kann nicht rückgängig gemacht werden.',
-                                           QMessageBox.)
+                                           f'Sollen wirklich alle {num_plans_to_delete} zum Löschen markierte Pläne '
+                                           f'des Teams {self.curr_team.name} endgültig gelöscht werden?\n'
+                                           f'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+                                           QMessageBox.Yes, QMessageBox.Cancel)
         if confirmation == QMessageBox.Yes:
             db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)
 

@@ -1,3 +1,4 @@
+import collections
 import datetime
 import functools
 import pprint
@@ -256,11 +257,21 @@ class MainWindow(QMainWindow):
         def generate_name_suggestion(plan: schemas.PlanShow):
             return f'{plan.plan_period.team.name} {plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
 
-        def confirm_plan_deletion(plan_name: str):
+        def new_name_suggestion_is_same_as_plan_name(name_suggestion: str, active_widget: FrmTabPlan) -> bool:
+            if name_suggestion == active_widget.plan.name:
+                QMessageBox.critical(self, 'Neuer Plan-Name',
+                                     f'Der aktuelle Plan hat bereits den Namen "{new_name_suggestion}".')
+                return True
+            return False
+
+        def confirm_plan_deletion(plan: schemas.PlanShow):
+            info_prep_deleted = 'Dieser Plan ist allerdings bereits zum Löschen markiert.\n' if plan.prep_delete else ''
             confirmation = QMessageBox.question(self, 'Neuer Plan-Name',
-                                                f'Ein Plan mit dem Namen "{plan_name}" existiert bereits.\n'
+                                                f'Ein Plan mit dem Namen "{plan.name}" existiert bereits.\n'
+                                                f'{info_prep_deleted}'
                                                 f'Falls Sie den aktuellen Plan unter diesem Namen abspeichern, '
                                                 f'wird der bereits existierende Plan desselben Namens gelöscht.\n'
+                                                f'Dieser Vorgang kann nicht rückgängig gemacht werden!\n'
                                                 f'Möchten Sie dies tun?')
             return confirmation == QMessageBox.Yes
 
@@ -288,9 +299,12 @@ class MainWindow(QMainWindow):
             return
         active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
         new_name_suggestion = generate_name_suggestion(active_widget.plan)
-        # todo: Komplettieren!
+
+        if new_name_suggestion_is_same_as_plan_name(new_name_suggestion, active_widget):
+            return
+
         if existing_plan_with_same_name := db_services.Plan.get_from__name(new_name_suggestion):
-            if not confirm_plan_deletion(new_name_suggestion):
+            if not confirm_plan_deletion(existing_plan_with_same_name):
                 return
             delete_existing_plan(existing_plan_with_same_name)
             remove_tab_with_name(new_name_suggestion)
@@ -371,7 +385,9 @@ class MainWindow(QMainWindow):
 
         dlg = frm_calclate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():
-            if QMessageBox.question(self, 'Plänen anzeigen', 'Sollen die erstellten Pläne angezeigt werden?'):
+            confirmation = QMessageBox.question(self, 'Plänen anzeigen',
+                                                'Sollen die erstellten Pläne angezeigt werden?')
+            if confirmation == QMessageBox.Yes:
                 for plan_id in dlg.get_created_plan_ids():
                     plan = db_services.Plan.get(plan_id)
                     self.new_plan_tab(plan)

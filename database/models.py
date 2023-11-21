@@ -559,10 +559,6 @@ class Appointment(db.Entity):
     def location_of_work(self):
         return self.event.location_of_work
 
-    @property
-    def weekday(self):
-        return self.event.date.isoweekday()
-
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
 
@@ -712,12 +708,6 @@ class Plan(db.Entity):
     @property
     def team(self):
         return self.plan_period.team
-
-    @property
-    def location_head_columns(self):
-        weekdays = sorted(list(self.appointments.weekday))
-        return {weekday: [ap.location_of_work for ap in self.appointments.select(lambda a: a.weekday == weekday)]
-                for weekday in weekdays}
 
     def before_insert(self):
         self.excel_export_settings = self.team.excel_export_settings

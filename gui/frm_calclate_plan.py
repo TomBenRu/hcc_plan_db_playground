@@ -19,7 +19,7 @@ class DlgAskNrPlansToSave(QDialog):
         self.poss_nr_plans = poss_nr_plans
 
         self.layout = QFormLayout(self)
-        self.lb_question = QLabel(f'Es wurden insgesamt {poss_nr_plans} berechnet.\n'
+        self.lb_question = QLabel(f'Es wurden insgesamt {poss_nr_plans} Pläne berechnet.\n'
                                   f'Wie viele davon möchten Sie verwenden?')
         self.spin_nr_plans = QSpinBox()
         self.spin_nr_plans.setRange(1, poss_nr_plans)

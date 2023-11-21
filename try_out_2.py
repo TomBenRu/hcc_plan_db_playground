@@ -1,29 +1,33 @@
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QApplication, QTabWidget, QWidget, QMenu
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtWidgets import QApplication, QWidget, QTabWidget
+import sys
 
-class MyTabWidget(QTabWidget):
+class MyWidget(QWidget):
     def __init__(self):
         super().__init__()
-        for i in range(3):
-            tab = QWidget()
-            self.addTab(tab, f"Tab {i}")
-            self.setTabToolTip(i, f"Dies ist Tab {i}")
+        self.initUI()
 
-        self.tabBar().setContextMenuPolicy(Qt.CustomContextMenu)
-        self.tabBar().customContextMenuRequested.connect(self.showContextMenu)
+    def initUI(self):
+        tab_widget = QTabWidget(self)
 
-    def showContextMenu(self, point: QPoint):
-        index = self.tabBar().tabAt(point)
-        if index >= 0:
-            context_menu = QMenu(self)
-            action1 = QAction("Aktion 1", self)
-            action2 = QAction("Aktion 2", self)
-            context_menu.addAction(action1)
-            context_menu.addAction(action2)
-            context_menu.exec(self.tabBar().mapToGlobal(point))
+        # Fügen Sie Tabs zum QTabWidget hinzu
+        tab_widget.addTab(QWidget(), "Tab 1")
+        tab_widget.addTab(QWidget(), "Tab 2")
+        tab_widget.addTab(QWidget(), "Tab 3")
 
-app = QApplication([])
-tab_widget = MyTabWidget()
-tab_widget.show()
-app.exec()
+        # Erhalten Sie den Index des Tabs mit der Beschriftung "Tab 2"
+        tab_label = "Tab 2"
+        tab_index = next(
+            (
+                index
+                for index in range(tab_widget.count())
+                if tab_widget.tabText(index) == tab_label
+            ),
+            -1,
+        )
+        print("Index des Tabs:", tab_index)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    widget = MyWidget()
+    widget.show()
+    sys.exit(app.exec())

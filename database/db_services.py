@@ -2062,10 +2062,27 @@ class Plan:
 
     @staticmethod
     @db_session
+    def get_from__name(plan_name: str) -> schemas.PlanShow | None:
+        plan_db = models.Plan.get_for_update(name=plan_name)
+
+        return schemas.PlanShow.model_validate(plan_db) if plan_db else None
+
+    @staticmethod
+    @db_session
     def get_all_from__team(team_id: UUID) -> list[schemas.PlanShow]:
         plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id)
 
         return [schemas.PlanShow.model_validate(p) for p in plans_db]
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deleted(cls, plan_id):
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        if not plan_db.prep_delete:
+            raise LookupError(f'Plan {plan_db.name} ist not marked to delete.')
+        plan_db.delete()
 
     @staticmethod
     @db_session(sql_debug=True, show_values=True)
@@ -2082,7 +2099,7 @@ class Plan:
     def update_name(plan_id: UUID, new_name: str) -> schemas.PlanShow:
         logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
                      f'args: {locals()}')
-        plan_db = models.Plan.get_for_update(i=plan_id)
+        plan_db = models.Plan.get_for_update(id=plan_id)
         plan_db.name = new_name
 
         return schemas.PlanShow.model_validate(plan_db)

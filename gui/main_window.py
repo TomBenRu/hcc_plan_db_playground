@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
                                   for tab in [self.tabs_plans.widget(i)for i in range(self.tabs_plans.count())]}}
         if not plans:
             QMessageBox.critical(self, 'Plan öffnen',
-                                 f'Es sind keine Pläne des Teams {self.curr_team.name} vorhanden. ')
+                                 f'Es sind keine weiteren Pläne des Teams {self.curr_team.name} vorhanden. ')
             return
 
         # Zeige den Dialog an, um einen Plan auszuwählen
@@ -248,14 +248,55 @@ class MainWindow(QMainWindow):
         ...
 
     def save_plan(self):
+        """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
+        Falls ein Plan dieses Namens schon vorhanden ist, wird angeboten diesen Plan zu löschen und den aktuellen Plan
+         unter diesem Namen abzuspeichern."""
+        # todo: Dialog, um Namensvorlage für das Speichern von Plänen festzulegen.
+
+        def generate_name_suggestion(plan: schemas.PlanShow):
+            return f'{plan.plan_period.team.name} {plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
+
+        def confirm_plan_deletion(plan_name: str):
+            confirmation = QMessageBox.question(self, 'Neuer Plan-Name',
+                                                f'Ein Plan mit dem Namen "{plan_name}" existiert bereits.\n'
+                                                f'Falls Sie den aktuellen Plan unter diesem Namen abspeichern, '
+                                                f'wird der bereits existierende Plan desselben Namens gelöscht.\n'
+                                                f'Möchten Sie dies tun?')
+            return confirmation == QMessageBox.Yes
+
+        def delete_existing_plan(plan: schemas.PlanShow):
+            self.controller.execute(plan_commands.Delete(plan.id))
+            self.controller.execute(plan_commands.DeletePrepDeleted(plan.id))
+
+        def remove_tab_with_name(tab_name: str):
+            tab_to_remove_index = next(
+                (i for i in range(self.tabs_plans.count())
+                 if self.tabs_plans.tabText(i) == tab_name), -1
+            )
+            self.tabs_plans.removeTab(tab_to_remove_index)
+
+        def update_plan_name(widget: FrmTabPlan, new_name: str):
+            update_name_command = plan_commands.UpdateName(widget.plan.id, new_name)
+            self.controller.execute(update_name_command)
+            widget.plan = update_name_command.updatet_plan
+
+        def update_tab_text(new_text):
+            self.tabs_plans.setTabText(self.tabs_plans.currentIndex(), new_text)
+
         if not self.tabs_plans.count():
             QMessageBox.critical(self, 'Plan speichern', 'Sie müssen zuerst ein Plan öffnen.')
             return
         active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
-        print(f'{active_widget.plan.name=}')
+        new_name_suggestion = generate_name_suggestion(active_widget.plan)
         # todo: Komplettieren!
+        if existing_plan_with_same_name := db_services.Plan.get_from__name(new_name_suggestion):
+            if not confirm_plan_deletion(new_name_suggestion):
+                return
+            delete_existing_plan(existing_plan_with_same_name)
+            remove_tab_with_name(new_name_suggestion)
 
-        # self.controller.execute(plan_commands.UpdateName(active_widget.plan.id, active_widget.plan.name))
+        update_plan_name(active_widget, new_name_suggestion)
+        update_tab_text(new_name_suggestion)
 
     def sheets_for_availables(self):
         ...

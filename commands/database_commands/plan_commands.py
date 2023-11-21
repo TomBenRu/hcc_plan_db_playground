@@ -34,14 +34,29 @@ class Delete(Command):
         db_services.Plan.delete(self.plan_id)
 
 
+class DeletePrepDeleted(Command):
+    def __init__(self, plan_id: UUID):
+        self.plan_id = plan_id
+
+    def execute(self):
+        db_services.Plan.delete_prep_deleted(self.plan_id)
+
+    def undo(self):
+        ...
+
+    def redo(self):
+        ...
+
+
 class UpdateName(Command):
     def __init__(self, plan_id, new_name: str):
         self.plan_id = plan_id
         self.new_name = new_name
         self.old_name = db_services.Plan.get(plan_id).name
+        self.updatet_plan: schemas.PlanShow | None = None
 
     def execute(self):
-        db_services.Plan.update_name(self.plan_id, self.new_name)
+        self.updatet_plan = db_services.Plan.update_name(self.plan_id, self.new_name)
 
     def undo(self):
         db_services.Plan.update_name(self.plan_id, self.old_name)

@@ -220,10 +220,18 @@ class MainWindow(QMainWindow):
             self.controller.execute(plan_commands.Delete(widget.plan.id))
 
     def plans_of_team_delete_prep_deletes(self):
-        confirmation = QMessageBox.question(self, 'Pläne endgültig löschen',
-                                            f'Sollen wirklich alle zum Löschen markierte Pläne des '
-                                            f'Teams {self.curr_team.name} endgültig gelöscht werden?'
-                                            f'\ndieser Vorgang kann nicht rückgängig gemacht werden.')
+        num_plans_to_delete = len([p for p in db_services.Plan.get_all_from__team(self.curr_team.id) if p.prep_delete])
+        if not num_plans_to_delete:
+            QMessageBox.information(self, 'Pläne löschen',
+                                    f'Es gibt keine Pläne des Teams "{self.curr_team.name}, '
+                                    f'die zum Löschen markiert sind.')
+            return
+
+        confirmation = QMessageBox.warning(self, 'Pläne endgültig löschen',
+                                            f'Sollen wirklich alle {num_plans_to_delete} zum Löschen markierte Pläne '
+                                            f'des Teams {self.curr_team.name} endgültig gelöscht werden?\n'
+                                            f'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+                                           QMessageBox.)
         if confirmation == QMessageBox.Yes:
             db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)
 

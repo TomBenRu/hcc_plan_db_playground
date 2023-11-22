@@ -13,7 +13,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import db_services, schemas
 from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
-from . import frm_comb_loc_possible, frm_calclate_plan, frm_plan
+from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -391,7 +391,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
 
-        dlg = frm_calclate_plan.DlgCalculate(self, self.curr_team.id)
+        dlg = frm_calculate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():
             confirmation = QMessageBox.question(self, 'Plänen anzeigen',
                                                 'Sollen die erstellten Pläne angezeigt werden?')

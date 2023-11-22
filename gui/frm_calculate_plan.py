@@ -35,7 +35,6 @@ class DlgAskNrPlansToSave(QDialog):
         return self.spin_nr_plans.value()
 
 
-
 class SolverThread(QThread):
     finished = Signal(object)  # Signal emitted when the solver finishes
 

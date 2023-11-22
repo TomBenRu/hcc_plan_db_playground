@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
                    'Öffnet Planungsmasken für Mitarbeiterverfügbarkeiten und Terminen an Einrichtungen',
                    self.open_actor_planperiod_location_planperiod),
             Action(self, 'resources/toolbar_icons/icons/disk.png', 'Plan speichern...', 'Speichert den aktiven Plan',
-                   self.save_plan),
+                   self.plan_save),
             Action(self, 'resources/toolbar_icons/icons/tables.png', 'Listen für Sperrtermine erzeugen...',
                    'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
                    self.sheets_for_availables),
@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         }
         self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
-            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'], self.actions['save_plan'], None,
+            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'], self.actions['plan_save'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
                            self.actions['plan_calculation_settings'], None,
-                           self.actions['open_plan'], self.actions['save_plan'],
+                           self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan'], None,
                            self.actions['apply_events__plan_to_mask']
@@ -229,7 +229,7 @@ class MainWindow(QMainWindow):
 
         confirmation = QMessageBox.warning(self, 'Pläne endgültig löschen',
                                            f'Sollen wirklich alle {num_plans_to_delete} zum Löschen markierte Pläne '
-                                           f'des Teams {self.curr_team.name} endgültig gelöscht werden?\n'
+                                           f'des Teams "{self.curr_team.name}" endgültig gelöscht werden?\n'
                                            f'Dieser Vorgang kann nicht rückgängig gemacht werden.',
                                            QMessageBox.Yes, QMessageBox.Cancel)
         if confirmation == QMessageBox.Yes:
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
     def open_actor_planperiod_location_planperiod(self):
         ...
 
-    def save_plan(self):
+    def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
         Falls ein Plan dieses Namens schon vorhanden ist, wird angeboten diesen Plan zu löschen und den aktuellen Plan
          unter diesem Namen abzuspeichern."""
@@ -278,7 +278,7 @@ class MainWindow(QMainWindow):
                                                 f'Ein Plan mit dem Namen "{plan.name}" existiert bereits.\n'
                                                 f'{info_prep_deleted}'
                                                 f'Falls Sie den aktuellen Plan unter diesem Namen abspeichern, '
-                                                f'wird der bereits existierende Plan desselben Namens gelöscht.\n'
+                                                f'wird der bereits existierende Plan mit dem gleichen Namen gelöscht.\n'
                                                 f'Dieser Vorgang kann nicht rückgängig gemacht werden!\n'
                                                 f'Möchten Sie dies tun?')
             return confirmation == QMessageBox.Yes

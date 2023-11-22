@@ -1,33 +1,23 @@
-from PySide6.QtWidgets import QApplication, QWidget, QTabWidget
+from PySide6.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QHeaderView
 import sys
 
-class MyWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
+app = QApplication(sys.argv)
 
-    def initUI(self):
-        tab_widget = QTabWidget(self)
+table = QTableWidget(5, 3)
+table.setHorizontalHeaderLabels(['Spalte 1', 'Spalte 2', 'Spalte 3'])
 
-        # Fügen Sie Tabs zum QTabWidget hinzu
-        tab_widget.addTab(QWidget(), "Tab 1")
-        tab_widget.addTab(QWidget(), "Tab 2")
-        tab_widget.addTab(QWidget(), "Tab 3")
+# Fügen Sie eine zusätzliche Zeile am Anfang der Tabelle hinzu
+table.insertRow(0)
 
-        # Erhalten Sie den Index des Tabs mit der Beschriftung "Tab 2"
-        tab_label = "Tab 2"
-        tab_index = next(
-            (
-                index
-                for index in range(tab_widget.count())
-                if tab_widget.tabText(index) == tab_label
-            ),
-            -1,
-        )
-        print("Index des Tabs:", tab_index)
+# Erstellen Sie ein QTableWidgetItem, das als Überschrift dient
+header = QTableWidgetItem("Überschrift über mehrere Spalten")
+table.setItem(0, 0, header)
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    widget = MyWidget()
-    widget.show()
-    sys.exit(app.exec())
+# Verbinden Sie die Zellen in der ersten Zeile
+table.setSpan(0, 0, 1, 3)
+
+# Blenden Sie die tatsächlichen Überschriften der Tabelle aus
+table.horizontalHeader().setVisible(False)
+
+table.show()
+sys.exit(app.exec())

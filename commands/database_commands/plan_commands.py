@@ -1,3 +1,4 @@
+import json
 from uuid import UUID
 
 from database import db_services, schemas
@@ -63,3 +64,28 @@ class UpdateName(Command):
 
     def redo(self):
         db_services.Plan.update_name(self.plan_id, self.new_name)
+
+
+class UpdateLocationColumns(Command):
+    def __init__(self, plan_id: UUID, location_columns: dict[int, list[UUID]]):
+        self.plan_id = plan_id
+        self._location_columns = location_columns
+        self._location_columns_old = db_services.Plan.get(plan_id).location_columns
+
+    @property
+    def location_columns(self):
+        return json.dumps({k: [str(u) for u in v] for k, v in self._location_columns.items()})
+
+    @property
+    def location_columns_old(self):
+        return json.dumps({k: [str(u) for u in v] for k, v in self._location_columns_old.items()})
+
+    def execute(self):
+        db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
+
+    def undo(self):
+        db_services.Plan.update_location_columns(self.plan_id, self.location_columns_old)
+
+    def redo(self):
+        db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
+

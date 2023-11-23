@@ -15,7 +15,7 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles
 from gui.actions import Action
 from commands import command_base_classes
-from commands.database_commands import cast_group_commands, event_commands
+from commands.database_commands import cast_group_commands, event_commands, plan_commands, appointment_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -530,6 +530,7 @@ class FrmLocationPlanPeriod(QWidget):
                                             time_of_day=t_o_d, flags=[])
             save_command = event_commands.Create(event_new)
             self.controller.execute(save_command)
+            created_event = save_command.created_event
 
             '''Falls es an diesem Tage schon einen oder mehrere Events gibt,
             werden die fixed_casts vom ersten gefundenen Event übernommen, weil, davon ausgegangen
@@ -537,17 +538,18 @@ class FrmLocationPlanPeriod(QWidget):
             if existing_events_on_day:
                 fixed_cast_first_event = db_services.Event.get(existing_events_on_day[0].id).cast_group.fixed_cast
                 self.controller.execute(
-                   cast_group_commands.UpdateFixedCast(save_command.created_event.cast_group.id,
-                                                       fixed_cast_first_event))
+                   cast_group_commands.UpdateFixedCast(created_event.cast_group.id, fixed_cast_first_event))
 
             self.reload_location_plan_period()
+            self.del_location_columns_of_plan_periods(created_event, True)
 
         else:
             event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
             del_command = event_commands.Delete(event.id)
             self.controller.execute(del_command)
+            deleted_event = del_command.event_to_delete
             self.reload_location_plan_period()
-            if not (event_group := del_command.event_to_delete.event_group.event_group).location_plan_period:
+            if not (event_group := deleted_event.event_group.event_group).location_plan_period:
                 if len(childs := db_services.EventGroup.get_child_groups_from__parent_group(event_group.id)) < 2:
                     solo_event = childs[0].event
                     QMessageBox.critical(self, 'Verfügbarkeitsgruppen',
@@ -563,6 +565,7 @@ class FrmLocationPlanPeriod(QWidget):
                                              f'Termin oder eine einzelne Untergruppe.'
                                              f'Bitte korrigieren Sie dies im folgenden Dialog.')
                         self.parent.edit_cast_groups_plan_period()
+            self.del_location_columns_of_plan_periods(deleted_event, False)
 
         bt.reload_location_plan_period()
 
@@ -572,6 +575,24 @@ class FrmLocationPlanPeriod(QWidget):
         signal_handling.handler_location_plan_period.reload_location_pp__event_configs(
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
+
+    def del_location_columns_of_plan_periods(self, event: schemas.Event, added: bool):
+        plans = db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
+        for plan in plans:
+            if added:
+                self.create_new_empty_appointment_in_plan(plan.id, event)
+            if plan.location_columns:
+                self.reset_plan_location_columns(plan)
+            signal_handling.handler_plan_tabs.event_changed(signal_handling.DataPlanEvent(plan.id, event.id, added))
+
+    def create_new_empty_appointment_in_plan(self, plan_id: UUID, event: schemas.Event):
+        self.controller.execute(
+            appointment_commands.Create(schemas.AppointmentCreate(avail_days=[], event=event), plan_id))
+
+    def reset_plan_location_columns(self, plan: schemas.PlanShow):
+        self.controller.execute(plan_commands.UpdateLocationColumns(plan.id, {}))
+        QMessageBox.information(self, 'Plan Layout',
+                                f'Die Reihenfolge der Spalten im Plan {plan.name} wurde zurückgesetzt.')
 
     def change_mode__event_group(self):  # todo: noch implementieren
         dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()

@@ -6,7 +6,9 @@ from uuid import UUID
 from PySide6 import QtCore
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView
 
-from database import schemas
+from commands import command_base_classes
+from commands.database_commands import plan_commands
+from database import schemas, db_services
 
 
 class FrmTabPlan(QWidget):
@@ -14,6 +16,8 @@ class FrmTabPlan(QWidget):
         super().__init__(parent=parent)
 
         self.plan = plan
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.week_num_weekday = self.generate_week_num_weekday()
         self.weekdays_locations = self.generate_weekdays_locations()
@@ -28,6 +32,10 @@ class FrmTabPlan(QWidget):
         self.display_appointments()
 
     def generate_weekdays_locations(self):
+        if self.plan.location_columns:
+            print(f'{self.plan.location_columns=}')
+            return {k: [db_services.LocationOfWork.get(u) for u in v] for k, v in self.plan.location_columns.items()}
+
         wds_locations: defaultdict[int, list[schemas.LocationOfWork]] = defaultdict(list)
         for appointment in self.plan.appointments:
             weekday = appointment.event.date.isoweekday()
@@ -35,6 +43,9 @@ class FrmTabPlan(QWidget):
                 wds_locations[weekday].append(appointment.event.location_plan_period.location_of_work)
         for weekday, locations in wds_locations.items():
             wds_locations[weekday] = sorted(locations, key=lambda x: (x.name, x.address.city))
+
+        location_columns = {k: [loc.id for loc in v] for k, v in wds_locations.items()}
+        self.controller.execute(plan_commands.UpdateLocationColumns(self.plan.id, location_columns))
         return wds_locations
 
     def generate_week_num_weekday(self):

@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from uuid import UUID
 
 from PySide6.QtCore import Signal, QObject
 
@@ -24,6 +25,15 @@ class DataGroupMode:
     date: datetime.date | None = None
     time_index: int | None = None
     group_nr: int | None = None
+
+
+@dataclass
+class DataPlanEvent:
+    """Wenn added==True: Event wurde hinzugefügt.
+    Wenn added==False: Event wurde entfernt."""
+    plan_id: UUID
+    event_id: UUID
+    added: bool
 
 
 class HandlerActorPlanPeriod(QObject):
@@ -66,5 +76,13 @@ class HandlerLocationPlanPeriod(QObject):
         self.signal_change_location_plan_period_group_mode.emit(group_mode)
 
 
+class HandlerPlanTabs(QObject):
+    signal_event_changed = Signal(object)
+
+    def event_changed(self, plan_event: DataPlanEvent):
+        self.signal_event_changed.emit(plan_event)
+
+
 handler_actor_plan_period = HandlerActorPlanPeriod()
 handler_location_plan_period = HandlerLocationPlanPeriod()
+handler_plan_tabs = HandlerPlanTabs()

@@ -2074,6 +2074,13 @@ class Plan:
 
         return [schemas.PlanShow.model_validate(p) for p in plans_db]
 
+    @staticmethod
+    @db_session
+    def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PlanShow]:
+        plans_db = models.Plan.select(lambda x: x.plan_period.id == plan_period_id)
+
+        return [schemas.PlanShow.model_validate(p) for p in plans_db]
+
     @classmethod
     @db_session(sql_debug=True, show_values=True)
     def delete_prep_deleted(cls, plan_id):
@@ -2101,6 +2108,16 @@ class Plan:
                      f'args: {locals()}')
         plan_db = models.Plan.get_for_update(id=plan_id)
         plan_db.name = new_name
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @staticmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_location_columns(plan_id: UUID, location_columns: str) -> schemas.PlanShow:
+        logging.info(f'function: {__name__}.{__class__.__name__}.{inspect.currentframe().f_code.co_name}\n'
+                     f'args: {locals()}')
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        plan_db.location_columns = location_columns
 
         return schemas.PlanShow.model_validate(plan_db)
 

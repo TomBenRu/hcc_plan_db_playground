@@ -1,8 +1,9 @@
 import datetime
-from typing import Optional, List, Protocol, runtime_checkable, Union, Any
+import json
+from typing import Optional, List, Protocol, runtime_checkable, Union, Any, Dict
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Json
 
 from database.enums import Gender
 
@@ -753,6 +754,7 @@ class PlanCreate(BaseModel):
 class Plan(PlanCreate):
     model_config = ConfigDict(from_attributes=True)
     prep_delete: Optional[datetime.datetime]
+    location_columns: Json[dict[int, list[UUID]]]
 
     id: UUID
 
@@ -761,7 +763,7 @@ class PlanShow(Plan):
     appointments: List[Appointment]
 
     @field_validator('appointments')
-    def set_to_set(cls, values):  # sourcery skip: identity-comprehension
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
 

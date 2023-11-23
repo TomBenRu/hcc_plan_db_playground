@@ -103,15 +103,17 @@ class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
     def collect_schedule_versions(self):
         self._schedule_versions.append([])
 
-        assigned_avail_day_groups: defaultdict[UUID, list[UUID]] = defaultdict(list)
-        for (adg_id, eg_id), shift_var in entities.shift_vars.items():
-            if self.Value(shift_var):
-                assigned_avail_day_groups[eg_id].append(adg_id)
-        for eg_id, adg_ids in assigned_avail_day_groups.items():
-            event = entities.event_groups_with_event[eg_id].event
-            avail_days = [entities.avail_day_groups_with_avail_day[adg_id].avail_day for adg_id in adg_ids]
-            appointment = schemas.AppointmentCreate(avail_days=avail_days, event=event)
-            self._schedule_versions[-1].append(appointment)
+        for event_group in sorted(list(entities.event_groups_with_event.values()),
+                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
+            if not self.Value(entities.event_group_vars[event_group.event_group_id]):
+                continue
+            scheduled_adg_ids = []
+            for (adg_id, eg_id), var in entities.shift_vars.items():
+                if eg_id == event_group.event_group_id and self.Value(var):
+                    scheduled_adg_ids.append(adg_id)
+            event = event_group.event
+            avail_days = [entities.avail_day_groups_with_avail_day[agd_id].avail_day for agd_id in scheduled_adg_ids]
+            self._schedule_versions[-1].append(schemas.AppointmentCreate(avail_days=avail_days, event=event))
 
     def print_results(self):
         print(f"Solution {self._solution_count}")

@@ -541,7 +541,7 @@ class FrmLocationPlanPeriod(QWidget):
                    cast_group_commands.UpdateFixedCast(created_event.cast_group.id, fixed_cast_first_event))
 
             self.reload_location_plan_period()
-            self.del_location_columns_of_plan_periods(created_event, True)
+            self.send_changes_to_plans(created_event, True)
 
         else:
             event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
@@ -565,7 +565,7 @@ class FrmLocationPlanPeriod(QWidget):
                                              f'Termin oder eine einzelne Untergruppe.'
                                              f'Bitte korrigieren Sie dies im folgenden Dialog.')
                         self.parent.edit_cast_groups_plan_period()
-            self.del_location_columns_of_plan_periods(deleted_event, False)
+            self.send_changes_to_plans(deleted_event, False)
 
         bt.reload_location_plan_period()
 
@@ -576,7 +576,7 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    def del_location_columns_of_plan_periods(self, event: schemas.Event, added: bool):
+    def send_changes_to_plans(self, event: schemas.Event, added: bool):
         plans = db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
         for plan in plans:
             if added:

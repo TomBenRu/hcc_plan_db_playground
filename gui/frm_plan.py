@@ -20,7 +20,7 @@ class FrmTabPlan(QWidget):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.week_num_weekday = self.generate_week_num_weekday()
-        self.weekdays_locations = self.generate_weekdays_locations()
+        self.weekdays_locations = self.get_weekdays_locations()
         self.column_assignments = self.generate_column_assignments()
 
         self.layout = QVBoxLayout(self)
@@ -31,21 +31,27 @@ class FrmTabPlan(QWidget):
         self.table_plan_config()
         self.display_appointments()
 
-    def generate_weekdays_locations(self):
+    def get_weekdays_locations(self):
         if self.plan.location_columns:
             return {k: [db_services.LocationOfWork.get(u) for u in v] for k, v in self.plan.location_columns.items()}
 
-        wds_locations: defaultdict[int, list[schemas.LocationOfWork]] = defaultdict(list)
+        weekdays_locations = self.generate_weekdays_locations()
+
+        location_columns = {k: [loc.id for loc in v] for k, v in weekdays_locations.items()}
+        self.controller.execute(plan_commands.UpdateLocationColumns(self.plan.id, location_columns))
+        return weekdays_locations
+
+    def generate_weekdays_locations(self):
+        weekdays_locations: defaultdict[int, list[schemas.LocationOfWork]] = defaultdict(list)
         for appointment in self.plan.appointments:
             weekday = appointment.event.date.isoweekday()
-            if appointment.event.location_plan_period.location_of_work.id not in [loc.id for loc in wds_locations[weekday]]:
-                wds_locations[weekday].append(appointment.event.location_plan_period.location_of_work)
-        for weekday, locations in wds_locations.items():
-            wds_locations[weekday] = sorted(locations, key=lambda x: (x.name, x.address.city))
+            if (appointment.event.location_plan_period.location_of_work.id
+                    not in {loc.id for loc in weekdays_locations[weekday]}):
+                weekdays_locations[weekday].append(appointment.event.location_plan_period.location_of_work)
+        for weekday, locations in weekdays_locations.items():
+            weekdays_locations[weekday] = sorted(locations, key=lambda x: (x.name, x.address.city))
 
-        location_columns = {k: [loc.id for loc in v] for k, v in wds_locations.items()}
-        self.controller.execute(plan_commands.UpdateLocationColumns(self.plan.id, location_columns))
-        return wds_locations
+        return weekdays_locations
 
     def generate_week_num_weekday(self):
         kws_wds: defaultdict[int, defaultdict[int, list[schemas.Appointment]]] = defaultdict(lambda: defaultdict(list))

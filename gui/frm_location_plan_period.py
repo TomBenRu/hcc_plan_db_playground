@@ -541,7 +541,7 @@ class FrmLocationPlanPeriod(QWidget):
                    cast_group_commands.UpdateFixedCast(created_event.cast_group.id, fixed_cast_first_event))
 
             self.reload_location_plan_period()
-            self.send_changes_to_plans(created_event, True)
+            self.send_event_changes_to_plans(created_event, True)
 
         else:
             event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
@@ -565,7 +565,7 @@ class FrmLocationPlanPeriod(QWidget):
                                              f'Termin oder eine einzelne Untergruppe.'
                                              f'Bitte korrigieren Sie dies im folgenden Dialog.')
                         self.parent.edit_cast_groups_plan_period()
-            self.send_changes_to_plans(deleted_event, False)
+            self.send_event_changes_to_plans(deleted_event, False)
 
         bt.reload_location_plan_period()
 
@@ -576,14 +576,15 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    def send_changes_to_plans(self, event: schemas.Event, added: bool):
+    def send_event_changes_to_plans(self, event: schemas.Event, event_added: bool):
         plans = db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
         for plan in plans:
-            if added:
+            if event_added:
                 self.create_new_empty_appointment_in_plan(plan.id, event)
             if plan.location_columns:
                 self.reset_plan_location_columns(plan)
-            signal_handling.handler_plan_tabs.event_changed(signal_handling.DataPlanEvent(plan.id, event.id, added))
+            signal_handling.handler_plan_tabs.event_changed(
+                signal_handling.DataPlanEvent(plan.id, event.id, event_added))
 
     def create_new_empty_appointment_in_plan(self, plan_id: UUID, event: schemas.Event):
         self.controller.execute(

@@ -56,7 +56,7 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
         app.requested_assignments = requested_assignments_new[app.id]
 
 
-class EmployeePartialSolutionPrinter(cp_model.CpSolverSolutionCallback):
+class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
     """Print intermediate solutions."""
 
     def __init__(self, unassigned_shifts_per_event: list[IntVar],
@@ -747,19 +747,19 @@ def solve_model_with_solver_solution_callback(
         print_solution_printer_results: bool,
         limit: int | None,
         log_search_process: bool,
-        collect_schedule_versions: bool) -> tuple[cp_model.CpSolver, EmployeePartialSolutionPrinter, CpSolverStatus]:
+        collect_schedule_versions: bool) -> tuple[cp_model.CpSolver, PartialSolutionCallback, CpSolverStatus]:
     # Solve the model.
     solver = cp_model.CpSolver()
     solver.parameters.log_search_progress = log_search_process
     solver.parameters.randomize_search = True
     solver.parameters.linearization_level = 0
     solver.parameters.enumerate_all_solutions = True
-    solution_printer = EmployeePartialSolutionPrinter(unassigned_shifts_per_event,
-                                                      sum_assigned_shifts,
-                                                      sum_squared_deviations,
-                                                      constraints_fixed_cast_conflicts,
-                                                      limit, print_solution_printer_results,
-                                                      collect_schedule_versions)
+    solution_printer = PartialSolutionCallback(unassigned_shifts_per_event,
+                                               sum_assigned_shifts,
+                                               sum_squared_deviations,
+                                               constraints_fixed_cast_conflicts,
+                                               limit, print_solution_printer_results,
+                                               collect_schedule_versions)
 
     status = solver.Solve(model, solution_printer)
 
@@ -779,7 +779,7 @@ def solve_model_to_optimum(model: cp_model.CpModel,
     return solver, status
 
 
-def print_statistics(solver: cp_model.CpSolver, solution_printer: EmployeePartialSolutionPrinter | None,
+def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutionCallback | None,
                      unassigned_shifts_per_event: dict[UUID, IntVar], sum_assigned_shifts: dict[UUID, IntVar],
                      sum_squared_deviations: IntVar,
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
@@ -916,7 +916,7 @@ def call_solver_with__fixed_constraint_results(
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
         weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
         sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, print_solution_printer_results: bool,
-        log_search_process: bool, collect_schedule_versions: bool) -> EmployeePartialSolutionPrinter:
+        log_search_process: bool, collect_schedule_versions: bool) -> PartialSolutionCallback:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)

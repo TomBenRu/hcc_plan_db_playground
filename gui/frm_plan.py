@@ -33,7 +33,6 @@ class FrmTabPlan(QWidget):
 
     def generate_weekdays_locations(self):
         if self.plan.location_columns:
-            print(f'{self.plan.location_columns=}')
             return {k: [db_services.LocationOfWork.get(u) for u in v] for k, v in self.plan.location_columns.items()}
 
         wds_locations: defaultdict[int, list[schemas.LocationOfWork]] = defaultdict(list)

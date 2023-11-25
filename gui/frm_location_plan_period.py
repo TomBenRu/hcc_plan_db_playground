@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles
+from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
 from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, event_commands, plan_commands, appointment_commands
@@ -127,7 +127,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.create_actions_times_of_day()
         self.reset_menu_times_of_day(self.location_plan_period)
         self.set_tooltip()
-        signal_handling.handler_location_plan_period.reload_location_pp__frm_location_plan_period()
+        signal_handling.handler_location_plan_period.reload_location_pp_on__frm_location_plan_period()
 
     def edit_skills(self):
         print('edit_skills')
@@ -389,6 +389,7 @@ class FrmLocationPlanPeriod(QWidget):
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
             self.reload_location_plan_period)
+        data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period)
 
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)

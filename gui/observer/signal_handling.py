@@ -69,7 +69,7 @@ class HandlerLocationPlanPeriod(QObject):
     def reload_location_pp__events(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__events.emit(data)
 
-    def reload_location_pp__frm_location_plan_period(self, data: schemas.LocationPlanPeriodShow = None):
+    def reload_location_pp_on__frm_location_plan_period(self, data: schemas.LocationPlanPeriodShow = None):
         self.signal_reload_location_pp__frm_location_plan_period.emit(data)
 
     def change_location_plan_period_group_mode(self, group_mode: DataGroupMode):

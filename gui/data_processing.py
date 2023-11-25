@@ -1,3 +1,5 @@
+import datetime
+from typing import Literal
 from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
@@ -19,7 +21,18 @@ class LocationPlanPeriodData:
         (signal_handling.handler_location_plan_period
          .reload_location_pp_on__frm_location_plan_period(self.location_plan_period))
 
-    def save_new_event(self, date, t_o_d):
+    def save_event(self, date: datetime.date, time_of_day: schemas.TimeOfDay, mode: Literal['added', 'deleted']):
+        if mode == 'added':
+            event = self._save_new_event(date, time_of_day)
+        elif mode == 'deleted':
+            event = self._delete_event(date, time_of_day)
+        else:
+            raise NameError('Keyword mode: only literals "added" or "deleted" are allowed.')
+        self.reload_location_plan_period()
+        self._emit_reload_signals(date)
+        self._send_event_changes_to_plans(event, mode)
+
+    def _save_new_event(self, date, t_o_d):
         existing_events_on_day = [event for event in self.location_plan_period.events
                                   if event.date == date and not event.prep_delete]
         event_new = schemas.EventCreate(date=date, location_plan_period=self.location_plan_period,
@@ -73,16 +86,16 @@ class LocationPlanPeriodData:
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    def _send_event_changes_to_plans(self, saved_event: schemas.EventShow, deleted_event: schemas.EventShow):
+    def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
         plans = db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
         for plan in plans:
-            if saved_event:
-                self._create_new_empty_appointment_in_plan(plan.id, saved_event)
+            if mode == 'added':
+                self._create_new_empty_appointment_in_plan(plan.id, event)
             if plan.location_columns:
                 self._reset_plan_location_columns(plan)
             signal_handling.handler_plan_tabs.event_changed(
                 signal_handling.DataPlanEvent(
-                    plan.id, (saved_event or deleted_event).id, bool(saved_event)
+                    plan.id, event.id, mode == 'added'
                 )
             )
 

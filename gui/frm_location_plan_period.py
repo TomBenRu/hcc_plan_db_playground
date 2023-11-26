@@ -482,9 +482,10 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(label, 1, col)
             if not self.t_o_d_standards:
                 QMessageBox.critical(self, 'Verfügbarkeiten',
-                                     f'Für diesen Planungszeitraum von {self.actor_plan_period.person.f_name} '
-                                     f'{self.actor_plan_period.person.l_name} sind noch keine '
-                                     f'Tageszeiten-Standartwerte definiert.')
+                                     f'Für diesen Planungszeitraum von '
+                                     f'{self.location_plan_period.location_of_work.name} '
+                                     f'{self.location_plan_period.location_of_work.address.city} '
+                                     f'sind noch keine Tageszeiten-Standartwerte definiert.')
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 button_event = self.create_event_button(d, time_of_day)

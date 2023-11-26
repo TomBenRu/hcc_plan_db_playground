@@ -76,7 +76,7 @@ class LocationPlanPeriodData:
                                          'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
                                          'Termin oder eine einzelne Untergruppe.'
                                          'Bitte korrigieren Sie dies im folgenden Dialog.')
-                    self.parent.edit_cast_groups_plan_period()
+                    self.parent.parent.edit_cast_groups_plan_period()
 
     def _emit_reload_signals(self, date):
         signal_handling.handler_location_plan_period.reload_location_pp__events(

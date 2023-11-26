@@ -83,6 +83,18 @@ class HandlerPlanTabs(QObject):
         self.signal_event_changed.emit(plan_event)
 
 
+class HandlerShowDialog(QObject):
+    signal_show_dlg_cast_group_pp = Signal()
+    signal_show_dlg_event_group = Signal()
+
+    def show_dlg_cast_group_pp(self):
+        self.signal_show_dlg_cast_group_pp.emit()
+
+    def show_dlg_event_group(self):
+        self.signal_show_dlg_event_group.emit()
+
+
 handler_actor_plan_period = HandlerActorPlanPeriod()
 handler_location_plan_period = HandlerLocationPlanPeriod()
 handler_plan_tabs = HandlerPlanTabs()
+handler_show_dialog = HandlerShowDialog()

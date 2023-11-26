@@ -215,6 +215,8 @@ class FrmTabLocationPlanPeriods(QWidget):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
 
+        signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self.edit_cast_groups_plan_period)
+
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.location_plan_periods = self.plan_period.location_plan_periods
         self.location_id__location_pp = {str(loc_pp.location_of_work.id): loc_pp
@@ -389,6 +391,8 @@ class FrmLocationPlanPeriod(QWidget):
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
             self.reload_location_plan_period)
+        signal_handling.handler_show_dialog.signal_show_dlg_event_group.connect(self.change_mode__event_group)
+
         self.data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period)
 
         self.layout = QGridLayout(self)

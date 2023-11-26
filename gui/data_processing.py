@@ -68,7 +68,8 @@ class LocationPlanPeriodData:
                                      f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
                                      f'Termin: {solo_event.date.strftime("%d.%m.%y")}\n'
                                      f'Bitte korrigieren Sie dies im folgenden Dialog.')
-                self.parent.change_mode__event_group()
+
+                signal_handling.handler_show_dialog.show_dlg_event_group()
         if containing_cast_groups:
             for parent_cast_group in containing_cast_groups:
                 if len(db_services.CastGroup.get(parent_cast_group.id).child_groups) < 2:
@@ -76,7 +77,8 @@ class LocationPlanPeriodData:
                                          'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
                                          'Termin oder eine einzelne Untergruppe.'
                                          'Bitte korrigieren Sie dies im folgenden Dialog.')
-                    self.parent.parent.edit_cast_groups_plan_period()
+
+                    signal_handling.handler_show_dialog.show_dlg_cast_group_pp()
 
     def _emit_reload_signals(self, date):
         signal_handling.handler_location_plan_period.reload_location_pp__events(

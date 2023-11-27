@@ -28,7 +28,6 @@ class FrmTabPlan(QWidget):
         self.layout.addWidget(self.table_plan)
 
         self.table_plan_config()
-        self.display_appointments()
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:
@@ -81,8 +80,12 @@ class FrmTabPlan(QWidget):
         self.display_headers_weekdays()
         self.display_headers_locations()
         self.table_plan.setVerticalHeaderLabels(['', ''] + [f'KW {kw}' for kw in sorted(self.week_num_weekday.keys())])
-        self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.display_appointments()
+        # self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_plan.resizeColumnsToContents()
+        self.table_plan.resizeRowsToContents()
+
 
     def display_headers_weekdays(self):
         weekdays_names = {
@@ -108,8 +111,11 @@ class FrmTabPlan(QWidget):
         curr_col = 0
         for weekday in sorted(self.weekdays_locations.keys()):
             for i, location in enumerate(self.weekdays_locations[weekday]):
-                self.table_plan.setItem(1, curr_col + i,
-                                        QTableWidgetItem(f'{location.name}\n{location.address.city}'))
+
+                label = QLabel(f'{location.name}\n{location.address.city}')
+                label.setFixedWidth(150)
+                label.setWordWrap(True)
+                self.table_plan.setCellWidget(1, curr_col + i, label)
             curr_col += max(len(self.weekdays_locations[weekday]), 1)
 
     def display_appointments(self):
@@ -129,7 +135,7 @@ class FrmTabPlan(QWidget):
                 layout.addWidget(QLabel(date.strftime('%d.%m.%y')))
                 for appointment in sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
                     appointment_text = (f'{appointment.event.time_of_day.name}\n'
-                                        + ', '.join(a.actor_plan_period.person.f_name
+                                        + '\n'.join(a.actor_plan_period.person.f_name
                                                     for a in sorted(appointment.avail_days,
                                                                     key=lambda x: x.actor_plan_period.person.f_name)))
                     label = QLabel(appointment_text)

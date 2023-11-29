@@ -164,7 +164,7 @@ class FrmTabPlan(QWidget):
             for loc_id, appointments in location_ids_appointments.items():
                 pos = [loc.id for loc in self.weekdays_locations[day.isoweekday()]].index(loc_id)
                 container_appointments = container_locations.layout().itemAtPosition(0, pos).widget()
-                for appointment in appointments:
+                for appointment in sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
                     container_appointment = QWidget()
                     layout_appointment = QVBoxLayout(container_appointment)
                     container_appointments.layout().addWidget(container_appointment)

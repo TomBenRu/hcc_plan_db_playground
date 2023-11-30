@@ -12,6 +12,37 @@ from commands.database_commands import plan_commands
 from database import schemas, db_services
 
 
+class AppointmentField(QWidget):
+    def __init__(self, appointment: schemas.AppointmentShow):
+        super().__init__()
+        self.appointment = appointment
+        self.layout = QVBoxLayout(self)
+        self.lb_time_of_day = QLabel()
+        self.lb_employees = QLabel()
+
+        self.set_styling()
+        self.fill_in_data()
+
+        self.layout.addWidget(self.lb_time_of_day)
+        self.layout.addWidget(self.lb_employees)
+
+    def fill_in_data(self):
+        self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '
+                                    f'{self.appointment.event.time_of_day.start:%H:%M}'
+                                    f'-{self.appointment.event.time_of_day.end:%H:%M}')
+        employees = '\n'.join([avd.actor_plan_period.person.f_name for avd in self.appointment.avail_days])
+        self.lb_employees.setText(employees)
+
+    def set_styling(self):
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.lb_time_of_day.setContentsMargins(0, 0, 0, 0)
+        self.lb_employees.setContentsMargins(0, 0, 0, 0)
+        self.lb_time_of_day.font().setPixelSize(8)
+        self.lb_employees.font().setBold(True)
+
+
 class FrmTabPlan(QWidget):
     def __init__(self, parent: QWidget, plan: schemas.PlanShow):
         super().__init__(parent=parent)

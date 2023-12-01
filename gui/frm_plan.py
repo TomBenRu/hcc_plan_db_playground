@@ -2,15 +2,13 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6 import QtCore
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout
+    QHBoxLayout, QMessageBox
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
-
 
 
 class DayField(QWidget):
@@ -21,14 +19,36 @@ class DayField(QWidget):
         self.location_ids_order = location_ids_order
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.lb_date = QLabel(day.strftime('%d.%m.%y'))
         self.lb_date.setContentsMargins(0, 0, 0, 0)
+        self.lb_date.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        if day.isoweekday() % 2:
+            self.lb_date.setStyleSheet('background-color: #71bdff')
+        else:
+            self.lb_date.setStyleSheet('background-color: #91d2ff')
+        '71bdff'
+        self.layout.addWidget(self.lb_date)
         self.container_locations = QWidget()
         self.layout_container_locations = QGridLayout(self.container_locations)
         self.container_locations.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.container_locations)
         self.layout_container_locations.setContentsMargins(0, 0, 0, 0)
         self.containers_appointments: dict[int, 'ContainerAppointments'] = {
             i: ContainerAppointments(loc_id) for i, loc_id in enumerate(location_ids_order)}
+
+    def set_location_ids_order(self, location_ids_order: list[UUID]):
+        self.location_ids_order = location_ids_order
+        if self.containers_appointments:
+            decision = QMessageBox.question(self, 'Neue Locations-Order',
+                                            'Es gibt bereits Einrichtungen an diesem Tag.\n'
+                                            'Trotzdem fortfahren?')
+            if decision == QMessageBox.StandardButton.No:
+                return
+        self.containers_appointments: dict[int, 'ContainerAppointments'] = {
+            i: ContainerAppointments(loc_id) for i, loc_id in enumerate(location_ids_order)}
+        for i, container_appointments in self.containers_appointments.items():
+            self.layout_container_locations.addWidget(container_appointments, 0, i)
 
     def add_appointment_field(self, appointment_field: 'AppointmentField'):
         for key, container in self.containers_appointments.items():
@@ -39,6 +59,7 @@ class DayField(QWidget):
             new_container = ContainerAppointments(appointment_field.location_id)
             new_container.add_appointment_field(appointment_field)
             self.containers_appointments[len(self.containers_appointments)] = new_container
+
             self.layout_container_locations.addWidget(new_container, 0, len(self.containers_appointments))
 
     def remove_appointment_field(self, appointment_field: 'AppointmentField'):
@@ -47,10 +68,9 @@ class DayField(QWidget):
                 container.remove_appointment_field(appointment_field)
                 break
 
-
     def display_containers_appointments(self):
         for i in range(self.layout_container_locations.count()):
-            (container_appointment := self.layout_container_locations.itemAt(i).widget()).setParent(None)
+            self.layout_container_locations.itemAt(i).widget().setParent(None)
 
         for i, container_appointment in self.containers_appointments.items():
             self.layout_container_locations.addWidget(container_appointment, 0, i)
@@ -68,10 +88,12 @@ class ContainerAppointments(QWidget):
     def add_appointment_field(self, appointment_field: 'AppointmentField'):
         self.appointment_fields.append(appointment_field)
         self.appointment_fields.sort(key=lambda x: x.appointment.event.time_of_day.time_of_day_enum.time_index)
+        self.display_appointments_fields()
 
     def remove_appointment_field(self, appointment_field: 'AppointmentField'):
         self.appointment_fields = [a for a in self.appointment_fields
                                    if a.appointment.id != appointment_field.appointment.id]
+        self.display_appointments_fields()
 
     def display_appointments_fields(self):
         for i in range(self.layout.count()):
@@ -81,7 +103,7 @@ class ContainerAppointments(QWidget):
 
 
 class AppointmentField(QWidget):
-    def __init__(self, appointment: schemas.AppointmentShow):
+    def __init__(self, appointment: schemas.Appointment):
         super().__init__()
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
@@ -235,23 +257,7 @@ class FrmTabPlan(QWidget):
         for day in self.all_days_of_month:
             row = self.week_num_row[day.isocalendar()[1]]
             col = self.weekday_col[day.isoweekday()]
-            widget_day = QWidget()
-            layout_day = QVBoxLayout(widget_day)
-            layout_day.setAlignment(Qt.AlignmentFlag.AlignTop)
-            layout_day.addWidget(QLabel(day.strftime('%d.%m.%y')))
-            container_locations = QWidget()
-            container_locations.setObjectName('container_locations')
-            layout_locations = QGridLayout(container_locations)
-            container_locations.setContentsMargins(0, 0, 0, 0)
-            layout_locations.setContentsMargins(0, 0, 0, 0)
-            layout_day.addWidget(container_locations)
-            for i, _ in enumerate(self.weekdays_locations[day.isoweekday()]):
-                container_appointments = QWidget()
-                container_appointments.setFixedWidth(150)
-                container_appointments.setContentsMargins(0, 0, 0, 0)
-                layout_appointments = QVBoxLayout(container_appointments)
-                layout_appointments.setContentsMargins(0, 0, 0, 0)
-                layout_locations.addWidget(container_appointments, 0, i)
+            widget_day = DayField(day, [])
             self.table_plan.setCellWidget(row, col, widget_day)
 
     def display_headers_locations(self):
@@ -269,11 +275,9 @@ class FrmTabPlan(QWidget):
         for day, location_ids_appointments in self.day_location_id_appointments.items():
             row = self.week_num_row[day.isocalendar()[1]]
             col = self.weekday_col[day.isoweekday()]
-            container_day = self.table_plan.cellWidget(row, col)
-            container_locations = container_day.findChild(QWidget, 'container_locations')
+            day_field = self.table_plan.cellWidget(row, col)
+            day_field: DayField
+            day_field.set_location_ids_order([loc.id for loc in self.weekdays_locations[day.isoweekday()]])
             for loc_id, appointments in location_ids_appointments.items():
-                pos = [loc.id for loc in self.weekdays_locations[day.isoweekday()]].index(loc_id)
-                container_appointments = container_locations.layout().itemAtPosition(0, pos).widget()
-                for appointment in sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                    container_appointment = AppointmentField(appointment)
-                    container_appointments.layout().addWidget(container_appointment)
+                for appointment in appointments:
+                    day_field.add_appointment_field(AppointmentField(appointment))

@@ -12,6 +12,15 @@ from commands.database_commands import plan_commands
 from database import schemas, db_services
 
 
+
+class DayField(QWidget):
+    def __init__(self, day: datetime.date, locations: list[schemas.LocationOfWork]):
+        super().__init__()
+        self.day = day
+        self.locations = locations
+        self.layout = QVBoxLayout(self)
+
+
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.AppointmentShow):
         super().__init__()
@@ -25,6 +34,7 @@ class AppointmentField(QWidget):
 
         self.layout.addWidget(self.lb_time_of_day)
         self.layout.addWidget(self.lb_employees)
+        self.adjustSize()
 
     def fill_in_data(self):
         self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '
@@ -39,8 +49,12 @@ class AppointmentField(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.lb_time_of_day.setContentsMargins(0, 0, 0, 0)
         self.lb_employees.setContentsMargins(0, 0, 0, 0)
-        self.lb_time_of_day.font().setPixelSize(8)
-        self.lb_employees.font().setBold(True)
+        font_lb_time_of_day = self.lb_time_of_day.font()
+        font_lb_employees = self.lb_employees.font()
+        font_lb_time_of_day.setPointSizeF(font_lb_time_of_day.pointSize() * 0.8)
+        font_lb_employees.setBold(True)
+        self.lb_time_of_day.setFont(font_lb_time_of_day)
+        self.lb_employees.setFont(font_lb_employees)
 
 
 class FrmTabPlan(QWidget):
@@ -129,10 +143,10 @@ class FrmTabPlan(QWidget):
         self.display_headers_locations()
         self.display_days()
         self.display_appointments()
-        # self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        # self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table_plan.resizeColumnsToContents()
-        self.table_plan.resizeRowsToContents()
+        # self.table_plan.resizeColumnsToContents()
+        # self.table_plan.resizeRowsToContents()
+        self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def generate_all_days(self):
         start, end = self.plan.plan_period.start, self.plan.plan_period.end
@@ -167,11 +181,14 @@ class FrmTabPlan(QWidget):
             container_locations = QWidget()
             container_locations.setObjectName('container_locations')
             layout_locations = QGridLayout(container_locations)
+            container_locations.setContentsMargins(0, 0, 0, 0)
             layout_day.addWidget(container_locations)
             for i, _ in enumerate(self.weekdays_locations[day.isoweekday()]):
                 container_appointments = QWidget()
                 container_appointments.setFixedWidth(150)
+                container_appointments.setContentsMargins(0, 0, 0, 0)
                 layout_appointments = QVBoxLayout(container_appointments)
+                layout_appointments.setContentsMargins(0, 0, 0, 0)
                 layout_locations.addWidget(container_appointments, 0, i)
             self.table_plan.setCellWidget(row, col, widget_day)
 
@@ -196,16 +213,5 @@ class FrmTabPlan(QWidget):
                 pos = [loc.id for loc in self.weekdays_locations[day.isoweekday()]].index(loc_id)
                 container_appointments = container_locations.layout().itemAtPosition(0, pos).widget()
                 for appointment in sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                    container_appointment = QWidget()
-                    layout_appointment = QVBoxLayout(container_appointment)
+                    container_appointment = AppointmentField(appointment)
                     container_appointments.layout().addWidget(container_appointment)
-                    lb_time_of_day = QLabel(f'{appointment.event.time_of_day.name}: '
-                                            f'{appointment.event.time_of_day.start:%H:%M}'
-                                            f'-{appointment.event.time_of_day.end:%H:%M}')
-                    employees = '\n'.join([avd.actor_plan_period.person.f_name for avd in appointment.avail_days])
-                    lb_employees = QLabel(f'{employees}')
-                    layout_appointment.addWidget(lb_time_of_day)
-                    layout_appointment.addWidget(lb_employees)
-
-
-

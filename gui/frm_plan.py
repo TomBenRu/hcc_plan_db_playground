@@ -2,9 +2,11 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6.QtGui import Qt
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QContextMenuEvent
+#from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout, QMessageBox
+    QHBoxLayout, QMessageBox, QMenu
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -117,7 +119,17 @@ class AppointmentField(QWidget):
         self.layout.addWidget(self.lb_time_of_day)
         self.layout.addWidget(self.lb_employees)
 
-        self.setToolTip('Hallo')
+        self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
+                        f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
+
+    def show_context_menu(self, pos):
+        print("Context menu event triggered")
+        context_menu = QMenu(self)
+        context_menu.addAction(f'Action 1 {self.appointment.event.date}')
+        context_menu.addAction(f'Action 2 {self.appointment.event.date}')
+        context_menu.exec(self.mapToGlobal(pos))
 
     def fill_in_data(self):
         self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '
@@ -257,8 +269,8 @@ class FrmTabPlan(QWidget):
         for day in self.all_days_of_month:
             row = self.week_num_row[day.isocalendar()[1]]
             col = self.weekday_col[day.isoweekday()]
-            widget_day = DayField(day, [])
-            self.table_plan.setCellWidget(row, col, widget_day)
+            day_field = DayField(day, [])
+            self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):
         for weekday, locations in self.weekdays_locations.items():

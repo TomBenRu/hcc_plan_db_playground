@@ -121,17 +121,14 @@ class AppointmentField(QWidget):
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_context_menu)
 
-    def show_context_menu(self, pos):
-        print("Context menu event triggered")
+    def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
         context_menu.addAction(f'Action 1 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
                                f'{self.appointment.event.location_plan_period.location_of_work.name}')
         context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
                                f'{self.appointment.event.location_plan_period.location_of_work.name}')
-        context_menu.exec(self.mapToGlobal(pos))
+        context_menu.exec(event.globalPos())
 
     def fill_in_data(self):
         self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '

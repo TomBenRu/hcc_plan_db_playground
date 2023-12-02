@@ -127,8 +127,10 @@ class AppointmentField(QWidget):
     def show_context_menu(self, pos):
         print("Context menu event triggered")
         context_menu = QMenu(self)
-        context_menu.addAction(f'Action 1 {self.appointment.event.date}')
-        context_menu.addAction(f'Action 2 {self.appointment.event.date}')
+        context_menu.addAction(f'Action 1 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
+                               f'{self.appointment.event.location_plan_period.location_of_work.name}')
+        context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
+                               f'{self.appointment.event.location_plan_period.location_of_work.name}')
         context_menu.exec(self.mapToGlobal(pos))
 
     def fill_in_data(self):

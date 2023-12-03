@@ -13,23 +13,44 @@ from commands.database_commands import plan_commands
 from database import schemas, db_services
 
 
-class DayField(QWidget):
-    def __init__(self, day: datetime.date, location_ids_order: list[UUID]):
+class LabelDayNr(QLabel):
+    def __init__(self, day: datetime.date, plan_period: schemas.PlanPeriod):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
+        self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        if day.isoweekday() % 2:
+            self.setStyleSheet('background-color: #71bdff')
+        else:
+            self.setStyleSheet('background-color: #91d2ff')
+
         self.day = day
+        self.plan_period = plan_period
+
+        self.setText(day.strftime('%d.%m.%y'))
+
+    def contextMenuEvent(self, event: QContextMenuEvent):
+        menu = QMenu()
+        menu.addAction('Day Action 1')
+        menu.addAction('Day Action 2')
+        menu.exec(event.globalPos())
+
+
+class DayField(QWidget):
+    def __init__(self, day: datetime.date, location_ids_order: list[UUID],
+                 location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
+                 plan_period: schemas.PlanPeriod):
+        super().__init__()
+        self.setContentsMargins(0, 0, 0, 0)
+
+        self.day = day
+        self.location_ids_appointments = location_ids_appointments
         self.location_ids_order = location_ids_order
+        self.plan_period = plan_period
+
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.lb_date = QLabel(day.strftime('%d.%m.%y'))
-        self.lb_date.setContentsMargins(0, 0, 0, 0)
-        self.lb_date.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        if day.isoweekday() % 2:
-            self.lb_date.setStyleSheet('background-color: #71bdff')
-        else:
-            self.lb_date.setStyleSheet('background-color: #91d2ff')
-        '71bdff'
+        self.lb_date = LabelDayNr(day, plan_period)
         self.layout.addWidget(self.lb_date)
         self.container_locations = QWidget()
         self.layout_container_locations = QGridLayout(self.container_locations)
@@ -38,6 +59,22 @@ class DayField(QWidget):
         self.layout_container_locations.setContentsMargins(0, 0, 0, 0)
         self.containers_appointments: dict[int, 'ContainerAppointments'] = {
             i: ContainerAppointments(loc_id) for i, loc_id in enumerate(location_ids_order)}
+        self.display_appointment_containers()
+        self.display_appointments()
+
+    def display_appointment_containers(self):
+        for pos, container in self.containers_appointments.items():
+            self.layout_container_locations.addWidget(container, 0, pos)
+
+    def display_appointments(self):
+        if not self.location_ids_appointments:
+            return
+        for loc_id, appointments in self.location_ids_appointments.items():
+            for pos, container in self.containers_appointments.items():
+                if loc_id == container.location_id:
+                    for appointment in sorted(appointments,
+                                              key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
+                        container.add_appointment_field(AppointmentField(appointment))
 
     def set_location_ids_order(self, location_ids_order: list[UUID]):
         self.location_ids_order = location_ids_order
@@ -236,7 +273,6 @@ class FrmTabPlan(QWidget):
         self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
         self.display_headers_locations()
         self.display_days()
-        self.display_appointments()
         # self.table_plan.resizeColumnsToContents()
         # self.table_plan.resizeRowsToContents()
         self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -268,7 +304,11 @@ class FrmTabPlan(QWidget):
         for day in self.all_days_of_month:
             row = self.week_num_row[day.isocalendar()[1]]
             col = self.weekday_col[day.isoweekday()]
-            day_field = DayField(day, [])
+            location_ids_order = [loc.id for loc in self.weekdays_locations[day.isoweekday()]]
+            day_field = DayField(day,
+                                 location_ids_order,
+                                 self.day_location_id_appointments.get(day),
+                                 self.plan.plan_period)
             self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):

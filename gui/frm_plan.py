@@ -4,13 +4,13 @@ from uuid import UUID
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QContextMenuEvent
-#from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
+from database.special_schema_requests import get_persons_of_team_at_date
 
 
 class LabelDayNr(QLabel):
@@ -29,6 +29,9 @@ class LabelDayNr(QLabel):
         self.setText(day.strftime('%d.%m.%y'))
 
     def contextMenuEvent(self, event: QContextMenuEvent):
+        print([p.f_name for p in get_persons_of_team_at_date(self.plan_period.team.id, self.day)])
+        print([(avd.actor_plan_period.person.f_name, avd.time_of_day.name)
+               for avd in db_services.AvailDay.get_all_from__plan_period_date(self.plan_period.id, self.day)])
         menu = QMenu()
         menu.addAction('Day Action 1')
         menu.addAction('Day Action 2')

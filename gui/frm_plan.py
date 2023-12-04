@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QContextMenuEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout, QMessageBox, QMenu
+    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -174,7 +174,10 @@ class AppointmentField(QWidget):
         self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '
                                     f'{self.appointment.event.time_of_day.start:%H:%M}'
                                     f'-{self.appointment.event.time_of_day.end:%H:%M}')
-        employees = '\n'.join([avd.actor_plan_period.person.f_name for avd in self.appointment.avail_days])
+        employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
+                               for avd in sorted(self.appointment.avail_days,
+                                                 key=lambda x: (x.actor_plan_period.person.f_name,
+                                                                x.actor_plan_period.person.l_name))])
         self.lb_employees.setText(employees)
 
     def set_styling(self):
@@ -274,6 +277,7 @@ class FrmTabPlan(QWidget):
         self.table_plan.setColumnCount(num_cols)
         self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
         self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
+        self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.display_headers_locations()
         self.display_days()
         # self.table_plan.resizeColumnsToContents()

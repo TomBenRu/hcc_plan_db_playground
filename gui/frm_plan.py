@@ -3,7 +3,7 @@ from collections import defaultdict
 from uuid import UUID
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QContextMenuEvent
+from PySide6.QtGui import QContextMenuEvent, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView
 
@@ -275,6 +275,16 @@ class FrmTabPlan(QWidget):
         num_cols = max(self.weekday_col.values()) + 1
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
+
+        # horizontal_header_colors = [QColor(255, 0, 0), QColor(0, 255, 0)]
+        # for i, name in enumerate(self.weekdays_names.values()):
+        #     item = QTableWidgetItem(name)
+        #     item.setBackground(horizontal_header_colors[i % 2])  # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
+        #     self.table_plan.setHorizontalHeaderItem(i, item)
+        # self.table_plan.setHorizontalHeaderLabels(QLabel('hello'))
+
+        self.table_plan.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
+        self.table_plan.verticalHeader().setStyleSheet("::section {background-color: #e2c9d1; color: black}")
         self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
         self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)

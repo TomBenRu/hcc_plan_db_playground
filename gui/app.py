@@ -3,7 +3,7 @@ import logging
 import time
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from gui.main_window import MainWindow
 
@@ -12,6 +12,7 @@ logging.basicConfig(filename='pony.log', level=logging.INFO,
 logging.Formatter.converter = time.gmtime
 
 app = QApplication()
+# app.setStyle(QStyleFactory.create('Fusion'))
 app.setWindowIcon(QIcon('resources/hcc-dispo_klein.png'))
 
 window = MainWindow(app)

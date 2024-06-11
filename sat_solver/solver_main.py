@@ -226,7 +226,6 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
-    entities.shift_vars = {}
     for adg_id in entities.avail_day_groups_with_avail_day:
         for event_group_id in entities.event_groups_with_event:
             entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(f'shift ({adg_id}, {event_group_id})')

@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import time
 
 from PySide6.QtGui import QIcon
@@ -11,7 +12,9 @@ logging.basicConfig(filename='pony.log', level=logging.INFO,
                     format='%(created)f-%(asctime)s\n%(message)s\n')
 logging.Formatter.converter = time.gmtime
 
-app = QApplication()
+# sys.argv += ['-platform', 'windows:darkmode=1']
+
+app = QApplication(sys.argv)
 # app.setStyle(QStyleFactory.create('Fusion'))
 app.setWindowIcon(QIcon('resources/hcc-dispo_klein.png'))
 

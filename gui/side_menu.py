@@ -40,6 +40,7 @@ class WidgetSideMenu(QWidget):
         self.set_positions()
         self.setGeometry(self.pos_x_hide, 0, menu_width, 600)
         self.color_buttons = '#e1e1e1'
+        self.color_text = 'black'
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -98,7 +99,7 @@ class WidgetSideMenu(QWidget):
         self.setGeometry(self.pos_x_hide, 0, self.menu_width, self.parent.height())
 
     def add_button(self, button: QPushButton):
-        button.setStyleSheet(f"background-color: {self.color_buttons};")
+        button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
         self.layout_fields.addWidget(button)
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 

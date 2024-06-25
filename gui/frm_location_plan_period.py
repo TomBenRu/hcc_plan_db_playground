@@ -452,7 +452,7 @@ class FrmLocationPlanPeriod(QWidget):
         col = 1
         for (month, year), count in header_items_months.items():
             label = QLabel(f'{self.months[month]} {year}')
-            label.setStyleSheet('background: qlineargradient( x1:0 y1:0, x2:1 y2:0, stop:0 #a9ffaa, stop:1 #137100)')
+            label.setStyleSheet('background: qlineargradient( x1:0 y1:0, x2:1 y2:0, stop:0 #a9ffaa, stop:1 #137100); color: black;')
             label_font = label.font()
             label_font.setPointSize(12)
             label_font.setBold(True)

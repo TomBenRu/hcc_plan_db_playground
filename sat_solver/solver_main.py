@@ -573,14 +573,14 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
 def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], IntVar]:
     # Create a lists to represent the sums of assigned shifts and the relative shift deviations for each actor_plan_period.
     sum_assigned_shifts = {
-        app.id: model.NewIntVar(0, 1000, f'sum_assigned_shifts {app.person.f_name}')
+        app.id: model.NewIntVar(lb=0, ub=1000, name=f'sum_assigned_shifts {app.person.f_name}')
         for app in entities.actor_plan_periods.values()
     }
     relative_shift_deviations = {
         app.id: model.NewIntVar(
-            -len(entities.event_groups_with_event) * 100_000_000,
-            len(entities.event_groups_with_event) * 100_000_000,
-            f'relative_shift_deviation_{app.person.f_name}'
+            lb=-len(entities.event_groups_with_event) * 100_000_000,
+            ub=len(entities.event_groups_with_event) * 100_000_000,
+            name=f'relative_shift_deviation_{app.person.f_name}'
         )
         for app in entities.actor_plan_periods.values()
     }
@@ -602,11 +602,11 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
             int(app.requested_assignments * 100) if app.requested_assignments else 1)
 
     # Calculate the average of the relative shift deviations.
-    average_relative_shift_deviation = model.NewIntVar(-100_000_000, 100_000_000,
-                                                       'average_relative_shift_deviation')
-    sum_relative_shift_deviations = model.NewIntVar(-len(entities.event_groups_with_event) * 100_000_000,
-                                                    len(entities.event_groups_with_event) * 100_000_000,
-                                                    'sum_relative_shift_deviations')
+    average_relative_shift_deviation = model.NewIntVar(lb=-100_000_000, ub=100_000_000,
+                                                       name='average_relative_shift_deviation')
+    sum_relative_shift_deviations = model.NewIntVar(lb=-len(entities.event_groups_with_event) * 100_000_000,
+                                                    ub=len(entities.event_groups_with_event) * 100_000_000,
+                                                    name='sum_relative_shift_deviations')
     model.AddAbsEquality(sum_relative_shift_deviations, sum(relative_shift_deviations.values()))
     model.AddDivisionEquality(average_relative_shift_deviation,
                               sum_relative_shift_deviations,
@@ -614,9 +614,9 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
 
     # Create a list to represent the squared deviations from the average for each actor_plan_period.
     squared_deviations = {
-        app.id: model.NewIntVar(0,
-                                (len(entities.event_groups_with_event) * 10_000_000) ** 2,
-                                f'squared_deviation_{app.person.f_name}')
+        app.id: model.NewIntVar(lb=0,
+                                ub=(len(entities.event_groups_with_event) * 10_000_000) ** 2,
+                                name=f'squared_deviation_{app.person.f_name}')
         for app in entities.actor_plan_periods.values()
     }
 
@@ -625,7 +625,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
     dif_average__relative_shift_deviations = {}
     for app in entities.actor_plan_periods.values():
         dif_average__relative_shift_deviations[app.id] = model.NewIntVar(
-            -100_000_000, 100_000_000, f'dif_average__relative_shift_deviation {app.id}')
+            lb=-100_000_000, ub=100_000_000, name=f'dif_average__relative_shift_deviation {app.id}')
         model.AddAbsEquality(dif_average__relative_shift_deviations[app.id],
                              relative_shift_deviations[app.id] - average_relative_shift_deviation)
 
@@ -634,7 +634,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
             [dif_average__relative_shift_deviations[app.id], dif_average__relative_shift_deviations[app.id]])
 
     # Add a constraint that the sum_squared_deviations is equal to the sum(squared_deviations).
-    sum_squared_deviations = model.NewIntVar(0, 10 ** 16, 'sum_squared_deviations')
+    sum_squared_deviations = model.NewIntVar(lb=0, ub=10 ** 16, name='sum_squared_deviations')
     model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations.values()))
 
     return sum_assigned_shifts, sum_squared_deviations

@@ -19,9 +19,9 @@ class LabelDayNr(QLabel):
         self.setContentsMargins(0, 0, 0, 0)
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         if day.isoweekday() % 2:
-            self.setStyleSheet('background-color: #71bdff')
+            self.setStyleSheet('background-color: #71bdff; color: black')
         else:
-            self.setStyleSheet('background-color: #91d2ff')
+            self.setStyleSheet('background-color: #91d2ff; color: black')
 
         self.day = day
         self.plan_period = plan_period

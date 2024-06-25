@@ -1,7 +1,8 @@
 import datetime
 import inspect
 import logging
-from typing import Optional
+from functools import wraps
+from typing import Optional, Callable
 from uuid import UUID
 
 from icecream import ic
@@ -15,6 +16,14 @@ from . import models
 def log_function_info(cls):
     logging.info(f'function: {cls.__module__}.{cls.__name__}.{inspect.currentframe().f_back.f_code.co_name}\n'
                  f'args: {inspect.currentframe().f_back.f_locals}')
+
+
+def logger(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        print(f'Calling {func.__name__} with args {args} and kwargs {kwargs}')
+        return func(*args, **kwargs)
+    return wrapper
 
 
 class Project:

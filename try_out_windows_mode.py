@@ -3,6 +3,7 @@ import winreg
 from PySide6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QPushButton
 from PySide6.QtGui import QColor, QPalette
 
+
 def is_dark_mode():
     try:
         # Öffne den Registrierungsschlüssel
@@ -15,13 +16,14 @@ def is_dark_mode():
         print(f"Error: {e}")
         return False
 
+
 def set_widget_colors(widget: QWidget, dark_mode: bool):
     palette = widget.palette()
     if dark_mode:
         palette.setColor(QPalette.Window, QColor(53, 53, 53))
         palette.setColor(QPalette.WindowText, QColor(128, 255, 255))  # Schriftfarbe für Labels
         palette.setColor(QPalette.Button, QColor(53, 53, 53))  # Hintergrundfarbe für Buttons
-        palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))  # Schriftfarbe für Buttons
+        palette.setColor(QPalette.ButtonText, QColor(255, 128, 255))  # Schriftfarbe für Buttons
     else:
         palette.setColor(QPalette.Window, QColor(255, 255, 255))
         palette.setColor(QPalette.WindowText, QColor(0, 0, 0))

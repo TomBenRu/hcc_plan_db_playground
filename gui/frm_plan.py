@@ -16,17 +16,24 @@ from database.special_schema_requests import get_persons_of_team_at_date
 class LabelDayNr(QLabel):
     def __init__(self, day: datetime.date, plan_period: schemas.PlanPeriod):
         super().__init__()
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        if day.isoweekday() % 2:
-            self.setStyleSheet('background-color: #71bdff; color: black')
-        else:
-            self.setStyleSheet('background-color: #91d2ff; color: black')
 
         self.day = day
         self.plan_period = plan_period
 
+        self.set_font_and_style()
+
         self.setText(day.strftime('%d.%m.%y'))
+
+    def set_font_and_style(self):
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        if self.day.isoweekday() % 2:
+            self.setStyleSheet('background-color: #71bdff; color: black')
+        else:
+            self.setStyleSheet('background-color: #91d2ff; color: black')
+        font = self.font()
+        font.setBold(True)
+        self.setFont(font)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         print([p.f_name for p in get_persons_of_team_at_date(self.plan_period.team.id, self.day)])
@@ -184,7 +191,7 @@ class AppointmentField(QWidget):
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setContentsMargins(0, 0, 0, 0)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.lb_time_of_day.setContentsMargins(0, 0, 0, 0)
+        self.lb_time_of_day.setContentsMargins(5, 0, 0, 0)
         self.lb_employees.setContentsMargins(10, 0, 0, 0)
         font_lb_time_of_day = self.lb_time_of_day.font()
         font_lb_employees = self.lb_employees.font()

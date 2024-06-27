@@ -28,9 +28,9 @@ class LabelDayNr(QLabel):
         self.setContentsMargins(0, 0, 0, 0)
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         if self.day.isoweekday() % 2:
-            self.setStyleSheet('background-color: #71bdff; color: black')
+            self.setStyleSheet('background-color: #71bdff; color: #2b2b2b')
         else:
-            self.setStyleSheet('background-color: #91d2ff; color: black')
+            self.setStyleSheet('background-color: #91d2ff; color: #2b2b2b')
         font = self.font()
         font.setBold(True)
         self.setFont(font)

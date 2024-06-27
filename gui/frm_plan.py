@@ -36,7 +36,9 @@ class LabelDayNr(QLabel):
         self.setFont(font)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
+        print('An diesem Tag im Team:')
         print([p.f_name for p in get_persons_of_team_at_date(self.plan_period.team.id, self.day)])
+        print('An diesem Tag verfügbar:')
         print([(avd.actor_plan_period.person.f_name, avd.time_of_day.name)
                for avd in db_services.AvailDay.get_all_from__plan_period_date(self.plan_period.id, self.day)])
         menu = QMenu()

@@ -4,7 +4,7 @@ from typing import Callable, Literal
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
@@ -83,6 +83,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
 
+    @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode
         if self.isChecked():
@@ -175,6 +176,8 @@ class ButtonEvent(QPushButton):  # todo: Ändern
                         f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
+    @Slot(schemas.LocationPlanPeriodShow)
+    @Slot(type(None))
     def reload_location_plan_period(self, location_plan_period: schemas.LocationPlanPeriodShow = None):
         if location_plan_period:
             self.location_plan_period = location_plan_period

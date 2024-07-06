@@ -5,7 +5,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -79,6 +79,7 @@ class ButtonAvailDay(QPushButton):
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
 
+    @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
         self.group_mode = group_mode.group_mode
         if self.isChecked():
@@ -134,6 +135,8 @@ class ButtonAvailDay(QPushButton):
                         f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
+    @Slot(schemas.ActorPlanPeriodShow)
+    @Slot(type(None))
     def reload_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriodShow = None):
         if actor_plan_period:
             self.actor_plan_period = actor_plan_period
@@ -239,6 +242,7 @@ class ButtonCombLocPossible(QPushButton):
             # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
             signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
+    @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or data.date:
@@ -393,7 +397,7 @@ class ButtonActorLocationPref(QPushButton):
         # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
-    @profile
+    @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or data.date:
@@ -532,7 +536,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
         # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
-    @profile
+    @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
         if self.avail_days_at_date() or data.date:

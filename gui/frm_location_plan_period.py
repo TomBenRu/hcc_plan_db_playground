@@ -18,17 +18,21 @@ from commands import command_base_classes
 from commands.database_commands import cast_group_commands, event_commands, plan_commands, appointment_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
+from gui.tools.clear_layout import clear_layout
 
 
+# Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
+# ist diese Funktion nicht mehr notwendig
 def disconnect_event_button_signals():
+    print('disconnect_event_button_signals')
     try:
         signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.disconnect()
     except Exception as e:
-        print(f'Fehler: {e}')
+        print(f'Fehler in disconnect_event_button_signals: {e}')
     try:
         signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect()
     except Exception as e:
-        print(f'Fehler: {e}')
+        print(f'Fehler in disconnect_event_button_signals: {e}')
 
 
 class ButtonEvent(QPushButton):  # todo: Ändern
@@ -47,9 +51,9 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.parent = parent
 
         signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.connect(
-            lambda group_mode: self.set_group_mode(group_mode))
+            self.set_group_mode)
         signal_handling.handler_location_plan_period.signal_reload_location_pp__events.connect(
-            lambda data: self.reload_location_plan_period(data.location_plan_period)
+            self.reload_location_plan_period
         )
 
         self.group_mode = False
@@ -69,6 +73,12 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.create_actions_times_of_day()
         self.menu_times_of_day.addActions(self.actions)
         self.set_tooltip()
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect(self.set_group_mode)
+        signal_handling.handler_location_plan_period.signal_reload_location_pp__events.disconnect(self.reload_location_plan_period)
+        super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
@@ -185,6 +195,10 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Fest Bes
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
             lambda event: None
         )
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        super().deleteLater()
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag
@@ -337,7 +351,6 @@ class FrmTabLocationPlanPeriods(QWidget):
                                    f'{location_plan_period_show.location_of_work.address.city}')
 
         if self.frame_events:
-            disconnect_event_button_signals()
             self.delete_location_plan_period_widgets()
         self.frame_events = FrmLocationPlanPeriod(self, location_plan_period_show, self.side_menu)
         self.scroll_area_events.setWidget(self.frame_events)
@@ -348,6 +361,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.info_text_setup()
 
     def delete_location_plan_period_widgets(self):
+        clear_layout(self.frame_events.layout)
         self.frame_events.deleteLater()
         for widget in (self.layout_controllers.itemAt(i).widget() for i in range(self.layout_controllers.count())):
             widget.deleteLater()
@@ -357,6 +371,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.te_notes_pp.clear()
         self.te_notes_pp.setText(self.location_id__location_pp[str(self.location_id)].notes)
         self.te_notes_pp.textChanged.connect(self.save_info_location_pp)
+
         self.te_notes_location.textChanged.disconnect()
         self.te_notes_location.clear()
         self.te_notes_location.setText(self.location.notes)
@@ -452,7 +467,7 @@ class FrmLocationPlanPeriod(QWidget):
         col = 1
         for (month, year), count in header_items_months.items():
             label = QLabel(f'{self.months[month]} {year}')
-            label.setStyleSheet('background: qlineargradient( x1:0 y1:0, x2:1 y2:0, stop:0 #a9ffaa, stop:1 #137100); color: black;')
+            label.setStyleSheet(widget_styles.labels.month_header_label_stylesheet)
             label_font = label.font()
             label_font.setPointSize(12)
             label_font.setBold(True)

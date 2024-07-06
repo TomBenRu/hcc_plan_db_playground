@@ -1,1 +1,1 @@
-from gui.widget_styles import buttons
+from gui.widget_styles import buttons, labels

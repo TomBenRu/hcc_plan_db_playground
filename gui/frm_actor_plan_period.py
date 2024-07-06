@@ -22,8 +22,11 @@ from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
+from gui.tools.clear_layout import clear_layout
 
 
+# Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
+# ist diese Funktion nicht mehr notwendig
 def disconnect_avail_button_signals():
     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
     signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
@@ -43,9 +46,9 @@ class ButtonAvailDay(QPushButton):
         self.setMinimumHeight(width_height)
 
         signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.connect(
-            lambda group_mode: self.set_group_mode(group_mode))
+            self.set_group_mode)
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.connect(
-            lambda data: self.reload_actor_plan_period(data.actor_plan_period)
+            self.reload_actor_plan_period
         )
 
         self.group_mode = False
@@ -63,6 +66,15 @@ class ButtonAvailDay(QPushButton):
         self.create_actions()
         self.context_menu.addActions(self.actions)
         self.set_tooltip()
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect(
+            self.set_group_mode)
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.disconnect(
+            self.reload_actor_plan_period
+        )
+        super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
@@ -135,7 +147,7 @@ class ButtonCombLocPossible(QPushButton):
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            lambda data: self.reload_actor_plan_period(data))
+            self.reload_actor_plan_period)
 
         self.setObjectName(f'comb_loc_poss: {date}')
         self.setMaximumWidth(width_height)
@@ -150,6 +162,12 @@ class ButtonCombLocPossible(QPushButton):
         self.setToolTip(f'Einrichtungskombinationen am {date.strftime("%d.%m.%Y")}')
 
         self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+            self.reload_actor_plan_period)
+        super().deleteLater()
 
     def check_comb_of_day__eq__comb_of_actor_pp(self):
         avail_days = self.actor_plan_period.avail_days
@@ -238,7 +256,7 @@ class ButtonActorLocationPref(QPushButton):
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            lambda data: self.reload_actor_plan_period(data))
+            self.reload_actor_plan_period)
 
         self.setObjectName(f'act_loc_pref: {date}')
         self.setMaximumWidth(width_height)
@@ -252,6 +270,12 @@ class ButtonActorLocationPref(QPushButton):
         self.setToolTip(f'Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
 
         self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+            self.reload_actor_plan_period)
+        super().deleteLater()
 
     def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
         locations_at_date_ids = {
@@ -387,7 +411,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            lambda data: self.reload_actor_plan_period(data))
+            self.reload_actor_plan_period)
 
         self.setObjectName(f'act_partner_loc_pref: {date}')
         self.setMaximumWidth(width_height)
@@ -401,6 +425,12 @@ class ButtonActorPartnerLocationPref(QPushButton):
         self.setToolTip(f'Mitarbeiter- / Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
 
         self.set_stylesheet()  # sollte beschleunigt werden!
+
+    def deleteLater(self):
+        # Trenne die Signale explizit, bevor das Widget gelöscht wird
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+            self.reload_actor_plan_period)
+        super().deleteLater()
 
     def check_pref_of_day__eq__pref_of_actor_pp(self):
         partner_at_date_ids = {p.id for p in get_persons_of_team_at_date(self.actor_plan_period.team.id, self.date)
@@ -632,7 +662,6 @@ class FrmTabActorPlanPeriods(QWidget):
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
         if self.frame_availables:
-            disconnect_avail_button_signals()
             self.delete_actor_plan_period_widgets()
         self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu)
         self.scroll_area_availables.setWidget(self.frame_availables)
@@ -642,10 +671,10 @@ class FrmTabActorPlanPeriods(QWidget):
         self.info_text_setup()
 
     def delete_actor_plan_period_widgets(self):
+        clear_layout(self.frame_availables.layout)
         self.frame_availables.deleteLater()
         for widget in (self.layout_controllers.itemAt(i).widget() for i in range(self.layout_controllers.count())):
             widget.deleteLater()
-
 
     def info_text_setup(self):
         self.te_notes_pp.textChanged.disconnect()
@@ -741,7 +770,7 @@ class FrmActorPlanPeriod(QWidget):
         col = 1
         for (month, year), count in header_items_months.items():
             label = QLabel(f'{self.months[month]} {year}')
-            label.setStyleSheet('background: qlineargradient( x1:0 y1:0, x2:1 y2:0, stop:0 #a9ffaa, stop:1 #137100); color: black;')
+            label.setStyleSheet(widget_styles.labels.month_header_label_stylesheet)
             label_font = label.font()
             label_font.setPointSize(12)
             label_font.setBold(True)

@@ -7,6 +7,14 @@ from PySide6.QtCore import Signal, QObject
 from database import schemas
 
 
+"""Wenn Signale mittels Lambda-Funktion innerhalb eines QWidgets aufgerufen werden, muss die Verbindung zum Signal vor 
+dem Löschen des QWidgets explizit getrennt werden.
+Am besten geschieht dies innerhalb der deleteLater()-Methode des QWidgets.
+Wenn eine Widget gelöscht werden soll, welches ein Layout mit mehreren QWidgets enthält, die Signalverbindungen über
+Lambda-Funktionen enthalten, müssen diese QWidgets kann das Löschen der einzelnen QWidgets am einfachsten mit
+gui.tools.clear_layout erfolgen, Bevor das Parent-Widget gelöscht wird."""
+
+
 @dataclass
 class DataActorPPWithDate:
     actor_plan_period: schemas.ActorPlanPeriodShow

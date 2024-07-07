@@ -16,20 +16,12 @@ from line_profiler_pycharm import profile
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
-from gui import side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode, \
-    frm_time_of_day, widget_styles, frm_requested_assignments
+from gui import (side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
+                 frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
-from gui.tools.clear_layout import clear_layout
-
-
-# Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
-# ist diese Funktion nicht mehr notwendig
-def disconnect_avail_button_signals():
-    signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect()
-    signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect()
 
 
 class ButtonAvailDay(QPushButton):
@@ -66,14 +58,14 @@ class ButtonAvailDay(QPushButton):
         self.context_menu.addActions(self.actions)
         self.set_tooltip()
 
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect(
-            self.set_group_mode)
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.disconnect(
-            self.reload_actor_plan_period
-        )
-        super().deleteLater()
+    # def deleteLater(self):
+    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
+    #     signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect(
+    #         self.set_group_mode)
+    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.disconnect(
+    #         self.reload_actor_plan_period
+    #     )
+    #     super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
@@ -164,11 +156,11 @@ class ButtonCombLocPossible(QPushButton):
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-            self.reload_actor_plan_period)
-        super().deleteLater()
+    # def deleteLater(self):
+    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
+    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+    #         self.reload_actor_plan_period)
+    #     super().deleteLater()
 
     def check_comb_of_day__eq__comb_of_actor_pp(self):
         avail_days = self.actor_plan_period.avail_days
@@ -273,11 +265,11 @@ class ButtonActorLocationPref(QPushButton):
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-            self.reload_actor_plan_period)
-        super().deleteLater()
+    # def deleteLater(self):
+    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
+    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+    #         self.reload_actor_plan_period)
+    #     super().deleteLater()
 
     def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
         locations_at_date_ids = {
@@ -428,11 +420,11 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-            self.reload_actor_plan_period)
-        super().deleteLater()
+    # def deleteLater(self):
+    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
+    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
+    #         self.reload_actor_plan_period)
+    #     super().deleteLater()
 
     def check_pref_of_day__eq__pref_of_actor_pp(self):
         partner_at_date_ids = {p.id for p in get_persons_of_team_at_date(self.actor_plan_period.team.id, self.date)
@@ -673,7 +665,6 @@ class FrmTabActorPlanPeriods(QWidget):
         self.info_text_setup()
 
     def delete_actor_plan_period_widgets(self):
-        clear_layout(self.frame_availables.layout)
         self.frame_availables.deleteLater()
         for widget in (self.layout_controllers.itemAt(i).widget() for i in range(self.layout_controllers.count())):
             widget.deleteLater()

@@ -18,7 +18,6 @@ from commands import command_base_classes
 from commands.database_commands import cast_group_commands, event_commands, plan_commands, appointment_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
-from gui.tools.clear_layout import clear_layout
 
 
 # Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
@@ -74,11 +73,11 @@ class ButtonEvent(QPushButton):  # todo: Ändern
         self.menu_times_of_day.addActions(self.actions)
         self.set_tooltip()
 
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect(self.set_group_mode)
-        signal_handling.handler_location_plan_period.signal_reload_location_pp__events.disconnect(self.reload_location_plan_period)
-        super().deleteLater()
+    # def deleteLater(self):
+    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
+    #     signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect(self.set_group_mode)
+    #     signal_handling.handler_location_plan_period.signal_reload_location_pp__events.disconnect(self.reload_location_plan_period)
+    #     super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
@@ -194,13 +193,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Fest Bes
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
-        signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
-            lambda event: None
-        )
-
-    def deleteLater(self):
-        # Trenne die Signale explizit, bevor das Widget gelöscht wird
-        super().deleteLater()
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag
@@ -363,7 +355,6 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.info_text_setup()
 
     def delete_location_plan_period_widgets(self):
-        clear_layout(self.frame_events.layout)
         self.frame_events.deleteLater()
         for widget in (self.layout_controllers.itemAt(i).widget() for i in range(self.layout_controllers.count())):
             widget.deleteLater()

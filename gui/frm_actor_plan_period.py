@@ -48,8 +48,7 @@ class ButtonAvailDay(QPushButton):
         signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.connect(
             self.set_group_mode)
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.connect(
-            self.reload_actor_plan_period
-        )
+            self.reload_actor_plan_period)
 
         self.group_mode = False
         '#999999'
@@ -135,11 +134,10 @@ class ButtonAvailDay(QPushButton):
                         f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
-    @Slot(schemas.ActorPlanPeriodShow)
-    @Slot(type(None))
-    def reload_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriodShow = None):
-        if actor_plan_period:
-            self.actor_plan_period = actor_plan_period
+    @Slot(signal_handling.DataActorPPWithDate)
+    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
+        if data is not None:
+            self.actor_plan_period = data.actor_plan_period
         else:
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 

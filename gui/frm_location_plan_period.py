@@ -176,11 +176,10 @@ class ButtonEvent(QPushButton):  # todo: Ändern
                         f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
                         f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
 
-    @Slot(schemas.LocationPlanPeriodShow)
-    @Slot(type(None))
-    def reload_location_plan_period(self, location_plan_period: schemas.LocationPlanPeriodShow = None):
-        if location_plan_period:
-            self.location_plan_period = location_plan_period
+    @Slot(signal_handling.DataLocationPPWithDate)
+    def reload_location_plan_period(self, data: signal_handling.DataLocationPPWithDate = None):
+        if data is not None:
+            self.location_plan_period = data.location_plan_period
         else:
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 

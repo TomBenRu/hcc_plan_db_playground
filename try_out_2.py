@@ -1,23 +1,62 @@
-from PySide6.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QHeaderView
+from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
 import sys
 
-app = QApplication(sys.argv)
 
-table = QTableWidget(5, 3)
-table.setHorizontalHeaderLabels(['Spalte 1', 'Spalte 2', 'Spalte 3'])
+class Person:
+    def __init__(self, name: str, age: int):
+        self.name = name
+        self.age = age
 
-# Fügen Sie eine zusätzliche Zeile am Anfang der Tabelle hinzu
-table.insertRow(0)
+    def __repr__(self):
+        return f'Person({self.name}, {self.age})'
 
-# Erstellen Sie ein QTableWidgetItem, das als Überschrift dient
-header = QTableWidgetItem("Überschrift über mehrere Spalten")
-table.setItem(0, 0, header)
 
-# Verbinden Sie die Zellen in der ersten Zeile
-table.setSpan(0, 0, 1, 3)
+class MyCustomSignal(QObject):
+    signal1 = Signal(Person, int)
+    signal2 = Signal()
 
-# Blenden Sie die tatsächlichen Überschriften der Tabelle aus
-table.horizontalHeader().setVisible(False)
 
-table.show()
-sys.exit(app.exec())
+class MyWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.custom_signal = MyCustomSignal()
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('My Window')
+        self.setGeometry(300, 300, 300, 200)
+
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.label = QLabel('Label 1')
+        self.layout.addWidget(self.label)
+        self.button = QPushButton('Button 1')
+        self.button.clicked.connect(lambda: self.custom_signal.signal1.emit(Person('Tom', 25), 1))
+        self.button.clicked.connect(self.custom_signal.signal2.emit)
+        self.custom_signal.signal1.connect(self.label_set_text)
+        self.custom_signal.signal2.connect(self.button_clicked)
+
+        self.button.clicked.connect(lambda: self.button_clicked(button=self.button))
+        self.layout.addWidget(self.button)
+
+        self.show()
+
+    @Slot(Person, int, result=None)
+    def label_set_text(self, person: Person, position: int):
+        self.label.setText(f'{person=}, {type(person)=}, {position=}')
+        print(f'{person=}, {type(person)=}, {position=}')
+
+    @Slot()
+    def button_clicked(self, *args, **kwargs):
+        print(f'Button clicked, {args=}, {kwargs=}')
+        if button := kwargs.get('button'):
+            print(f'{button=}')
+            button.setStyleSheet("background-color: red;")
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = MyWindow()
+    sys.exit(app.exec())

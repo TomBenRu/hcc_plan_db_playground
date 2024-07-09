@@ -1,6 +1,7 @@
 import collections
 import datetime
 import functools
+import os.path
 import pprint
 import sys
 from uuid import UUID
@@ -40,44 +41,46 @@ class MainWindow(QMainWindow):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         signal_handling.handler_plan_tabs.signal_event_changed.connect(lambda e: self.plan_tabs_event_changed(e))
+        path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+        print(f'path_to_toolbar_icons: {path_to_toolbar_icons}')
 
         self.actions = {
-            Action(self, 'resources/toolbar_icons/icons/blue-document--plus.png', 'Neue Planung...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'), 'Neue Planung...',
                    'Legt eine neue Planung an.', self.new_plan_period, short_cut='Ctrl+n'),
-            Action(self, 'resources/toolbar_icons/icons/blue-document--pencil.png', 'Planung ändern...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document--pencil.png'), 'Planung ändern...',
                    'Ändern oder Löschen einer vorhandenen Planung.', self.edit_plan_period),
-            Action(self, 'resources/toolbar_icons/icons/gear--pencil.png', 'Projekt-Einstellungen...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Projekt-Einstellungen...',
                    'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
-            Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Pläne)',
+            Action(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'), 'Öffnen... (Pläne)',
                    'Öffnet einen bereits erstellten Plan.', self.open_plan),
-            Action(self, 'resources/toolbar_icons/icons/folder-open-document.png', 'Öffnen... (Planungsdaten)',
+            Action(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'), 'Öffnen... (Planungsdaten)',
                    'Öffnet Planungsmasken für Mitarbeiterverfügbarkeiten und Terminen an Einrichtungen',
                    self.open_actor_planperiod_location_planperiod),
-            Action(self, 'resources/toolbar_icons/icons/disk.png', 'Plan speichern...', 'Speichert den aktiven Plan',
+            Action(self, os.path.join(path_to_toolbar_icons, 'disk.png'), 'Plan speichern...', 'Speichert den aktiven Plan',
                    self.plan_save),
-            Action(self, 'resources/toolbar_icons/icons/tables.png', 'Listen für Sperrtermine erzeugen...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'tables.png'), 'Listen für Sperrtermine erzeugen...',
                    'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
                    self.sheets_for_availables),
-            Action(self, 'resources/toolbar_icons/icons/table-export.png', 'Plan Excel-Export...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
                    'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
-            Action(self, 'resources/toolbar_icons/icons/blue-folder-open-table.png',
+            Action(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
                    'Anzeigen der Pläne im Explorer...', 'Pläne der aktuellen Planung werden im Explorer angezeigt.',
                    self.lookup_for_excel_plan),
-            Action(self, 'resources/toolbar_icons/icons/cross-script.png', 'Programm beenden', None, self.exit,
+            Action(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 'Programm beenden', None, self.exit,
                    'Alt+F4'),
-            Action(self, 'resources/toolbar_icons/icons/address-book-blue.png', 'Stammdaten...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'), 'Stammdaten...',
                    'Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.', self.master_data),
             Action(self, None, 'Pläne anzeigen', None, self.show_plans),
             Action(self, None, 'Masken anzeigen', None, self.show_masks),
-            Action(self, 'resources/toolbar_icons/icons/table-select-cells.png', 'Übersicht Verfügbarkeiten',
+            Action(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'), 'Übersicht Verfügbarkeiten',
                    'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.', self.show_availables),
-            Action(self, 'resources/toolbar_icons/icons/chart.png', 'Übersicht Einsätze der Mitarbeiter',
+            Action(self, os.path.join(path_to_toolbar_icons, 'chart.png'), 'Übersicht Einsätze der Mitarbeiter',
                    'Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.', self.statistics),
-            Action(self, 'resources/toolbar_icons/icons/blue-document-attribute-p.png', 'Einsatzpläne erstellen...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document-attribute-p.png'), 'Einsatzpläne erstellen...',
                    'Einen oder mehrere Einsatzpläne einer bestimmten Periode erstellen.', self.calculate_plans),
-            Action(self, 'resources/toolbar_icons/icons/notebook--pencil.png', 'Plan-Infos...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'), 'Plan-Infos...',
                    'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
-            Action(self, 'resources/toolbar_icons/icons/gear.png', 'Einstellungen...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'gear.png'), 'Einstellungen...',
                    'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
             Action(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
                    f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
@@ -85,22 +88,22 @@ class MainWindow(QMainWindow):
             Action(self, None, 'Events aus Plan zu Events-Maske...',
                    'Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.',
                    self.apply_events__plan_to_mask),
-            Action(self, 'resources/toolbar_icons/icons/mail-send.png', 'Emails...', 'Emails versenden.',
+            Action(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'), 'Emails...', 'Emails versenden.',
                    self.send_email),
-            Action(self, 'resources/toolbar_icons/icons/calendar--arrow.png', 'Termine übertragen',
+            Action(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 'Termine übertragen',
                    'Termine des aktiven Plans zum Google-Kalender übertragen', self.plan_events_to_google_calendar),
-            Action(self, 'resources/toolbar_icons/icons/calendar-blue.png', 'Google-Kalender öffnen...',
+            Action(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'), 'Google-Kalender öffnen...',
                    'Öffnet den Google-Kalender im Browser', self.open_google_calendar),
             Action(self, None, 'Kalender-ID setzen...', 'Kalender-ID des Google-Kalenders dieses Teams',
                    self.set_google_calendar_id),
             Action(self, None, 'Upgrade...', 'Zum Erweitern von "hcc-plan"', self.upgrade_hcc_plan),
-            Action(self, 'resources/toolbar_icons/icons/gear--pencil.png', 'Einstellungen',
+            Action(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Einstellungen',
                    'Allgemeine Programmeinstellungen.', self.general_setting),
-            Action(self, 'resources/toolbar_icons/icons/book-question.png', 'Hilfe...', 'Öffnet die Hilfe im Browser.',
+            Action(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 'Hilfe...', 'Öffnet die Hilfe im Browser.',
                    self.open_help, 'F1'),
             Action(self, None, 'Auf Updates überprüfen...', 'Überprüft, ob Updates zum Programm vorhanden sind.',
                    self.check_for_updates),
-            Action(self, 'resources/toolbar_icons/icons/information-italic.png', 'Über...', 'Info über das Programm',
+            Action(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'), 'Über...', 'Info über das Programm',
                    self.about_hcc_plan)
         }
         self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}

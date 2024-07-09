@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Callable, Sequence, TypeAlias, NewType
@@ -772,7 +773,8 @@ class DlgGroupMode(QDialog):
         if self.tree_groups.horizontalScrollBar().isVisible():
             height += self.tree_groups.horizontalScrollBar().height()
 
-        with open('config.json') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
+            print(f"{os.path.join(os.path.dirname(__file__), 'config.json')=}")
             json_data = json.load(f)
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 

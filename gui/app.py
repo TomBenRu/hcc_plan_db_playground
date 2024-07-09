@@ -1,5 +1,6 @@
 import json
 import logging
+import os.path
 import sys
 import time
 
@@ -16,20 +17,21 @@ logging.Formatter.converter = time.gmtime
 
 app = QApplication(sys.argv)
 # app.setStyle(QStyleFactory.create('Fusion'))
-app.setWindowIcon(QIcon('resources/hcc-dispo_klein.png'))
+app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
 
 window = MainWindow(app)
 
 screen_width, screen_height = app.primaryScreen().size().toTuple()
 
-with open('config.json') as f:
+with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
+    print(f"{os.path.join(os.path.dirname(__file__), 'config.json')=}")
     config_data = json.load(f)
 if not config_data.get('screen_size'):
     config_data['screen_size'] = {}
 config_data['screen_size']['width'], config_data['screen_size']['height'] = screen_width, screen_height
-with open('config.json', 'w') as f:
+with open(os.path.join(os.path.dirname(__file__), 'config.json'), 'w') as f:
     json.dump(config_data, f)
 
 window.show()
 
-app.exec()
+# app.exec()

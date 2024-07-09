@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import json
+import os
 from typing import Callable, Sequence, Literal
 from uuid import UUID
 
@@ -805,7 +806,7 @@ class DlgCastGroups(QDialog):
         if self.tree_groups.horizontalScrollBar().isVisible():
             height += self.tree_groups.horizontalScrollBar().height()
 
-        with open('config.json') as f:
+        with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
             json_data = json.load(f)
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 

@@ -1,7 +1,3 @@
-import random
-
-from line_profiler_pycharm import profile
-
 from database import schemas
 from commands.command_base_classes import Command
 from optimizer.base_cast_classes import BaseEventGroupCast, BaseAppointmentCast, BasePlanPeriodCast

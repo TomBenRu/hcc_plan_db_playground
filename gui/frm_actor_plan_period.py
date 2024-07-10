@@ -11,8 +11,6 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
 
-from line_profiler_pycharm import profile
-
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
@@ -1045,7 +1043,6 @@ class FrmActorPlanPeriod(QWidget):
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-    @profile
     def reset_all_loc_prefs(self, e=None):
         """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 

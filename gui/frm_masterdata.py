@@ -8,7 +8,6 @@ from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QFormLayout, QHeaderView
-from line_profiler_pycharm import profile
 
 from database import db_services, schemas
 from database.enums import Gender
@@ -284,7 +283,6 @@ class FrmPersonCreate(FrmPersonData):
 
 
 class FrmPersonModify(FrmPersonData):
-    @profile
     def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
         super().__init__(parent, project_id)
 

@@ -5,7 +5,6 @@ from functools import wraps
 from typing import Optional, Callable
 from uuid import UUID
 
-from icecream import ic
 from pony.orm import db_session, commit, select
 
 from . import schemas

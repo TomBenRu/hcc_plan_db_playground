@@ -8,6 +8,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from gui.main_window import MainWindow
+from gui.splash_screen import SplashScreen
 
 logging.basicConfig(filename='pony.log', level=logging.INFO,
                     format='%(created)f-%(asctime)s\n%(message)s\n')
@@ -18,6 +19,8 @@ logging.Formatter.converter = time.gmtime
 app = QApplication(sys.argv)
 # app.setStyle(QStyleFactory.create('Fusion'))
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
+
+splash = SplashScreen()
 
 window = MainWindow(app)
 

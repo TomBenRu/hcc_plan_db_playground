@@ -1,9 +1,7 @@
-import collections
-import datetime
 import functools
 import os.path
-import pprint
 import sys
+import time
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QTimer, QPoint
@@ -13,7 +11,6 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import db_services, schemas
-from database.special_schema_requests import get_curr_locations_of_team, get_locations_of_team_at_date
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods

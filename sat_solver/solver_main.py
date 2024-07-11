@@ -117,21 +117,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
 
     def print_results(self):
         print(f"Solution {self._solution_count}")
-        for event_group in sorted(list(entities.event_groups_with_event.values()),
-                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
-            if not self.Value(entities.event_group_vars[event_group.event_group_id]):
-                continue
-            print(f"Day {event_group.event.date: '%d.%m.%y'} ({event_group.event.time_of_day.name}) "
-                  f"in {event_group.event.location_plan_period.location_of_work.name}")
-            for actor_plan_period in entities.actor_plan_periods.values():
-                is_working = False
-                if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
-                       for avd_id in (avd.avail_day_group.id for avd in actor_plan_period.avail_days)):
-                    is_working = True
-                    print(f"   {actor_plan_period.person.f_name} "
-                          f"works in {event_group.event.location_plan_period.location_of_work.name:}")
-                # else:
-                #     print(f"      {actor_plan_period.person.f_name} does not work")
+        # self.print_shifts()
         print('unassigned_shifts_per_event:',
               [self.Value(unassigned_shifts) for unassigned_shifts in self._unassigned_shifts_per_event])
         sum_assigned_shifts_per_employee = {entities.actor_plan_periods[app_id].person.f_name: self.Value(s)
@@ -149,6 +135,19 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         #         if (adg_id in entities.avail_day_groups_with_avail_day
         #             and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id == app_id)}
         #     print(f'active_avail_day_groups of {app.person.f_name}: {group_vars}')
+
+    def print_shifts(self):
+        for event_group in sorted(list(entities.event_groups_with_event.values()),
+                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
+            if not self.Value(entities.event_group_vars[event_group.event_group_id]):
+                continue
+            print(f"Day {event_group.event.date: '%d.%m.%y'} ({event_group.event.time_of_day.name}) "
+                  f"in {event_group.event.location_plan_period.location_of_work.name}")
+            for actor_plan_period in entities.actor_plan_periods.values():
+                if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
+                       for avd_id in (avd.avail_day_group.id for avd in actor_plan_period.avail_days)):
+                    print(f"   {actor_plan_period.person.f_name} "
+                          f"works in {event_group.event.location_plan_period.location_of_work.name:}")
 
     def get_max_assigned_shifts(self):
         return self._max_assigned_shifts
@@ -337,7 +336,10 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                         and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
                         and event_location_id == loc_pref.location_of_work.id):
                     loc_pref_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
-                                                         WEIGHT_VARS_LOCATION_PREFS[0], ''))
+                                                         WEIGHT_VARS_LOCATION_PREFS[0],
+                                                         f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
+                                                         f'{event.location_plan_period.location_of_work.name}: '
+                                                         f'{avail_day.actor_plan_period.person.f_name}'))
                     # Intermediate variable that allows the calculation of the Location-Pref variable based on the
                     # Shift variable and Event-Group variable:
                     all_active_var = model.NewBoolVar('')
@@ -796,6 +798,7 @@ def solve_model_to_optimum(model: cp_model.CpModel,
 def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutionCallback | None,
                      unassigned_shifts_per_event: dict[UUID, IntVar], sum_assigned_shifts: dict[UUID, IntVar],
                      sum_squared_deviations: IntVar, constraints_partner_loc_prefs: list[IntVar],
+                     constraints_location_prefs: list[IntVar],
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
     # Statistics.
     print("\nStatistics")
@@ -809,6 +812,8 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'{[solver.Value(u) for u in unassigned_shifts_per_event.values()]}')
     print(f'{solver.Value(sum_squared_deviations)=}')
     print(f'{sum(solver.Value(a) for a in sum_assigned_shifts.values())=}')
+    print(f'location_prefs: {[(u.name ,solver.Value(u)) for u in constraints_location_prefs]}')
+    print(f'sum_location_prefs: {solver.Value(sum(constraints_location_prefs))}')
     print(f'partner_loc_prefs: {[(u.name ,solver.Value(u)) for u in constraints_partner_loc_prefs]}')
     print(f'sum_partner_loc_prefs: {solver.Value(sum(constraints_partner_loc_prefs))}')
     print(f'fixed_cast_conflicts: {solver.Value(sum(constraints_fixed_cast_conflicts.values()))}')
@@ -850,7 +855,8 @@ def call_solver_with_unadjusted_requested_assignments(
     print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
+                     constraints_partner_loc_prefs, constraints_location_prefs,
+                     constraints_fixed_cast_conflicts)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
     print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
@@ -888,7 +894,8 @@ def call_solver_with_fixed_unassigned_shifts(
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
+                     constraints_partner_loc_prefs, constraints_location_prefs,
+                     constraints_fixed_cast_conflicts)
 
     return solution_printer.get_max_assigned_shifts()
 
@@ -922,7 +929,8 @@ def call_solver_with_adjusted_requested_assignments(
     print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
+                     constraints_partner_loc_prefs, constraints_location_prefs,
+                     constraints_fixed_cast_conflicts)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(w) for w in constraints_weights_in_event_groups),
@@ -960,7 +968,8 @@ def call_solver_with__fixed_constraint_results(
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
+                     constraints_partner_loc_prefs, constraints_location_prefs,
+                     constraints_fixed_cast_conflicts)
 
     constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
     return solution_printer, constraints_fixed_cast_conflicts

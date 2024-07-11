@@ -350,7 +350,7 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
 
 
 def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
-    plp_pref_vars: list[IntVar] = []
+    partn_loc_pref_vars: list[IntVar] = []
     for eg_id, event_group in entities.event_groups_with_event.items():
         if event_group.event.cast_group.nr_actors < 2:
             continue
@@ -364,29 +364,42 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
         duo_combs = itertools.combinations(avail_day_groups, 2)
         for combo in duo_combs:
             combo: tuple[AvailDayGroup, AvailDayGroup]
+            # Only add constraint if there is at least one partner with partner_location_preference...
             if not any(len(adg.avail_day.actor_partner_location_prefs_defaults) for adg in combo):
                 continue
+            # ...and if the partners are not the same...
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
-            plp_pref_vars.append(model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
-                                                 WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
-                                                 f'{event_group.event.date:%d.%m.%y}, '
-                                                 f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
-                                                 f'{combo[1].avail_day.actor_plan_period.person.f_name}'))
+            partn_loc_pref_vars.append(
+                model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
+                                WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
+                                f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
+                                f'{event_group.event.location_plan_period.location_of_work.name} '
+                                f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
+                                f'{combo[1].avail_day.actor_plan_period.person.f_name}')
+            )
 
+            # Kalkuliere die Scores der Partner-Location-Pref-Variablen. Falls keine Variable mit dem Partner und der
+            # entsprechenden Location existiert, ist der Score 1.
             score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
-                            if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id), 1)
+                            if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id
+                            and plp.location_of_work.id == event_group.event.location_plan_period.location_of_work.id),
+                           1)
             score_1 = next((plp.score for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
-                            if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id), 1)
+                            if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id
+                            and plp.location_of_work.id == event_group.event.location_plan_period.location_of_work.id),
+                           1)
 
+            # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
+            # Shift variables and Event-Group variable:
             plp_weight_var = model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
                                              WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
                                              '')
-            # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
-            # Shift variables and Event-Group variable:
-            shift_active_var = model.NewBoolVar('')
-            all_active_var = model.NewBoolVar('')
+            shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
+            all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
 
+            # todo: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
+            #  sollte aber mit der tatsächlichen Besetzungsstärke ermittelt werden...
             model.Add(plp_weight_var == round((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
                                                + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
                                               / (event_group.event.cast_group.nr_actors - 1)))
@@ -394,15 +407,15 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
                                             [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
                                              entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
             model.AddMultiplicationEquality(all_active_var, [shift_active_var, entities.event_group_vars[eg_id]])
-            model.AddMultiplicationEquality(plp_pref_vars[-1], [plp_weight_var, all_active_var])
+            model.AddMultiplicationEquality(partn_loc_pref_vars[-1], [plp_weight_var, all_active_var])
 
             # Falls eine der Personen absolut nicht mit der anderen Person besetzt werden soll
             # und die Besetzungsstärke 2 ist, wird nur 1 dieser Personen besetzt:
             exclusive = 0 if (score_0 and score_1) or event_group.event.cast_group.nr_actors >= 3 else 1
-            model.Add(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)] 
+            model.Add(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)]
                       + entities.shift_vars[(combo[1].avail_day_group_id, eg_id)] < 2).OnlyEnforceIf(exclusive)
 
-    return plp_pref_vars
+    return partn_loc_pref_vars
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
@@ -496,6 +509,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
 
 
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
+    # todo: funktioniert bislang nur für CastGroups mit Event
     
     def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')
@@ -781,7 +795,7 @@ def solve_model_to_optimum(model: cp_model.CpModel,
 
 def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutionCallback | None,
                      unassigned_shifts_per_event: dict[UUID, IntVar], sum_assigned_shifts: dict[UUID, IntVar],
-                     sum_squared_deviations: IntVar,
+                     sum_squared_deviations: IntVar, constraints_partner_loc_prefs: list[IntVar],
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
     # Statistics.
     print("\nStatistics")
@@ -795,6 +809,8 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'{[solver.Value(u) for u in unassigned_shifts_per_event.values()]}')
     print(f'{solver.Value(sum_squared_deviations)=}')
     print(f'{sum(solver.Value(a) for a in sum_assigned_shifts.values())=}')
+    print(f'partner_loc_prefs: {[(u.name ,solver.Value(u)) for u in constraints_partner_loc_prefs]}')
+    print(f'sum_partner_loc_prefs: {solver.Value(sum(constraints_partner_loc_prefs))}')
     print(f'fixed_cast_conflicts: {solver.Value(sum(constraints_fixed_cast_conflicts.values()))}')
 
     fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day}), {cast_group_id}': solver.Value(var)
@@ -833,7 +849,8 @@ def call_solver_with_unadjusted_requested_assignments(
 
     print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
+                     sum_assigned_shifts, sum_squared_deviations,
+                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
     print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
@@ -870,7 +887,8 @@ def call_solver_with_fixed_unassigned_shifts(
         print_solution_printer_results, 1000, log_search_process, collect_schedule_versions)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
+                     sum_assigned_shifts, sum_squared_deviations,
+                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
 
     return solution_printer.get_max_assigned_shifts()
 
@@ -903,7 +921,8 @@ def call_solver_with_adjusted_requested_assignments(
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     print_solver_status(solver_status)
     print_statistics(solver, None, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
+                     sum_assigned_shifts, sum_squared_deviations,
+                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(w) for w in constraints_weights_in_event_groups),
@@ -940,7 +959,8 @@ def call_solver_with__fixed_constraint_results(
         print_solution_printer_results, 100, log_search_process, collect_schedule_versions)
     print_solver_status(solver_status)
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
+                     sum_assigned_shifts, sum_squared_deviations,
+                     constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
 
     constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
     return solution_printer, constraints_fixed_cast_conflicts

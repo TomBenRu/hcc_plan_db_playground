@@ -246,8 +246,8 @@ class AvailDayGroupCreate(BaseModel):
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
     avail_day_group: Optional['AvailDayGroup']
     variation_weight: int = 1
-    # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
-    # unterschiedliche Gewichtungen verliehen werden.
+    # Falls mehr AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
+    # durch variation_weight unterschiedliche Gewichtungen verliehen werden.
 
 
 class AvailDayGroup(AvailDayGroupCreate):
@@ -485,6 +485,8 @@ class EventGroupCreate(BaseModel):
     event_group: Optional['EventGroup']
     event: Optional[Event]
     variation_weight: int = 1
+    # Falls mehr Eventgroups in einer Eventgroup als nr_events der Eventgroup können variation_weight
+    # den Eventgroups unterschiedliche Gewichtungen verliehen werden.
 
 
 class EventGroup(EventGroupCreate):

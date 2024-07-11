@@ -213,8 +213,8 @@ class AvailDayGroup(db.Entity):
     avail_day_groups = Set('AvailDayGroup', reverse='avail_day_group')
     avail_day = Optional('AvailDay')
     variation_weight = Required(int, size=8, default=1, unsigned=True)
-    # Falls weniger AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
-    # unterschiedliche Gewichtungen verliehen werden.
+    # Falls mehr AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
+    # durch variation_weight unterschiedliche Gewichtungen verliehen werden.
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
 
@@ -445,7 +445,9 @@ class EventGroup(db.Entity):
     event_group = Optional('EventGroup', reverse='event_groups')
     event_groups = Set('EventGroup', reverse='event_group')
     event = Optional(Event)
-    variation_weight = Required(int, size=8, default=1, unsigned=True)  # Falls mehr Eventgroups in einer Eventgroup als nr_events der Eventgroup können den Eventgroups unterschiedliche Gewichtungen verliehen werden.
+    variation_weight = Required(int, size=8, default=1, unsigned=True)
+    # Falls mehr Eventgroups in einer Eventgroup als nr_events der Eventgroup können variation_weight
+    # den Eventgroups unterschiedliche Gewichtungen verliehen werden.
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Optional(datetime.datetime)
 

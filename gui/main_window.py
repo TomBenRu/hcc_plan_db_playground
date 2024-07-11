@@ -25,10 +25,10 @@ from .toolbars import MainToolBar
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, app):
+    def __init__(self, app, screen_width: int, screen_height: int):
         super().__init__()
         self.setWindowTitle('hcc-plan')
-        self.setGeometry(QRect(0, 0, 1200, 600))
+        self.setGeometry(QRect(0, 0, screen_width-100, screen_height-100))
 
         # db_services.Project.create('Humor Hilft Heilen')
 

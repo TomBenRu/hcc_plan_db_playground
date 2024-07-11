@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import os
 import re
 from abc import ABC, abstractmethod
 from functools import partial
@@ -341,7 +342,10 @@ class DlgFixedCast(QDialog):
 
         self.layout.addStretch()
 
-        self.bt_new_row = QPushButton(QIcon('resources/toolbar_icons/icons/plus.png'), None, clicked=self.new_row)
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
+        self.bt_new_row = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus.png')),
+                                      None, clicked=self.new_row)
         self.bt_new_row.setObjectName('bt_new_row')
         self.bt_new_row.setFixedWidth(self.width_bt_new_row)
         self.layout_grid.addWidget(self.bt_new_row, 0, 0)
@@ -359,9 +363,9 @@ class DlgFixedCast(QDialog):
         self.bt_reset = QPushButton('Reset')
         self.reset_menu: QMenu | None = None
         self.bt_reset_make_menu()
-        self.bt_undo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return-180.png'), 'Undo')
+        self.bt_undo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return-180.png')), 'Undo')
         self.bt_undo.clicked.connect(self.undo)
-        self.bt_redo = QPushButton(QIcon('resources/toolbar_icons/icons/arrow-return.png'), 'Redo')
+        self.bt_redo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return.png')), 'Redo')
         self.bt_redo.clicked.connect(self.redo)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_undo, QDialogButtonBox.ButtonRole.ActionRole)
@@ -430,10 +434,10 @@ class DlgFixedCast(QDialog):
         if self.builder.make_reset_menu:
             self.reset_menu = QMenu()
             self.reset_menu.addAction(
-                Action(self, 'resources/toolbar_icons/icons/cross.png', 'Clear', None,
+                Action(self, os.path.join(self.path_to_icons, 'cross.png'), 'Clear', None,
                        self.remove_fixed_cast))
             self.reset_menu.addAction(
-                Action(self, 'resources/toolbar_icons/icons/arrow-circle-315-left.png',
+                Action(self, os.path.join(self.path_to_icons, 'arrow-circle-315-left.png'),
                        'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
         else:
@@ -555,9 +559,9 @@ class DlgFixedCast(QDialog):
         layout_container.setSpacing(0)
         container.setLayout(layout_container)
 
-        bt_del_inner_operator = QPushButton(QIcon('resources/toolbar_icons/icons/minus-circle.png'), None,
+        bt_del_inner_operator = QPushButton(QIcon(os.path.join(self.path_to_icons, 'minus-circle.png')), None,
                                             clicked=self.del_actor)
-        bt_add_inner_operator = QPushButton(QIcon('resources/toolbar_icons/icons/plus-circle.png'), None,
+        bt_add_inner_operator = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus-circle.png')), None,
                                             clicked=self.add_actor)
         layout_container.addWidget(bt_del_inner_operator)
         layout_container.addWidget(bt_add_inner_operator)
@@ -568,7 +572,7 @@ class DlgFixedCast(QDialog):
 
     def fill_cb_actors(self, cb_actors: QComboBox):
         for person in self.persons:
-            cb_actors.addItem(QIcon('resources/toolbar_icons/icons/user.png'), f'{person.f_name} {person.l_name}',
+            cb_actors.addItem(QIcon(os.path.join(self.path_to_icons, 'user.png')), f'{person.f_name} {person.l_name}',
                               person.id)
 
     def fill_cb_operator(self, combo_operator: QComboBox):

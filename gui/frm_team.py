@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QHBoxLayout, QPushButton, \
     QMessageBox, QFormLayout, QCheckBox, QDialogButtonBox
@@ -18,6 +20,8 @@ class FrmTeam(QDialog):
         self.new_team: schemas.TeamCreate | None = None
         self.new_mode = False
         self.to_delete_status = False
+
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.layout = QFormLayout(self)
 
@@ -47,9 +51,9 @@ class FrmTeam(QDialog):
         self.autofill()
 
     def autofill(self):
-        self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/cross.png'), 'Kein Planer', None)
+        self.cb_dispatcher.addItem(QIcon(os.path.join(self.path_to_icons, 'cross.png')), 'Kein Planer', None)
         for p in self.project.persons:
-            self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user-business.png'),
+            self.cb_dispatcher.addItem(QIcon(os.path.join(self.path_to_icons, 'user-business.png')),
                                        f'{p.f_name} {p.l_name}', p.id)
         if not self.curr_team or self.new_mode:
             self.new_mode = True

@@ -1,4 +1,5 @@
 import datetime
+import os
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Callable
@@ -201,6 +202,8 @@ class DlgTimeOfDayEdit(QDialog):
         self.standard = standard
         self.to_delete_status = False
 
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
         self.layout = QFormLayout(self)
 
         self.le_name = QLineEdit()
@@ -231,7 +234,7 @@ class DlgTimeOfDayEdit(QDialog):
 
     def autofill(self):
         for t_o_d_enum in self.project.time_of_day_enums:
-            self.cb_time_of_day_enum.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+            self.cb_time_of_day_enum.addItem(QIcon(os.path.join(self.path_to_icons, 'clock.png')),
                                              f'{t_o_d_enum.name} / {t_o_d_enum.abbreviation}', t_o_d_enum.id)
         if self.curr_time_of_day:
             self.le_name.setText(self.curr_time_of_day.name)

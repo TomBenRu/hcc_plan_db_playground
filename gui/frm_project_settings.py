@@ -1,3 +1,4 @@
+import os
 from uuid import UUID
 
 from PySide6.QtGui import QIcon
@@ -19,6 +20,8 @@ class DlgSettingsProject(QDialog):
         self.project_id = project_id
 
         self.project = db_services.Project.get(project_id)
+
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
@@ -85,12 +88,12 @@ class DlgSettingsProject(QDialog):
     def fill_teams(self):
         self.cb_teams.clear()
         for t in sorted([t for t in self.project.teams if not t.prep_delete], key=lambda x: x.name):
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), t.name, t)
+            self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), t.name, t)
 
     def fill_admins(self):
         self.cb_admin.clear()
         for p in self.project.persons:
-            self.cb_admin.addItem(QIcon('resources/toolbar_icons/icons/user-business.png'), f'{p.f_name} {p.l_name}', p)
+            self.cb_admin.addItem(QIcon(os.path.join(self.path_to_icons, 'user-business.png')), f'{p.f_name} {p.l_name}', p)
         if self.project.admin:
             self.cb_admin.setCurrentText(f'{self.project.admin.f_name} {self.project.admin.l_name}')
         else:
@@ -100,7 +103,7 @@ class DlgSettingsProject(QDialog):
     def fill_time_of_day_enums(self):
         self.cb_time_of_day_enums.clear()
         for t_o_d_enum in sorted(self.project.time_of_day_enums, key=lambda x: x.time_index):
-            self.cb_time_of_day_enums.addItem(QIcon('resources/toolbar_icons/icons/clock.png'),
+            self.cb_time_of_day_enums.addItem(QIcon(os.path.join(self.path_to_icons, 'clock.png')),
                                               f'{t_o_d_enum.name} ({t_o_d_enum.abbreviation})', t_o_d_enum)
 
     def fill_excel_colors(self):

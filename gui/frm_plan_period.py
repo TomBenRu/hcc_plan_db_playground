@@ -1,4 +1,5 @@
 import datetime
+import os
 from uuid import UUID
 
 from PySide6.QtGui import QIcon
@@ -20,6 +21,8 @@ class DlgPlanPeriodData(QDialog):
         self.setWindowTitle('Planungszeitraum')
 
         self.max_end_plan_periods: datetime.datetime | None = None
+
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.layout = QVBoxLayout()
         self.layout.setSpacing(20)
@@ -70,13 +73,13 @@ class DlgPlanPeriodData(QDialog):
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
         for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
             team = db_services.Team.get(t.id)
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team)
+            self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/users.png')), team.name, team)
 
     def fill_dispatchers(self):
         dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)
                       if p.teams_of_dispatcher and not p.prep_delete]
         for d in dispatcher:
-            self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user.png'), f'{d.f_name} {d.l_name}', d)
+            self.cb_dispatcher.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/user.png')), f'{d.f_name} {d.l_name}', d)
 
     def fill_dates(self):
         team: schemas.TeamShow = self.cb_teams.currentData()
@@ -159,6 +162,8 @@ class DlgPlanPeriodEdit(QDialog):
         self.project_id = project_id
         self.curr_plan_periods: list[schemas.PlanPeriod] = []
 
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.layout.setSpacing(20)
@@ -222,14 +227,14 @@ class DlgPlanPeriodEdit(QDialog):
         dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)
                       if p.teams_of_dispatcher and not p.prep_delete]
         for d in dispatcher:
-            self.cb_dispatcher.addItem(QIcon('resources/toolbar_icons/icons/user.png'), f'{d.f_name} {d.l_name}', d)
+            self.cb_dispatcher.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/user.png')), f'{d.f_name} {d.l_name}', d)
 
     def fill_teams(self):
         self.cb_teams.clear()
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
         for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
             team = db_services.Team.get(t.id)
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team)
+            self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/users.png')), team.name, team)
 
     def fill_plan_periods(self):
         self.cb_planperiods.clear()

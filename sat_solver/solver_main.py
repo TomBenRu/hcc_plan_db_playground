@@ -138,8 +138,8 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
                                             for app_id, s in self._sum_assigned_shifts.items()}
         print(f'sum_assigned_shifts_of_employees: {sum_assigned_shifts_per_employee}')
         print(f'sum_squared_deviations: {self.Value(self._sum_squared_deviations)}')
-        fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day})': self.Value(var)
-                                for (date, time_of_day), var in self._fixed_cast_conflicts.items()}
+        fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day}) {cast_group_id}': self.Value(var)
+                                for (date, time_of_day, cast_group_id), var in self._fixed_cast_conflicts.items()}
         print(f'fixed_cast_conflicts: {fixed_cast_conflicts}')
         print('-----------------------------------------------------------------------------------------------------')
         # for app_id, app in entities.actor_plan_periods.items():
@@ -495,7 +495,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
                 continue
 
 
-def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str], IntVar]:
+def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
     
     def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')
@@ -515,7 +515,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         model.Add(var == sum(var_list))
         return var
 
-    def proof_recursive(fixed_cast_list: list | UUID, cast_group: CastGroup) -> IntVar:
+    def proof_recursive(fixed_cast_list: tuple | UUID, cast_group: CastGroup) -> IntVar:
         if isinstance(fixed_cast_list, UUID):
             return check_pers_id_in_shift_vars(fixed_cast_list, cast_group)
         pers_ids = [v for i, v in enumerate(fixed_cast_list) if not i % 2]
@@ -530,13 +530,14 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         else:
             return create_var_or([proof_recursive(p_id, cast_group) for p_id in pers_ids])
 
-    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy'): model.NewBoolVar('')}
+    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy', UUID('00000000-0000-0000-0000-000000000000')): model.NewBoolVar('')}
     for cast_group in entities.cast_groups_with_event.values():
         if not cast_group.fixed_cast:
             continue
 
-        fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name)] = model.NewBoolVar('')
+        fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)] = model.NewBoolVar('')
 
+        # String wird zu Python-Objekt umgewandelt:
         fixed_cast_as_list = eval(cast_group.fixed_cast
                                   .replace('and', ',"and",')
                                   .replace('or', ',"or",')
@@ -642,7 +643,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
 
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
-                                                         dict[tuple[datetime.date, str], IntVar]]:
+                                                         dict[tuple[datetime.date, str, UUID], IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -689,7 +690,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_weights_in_event_groups: list[IntVar],
                               constraints_location_prefs: list[IntVar],
                               constraints_partner_loc_prefs: list[IntVar],
-                              constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
+                              constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 
@@ -714,7 +715,7 @@ def define_objective__fixed_unassigned(model: cp_model.CpModel,
                                        sum_fixed_cast_conflicts: int, unassigned_shifts_per_event: dict[UUID, IntVar],
                                        constraints_location_prefs: list[IntVar],
                                        constraints_partner_loc_prefs: list[IntVar],
-                                       constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
+                                       constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
     model.Add(sum(constraints_location_prefs) == sum_location_prefs)
     model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
@@ -725,7 +726,7 @@ def define_objective__fixed_constraint_results(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar], sum_squared_deviations: IntVar,
         constraints_weights_in_avail_day_groups: list[IntVar], constraints_weights_in_event_groups: list[IntVar],
         constraints_location_prefs: list[IntVar], constraints_partner_loc_prefs: list[IntVar],
-        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar],
+        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
         unassigned_shifts_per_event_res: list[int],
         sum_squared_deviations_res: int, weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int,
         sum_location_prefs_res: int, sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int):
@@ -742,7 +743,7 @@ def solve_model_with_solver_solution_callback(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar],
         sum_assigned_shifts: dict[UUID, IntVar],
         sum_squared_deviations: IntVar,
-        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str]],
+        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
         print_solution_printer_results: bool,
         limit: int | None,
         log_search_process: bool,
@@ -781,7 +782,7 @@ def solve_model_to_optimum(model: cp_model.CpModel,
 def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutionCallback | None,
                      unassigned_shifts_per_event: dict[UUID, IntVar], sum_assigned_shifts: dict[UUID, IntVar],
                      sum_squared_deviations: IntVar,
-                     constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar]):
+                     constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -795,8 +796,9 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'{solver.Value(sum_squared_deviations)=}')
     print(f'{sum(solver.Value(a) for a in sum_assigned_shifts.values())=}')
     print(f'fixed_cast_conflicts: {solver.Value(sum(constraints_fixed_cast_conflicts.values()))}')
-    fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day})': solver.Value(var)
-                            for (date, time_of_day), var in constraints_fixed_cast_conflicts.items()}
+
+    fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day}), {cast_group_id}': solver.Value(var)
+                            for (date, time_of_day, cast_group_id), var in constraints_fixed_cast_conflicts.items()}
     print(f'fixed_cast_conflicts: {fixed_cast_conflicts}')
 
 
@@ -915,7 +917,8 @@ def call_solver_with__fixed_constraint_results(
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
         weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
         sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, print_solution_printer_results: bool,
-        log_search_process: bool, collect_schedule_versions: bool) -> PartialSolutionCallback:
+        log_search_process: bool, collect_schedule_versions: bool
+) -> tuple[PartialSolutionCallback, dict[tuple[datetime.date, str, UUID], int]]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
@@ -939,10 +942,12 @@ def call_solver_with__fixed_constraint_results(
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations, constraints_fixed_cast_conflicts)
 
-    return solution_printer
+    constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
+    return solution_printer, constraints_fixed_cast_conflicts
 
 
-def solve(plan_period_id: UUID, log_search_process=False):
+def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]],
+                                                                   dict[tuple[datetime.date, str, UUID], int]]:
     plan_period = db_services.PlanPeriod.get(plan_period_id)
     entities.actor_plan_periods = {app.id: db_services.ActorPlanPeriod.get(app.id)
                                    for app in plan_period.actor_plan_periods}
@@ -973,20 +978,21 @@ def solve(plan_period_id: UUID, log_search_process=False):
                                                                                      assigned_shifts,
                                                                                      max_shifts_per_app,
                                                                                      log_search_process)
-    solution_printer = call_solver_with__fixed_constraint_results(event_group_tree,
-                                                                  avail_day_group_tree,
-                                                                  cast_group_tree,
-                                                                  unassigned_shifts_per_event_res,
-                                                                  sum_squared_deviations_res,
-                                                                  sum_weights_shifts_in_avail_day_groups,
-                                                                  sum_weights_in_event_groups,
-                                                                  sum_location_prefs_res,
-                                                                  sum_partner_loc_prefs_res,
-                                                                  sum_fixed_cast_conflicts_res,
-                                                                  True,
-                                                                  log_search_process,
-                                                                  True)
-    return solution_printer.get_schedule_versions()
+    solution_printer, fixed_cast_conflicts = call_solver_with__fixed_constraint_results(
+        event_group_tree,
+        avail_day_group_tree,
+        cast_group_tree,
+        unassigned_shifts_per_event_res,
+        sum_squared_deviations_res,
+        sum_weights_shifts_in_avail_day_groups,
+        sum_weights_in_event_groups,
+        sum_location_prefs_res,
+        sum_partner_loc_prefs_res,
+        sum_fixed_cast_conflicts_res,
+        True,
+        log_search_process,
+        True)
+    return solution_printer.get_schedule_versions(), fixed_cast_conflicts
 
 
 if __name__ == '__main__':

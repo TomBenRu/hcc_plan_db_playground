@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Callable
 from uuid import UUID
@@ -87,9 +88,10 @@ class DlgFlags(QDialog):
         self.lb_info = QLabel(self.builder.info_text)
         self.table_flags = QTableWidget()
         self.layout_buttons = QHBoxLayout()
-        self.bt_add = QPushButton(QIcon('resources/toolbar_icons/icons/plus.png'), 'Hinzufügen')
-        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/minus.png'), 'Löschen')
-        self.bt_clear = QPushButton(QIcon('resources/toolbar_icons/icons/cross.png'), 'Clear')
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+        self.bt_add = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus.png')), 'Hinzufügen')
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'minus.png')), 'Löschen')
+        self.bt_clear = QPushButton(QIcon(os.path.join(self.path_to_icons, 'cross.png')), 'Clear')
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
 
         self.layout.addWidget(self.lb_info)

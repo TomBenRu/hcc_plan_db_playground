@@ -1,8 +1,9 @@
+import datetime
 import pprint
 import random
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Qt
+from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QProgressDialog, QFormLayout, QSpinBox
 
@@ -10,6 +11,7 @@ import sat_solver.solver_main
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import db_services, schemas
+from gui import frm_cast_group
 
 
 class DlgAskNrPlansToSave(QDialog):
@@ -36,7 +38,7 @@ class DlgAskNrPlansToSave(QDialog):
 
 
 class SolverThread(QThread):
-    finished = Signal(object)  # Signal emitted when the solver finishes
+    finished = Signal(object, object)  # Signal emitted when the solver finishes
 
     def __init__(self, parent: QObject, plan_period_id: UUID):
         super().__init__(parent)
@@ -44,8 +46,8 @@ class SolverThread(QThread):
 
     def run(self):
         # Call the solver function here
-        schedule_versions = sat_solver.solver_main.solve(self.plan_period_id)
-        self.finished.emit(schedule_versions)  # Emit the finished signal when the solver completes
+        schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id)
+        self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
 class DlgCalculate(QDialog):
@@ -99,7 +101,7 @@ class DlgCalculate(QDialog):
         # Create the solver thread and connect the finished signal to close the progress dialog
         solver_thread = SolverThread(self, self.curr_plan_period_id)
         solver_thread.finished.connect(progress_dialog.close)
-        solver_thread.finished.connect(lambda schedule_versions: self.save_plan_to_db(schedule_versions))
+        solver_thread.finished.connect(self.save_plan_to_db)
         solver_thread.finished.connect(self.accept)
 
         # Show the progress dialog and start the solver thread
@@ -125,13 +127,30 @@ class DlgCalculate(QDialog):
     def combo_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
 
-    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]]):
+    @Slot(object, object)
+    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]],
+                        fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int]):
+        if sum(fixed_cast_conflicts.values()) > 0:
+            events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            conflict_string = '\n'.join([f'  - {e.date:%d.%m.%y} ({e.time_of_day.name}) '
+                                         f'{e.location_plan_period.location_of_work.name}:\n'
+                                         f'      - Feste Besetzung: '
+                                         f'{frm_cast_group.generate_fixed_cast_clear_text(e.cast_group.fixed_cast)}'
+                                         for e in events])
+            QMessageBox.critical(self, 'Fehler',
+                                 f'Es wurden {sum(fixed_cast_conflicts.values())} Fixcast-Konflikte gefunden.\n'
+                                 f'{conflict_string}')
+            self.reject()
+            return
         plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
         nr_versions_to_use = (len_versions := len(schedule_versions))
         if len_versions > 1:
             dlg = DlgAskNrPlansToSave(self, len_versions)
             if dlg.exec():
                 nr_versions_to_use = dlg.get_nr_versions_to_use()
+            else:
+                self.reject()
+                return
 
         versions_to_use = random.sample(schedule_versions, k=nr_versions_to_use)
 

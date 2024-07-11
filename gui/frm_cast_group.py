@@ -521,7 +521,9 @@ class DlgGroupProperties(QDialog):
         self.combo_cast_rules.addItem('Eigene Regel')
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.plan_period.team.project.id), key=lambda x: x.name)
         for i, rule in enumerate(rules, start=1):
-            self.combo_cast_rules.addItem(QIcon('resources/toolbar_icons/icons/foaf.png'), rule.name, rule)
+            self.combo_cast_rules.addItem(QIcon(os.path.join(os.path.dirname(__file__),
+                                                             'resources/toolbar_icons/icons/foaf.png')),
+                                          rule.name, rule)
             if self.group.cast_rule and (self.group.cast_rule.id == rule.id):
                 curr_combo_index = i
         self.combo_cast_rules.setCurrentIndex(curr_combo_index)

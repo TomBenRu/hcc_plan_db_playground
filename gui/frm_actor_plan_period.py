@@ -1,5 +1,6 @@
 import datetime
 import functools
+import os.path
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -111,9 +112,12 @@ class ButtonAvailDay(QPushButton):
         self.reset_context_menu(self.actor_plan_period)
         self.set_tooltip()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
+
     def create_actions(self):
         self.actions = [
-            Action(self, QIcon('resources/toolbar_icons/icons/clock-select.png') if t.name == self.time_of_day.name else None,
+            Action(self,
+                   QIcon(os.path.join(os.path.dirname(__file__), 'resources/toolbar_icons/icons/clock-select.png'))
+                   if t.name == self.time_of_day.name else None,
                    f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
                    functools.partial(self.set_new_time_of_day, t))
             for t in self.t_o_d_for_selection]

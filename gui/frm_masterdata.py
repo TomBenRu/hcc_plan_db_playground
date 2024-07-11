@@ -1,5 +1,6 @@
 import datetime
 import functools
+import os
 from functools import partial
 from uuid import UUID
 
@@ -65,13 +66,15 @@ class WidgetPerson(QWidget):
 
         self.layout.addWidget(self.table_persons)
 
-        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/user--plus.png'), ' Person anlegen')
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
+        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--plus.png')), ' Person anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_person)
-        self.bt_edit = QPushButton(QIcon('resources/toolbar_icons/icons/user--pencil.png'), 'Person bearbeiten')
+        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), 'Person bearbeiten')
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_person)
-        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/user--minus.png'), ' Person löschen')
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--minus.png')), ' Person löschen')
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_person)
 
@@ -438,13 +441,15 @@ class WidgetLocationsOfWork(QWidget):
         self.table_locations = TableLocationsOfWork(self.locations)
         self.layout.addWidget(self.table_locations)
 
-        self.bt_new = QPushButton(QIcon('resources/toolbar_icons/icons/store--plus.png'), ' Einrichtung anlegen')
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
+        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--plus.png')), ' Einrichtung anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_location)
-        self.bt_edit = QPushButton(QIcon('resources/toolbar_icons/icons/store--pencil.png'), ' Einrichtung bearbeiten')
+        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' Einrichtung bearbeiten')
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_location)
-        self.bt_delete = QPushButton(QIcon('resources/toolbar_icons/icons/store--minus.png'), ' Einrichtung löschen')
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--minus.png')), ' Einrichtung löschen')
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_location)
 
@@ -615,6 +620,8 @@ class FrmLocationModify(FrmLocationData):
 
         self.location_of_work = self.get_location_of_work()
 
+        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
         self.group_specific_data = QGroupBox('Spezielles')
         self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
@@ -665,9 +672,9 @@ class FrmLocationModify(FrmLocationData):
         self.cb_teams.blockSignals(True)
         self.cb_teams.clear()
         teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
-        self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), 'kein Team', None)
+        self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), 'kein Team', None)
         for team in teams:
-            self.cb_teams.addItem(QIcon('resources/toolbar_icons/icons/users.png'), team.name, team.id)
+            self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), team.name, team.id)
         self.set_curr_team()
         self.lb_teams_info.setText(self.get_team_info_text())
         self.cb_teams.blockSignals(False)

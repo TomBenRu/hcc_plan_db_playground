@@ -12,12 +12,7 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
-from database.constants_and_rules import (WEIGHT_UNASSIGNED_SHIFTS, WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS,
-                                          WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS,
-                                          WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS,
-                                          WEIGHT_CONSTRAINTS_LOCATION_PREFS, WEIGHT_VARS_LOCATION_PREFS,
-                                          WEIGHT_CONSTRAINTS_FIXED_CASTS_CONFLICTS,
-                                          WEIGHT_VARS_PARTNER_LOC_PREFS, WEIGHT_CONSTRAINTS_PARTNER_LOC_PREFS)
+from configfiguration.solver import solver_configs
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -298,7 +293,7 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
 
 def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
     """Wenn die BoolVar einer avail_day_group mit avail_day wegen Einschränkungen durch nr_avail_day_groups
-    auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity(), müssen auch die zugehörigen
+    auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity()), müssen auch die zugehörigen
     BoolVars der shifts auf False gesetzt sein."""
     for (adg_id, event_group_id), shift_var in entities.shift_vars.items():
         model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
@@ -335,8 +330,8 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                 if (adg_id == avail_day_group_id and event.date == avail_day.date
                         and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
                         and event_location_id == loc_pref.location_of_work.id):
-                    loc_pref_vars.append(model.NewIntVar(WEIGHT_VARS_LOCATION_PREFS[2],
-                                                         WEIGHT_VARS_LOCATION_PREFS[0],
+                    loc_pref_vars.append(model.NewIntVar(solver_configs.constraints_multipliers.sliders_location_prefs[2],
+                                                         solver_configs.constraints_multipliers.sliders_location_prefs[0],
                                                          f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
                                                          f'{event.location_plan_period.location_of_work.name}: '
                                                          f'{avail_day.actor_plan_period.person.f_name}'))
@@ -346,7 +341,7 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
 
                     model.AddMultiplicationEquality(
                         all_active_var, [shift_var, entities.event_group_vars[eg_id]])
-                    model.Add(loc_pref_vars[-1] == all_active_var * WEIGHT_VARS_LOCATION_PREFS[loc_pref.score])
+                    model.Add(loc_pref_vars[-1] == all_active_var * solver_configs.constraints_multipliers.sliders_location_prefs[loc_pref.score])
 
     return loc_pref_vars
 
@@ -373,8 +368,8 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
             partn_loc_pref_vars.append(
-                model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
-                                WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
+                model.NewIntVar(solver_configs.constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
+                                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
                                 f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
                                 f'{event_group.event.location_plan_period.location_of_work.name} '
                                 f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
@@ -394,17 +389,20 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
 
             # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
             # Shift variables and Event-Group variable:
-            plp_weight_var = model.NewIntVar(WEIGHT_VARS_PARTNER_LOC_PREFS[2] * 2,
-                                             WEIGHT_VARS_PARTNER_LOC_PREFS[0] * 2,
-                                             '')
+            plp_weight_var = model.NewIntVar(
+                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
+                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
+                '')
             shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
             all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
 
             # todo: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
             #  sollte aber mit der tatsächlichen Besetzungsstärke ermittelt werden...
-            model.Add(plp_weight_var == round((WEIGHT_VARS_PARTNER_LOC_PREFS[score_0]
-                                               + WEIGHT_VARS_PARTNER_LOC_PREFS[score_1])
-                                              / (event_group.event.cast_group.nr_actors - 1)))
+            model.Add(plp_weight_var == round(
+                (solver_configs.constraints_multipliers.sliders_partner_loc_prefs[score_0] +
+                 solver_configs.constraints_multipliers.sliders_partner_loc_prefs[score_1]) /
+                (event_group.event.cast_group.nr_actors - 1))
+                      )
             model.AddMultiplicationEquality(shift_active_var,
                                             [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
                                              entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
@@ -710,13 +708,15 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 
-    weight_unassigned_shifts = WEIGHT_UNASSIGNED_SHIFTS
-    weight_sum_squared_shift_deviations = WEIGHT_SUM_SQUARED_SHIFT_DEVIATIONS / len(entities.actor_plan_periods)
-    weight_constraints_weights_in_avail_day_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_AVAIL_DAY_GROUPS
-    weight_constraints_weights_in_event_groups = WEIGHT_CONSTRAINTS_WEIGHTS_IN_EVENT_GROUPS
-    weight_constraints_location_prefs = WEIGHT_CONSTRAINTS_LOCATION_PREFS
-    weight_constraints_fixed_cast_conflicts = WEIGHT_CONSTRAINTS_FIXED_CASTS_CONFLICTS
-    weight_constraints_partner_loc_prefs = WEIGHT_CONSTRAINTS_PARTNER_LOC_PREFS
+    weights = solver_configs.minimization_weights
+
+    weight_unassigned_shifts = weights.unassigned_shifts
+    weight_sum_squared_shift_deviations = weights.sum_squared_deviations / len(entities.actor_plan_periods)
+    weight_constraints_weights_in_avail_day_groups = weights.constraints_weights_in_avail_day_groups
+    weight_constraints_weights_in_event_groups = weights.constraints_weights_in_event_groups
+    weight_constraints_location_prefs = weights.constraints_location_prefs
+    weight_constraints_fixed_cast_conflicts = weights.constraints_fixed_casts_conflicts
+    weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
                    + weight_sum_squared_shift_deviations * sum_squared_deviations
                    + weight_constraints_weights_in_avail_day_groups * sum(constraints_weights_in_avail_day_groups)

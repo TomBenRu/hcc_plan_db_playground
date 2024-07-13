@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class MinimizationWeights(BaseModel):
-    unassigned_shifts: int = 100_000
+    unassigned_shifts: float = 100_000
     sum_squared_deviations: float = 0.005
     constraints_weights_in_avail_day_groups: float = 1
     constraints_weights_in_event_groups: float = 1
@@ -41,8 +41,3 @@ class ConfigHandler:
 
 
 solver_configs = ConfigHandler.load_config_from_file()
-
-if __name__ == '__main__':
-    s_conf = SolverConfig(minimization_weights=MinimizationWeights(
-        unassigned_shifts=100000, sum_squared_deviations=0.005, constraints_weights_in_avail_day_groups=1.0, constraints_weights_in_event_groups=1.0, constraints_location_prefs=0.001, constraints_partner_loc_prefs=0.0001, constraints_fixed_casts_conflicts=1000000000.0),
-        constraints_multipliers=ConstraintsMultipliers(multipliers_sliders_location_prefs={0.0: 1e14, 0.5: 10.0, 1.0: 0.0, 1.5: -10.0, 2.0: -20.0}, multipliers_sliders_partner_loc_prefs={0.0: 20.0, 0.5: 10.0, 1.0: 0.0, 1.5: -10.0, 2.0: -20.0}, multipliers_partner_loc_prefs={}))

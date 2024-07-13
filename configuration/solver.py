@@ -5,6 +5,7 @@ from typing import Protocol
 import toml
 
 from pydantic import BaseModel
+from toml import TomlDecodeError
 
 
 class MinimizationWeights(BaseModel):
@@ -18,15 +19,15 @@ class MinimizationWeights(BaseModel):
 
 
 class ConstraintsMultipliers(BaseModel):
-    sliders_location_prefs: dict[float, int]  # WEIGHT_VARS_LOCATION_PREFS
-    sliders_partner_loc_prefs: dict[float, int]  # WEIGHT_VARS_PARTNER_LOC_PREFS
-    partner_loc_prefs: dict[float, int] = {}
+    sliders_location_prefs: dict[float, int] = {0: 100000000000000, 0.5: 10, 1: 0, 1.5: -10, 2: 20} # WEIGHT_VARS_LOCATION_PREFS
+    sliders_partner_loc_prefs: dict[float, int] = {0: 20, 0.5: 10, 1: 0, 1.5: -10, 2: -20}  # WEIGHT_VARS_PARTNER_LOC_PREFS
+    partner_loc_prefs_levels: dict[float, int] = {}
     # todo: bei mehr als 2 Mitarbeitern werden die Weight-Vars angepasst. Derzeit funktional implementiert
 
 
 class SolverConfig(BaseModel):
-    minimization_weights: MinimizationWeights
-    constraints_multipliers: ConstraintsMultipliers
+    minimization_weights: MinimizationWeights = MinimizationWeights()
+    constraints_multipliers: ConstraintsMultipliers = ConstraintsMultipliers()
 
 
 class ConfigHandler(Protocol):
@@ -51,8 +52,15 @@ class ConfigHandlerJson:
 
     @staticmethod
     def load_config_from_file() -> SolverConfig:
-        with open(ConfigHandlerJson._config_file_path, 'r') as f:
-            return SolverConfig.model_validate(json.load(f))
+        try:
+            with open(ConfigHandlerJson._config_file_path, 'r') as f:
+                return SolverConfig.model_validate(json.load(f))
+        except FileNotFoundError:
+            print(f'Config file not found: {ConfigHandlerJson._config_file_path}')
+            return SolverConfig()
+        except json.JSONDecodeError:
+            print(f'Invalid config file: {ConfigHandlerJson._config_file_path}')
+            return SolverConfig()
 
     @staticmethod
     def save_config_to_file(config: SolverConfig):
@@ -73,8 +81,13 @@ class ConfigHandlerToml:
 
     @staticmethod
     def load_config_from_file() -> SolverConfig:
-        with open(ConfigHandlerToml._config_file_path, 'r') as f:
-            return SolverConfig.model_validate(toml.load(f))
+        try:
+            with open(ConfigHandlerToml._config_file_path, 'r') as f:
+                return SolverConfig.model_validate(toml.load(f))
+        except FileNotFoundError:
+            return SolverConfig()
+        except TomlDecodeError:
+            return SolverConfig()
 
     @staticmethod
     def save_config_to_file(config: SolverConfig):

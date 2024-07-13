@@ -32,8 +32,8 @@ class DlgSettingsSolverParams(QDialog):
         self.group_constraints_multiplier = QGroupBox('Constraint-Multiplikatoren')
         self.layout.addWidget(self.group_constraints_multiplier)
 
-        self.slider_scale_factors: dict[str, int] = {}
         self.layout_params = QFormLayout()
+
         self.group_minimize_params.setLayout(self.layout_params)
         self.layout_constraints_multiplier = QFormLayout()
         self.group_constraints_multiplier.setLayout(self.layout_constraints_multiplier)
@@ -45,6 +45,7 @@ class DlgSettingsSolverParams(QDialog):
         self.slider_loc_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.layout_constraints_multiplier.addRow('Einrichtungspräferenz:', self.slider_loc_pref)
 
+        self.slider_scale_factors: dict[str, int] = {}
         self.fill_layout_constraints_multiplier()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok

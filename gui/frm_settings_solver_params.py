@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout
     QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout
 from pydantic import BaseModel
 
-from configuration.solver import solver_configs, ConfigHandler
+from configuration.solver import curr_config_handler
 from gui.tools.custom_validators import IntAndFloatValidator, IntValidator
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
@@ -21,7 +21,7 @@ class DlgSettingsSolverParams(QDialog):
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        self.solver_configs = solver_configs
+        self.solver_configs = curr_config_handler.get_solver_config()
         self.form_layouts: dict[str, QFormLayout] = {}
         self.slider_scale_factors: dict[str, int] = {}
 
@@ -147,7 +147,7 @@ class DlgSettingsSolverParams(QDialog):
     def accept(self):
         self.update_minimization_weights()
         self.update_constraints_multipliers()
-        ConfigHandler.save_config_to_file(self.solver_configs)
+        curr_config_handler.save_config_to_file(self.solver_configs)
 
         super().accept()
 

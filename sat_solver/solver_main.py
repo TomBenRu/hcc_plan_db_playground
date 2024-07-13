@@ -12,7 +12,7 @@ from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
-from configuration.solver import solver_configs
+from configuration.solver import curr_config_handler
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -330,18 +330,21 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
                 if (adg_id == avail_day_group_id and event.date == avail_day.date
                         and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
                         and event_location_id == loc_pref.location_of_work.id):
-                    loc_pref_vars.append(model.NewIntVar(solver_configs.constraints_multipliers.sliders_location_prefs[2],
-                                                         solver_configs.constraints_multipliers.sliders_location_prefs[0],
-                                                         f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
-                                                         f'{event.location_plan_period.location_of_work.name}: '
-                                                         f'{avail_day.actor_plan_period.person.f_name}'))
+                    loc_pref_vars.append(
+                        model.NewIntVar(
+                            curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs[2],
+                            curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs[0],
+                            f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
+                            f'{event.location_plan_period.location_of_work.name}: '
+                            f'{avail_day.actor_plan_period.person.f_name}'))
                     # Intermediate variable that allows the calculation of the Location-Pref variable based on the
                     # Shift variable and Event-Group variable:
                     all_active_var = model.NewBoolVar('')
 
                     model.AddMultiplicationEquality(
                         all_active_var, [shift_var, entities.event_group_vars[eg_id]])
-                    model.Add(loc_pref_vars[-1] == all_active_var * solver_configs.constraints_multipliers.sliders_location_prefs[loc_pref.score])
+                    model.Add(loc_pref_vars[-1] == all_active_var * curr_config_handler.get_solver_config()
+                              .constraints_multipliers.sliders_location_prefs[loc_pref.score])
 
     return loc_pref_vars
 
@@ -368,12 +371,13 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
             partn_loc_pref_vars.append(
-                model.NewIntVar(solver_configs.constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
-                                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
-                                f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
-                                f'{event_group.event.location_plan_period.location_of_work.name} '
-                                f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
-                                f'{combo[1].avail_day.actor_plan_period.person.f_name}')
+                model.NewIntVar(
+                    curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
+                    curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
+                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
+                    f'{event_group.event.location_plan_period.location_of_work.name} '
+                    f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
+                    f'{combo[1].avail_day.actor_plan_period.person.f_name}')
             )
 
             # Kalkuliere die Scores der Partner-Location-Pref-Variablen. Falls keine Variable mit dem Partner und der
@@ -390,8 +394,8 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
             # Shift variables and Event-Group variable:
             plp_weight_var = model.NewIntVar(
-                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
-                solver_configs.constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
+                curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
+                curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
                 '')
             shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
             all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
@@ -399,8 +403,8 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             # todo: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
             #  sollte aber mit der tatsächlichen Besetzungsstärke ermittelt werden...
             model.Add(plp_weight_var == round(
-                (solver_configs.constraints_multipliers.sliders_partner_loc_prefs[score_0] +
-                 solver_configs.constraints_multipliers.sliders_partner_loc_prefs[score_1]) /
+                (curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[score_0] +
+                 curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[score_1]) /
                 (event_group.event.cast_group.nr_actors - 1))
                       )
             model.AddMultiplicationEquality(shift_active_var,
@@ -708,7 +712,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 
-    weights = solver_configs.minimization_weights
+    weights = curr_config_handler.get_solver_config().minimization_weights
 
     weight_unassigned_shifts = weights.unassigned_shifts
     weight_sum_squared_shift_deviations = weights.sum_squared_deviations / len(entities.actor_plan_periods)

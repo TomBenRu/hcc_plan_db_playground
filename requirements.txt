@@ -14,3 +14,4 @@ ortools==9.9.3963
 anytree~=2.10
 
 line-profiler-pycharm~=1.1.0
+toml~=0.10.2

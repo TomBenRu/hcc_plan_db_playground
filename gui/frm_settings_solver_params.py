@@ -2,7 +2,7 @@ from functools import partial
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout, QDialogButtonBox, QLineEdit, \
-    QGroupBox, QGridLayout, QSlider, QPushButton
+    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout
 
 from configfiguration.solver import solver_configs
 from gui.tools.custom_validators import IntAndFloatValidator, IntValidator
@@ -33,19 +33,12 @@ class DlgSettingsSolverParams(QDialog):
         self.layout.addWidget(self.group_constraints_multiplier)
 
         self.layout_params = QFormLayout()
-
         self.group_minimize_params.setLayout(self.layout_params)
         self.layout_constraints_multiplier = QFormLayout()
         self.group_constraints_multiplier.setLayout(self.layout_constraints_multiplier)
 
-        self.le_unsigned = QLineEdit()
-        self.le_unsigned.setValidator(IntAndFloatValidator())
-        self.layout_params.addRow('Unbesetzt:', self.le_unsigned)
-
-        self.slider_loc_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
-        self.layout_constraints_multiplier.addRow('Einrichtungspräferenz:', self.slider_loc_pref)
-
         self.slider_scale_factors: dict[str, int] = {}
+        self.fill_layout_params()
         self.fill_layout_constraints_multiplier()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
@@ -57,6 +50,22 @@ class DlgSettingsSolverParams(QDialog):
 
         self.update_widgets = False
 
+    def fill_layout_params(self):
+        for field_name, val in self.solver_configs.minimization_weights:
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            widget.layout().setContentsMargins(0, 0, 0, 0)
+            le_val = QLineEdit(str(val))
+            le_val.setAlignment(Qt.AlignmentFlag.AlignRight)
+            le_val.setValidator(IntAndFloatValidator())
+            le_val.setObjectName(f'le-{field_name}')
+            widget.layout().addWidget(le_val)
+            button_reset = QPushButton('Reset')
+            button_reset.clicked.connect(partial(self.reset_le_minimization_weight, le_val))
+            widget.layout().addWidget(button_reset)
+            layout.addWidget(button_reset)
+            self.layout_params.addRow(f'{field_name}:', widget)
+
     def fill_layout_constraints_multiplier(self):
         for field_name, params in self.solver_configs.constraints_multipliers:
             widget = QWidget()
@@ -65,11 +74,12 @@ class DlgSettingsSolverParams(QDialog):
             for row, (slider_val, multiplier) in enumerate(params.items()):
                 widget_slider_value = QLabel(str(slider_val))
                 le_value = QLineEdit()
+                le_value.setObjectName(f'le-{field_name}-{slider_val}')
                 le_value.setAlignment(Qt.AlignmentFlag.AlignRight)
                 le_value.setFixedWidth(120)
                 le_value.setValidator(IntValidator())
                 slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
-                slider.setObjectName(f'{field_name}-{slider_val}')
+                slider.setObjectName(f'scale-{field_name}-{slider_val}')
                 _, next_power_of_ten = self.round_up_to_power_of_ten(multiplier)
                 self.slider_scale_factors[slider.objectName()] = next_power_of_ten - 1
                 slider.setMaximum(10)
@@ -81,13 +91,13 @@ class DlgSettingsSolverParams(QDialog):
                 le_value.setText(str(multiplier))
                 le_value.textChanged.connect(partial(self.set_value_of_slider, slider))
                 bt_reset = QPushButton('Reset')
-                bt_reset.clicked.connect(partial(self.reset_le_value, le_value, slider))
+                bt_reset.clicked.connect(partial(self.reset_le_constraints_value, le_value))
                 layout_widget.addWidget(widget_slider_value, row, 0)
                 layout_widget.addWidget(slider, row, 1)
                 layout_widget.addWidget(le_value, row, 2)
                 layout_widget.addWidget(bt_reset, row, 3)
 
-            self.layout_constraints_multiplier.addRow(field_name, widget)
+            self.layout_constraints_multiplier.addRow(f'{field_name}:', widget)
 
     def set_text_of_le_value(self, le: QLineEdit, slider: SliderWithPressEvent, val: int):
         if self.update_widgets:
@@ -104,10 +114,14 @@ class DlgSettingsSolverParams(QDialog):
         slider.setValue(int(val) / 10 ** (self.slider_scale_factors[slider.objectName()]))
         self.update_widgets = False
 
-    def reset_le_value(self, le: QLineEdit, slider: SliderWithPressEvent):
-        field_name, slider_val = slider.objectName().split('-')
+    def reset_le_constraints_value(self, le: QLineEdit):
+        field_name, slider_val = le.objectName().split('-')[1:]
         saved_value = self.solver_configs.constraints_multipliers.__getattribute__(field_name)[float(slider_val)]
         le.setText(str(saved_value))
+
+    def reset_le_minimization_weight(self, le: QLineEdit):
+        field_name = le.objectName().split('-')[1]
+        le.setText(str(self.solver_configs.minimization_weights.__getattribute__(field_name)))
 
     def round_up_to_power_of_ten(self, number) -> tuple[int, int]:
         """
@@ -143,3 +157,27 @@ class DlgSettingsSolverParams(QDialog):
 
         return result, next_power_of_ten
 
+    def accept(self):
+        line_edits_minimization_weights: list[QLineEdit] = []
+        for i in range(self.layout_params.count()):
+            if layout_values := self.layout_params.itemAt(i).widget().layout():
+                for j in range(layout_values.count()):
+                    if isinstance(layout_values.itemAt(j).widget(), QLineEdit):
+                        line_edits_minimization_weights.append(layout_values.itemAt(j).widget())
+
+        line_edits_constraints_multiplier: list[QLineEdit] = []
+        for i in range(self.layout_constraints_multiplier.count()):
+            if layout_scale_values := self.layout_constraints_multiplier.itemAt(i).widget().layout():
+                for j in range(layout_scale_values.count()):
+                    if isinstance(layout_scale_values.itemAt(j).widget(), QLineEdit):
+                        line_edits_constraints_multiplier.append(layout_scale_values.itemAt(j).widget())
+
+        for le in line_edits_minimization_weights:
+            field_name = le.objectName().split('-')[1]
+            self.solver_configs.minimization_weights.__setattr__(field_name, float(le.text()))
+
+        for le in line_edits_constraints_multiplier:
+            field_name, slider_val = le.objectName().split('-')[1:]
+            self.solver_configs.constraints_multipliers.__getattribute__(field_name)[float(slider_val)] = int(le.text())
+
+        # super().accept()

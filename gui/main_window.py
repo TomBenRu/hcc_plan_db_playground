@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import db_services, schemas
-from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan
+from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -420,7 +420,8 @@ class MainWindow(QMainWindow):
         ...
 
     def plan_calculation_settings(self):
-        ...
+        dlg = frm_settings_solver_params.DlgSettingsSolverParams(self)
+        dlg.exec()
 
     def apply_events__plan_to_mask(self):
         ...

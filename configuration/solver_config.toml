@@ -21,4 +21,4 @@ constraints_fixed_casts_conflicts = 1000000000.0
 "1.5" = -10
 "2.0" = -20
 
-[constraints_multipliers.partner_loc_prefs]
+[constraints_multipliers.partner_loc_prefs_levels]

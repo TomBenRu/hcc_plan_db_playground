@@ -48,6 +48,7 @@ class DlgSettingsSolverParams(QDialog):
     def add_group_box(self, title: str, config_data: BaseModel,
                       add_row_function: Callable[[QFormLayout, str, dict | float], None]):
         group_box = QGroupBox(title)
+        group_box.setStyleSheet("QGroupBox::title {color: rgb(0, 0, 255)}")
         layout = QFormLayout()
         self.form_layouts[title] = layout
         group_box.setLayout(layout)

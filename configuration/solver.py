@@ -31,7 +31,6 @@ class SolverConfig(BaseModel):
 
 
 class ConfigHandler(Protocol):
-    _config_file_path: str
 
     @staticmethod
     def load_config_from_file(self) -> SolverConfig:
@@ -56,10 +55,8 @@ class ConfigHandlerJson:
             with open(ConfigHandlerJson._config_file_path, 'r') as f:
                 return SolverConfig.model_validate(json.load(f))
         except FileNotFoundError:
-            print(f'Config file not found: {ConfigHandlerJson._config_file_path}')
             return SolverConfig()
         except json.JSONDecodeError:
-            print(f'Invalid config file: {ConfigHandlerJson._config_file_path}')
             return SolverConfig()
 
     @staticmethod

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout
 from pydantic import BaseModel
 
 from configuration.solver import curr_config_handler
+from gui import widget_styles
 from gui.tools.custom_validators import IntAndFloatValidator, IntValidator
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
@@ -48,7 +49,7 @@ class DlgSettingsSolverParams(QDialog):
     def add_group_box(self, title: str, config_data: BaseModel,
                       add_row_function: Callable[[QFormLayout, str, dict | float], None]):
         group_box = QGroupBox(title)
-        group_box.setStyleSheet("QGroupBox::title {color: rgb(0, 0, 255)}")
+        group_box.setStyleSheet(widget_styles.group_boxes.title_blue)
         layout = QFormLayout()
         self.form_layouts[title] = layout
         group_box.setLayout(layout)

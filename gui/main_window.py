@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
 
         signal_handling.handler_plan_tabs.signal_event_changed.connect(lambda e: self.plan_tabs_event_changed(e))
         path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
-        print(f'path_to_toolbar_icons: {path_to_toolbar_icons}')
 
         self.actions = {
             Action(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'), 'Neue Planung...',

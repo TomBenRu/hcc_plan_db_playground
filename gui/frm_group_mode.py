@@ -774,7 +774,6 @@ class DlgGroupMode(QDialog):
             height += self.tree_groups.horizontalScrollBar().height()
 
         with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
-            print(f"{os.path.join(os.path.dirname(__file__), 'config.json')=}")
             json_data = json.load(f)
         screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
 

@@ -9,9 +9,6 @@ from database.models import db
 provider = 'sqlite'
 db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
 
-print(f'db_path: {db_path}')
-
-
 db.bind(provider=provider, filename=db_path, create_db=True)
 
 # Register the type converter with the database

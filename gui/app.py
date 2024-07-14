@@ -37,7 +37,6 @@ for percent in range(0, 101, 5):
     time.sleep(0.08)
 
 with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
-    print(f"{os.path.join(os.path.dirname(__file__), 'config.json')=}")
     config_data = json.load(f)
 if not config_data.get('screen_size'):
     config_data['screen_size'] = {}

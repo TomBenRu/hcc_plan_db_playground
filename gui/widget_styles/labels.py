@@ -7,4 +7,4 @@ QLabel {
     color: black;
 }"""
 
-check_field_weekend_color_rgba_string = '(255, 255, 0, 100)'
+check_field_weekend_color_rgba_string = '(255, 100, 100, 100)'

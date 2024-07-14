@@ -48,7 +48,9 @@ class DlgSettingsSolverParams(QDialog):
         self.layout.addWidget(scroll_area_solver_params)
         return scroll_area_solver_params
 
-    def set_min_width_to_scroll_area(self, scroll_area_solver_params: QScrollArea):
+    @staticmethod
+    def set_min_width_to_scroll_area(scroll_area_solver_params: QScrollArea):
+        """Manually set the width of the scroll area based on the content width."""
         scroll_area_solver_params.setMinimumWidth(scroll_area_solver_params.sizeHint().width() + 100)
 
     def add_description(self):

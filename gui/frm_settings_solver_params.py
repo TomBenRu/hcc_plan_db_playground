@@ -4,7 +4,7 @@ from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout, QDialogButtonBox, QLineEdit, \
-    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout
+    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout, QScrollArea
 from pydantic import BaseModel
 
 from configuration.solver import curr_config_handler
@@ -32,11 +32,18 @@ class DlgSettingsSolverParams(QDialog):
 
     def setup_ui(self):
         self.add_description()
-        self.add_group_box('Optimization Weights', self.solver_configs.minimization_weights,
-                           self.add_minimization_weight_row)
-        self.add_group_box('Constraint Multipliers', self.solver_configs.constraints_multipliers,
-                           self.add_constraints_multiplier_row)
+        scroll_area_params_layout = self.add_scroll_area_solver_params()
+        self.add_solver_params_ui(scroll_area_params_layout)
         self.add_button_box()
+
+    def add_scroll_area_solver_params(self) -> QVBoxLayout:
+        scroll_area_solver_params = QScrollArea()
+        scroll_content_widget = QWidget()
+        scroll_content_widget.setLayout(QVBoxLayout(scroll_content_widget))
+        scroll_area_solver_params.setWidget(scroll_content_widget)
+        scroll_area_solver_params.setWidgetResizable(True)
+        self.layout.addWidget(scroll_area_solver_params)
+        return scroll_content_widget.layout()
 
     def add_description(self):
         self.lb_description = QLabel('Solver Parameters')
@@ -46,8 +53,15 @@ class DlgSettingsSolverParams(QDialog):
         self.lb_description.setFont(font_lb_description)
         self.layout.addWidget(self.lb_description)
 
+    def add_solver_params_ui(self, scroll_area_layout: QVBoxLayout):
+        self.add_group_box('Optimization Weights', self.solver_configs.minimization_weights,
+                           self.add_minimization_weight_row, scroll_area_layout)
+        self.add_group_box('Constraint Multipliers', self.solver_configs.constraints_multipliers,
+                           self.add_constraints_multiplier_row, scroll_area_layout)
+
     def add_group_box(self, title: str, config_data: BaseModel,
-                      add_row_function: Callable[[QFormLayout, str, dict | float], None]):
+                      add_row_function: Callable[[QFormLayout, str, dict | float], None],
+                      scroll_content_layout: QVBoxLayout):
         group_box = QGroupBox(title)
         group_box.setStyleSheet(widget_styles.group_boxes.title_blue)
         layout = QFormLayout()
@@ -55,7 +69,7 @@ class DlgSettingsSolverParams(QDialog):
         group_box.setLayout(layout)
         for field_name, data in config_data:
             add_row_function(layout, field_name, data)
-        self.layout.addWidget(group_box)
+        scroll_content_layout.addWidget(group_box)
 
     def add_minimization_weight_row(self, layout: QFormLayout, field_name: str, val: float):
         widget = QWidget()

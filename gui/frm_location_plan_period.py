@@ -509,7 +509,8 @@ class FrmLocationPlanPeriod(QWidget):
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
-                lb_weekday.setStyleSheet('background-color: #ffdc99')
+                lb_weekday.setStyleSheet(
+                    f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string}')
             self.layout.addWidget(lb_weekday, row + 1, col)
             bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period)
             bt_fixed_cast.setDisabled(disable_buttons)

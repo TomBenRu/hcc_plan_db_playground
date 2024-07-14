@@ -17,6 +17,7 @@ from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import event_group_commands
 from commands.database_commands import avail_day_group_commands
+from gui import widget_styles
 from gui.observer import signal_handling
 from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
@@ -176,9 +177,9 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setText(2, date_object.time_of_day.name)
             self.setText(4, text_variation_weight)
 
-            self.setForeground(0, QColor('#5a009f'))
-            self.setForeground(1, QColor('blue'))
-            self.setForeground(2, QColor('#9f0057'))
+            self.setForeground(0, QColor(*widget_styles.tree_widgets.description_fg_color_rgba))
+            self.setForeground(1, QColor(*widget_styles.tree_widgets.date_fg_color_rgba))
+            self.setForeground(2, QColor(*widget_styles.tree_widgets.time_of_day_fg_color_rgba))
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
             nr_groups = self.builder.get_nr_groups_from_group(group)
@@ -187,7 +188,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
-            self.setBackground(0, QColor('#e1ffde'))
+            self.setBackground(0, QColor(*widget_styles.tree_widgets.group_bg_color_rgba))
             self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
 
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPush
                                QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
 
 from database import schemas, db_services
-from gui import frm_cast_rule
+from gui import frm_cast_rule, widget_styles
 from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands
@@ -182,9 +182,9 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
 
-            self.setForeground(TREE_HEAD_COLUMN__TITEL, QColor('#5a009f'))
-            self.setForeground(TREE_HEAD_COLUMN__DATE, QColor('blue'))
-            self.setForeground(TREE_HEAD_COLUMN__TIME_OF_DAY, QColor('#9f0057'))
+            self.setForeground(TREE_HEAD_COLUMN__TITEL, QColor(*widget_styles.tree_widgets.description_fg_color_rgba))
+            self.setForeground(TREE_HEAD_COLUMN__DATE, QColor(*widget_styles.tree_widgets.date_fg_color_rgba))
+            self.setForeground(TREE_HEAD_COLUMN__TIME_OF_DAY, QColor(*widget_styles.tree_widgets.time_of_day_fg_color_rgba))
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
             rule_text = group.cast_rule.name if group.cast_rule else group.custom_rule
@@ -194,7 +194,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
             self.setText(TREE_HEAD_COLUMN__RULE, rule_text)
-            self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor('#e1ffde'))
+            self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor(*widget_styles.tree_widgets.group_bg_color_rgba))
             self.setToolTip(TREE_HEAD_COLUMN__TITEL, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
 
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QColor, QPalette
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
@@ -813,7 +813,8 @@ class FrmActorPlanPeriod(QWidget):
             lb_weekday = QLabel(self.weekdays[d.weekday()])
             lb_weekday.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             if d.weekday() in (5, 6):
-                lb_weekday.setStyleSheet('background-color: #ffdc99')
+                lb_weekday.setStyleSheet(
+                    f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string};')
             self.layout.addWidget(lb_weekday, row+1, col)
             bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
             bt_comb_loc_poss.setDisabled(disable_buttons)

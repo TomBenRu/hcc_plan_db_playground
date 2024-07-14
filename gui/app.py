@@ -17,7 +17,11 @@ logging.Formatter.converter = time.gmtime
 # sys.argv += ['-platform', 'windows:darkmode=1']
 
 app = QApplication(sys.argv)
-# app.setStyle(QStyleFactory.create('Fusion'))
+
+# Bug ab Pyside6 Version 6.7: setForeground funktioniert nicht. Wird mit Version 6.7.3 gefixt.
+# Workaround: app.setStyle('Fusion') oder app.setStyle('Windows')
+app.setStyle('Fusion')
+
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
 
 screen_width, screen_height = app.primaryScreen().size().toTuple()

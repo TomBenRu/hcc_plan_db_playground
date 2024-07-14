@@ -4,7 +4,7 @@ from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout, QDialogButtonBox, QLineEdit, \
-    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout, QScrollArea
+    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout, QScrollArea, QAbstractScrollArea
 from pydantic import BaseModel
 
 from configuration.solver import curr_config_handler
@@ -18,6 +18,7 @@ class DlgSettingsSolverParams(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle('Solver-Parameter')
+        self.description = 'Solver-Parameter'
 
         self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
@@ -32,26 +33,31 @@ class DlgSettingsSolverParams(QDialog):
 
     def setup_ui(self):
         self.add_description()
-        scroll_area_params_layout = self.add_scroll_area_solver_params()
-        self.add_solver_params_ui(scroll_area_params_layout)
+        scroll_area_solver_params = self.add_scroll_area_solver_params()
+        self.add_solver_params_ui(scroll_area_solver_params.widget().layout())
+        # Manually set the width of the widget based on the content width
+        self.set_min_width_to_scroll_area(scroll_area_solver_params)
         self.add_button_box()
 
-    def add_scroll_area_solver_params(self) -> QVBoxLayout:
+    def add_scroll_area_solver_params(self) -> QScrollArea:
         scroll_area_solver_params = QScrollArea()
         scroll_content_widget = QWidget()
         scroll_content_widget.setLayout(QVBoxLayout(scroll_content_widget))
         scroll_area_solver_params.setWidget(scroll_content_widget)
         scroll_area_solver_params.setWidgetResizable(True)
         self.layout.addWidget(scroll_area_solver_params)
-        return scroll_content_widget.layout()
+        return scroll_area_solver_params
+
+    def set_min_width_to_scroll_area(self, scroll_area_solver_params: QScrollArea):
+        scroll_area_solver_params.setMinimumWidth(scroll_area_solver_params.sizeHint().width() + 100)
 
     def add_description(self):
-        self.lb_description = QLabel('Solver Parameters')
-        font_lb_description = self.lb_description.font()
+        lb_description = QLabel(self.description)
+        font_lb_description = lb_description.font()
         font_lb_description.setPointSize(16)
         font_lb_description.setBold(True)
-        self.lb_description.setFont(font_lb_description)
-        self.layout.addWidget(self.lb_description)
+        lb_description.setFont(font_lb_description)
+        self.layout.addWidget(lb_description)
 
     def add_solver_params_ui(self, scroll_area_layout: QVBoxLayout):
         self.add_group_box('Optimization Weights', self.solver_configs.minimization_weights,

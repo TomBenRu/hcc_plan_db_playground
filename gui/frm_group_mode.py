@@ -18,8 +18,8 @@ from commands import command_base_classes
 from commands.database_commands import event_group_commands
 from commands.database_commands import avail_day_group_commands
 from gui import widget_styles
+from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.observer import signal_handling
-from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1

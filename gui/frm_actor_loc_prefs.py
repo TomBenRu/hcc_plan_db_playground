@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayou
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, \
     get_curr_assignment_of_person
-from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
+from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 
 class DlgActorLocPref(QDialog):

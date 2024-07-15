@@ -4,13 +4,13 @@ from typing import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QFormLayout, QDialogButtonBox, QLineEdit, \
-    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QLayout, QScrollArea, QAbstractScrollArea
+    QGroupBox, QGridLayout, QSlider, QPushButton, QHBoxLayout, QScrollArea
 from pydantic import BaseModel
 
 from configuration.solver import curr_config_handler
 from gui import widget_styles
+from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.tools.custom_validators import IntAndFloatValidator, IntValidator
-from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 
 class DlgSettingsSolverParams(QDialog):

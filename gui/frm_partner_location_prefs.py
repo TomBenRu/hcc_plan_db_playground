@@ -15,7 +15,7 @@ from gui.actions import Action
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
     avail_day_commands
-from gui.tools.custom_widgets.slider_with_press_event import SliderWithPressEvent
+from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 
 
 def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,

@@ -1,6 +1,5 @@
 pony~=0.7.17
 pydantic[email]~=2.7.4
-py-events
 pyside6==6.6.3.1  # mit pyside 6.7 ändert sich das Theme automatisch zu Dark. Bugs mit setForeground. Wird mit 6.7.3 gefixt
 passlib~=1.7.4
 bcrypt ~= 4.1.3

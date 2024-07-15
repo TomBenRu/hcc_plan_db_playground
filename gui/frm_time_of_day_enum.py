@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget, QDialog, QGridLayout, QTableWidget, QPush
 from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import project_commands, time_of_day_enum_commands
-from gui.tools.custom_widgets.custom_spin_boxes import CustomSpinBoxDisallowedValues
+from gui.custom_widgets.custom_spin_boxes import CustomSpinBoxDisallowedValues
 
 
 class DlgTimeOfDayEnumEdit(QDialog):

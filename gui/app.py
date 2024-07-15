@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from gui.main_window import MainWindow
 from gui.splash_screen import SplashScreen
+from gui.tools.screen import Screen
 
 logging.basicConfig(filename='pony.log', level=logging.INFO,
                     format='%(created)f-%(asctime)s\n%(message)s\n')
@@ -25,6 +26,8 @@ app.setStyle('Fusion')
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
 
 screen_width, screen_height = app.primaryScreen().size().toTuple()
+
+Screen.set_screen_size()
 
 window = MainWindow(app, screen_width, screen_height)
 

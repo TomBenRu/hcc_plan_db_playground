@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabe
 from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import cast_rule_commands
+from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
 from gui.tools.custom_validators import LettersAndSymbolsValidator
-from gui.tools.custom_widgets.custom_line_edits import LineEditWithCustomFont
 
 
 def simplify_cast_rule(cast_rule: str) -> str | None:

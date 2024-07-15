@@ -13,7 +13,7 @@ from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, location_plan_period_commands, project_commands, \
     person_commands, location_of_work_commands, time_of_day_commands
-from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class DlgTimeOfDayEditListBuilderABC(ABC):

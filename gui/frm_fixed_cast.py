@@ -19,7 +19,7 @@ from database.special_schema_requests import get_persons_of_team_at_date, get_cu
 from .actions import Action
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
-from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 object_with_fixed_cast_type: TypeAlias = (schemas.LocationOfWorkShow |

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QHBoxLayout, QPushBut
 from pony.orm import TransactionIntegrityError
 
 from database import schemas, db_services
-from gui.tools.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class FrmTeam(QDialog):

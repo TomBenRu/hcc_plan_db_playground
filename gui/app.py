@@ -25,11 +25,9 @@ app.setStyle('Fusion')
 
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
 
-screen_width, screen_height = app.primaryScreen().size().toTuple()
-
 Screen.set_screen_size()
 
-window = MainWindow(app, screen_width, screen_height)
+window = MainWindow(app, Screen.screen_width, Screen.screen_height)
 
 window.show()
 
@@ -42,14 +40,6 @@ message = 'hcc-plan\nLoading...'
 for percent in range(0, 101, 5):
     splash.showMessage(f'{message} {percent}%', alignment, color)
     time.sleep(0.08)
-
-with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
-    config_data = json.load(f)
-if not config_data.get('screen_size'):
-    config_data['screen_size'] = {}
-config_data['screen_size']['width'], config_data['screen_size']['height'] = screen_width, screen_height
-with open(os.path.join(os.path.dirname(__file__), 'config.json'), 'w') as f:
-    json.dump(config_data, f)
 
 splash.finish(window)
 

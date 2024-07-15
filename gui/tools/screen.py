@@ -7,12 +7,12 @@ class Screen:
 
     @classmethod
     @property
-    def screen_width(cls):
+    def screen_width(cls) -> int:
         return cls._screen_width
 
     @classmethod
     @property
-    def screen_height(cls):
+    def screen_height(cls) -> int:
         return cls._screen_height
 
     @classmethod

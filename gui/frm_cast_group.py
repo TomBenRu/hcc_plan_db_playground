@@ -22,6 +22,7 @@ from gui.frm_cast_rule import simplify_cast_rule
 from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
 from gui.observer import signal_handling
 from gui.tools import custom_validators
+from gui.tools.screen import Screen
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -808,11 +809,7 @@ class DlgCastGroups(QDialog):
         if self.tree_groups.horizontalScrollBar().isVisible():
             height += self.tree_groups.horizontalScrollBar().height()
 
-        with open(os.path.join(os.path.dirname(__file__), 'config.json')) as f:
-            json_data = json.load(f)
-        screen_width, screen_height = json_data['screen_size']['width'], json_data['screen_size']['height']
-
-        self.resize(self.size().width(), min(height + 200, screen_height - 40))
+        self.resize(self.size().width(), min(height + 200, Screen.screen_height - 40))
 
 
 # todo: Gruppenmodus für Besetzung:

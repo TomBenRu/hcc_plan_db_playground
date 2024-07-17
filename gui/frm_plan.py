@@ -286,28 +286,32 @@ class FrmTabPlan(QWidget):
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
 
-        for i, week_day_name in enumerate(self.weekdays_names.values()):
-            item = QTableWidgetItem(week_day_name)
-            item.setBackground(horizontal_header_colors[i % 2])  # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
-            self.table_plan.setHorizontalHeaderItem(i, item)
-
+        self.display_headers_week_day_names()
         # self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
 
-        self.table_plan.setVerticalHeaderItem(0, QTableWidgetItem(''))
-        for week_num, i in self.week_num_row.items():
-            item = QTableWidgetItem(f'KW {week_num}')
-            item.setBackground(vertical_header_colors[i % 2])
-            self.table_plan.setVerticalHeaderItem(i, item)
-
+        self.display_headers_calender_weeks()
         # self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
 
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.display_headers_locations()
         self.display_days()
-        # self.table_plan.resizeColumnsToContents()
-        # self.table_plan.resizeRowsToContents()
         self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+    def display_headers_week_day_names(self):
+        # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
+        for i, weekday_name in enumerate(self.weekdays_names.values()):
+            item = QTableWidgetItem(weekday_name)
+            item.setBackground(horizontal_header_colors[i % 2])
+            self.table_plan.setHorizontalHeaderItem(i, item)
+
+    def display_headers_calender_weeks(self):
+        # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
+        self.table_plan.setVerticalHeaderItem(0, QTableWidgetItem(''))
+        for week_num, i in self.week_num_row.items():
+            item = QTableWidgetItem(f'KW {week_num}')
+            item.setBackground(vertical_header_colors[i % 2])
+            self.table_plan.setVerticalHeaderItem(i, item)
 
     def generate_all_days(self):
         start, end = self.plan.plan_period.start, self.plan.plan_period.end

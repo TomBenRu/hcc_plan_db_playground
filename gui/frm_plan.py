@@ -285,17 +285,23 @@ class FrmTabPlan(QWidget):
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
 
-        # horizontal_header_colors = [QColor(255, 0, 0), QColor(0, 255, 0)]
-        # for i, name in enumerate(self.weekdays_names.values()):
-        #     item = QTableWidgetItem(name)
-        #     item.setBackground(horizontal_header_colors[i % 2])  # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
-        #     self.table_plan.setHorizontalHeaderItem(i, item)
-        # self.table_plan.setHorizontalHeaderLabels(QLabel('hello'))
+        horizontal_header_colors = [QColor('#006d6d'), QColor('teal')]
+        vertical_header_colors = [QColor('#804f00'), QColor('#744000')]
+        for i, week_day_name in enumerate(self.weekdays_names.values()):
+            item = QTableWidgetItem(week_day_name)
+            item.setBackground(horizontal_header_colors[i % 2])  # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
+            self.table_plan.setHorizontalHeaderItem(i, item)
 
-        self.table_plan.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
-        self.table_plan.verticalHeader().setStyleSheet("::section {background-color: #e2c9d1; color: black}")
-        self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
-        self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
+        # self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
+
+        self.table_plan.setVerticalHeaderItem(0, QTableWidgetItem(''))
+        for week_num, i in self.week_num_row.items():
+            item = QTableWidgetItem(f'KW {week_num}')
+            item.setBackground(vertical_header_colors[i % 2])
+            self.table_plan.setVerticalHeaderItem(i, item)
+
+        # self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
+
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.display_headers_locations()
         self.display_days()

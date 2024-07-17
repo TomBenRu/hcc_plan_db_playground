@@ -11,7 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
-from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors
+from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 
 
 class LabelDayNr(QLabel):
@@ -223,8 +223,8 @@ class FrmTabPlan(QWidget):
         }
         self.all_days_of_month = self.generate_all_days()
         self.all_week_nums_of_month = self.generate_all_week_nums_of_month()
-        self.week_num_row = self.generate_week_num_row()
-        self.weekday_col = self.generate_weekday_col()
+        self.week_num_rows = self.generate_week_num_row()
+        self.weekday_cols = self.generate_weekday_col()
 
         self.week_num_weekday = self.generate_week_num_weekday()
         self.weekdays_locations = self.get_weekdays_locations()
@@ -236,7 +236,7 @@ class FrmTabPlan(QWidget):
         self.table_plan = QTableWidget()
         self.layout.addWidget(self.table_plan)
 
-        self.table_plan_config()
+        self.configure_table_plan()
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:
@@ -280,9 +280,9 @@ class FrmTabPlan(QWidget):
                 curr_column += 1
         return column_assignments
 
-    def table_plan_config(self):
-        num_rows = max(self.week_num_row.values()) + 1
-        num_cols = max(self.weekday_col.values()) + 1
+    def configure_table_plan(self):
+        num_rows = max(self.week_num_rows.values()) + 1
+        num_cols = max(self.weekday_cols.values()) + 1
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
 
@@ -295,8 +295,8 @@ class FrmTabPlan(QWidget):
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.display_headers_locations()
         self.display_days()
-        self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
+        self.resize_table_plan_headers()
 
     def display_headers_week_day_names(self):
         # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
@@ -308,10 +308,14 @@ class FrmTabPlan(QWidget):
     def display_headers_calender_weeks(self):
         # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
         self.table_plan.setVerticalHeaderItem(0, QTableWidgetItem(''))
-        for week_num, i in self.week_num_row.items():
+        for week_num, i in self.week_num_rows.items():
             item = QTableWidgetItem(f'KW {week_num}')
             item.setBackground(vertical_header_colors[i % 2])
             self.table_plan.setVerticalHeaderItem(i, item)
+
+    def resize_table_plan_headers(self):
+        self.table_plan.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_plan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def generate_all_days(self):
         start, end = self.plan.plan_period.start, self.plan.plan_period.end
@@ -337,8 +341,8 @@ class FrmTabPlan(QWidget):
 
     def display_days(self):
         for day in self.all_days_of_month:
-            row = self.week_num_row[day.isocalendar()[1]]
-            col = self.weekday_col[day.isoweekday()]
+            row = self.week_num_rows[day.isocalendar()[1]]
+            col = self.weekday_cols[day.isoweekday()]
             location_ids_order = [loc.id for loc in self.weekdays_locations[day.isoweekday()]]
             day_field = DayField(day,
                                  location_ids_order,
@@ -349,18 +353,19 @@ class FrmTabPlan(QWidget):
     def display_headers_locations(self):
         for weekday, locations in self.weekdays_locations.items():
             container = QWidget()
+            container.setStyleSheet(f'background-color: {locations_bg_color};')
             container_layout = QHBoxLayout(container)
             for location in locations:
                 widget = QLabel(f'{location.name} {location.address.city}')
                 widget.setFixedWidth(150)
                 widget.setWordWrap(True)
                 container_layout.addWidget(widget)
-            self.table_plan.setCellWidget(0, self.weekday_col[weekday], container)
+            self.table_plan.setCellWidget(0, self.weekday_cols[weekday], container)
 
     def display_appointments(self):
         for day, location_ids_appointments in self.day_location_id_appointments.items():
-            row = self.week_num_row[day.isocalendar()[1]]
-            col = self.weekday_col[day.isoweekday()]
+            row = self.week_num_rows[day.isocalendar()[1]]
+            col = self.weekday_cols[day.isoweekday()]
             day_field = self.table_plan.cellWidget(row, col)
             day_field: DayField
             day_field.set_location_ids_order([loc.id for loc in self.weekdays_locations[day.isoweekday()]])

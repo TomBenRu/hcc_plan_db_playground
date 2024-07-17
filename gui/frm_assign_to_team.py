@@ -45,11 +45,7 @@ class DlgAssignDate(QDialog):
 
         text_explanation = f'Hier kommt noc eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.\n'
 
-
         self.lb_explanation.setText(text_explanation)
-
-
-
 
         self.dt_change_team.setDate(datetime.date.today())
         self.dt_change_team.setMinimumDate(datetime.date.today())

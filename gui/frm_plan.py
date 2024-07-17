@@ -11,6 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
+from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors
 
 
 class LabelDayNr(QLabel):
@@ -285,8 +286,6 @@ class FrmTabPlan(QWidget):
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
 
-        horizontal_header_colors = [QColor('#006d6d'), QColor('teal')]
-        vertical_header_colors = [QColor('#804f00'), QColor('#744000')]
         for i, week_day_name in enumerate(self.weekdays_names.values()):
             item = QTableWidgetItem(week_day_name)
             item.setBackground(horizontal_header_colors[i % 2])  # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))

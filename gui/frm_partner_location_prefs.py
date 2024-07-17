@@ -240,7 +240,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.apls_with_location = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
                                    if not apl.prep_delete and apl.location_of_work.id == self.location_id]
         self.dict_partner_id__apl = {apl.partner.id: apl for apl in self.apls_with_location}
-        self.dict_partner_id_score: dict[UUID, int] = {apl.partner.id: apl.score for apl in self.apls_with_location}
+        self.dict_partner_id_score: dict[UUID, float] = {apl.partner.id: apl.score for apl in self.apls_with_location}
 
     def setup_option_field(self):
         for row, partner in enumerate(self.all_partners):
@@ -375,11 +375,12 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.date_changed)
 
-        self.de_date.setMinimumDate(datetime.date.today()) # Löst in einer Kaskade die Einrichtung der Slider aus.
+        self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         point_bottom_right = self.mapToGlobal(self.rect().bottomRight())
-        if (point_bottom_right.x() > self.screen_geometry.right()) or (point_bottom_right.y() > self.screen_geometry.bottom()):
+        if ((point_bottom_right.x() > self.screen_geometry.right())
+                or (point_bottom_right.y() > self.screen_geometry.bottom())):
             self.move(self.screen_geometry.center() - self.rect().center())
         super().resizeEvent(event)
 
@@ -639,7 +640,7 @@ class DlgPartnerLocationPrefs(QDialog):
     def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some'], group: Literal['locs', 'partners']):
         text, bg_color = ButtonStyles.get_bg_color_text(style, group)
         button.setText(text)
-        button.setStyleSheet(f'background-color: {bg_color}')
+        button.setStyleSheet(f'background-color: {bg_color}; color: black;')
 
     def show_slider_text(self, label: QLabel, value: int):
         label.setText(SliderValToText.get_text(value))

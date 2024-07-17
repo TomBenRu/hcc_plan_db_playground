@@ -7,7 +7,7 @@ from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QIcon, QColor, QPalette
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
@@ -15,9 +15,10 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
-from gui import (side_menu, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
+from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
-from gui.actions import Action
+from gui.custom_widgets import side_menu
+from gui.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
@@ -115,11 +116,11 @@ class ButtonAvailDay(QPushButton):
 
     def create_actions(self):
         self.actions = [
-            Action(self,
-                   QIcon(os.path.join(os.path.dirname(__file__), 'resources/toolbar_icons/icons/clock-select.png'))
+            MenuToolbarAction(self,
+                              QIcon(os.path.join(os.path.dirname(__file__), 'resources/toolbar_icons/icons/clock-select.png'))
                    if t.name == self.time_of_day.name else None,
                    f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-                   functools.partial(self.set_new_time_of_day, t))
+                              functools.partial(self.set_new_time_of_day, t))
             for t in self.t_o_d_for_selection]
 
     def set_tooltip(self):

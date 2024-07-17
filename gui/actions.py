@@ -4,7 +4,7 @@ from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QWidget, QMainWindow
 
 
-class Action(QAction):
+class MenuToolbarAction(QAction):
     def __init__(self, parent: QWidget, icon_path: str | None, text: str, status_tip: str | None,
                  slot: Callable[..., ...],
                  short_cut: str | None = None):

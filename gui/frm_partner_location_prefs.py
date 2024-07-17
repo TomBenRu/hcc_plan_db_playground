@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel
 
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
-from gui.actions import Action
+from gui.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
     avail_day_commands
@@ -438,10 +438,10 @@ class DlgPartnerLocationPrefs(QDialog):
         else:
             self.reset_menu = QMenu(self)
             self.reset_menu.addAction(
-                Action(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
-                       self.reset_to_ones))
+                MenuToolbarAction(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
+                                  self.reset_to_ones))
             self.reset_menu.addAction(
-                Action(self, None, 'Werte von übergeordnetem Modell',
+                MenuToolbarAction(self, None, 'Werte von übergeordnetem Modell',
                        'Alle Werte werden vom übergeordnten Modell übernommen', self.reset_to_parent_values))
             self.bt_reset.setMenu(self.reset_menu)
 

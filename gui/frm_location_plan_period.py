@@ -13,10 +13,11 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import side_menu, frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
-from gui.actions import Action
+from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
+from gui.custom_widgets import side_menu
+from gui.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import cast_group_commands, event_commands, plan_commands, appointment_commands
+from commands.database_commands import event_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -110,7 +111,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
     def create_actions__skills_fixed_flags_notes(self):
         for text, slot in (('Skills', self.edit_skills), ('Feste Beseztung', self.edit_fixed_cast),
                            ('Flags', self.edit_flags), ('Notizen', self.edit_notes)):
-            self.context_menu.addAction(Action(self, None, text, None, slot))
+            self.context_menu.addAction(MenuToolbarAction(self, None, text, None, slot))
 
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
         self.location_plan_period = location_plan_period
@@ -122,11 +123,11 @@ class ButtonEvent(QPushButton):  # todo: Ändern
 
     def create_actions_times_of_day(self):
         self.actions = [
-            Action(self, QIcon(os.path.join(os.path.dirname(__file__),
+            MenuToolbarAction(self, QIcon(os.path.join(os.path.dirname(__file__),
                                             'resources/toolbar_icons/icons/clock-select.png'))
             if t.name == self.time_of_day.name else None,
                    f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-                   functools.partial(self.set_new_time_of_day, t))
+                              functools.partial(self.set_new_time_of_day, t))
             for t in self.t_o_d_for_selection]
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):

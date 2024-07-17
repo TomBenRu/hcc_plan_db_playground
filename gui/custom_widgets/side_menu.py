@@ -26,6 +26,21 @@ class RotatableContainer(QGraphicsView):
 class WidgetSideMenu(QWidget):
     def __init__(self, parent: QWidget, menu_width: int, snap_width: int, align: Literal['left', 'right']):
         super().__init__(parent)
+        """
+Initializes a custom side menu widget.
+
+Args:
+    parent (QWidget): The parent widget.
+    menu_width (int): The width of the side menu.
+    snap_width (int): The snap width.
+    align (Literal['left', 'right']): The alignment of the side menu.
+
+Returns:
+    None
+
+Examples:
+    widget = WidgetSideMenu(parent_widget, 200, 50, 'left')
+"""
 
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")

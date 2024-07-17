@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPush
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
-from gui.actions import Action
+from gui.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands
 from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
@@ -472,11 +472,11 @@ class DlgGroupProperties(QDialog):
     def bt_correct_childs_fixed_cast__menu_config(self):
         self.bt_correct_childs_fixed_cast.setMenu(self.menu_bt_correct_childs_fixed_cast)
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            Action(self, None, 'Untergeordnete Besetzungen löschen', None,
-                   lambda: self.correct_childs_fixed_cast('set_None')))
+            MenuToolbarAction(self, None, 'Untergeordnete Besetzungen löschen', None,
+                              lambda: self.correct_childs_fixed_cast('set_None')))
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            Action(self, None, 'Untergeordnete Besetzungen angleichen', None,
-                   lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
+            MenuToolbarAction(self, None, 'Untergeordnete Besetzungen angleichen', None,
+                              lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
 
     def set_nr_actors_warning(self):
         if ConsistenceProof.check_childs_nr_actors_are_different(self.item):

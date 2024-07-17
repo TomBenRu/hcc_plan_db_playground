@@ -13,8 +13,8 @@ class SplashScreen(QSplashScreen):
         font.setPointSize(16)
         font.setBold(True)
         self.setFont(font)
-
-        pixmap = QPixmap(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein_splash.png'))
+        parent_dir = os.path.dirname(os.path.dirname(__file__))
+        pixmap = QPixmap(os.path.join(parent_dir, 'resources', 'hcc-dispo_klein_splash.png'))
         pixmap.setDevicePixelRatio(0.5)
         self.setPixmap(pixmap)
 

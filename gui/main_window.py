@@ -1,12 +1,11 @@
 import functools
 import os.path
 import sys
-import time
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QTimer, QPoint
-from PySide6.QtGui import QAction, QActionGroup, QIcon
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QTabWidget, QVBoxLayout, QInputDialog
+from PySide6.QtCore import QRect, QPoint
+from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -15,13 +14,13 @@ from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
-from .actions import Action
+from .actions import MenuToolbarAction
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_settings import DlgSettingsProject
 from .observer import signal_handling
-from .tabbars import TabBar
-from .toolbars import MainToolBar
+from gui.custom_widgets.tabbars import TabBar
+from gui.custom_widgets.toolbars import MainToolBar
 
 
 class MainWindow(QMainWindow):
@@ -41,68 +40,81 @@ class MainWindow(QMainWindow):
         path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.actions = {
-            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'), 'Neue Planung...',
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'), 'Neue Planung...',
                    'Legt eine neue Planung an.', self.new_plan_period, short_cut='Ctrl+n'),
-            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document--pencil.png'), 'Planung ändern...',
-                   'Ändern oder Löschen einer vorhandenen Planung.', self.edit_plan_period),
-            Action(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Projekt-Einstellungen...',
-                   'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
-            Action(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'), 'Öffnen... (Pläne)',
-                   'Öffnet einen bereits erstellten Plan.', self.open_plan),
-            Action(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'), 'Öffnen... (Planungsdaten)',
-                   'Öffnet Planungsmasken für Mitarbeiterverfügbarkeiten und Terminen an Einrichtungen',
-                   self.open_actor_planperiod_location_planperiod),
-            Action(self, os.path.join(path_to_toolbar_icons, 'disk.png'), 'Plan speichern...', 'Speichert den aktiven Plan',
-                   self.plan_save),
-            Action(self, os.path.join(path_to_toolbar_icons, 'tables.png'), 'Listen für Sperrtermine erzeugen...',
-                   'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
-                   self.sheets_for_availables),
-            Action(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document--pencil.png'),
+                              'Planung ändern...',
+                              'Ändern oder Löschen einer vorhandenen Planung.', self.edit_plan_period),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Projekt-Einstellungen...',
+                              'Bearbeiten der Grundeinstellungen des Projekts', self.settings_project),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'),
+                              'Öffnen... (Pläne)',
+                              'Öffnet einen bereits erstellten Plan.', self.open_plan),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'),
+                              'Öffnen... (Planungsdaten)',
+                              'Öffnet Planungsmasken für Mitarbeiterverfügbarkeiten und Terminen an Einrichtungen',
+                              self.open_actor_planperiod_location_planperiod),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'disk.png'), 'Plan speichern...',
+                              'Speichert den aktiven Plan',
+                              self.plan_save),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'tables.png'),
+                              'Listen für Sperrtermine erzeugen...',
+                              'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
+                              self.sheets_for_availables),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
                    'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
-            Action(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
-                   'Anzeigen der Pläne im Explorer...', 'Pläne der aktuellen Planung werden im Explorer angezeigt.',
-                   self.lookup_for_excel_plan),
-            Action(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 'Programm beenden', None, self.exit,
-                   'Alt+F4'),
-            Action(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'), 'Stammdaten...',
-                   'Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.', self.master_data),
-            Action(self, None, 'Pläne anzeigen', None, self.show_plans),
-            Action(self, None, 'Masken anzeigen', None, self.show_masks),
-            Action(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'), 'Übersicht Verfügbarkeiten',
-                   'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.', self.show_availables),
-            Action(self, os.path.join(path_to_toolbar_icons, 'chart.png'), 'Übersicht Einsätze der Mitarbeiter',
-                   'Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.', self.statistics),
-            Action(self, os.path.join(path_to_toolbar_icons, 'blue-document-attribute-p.png'), 'Einsatzpläne erstellen...',
-                   'Einen oder mehrere Einsatzpläne einer bestimmten Periode erstellen.', self.calculate_plans),
-            Action(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'), 'Plan-Infos...',
-                   'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
-            Action(self, os.path.join(path_to_toolbar_icons, 'gear.png'), 'Einstellungen...',
-                   'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
-            Action(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
-                   f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
-                   self.plans_of_team_delete_prep_deletes),
-            Action(self, None, 'Events aus Plan zu Events-Maske...',
-                   'Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.',
-                   self.apply_events__plan_to_mask),
-            Action(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'), 'Emails...', 'Emails versenden.',
-                   self.send_email),
-            Action(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 'Termine übertragen',
-                   'Termine des aktiven Plans zum Google-Kalender übertragen', self.plan_events_to_google_calendar),
-            Action(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'), 'Google-Kalender öffnen...',
-                   'Öffnet den Google-Kalender im Browser', self.open_google_calendar),
-            Action(self, None, 'Kalender-ID setzen...', 'Kalender-ID des Google-Kalenders dieses Teams',
-                   self.set_google_calendar_id),
-            Action(self, None, 'Upgrade...', 'Zum Erweitern von "hcc-plan"', self.upgrade_hcc_plan),
-            Action(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Einstellungen',
-                   'Allgemeine Programmeinstellungen.', self.general_setting),
-            Action(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 'Hilfe...', 'Öffnet die Hilfe im Browser.',
-                   self.open_help, 'F1'),
-            Action(self, None, 'Auf Updates überprüfen...', 'Überprüft, ob Updates zum Programm vorhanden sind.',
-                   self.check_for_updates),
-            Action(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'), 'Über...', 'Info über das Programm',
-                   self.about_hcc_plan)
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
+                              'Anzeigen der Pläne im Explorer...',
+                              'Pläne der aktuellen Planung werden im Explorer angezeigt.',
+                              self.lookup_for_excel_plan),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 'Programm beenden',
+                              None, self.exit,
+                              'Alt+F4'),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'), 'Stammdaten...',
+                              'Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.', self.master_data),
+            MenuToolbarAction(self, None, 'Pläne anzeigen', None, self.show_plans),
+            MenuToolbarAction(self, None, 'Masken anzeigen', None, self.show_masks),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'),
+                              'Übersicht Verfügbarkeiten',
+                              'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.', self.show_availables),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'chart.png'),
+                              'Übersicht Einsätze der Mitarbeiter',
+                              'Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.', self.statistics),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document-attribute-p.png'),
+                              'Einsatzpläne erstellen...',
+                              'Einen oder mehrere Einsatzpläne einer bestimmten Periode erstellen.',
+                              self.calculate_plans),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'), 'Plan-Infos...',
+                              'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'), 'Einstellungen...',
+                              'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
+            MenuToolbarAction(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
+                              f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
+                              self.plans_of_team_delete_prep_deletes),
+            MenuToolbarAction(self, None, 'Events aus Plan zu Events-Maske...',
+                              'Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.',
+                              self.apply_events__plan_to_mask),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'), 'Emails...', 'Emails versenden.',
+                              self.send_email),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 'Termine übertragen',
+                              'Termine des aktiven Plans zum Google-Kalender übertragen',
+                              self.plan_events_to_google_calendar),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'),
+                              'Google-Kalender öffnen...',
+                              'Öffnet den Google-Kalender im Browser', self.open_google_calendar),
+            MenuToolbarAction(self, None, 'Kalender-ID setzen...', 'Kalender-ID des Google-Kalenders dieses Teams',
+                              self.set_google_calendar_id),
+            MenuToolbarAction(self, None, 'Upgrade...', 'Zum Erweitern von "hcc-plan"', self.upgrade_hcc_plan),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Einstellungen',
+                              'Allgemeine Programmeinstellungen.', self.general_setting),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 'Hilfe...',
+                              'Öffnet die Hilfe im Browser.', self.open_help, 'F1'),
+            MenuToolbarAction(self, None, 'Auf Updates überprüfen...',
+                              'Überprüft, ob Updates zum Programm vorhanden sind.', self.check_for_updates),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'), 'Über...',
+                              'Info über das Programm', self.about_hcc_plan)
         }
-        self.actions: dict[str, Action] = {a.slot.__name__: a for a in self.actions}
+        self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
             self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'], self.actions['plan_save'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
@@ -204,10 +216,10 @@ class MainWindow(QMainWindow):
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
         context_menu = QMenu()
-        context_menu.addAction(Action(context_menu, None, 'Tab schließen', None,
-                                      lambda: self.remove_plan(index)))
-        context_menu.addAction(Action(context_menu, None, 'Plan löschen...', None,
-                                      lambda: self.delete_plan(index)))
+        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Tab schließen', None,
+                                                 lambda: self.remove_plan(index)))
+        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan löschen...', None,
+                                                 lambda: self.delete_plan(index)))
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
 
     def remove_plan(self, index: int):
@@ -339,26 +351,26 @@ class MainWindow(QMainWindow):
     def lookup_for_excel_plan(self):
         ...
 
-    def put_clients_to_menu(self) -> tuple[Action] | None:
+    def put_clients_to_menu(self) -> tuple[MenuToolbarAction] | None:
         try:
             teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
-        return tuple(Action(self, None, team.name, f'Zu {team.name} wechseln.',
-                            lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams)
+        return tuple(MenuToolbarAction(self, None, team.name, f'Zu {team.name} wechseln.',
+                                       lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams)
 
-    def put_teams_to__teams_edit_menu(self) -> dict[str, list[Action]] | None:
+    def put_teams_to__teams_edit_menu(self) -> dict[str, list[MenuToolbarAction]] | None:
         try:
             teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
             return
-        return {team.name: [Action(self, None, 'Einrichtunskombis...',
+        return {team.name: [MenuToolbarAction(self, None, 'Einrichtunskombis...',
                                    'Mögliche Kombinationen von Einrichtungen bearbeiten.',
-                                   functools.partial(self.edit_comb_loc_poss, team)),
-                            Action(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
-                                   functools.partial(self.edit_excel_export_settings, team))]
+                                              functools.partial(self.edit_comb_loc_poss, team)),
+                            MenuToolbarAction(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
+                                              functools.partial(self.edit_excel_export_settings, team))]
                 for team in teams}
 
     def goto_team(self, team_id: UUID):
@@ -486,7 +498,7 @@ class MainWindow(QMainWindow):
                     self.put_actions_to_menu(menu, value)
                 elif value is None:
                     menu.addSeparator()
-                elif type(value) == Action:
+                elif type(value) == MenuToolbarAction:
                     menu.addAction(value)
                 else:
                     self.put_actions_to_menu(menu, value())

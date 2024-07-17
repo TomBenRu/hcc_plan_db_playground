@@ -1,14 +1,13 @@
-import json
 import logging
 import os.path
 import sys
 import time
 
 from PySide6.QtGui import QIcon, Qt
-from PySide6.QtWidgets import QApplication, QStyleFactory
+from PySide6.QtWidgets import QApplication
 
 from gui.main_window import MainWindow
-from gui.splash_screen import SplashScreen
+from gui.custom_widgets.splash_screen import SplashScreen
 from gui.tools.screen import Screen
 
 logging.basicConfig(filename='pony.log', level=logging.INFO,

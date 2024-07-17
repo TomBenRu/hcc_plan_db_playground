@@ -16,7 +16,7 @@ from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
-from .actions import Action
+from .actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -434,10 +434,10 @@ class DlgFixedCast(QDialog):
         if self.builder.make_reset_menu:
             self.reset_menu = QMenu()
             self.reset_menu.addAction(
-                Action(self, os.path.join(self.path_to_icons, 'cross.png'), 'Clear', None,
-                       self.remove_fixed_cast))
+                MenuToolbarAction(self, os.path.join(self.path_to_icons, 'cross.png'), 'Clear', None,
+                                  self.remove_fixed_cast))
             self.reset_menu.addAction(
-                Action(self, os.path.join(self.path_to_icons, 'arrow-circle-315-left.png'),
+                MenuToolbarAction(self, os.path.join(self.path_to_icons, 'arrow-circle-315-left.png'),
                        'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
         else:

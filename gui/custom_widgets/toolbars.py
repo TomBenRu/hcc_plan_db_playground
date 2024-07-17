@@ -1,6 +1,6 @@
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QToolBar, QWidget, QMainWindow
+from PySide6.QtWidgets import QToolBar
 
 
 class MainToolBar(QToolBar):

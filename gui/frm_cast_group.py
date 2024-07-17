@@ -1,6 +1,5 @@
 import dataclasses
 import datetime
-import json
 import os
 from typing import Callable, Sequence, Literal
 from uuid import UUID
@@ -13,7 +12,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPush
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
-from gui.actions import MenuToolbarAction
+from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands
 from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
@@ -237,7 +236,7 @@ class TreeWidget(QTreeWidget):
         self.setColumnCount(8)
         self.setHeaderLabels(["Bezeichnung", "Location", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "Regel",
                               "strict_cast_pref"])
-        self.setDragDropMode(QTreeWidget.InternalMove)
+        self.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
         self.setSortingEnabled(True)
 
         self.slot_item_moved = slot_item_moved
@@ -612,8 +611,6 @@ class DlgGroupProperties(QDialog):
 class DlgCastGroups(QDialog):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriodShow,
                  visible_location_plan_period_ids: set[UUID]):
-        """Wenn location_plan_period angegeben ist, werden nur die events und cast_groups
-        der location_plan_period angezeigt"""
         super().__init__(parent=parent)
 
         self.setWindowTitle('Cast Groups')

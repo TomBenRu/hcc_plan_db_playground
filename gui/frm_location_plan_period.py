@@ -15,7 +15,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
 from gui.custom_widgets import side_menu
-from gui.actions import MenuToolbarAction
+from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import event_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup

@@ -16,7 +16,7 @@ from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
-from .actions import MenuToolbarAction
+from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData

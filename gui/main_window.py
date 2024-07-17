@@ -14,7 +14,7 @@ from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
-from .actions import MenuToolbarAction
+from gui.tools.actions import MenuToolbarAction
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_settings import DlgSettingsProject

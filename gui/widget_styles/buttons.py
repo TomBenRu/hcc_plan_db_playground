@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Literal
 
 # maps time_of_day_enum.time_index to style
 
@@ -43,3 +44,19 @@ avail_day__event: dict[int, str] = {
        "QPushButton::disabled "
        "{ background-color: #a9a9a9;}"
 }
+
+
+class PartnerLocPrefs:
+    dict_style_buttons: dict[
+        Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
+        'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
+                'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
+        'some': {'color': {'locs': 'orange', 'partners': 'orange'},
+                 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}}
+    }
+
+    @classmethod
+    def get_bg_color_text(cls, style: Literal['all', 'some', 'none'],
+                          group: Literal['locs', 'partners']) -> tuple[str, str]:
+        """Returns a tuple (button text, bg color)"""
+        return cls.dict_style_buttons[style]['text'][group], cls.dict_style_buttons[style]["color"][group]

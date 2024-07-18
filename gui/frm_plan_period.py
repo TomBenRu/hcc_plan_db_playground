@@ -154,6 +154,7 @@ class DlgPlanPeriodCreate(DlgPlanPeriodData):
 
 
 class DlgPlanPeriodEdit(QDialog):
+    # todo: Änderungen abspeichern
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
 
@@ -246,8 +247,10 @@ class DlgPlanPeriodEdit(QDialog):
             self.cb_planperiods.addItem(text, pp)
 
     def fill_plan_period_datas(self):
-        pp_after = self.curr_plan_periods[self.cb_planperiods.currentIndex() - 1] if self.cb_planperiods.currentIndex() > 0 else None
-        pp_before = self.curr_plan_periods[self.cb_planperiods.currentIndex() + 1] if len(self.curr_plan_periods) > (self.cb_planperiods.currentIndex() + 1) else None
+        pp_after = (self.curr_plan_periods[self.cb_planperiods.currentIndex() - 1]
+                    if self.cb_planperiods.currentIndex() > 0 else None)
+        pp_before = (self.curr_plan_periods[self.cb_planperiods.currentIndex() + 1]
+                     if len(self.curr_plan_periods) > (self.cb_planperiods.currentIndex() + 1) else None)
 
         self.de_start.clearMinimumDate()
         self.de_end.clearMaximumDate()

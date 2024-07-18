@@ -10,12 +10,14 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel
     QApplication
 
 from database import schemas, db_services
-from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, get_curr_assignment_of_person
+from database.special_schema_requests import (get_locations_of_team_at_date, get_persons_of_team_at_date,
+                                              get_curr_assignment_of_person)
 from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
     avail_day_commands
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
+from gui.widget_styles.buttons import PartnerLocPrefs
 
 
 def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
@@ -74,23 +76,6 @@ class SliderValToText:
             return cls.val2text[val]
 
 
-class ButtonStyles:
-
-    dict_style_buttons: dict[
-        Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
-        'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
-                'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
-        'some': {'color': {'locs': 'orange', 'partners': 'orange'},
-                 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}}
-    }
-
-    @classmethod
-    def get_bg_color_text(cls, style: Literal['all', 'some', 'none'],
-                          group: Literal['locs', 'partners']) -> tuple[str, str]:
-        """Returns a tuple (button text, bg color)"""
-        return cls.dict_style_buttons[style]['text'][group], cls.dict_style_buttons[style]["color"][group]
-
-
 class DlgPartnerLocationPrefsLocs(QDialog):
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
                  partner_id: UUID, all_locations: list[schemas.LocationOfWork]):
@@ -134,7 +119,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
         self.apls_with_partner = [apl for apl in self.curr_model.actor_partner_location_prefs_defaults
                                   if not apl.prep_delete and apl.partner.id == self.partner_id]
         self.dict_location_id__apl = {apl.location_of_work.id: apl for apl in self.apls_with_partner}
-        self.dict_location_id_score: dict[UUID, int] = {apl.location_of_work.id: apl.score
+        self.dict_location_id_score: dict[UUID, float] = {apl.location_of_work.id: apl.score
                                                         for apl in self.apls_with_partner}
 
     def setup_option_field(self):
@@ -357,10 +342,13 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.updating_sliders = False
 
-        self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label_location', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
-        self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label_partner', 'label_val'], QPushButton | SliderWithPressEvent | QLabel]] = {}
+        self.dict_location_id__bt_slider_lb: dict[UUID, dict[Literal['button', 'slider', 'label_location', 'label_val'],
+                                                  QPushButton | SliderWithPressEvent | QLabel]] = {}
+        self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label_partner', 'label_val'],
+                                                  QPushButton | SliderWithPressEvent | QLabel]] = {}
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
+                                           QDialogButtonBox.StandardButton.Cancel)
         self.bt_reset = QPushButton('reset')
         self.reset_menu: QMenu | None = None
         self.configure_bt_reset()
@@ -638,7 +626,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)
 
     def set_bt__style_txt(self, button: QPushButton, style: Literal['all', 'some'], group: Literal['locs', 'partners']):
-        text, bg_color = ButtonStyles.get_bg_color_text(style, group)
+        text, bg_color = PartnerLocPrefs.get_bg_color_text(style, group)
         button.setText(text)
         button.setStyleSheet(f'background-color: {bg_color}; color: black;')
 

@@ -220,9 +220,25 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
-    for adg_id in entities.avail_day_groups_with_avail_day:
-        for event_group_id in entities.event_groups_with_event:
+    for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
+        for event_group_id, event_group in entities.event_groups_with_event.items():
+            location_of_work = event_group.event.location_plan_period.location_of_work
+            #######################################################################################################
+            # todo: später implementieren, um die shift_vars zu minimieren und die Effektivität zu verbessern
+            # # shift_vars werden nicht gesetzt, wenn das zur location_of_work zugehörige actor_location_pref
+            # # des avail_day einen Score von 0 besitzt:
+            # if found_alf := next((alf for alf in adg.avail_day.actor_location_prefs_defaults
+            #                      if alf.location_of_work.id == location_of_work.id), None):
+            #     if found_alf.score == 0:
+            #         continue
+            # # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
+            # if not (adg.avail_day.date == event_group.event.date
+            #         and adg.avail_day.time_of_day.start <= event_group.event.time_of_day.start
+            #         and adg.avail_day.time_of_day.end >= event_group.event.time_of_day.end):
+            #     continue
+            #########################################################################################################
             entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(f'shift ({adg_id}, {event_group_id})')
+    print(f'{len(entities.shift_vars)=}')
 
 
 def add_constraints_employee_availability(model: cp_model.CpModel):
@@ -576,13 +592,17 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
         for event_group_id, event_group in entities.event_groups_with_event.items()}
 
     for event_group_id, event_group in entities.event_groups_with_event.items():
+        # Summe aller zugewiesenen Freelancer zum Event:
         num_assigned_employees = sum(
             entities.shift_vars[(adg_id, event_group_id)] for adg_id in entities.avail_day_groups_with_avail_day
         )
+        # Summe der zugewiesenen Freelancer muss kleiner oder gleich der einzusetzenden Mitarbeiter sein, falls
+        # wenn das Event stattfindet (über add_constraints_event_groups_activity wird das eingeschränkt):
         model.Add(
             num_assigned_employees <= (entities.event_group_vars[event_group.event_group_id]
                                        * event_group.event.cast_group.nr_actors)
         )
+        # Variablen für unsigned shifts werden erstellt:
         model.Add(unassigned_shifts_per_event[event_group_id] == (
                 entities.event_group_vars[event_group.event_group_id] * event_group.event.cast_group.nr_actors
                 - num_assigned_employees))

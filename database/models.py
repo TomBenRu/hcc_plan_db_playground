@@ -678,7 +678,7 @@ class CombinationLocationsPossible(db.Entity):
 class ActorLocationPref(db.Entity):
     """Score 0: Person möchte keinen Einsatz in dieser Einrichtung.
     Score 1: Gerne in dieser Einrichtung.
-    Score 1-2 bevorzugt in dieser Einrichtung."""
+    Score 2: bevorzugt in dieser Einrichtung."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())

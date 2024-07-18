@@ -831,6 +831,7 @@ class FrmActorPlanPeriod(QWidget):
     def reset_chk_field(self):
         self.parent.data_setup(person_id=self.actor_plan_period.person.id)
         return
+
     def create_time_of_day_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
         # sourcery skip: inline-immediately-returned-variable
         button = ButtonAvailDay(self, date, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
@@ -939,9 +940,6 @@ class FrmActorPlanPeriod(QWidget):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
             self.reload_actor_plan_period()
-            buttons_avail_day: list[ButtonAvailDay] = self.findChildren(ButtonAvailDay)
-            for bt in buttons_avail_day:
-                bt.reset_context_menu(self.actor_plan_period)
             self.reset_chk_field()
 
     def reset_all_avail_t_o_ds(self):

@@ -177,6 +177,8 @@ class ActorPlanPeriod(db.Entity):
     actor_location_prefs_defaults = Set('ActorLocationPref')
     avail_days = Set('AvailDay')
     time_of_day_standards = Set('TimeOfDay', reverse='actor_plan_periods_standard')
+    # Standard-Tageszeiten, die verwendet werden, um das Check-Field in der ActorPlanPeriod-View aufzubauen.
+    # Beim ersten Setzen eines AvailDays wird die Standard-Tageszeit ausgewählt.
 
     @property
     def team(self):

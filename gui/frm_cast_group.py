@@ -23,6 +23,7 @@ from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast
 from gui.observer import signal_handling
 from gui.tools import custom_validators
 from gui.tools.screen import Screen
+from gui.widget_styles.tree_widgets import ChildZebraDelegate
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -64,21 +65,6 @@ def location_plan_period_ids__from_cast_group(cast_group: schemas.CastGroup) -> 
         return lpp_ids
 
     return find_recursive(cast_group)
-
-
-class ChildZebraDelegate(QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        item = self.parent().itemFromIndex(index)
-        if item.date_object:  # Prüfen, ob es sich um ein Child-Item handelt
-            rect = option.rect
-            gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
-
-            # Farbverlauf
-            gradient.setColorAt(0, QColor(200, 200, 255, 20))
-            gradient.setColorAt(1, QColor(200, 200, 255, 10))
-
-            painter.fillRect(rect, QBrush(gradient))
-        super().paint(painter, option, index)
 
 
 @dataclasses.dataclass

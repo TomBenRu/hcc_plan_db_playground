@@ -21,6 +21,7 @@ from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.observer import signal_handling
 from gui.tools.screen import Screen
+from gui.widget_styles.tree_widgets import ChildZebraDelegate
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
@@ -165,9 +166,11 @@ class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
 
 
 class TreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, builder: DlgGroupModeBuilderABC, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
+    def __init__(self, builder: DlgGroupModeBuilderABC, tree_widget_item: QTreeWidgetItem | QTreeWidget = None,
+                 date_object=None):
         super().__init__(tree_widget_item)
         self.builder = builder
+        self.date_object = date_object
 
     def configure(self, group: group_type, date_object: date_object_type | None,
                   group_nr: int | None, parent_group_nr: int):
@@ -247,6 +250,8 @@ class TreeWidget(QTreeWidget):
         self.setup_tree()
         self.expand_all()
 
+        self.setItemDelegate(ChildZebraDelegate(parent=self))
+
     def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
         self.curr_item = items[0]
         return super().mimeData(items)
@@ -283,7 +288,7 @@ class TreeWidget(QTreeWidget):
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
                 if date_object := self.builder.get_date_object_from_group_id(child.id):
-                    item = TreeWidgetItem(self.builder, parent)
+                    item = TreeWidgetItem(self.builder, parent, True)
                     item.configure(child, date_object, None, parent_group_nr)
                     self.builder.signal_handler_change__object_with_groups__group_mode(
                         signal_handling.DataGroupMode(True,
@@ -299,7 +304,7 @@ class TreeWidget(QTreeWidget):
 
         for child in self.builder.get_child_groups_from__parent_group_id(self.builder.master_group.id):
             if date_object := self.builder.get_date_object_from_group_id(child.id):
-                item = TreeWidgetItem(self.builder, self)
+                item = TreeWidgetItem(self.builder, self, True)
                 item.configure(child, date_object, None, 0)
                 self.builder.signal_handler_change__object_with_groups__group_mode(
                     signal_handling.DataGroupMode(True,

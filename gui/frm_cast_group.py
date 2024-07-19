@@ -6,9 +6,10 @@ from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QDropEvent, QColor, QIcon
+from PySide6.QtGui import QDropEvent, QColor, QIcon, QLinearGradient, QBrush
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
-                               QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
+                               QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu,
+                               QStyledItemDelegate)
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
@@ -63,6 +64,21 @@ def location_plan_period_ids__from_cast_group(cast_group: schemas.CastGroup) -> 
         return lpp_ids
 
     return find_recursive(cast_group)
+
+
+class ChildZebraDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        item = self.parent().itemFromIndex(index)
+        if item.date_object:  # Prüfen, ob es sich um ein Child-Item handelt
+            rect = option.rect
+            gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
+
+            # Farbverlauf
+            gradient.setColorAt(0, QColor(200, 200, 255, 20))
+            gradient.setColorAt(1, QColor(200, 200, 255, 10))
+
+            painter.fillRect(rect, QBrush(gradient))
+        super().paint(painter, option, index)
 
 
 @dataclasses.dataclass
@@ -167,8 +183,9 @@ class ConsistenceProof:
 
 
 class TreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None):
+    def __init__(self, tree_widget_item: QTreeWidgetItem | QTreeWidget = None, date_object=False):
         super().__init__(tree_widget_item)
+        self.date_object = date_object
 
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
@@ -248,6 +265,8 @@ class TreeWidget(QTreeWidget):
         self.setup_tree()
         self.expand_all()
 
+        self.setItemDelegate(ChildZebraDelegate(parent=self))
+
     def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
         self.curr_item = items[0]
         return super().mimeData(items)
@@ -286,7 +305,7 @@ class TreeWidget(QTreeWidget):
             for child in children:
                 child = db_services.CastGroup.get(child.id)
                 if date_object := child.event:
-                    item = TreeWidgetItem(parent)
+                    item = TreeWidgetItem(parent, True)
                     if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
                         item.setHidden(True)
                     item.configure(child, date_object, None, parent_group_nr)
@@ -307,10 +326,8 @@ class TreeWidget(QTreeWidget):
         most_top_cast_groups = [cg for cg in cast_groups if not cg.parent_groups]
 
         for child in most_top_cast_groups:
-            item = TreeWidgetItem(self)
-            if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
-                item.setHidden(True)
             if event := child.event:
+                item = TreeWidgetItem(self, True)
                 item.configure(child, event, None, 0)
                 signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
                     signal_handling.DataGroupMode(True,
@@ -319,9 +336,12 @@ class TreeWidget(QTreeWidget):
                                                   0)
                 )
             else:
+                item = TreeWidgetItem(self)
                 self.nr_main_groups += 1
                 item.configure(child, None, self.nr_main_groups, 0)
                 add_children(item, child)
+            if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
+                item.setHidden(True)
 
         self.sortByColumn(1, Qt.SortOrder.AscendingOrder)
 

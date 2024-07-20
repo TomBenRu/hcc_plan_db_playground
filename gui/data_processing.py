@@ -89,7 +89,8 @@ class LocationPlanPeriodData:
         )
 
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
-        plans = db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
+        plans = [p for p in db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
+                 if not p.prep_delete]
         for plan in plans:
             if mode == 'added':
                 self._create_new_empty_appointment_in_plan(plan.id, event)

@@ -14,7 +14,7 @@ class EventGroup(NodeMixin):
         self.event_group_id = event_group_db.id if event_group_db else 0
         self.name = str(self.event_group_id)
         self.event_group_db = event_group_db
-        self._event = None
+        self._event: schemas.EventShow | None = None
         self.parent: Optional['EventGroup'] = parent
         self.children: list['EventGroup'] = children if children is not None else []
         self.weight = event_group_db.variation_weight if event_group_db else None

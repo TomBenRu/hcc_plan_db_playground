@@ -437,7 +437,7 @@ class Event(db.Entity):
 
 class EventGroup(db.Entity):
     """Eventgroups können entweder genau 1 Event beinhalten, oden 1 oder mehrere Eventgroups.
-       Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""
+       Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau 1 Location PlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
     nr_event_groups = Optional(int, unsigned=True)

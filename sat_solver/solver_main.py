@@ -168,18 +168,7 @@ class Entities:
     shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
 
 
-entities = Entities()
-
-appointments: defaultdict[tuple[datetime.date, int], list['AppointmentCast']] = defaultdict(list)
-
-
-class AppointmentCast:
-    def __init__(self, event: schemas.EventShow):
-        self.event = event
-        self.avail_days: list[schemas.AvailDayShow] = []
-
-    def add_avail_day(self, avail_day: schemas.AvailDayShow | None):
-        self.avail_days.append(avail_day)
+entities: Entities | None = None
 
 
 def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
@@ -242,19 +231,31 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
 
 
 def add_constraints_employee_availability(model: cp_model.CpModel):
-    for adg in entities.avail_day_groups_with_avail_day.values():
-        for event_group in entities.event_groups_with_event.values():
-            if (event_group.event.date != adg.avail_day.date
-                    or (event_group.event.time_of_day.start < adg.avail_day.time_of_day.start)
-                    or (event_group.event.time_of_day.end > adg.avail_day.time_of_day.end)):
-                model.Add(entities.shift_vars[(adg.avail_day_group_id, event_group.event_group_id)] == 0)
+    # for adg in entities.avail_day_groups_with_avail_day.values():
+    #     for event_group in entities.event_groups_with_event.values():
+    #         if (event_group.event.date != adg.avail_day.date
+    #                 or (event_group.event.time_of_day.start < adg.avail_day.time_of_day.start)
+    #                 or (event_group.event.time_of_day.end > adg.avail_day.time_of_day.end)):
+    #             model.Add(entities.shift_vars[(adg.avail_day_group_id, event_group.event_group_id)] == 0)
+    for (adg_id, eg_id), var in entities.shift_vars.items():
+        avail_day_group = entities.avail_day_groups[adg_id]
+        event_group = entities.event_groups[eg_id]
+        if (event_group.event.date != avail_day_group.avail_day.date
+                or (event_group.event.time_of_day.start < avail_day_group.avail_day.time_of_day.start)
+                or (event_group.event.time_of_day.end > avail_day_group.avail_day.time_of_day.end)):
+            model.Add(var == 0)
 
 
 def add_constraints_event_groups_activity(model: cp_model.CpModel):
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
+    wie in der Parent-Event-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    """
     for event_group_id, event_group in entities.event_groups.items():
         if event_group.children:
             nr_of_active_children = (event_group.nr_of_active_children
                                      or len([c for c in event_group.children if c.children or c.event]))
+            # Wenn es sich bei der Event-Group um eine Root-Event-Group handelt, ist diese garantiert aktiv.
             if event_group.is_root:
                 model.Add(
                     sum(
@@ -262,6 +263,8 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
                         if c.children or c.event
                     ) == nr_of_active_children
                 )
+            # Wenn es sich um eine Child-Event-Group handelt, ist diese eventuell nicht aktiv.
+            # In diesem Fall sollen keine aktiven existieren.
             else:
                 model.Add(
                     sum(entities.event_group_vars[c.event_group_id] for c in event_group.children
@@ -271,18 +274,31 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
 
 
 def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
+    bevorzugt werden.
+    Das funktioniert bislang leider nur für die Child-Event-Groups, die einen Event besitzen.
+    todo: Funktion so verbessern, dass es auch für tiefer geschachtelte Child-Event-Groups funktioniert.
+    """
     max_value_of_weights = 2
     weight_vars: list[IntVar] = []
     for event_group_id, event_group in entities.event_groups.items():
-        if children := event_group.children:
-            children: tuple[EventGroup]
-            mean_weight = sum(c.weight for c in children) / len(children)
-            for c in children:
-                adjusted_weight = c.weight / mean_weight if mean_weight else 1
-                shift_vars_curr = [var for (_, eg_id), var in entities.shift_vars.items() if eg_id == c.event_group_id]
-                for shift_var in shift_vars_curr:
-                    weight_vars.append(model.NewIntVar(0, 1000, ''))
-                    model.Add(weight_vars[-1] == shift_var * round((max_value_of_weights - adjusted_weight) * 100))
+        if event_group.nr_of_active_children is not None:
+            if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
+                children: list[EventGroup]
+                mean_weight = sum(c.weight for c in children) / len(children)
+                for c in children:
+                    # Das angepasste weight der Child-Event-Group wird berechnet:
+                    adjusted_weight = mean_weight - c.weight
+
+                    print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+
+                    event_group_var = entities.event_group_vars[c.event_group_id]
+                    weight_vars.append(
+                        model.NewIntVar(-1000, 1000, 'no Event' if c.event is None
+                                        else f'Event: {c.event.date:%d.%m.%y}, {c.event.time_of_day.name}, '
+                                             f'{c.event.location_plan_period.location_of_work.name}'))
+                    model.Add(weight_vars[-1] == event_group_var * round(adjusted_weight * 100))
 
     return weight_vars
 
@@ -316,19 +332,32 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
 
 
 def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
+    """
+        Fügt Constraints hinzu, um sicherzustellen, dass die Child-Avail-Day-Groups mit den höheren Gewichtungen
+        bevorzugt werden.
+        Das funktioniert bislang leider nur für die Child-Avail-Day-Groups, die einen Avail-Day besitzen.
+        todo: Funktion so verbessern, dass es auch für tiefer geschachtelte Child-Event-Groups funktioniert.
+    """
     max_value_of_weight = 2
     weight_vars: list[IntVar] = []
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
-        if children := avail_day_group.children:
-            children: tuple[AvailDayGroup]
-            mean_weight = sum(c.weight for c in children) / len(children)
-            for c in children:
-                adjusted_weight = c.weight / mean_weight if mean_weight else 1
-                shift_vars_curr = [var for (adg_id, _), var in entities.shift_vars.items()
-                                   if adg_id == c.avail_day_group_id]
-                for shift_var in shift_vars_curr:
-                    weight_vars.append(model.NewIntVar(0, 1000, ''))
-                    model.Add(weight_vars[-1] == shift_var * round((max_value_of_weight - adjusted_weight) * 100))
+        if avail_day_group.nr_of_active_children is not None:
+            if (children := avail_day_group.children) and (avail_day_group.nr_of_active_children < len(avail_day_group.children)):
+                children: list[AvailDayGroup]
+                mean_weight = sum(c.weight for c in children) / len(children)
+                for c in children:
+                    # Das angepasste weight der Child-Event-Group wird berechnet:
+                    adjusted_weight = mean_weight - c.weight
+
+                    print(f'{c.avail_day_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+
+                    avail_day_group_var = entities.avail_day_group_vars[c.avail_day_group_id]
+                    weight_vars.append(
+                        model.NewIntVar(-1000, 1000,
+                                        'no Event' if c.avail_day is None else
+                                        f'Event: {c.avail_day.date:%d.%m.%y}, {c.avail_day.time_of_day.name}, '
+                                        f'{c.avail_day.actor_plan_period.person.f_name}'))
+                    model.Add(weight_vars[-1] == avail_day_group_var * round(adjusted_weight * 100))
 
     return weight_vars
 
@@ -586,7 +615,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
     unassigned_shifts_per_event = {
         event_group_id: model.NewIntVar(
-            0, sum(evg.event.cast_group.nr_actors
+            0, max(evg.event.cast_group.nr_actors
                    for evg in entities.event_groups_with_event.values()), f'unassigned {event_group.event.date}'
         )
         for event_group_id, event_group in entities.event_groups_with_event.items()}
@@ -602,7 +631,8 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
             num_assigned_employees <= (entities.event_group_vars[event_group.event_group_id]
                                        * event_group.event.cast_group.nr_actors)
         )
-        # Variablen für unsigned shifts werden erstellt:
+        # Variablen für unsigned shifts werden erstellt. Wenn die zum Event zugehörige EventGroup nicht stattfindet,
+        # werden die unassigned_shifts_per_event durch Multiplikation mit der EventGroup-Variablen 0.:
         model.Add(unassigned_shifts_per_event[event_group_id] == (
                 entities.event_group_vars[event_group.event_group_id] * event_group.event.cast_group.nr_actors
                 - num_assigned_employees))
@@ -823,7 +853,8 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      unassigned_shifts_per_event: dict[UUID, IntVar], sum_assigned_shifts: dict[UUID, IntVar],
                      sum_squared_deviations: IntVar, constraints_partner_loc_prefs: list[IntVar],
                      constraints_location_prefs: list[IntVar],
-                     constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
+                     constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
+                     constraints_weights_in_event_groups: list[IntVar]):
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -845,6 +876,9 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day}), {cast_group_id}': solver.Value(var)
                             for (date, time_of_day, cast_group_id), var in constraints_fixed_cast_conflicts.items()}
     print(f'fixed_cast_conflicts: {fixed_cast_conflicts}')
+
+    weights_in_event_groups = [f'{var.name}: {solver.Value(var)}' for var in constraints_weights_in_event_groups]
+    pprint.pprint(f'weights_in_event_groups_res: {weights_in_event_groups}')
 
 
 def print_solver_status(status: CpSolverStatus):
@@ -880,7 +914,8 @@ def call_solver_with_unadjusted_requested_assignments(
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts)
+                     constraints_fixed_cast_conflicts,
+                     constraints_weights_in_event_groups)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
     print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
@@ -919,7 +954,8 @@ def call_solver_with_fixed_unassigned_shifts(
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts)
+                     constraints_fixed_cast_conflicts,
+                     constraints_weights_in_event_groups)
 
     return solution_printer.get_max_assigned_shifts()
 
@@ -954,7 +990,8 @@ def call_solver_with_adjusted_requested_assignments(
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts)
+                     constraints_fixed_cast_conflicts,
+                     constraints_weights_in_event_groups)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(w) for w in constraints_weights_in_event_groups),
@@ -993,7 +1030,8 @@ def call_solver_with__fixed_constraint_results(
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts)
+                     constraints_fixed_cast_conflicts,
+                     constraints_weights_in_event_groups)
 
     constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
     return solution_printer, constraints_fixed_cast_conflicts
@@ -1001,6 +1039,9 @@ def call_solver_with__fixed_constraint_results(
 
 def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]],
                                                                    dict[tuple[datetime.date, str, UUID], int]]:
+    global entities
+    entities = Entities()
+
     plan_period = db_services.PlanPeriod.get(plan_period_id)
     entities.actor_plan_periods = {app.id: db_services.ActorPlanPeriod.get(app.id)
                                    for app in plan_period.actor_plan_periods}

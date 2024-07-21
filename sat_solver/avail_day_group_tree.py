@@ -37,7 +37,8 @@ class AvailDayGroup(NodeMixin):
     def __repr__(self):
         event_date = self.avail_day.date.strftime('%d.%m.%y') if self.avail_day else None
         return (f'Node id: {self.avail_day_group_id}, weight: {self.weight}, '
-                f'nr_active_children: {self.nr_of_active_children}, event: {event_date}')
+                f'nr_active_children: {self.nr_of_active_children}, children: {len(self.children)}, '
+                f'event: {event_date}')
 
 
 class AvailDayGroupTree:

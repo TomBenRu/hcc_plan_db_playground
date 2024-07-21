@@ -276,13 +276,15 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
 def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
     """
     Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
-    bevorzugt werden.
-    Das funktioniert bislang leider nur für die Child-Event-Groups, die einen Event besitzen.
+    bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
+    Das funktioniert bislang leider nur für einfach geschachtelte Child-Event-Groups.
     todo: Funktion so verbessern, dass es auch für tiefer geschachtelte Child-Event-Groups funktioniert.
     """
-    max_value_of_weights = 2
-    weight_vars: list[IntVar] = []
-    for event_group_id, event_group in entities.event_groups.items():
+
+    all_weight_vars: list[IntVar] = []
+
+    def calculate_weight_vars_of_children(event_group: EventGroup):
+        weight_vars: list[IntVar] = []
         if event_group.nr_of_active_children is not None:
             if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
                 children: list[EventGroup]
@@ -291,7 +293,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
                     # Das angepasste weight der Child-Event-Group wird berechnet:
                     adjusted_weight = mean_weight - c.weight
 
-                    print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+                    # print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
 
                     event_group_var = entities.event_group_vars[c.event_group_id]
                     weight_vars.append(
@@ -299,8 +301,51 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
                                         else f'Event: {c.event.date:%d.%m.%y}, {c.event.time_of_day.name}, '
                                              f'{c.event.location_plan_period.location_of_work.name}'))
                     model.Add(weight_vars[-1] == event_group_var * round(adjusted_weight * 100))
+        return weight_vars
 
-    return weight_vars
+    # alternative Implementierung:
+    ####################################################################################################################
+    def calculate_weight_vars_of_children_recursive(event_group: EventGroup, depth: int):
+        weight_vars: list[tuple[IntVar, int]] = []
+        if event_group.nr_of_active_children is not None:
+            if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
+                children: list[EventGroup]
+                mean_weight = sum(c.weight for c in children) / len(children)
+                for c in children:
+                    # Das angepasste weight der Child-Event-Group wird berechnet:
+                    adjusted_weight = mean_weight - c.weight
+
+                    # print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+
+                    event_group_var = entities.event_group_vars[c.event_group_id]
+                    weight_vars.append(
+                        (
+                            model.NewIntVar(-1000, 1000, 'no Event' if c.event is None
+                                        else f'Event: {c.event.date:%d.%m.%y}, {c.event.time_of_day.name}, '
+                                             f'{c.event.location_plan_period.location_of_work.name}'),
+                            depth
+                        )
+                    )
+                    model.Add(weight_vars[-1][0] == event_group_var * round(adjusted_weight * 100))
+        for c in event_group.children:
+            weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
+
+        return weight_vars
+
+    root_event_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
+
+    weight_vars_recursive = calculate_weight_vars_of_children_recursive(root_event_group, 0)
+
+    print('weight_vars_recursive:')
+    pprint.pprint(weight_vars_recursive)
+
+    # return weight_vars_recursive
+    ####################################################################################################################
+
+    for event_group_id, event_group in entities.event_groups.items():
+        all_weight_vars.extend(calculate_weight_vars_of_children(event_group))
+
+    return all_weight_vars
 
 
 def add_constraints_avail_day_groups_activity(model: cp_model):
@@ -340,9 +385,10 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
     """
     max_value_of_weight = 2
     weight_vars: list[IntVar] = []
-    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
+    for avail_day_group in entities.avail_day_groups.values():
         if avail_day_group.nr_of_active_children is not None:
-            if (children := avail_day_group.children) and (avail_day_group.nr_of_active_children < len(avail_day_group.children)):
+            if ((children := avail_day_group.children) and
+                    (avail_day_group.nr_of_active_children < len(avail_day_group.children))):
                 children: list[AvailDayGroup]
                 mean_weight = sum(c.weight for c in children) / len(children)
                 for c in children:
@@ -657,11 +703,14 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
     # Add a constraint for each actor_plan_period,
     # that the relative shift deviation is equal to (requested shifts - actual shifts) / requested shifts.
     for app in entities.actor_plan_periods.values():
-        assigned_shifts_of_app = 0
-        for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
-            if adg.avail_day.actor_plan_period.id == app.id:
-                assigned_shifts_of_app += sum(entities.shift_vars[(adg_id, evg_id)]
-                                              for evg_id in entities.event_groups_with_event)
+        assigned_shifts_of_app = sum(
+            sum(
+                entities.shift_vars[(adg_id, evg_id)]
+                for evg_id in entities.event_groups_with_event
+            )
+            for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+            if adg.avail_day.actor_plan_period.id == app.id
+        )
         model.AddAbsEquality(
             sum_assigned_shifts[app.id], assigned_shifts_of_app
         )

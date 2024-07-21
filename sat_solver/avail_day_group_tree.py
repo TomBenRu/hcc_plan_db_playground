@@ -7,10 +7,13 @@ from database import schemas, db_services
 
 
 class AvailDayGroup(NodeMixin):
-    def __init__(self, avail_day_group_db: schemas.AvailDayGroupShow | None,
+    def __init__(self,
+                 avail_day_group_db: schemas.AvailDayGroupShow | None,
                  children: list['AvailDayGroup'] = None,
-                 parent: Optional['AvailDayGroup'] = None):
+                 parent: Optional['AvailDayGroup'] = None,
+                 root_is_actor_plan_period_master_group: bool = False):
         super().__init__()
+        self.root_is_actor_plan_period_master_group = root_is_actor_plan_period_master_group
         self.avail_day_group_id = avail_day_group_db.id if avail_day_group_db else 0
         self.name = str(self.avail_day_group_id)
         self.avail_day_group_db = avail_day_group_db
@@ -35,10 +38,10 @@ class AvailDayGroup(NodeMixin):
                 if (self.avail_day_group_db and self.avail_day_group_db.avail_day) else None)
 
     def __repr__(self):
-        event_date = self.avail_day.date.strftime('%d.%m.%y') if self.avail_day else None
+        date = self.avail_day.date.strftime('%d.%m.%y') if self.avail_day else None
         return (f'Node id: {self.avail_day_group_id}, weight: {self.weight}, '
                 f'nr_active_children: {self.nr_of_active_children}, children: {len(self.children)}, '
-                f'event: {event_date}')
+                f'avail_day_date: {date}')
 
 
 class AvailDayGroupTree:
@@ -51,9 +54,10 @@ class AvailDayGroupTree:
 
     def construct_root_node(self) -> AvailDayGroup:
         if len(self.actor_plan_period_ids) == 1:
-            avail_day_group_db = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.actor_plan_period_ids[0])
+            avail_day_group_db = (db_services.AvailDayGroup
+                                  .get_master_from__actor_plan_period(self.actor_plan_period_ids[0]))
             child_groups = [db_services.AvailDayGroup.get(adg.id) for adg in avail_day_group_db.avail_day_groups]
-            root = AvailDayGroup(avail_day_group_db, [AvailDayGroup(child) for child in child_groups], None)
+            root = AvailDayGroup(avail_day_group_db, [AvailDayGroup(child) for child in child_groups], None, True)
         else:
             child_groups = [db_services.AvailDayGroup.get_master_from__actor_plan_period(app_id)
                             for app_id in self.actor_plan_period_ids]

@@ -9,8 +9,10 @@ from database import schemas, db_services
 class EventGroup(NodeMixin):
     def __init__(self, event_group_db: schemas.EventGroupShow | None,
                  children: list['EventGroup'] = None,
-                 parent: Optional['EventGroup'] = None):
+                 parent: Optional['EventGroup'] = None,
+                 root_is_location_plan_period_master_group: bool = False):
         super().__init__()
+        self.root_is_location_plan_period_master_group = root_is_location_plan_period_master_group
         self.event_group_id = event_group_db.id if event_group_db else 0
         self.name = str(self.event_group_id)
         self.event_group_db = event_group_db
@@ -50,9 +52,10 @@ class EventGroupTree:
 
     def construct_root_node(self) -> EventGroup:
         if len(self.location_plan_period_ids) == 1:
-            event_group_db = db_services.EventGroup.get_master_from__location_plan_period(self.location_plan_period_ids[0])
+            event_group_db = (db_services.EventGroup
+                              .get_master_from__location_plan_period(self.location_plan_period_ids[0]))
             child_groups = [db_services.EventGroup.get(evg.id) for evg in event_group_db.event_groups]
-            root = EventGroup(event_group_db, [EventGroup(child) for child in child_groups], None)
+            root = EventGroup(event_group_db, [EventGroup(child) for child in child_groups], None, True)
         else:
             child_groups = [db_services.EventGroup.get_master_from__location_plan_period(lpp_id)
                             for lpp_id in self.location_plan_period_ids]

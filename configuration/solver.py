@@ -22,6 +22,7 @@ class ConstraintsMultipliers(BaseModel):
     sliders_location_prefs: dict[float, int] = {0: 100_000_000_000_000, 0.5: 10, 1: 0, 1.5: -10, 2: 20} # WEIGHT_VARS_LOCATION_PREFS
     sliders_partner_loc_prefs: dict[float, int] = {0: 20, 0.5: 10, 1: 0, 1.5: -10, 2: -20}  # WEIGHT_VARS_PARTNER_LOC_PREFS
     sliders_levels_weights_event_groups: dict[float, int] = {1: 100, 2: 10, 3: 1}
+    sliders_levels_weights_av_day_groups: dict[float, int] = {1: 100, 2: 10, 3: 1}
     partner_loc_prefs_levels: dict[float, int] = {}
     # todo: bei mehr als 2 Mitarbeitern werden die Weight-Vars angepasst. Derzeit funktional implementiert
 

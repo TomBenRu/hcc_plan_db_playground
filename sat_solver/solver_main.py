@@ -7,6 +7,7 @@ from collections import defaultdict
 import datetime
 from uuid import UUID
 
+import anytree
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
@@ -309,7 +310,8 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     root_event_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
 
-    return calculate_weight_vars_of_children_recursive(root_event_group, 0)
+    return calculate_weight_vars_of_children_recursive(
+        root_event_group, 1 if root_event_group.root_is_location_plan_period_master_group else 0)
 
 
 def add_constraints_avail_day_groups_activity(model: cp_model):
@@ -342,34 +344,47 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
 
 def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
     """
-        Fügt Constraints hinzu, um sicherzustellen, dass die Child-Avail-Day-Groups mit den höheren Gewichtungen
-        bevorzugt werden.
-        Das funktioniert bislang leider nur für die Child-Avail-Day-Groups, die einen Avail-Day besitzen.
-        todo: Funktion so verbessern, dass es auch für tiefer geschachtelte Child-Event-Groups funktioniert.
-    """
-    max_value_of_weight = 2
-    weight_vars: list[IntVar] = []
-    for avail_day_group in entities.avail_day_groups.values():
-        if avail_day_group.nr_of_active_children is not None:
-            if ((children := avail_day_group.children) and
-                    (avail_day_group.nr_of_active_children < len(avail_day_group.children))):
-                children: list[AvailDayGroup]
-                mean_weight = sum(c.weight for c in children) / len(children)
-                for c in children:
-                    # Das angepasste weight der Child-Event-Group wird berechnet:
-                    adjusted_weight = mean_weight - c.weight
+        Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
+        bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
+        Bei tiefer geschachtelten Avail-Day-Groups kann werden die Parent-Groups bevorzugt deren ausgewählte Children
+        ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
+        """
 
-                    print(f'{c.avail_day_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+    multiplier_level = (curr_config_handler.get_solver_config()
+                        .constraints_multipliers.sliders_levels_weights_av_day_groups)
 
-                    avail_day_group_var = entities.avail_day_group_vars[c.avail_day_group_id]
-                    weight_vars.append(
-                        model.NewIntVar(-1000, 1000,
-                                        'no Event' if c.avail_day is None else
-                                        f'Event: {c.avail_day.date:%d.%m.%y}, {c.avail_day.time_of_day.name}, '
-                                        f'{c.avail_day.actor_plan_period.person.f_name}'))
-                    model.Add(weight_vars[-1] == avail_day_group_var * round(adjusted_weight * 100))
+    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, depth: int) -> list[IntVar]:
+        weight_vars: list[IntVar] = []
+        # if group.nr_of_active_children is not None:
+        #     if (children := group.children) and (group.nr_of_active_children < len(group.children)):
+        #         children: list[AvailDayGroup]
+        if depth != 0:
+            for c in group.children:
+                print(f'{c=}')
+                c: AvailDayGroup
+                # Das angepasste weight der Child-Group wird berechnet:
+                adjusted_weight = (1 - c.weight) * multiplier_level[depth]
 
-    return weight_vars
+                group_var = entities.avail_day_group_vars[c.avail_day_group_id]
+                weight_vars.append(
+                    model.NewIntVar(-1000, 1000,
+                                    f'Depth {depth}, no AvailDay' if c.avail_day is None
+                                    else f'Depth {depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
+                                         f'{c.avail_day.time_of_day.name}, '
+                                         f'{c.avail_day.actor_plan_period.person.f_name}')
+                )
+                model.Add(weight_vars[-1] == group_var * adjusted_weight)
+        for c in group.children:
+            weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
+
+        return weight_vars
+
+    root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
+
+    print(anytree.RenderTree(root_group))
+
+    return calculate_weight_vars_of_children_recursive(
+        root_group, 1 if root_group.root_is_actor_plan_period_master_group else 0)
 
 
 def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
@@ -869,7 +884,8 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      sum_squared_deviations: IntVar, constraints_partner_loc_prefs: list[IntVar],
                      constraints_location_prefs: list[IntVar],
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
-                     constraints_weights_in_event_groups: list[IntVar]):
+                     constraints_weights_in_event_groups: list[IntVar],
+                     constraints_weights_in_av_day_groups: list[IntVar]):
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -896,7 +912,9 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'weights_in_event_groups: '
           f'{" | ".join([f"""{v.name}: {solver.Value(v)}""" for v in constraints_weights_in_event_groups])}')
     print(f'sum_weights_in_event_groups: {sum(solver.Value(w) for w in constraints_weights_in_event_groups)}')
-
+    print(f'weights_in_av_day_groups: '
+          f'{" | ".join([f"""{v.name}: {solver.Value(v)}""" for v in constraints_weights_in_av_day_groups])}')
+    print(f'sum_weights_in_av_day_groups: {sum(solver.Value(w) for w in constraints_weights_in_av_day_groups)}')
 
 
 def print_solver_status(status: CpSolverStatus):
@@ -934,7 +952,8 @@ def call_solver_with_unadjusted_requested_assignments(
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups)
+                     constraints_weights_in_event_groups,
+                     constraints_weights_in_avail_day_groups)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
     print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
@@ -974,7 +993,8 @@ def call_solver_with_fixed_unassigned_shifts(
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups)
+                     constraints_weights_in_event_groups,
+                     constraints_weights_in_avail_day_groups)
 
     return solution_printer.get_max_assigned_shifts()
 
@@ -1010,7 +1030,8 @@ def call_solver_with_adjusted_requested_assignments(
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups)
+                     constraints_weights_in_event_groups,
+                     constraints_weights_in_avail_day_groups)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(v) for v in constraints_weights_in_event_groups),
@@ -1051,7 +1072,8 @@ def call_solver_with__fixed_constraint_results(
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups)
+                     constraints_weights_in_event_groups,
+                     constraints_weights_in_avail_day_groups)
 
     constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
     return solution_printer, constraints_fixed_cast_conflicts

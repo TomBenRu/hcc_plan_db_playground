@@ -26,4 +26,9 @@ constraints_fixed_casts_conflicts = 1000000000.0
 "2.0" = 10
 "3.0" = 1
 
+[constraints_multipliers.sliders_levels_weights_av_day_groups]
+"1.0" = 100
+"2.0" = 10
+"3.0" = 1
+
 [constraints_multipliers.partner_loc_prefs_levels]

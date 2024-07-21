@@ -56,7 +56,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
 
     def __init__(self, unassigned_shifts_per_event: list[IntVar],
                  sum_assigned_shifts: dict[UUID, IntVar], sum_squared_deviations: IntVar,
-                 fixed_cast_conflicts: dict[tuple[datetime.date, str], IntVar], limit: int | None,
+                 fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar], limit: int | None,
                  print_results: bool, collect_schedule_versions=False):
         cp_model.CpSolverSolutionCallback.__init__(self)
         self._unassigned_shifts_per_event = unassigned_shifts_per_event
@@ -273,7 +273,7 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
                 )
 
 
-def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
+def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> defaultdict[int, list[IntVar]]:
     """
     Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
     bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
@@ -305,18 +305,17 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     # alternative Implementierung:
     ####################################################################################################################
+    multiplier_level = (curr_config_handler.get_solver_config()
+                        .constraints_multipliers.sliders_levels_weights_event_groups)
     def calculate_weight_vars_of_children_recursive(
             event_group: EventGroup, depth: int) -> defaultdict[int, list[IntVar]]:
         weight_vars: defaultdict[int, list[IntVar]] = defaultdict(list)
         if event_group.nr_of_active_children is not None:
             if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
                 children: list[EventGroup]
-                mean_weight = sum(c.weight for c in children) / len(children)
                 for c in children:
                     # Das angepasste weight der Child-Event-Group wird berechnet:
-                    adjusted_weight = mean_weight - c.weight
-
-                    # print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
+                    adjusted_weight = 1 - c.weight
 
                     event_group_var = entities.event_group_vars[c.event_group_id]
                     weight_vars[depth].append(
@@ -325,7 +324,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
                                         else f'Event: {c.event.date:%d.%m.%y}, {c.event.time_of_day.name}, '
                                              f'{c.event.location_plan_period.location_of_work.name}')
                     )
-                    model.Add(weight_vars[depth][-1] == event_group_var * round(adjusted_weight * 100))
+                    model.Add(weight_vars[depth][-1] == (event_group_var * adjusted_weight * multiplier_level[depth]))
         for c in event_group.children:
             for d, ints in calculate_weight_vars_of_children_recursive(c, depth + 1).items():
                 weight_vars[d].extend(ints)
@@ -334,12 +333,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     root_event_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
 
-    weight_vars_recursive = calculate_weight_vars_of_children_recursive(root_event_group, 0)
-
-    print('weight_vars_recursive:')
-    pprint.pprint(weight_vars_recursive)
-
-    # return weight_vars_recursive
+    return calculate_weight_vars_of_children_recursive(root_event_group, 0)
     ####################################################################################################################
 
     for event_group_id, event_group in entities.event_groups.items():
@@ -759,7 +753,7 @@ def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], Int
 
 
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
-                                                         list[IntVar], list[IntVar], list[IntVar],
+                                                         defaultdict[int, list[IntVar]], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
@@ -804,7 +798,7 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
 def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_event: dict[UUID, IntVar],
                               sum_squared_deviations: IntVar, constraints_weights_in_avail_day_groups: list[IntVar],
-                              constraints_weights_in_event_groups: list[IntVar],
+                              constraints_weights_in_event_groups: defaultdict[int, list[IntVar]],
                               constraints_location_prefs: list[IntVar],
                               constraints_partner_loc_prefs: list[IntVar],
                               constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
@@ -820,10 +814,12 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     weight_constraints_location_prefs = weights.constraints_location_prefs
     weight_constraints_fixed_cast_conflicts = weights.constraints_fixed_casts_conflicts
     weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
+
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
                    + weight_sum_squared_shift_deviations * sum_squared_deviations
                    + weight_constraints_weights_in_avail_day_groups * sum(constraints_weights_in_avail_day_groups)
-                   + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups)
+                   + (weight_constraints_weights_in_event_groups *
+                      sum(sum(vars_) for _, vars_ in constraints_weights_in_event_groups.items()))
                    + weight_constraints_location_prefs * sum(constraints_location_prefs)
                    + weight_constraints_partner_loc_prefs * sum(constraints_partner_loc_prefs)
                    + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values()))
@@ -843,7 +839,8 @@ def define_objective__fixed_unassigned(model: cp_model.CpModel,
 
 def define_objective__fixed_constraint_results(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar], sum_squared_deviations: IntVar,
-        constraints_weights_in_avail_day_groups: list[IntVar], constraints_weights_in_event_groups: list[IntVar],
+        constraints_weights_in_avail_day_groups: list[IntVar],
+        constraints_weights_in_event_groups: defaultdict[int, list[IntVar]],
         constraints_location_prefs: list[IntVar], constraints_partner_loc_prefs: list[IntVar],
         constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
         unassigned_shifts_per_event_res: list[int],
@@ -852,7 +849,9 @@ def define_objective__fixed_constraint_results(
     model.Add(sum(unassigned_shifts_per_event) == sum(unassigned_shifts_per_event_res))
     model.Add(sum_squared_deviations == sum_squared_deviations_res)
     model.Add(sum(constraints_weights_in_avail_day_groups) == weights_shifts_in_avail_day_groups_res)
-    model.Add(sum(constraints_weights_in_event_groups) == weights_in_event_groups_res)
+    model.Add(sum(
+        sum(vars_) for depth, vars_ in constraints_weights_in_event_groups.items()
+    ) == weights_in_event_groups_res)
     model.Add(sum(constraints_location_prefs) == sum_location_prefs_res)
     model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs_res)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts_res)
@@ -903,7 +902,7 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      sum_squared_deviations: IntVar, constraints_partner_loc_prefs: list[IntVar],
                      constraints_location_prefs: list[IntVar],
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
-                     constraints_weights_in_event_groups: list[IntVar]):
+                     constraints_weights_in_event_groups: defaultdict[int, list[IntVar]]):
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -912,6 +911,7 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'  - ObjectiveValue : {solver.ObjectiveValue()}')
     if solution_printer:
         print(f"  - solutions found: {solution_printer.solution_count()}")
+    print(f'{unassigned_shifts_per_event=}')
     print(f'{sum(solver.Value(u) for u in unassigned_shifts_per_event.values())=}')
     print(f'{[solver.Value(u) for u in unassigned_shifts_per_event.values()]}')
     print(f'{solver.Value(sum_squared_deviations)=}')
@@ -926,8 +926,12 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                             for (date, time_of_day, cast_group_id), var in constraints_fixed_cast_conflicts.items()}
     print(f'fixed_cast_conflicts: {fixed_cast_conflicts}')
 
-    weights_in_event_groups = [f'{var.name}: {solver.Value(var)}' for var in constraints_weights_in_event_groups]
-    pprint.pprint(f'weights_in_event_groups_res: {weights_in_event_groups}')
+    # weights_in_event_groups = [f'{var.name}: {solver.Value(var)}' for var in constraints_weights_in_event_groups]
+    weights_in_event_groups = {depth: [(var.name, solver.Value(var)) for var in vars_]
+                               for depth, vars_ in constraints_weights_in_event_groups.items()}
+    # pprint.pprint(f'weights_in_event_groups_res: {weights_in_event_groups}')
+    print('weights_in_event_groups:')
+    pprint.pprint(weights_in_event_groups)
 
 
 def print_solver_status(status: CpSolverStatus):
@@ -953,7 +957,8 @@ def call_solver_with_unadjusted_requested_assignments(
      constraints_location_prefs, constraints_partner_loc_prefs,
      constraints_fixed_cast_conflicts) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+                              constraints_weights_in_avail_day_groups,
+                              constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
                               constraints_fixed_cast_conflicts)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
@@ -1043,7 +1048,7 @@ def call_solver_with_adjusted_requested_assignments(
                      constraints_weights_in_event_groups)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
-            sum(solver.Value(w) for w in constraints_weights_in_event_groups),
+            sum(sum(solver.Value(v) for v in vars_) for vars_ in constraints_weights_in_event_groups.values()),
             sum(solver.Value(lp) for lp in constraints_location_prefs),
             solver.Value(sum(constraints_partner_loc_prefs)),
             solver.Value(sum(constraints_fixed_cast_conflicts.values())))
@@ -1068,8 +1073,9 @@ def call_solver_with__fixed_constraint_results(
         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
         constraints_location_prefs, constraints_partner_loc_prefs,
         constraints_fixed_cast_conflicts, unassigned_shifts_per_event_res,
-        sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res, weights_in_event_groups_res,
-        sum_location_prefs_res, sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res)
+        sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res,
+        weights_in_event_groups_res, sum_location_prefs_res,
+        sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,

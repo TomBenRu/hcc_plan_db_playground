@@ -305,8 +305,9 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     # alternative Implementierung:
     ####################################################################################################################
-    def calculate_weight_vars_of_children_recursive(event_group: EventGroup, depth: int):
-        weight_vars: list[tuple[IntVar, int]] = []
+    def calculate_weight_vars_of_children_recursive(
+            event_group: EventGroup, depth: int) -> defaultdict[int, list[IntVar]]:
+        weight_vars: defaultdict[int, list[IntVar]] = defaultdict(list)
         if event_group.nr_of_active_children is not None:
             if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
                 children: list[EventGroup]
@@ -318,17 +319,16 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
                     # print(f'{c.event_group_id=}, {c.weight=}, {mean_weight=}, {adjusted_weight=}')
 
                     event_group_var = entities.event_group_vars[c.event_group_id]
-                    weight_vars.append(
-                        (
-                            model.NewIntVar(-1000, 1000, 'no Event' if c.event is None
+                    weight_vars[depth].append(
+                        model.NewIntVar(-1000, 1000,
+                                        'no Event' if c.event is None
                                         else f'Event: {c.event.date:%d.%m.%y}, {c.event.time_of_day.name}, '
-                                             f'{c.event.location_plan_period.location_of_work.name}'),
-                            depth
-                        )
+                                             f'{c.event.location_plan_period.location_of_work.name}')
                     )
-                    model.Add(weight_vars[-1][0] == event_group_var * round(adjusted_weight * 100))
+                    model.Add(weight_vars[depth][-1] == event_group_var * round(adjusted_weight * 100))
         for c in event_group.children:
-            weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
+            for d, ints in calculate_weight_vars_of_children_recursive(c, depth + 1).items():
+                weight_vars[d].extend(ints)
 
         return weight_vars
 

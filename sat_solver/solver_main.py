@@ -238,6 +238,9 @@ def add_constraints_employee_availability(model: cp_model.CpModel):
     #                 or (event_group.event.time_of_day.start < adg.avail_day.time_of_day.start)
     #                 or (event_group.event.time_of_day.end > adg.avail_day.time_of_day.end)):
     #             model.Add(entities.shift_vars[(adg.avail_day_group_id, event_group.event_group_id)] == 0)
+
+    # todo: shift_vars können schon bei der Variablenerstellung ausgeschlossen werden, falls die unten angegebene
+    #  Bedingung nicht erfüllt ist.
     for (adg_id, eg_id), var in entities.shift_vars.items():
         avail_day_group = entities.avail_day_groups[adg_id]
         event_group = entities.event_groups[eg_id]
@@ -253,25 +256,19 @@ def add_constraints_event_groups_activity(model: cp_model.CpModel):
     wie in der Parent-Event-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
     """
     for event_group_id, event_group in entities.event_groups.items():
-        if event_group.children:
-            nr_of_active_children = (event_group.nr_of_active_children
-                                     or len([c for c in event_group.children if c.children or c.event]))
-            # Wenn es sich bei der Event-Group um eine Root-Event-Group handelt, ist diese garantiert aktiv.
-            if event_group.is_root:
-                model.Add(
-                    sum(
-                        entities.event_group_vars[c.event_group_id] for c in event_group.children
-                        if c.children or c.event
-                    ) == nr_of_active_children
-                )
-            # Wenn es sich um eine Child-Event-Group handelt, ist diese eventuell nicht aktiv.
-            # In diesem Fall sollen keine aktiven existieren.
-            else:
-                model.Add(
-                    sum(entities.event_group_vars[c.event_group_id] for c in event_group.children
-                        if c.children or c.event
-                        ) == nr_of_active_children * entities.event_group_vars[event_group_id]
-                )
+        if not event_group.children:
+            continue
+        nr_of_active_children = (event_group.nr_of_active_children
+                                 or len([c for c in event_group.children if c.children or c.event]))
+        child_vars = [entities.event_group_vars[c.event_group_id] for c in event_group.children if
+                      c.children or c.event]
+        # Wenn es sich bei der Event-Group um eine Root-Event-Group handelt, ist diese garantiert aktiv.
+        if event_group.is_root:
+            model.Add(sum(child_vars) == nr_of_active_children)
+        # Wenn es sich um eine Child-Event-Group handelt, ist diese eventuell nicht aktiv.
+        # In diesem Fall sollen keine aktiven existieren.
+        else:
+            model.Add(sum(child_vars) == nr_of_active_children * entities.event_group_vars[event_group_id])
 
 
 def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
@@ -316,28 +313,31 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
 def add_constraints_avail_day_groups_activity(model: cp_model):
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
-        if avail_day_group.children:
-            nr_of_active_children = (avail_day_group.nr_of_active_children
-                                     or len([c for c in avail_day_group.children if c.children or c.avail_day]))
-            if avail_day_group.is_root:
-                model.Add(
-                    sum(
-                        entities.avail_day_group_vars[c.avail_day_group_id] for c in avail_day_group.children
-                        if c.children or c.avail_day
-                    ) == nr_of_active_children
-                )
-            else:
-                model.Add(
-                    sum(entities.avail_day_group_vars[c.avail_day_group_id] for c in avail_day_group.children
-                        if c.children or c.avail_day
-                        ) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id]
-                )
+        if not avail_day_group.children:
+            continue
+        nr_of_active_children = (avail_day_group.nr_of_active_children
+                                 or len([c for c in avail_day_group.children if c.children or c.avail_day]))
+        child_vars = (entities.avail_day_group_vars[c.avail_day_group_id] for c in avail_day_group.children
+                      if c.children or c.avail_day)
+        # Wenn es sich bei der Avail-Day-Group um eine Root-Avail-Day-Group handelt, ist diese garantiert aktiv.
+        if avail_day_group.is_root:
+            model.Add(sum(child_vars) == nr_of_active_children)
+        # Wenn es sich um eine Child-Avail-Day-Group handelt, ist diese eventuell nicht aktiv.
+        # In diesem Fall sollen keine aktiven existieren.
+        else:
+            model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
 
 
 def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
-    """Wenn die BoolVar einer avail_day_group mit avail_day wegen Einschränkungen durch nr_avail_day_groups
-    auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity()), müssen auch die zugehörigen
-    BoolVars der shifts auf False gesetzt sein."""
+    """
+        Wenn die BoolVar einer avail_day_group mit avail_day wegen Einschränkungen durch nr_avail_day_groups
+        auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity()), müssen auch die zugehörigen
+        BoolVars der shifts auf False gesetzt sein.
+        Der Unterschied zu nr_event_groups ist, dass nr_event_groups angibt wie viele Event-Groups innerhalb einer
+        Event-Group stattfinden müssen, während nr_avail_day_groups angibt, wie viele Avail-Day-Groups innerhalb einer
+        Avail-Day-Group maximal stattfinden können.
+        Daher diese Constraints.
+    """
     for (adg_id, event_group_id), shift_var in entities.shift_vars.items():
         model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
 
@@ -348,7 +348,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
         Bei tiefer geschachtelten Avail-Day-Groups kann werden die Parent-Groups bevorzugt deren ausgewählte Children
         ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
-        """
+    """
 
     multiplier_level = (curr_config_handler.get_solver_config()
                         .constraints_multipliers.sliders_levels_weights_av_day_groups)

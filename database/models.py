@@ -441,7 +441,7 @@ class EventGroup(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
     nr_event_groups = Optional(int, unsigned=True)
-    # Falls alle Eventgroups innerhalbEventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
+    # Falls alle Eventgroups innerhalb Eventgroup stattfinden sollen, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_eventgroups auch geringer sein.
     event_group = Optional('EventGroup', reverse='event_groups')

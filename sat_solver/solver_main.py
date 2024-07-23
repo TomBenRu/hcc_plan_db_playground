@@ -362,7 +362,8 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
 
     multiplier_constraints = (curr_config_handler.get_solver_config()
                               .constraints_multipliers.sliders_weights_avail_day_groups)
-    multiplier_level = curr_config_handler.get_solver_config().constraints_multipliers.sliders_weights_avail_day_groups
+    multiplier_level = (curr_config_handler.get_solver_config()
+                        .constraints_multipliers.sliders_levels_weights_av_day_groups)
 
     def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, depth: int,
                                                     cumulative_weight: int = 0) -> list[IntVar]:
@@ -383,15 +384,16 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                                                      if avg_id == c.avail_day_group_id))
                 model.Add(weight_vars[-1] == ((cumulative_weight + adjusted_weight) * shift_with_this_avd))
             else:
+                next_depth = depth + 1 if group.root_is_actor_plan_period_master_group or depth > 1 else depth
                 weight_vars.extend(
-                    calculate_weight_vars_of_children_recursive(c, depth + 1,
+                    calculate_weight_vars_of_children_recursive(c, next_depth,
                                                                 cumulative_weight + adjusted_weight))
         return weight_vars
 
     root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
 
     return calculate_weight_vars_of_children_recursive(
-        root_group, 1 if root_group.root_is_actor_plan_period_master_group else 0)
+        root_group, 1)
 
 
 def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:

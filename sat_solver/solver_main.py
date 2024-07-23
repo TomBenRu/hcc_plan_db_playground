@@ -348,6 +348,8 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         Die justierten Gewichtungen werden jeweils zu den nächsten Child-Groups durchgereicht, wo sie zu den
         Gewichtungen dieser Child-Groups addiert werden. Falls eine Child-Avail-Day-Group ein Avail-Day besitzt, wird
         diese kumulierte Gewichtung als Constraint hinzugefügt.
+        todo: Falls nr_of_active_children < len(children), kann die kumulierte Gewichtung nicht ermittelt werden. Dann
+         muss zusätzlich ein Gruppenauswahlverfahren ähnlich wie bei Weights-in-Event-Groups implementiert werden.
     """
 
     multiplier_constraints = (curr_config_handler.get_solver_config()

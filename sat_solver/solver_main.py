@@ -350,6 +350,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         diese kumulierte Gewichtung als Constraint hinzugefügt.
         todo: Falls nr_of_active_children < len(children), kann die kumulierte Gewichtung nicht ermittelt werden. Dann
          muss zusätzlich ein Gruppenauswahlverfahren ähnlich wie bei Weights-in-Event-Groups implementiert werden.
+         In diesem Fall müssen wohl gesonderte Constraints hinzugefügt werden. Das wird harte Arbeit!
     """
 
     multiplier_constraints = (curr_config_handler.get_solver_config()

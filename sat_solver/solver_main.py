@@ -354,20 +354,23 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                         .constraints_multipliers.sliders_levels_weights_av_day_groups)
 
     def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, depth: int) -> list[IntVar]:
+        constr_multiplier = curr_config_handler.get_solver_config().constraints_multipliers.sliders_levels_weights_av_day_groups
         weight_vars: list[IntVar] = []
         # if group.nr_of_active_children is not None:
         #     if (children := group.children) and (group.nr_of_active_children < len(group.children)):
         #         children: list[AvailDayGroup]
         if depth != 0:
             for c in group.children:
-                print(f'{c=}')
                 c: AvailDayGroup
                 # Das angepasste weight der Child-Group wird berechnet:
                 adjusted_weight = (1 - c.weight) * multiplier_level[depth]
 
+                # fixme:
+                #  Falsch, da avail_day_groups auch dann aktiv sein können, wenn der Mitarbeiter nicht besetzt ist.
                 group_var = entities.avail_day_group_vars[c.avail_day_group_id]
+
                 weight_vars.append(
-                    model.NewIntVar(-1000, 1000,
+                    model.NewIntVar(-constr_multiplier[1], constr_multiplier[1],
                                     f'Depth {depth}, no AvailDay' if c.avail_day is None
                                     else f'Depth {depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
                                          f'{c.avail_day.time_of_day.name}, '
@@ -380,8 +383,6 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         return weight_vars
 
     root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
-
-    print(anytree.RenderTree(root_group))
 
     return calculate_weight_vars_of_children_recursive(
         root_group, 1 if root_group.root_is_actor_plan_period_master_group else 0)
@@ -420,17 +421,19 @@ def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
 
 
 def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
-    partn_loc_pref_vars: list[IntVar] = []
+    plp_constr_multipliers = curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs
+
+    partner_loc_pref_vars: list[IntVar] = []
+
     for eg_id, event_group in entities.event_groups_with_event.items():
         if event_group.event.cast_group.nr_actors < 2:
             continue
-        avail_day_groups = (
-            adg for adg in entities.avail_day_groups_with_avail_day.values()
-            if adg.avail_day.date == event_group.event.date
-               and adg.avail_day.time_of_day.time_of_day_enum.time_index
-               == event_group.event.time_of_day.time_of_day_enum.time_index
-        )
-
+        # Get all AvailDayGroups with the same date and time of day
+        avail_day_groups = (adg for adg in entities.avail_day_groups_with_avail_day.values()
+                            if adg.avail_day.date == event_group.event.date
+                            and adg.avail_day.time_of_day.time_of_day_enum.time_index
+                            == event_group.event.time_of_day.time_of_day_enum.time_index)
+        # Get all combinations of possible AvailDayGroups for this event
         duo_combs = itertools.combinations(avail_day_groups, 2)
         for combo in duo_combs:
             combo: tuple[AvailDayGroup, AvailDayGroup]
@@ -440,10 +443,9 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             # ...and if the partners are not the same...
             if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
                 continue
-            partn_loc_pref_vars.append(
+            partner_loc_pref_vars.append(
                 model.NewIntVar(
-                    curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
-                    curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
+                    plp_constr_multipliers[2] * 2, plp_constr_multipliers[0] * 2,
                     f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
                     f'{event_group.event.location_plan_period.location_of_work.name} '
                     f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
@@ -463,25 +465,21 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
 
             # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
             # Shift variables and Event-Group variable:
-            plp_weight_var = model.NewIntVar(
-                curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[2] * 2,
-                curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[0] * 2,
-                '')
+            plp_weight_var = model.NewIntVar(plp_constr_multipliers[2] * 2, plp_constr_multipliers[0] * 2, '')
             shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
             all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
 
             # todo: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
             #  sollte aber mit der tatsächlichen Besetzungsstärke ermittelt werden...
             model.Add(plp_weight_var == round(
-                (curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[score_0] +
-                 curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs[score_1]) /
+                (plp_constr_multipliers[score_0] + plp_constr_multipliers[score_1]) /
                 (event_group.event.cast_group.nr_actors - 1))
                       )
             model.AddMultiplicationEquality(shift_active_var,
                                             [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
                                              entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
             model.AddMultiplicationEquality(all_active_var, [shift_active_var, entities.event_group_vars[eg_id]])
-            model.AddMultiplicationEquality(partn_loc_pref_vars[-1], [plp_weight_var, all_active_var])
+            model.AddMultiplicationEquality(partner_loc_pref_vars[-1], [plp_weight_var, all_active_var])
 
             # Falls eine der Personen absolut nicht mit der anderen Person besetzt werden soll
             # und die Besetzungsstärke 2 ist, wird nur 1 dieser Personen besetzt:
@@ -489,7 +487,7 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             model.Add(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)]
                       + entities.shift_vars[(combo[1].avail_day_group_id, eg_id)] < 2).OnlyEnforceIf(exclusive)
 
-    return partn_loc_pref_vars
+    return partner_loc_pref_vars
 
 
 def add_constraints_cast_rules(model: cp_model.CpModel):
@@ -504,9 +502,9 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                           if eg_id in {event_group_1_id, event_group_2_id}
                           and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
-            (model.Add(sum(shift_vars.values()) <= 1).
-             OnlyEnforceIf(entities.event_group_vars[event_group_1_id]).
-             OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+            (model.Add(sum(shift_vars.values()) <= 1)
+             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
 
     def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
         """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
@@ -574,12 +572,14 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         for idx in range(len(cast_groups) - 1):
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group
-            if rule == '-':
+            if rule[idx % len(rule)] == '-':
                 different_cast(event_group_1.id, event_group_2.id)
-            elif rule == '~':
+            elif rule[idx % len(rule)] == '~':
                 same_cast(cast_groups[idx], cast_groups[idx + 1])
-            else:
+            elif rule[idx % len(rule)] == '*':
                 continue
+            else:
+                raise ValueError(f'unknown rule symbol: {rule}')
 
 
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:

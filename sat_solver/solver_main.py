@@ -351,8 +351,11 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         diese kumulierte Gewichtung als Constraint hinzugefügt.
         Die multiplier_level können benutzt werden, um den weights der Groups je nach Tiefe eine zusätzliche
         Verstärkung zu geben.
-        fixme:Dieses ganze Verfahren kann allerdings zu Verfälschungen führen, wenn die Zweige des Gruppenbaums
-         unterschiedliche Tiefen haben.
+        fixme: Dieses ganze Verfahren kann allerdings zu Verfälschungen führen, wenn die Zweige des Gruppenbaums
+         unterschiedliche Tiefen haben. Dieses Problem könnte behoben werden indem zuerst die maximale Tiefe des
+         Gruppenbaums bestimmt wird und dann zu den Constraints so berechnet werden, als wären sie auf der untersten
+         Stufe; die fehlenden adjusted_weights von der aktuellen Stufe zur untersten werden dazu addiert, als wäre
+         c.weight der jeweils fehlenden Stufe = 1.
         Falls nr_of_active_children < len(children), wird ebenso die kumulierte Gewichtung der Avail-Day-Group mit
         Avail-Day gesetzt, falls der dazugehörige Event stattfindet.
     """

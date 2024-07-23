@@ -344,10 +344,10 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
 
 def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
     """
-        Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
-        bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
-        Bei tiefer geschachtelten Avail-Day-Groups kann werden die Parent-Groups bevorzugt deren ausgewählte Children
-        ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
+        Fügt Constraints hinzu, um sicherzustellen, dass Child-Avail-Day-Groups mit höherer Gewichtung bevorzugt werden.
+        Die justierten Gewichtungen werden jeweils zu den nächsten Child-Groups durchgereicht, wo sie zu den
+        Gewichtungen dieser Child-Groups addiert werden. Falls eine Child-Avail-Day-Group ein Avail-Day besitzt, wird
+        diese kumulierte Gewichtung als Constraint hinzugefügt.
     """
 
     multiplier_constraints = (curr_config_handler.get_solver_config()

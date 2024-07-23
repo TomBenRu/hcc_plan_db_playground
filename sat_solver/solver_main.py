@@ -350,36 +350,31 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
     """
 
-    multiplier_level = (curr_config_handler.get_solver_config()
-                        .constraints_multipliers.sliders_levels_weights_av_day_groups)
+    multiplier_constraints = (curr_config_handler.get_solver_config()
+                              .constraints_multipliers.sliders_weights_avail_day_groups)
 
-    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, depth: int) -> list[IntVar]:
-        constr_multiplier = curr_config_handler.get_solver_config().constraints_multipliers.sliders_levels_weights_av_day_groups
+    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, depth: int,
+                                                    cumulative_weight: int = 0) -> list[IntVar]:
         weight_vars: list[IntVar] = []
-        # if group.nr_of_active_children is not None:
-        #     if (children := group.children) and (group.nr_of_active_children < len(group.children)):
-        #         children: list[AvailDayGroup]
-        if depth != 0:
-            for c in group.children:
-                c: AvailDayGroup
-                # Das angepasste weight der Child-Group wird berechnet:
-                adjusted_weight = (1 - c.weight) * multiplier_level[depth]
-
-                # fixme:
-                #  Falsch, da avail_day_groups auch dann aktiv sein können, wenn der Mitarbeiter nicht besetzt ist.
-                group_var = entities.avail_day_group_vars[c.avail_day_group_id]
-
-                weight_vars.append(
-                    model.NewIntVar(-constr_multiplier[1], constr_multiplier[1],
-                                    f'Depth {depth}, no AvailDay' if c.avail_day is None
-                                    else f'Depth {depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
-                                         f'{c.avail_day.time_of_day.name}, '
-                                         f'{c.avail_day.actor_plan_period.person.f_name}')
-                )
-                model.Add(weight_vars[-1] == group_var * adjusted_weight)
         for c in group.children:
-            weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
-
+            adjusted_weight = multiplier_constraints[c.weight]
+            if c.avail_day:
+                weight_vars.append(
+                    model.NewIntVar(-100, 10000,
+                                    f'Depth {depth}, '
+                                    f'Depth {depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
+                                    f'{c.avail_day.time_of_day.name}, '
+                                    f'{c.avail_day.actor_plan_period.person.f_name}')
+                )
+                # stelle fest, ob der zugehörige Event stattfindet:
+                shift_with_this_avd = model.NewBoolVar('')
+                model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
+                                          if avg_id == c.avail_day_group_id))
+                model.Add(weight_vars[-1] == ((cumulative_weight + adjusted_weight) * shift_with_this_avd))
+            else:
+                weight_vars.extend(
+                    calculate_weight_vars_of_children_recursive(c, depth + 1,
+                                                                cumulative_weight + adjusted_weight))
         return weight_vars
 
     root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)

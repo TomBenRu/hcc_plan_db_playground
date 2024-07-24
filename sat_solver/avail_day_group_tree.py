@@ -11,9 +11,9 @@ class AvailDayGroup(NodeMixin):
                  avail_day_group_db: schemas.AvailDayGroupShow | None,
                  children: list['AvailDayGroup'] = None,
                  parent: Optional['AvailDayGroup'] = None,
-                 root_is_actor_plan_period_master_group: bool = False):
+                 group_is_actor_plan_period_master_group: bool = False):
         super().__init__()
-        self.root_is_actor_plan_period_master_group = root_is_actor_plan_period_master_group
+        self.group_is_actor_plan_period_master_group = group_is_actor_plan_period_master_group
         self.avail_day_group_id = avail_day_group_db.id if avail_day_group_db else 0
         self.name = str(self.avail_day_group_id)
         self.avail_day_group_db = avail_day_group_db

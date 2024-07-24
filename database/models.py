@@ -662,14 +662,15 @@ class CombinationLocationsPossible(db.Entity):
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
 
-    # todo: Wenn sich Zusammensetzung vom Team ändert, sollten bei Bedarf Personen aus persons entfernt werden oder Locations aus locations of Work entfernt werden.
-    # todo: Wenn team is not None:
+    # todo: Wenn sich Zusammensetzung vom Team ändert, sollten bei Bedarf Personen aus persons entfernt werden
+    #  oder Locations aus locations of Work entfernt werden, wenn team is not None:
     locations_of_work = Set(LocationOfWork)
 
     team = Optional(Team)
     persons = Set(Person)
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)
+    # todo: Implementieren: Mindestzeit zwischen Ende des vorhergehenden Events und Anfang des nachfolgenden Events.
 
     def before_update(self):  # sourcery skip: aware-datetime-for-utc
         self.last_modified = datetime.datetime.utcnow()

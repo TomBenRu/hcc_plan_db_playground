@@ -675,6 +675,13 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
     return unassigned_shifts_per_event
 
 
+def add_constraints_only_one_shift_with_different_locations_on_same_day(model) -> dict[UUID, IntVar]:
+    """Besetzungen von Events an unterschiedlichen Locations welche am gleichen stattfinden müssen unterschiedlich sein.
+       Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
+       todo: Implementieren
+    """
+
+
 def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], IntVar]:
     # Create a lists to represent the sums of assigned shifts and the relative shift deviations for each actor_plan_period.
     sum_assigned_shifts = {

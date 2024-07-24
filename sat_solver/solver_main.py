@@ -389,7 +389,6 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
     root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
     max_depth = (max(node.depth for node in entities.avail_day_groups.values())
                  - (1 if root_group.group_is_actor_plan_period_master_group else 0))
-    print(f'{max_depth=}')
 
     if root_group.group_is_actor_plan_period_master_group:
         all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)

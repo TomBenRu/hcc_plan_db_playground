@@ -689,9 +689,9 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
     dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[IntVar]]]] = (
         defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
     for (adg_id, eg_id), shift_var in entities.shift_vars.items():
-        if entities.event_groups_with_event[eg_id].event.date != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date:
+        if ((date := entities.event_groups_with_event[eg_id].event.date)
+                != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date):
             continue
-        date = entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
         actor_plan_period_id = entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id
         location_id = entities.event_groups_with_event[eg_id].event.location_plan_period.location_of_work.id
         dict_date_shift_var[date][actor_plan_period_id][location_id].append(shift_var)

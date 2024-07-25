@@ -501,23 +501,17 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
     return partner_loc_pref_vars
 
 
-def add_constraints_cast_rules(model: cp_model.CpModel):
-    # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
-    #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
-    #       wird.
-    # done: Bei same_cast funktioniert es nur, wenn nr_actors bei allen gleich sind.
-    # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
-    # todo: strict_cast_pref kann noch implementiert werden.
-    def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
-        for app_id in entities.actor_plan_periods:
-            shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
-                          if eg_id in {event_group_1_id, event_group_2_id}
-                          and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
-            (model.Add(sum(shift_vars.values()) <= 1)
-             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+def different_cast(model: cp_model.CpModel, event_group_1_id: UUID, event_group_2_id: UUID):
+    for app_id in entities.actor_plan_periods:
+        shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                      if eg_id in {event_group_1_id, event_group_2_id}
+                      and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+        (model.Add(sum(shift_vars.values()) <= 1)
+         .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+         .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
 
-    def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
+
+def same_cast(model: cp_model.CpModel, cast_group_1: CastGroup, cast_group_2: CastGroup):
         """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
         vorkommen. Die überschüssige Position des Events mit der größeren Besetzung kann beliebig besetzt sein."""
         event_group_1_id = cast_group_1.event.event_group.id
@@ -567,6 +561,15 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         #      .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
         ################################################################################################################
 
+
+def add_constraints_cast_rules(model: cp_model.CpModel):
+    # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
+    #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
+    #       wird.
+    # done: Bei same_cast funktioniert es nur, wenn nr_actors bei allen gleich sind.
+    # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
+    # todo: strict_cast_pref kann noch implementiert werden.
+
     cast_groups_level_1 = collections.defaultdict(list)
     for cast_group in entities.cast_groups_with_event.values():
         cast_groups_level_1[cast_group.parent.cast_group_id].append(cast_group)
@@ -584,9 +587,9 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group
             if rule[idx % len(rule)] == '-':
-                different_cast(event_group_1.id, event_group_2.id)
+                different_cast(model, event_group_1.id, event_group_2.id)
             elif rule[idx % len(rule)] == '~':
-                same_cast(cast_groups[idx], cast_groups[idx + 1])
+                same_cast(model, cast_groups[idx], cast_groups[idx + 1])
             elif rule[idx % len(rule)] == '*':
                 continue
             else:
@@ -676,10 +679,32 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
 
 
 def add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model: cp_model.CpModel) -> dict[UUID, IntVar]:
-    """Besetzungen von Events an unterschiedlichen Locations welche am gleichen stattfinden müssen unterschiedlich sein.
+    """Besetzungen von Events an unterschiedlichen Locations welche am gleichen Tag stattfinden müssen unterschiedlich
+       sein.
        Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
        todo: Implementieren
     """
+
+    # erstellt ein defaultdict [date[actor_plan_period_id[location_id[list[shift_var]]]]
+    dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[IntVar]]]] = (
+        defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
+    for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+        if entities.event_groups_with_event[eg_id].event.date != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date:
+            continue
+        date = entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
+        actor_plan_period_id = entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id
+        location_id = entities.event_groups_with_event[eg_id].event.location_plan_period.location_of_work.id
+        dict_date_shift_var[date][actor_plan_period_id][location_id].append(shift_var)
+
+    for date, dict_actor_plan_period_id in dict_date_shift_var.items():
+        print(date.strftime('%d.%m.%Y'))
+        for actor_plan_period_id, dict_location_id in dict_actor_plan_period_id.items():
+            print(entities.actor_plan_periods[actor_plan_period_id].person.f_name, end=' -> ')
+            for location_id, list_shift_var in dict_location_id.items():
+                print(db_services.LocationOfWork.get(location_id).name, end=' -> ')
+                print(list_shift_var)
+
+
 
 
 def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], IntVar]:
@@ -790,6 +815,9 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     # Add constraints for fixed_cast:
     constraints_fixed_cast_conflicts = add_constraints_fixed_cast(model)
+
+    # Add constraints for different casts on shifts with different locations on same day:
+    constraints_different_casts_on_shifts_with_different_locations_on_same_day = add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model)
 
     # Add constraints for relative shift deviations:
     sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)

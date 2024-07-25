@@ -678,7 +678,8 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
     return unassigned_shifts_per_event
 
 
-def add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model: cp_model.CpModel) -> dict[UUID, IntVar]:
+def add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(
+        model: cp_model.CpModel):
     """Besetzungen von Events an unterschiedlichen Locations welche am gleichen Tag stattfinden müssen unterschiedlich
        sein.
        Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
@@ -703,7 +704,9 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
             for location_id, list_shift_var in dict_location_id.items():
                 print(db_services.LocationOfWork.get(location_id).name, end=' -> ')
                 print(list_shift_var)
-
+                # Test, ob combination_locations_possibles für diesen Tag und diese combination von Locations vorhanden
+                # sind und ob jeweils die Zwischenzeiten passen. Falls nicht, wird ein Constraint
+                # model.Add(sum(shift_var1, shift_var2) == 1) für die jeweilige Kombination erstellt.
 
 
 

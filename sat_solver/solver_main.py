@@ -26,7 +26,7 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
         for app_id, assignments in possible_assignments.items()
     }
 
-    requested_assignments_new: dict[UUID, int] = {}
+    requested_assignments_new: dict[UUID, float] = {}
     avail_assignments: int = assigned_shifts
     while True:
         mean_nr_assignments: float = avail_assignments / len(requested_assignments_adjusted)
@@ -675,14 +675,14 @@ def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVa
     return unassigned_shifts_per_event
 
 
-def add_constraints_only_one_shift_with_different_locations_on_same_day(model) -> dict[UUID, IntVar]:
+def add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model: cp_model.CpModel) -> dict[UUID, IntVar]:
     """Besetzungen von Events an unterschiedlichen Locations welche am gleichen stattfinden müssen unterschiedlich sein.
        Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
        todo: Implementieren
     """
 
 
-def add_constraints_rel_shift_deviations(model) -> tuple[dict[UUID, IntVar], IntVar]:
+def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], IntVar]:
     # Create a lists to represent the sums of assigned shifts and the relative shift deviations for each actor_plan_period.
     sum_assigned_shifts = {
         app.id: model.NewIntVar(lb=0, ub=1000, name=f'sum_assigned_shifts {app.person.f_name}')

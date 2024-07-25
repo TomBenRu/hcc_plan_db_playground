@@ -725,6 +725,7 @@ class SkillGroupShow(SkillGroup):
 class CombinationLocationsPossibleCreate(BaseModel):
     project: Project
     locations_of_work: List[LocationOfWork]
+    time_span_between: datetime.timedelta
 
 
 class CombinationLocationsPossible(CombinationLocationsPossibleCreate):

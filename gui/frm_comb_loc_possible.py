@@ -4,7 +4,7 @@ from uuid import UUID
 
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QTableWidget, QAbstractItemView, QHeaderView, \
-    QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit
+    QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit, QFormLayout, QSpinBox
 
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
@@ -22,11 +22,25 @@ class DlgNewCombLocPossible(QDialog):
 
         self.locations_of_work = sorted([loc for loc in locations_of_work if not loc.prep_delete], key=lambda x: x.name)
         self.comb_location_ids: set[UUID] = set()
+        self.time_span_between: datetime.timedelta | None = None
 
         self.layout = QVBoxLayout(self)
         self.group_checks = QGroupBox('Einrichtungen')
         self.layout.addWidget(self.group_checks)
         self.layout_group_checks = QVBoxLayout(self.group_checks)
+
+        self.group_time_span_between = QGroupBox('Zeitspanne dazwischen')
+        self.layout.addWidget(self.group_time_span_between)
+        self.layout_group_time_span_between = QFormLayout(self.group_time_span_between)
+        self.spin_hours = QSpinBox()
+        self.spin_hours.setMaximum(12)
+        self.spin_hours.setMinimum(0)
+        self.spin_minutes = QSpinBox()
+        self.spin_minutes.setMaximum(55)
+        self.spin_minutes.setMinimum(0)
+        self.spin_minutes.setSingleStep(5)
+        self.layout_group_time_span_between.addRow('Stunden', self.spin_hours)
+        self.layout_group_time_span_between.addRow('Minuten', self.spin_minutes)
 
         self.checks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city})')
                                                           for l_o_w in self.locations_of_work}
@@ -40,6 +54,7 @@ class DlgNewCombLocPossible(QDialog):
 
     def accept(self) -> None:
         self.comb_location_ids = {l_o_w_id for l_o_w_id, chk in self.checks_loc_of_work.items() if chk.isChecked()}
+        self.time_span_between = datetime.timedelta(hours=self.spin_hours.value(), minutes=self.spin_minutes.value())
         super().accept()
 
 
@@ -102,17 +117,18 @@ class DlgCombLocPossibleEditList(QDialog):
         self.fill_table_combinations()
 
     def setup_table_combinations(self):
-        header_labels = ['ID', 'Einrichtungskombination']
+        header_labels = ['ID', 'Einrichtungskombination', 'Zeit zw. d. Einsätzen']
         self.table_combinations.setColumnCount(len(header_labels))
         self.table_combinations.setHorizontalHeaderLabels(header_labels)
         self.table_combinations.setSortingEnabled(True)
         self.table_combinations.setAlternatingRowColors(True)
-        self.table_combinations.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table_combinations.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_combinations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_combinations.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_combinations.horizontalHeader().setHighlightSections(False)
         self.table_combinations.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
         self.table_combinations.hideColumn(0)
         self.table_combinations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # self.table_combinations.resizeColumnsToContents()
 
     def fill_table_combinations(self):
         while self.table_combinations.rowCount() < 0:
@@ -127,16 +143,19 @@ class DlgCombLocPossibleEditList(QDialog):
         for row, c in enumerate(comb_loc_poss):
             self.table_combinations.setItem(row, 0, QTableWidgetItem(c[0]))
             self.table_combinations.setItem(row, 1, QTableWidgetItem(c[1]))
+            self.table_combinations.setItem(row, 2, QTableWidgetItem(c[2]))
 
-        self.setMinimumWidth(self.table_combinations.columnWidth(1) + 40)
+        table_width = self.table_combinations.horizontalHeader().length()
+        self.resize(table_width + 40, 480)
 
     def valid_combs_at_date(self) -> list[list[str, str]]:
         curr_location_ids = {l.id for l in self.locations_of_work}
         comb_loc_poss = [[str(c.id), [f'{l.name} ({l.address.city})'
-                                      for l in c.locations_of_work if l.id in curr_location_ids]]
+                                      for l in c.locations_of_work if l.id in curr_location_ids],
+                          str(c.time_span_between)]
                          for c in self.curr_model.combination_locations_possibles]
         comb_loc_poss = [c for c in comb_loc_poss if len(c[1]) > 1]
-        comb_loc_poss = [[c[0], ' + '.join(sorted(c[1]))] for c in comb_loc_poss]
+        comb_loc_poss = [[c[0], ' + '.join(sorted(c[1])), c[2]] for c in comb_loc_poss]
 
         return sorted(comb_loc_poss, key=lambda x: x[1]) if comb_loc_poss else []
 
@@ -160,7 +179,6 @@ class DlgCombLocPossibleEditList(QDialog):
 
         self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
 
-
     def new(self):
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
                                 for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
@@ -172,8 +190,10 @@ class DlgCombLocPossibleEditList(QDialog):
             return
         if dlg.comb_location_ids not in curr_model_c_l_p_ids:
             locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
+            time_span_between = dlg.time_span_between
             comb_to_create = schemas.CombinationLocationsPossibleCreate(project=self.curr_model.project,
-                                                                        locations_of_work=locations_work)
+                                                                        locations_of_work=locations_work,
+                                                                        time_span_between=time_span_between)
             create_command = comb_loc_possible_commands.Create(comb_to_create)
             self.controller.execute(create_command)
             created_comb_loc_poss = create_command.created_comb_loc_poss

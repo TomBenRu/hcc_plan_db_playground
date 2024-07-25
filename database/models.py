@@ -665,6 +665,7 @@ class CombinationLocationsPossible(db.Entity):
     # todo: Wenn sich Zusammensetzung vom Team ändert, sollten bei Bedarf Personen aus persons entfernt werden
     #  oder Locations aus locations of Work entfernt werden, wenn team is not None:
     locations_of_work = Set(LocationOfWork)
+    time_span_between = Required(datetime.timedelta)
 
     team = Optional(Team)
     persons = Set(Person)

@@ -1732,7 +1732,8 @@ class CombinationLocationsPossible:
     def create(cls, comb_loc_poss: schemas.CombinationLocationsPossibleCreate) -> schemas.CombinationLocationsPossibleShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=comb_loc_poss.project.id)
-        new_comb_loc_poss = models.CombinationLocationsPossible(project=project_db)
+        new_comb_loc_poss = models.CombinationLocationsPossible(project=project_db,
+                                                                time_span_between=comb_loc_poss.time_span_between)
         for loc in comb_loc_poss.locations_of_work:
             new_comb_loc_poss.locations_of_work.add(models.LocationOfWork.get_for_update(id=loc.id))
 

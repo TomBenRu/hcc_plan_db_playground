@@ -3,11 +3,13 @@ import dataclasses
 import itertools
 import pprint
 import sys
+import time
 from collections import defaultdict
 import datetime
 from uuid import UUID
 
 import anytree
+from line_profiler_pycharm import profile
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
@@ -685,6 +687,8 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
        todo: Implementieren
     """
 
+    time.sleep(0.1)
+
     # erstellt ein defaultdict [date[actor_plan_period_id[location_id[list[shift_var]]]]
     dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[IntVar]]]] = (
         defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
@@ -699,13 +703,20 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
     for date, dict_actor_plan_period_id in dict_date_shift_var.items():
         print(date.strftime('%d.%m.%Y'))
         for actor_plan_period_id, dict_location_id in dict_actor_plan_period_id.items():
-            print(entities.actor_plan_periods[actor_plan_period_id].person.f_name, end=' -> ')
-            for location_id, list_shift_var in dict_location_id.items():
-                print(db_services.LocationOfWork.get(location_id).name, end=' -> ')
-                print(list_shift_var)
-                # Test, ob combination_locations_possibles für diesen Tag und diese combination von Locations vorhanden
-                # sind und ob jeweils die Zwischenzeiten passen. Falls nicht, wird ein Constraint
-                # model.Add(sum(shift_var1, shift_var2) == 1) für die jeweilige Kombination erstellt.
+            # print(entities.actor_plan_periods[actor_plan_period_id].person.f_name, end=' -> ')
+            # for location_id, list_shift_var in dict_location_id.items():
+            #     print(db_services.LocationOfWork.get(location_id).name, end=' -> ')
+            #     print(list_shift_var)
+            if len(dict_location_id) > 1:
+                for loc_pair in itertools.combinations(list(dict_location_id.values()), 2):
+                    for var_pair in itertools.product(*loc_pair):
+                        print(f'{var_pair=}')
+                        model.NewIntVar(0, 2, '')
+                        model.Add(sum(var_pair) <= 1)
+
+                    # Test, ob combination_locations_possibles für diesen Tag und diese combination von Locations vorhanden
+                    # sind und ob jeweils die Zwischenzeiten passen. Falls nicht, wird ein Constraint
+                    # model.Add(sum(shift_var1, shift_var2) == 1) für die jeweilige Kombination erstellt.
 
 
 
@@ -977,6 +988,7 @@ def print_solver_status(status: CpSolverStatus):
         print('########################### FAILED ############################################')
 
 
+@profile
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
         cast_group_tree: CastGroupTree, log_search_process: bool) -> tuple[int, int, int, int, int]:
@@ -1127,6 +1139,7 @@ def call_solver_with__fixed_constraint_results(
     return solution_printer, constraints_fixed_cast_conflicts
 
 
+@profile
 def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]],
                                                                    dict[tuple[datetime.date, str, UUID], int]]:
     global entities

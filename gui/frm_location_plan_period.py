@@ -36,7 +36,7 @@ def disconnect_event_button_signals():
         print(f'Fehler in disconnect_event_button_signals: {e}')
 
 
-class ButtonEvent(QPushButton):  # todo: Ändern
+class ButtonEvent(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
         super().__init__(parent)
@@ -187,7 +187,7 @@ class ButtonEvent(QPushButton):  # todo: Ändern
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
 
-class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Fest Besetzung der Events am Tag
+class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Besetzung der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
@@ -544,7 +544,7 @@ class FrmLocationPlanPeriod(QWidget):
         mode: Literal['added', 'deleted'] = 'added' if bt.isChecked() else 'deleted'
         self.data_processor.save_event(date, t_o_d, mode)
 
-    def change_mode__event_group(self):  # todo: noch implementieren
+    def change_mode__event_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')

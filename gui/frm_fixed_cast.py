@@ -397,8 +397,7 @@ class DlgFixedCast(QDialog):
             self.controller.execute(self.builder.update_command(fixed_cast_simplified))
 
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
-                # fixme: für cast_groups ohne event sollte die leave_cast_group mit event mit dem kleinsten date
-                #  verwendet werden.
+                # fixme: für cast_groups ohne event
                 QMessageBox.warning(self, 'Fixed Cast',
                                     f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors}) übersteigt die '
                                     f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')

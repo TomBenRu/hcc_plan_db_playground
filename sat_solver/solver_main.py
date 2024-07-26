@@ -510,6 +510,15 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
     # done: Bei same_cast funktioniert es nur, wenn nr_actors bei allen gleich sind.
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
     # todo: strict_cast_pref kann noch implementiert werden.
+    #  Kann vielleicht so umgesetzt werden:
+    #  Bei strict_cast_pref == 2 (Regeln unbedingt beachten) werden die Constraints absolut festgelegt und eine Liste
+    #  mit Constraints aller Cast-Groups mit Cast-Rule mit jeweils Wert 0 zurückgegeben.
+    #  Bei strict_cast_pref == 0 (Regeln nicht beachten) werden keine Constraints festgelegt. Aber eine Liste
+    #  mit Constraints aller Cast-Groups mit Cast-Rule mit jeweils Wert 0 zurückgegeben.
+    #  Bei strict_cast_pref == 1 (möglichst nah an Besetzungsregel) werden Constraints fuü alle Cast-Groups mit
+    #  Cast-Rule festgelegt. Der Wert der Constraints hängt davon ab, wie genau sich die Besetzungen innerhalb der
+    #  Cast-Group an die Cast-Rule hält. Diese constraints werden als Liste zurückgegeben.
+    #  In jedem Fall wird über diese Liste der zurückgegebenen Constraints optimiert.
 
     def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
         for app_id in entities.actor_plan_periods:

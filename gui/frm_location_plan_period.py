@@ -597,16 +597,20 @@ class FrmLocationPlanPeriod(QWidget):
                 bt.reset_menu_times_of_day(self.location_plan_period)
             self.reset_chk_field()
 
-    def reset_all_event_t_o_ds(self):  # todo: noch implementieren
+    def reset_all_event_t_o_ds(self):
+        # not_sure: noch implementieren? Zur Zeit werden Tageszeiten, die für die LocalPlanPeriod festgelegt werden,
+        #  automatisch von den EventButtons übernommen.
         ...
 
-    def edit_fixed_cast(self):  # todo: noch implementieren
+    def edit_fixed_cast(self):
+        # todo: noch implementieren: Signale an Config-Buttons
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
 
-    def reset_all_fixed_cast(self):  # todo: noch implementieren
+    def reset_all_fixed_cast(self):
+        # todo: noch implementieren
         ...
 
 

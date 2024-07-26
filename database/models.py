@@ -172,6 +172,7 @@ class ActorPlanPeriod(db.Entity):
     avail_day_group = Optional('AvailDayGroup')
     time_of_days = Set('TimeOfDay')
     requested_assignments = Required(int, size=16, default=8, unsigned=True)
+    # todo: claimed_assignments = Optional(bool, default=False) implementieren
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
     actor_location_prefs_defaults = Set('ActorLocationPref')
@@ -211,6 +212,7 @@ class AvailDayGroup(db.Entity):
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
     mandatory_nr_avail_day_groups = Optional(int, size=8, unsigned=True)
     # Mindestanzahl der Termine, die stattfinden müssen, damit die Termine vom Mitarbeiter wahrgenommen werden.
+    # todo: als Constraints implementieren
     avail_day_group = Optional('AvailDayGroup', reverse='avail_day_groups')
     avail_day_groups = Set('AvailDayGroup', reverse='avail_day_group')
     avail_day = Optional('AvailDay')

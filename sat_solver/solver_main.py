@@ -589,7 +589,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
     for cg_id, cast_groups in cast_groups_level_1.items():
         cast_groups: list[CastGroup]
         parent = entities.cast_groups[cg_id]
-        if not (rule := parent.cast_rule):
+        if not (rule := parent.cast_rule) or parent.strict_rule_pref == 0:
             continue
 
         for idx in range(len(cast_groups) - 1):

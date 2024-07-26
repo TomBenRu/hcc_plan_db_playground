@@ -196,7 +196,9 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                           if self.object_with_fixed_cast.event else 'die Besetzungsgruppe')
         self.make_reset_menu = bool(self.location_plan_period)
         self.fixed_date = (self.object_with_fixed_cast.event.date if self.object_with_fixed_cast.event
-                           else self.object_with_fixed_cast.plan_period.start)  # fixme: for castgroup without event
+                           else self.object_with_fixed_cast.plan_period.start)
+        # fixme: für cast_groups ohne event sollte die leave_cast_group mit event mit dem kleinsten date
+        #  verwendet werden.
         self.update_command = partial(cast_group_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
         self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
@@ -394,7 +396,9 @@ class DlgFixedCast(QDialog):
             fixed_cast_simplified = simplifier.simplified_fixed_cast
             self.controller.execute(self.builder.update_command(fixed_cast_simplified))
 
-            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:  # fixme for cast_groups without event
+            if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
+                # fixme: für cast_groups ohne event sollte die leave_cast_group mit event mit dem kleinsten date
+                #  verwendet werden.
                 QMessageBox.warning(self, 'Fixed Cast',
                                     f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors}) übersteigt die '
                                     f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')

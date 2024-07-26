@@ -87,7 +87,7 @@ class ProofResultCastRule:
 
 
 class ConsistenceProof:
-    # todo: alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst.
+    """Alle Konsistenzprüfungen von DlgGroupProperties und DlgCastGroups werden in dieser Klasse zusammengefasst."""
 
     @classmethod
     def check_conflict_for_cast_rule(cls, item: 'TreeWidgetItem') -> ProofResultCastRule:

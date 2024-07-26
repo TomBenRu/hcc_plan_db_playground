@@ -2,6 +2,7 @@ import datetime
 from typing import Callable
 from uuid import UUID
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QTableWidget, QAbstractItemView, QHeaderView, \
     QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit, QFormLayout, QSpinBox
@@ -45,12 +46,24 @@ class DlgNewCombLocPossible(QDialog):
         self.checks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city})')
                                                           for l_o_w in self.locations_of_work}
         for chk in self.checks_loc_of_work.values():
+            chk.checkStateChanged.connect(self.check_changed)
+        for chk in self.checks_loc_of_work.values():
             self.layout_group_checks.addWidget(chk)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.layout.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+
+    def check_changed(self, state: int):
+        if state == Qt.CheckState.Checked:
+            if sum(chk.isChecked() for chk in self.checks_loc_of_work.values()) > 1:
+                for chk in self.checks_loc_of_work.values():
+                    if not chk.isChecked():
+                        chk.setDisabled(True)
+        else:
+            for chk in self.checks_loc_of_work.values():
+                chk.setEnabled(True)
 
     def accept(self) -> None:
         self.comb_location_ids = {l_o_w_id for l_o_w_id, chk in self.checks_loc_of_work.items() if chk.isChecked()}

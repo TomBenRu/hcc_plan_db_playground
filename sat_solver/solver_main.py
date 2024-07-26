@@ -682,15 +682,41 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
     """Besetzungen von Events an unterschiedlichen Locations welche am gleichen Tag stattfinden müssen unterschiedlich
        sein.
        Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
-       Diese Funktionalität soll deaktiviert werden: Entweder über Configuration oder durch zusätzliche Felder in
-       Projekt und Team.
-       todo: Implementieren
+       todo: Diese Funktionalität soll deaktiviert werden: Entweder über Configuration oder durch zusätzliche Felder in
+        Projekt und Team.
     """
 
-    time.sleep(0.1)
+    def comb_locations_possible(adg_id_1: UUID, eg_id_1: UUID, adg_id_2: UUID, eg_id_2: UUID) -> bool:
+        """
+            Stellt fest, ob combination_locations_possibles bei den AvailDays existieren und diese zu den Locations der
+            Events passen.
+        """
+        avail_day_group_1 = entities.avail_day_groups_with_avail_day[adg_id_1]
+        avail_day_group_2 = entities.avail_day_groups_with_avail_day[adg_id_2]
+        event_1 = entities.event_groups_with_event[eg_id_1].event
+        event_2 = entities.event_groups_with_event[eg_id_2].event
+        start_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.start)
+        end_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.end)
+        start_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.start)
+        end_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.end)
+        time_diff = start_1 - end_2 if start_1 > end_2 else start_2 - end_1
+        location_1_id = entities.event_groups_with_event[eg_id_1].event.location_plan_period.location_of_work.id
+        location_2_id = entities.event_groups_with_event[eg_id_2].event.location_plan_period.location_of_work.id
 
-    # erstellt ein defaultdict [date[actor_plan_period_id[location_id[list[shift_var]]]]
-    dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[IntVar]]]] = (
+        clp_1 = next((clp for clp in avail_day_group_1.avail_day.combination_locations_possibles
+                      if location_1_id in [loc.id for loc in clp.locations_of_work]
+                      and location_2_id in [loc.id for loc in clp.locations_of_work]
+                      and not clp.prep_delete), None)
+
+        clp_2 = next((clp for clp in avail_day_group_2.avail_day.combination_locations_possibles
+                      if location_1_id in [loc.id for loc in clp.locations_of_work]
+                      and location_2_id in [loc.id for loc in clp.locations_of_work]
+                      and not clp.prep_delete), None)
+
+        return clp_1 and clp_2 and time_diff >= max(clp_1.time_span_between, clp_2.time_span_between)
+
+    # erstellt ein defaultdict [date[actor_plan_period_id[location_id[list[tuple[tuple[adg_id, eg_id], shift_var]]]]]
+    dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[tuple[tuple[UUID, UUID], IntVar]]]]] = (
         defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
     for (adg_id, eg_id), shift_var in entities.shift_vars.items():
         if ((date := entities.event_groups_with_event[eg_id].event.date)
@@ -698,26 +724,17 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
             continue
         actor_plan_period_id = entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id
         location_id = entities.event_groups_with_event[eg_id].event.location_plan_period.location_of_work.id
-        dict_date_shift_var[date][actor_plan_period_id][location_id].append(shift_var)
+        dict_date_shift_var[date][actor_plan_period_id][location_id].append(((adg_id, eg_id), shift_var))
 
+    # erstellt Constraints
     for date, dict_actor_plan_period_id in dict_date_shift_var.items():
-        print(date.strftime('%d.%m.%Y'))
         for actor_plan_period_id, dict_location_id in dict_actor_plan_period_id.items():
-            # print(entities.actor_plan_periods[actor_plan_period_id].person.f_name, end=' -> ')
-            # for location_id, list_shift_var in dict_location_id.items():
-            #     print(db_services.LocationOfWork.get(location_id).name, end=' -> ')
-            #     print(list_shift_var)
             if len(dict_location_id) > 1:
                 for loc_pair in itertools.combinations(list(dict_location_id.values()), 2):
                     for var_pair in itertools.product(*loc_pair):
-                        print(f'{var_pair=}')
-                        model.NewIntVar(0, 2, '')
-                        model.Add(sum(var_pair) <= 1)
-
-                    # Test, ob combination_locations_possibles für diesen Tag und diese combination von Locations vorhanden
-                    # sind und ob jeweils die Zwischenzeiten passen. Falls nicht, wird ein Constraint
-                    # model.Add(sum(shift_var1, shift_var2) == 1) für die jeweilige Kombination erstellt.
-
+                        if not comb_locations_possible(var_pair[0][0][0], var_pair[0][0][1],
+                                                       var_pair[1][0][0], var_pair[1][0][1]):
+                            model.Add(sum(v[1] for v in var_pair) <= 1)
 
 
 def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], IntVar]:

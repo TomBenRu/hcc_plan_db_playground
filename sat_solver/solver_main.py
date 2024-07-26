@@ -983,7 +983,6 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
 
     fixed_cast_conflicts = {f'{date:%d.%m.%y} ({time_of_day}), {cast_group_id}': solver.Value(var)
                             for (date, time_of_day, cast_group_id), var in constraints_fixed_cast_conflicts.items()}
-    print(f'fixed_cast_conflicts: {fixed_cast_conflicts}')
 
     print(f'weights_in_event_groups: '
           f'{" | ".join([f"""{v.name}: {solver.Value(v)}""" for v in constraints_weights_in_event_groups])}')
@@ -1005,7 +1004,6 @@ def print_solver_status(status: CpSolverStatus):
         print('########################### FAILED ############################################')
 
 
-@profile
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
         cast_group_tree: CastGroupTree, log_search_process: bool) -> tuple[int, int, int, int, int]:
@@ -1033,7 +1031,6 @@ def call_solver_with_unadjusted_requested_assignments(
                      constraints_weights_in_avail_day_groups)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
-    print('partner_loc_prefs_res:', {p.Name(): solver.Value(p) for p in constraints_partner_loc_prefs})
     return (sum(solver.Value(a) for a in sum_assigned_shifts.values()),
             unassigned_shifts,
             solver.Value(sum(constraints_location_prefs)),
@@ -1156,7 +1153,6 @@ def call_solver_with__fixed_constraint_results(
     return solution_printer, constraints_fixed_cast_conflicts
 
 
-@profile
 def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]],
                                                                    dict[tuple[datetime.date, str, UUID], int]]:
     global entities

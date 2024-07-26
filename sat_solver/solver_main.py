@@ -503,7 +503,7 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
     return partner_loc_pref_vars
 
 
-def add_constraints_cast_rules(model: cp_model.CpModel):
+def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
     #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
     #       wird.
@@ -511,23 +511,38 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
     # todo: strict_cast_pref kann noch implementiert werden.
     #  Kann vielleicht so umgesetzt werden:
-    #  Bei strict_cast_pref == 2 (Regeln unbedingt beachten) werden die Constraints absolut festgelegt und eine Liste
-    #  mit Constraints aller Cast-Groups mit Cast-Rule mit jeweils Wert 0 zurückgegeben.
-    #  Bei strict_cast_pref == 0 (Regeln nicht beachten) werden keine Constraints festgelegt. Aber eine Liste
-    #  mit Constraints aller Cast-Groups mit Cast-Rule mit jeweils Wert 0 zurückgegeben.
+    #  Bei strict_cast_pref == 2 (Regeln unbedingt beachten) werden die Constraints absolut festgelegt und eine
+    #  leere Liste zurückgegeben.
+    #  Bei strict_cast_pref == 0 (Regeln nicht beachten) werden keine Constraints festgelegt und eine
+    #  leere Liste zurückgegeben.
     #  Bei strict_cast_pref == 1 (möglichst nah an Besetzungsregel) werden Constraints fuü alle Cast-Groups mit
     #  Cast-Rule festgelegt. Der Wert der Constraints hängt davon ab, wie genau sich die Besetzungen innerhalb der
     #  Cast-Group an die Cast-Rule hält. Diese constraints werden als Liste zurückgegeben.
     #  In jedem Fall wird über diese Liste der zurückgegebenen Constraints optimiert.
 
-    def different_cast(event_group_1_id: UUID, event_group_2_id: UUID):
+    def different_cast(event_group_1_id: UUID, event_group_2_id: UUID, strict_rule_pref: int) -> list[IntVar]:
+        broken_rules_vars: list[IntVar] = []
         for app_id in entities.actor_plan_periods:
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                           if eg_id in {event_group_1_id, event_group_2_id}
                           and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
-            (model.Add(sum(shift_vars.values()) <= 1)
-             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+            if strict_rule_pref == 2:
+                (model.Add(sum(shift_vars.values()) <= 1)
+                 .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+                 .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+            elif strict_rule_pref == 1:
+                broken_rule = model.NewBoolVar('')
+                more_than_zero = model.NewBoolVar('')
+                more_than_one = model.NewBoolVar('')
+                model.Add(more_than_zero == sum(shift_vars.values()))
+                model.Add(more_than_one == sum(shift_vars.values()) - 1).OnlyEnforceIf(more_than_zero)
+                (model.Add(broken_rule == 1)
+                 .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+                 .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]).OnlyEnforceIf(more_than_one))
+
+                broken_rules_vars.append(broken_rule)
+
+        return broken_rules_vars
 
     def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
         """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
@@ -579,6 +594,8 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
         #      .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
         ################################################################################################################
 
+    constraints_cast_rule: list[IntVar] = []
+
     cast_groups_level_1 = collections.defaultdict(list)
     for cast_group in entities.cast_groups_with_event.values():
         cast_groups_level_1[cast_group.parent.cast_group_id].append(cast_group)
@@ -596,13 +613,16 @@ def add_constraints_cast_rules(model: cp_model.CpModel):
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group
             if rule[idx % len(rule)] == '-':
-                different_cast(event_group_1.id, event_group_2.id)
+                constraints_cast_rule.extend(different_cast(event_group_1.id, event_group_2.id,
+                                                            parent.strict_rule_pref))
             elif rule[idx % len(rule)] == '~':
                 same_cast(cast_groups[idx], cast_groups[idx + 1])
             elif rule[idx % len(rule)] == '*':
                 continue
             else:
                 raise ValueError(f'unknown rule symbol: {rule}')
+
+    return constraints_cast_rule
 
 
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
@@ -821,7 +841,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
 
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
-                                                         dict[tuple[datetime.date, str, UUID], IntVar]]:
+                                                         dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -850,20 +870,20 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     constraints_weights_in_event_groups = add_constraints_weights_in_event_groups(model)
 
     # Add constraints for cast_rules:
-    add_constraints_cast_rules(model)
+    constraints_cast_rule = add_constraints_cast_rules(model)
 
     # Add constraints for fixed_cast:
     constraints_fixed_cast_conflicts = add_constraints_fixed_cast(model)
 
     # Add constraints for different casts on shifts with different locations on same day:
-    constraints_different_casts_on_shifts_with_different_locations_on_same_day = add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model)
+    add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model)
 
     # Add constraints for relative shift deviations:
     sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)
 
     return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
             constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups, constraints_location_prefs,
-            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts)
+            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, constraints_cast_rule)
 
 
 def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_event: dict[UUID, IntVar],
@@ -871,7 +891,8 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_weights_in_event_groups: list[IntVar],
                               constraints_location_prefs: list[IntVar],
                               constraints_partner_loc_prefs: list[IntVar],
-                              constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
+                              constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
+                              constraints_cast_rule):
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 
@@ -884,6 +905,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     weight_constraints_location_prefs = weights.constraints_location_prefs
     weight_constraints_fixed_cast_conflicts = weights.constraints_fixed_casts_conflicts
     weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
+    weight_constraints_cast_rule = weights.constraints_cast_rule
 
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
                    + weight_sum_squared_shift_deviations * sum_squared_deviations
@@ -891,15 +913,18 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                    + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups)
                    + weight_constraints_location_prefs * sum(constraints_location_prefs)
                    + weight_constraints_partner_loc_prefs * sum(constraints_partner_loc_prefs)
-                   + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values()))
+                   + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values())
+                   + weight_constraints_cast_rule * sum(constraints_cast_rule))
 
 
 def define_objective__fixed_unassigned(model: cp_model.CpModel,
                                        unassigned_shifts: int, sum_location_prefs: int, sum_partner_loc_prefs: int,
-                                       sum_fixed_cast_conflicts: int, unassigned_shifts_per_event: dict[UUID, IntVar],
+                                       sum_fixed_cast_conflicts: int, sum_cast_rules: int,
+                                       unassigned_shifts_per_event: dict[UUID, IntVar],
                                        constraints_location_prefs: list[IntVar],
                                        constraints_partner_loc_prefs: list[IntVar],
-                                       constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar]):
+                                       constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
+                                       constraints_cast_rule: list[IntVar]):
     model.Add(sum(constraints_location_prefs) == sum_location_prefs)
     model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
@@ -912,9 +937,10 @@ def define_objective__fixed_constraint_results(
         constraints_weights_in_event_groups: list[IntVar],
         constraints_location_prefs: list[IntVar], constraints_partner_loc_prefs: list[IntVar],
         constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
-        unassigned_shifts_per_event_res: list[int],
-        sum_squared_deviations_res: int, weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int,
-        sum_location_prefs_res: int, sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int):
+        constraints_cast_rule: list[IntVar],
+        unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
+        weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
+        sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, sum_cast_rules_res: int):
     model.Add(sum(unassigned_shifts_per_event) == sum(unassigned_shifts_per_event_res))
     model.Add(sum_squared_deviations == sum_squared_deviations_res)
     model.Add(sum(constraints_weights_in_avail_day_groups) == weights_shifts_in_avail_day_groups_res)
@@ -922,6 +948,7 @@ def define_objective__fixed_constraint_results(
     model.Add(sum(constraints_location_prefs) == sum_location_prefs_res)
     model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs_res)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts_res)
+    model.Add(sum(constraints_cast_rule) == sum_cast_rules_res)
 
 
 def solve_model_with_solver_solution_callback(
@@ -979,7 +1006,6 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'  - ObjectiveValue : {solver.ObjectiveValue()}')
     if solution_printer:
         print(f"  - solutions found: {solution_printer.solution_count()}")
-    print(f'{unassigned_shifts_per_event=}')
     print(f'{sum(solver.Value(u) for u in unassigned_shifts_per_event.values())=}')
     print(f'{[solver.Value(u) for u in unassigned_shifts_per_event.values()]}')
     print(f'{solver.Value(sum_squared_deviations)=}')
@@ -1015,19 +1041,20 @@ def print_solver_status(status: CpSolverStatus):
 
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-        cast_group_tree: CastGroupTree, log_search_process: bool) -> tuple[int, int, int, int, int]:
+        cast_group_tree: CastGroupTree, log_search_process: bool) -> tuple[int, int, int, int, int, int]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts) = create_constraints(model)
+     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups,
                               constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts)
+                              constraints_fixed_cast_conflicts,
+                              constraints_cast_rule)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, log_search_process)
 
@@ -1044,28 +1071,32 @@ def call_solver_with_unadjusted_requested_assignments(
             unassigned_shifts,
             solver.Value(sum(constraints_location_prefs)),
             solver.Value(sum(constraints_partner_loc_prefs)),
-            solver.Value(sum(constraints_fixed_cast_conflicts.values())))
+            solver.Value(sum(constraints_fixed_cast_conflicts.values())),
+            solver.Value(sum(constraints_cast_rule)))
 
 
 def call_solver_with_fixed_unassigned_shifts(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
         unassigned_shifts: int, sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int,
+        sum_cast_rules: int,
         print_solution_printer_results: bool, log_search_process: bool, collect_schedule_versions: bool):
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts) = create_constraints(model)
+     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
     define_objective__fixed_unassigned(model,
                                        unassigned_shifts,
                                        sum_location_prefs,
                                        sum_partner_loc_prefs,
                                        sum_fixed_cast_conflicts,
+                                       sum_cast_rules,
                                        unassigned_shifts_per_event,
                                        constraints_location_prefs,
                                        constraints_partner_loc_prefs,
-                                       constraints_fixed_cast_conflicts)
+                                       constraints_fixed_cast_conflicts,
+                                       constraints_cast_rule)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
@@ -1088,7 +1119,7 @@ def call_solver_with_adjusted_requested_assignments(
         cast_group_tree: CastGroupTree,
         assigned_shifts: int,
         possible_assignment_per_app: dict[UUID, int],
-        log_search_process: bool) -> tuple[int, list[int], int, int, int, int, int]:
+        log_search_process: bool) -> tuple[int, list[int], int, int, int, int, int, int]:
     print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
     generate_adjusted_requested_assignments(assigned_shifts, possible_assignment_per_app)
@@ -1101,11 +1132,11 @@ def call_solver_with_adjusted_requested_assignments(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts) = create_constraints(model)
+     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts)
+                              constraints_fixed_cast_conflicts, constraints_cast_rule)
     solver, solver_status = solve_model_to_optimum(model, log_search_process)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     print_solver_status(solver_status)
@@ -1120,15 +1151,16 @@ def call_solver_with_adjusted_requested_assignments(
             sum(solver.Value(v) for v in constraints_weights_in_event_groups),
             sum(solver.Value(lp) for lp in constraints_location_prefs),
             solver.Value(sum(constraints_partner_loc_prefs)),
-            solver.Value(sum(constraints_fixed_cast_conflicts.values())))
+            solver.Value(sum(constraints_fixed_cast_conflicts.values())),
+            solver.Value(sum(constraints_cast_rule)))
 
 
 def call_solver_with__fixed_constraint_results(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
         weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
-        sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, print_solution_printer_results: bool,
-        log_search_process: bool, collect_schedule_versions: bool
+        sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, sum_cast_rules: int,
+        print_solution_printer_results: bool, log_search_process: bool, collect_schedule_versions: bool
 ) -> tuple[PartialSolutionCallback, dict[tuple[datetime.date, str, UUID], int]]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
@@ -1136,15 +1168,15 @@ def call_solver_with__fixed_constraint_results(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts) = create_constraints(model)
+     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
     define_objective__fixed_constraint_results(
         model, list(unassigned_shifts_per_event.values()), sum_squared_deviations,
         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
         constraints_location_prefs, constraints_partner_loc_prefs,
-        constraints_fixed_cast_conflicts, unassigned_shifts_per_event_res,
+        constraints_fixed_cast_conflicts, constraints_cast_rule, unassigned_shifts_per_event_res,
         sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res,
         weights_in_event_groups_res, sum_location_prefs_res,
-        sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res)
+        sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res, sum_cast_rules)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
@@ -1174,11 +1206,11 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
     avail_day_group_tree = get_avail_day_group_tree(plan_period_id)
     cast_group_tree = get_cast_group_tree(plan_period_id)
 
-    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs,
-     sum_fixed_cast_conflicts) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
-                                                                                   avail_day_group_tree,
-                                                                                   cast_group_tree,
-                                                                                   log_search_process)
+    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, sum_fixed_cast_conflicts,
+     sum_cast_rules) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
+                                                                         avail_day_group_tree,
+                                                                         cast_group_tree,
+                                                                         log_search_process)
     max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
                                                                   avail_day_group_tree,
                                                                   cast_group_tree,
@@ -1186,12 +1218,13 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
                                                                   sum_location_prefs,
                                                                   sum_partner_loc_prefs,
                                                                   sum_fixed_cast_conflicts,
+                                                                  sum_cast_rules,
                                                                   False,
                                                                   log_search_process,
                                                                   False)
     (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
      sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res,
-     sum_fixed_cast_conflicts_res) = call_solver_with_adjusted_requested_assignments(event_group_tree,
+     sum_fixed_cast_conflicts_res, sum_cast_rules) = call_solver_with_adjusted_requested_assignments(event_group_tree,
                                                                                      avail_day_group_tree,
                                                                                      cast_group_tree,
                                                                                      assigned_shifts,
@@ -1208,6 +1241,7 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
         sum_location_prefs_res,
         sum_partner_loc_prefs_res,
         sum_fixed_cast_conflicts_res,
+        sum_cast_rules,
         True,
         log_search_process,
         True)

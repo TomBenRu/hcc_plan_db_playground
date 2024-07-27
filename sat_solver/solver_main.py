@@ -511,8 +511,9 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
 
     def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
                        strict_rule_pref: int) -> list[IntVar]:
+
         broken_rules_vars: list[IntVar] = []
-        print(f'{event_group_1=}')
+
         for app_id, actor_plan_period in entities.actor_plan_periods.items():
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                           if eg_id in {event_group_1.id, event_group_2.id}

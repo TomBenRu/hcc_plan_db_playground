@@ -533,7 +533,11 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
             if strict_rule_pref == 2:
                 (model.Add(sum(shift_vars.values()) <= 1))
             elif strict_rule_pref == 1:
-                equal_to_two = model.NewBoolVar('')
+                name_var = (f'{entities.event_groups_with_event[event_group_1_id].event.date:%d.%m.} + '
+                            f'{entities.event_groups_with_event[event_group_2_id].event.date:%d.%m.}, '
+                            f'{entities.event_groups_with_event[event_group_1_id].event.location_plan_period.location_of_work.name}, '
+                            f'{entities.actor_plan_periods[app_id].person.f_name}')
+                equal_to_two = model.NewBoolVar(name_var)
                 model.AddMaxEquality(equal_to_two, [sum(shift_vars.values()) - 1, 0])
                 broken_rules_vars.append(equal_to_two)
 
@@ -992,7 +996,7 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      constraints_location_prefs: list[IntVar],
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                      constraints_weights_in_event_groups: list[IntVar],
-                     constraints_weights_in_av_day_groups: list[IntVar]):
+                     constraints_weights_in_av_day_groups: list[IntVar], constraints_cast_rule: list[IntVar]):
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -1020,6 +1024,8 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'weights_in_av_day_groups: '
           f'{" | ".join([f"""{v.name}: {solver.Value(v)}""" for v in constraints_weights_in_av_day_groups])}')
     print(f'sum_weights_in_av_day_groups: {sum(solver.Value(w) for w in constraints_weights_in_av_day_groups)}')
+    print(f'constraints_cast_rule: {" | ".join([f"""{v.name}: {solver.Value(v)}""" for v in constraints_cast_rule])}')
+    print(f'sum_constraints_cast_rule: {sum(solver.Value(w) for w in constraints_cast_rule)}')
 
 
 def print_solver_status(status: CpSolverStatus):
@@ -1059,7 +1065,7 @@ def call_solver_with_unadjusted_requested_assignments(
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
                      constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups)
+                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
     return (sum(solver.Value(a) for a in sum_assigned_shifts.values()),
@@ -1103,7 +1109,7 @@ def call_solver_with_fixed_unassigned_shifts(
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
                      constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups)
+                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
 
     return solution_printer.get_max_assigned_shifts()
 
@@ -1140,7 +1146,7 @@ def call_solver_with_adjusted_requested_assignments(
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
                      constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups)
+                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(v) for v in constraints_weights_in_event_groups),
@@ -1183,7 +1189,7 @@ def call_solver_with__fixed_constraint_results(
                      constraints_partner_loc_prefs, constraints_location_prefs,
                      constraints_fixed_cast_conflicts,
                      constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups)
+                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
 
     constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
     return solution_printer, constraints_fixed_cast_conflicts

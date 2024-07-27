@@ -520,23 +520,23 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     #  Cast-Group an die Cast-Rule hält. Diese constraints werden als Liste zurückgegeben.
     #  In jedem Fall wird über diese Liste der zurückgegebenen Constraints optimiert.
 
-    def different_cast(event_group_1_id: UUID, event_group_2_id: UUID, strict_rule_pref: int) -> list[IntVar]:
+    def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
+                       strict_rule_pref: int) -> list[IntVar]:
         broken_rules_vars: list[IntVar] = []
-        for app_id in entities.actor_plan_periods:
+        print(f'{event_group_1=}')
+        for app_id, actor_plan_period in entities.actor_plan_periods.items():
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
-                          if eg_id in {event_group_1_id, event_group_2_id}
+                          if eg_id in {event_group_1.id, event_group_2.id}
                           and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
                           and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
-                          in {entities.event_groups_with_event[event_group_1_id].event.date,
-                              entities.event_groups_with_event[event_group_2_id].event.date}}
+                          in {event_group_1.event.date, event_group_2.event.date}}
 
             if strict_rule_pref == 2:
                 (model.Add(sum(shift_vars.values()) <= 1))
             elif strict_rule_pref == 1:
-                name_var = (f'{entities.event_groups_with_event[event_group_1_id].event.date:%d.%m.} + '
-                            f'{entities.event_groups_with_event[event_group_2_id].event.date:%d.%m.}, '
-                            f'{entities.event_groups_with_event[event_group_1_id].event.location_plan_period.location_of_work.name}, '
-                            f'{entities.actor_plan_periods[app_id].person.f_name}')
+                name_var = (f'{event_group_1.event.date:%d.%m.} + {event_group_2.event.date:%d.%m.}, '
+                            f'{event_group_1.event.location_plan_period.location_of_work.name}, '
+                            f'{actor_plan_period.person.f_name}')
                 equal_to_two = model.NewBoolVar(name_var)
                 model.AddMaxEquality(equal_to_two, [sum(shift_vars.values()) - 1, 0])
                 broken_rules_vars.append(equal_to_two)
@@ -612,7 +612,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
             event_group_1 = cast_groups[idx].event.event_group
             event_group_2 = cast_groups[idx + 1].event.event_group
             if rule[idx % len(rule)] == '-':
-                constraints_cast_rule.extend(different_cast(event_group_1.id, event_group_2.id,
+                constraints_cast_rule.extend(different_cast(event_group_1, event_group_2,
                                                             parent.strict_rule_pref))
             elif rule[idx % len(rule)] == '~':
                 same_cast(cast_groups[idx], cast_groups[idx + 1])

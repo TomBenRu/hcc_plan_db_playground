@@ -525,22 +525,23 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
         for app_id in entities.actor_plan_periods:
             shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                           if eg_id in {event_group_1_id, event_group_2_id}
-                          and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+                          and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                          and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
+                          in {entities.event_groups_with_event[event_group_1_id].event.date,
+                              entities.event_groups_with_event[event_group_2_id].event.date}}
+
             if strict_rule_pref == 2:
                 (model.Add(sum(shift_vars.values()) <= 1)
                  .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
                  .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+                # not_sure: OnlyEnforce überflüssig, da shift_vars nur dann 1 sind, wenn event_group_var 1 ist.
             elif strict_rule_pref == 1:
-                broken_rule = model.NewBoolVar('')
-                more_than_zero = model.NewBoolVar('')
-                more_than_one = model.NewBoolVar('')
-                model.Add(more_than_zero == sum(shift_vars.values()))
-                model.Add(more_than_one == sum(shift_vars.values()) - 1).OnlyEnforceIf(more_than_zero)
-                (model.Add(broken_rule == 1)
-                 .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-                 .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]).OnlyEnforceIf(more_than_one))
+                broken_rule = model.NewBoolVar(f'')
 
-                broken_rules_vars.append(broken_rule)
+                equal_to_two = model.NewBoolVar('')
+                model.AddMaxEquality(equal_to_two, [sum(shift_vars.values()) - 1, 0])
+
+                broken_rules_vars.append(equal_to_two)
 
         return broken_rules_vars
 
@@ -892,7 +893,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_location_prefs: list[IntVar],
                               constraints_partner_loc_prefs: list[IntVar],
                               constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
-                              constraints_cast_rule):
+                              constraints_cast_rule: list[IntVar]) -> None:
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 

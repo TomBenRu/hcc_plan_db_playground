@@ -531,16 +531,10 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
                               entities.event_groups_with_event[event_group_2_id].event.date}}
 
             if strict_rule_pref == 2:
-                (model.Add(sum(shift_vars.values()) <= 1)
-                 .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-                 .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
-                # not_sure: OnlyEnforce überflüssig, da shift_vars nur dann 1 sind, wenn event_group_var 1 ist.
+                (model.Add(sum(shift_vars.values()) <= 1))
             elif strict_rule_pref == 1:
-                broken_rule = model.NewBoolVar(f'')
-
                 equal_to_two = model.NewBoolVar('')
                 model.AddMaxEquality(equal_to_two, [sum(shift_vars.values()) - 1, 0])
-
                 broken_rules_vars.append(equal_to_two)
 
         return broken_rules_vars

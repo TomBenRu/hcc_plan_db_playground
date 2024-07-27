@@ -543,9 +543,12 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
 
         return broken_rules_vars
 
-    def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup):
+    def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup, strict_rule_pref: int):
         """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
         vorkommen. Die überschüssige Position des Events mit der größeren Besetzung kann beliebig besetzt sein."""
+
+        broken_rules_vars: list[IntVar] = []
+
         event_group_1_id = cast_group_1.event.event_group.id
         event_group_2_id = cast_group_2.event.event_group.id
         applied_shifts_1: list[IntVar] = [model.NewIntVar(0, 2, '')
@@ -574,14 +577,30 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
             is_equal.append(model.NewBoolVar(''))
             is_unequal.append(model.NewBoolVar(''))
 
+            # In beiden Events kommt der Mitarbeiter nicht vor:
             model.AddMultiplicationEquality(is_equal_1[-1], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
+            # In beiden Events kommt der Mitarbeiter vor:
             model.AddMultiplicationEquality(is_equal_2[-1], [applied_shifts_1[i], applied_shifts_2[i]])
+            # In beiden Events kommt der Mitarbeiter nicht vor oder vor:
             model.Add(is_equal[-1] == is_equal_1[-1] + is_equal_2[-1])
+            # In einem der Events kommt der Mitarbeiter vor, während er im anderen Event nicht vorkommt:
             model.AddAbsEquality(is_unequal[-1], is_equal[-1].Not())
 
-        (model.Add(sum(is_unequal) == abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
-         .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-         .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+        if strict_rule_pref == 2:
+            (model.Add(sum(is_unequal) == abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+            return broken_rules_vars
+        elif strict_rule_pref == 1:
+            broken_rules_var = model.NewIntVar(0, 1000,
+                                               f'{event_group_1.event.date:%d.%m.} + '
+                                               f'{event_group_2.event.date:%d.%m.}, '
+                                               f'{event_group_1.event.location_plan_period.location_of_work.name}')
+            intermediate = model.NewIntVar(0, 1000, '')
+            model.Add(intermediate == (sum(is_unequal) - abs(cast_group_1.nr_actors - cast_group_2.nr_actors)))
+            model.AddDivisionEquality(broken_rules_var, intermediate, 2)
+            broken_rules_vars.append(broken_rules_var)
+            return broken_rules_vars
 
         ################################################################################################################
 
@@ -615,7 +634,8 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
                 constraints_cast_rule.extend(different_cast(event_group_1, event_group_2,
                                                             parent.strict_rule_pref))
             elif rule[idx % len(rule)] == '~':
-                same_cast(cast_groups[idx], cast_groups[idx + 1])
+                constraints_cast_rule.extend(same_cast(cast_groups[idx], cast_groups[idx + 1],
+                                                       parent.strict_rule_pref))
             elif rule[idx % len(rule)] == '*':
                 continue
             else:

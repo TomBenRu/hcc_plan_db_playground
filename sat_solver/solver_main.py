@@ -507,18 +507,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     # todo: Anpassen für den Fall, dass nr_actors in Event Group < als len(children). Könnte man lösen, indem der Index
     #       der 1. aktiven Gruppe in einer Variablen abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen
     #       wird.
-    # done: Bei same_cast funktioniert es nur, wenn nr_actors bei allen gleich sind.
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
-    # todo: strict_cast_pref kann noch implementiert werden.
-    #  Kann vielleicht so umgesetzt werden:
-    #  Bei strict_cast_pref == 2 (Regeln unbedingt beachten) werden die Constraints absolut festgelegt und eine
-    #  leere Liste zurückgegeben.
-    #  Bei strict_cast_pref == 0 (Regeln nicht beachten) werden keine Constraints festgelegt und eine
-    #  leere Liste zurückgegeben.
-    #  Bei strict_cast_pref == 1 (möglichst nah an Besetzungsregel) werden Constraints fuü alle Cast-Groups mit
-    #  Cast-Rule festgelegt. Der Wert der Constraints hängt davon ab, wie genau sich die Besetzungen innerhalb der
-    #  Cast-Group an die Cast-Rule hält. Diese constraints werden als Liste zurückgegeben.
-    #  In jedem Fall wird über diese Liste der zurückgegebenen Constraints optimiert.
 
     def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
                        strict_rule_pref: int) -> list[IntVar]:

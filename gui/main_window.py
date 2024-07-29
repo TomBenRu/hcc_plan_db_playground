@@ -4,8 +4,9 @@ import sys
 from typing import Tuple
 from uuid import UUID
 
+from PySide6 import QtCore
 from PySide6.QtCore import QRect, QPoint
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
 
 from commands import command_base_classes
@@ -480,7 +481,14 @@ class MainWindow(QMainWindow):
                 action.setEnabled(True)
 
     def exit(self):
-        sys.exit()
+        self.close()
+
+    def closeEvent(self, event=QCloseEvent):
+        self.save_team_settings()
+        super().closeEvent(event)
+
+    def save_team_settings(self):
+        print('save team settings')
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         if type(actions_menu) == tuple:

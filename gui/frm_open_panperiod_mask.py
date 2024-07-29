@@ -16,6 +16,7 @@ class DlgOpenPlanPeriodMask(QDialog):
         self.setLayout(self.layout)
 
         self.plan_periods: list[schemas.PlanPeriodShow] = []
+        self.curr_plan_period_id: UUID | None = None
         self.combo_plan_periods = QComboBox()
         self.layout.addWidget(self.combo_plan_periods)
         self.fill_combo_plan_periods()
@@ -32,5 +33,9 @@ class DlgOpenPlanPeriodMask(QDialog):
                                                      for i in range(self.tabs_planungsmasken.count())}
                                     and not pp.prep_delete),
                                    key=lambda x: x.start, reverse=True)
-        print(self.plan_periods)
-        self.combo_plan_periods.addItems([f'{pp.start:%d.%m.%y} - {pp.end:%d.%m.%y}' for pp in self.plan_periods])
+        for pp in self.plan_periods:
+            self.combo_plan_periods.addItem(f'{pp.start:%d.%m.%y} - {pp.end:%d.%m.%y}', pp.id)
+
+    def accept(self):
+        self.curr_plan_period_id = self.combo_plan_periods.currentData()
+        super().accept()

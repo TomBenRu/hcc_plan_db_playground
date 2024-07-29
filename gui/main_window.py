@@ -373,27 +373,19 @@ class MainWindow(QMainWindow):
                 for team in teams}
 
     def open_plan_period_masks(self, plan_period_id: UUID):
-        for i in range(self.tabs_planungsmasken.count()):
-            print(self.tabs_planungsmasken.widget(i).plan_period_id, plan_period_id)
         dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
         if not dlg.exec():
             return
+        plan_period = db_services.PlanPeriod.get(dlg.curr_plan_period_id)
+        widget_pp_tab = PlanPeriodTabWidget(self, dlg.curr_plan_period_id)
+        self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
+        tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, False)
+
+        tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
+        tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
 
     def goto_team(self, team_id: UUID):
         self.curr_team = db_services.Team.get(team_id)
-        # for plan_period in (pp for pp in self.curr_team.plan_periods if not pp.prep_delete):
-        #     if plan_period.id in {self.tabs_planungsmasken.widget(i).plan_period_id
-        #                           for i in range(self.tabs_planungsmasken.count())}:
-        #         continue
-        #     widget_pp_tab = PlanPeriodTabWidget(self, plan_period.id)
-        #     widget_pp_tab.plan_period_id = plan_period.id  # Widget für Datum
-        #     self.tabs_planungsmasken.addTab(
-        #         widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
-        #     tabs_period = TabBar(  # Tab für Datum
-        #         widget_pp_tab, 'north', 10, None, None, True, False)
-        #
-        #     tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
-        #     tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
 
     def master_data(self):
         if self.frm_master_data is None:

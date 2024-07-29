@@ -1,6 +1,7 @@
 import functools
 import os.path
 import sys
+from typing import Tuple
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint
@@ -15,8 +16,10 @@ from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from gui.tools.actions import MenuToolbarAction
+from .frm_open_panperiod_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
+from .frm_plan_period_tab_widget import PlanPeriodTabWidget
 from .frm_project_settings import DlgSettingsProject
 from .observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
@@ -40,8 +43,11 @@ class MainWindow(QMainWindow):
         path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.actions = {
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'folder-open-table.png'), 'Öffenen... (Planung)',
+                              'Öffnet Planungsdaten für Locations und Mitarbeiter einer bestimmten Planungsperiode',
+                              self.open_plan_period_masks),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'), 'Neue Planung...',
-                   'Legt eine neue Planung an.', self.new_plan_period, short_cut='Ctrl+n'),
+                              'Legt eine neue Planung an.', self.new_plan_period, short_cut='Ctrl+n'),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document--pencil.png'),
                               'Planung ändern...',
                               'Ändern oder Löschen einer vorhandenen Planung.', self.edit_plan_period),
@@ -50,10 +56,6 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'),
                               'Öffnen... (Pläne)',
                               'Öffnet einen bereits erstellten Plan.', self.open_plan),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'folder-open-document.png'),
-                              'Öffnen... (Planungsdaten)',
-                              'Öffnet Planungsmasken für Mitarbeiterverfügbarkeiten und Terminen an Einrichtungen',
-                              self.open_actor_planperiod_location_planperiod),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'disk.png'), 'Plan speichern...',
                               'Speichert den aktiven Plan',
                               self.plan_save),
@@ -62,7 +64,7 @@ class MainWindow(QMainWindow):
                               'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
                               self.sheets_for_availables),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
-                   'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
+                              'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
                               'Anzeigen der Pläne im Explorer...',
                               'Pläne der aktuellen Planung werden im Explorer angezeigt.',
@@ -121,7 +123,7 @@ class MainWindow(QMainWindow):
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
         self.menu_actions = {
-            '&Datei': [self.actions['new_plan_period'], self.actions['edit_plan_period'], None,
+            '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'], self.actions['edit_plan_period'], None,
                        self.actions['sheets_for_availables'], None, self.actions['exit'],
                        self.actions['settings_project']],
             '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
@@ -275,9 +277,6 @@ class MainWindow(QMainWindow):
     def edit_excel_export_settings(self, team: schemas.Team):
         ...
 
-    def open_actor_planperiod_location_planperiod(self):
-        ...
-
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
         Falls ein Plan dieses Namens schon vorhanden ist, wird angeboten diesen Plan zu löschen und den aktuellen Plan
@@ -351,7 +350,7 @@ class MainWindow(QMainWindow):
     def lookup_for_excel_plan(self):
         ...
 
-    def put_clients_to_menu(self) -> tuple[MenuToolbarAction] | None:
+    def put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
         try:
             teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
@@ -373,17 +372,28 @@ class MainWindow(QMainWindow):
                                               functools.partial(self.edit_excel_export_settings, team))]
                 for team in teams}
 
+    def open_plan_period_masks(self, plan_period_id: UUID):
+        for i in range(self.tabs_planungsmasken.count()):
+            print(self.tabs_planungsmasken.widget(i).plan_period_id, plan_period_id)
+        dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
+        if not dlg.exec():
+            return
+
     def goto_team(self, team_id: UUID):
         self.curr_team = db_services.Team.get(team_id)
-        for plan_period in (pp for pp in self.curr_team.plan_periods if not pp.prep_delete):
-            widget_pp_tab = QWidget(self)  # Widget für Datum
-            self.tabs_planungsmasken.addTab(
-                widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
-            tabs_period = TabBar(  # Tab für Datum
-                widget_pp_tab, 'north', 10, None, None, True, None)
-
-            tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
-            tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
+        # for plan_period in (pp for pp in self.curr_team.plan_periods if not pp.prep_delete):
+        #     if plan_period.id in {self.tabs_planungsmasken.widget(i).plan_period_id
+        #                           for i in range(self.tabs_planungsmasken.count())}:
+        #         continue
+        #     widget_pp_tab = PlanPeriodTabWidget(self, plan_period.id)
+        #     widget_pp_tab.plan_period_id = plan_period.id  # Widget für Datum
+        #     self.tabs_planungsmasken.addTab(
+        #         widget_pp_tab, f'{plan_period.start.strftime("%d.%m.%y")} - {plan_period.end.strftime("%d.%m.%y")}')
+        #     tabs_period = TabBar(  # Tab für Datum
+        #         widget_pp_tab, 'north', 10, None, None, True, False)
+        #
+        #     tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
+        #     tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
 
     def master_data(self):
         if self.frm_master_data is None:

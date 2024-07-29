@@ -104,6 +104,10 @@ class Project(db.Entity):
     skills = Set('Skill')
     flags = Set('Flag')
     cast_rules = Set('CastRule')
+    # todo: different_cast_on_different_locations_at_same_day: bool (auch in Team PlanPeriod und ActorPlanPeriod)
+    #  Kann aufgehoben werden durch entsprechendes CombinationLocationsPossible
+    # todo: same_cast_on_same_location_at_same_day: bool (auch in Team PlanPeriod und ActorPlanPeriod)
+    #  Kann aufgehoben werden durch eine entsprechende CastRule oder ein entsprechendes FixedCast
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -673,7 +677,6 @@ class CombinationLocationsPossible(db.Entity):
     persons = Set(Person)
     actor_plan_periods = Set(ActorPlanPeriod)
     avail_days = Set(AvailDay)
-    # todo: Implementieren: Mindestzeit zwischen Ende des vorhergehenden Events und Anfang des nachfolgenden Events.
 
     def before_update(self):  # sourcery skip: aware-datetime-for-utc
         self.last_modified = datetime.datetime.utcnow()

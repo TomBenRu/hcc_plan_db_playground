@@ -9,11 +9,13 @@ class TabBar(QTabWidget):
     """Puts a tabbar to a blank QWidget"""
     def __init__(self, parent: QWidget, position: Literal['west', 'north', 'east', 'south'] = None,
                  font_size: int = None, tab_height: int = None, tab_width: int = None, set_movable: bool = True,
-                 set_closable: bool = True, context_menu_slot: Callable[[QPoint, int], None] = None,
+                 set_closable: bool = False, context_menu_slot: Callable[[QPoint, int], None] = None,
                  object_name: str = None):
         super().__init__(parent=parent)
 
+        self.setTabsClosable(set_closable)
         self.context_menu_slot = context_menu_slot
+        self.tabCloseRequested.connect(self.close_tab)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -22,8 +24,8 @@ class TabBar(QTabWidget):
 
         self.setMovable(set_movable)
 
-        positions = {'west': QTabWidget.West, 'north': QTabWidget.North,
-                     'east': QTabWidget.East, 'south': QTabWidget.South}
+        positions = {'west': QTabWidget.TabPosition.West, 'north': QTabWidget.TabPosition.North,
+                     'east': QTabWidget.TabPosition.East, 'south': QTabWidget.TabPosition.South}
         if object_name is not None:
             self.setObjectName(object_name)
         if position is not None:
@@ -43,4 +45,7 @@ class TabBar(QTabWidget):
         index = self.tabBar().tabAt(point)
         if index >= 0:
             self.context_menu_slot(point, index)
+
+    def close_tab(self, index: int):
+        self.removeTab(index)
 

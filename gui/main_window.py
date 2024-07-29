@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
 
-        self.tabs_planungsmasken = TabBar(self.widget_planungsmasken, None, 10, 25)
+        self.tabs_planungsmasken = TabBar(self.widget_planungsmasken, None, 10, 25, None, True, True)
         self.tabs_planungsmasken.setObjectName('masks')
 
         self.tabs_plans = TabBar(self.widget_plans, None, 10, 25, None, True,

@@ -390,7 +390,28 @@ class MainWindow(QMainWindow):
         tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
 
     def goto_team(self, team_id: UUID):
+        start_config_handler = team_start_config.curr_start_config_handler
+
+        tabs_planungsmasken = [self.tabs_planungsmasken.widget(i).plan_period_id
+                               for i in range(self.tabs_planungsmasken.count())]
+        tabs_plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
+        start_config_handler.save_config_for_team(
+            self.curr_team.id,
+            team_start_config.StartConfigTeam(
+                team_id=self.curr_team.id, tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans
+            )
+        )
+        while self.tabs_planungsmasken.count():
+            self.tabs_planungsmasken.removeTab(0)
+        while self.tabs_plans.count():
+            self.tabs_plans.removeTab(0)
+
         self.curr_team = db_services.Team.get(team_id)
+        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
+        for plan_period_id in config_curr_team.tabs_planungsmasken:
+            self.open_plan_period_mask(plan_period_id)
+        for plan_id in config_curr_team.tabs_plans:
+            self.new_plan_tab(plan_id)
 
     def master_data(self):
         if self.frm_master_data is None:

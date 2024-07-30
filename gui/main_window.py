@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
+from configuration import team_start_config
 from database import db_services, schemas
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -215,7 +216,7 @@ class MainWindow(QMainWindow):
         plan = plans[chosen_plan_name] if ok else None
 
         if ok:
-            self.new_plan_tab(plan)
+            self.new_plan_tab(plan.id)
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
         context_menu = QMenu()
@@ -377,8 +378,11 @@ class MainWindow(QMainWindow):
         dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
         if not dlg.exec():
             return
-        plan_period = db_services.PlanPeriod.get(dlg.curr_plan_period_id)
-        widget_pp_tab = PlanPeriodTabWidget(self, dlg.curr_plan_period_id)
+        self.open_plan_period_mask(dlg.curr_plan_period_id)
+
+    def open_plan_period_mask(self, plan_period_id: UUID):
+        plan_period = db_services.PlanPeriod.get(plan_period_id)
+        widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
         self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
         tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, False)
 
@@ -420,12 +424,12 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             confirmation = QMessageBox.question(self, 'Plänen anzeigen',
                                                 'Sollen die erstellten Pläne angezeigt werden?')
-            if confirmation == QMessageBox.Yes:
+            if confirmation == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
-                    plan = db_services.Plan.get(plan_id)
-                    self.new_plan_tab(plan)
+                    self.new_plan_tab(plan_id)
 
-    def new_plan_tab(self, plan: schemas.PlanShow):
+    def new_plan_tab(self, plan_id: UUID):
+        plan = db_services.Plan.get(plan_id)
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
         self.tabs_plans.addTab(new_widget, plan.name)
         self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')
@@ -480,6 +484,10 @@ class MainWindow(QMainWindow):
             for action in menu.actions():
                 action.setEnabled(True)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_team_settings()
+
     def exit(self):
         self.close()
 
@@ -488,7 +496,22 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def save_team_settings(self):
-        print('save team settings')
+        planungsmasken = [self.tabs_planungsmasken.widget(i).plan_period_id
+                          for i in range(self.tabs_planungsmasken.count())]
+        plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
+        start_config_handler = team_start_config.curr_start_config_handler
+        start_config = team_start_config.StartConfigTeam(team_id=self.curr_team.id,
+                                                     tabs_planungsmasken=planungsmasken, tabs_plans=plans)
+        start_config_handler.save_config_for_team(self.curr_team.id, start_config)
+
+    def load_team_settings(self):
+        start_config = team_start_config.curr_start_config_handler.get_start_config()
+        self.curr_team = db_services.Team.get(start_config.default_team_id)
+        start_config_team = team_start_config.curr_start_config_handler.get_start_config_for_team(self.curr_team.id)
+        for pp_id in start_config_team.tabs_planungsmasken:
+            self.open_plan_period_mask(pp_id)
+        for plan_id in start_config_team.tabs_plans:
+            self.new_plan_tab(plan_id)
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         if type(actions_menu) == tuple:

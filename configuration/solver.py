@@ -34,21 +34,6 @@ class SolverConfig(BaseModel):
     constraints_multipliers: ConstraintsMultipliers = ConstraintsMultipliers()
 
 
-class ConfigHandler(Protocol):
-
-    @staticmethod
-    def load_config_from_file(self) -> SolverConfig:
-        ...
-
-    @staticmethod
-    def save_config_to_file(self, config: SolverConfig):
-        ...
-
-    @staticmethod
-    def get_solver_config(self) -> SolverConfig:
-        ...
-
-
 class ConfigHandlerJson:
     _config_file_path = os.path.join(os.path.dirname(__file__), 'solver_config.json')
     _solver_config: SolverConfig | None = None

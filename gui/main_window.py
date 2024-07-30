@@ -28,6 +28,7 @@ from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_plan_period_tab_widget import PlanPeriodTabWidget
 from .frm_project_select import DlgProjectSelect
 from .frm_project_settings import DlgSettingsProject
+from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.toolbars import MainToolBar
@@ -498,6 +499,9 @@ class MainWindow(QMainWindow):
         print('Hilfe...')
 
     def import_from_plan_api(self):
+        dlg = DlgRemoteAccessPlanApi(self)
+        if not dlg.exec():
+            return
 
         config_handler = api_remote_config.current_config_handler
         config = config_handler.get_api_remote()

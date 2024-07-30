@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         # db_services.Project.create('Humor Hilft Heilen')
 
         self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
-        self.choose_project()
+        # self.choose_project()
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -123,7 +123,8 @@ class MainWindow(QMainWindow):
         }
         self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
-            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'], self.actions['plan_save'], None,
+            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'],
+            self.actions['plan_save'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]

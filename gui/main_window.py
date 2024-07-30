@@ -527,6 +527,8 @@ class MainWindow(QMainWindow):
 
     def load_team_settings(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
+        if not start_config.default_team_id:
+            return
         self.curr_team = db_services.Team.get(start_config.default_team_id)
         start_config_team = team_start_config.curr_start_config_handler.get_start_config_for_team(self.curr_team.id)
         for pp_id in start_config_team.tabs_planungsmasken:

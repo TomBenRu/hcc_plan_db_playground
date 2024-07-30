@@ -23,6 +23,7 @@ from .frm_open_panperiod_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_plan_period_tab_widget import PlanPeriodTabWidget
+from .frm_project_select import DlgProjectSelect
 from .frm_project_settings import DlgSettingsProject
 from .observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
@@ -38,6 +39,7 @@ class MainWindow(QMainWindow):
         # db_services.Project.create('Humor Hilft Heilen')
 
         self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
+        self.choose_project()
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -176,6 +178,11 @@ class MainWindow(QMainWindow):
         self.tabs_left.addTab(self.tabs_plans, 'Einsatzpläne')
 
         self.frm_master_data = None
+
+    def choose_project(self):
+        dlg = DlgProjectSelect(self)
+        if dlg.exec():
+            self.project_id = dlg.project_id
 
     def new_plan_period(self):
         if not db_services.Team.get_all_from__project(self.project_id):

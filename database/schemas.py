@@ -74,7 +74,7 @@ class PersonCreate(BaseModel):
     f_name: str
     l_name: str
     email: EmailStr
-    gender: Gender
+    gender: Gender = Gender.divers
     phone_nr: str | None
     username: str
     password: str

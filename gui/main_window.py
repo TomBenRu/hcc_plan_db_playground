@@ -1,9 +1,12 @@
 import functools
+import json
 import os.path
 import sys
 from typing import Tuple
 from uuid import UUID
 
+import jwt
+import requests
 from PySide6 import QtCore
 from PySide6.QtCore import QRect, QPoint
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
@@ -12,7 +15,7 @@ from pydantic_core import ValidationError
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
-from configuration import team_start_config
+from configuration import team_start_config, api_remote_config
 from database import db_services, schemas
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -68,6 +71,9 @@ class MainWindow(QMainWindow):
                               'Listen für Sperrtermine erzeugen...',
                               'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
                               self.sheets_for_availables),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'download.png'),
+                              'Daten von Online-API importieren...', 'Import von Daten aus der API',
+                              self.import_from_plan_api),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
                               'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
@@ -129,8 +135,9 @@ class MainWindow(QMainWindow):
             self.actions['lookup_for_excel_plan'], None, self.actions['exit']
         ]
         self.menu_actions = {
-            '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'], self.actions['edit_plan_period'], None,
-                       self.actions['sheets_for_availables'], None, self.actions['exit'],
+            '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
+                       self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
+                       self.actions['import_from_plan_api'], None, self.actions['exit'],
                        self.actions['settings_project']],
             '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
                           self.actions['master_data']],
@@ -489,6 +496,21 @@ class MainWindow(QMainWindow):
 
     def open_help(self):
         print('Hilfe...')
+
+    def import_from_plan_api(self):
+
+        config_handler = api_remote_config.current_config_handler
+        config = config_handler.get_api_remote()
+        session = requests.Session()
+        response = session.post(f'{config.host}/{config.endpoint_auth}',
+                                data={'username': config.username, 'password': config.password})
+        payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
+        QMessageBox.information(self, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
+        access_token = json.loads(response.content.decode('utf-8'))['access_token']
+        print(f'{access_token=}')
+        session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
+        response = session.get(f'{config.host}/{config.endpoint_get_project}')
+        print(response.json())
 
     def check_for_updates(self):
         ...

@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
         plan = plans[chosen_plan_name] if ok else None
 
         if ok:
-            self.new_plan_tab(plan.id)
+            self.open_plan_tab(plan.id)
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
         context_menu = QMenu()
@@ -378,9 +378,9 @@ class MainWindow(QMainWindow):
         dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
         if not dlg.exec():
             return
-        self.open_plan_period_mask(dlg.curr_plan_period_id)
+        self.open_plan_period_tab(dlg.curr_plan_period_id)
 
-    def open_plan_period_mask(self, plan_period_id: UUID):
+    def open_plan_period_tab(self, plan_period_id: UUID):
         plan_period = db_services.PlanPeriod.get(plan_period_id)
         widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
         self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
@@ -409,9 +409,9 @@ class MainWindow(QMainWindow):
         self.curr_team = db_services.Team.get(team_id)
         config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
         for plan_period_id in config_curr_team.tabs_planungsmasken:
-            self.open_plan_period_mask(plan_period_id)
+            self.open_plan_period_tab(plan_period_id)
         for plan_id in config_curr_team.tabs_plans:
-            self.new_plan_tab(plan_id)
+            self.open_plan_tab(plan_id)
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -447,9 +447,9 @@ class MainWindow(QMainWindow):
                                                 'Sollen die erstellten Pläne angezeigt werden?')
             if confirmation == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
-                    self.new_plan_tab(plan_id)
+                    self.open_plan_tab(plan_id)
 
-    def new_plan_tab(self, plan_id: UUID):
+    def open_plan_tab(self, plan_id: UUID):
         plan = db_services.Plan.get(plan_id)
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
         self.tabs_plans.addTab(new_widget, plan.name)
@@ -530,9 +530,9 @@ class MainWindow(QMainWindow):
         self.curr_team = db_services.Team.get(start_config.default_team_id)
         start_config_team = team_start_config.curr_start_config_handler.get_start_config_for_team(self.curr_team.id)
         for pp_id in start_config_team.tabs_planungsmasken:
-            self.open_plan_period_mask(pp_id)
+            self.open_plan_period_tab(pp_id)
         for plan_id in start_config_team.tabs_plans:
-            self.new_plan_tab(plan_id)
+            self.open_plan_tab(plan_id)
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         if type(actions_menu) == tuple:

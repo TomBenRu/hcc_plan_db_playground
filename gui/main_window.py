@@ -503,19 +503,6 @@ class MainWindow(QMainWindow):
         if not dlg.exec():
             return
 
-        config_handler = api_remote_config.current_config_handler
-        config = config_handler.get_api_remote()
-        session = requests.Session()
-        response = session.post(f'{config.host}/{config.endpoint_auth}',
-                                data={'username': config.username, 'password': config.password})
-        payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
-        QMessageBox.information(self, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
-        access_token = json.loads(response.content.decode('utf-8'))['access_token']
-        print(f'{access_token=}')
-        session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
-        response = session.get(f'{config.host}/{config.endpoint_get_project}')
-        print(response.json())
-
     def check_for_updates(self):
         ...
 

@@ -30,8 +30,8 @@ class DlgRemoteAccessPlanApi(QDialog):
         self.create_button_box()
 
     def fill_combo_endpoint(self):
-        for key, value in self.config_remote:
-            if not key.startswith('endpoint_get'):
+        for key, value in self.config_remote.endpoints:
+            if not key.startswith('get'):
                 continue
             self.combo_endpoint.addItem(key, value)
 
@@ -42,9 +42,9 @@ class DlgRemoteAccessPlanApi(QDialog):
         self.layout.addWidget(self.button_box)
 
     def login_to_api(self):
-        response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoint_auth}',
-                                     data={'username': self.config_remote.username,
-                                           'password': self.config_remote.password})
+        response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',
+                                     data={'username': self.config_remote.authentication.username,
+                                           'password': self.config_remote.authentication.password})
         payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
         QMessageBox.information(self, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
         self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})

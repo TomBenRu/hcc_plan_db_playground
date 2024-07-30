@@ -5,14 +5,22 @@ from pydantic import BaseModel, EmailStr
 from toml.decoder import TomlDecodeError
 
 
-class ApiRemote(BaseModel):
-    host: str
-    endpoint_auth: str
-    endpoint_get_project: str
-    endpoint_get_persons: str
-    endpoint_get_teams: str
+class Authentication(BaseModel):
     username: EmailStr
     password: str
+
+
+class Endpoints(BaseModel):
+    auth: str
+    get_project: str
+    get_persons: str
+    get_teams: str
+
+
+class ApiRemote(BaseModel):
+    host: str
+    authentication: Authentication
+    endpoints: Endpoints
 
 
 class ConfigHandlerToml:

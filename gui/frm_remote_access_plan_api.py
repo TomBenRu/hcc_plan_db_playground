@@ -1,10 +1,14 @@
 import json
+import pprint
+from typing import Union
 
 import jwt
 import requests
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox
+from pydantic import BaseModel
 
 from configuration import api_remote_config
+from database import schemas_plan_api
 
 
 class DlgRemoteAccessPlanApi(QDialog):
@@ -14,6 +18,9 @@ class DlgRemoteAccessPlanApi(QDialog):
 
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
         self.session = requests.Session()
+        self.remote_schemas: dict[str, BaseModel] = {'get_project': schemas_plan_api.Project,
+                                                          'get_persons': schemas_plan_api.PersonShow,
+                                                          'get_teams': schemas_plan_api.Team}
         self.login_to_api()
 
         self.setup_layout()
@@ -51,7 +58,12 @@ class DlgRemoteAccessPlanApi(QDialog):
 
     def accept(self):
         endpoint = self.combo_endpoint.currentData()
+        schema = self.remote_schemas[self.combo_endpoint.currentText()]
         response = self.session.get(f'{self.config_remote.host}/{endpoint}')
         print(response.json())
+        if isinstance(response.json(), list):
+            pprint.pprint([schema.model_validate(d) for d in response.json()])
+        else:
+            pprint.pprint(schema.model_validate(response.json()))
 
 

@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
                               'Listen für Sperrtermine erzeugen...',
                               'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
                               self.sheets_for_availables),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'download.png'),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'download-mac-os.png'),
                               'Daten von Online-API importieren...', 'Import von Daten aus der API',
                               self.import_from_plan_api),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',

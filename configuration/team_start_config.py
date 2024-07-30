@@ -16,7 +16,7 @@ class StartConfigTeam(BaseModel):
 
 
 class StartConfig(BaseModel):
-    default_team_id: UUID = None
+    default_team_id: UUID | None = None
     teams: list[StartConfigTeam] = []
 
 

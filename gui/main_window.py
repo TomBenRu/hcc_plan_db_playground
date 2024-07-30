@@ -8,6 +8,7 @@ from PySide6 import QtCore
 from PySide6.QtCore import QRect, QPoint
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
+from pydantic_core import ValidationError
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -504,7 +505,14 @@ class MainWindow(QMainWindow):
         super().showEvent(event)
         curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
         if curr_team_id:
-            self.curr_team = db_services.Team.get(curr_team_id)
+            try:
+                self.curr_team = db_services.Team.get(curr_team_id)
+            except ValidationError:
+                config = team_start_config.curr_start_config_handler.load_config_from_file()
+                config.default_team_id  = None
+                config.teams = []
+                team_start_config.curr_start_config_handler.save_config_to_file(config)
+                return
             self.load_current_team_config()
 
     def exit(self):
@@ -529,9 +537,10 @@ class MainWindow(QMainWindow):
         }
         tabs_plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
         start_config_handler.save_config_for_team(
-            self.curr_team.id,
+            self.curr_team.id if self.curr_team else None,
             team_start_config.StartConfigTeam(
-                team_id=self.curr_team.id, tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans,
+                team_id=self.curr_team.id if self.curr_team else None,
+                tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans,
                 current_index_planungsmasken_tabs=curr_index_planungsmasken,
                 current_index_plans_tabs=curr_index_plans,
                 current_index_left_tabs=curr_left_tabs_index

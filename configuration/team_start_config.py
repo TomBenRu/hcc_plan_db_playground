@@ -7,8 +7,11 @@ from toml.decoder import TomlDecodeError
 
 
 class StartConfigTeam(BaseModel):
-    team_id: UUID = None
-    tabs_planungsmasken: list[UUID] = []
+    team_id: UUID | None = None
+    current_index_left_tabs: int = 0
+    current_index_planungsmasken_tabs: int = 0
+    current_index_plans_tabs: int = 0
+    tabs_planungsmasken: dict[UUID, dict[str, UUID | int | None]] = {}
     tabs_plans: list[UUID] = []
 
 

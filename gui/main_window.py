@@ -378,41 +378,35 @@ class MainWindow(QMainWindow):
         dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
         if not dlg.exec():
             return
-        self.open_plan_period_tab(dlg.curr_plan_period_id)
+        self.open_plan_period_tab(dlg.curr_plan_period_id, 0, None, None)
 
-    def open_plan_period_tab(self, plan_period_id: UUID):
+    def open_plan_period_tab(self, plan_period_id: UUID, current_index_actors_locals_tabs: int,
+                             curr_person_id: UUID | None, curr_location_id: UUID | None):
         plan_period = db_services.PlanPeriod.get(plan_period_id)
         widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
         self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
         tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, False)
 
-        tabs_period.addTab(FrmTabActorPlanPeriods(tabs_period, plan_period), 'Mitarbeiter')
-        tabs_period.addTab(FrmTabLocationPlanPeriods(tabs_period, plan_period), 'Einrichtungen')
+        tab_actor_plan_periods = FrmTabActorPlanPeriods(tabs_period, plan_period)
+        if curr_person_id:
+            tab_actor_plan_periods.data_setup(person_id=curr_person_id)
+        tab_location_plan_periods = FrmTabLocationPlanPeriods(tabs_period, plan_period)
+        if curr_location_id:
+            tab_location_plan_periods.data_setup(location_id=curr_location_id)
+        tabs_period.addTab(tab_actor_plan_periods, 'Mitarbeiter')
+        tabs_period.addTab(tab_location_plan_periods, 'Einrichtungen')
+        tabs_period.setCurrentIndex(current_index_actors_locals_tabs)
 
     def goto_team(self, team_id: UUID):
-        start_config_handler = team_start_config.curr_start_config_handler
-
         if self.curr_team:
-            tabs_planungsmasken = [self.tabs_planungsmasken.widget(i).plan_period_id
-                                   for i in range(self.tabs_planungsmasken.count())]
-            tabs_plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
-            start_config_handler.save_config_for_team(
-                self.curr_team.id,
-                team_start_config.StartConfigTeam(
-                    team_id=self.curr_team.id, tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans
-                )
-            )
+            self.save_current_team_config()
             while self.tabs_planungsmasken.count():
                 self.tabs_planungsmasken.removeTab(0)
             while self.tabs_plans.count():
                 self.tabs_plans.removeTab(0)
 
         self.curr_team = db_services.Team.get(team_id)
-        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
-        for plan_period_id in config_curr_team.tabs_planungsmasken:
-            self.open_plan_period_tab(plan_period_id)
-        for plan_id in config_curr_team.tabs_plans:
-            self.open_plan_tab(plan_id)
+        self.load_current_team_config()
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -508,34 +502,54 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.load_team_settings()
+        curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
+        if curr_team_id:
+            self.curr_team = db_services.Team.get(curr_team_id)
+            self.load_current_team_config()
 
     def exit(self):
         self.close()
 
     def closeEvent(self, event=QCloseEvent):
-        self.save_team_settings()
+        self.save_current_team_config()
         super().closeEvent(event)
 
-    def save_team_settings(self):
-        planungsmasken = [self.tabs_planungsmasken.widget(i).plan_period_id
-                          for i in range(self.tabs_planungsmasken.count())]
-        plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
+    def save_current_team_config(self):
         start_config_handler = team_start_config.curr_start_config_handler
-        start_config = team_start_config.StartConfigTeam(team_id=self.curr_team.id,
-                                                     tabs_planungsmasken=planungsmasken, tabs_plans=plans)
-        start_config_handler.save_config_for_team(self.curr_team.id, start_config)
+        curr_index_planungsmasken = self.tabs_planungsmasken.currentIndex()
+        curr_index_plans = self.tabs_plans.currentIndex()
+        curr_left_tabs_index = self.tabs_left.currentIndex()
+        tabs_planungsmasken = {
+            self.tabs_planungsmasken.widget(i).plan_period_id:
+                {'person_id': self.tabs_planungsmasken.widget(i).findChild(FrmTabActorPlanPeriods).person_id,
+                 'location_id': self.tabs_planungsmasken.widget(i).findChild(FrmTabLocationPlanPeriods).location_id,
+                 'curr_index_actors_locals_tabs': self.tabs_planungsmasken.widget(i).findChild(TabBar).currentIndex()
+                 }
+            for i in range(self.tabs_planungsmasken.count())
+        }
+        tabs_plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
+        start_config_handler.save_config_for_team(
+            self.curr_team.id,
+            team_start_config.StartConfigTeam(
+                team_id=self.curr_team.id, tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans,
+                current_index_planungsmasken_tabs=curr_index_planungsmasken,
+                current_index_plans_tabs=curr_index_plans,
+                current_index_left_tabs=curr_left_tabs_index
+            )
+        )
 
-    def load_team_settings(self):
-        start_config = team_start_config.curr_start_config_handler.get_start_config()
-        if not start_config.default_team_id:
-            return
-        self.curr_team = db_services.Team.get(start_config.default_team_id)
-        start_config_team = team_start_config.curr_start_config_handler.get_start_config_for_team(self.curr_team.id)
-        for pp_id in start_config_team.tabs_planungsmasken:
-            self.open_plan_period_tab(pp_id)
-        for plan_id in start_config_team.tabs_plans:
+    def load_current_team_config(self):
+        start_config_handler = team_start_config.curr_start_config_handler
+        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
+        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
+            self.open_plan_period_tab(plan_period_id,
+                                      pp_tab_config['curr_index_actors_locals_tabs'],
+                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
+        for plan_id in config_curr_team.tabs_plans:
             self.open_plan_tab(plan_id)
+        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
+        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
+        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         if type(actions_menu) == tuple:

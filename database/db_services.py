@@ -7,9 +7,10 @@ from uuid import UUID
 
 from pony.orm import db_session, commit, select
 
-from . import schemas
+from . import schemas, schemas_plan_api
 from .authentication import hash_psw
 from . import models
+from .enums import Gender
 
 
 def log_function_info(cls):
@@ -23,6 +24,52 @@ def logger(func: Callable) -> Callable:
         print(f'Calling {func.__name__} with args {args} and kwargs {kwargs}')
         return func(*args, **kwargs)
     return wrapper
+
+
+class EntitiesApiToDB:
+    @classmethod
+    @db_session
+    def create_project(cls, project: schemas_plan_api.Project) -> schemas.ProjectShow:
+        log_function_info(cls)
+        project_db = models.Project(id=project.id, name=project.name)
+        return schemas.ProjectShow.model_validate(project_db)
+
+    @classmethod
+    @db_session
+    def delete_project(cls, project_id: UUID) -> None:
+        log_function_info(cls)
+        models.Project.get(id=project_id).delete()
+
+    @classmethod
+    @db_session
+    def create_person(cls, person: schemas_plan_api.PersonShow) -> schemas.PersonShow:
+        log_function_info(cls)
+        project_db = models.Project.get_for_update(id=person.project.id)
+        person_db = models.Person(id=person.id, f_name=person.f_name, l_name=person.l_name, gender=Gender.divers,
+                                  email=person.email, phone_nr='', username=person.username, password=person.password,
+                                  project=project_db)
+        return schemas.PersonShow.model_validate(person_db)
+
+    @classmethod
+    @db_session
+    def delete_person(cls, person_id: UUID) -> None:
+        log_function_info(cls)
+        models.Person.get(id=person_id).delete()
+
+    @classmethod
+    @db_session
+    def create_team(cls, team: schemas_plan_api.Team) -> schemas.TeamShow:
+        log_function_info(cls)
+        project_db = models.Project.get_for_update(id=team.dispatcher.project.id)
+        team_db = models.Team(id=team.id, name=team.name, project=project_db)
+        return schemas.TeamShow.model_validate(team_db)
+
+    @classmethod
+    @db_session
+    def delete_team(cls, team_id: UUID) -> None:
+        log_function_info(cls)
+        models.Team.get(id=team_id).delete()
+
 
 
 class Project:

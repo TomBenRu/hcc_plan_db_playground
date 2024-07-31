@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, QFormLayout, QCom
 from pydantic import BaseModel
 
 from configuration import api_remote_config
-from database import schemas_plan_api
+from database import schemas_plan_api, db_services
 
 
 class DlgRemoteAccessPlanApi(QDialog):
@@ -19,8 +19,8 @@ class DlgRemoteAccessPlanApi(QDialog):
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
         self.session = requests.Session()
         self.remote_schemas: dict[str, BaseModel] = {'get_project': schemas_plan_api.Project,
-                                                          'get_persons': schemas_plan_api.PersonShow,
-                                                          'get_teams': schemas_plan_api.Team}
+                                                     'get_persons': schemas_plan_api.PersonShow,
+                                                     'get_teams': schemas_plan_api.Team}
         self.login_to_api()
 
         self.setup_layout()
@@ -56,14 +56,34 @@ class DlgRemoteAccessPlanApi(QDialog):
         QMessageBox.information(self, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
         self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
 
-    def accept(self):
-        endpoint = self.combo_endpoint.currentData()
+    def proof_for_data_in_db(self, response: requests.Response):
         schema = self.remote_schemas[self.combo_endpoint.currentText()]
-        response = self.session.get(f'{self.config_remote.host}/{endpoint}')
-        print(response.json())
+        if self.combo_endpoint.currentText() == 'get_project':
+            entity: schemas_plan_api.Project = schema.model_validate(response.json())
+            project_in_db = db_services.Project.get_all()
+            if entity.name in [p.name for p in project_in_db] or entity.id in [p.id for p in project_in_db]:
+                QMessageBox.critical(self, 'Fehler', 'Projekt mit diesem Namen oder ID existiert bereits')
+                return
+            else:
+
         if isinstance(response.json(), list):
             pprint.pprint([schema.model_validate(d) for d in response.json()])
         else:
             pprint.pprint(schema.model_validate(response.json()))
+
+    def write_entity_to_db(self, entity):
+        ...
+
+    def get_data_from_endpoint(self):
+        endpoint = self.combo_endpoint.currentData()
+        response = self.session.get(f'{self.config_remote.host}/{endpoint}')
+        self.proof_for_data_in_db(response)
+
+    def accept(self):
+        self.get_data_from_endpoint()
+        # super().accept()
+
+
+
 
 

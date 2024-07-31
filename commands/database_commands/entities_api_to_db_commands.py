@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from commands.command_base_classes import Command
 from database import schemas_plan_api, schemas, db_services
 
@@ -52,13 +54,25 @@ class WriteTeamToDB(Command):
 
 
 class WritePlanPeriodToDB(Command):
-    def __init__(self, plan_period: schemas_plan_api.PlanPeriod):
+    def __init__(self, plan_period: schemas_plan_api.PlanPeriod, person_ids: set[UUID], location_ids: set[UUID]):
         super().__init__()
         self.plan_period = plan_period
+        self.location_ids = location_ids
+        self.person_ids = person_ids
         self.created_plan_period: schemas.PlanPeriod | None = None
+        self.created_actor_plan_periods: list[schemas.ActorPlanPeriodShow] = []
+        self.created_location_plan_periods: list[schemas.LocationPlanPeriodShow] = []
 
     def execute(self):
         self.created_plan_period = db_services.EntitiesApiToDB.create_plan_period(self.plan_period)
+        for person_id in self.person_ids:
+            self.created_actor_plan_periods.append(
+                db_services.ActorPlanPeriod.create(self.created_plan_period.id, person_id)
+            )
+        for location_id in self.location_ids:
+            self.created_location_plan_periods.append(
+                db_services.LocationPlanPeriod.create(self.created_plan_period.id, location_id)
+            )
 
     def undo(self):
         db_services.EntitiesApiToDB.delete_plan_period(self.created_plan_period.id)

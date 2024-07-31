@@ -1,3 +1,4 @@
+import datetime
 import json
 import pprint
 from typing import Union
@@ -13,6 +14,22 @@ from commands import command_base_classes
 from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services, schemas
+from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
+
+
+def get_locations_actors_in_period(start: datetime.date, end: datetime.date,
+                                   team_id: UUID) -> tuple[set[UUID], set[UUID]]:
+    """Gibt ein Tuple von Sets zurück: location_ids, actor_ids"""
+    location_ids = set()
+    actor_ids = set()
+    for delta in range((end - start).days + 1):
+        location_ids |= {
+            loc.id for loc in
+            get_locations_of_team_at_date(team_id, start + datetime.timedelta(days=delta))}
+        actor_ids |= {
+            pers.id for pers in
+            get_persons_of_team_at_date(team_id, start + datetime.timedelta(days=delta))}
+    return location_ids, actor_ids
 
 
 class DlgChooseTeam(QDialog):
@@ -141,6 +158,14 @@ class DlgRemoteAccessPlanApi(QDialog):
                                             f'Team mit Namen {entity.name} und ID {entity.id}\n'
                                             f'wurde angelegt.')
         elif self.combo_endpoint.currentText() == 'get_plan_periods':
+            team_id = response.json()[0]['team']['id']
+            question = QMessageBox.warning(self, 'Planperioden hinzufügen',
+                                           f'Wenn sie fortfahren werden alle zum Löschen markierten Planperioden '
+                                           f'endgültig gelöscht.\nSind sie sicher, dass sie fortfahren wollen?',
+                                           QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.Cancel)
+            if question == QMessageBox.StandardButton.Cancel:
+                return
+            db_services.PlanPeriod.delete_prep_deletes(UUID(team_id))
             for p in sorted(response.json(), key=lambda x: x['start']):
                 entity: schemas_plan_api.PlanPeriod = schemas_plan_api.PlanPeriod.model_validate(p)
                 plan_periods_in_db = db_services.PlanPeriod.get_all_from__project(self.project_id)
@@ -153,8 +178,9 @@ class DlgRemoteAccessPlanApi(QDialog):
                                                     f'Soll die Planperiode hinzugefügt werde?\n'
                                                     f'{entity.start: %d.%m.%y} - {entity.end: %d.%m.%y}')
                     if question == QMessageBox.StandardButton.Yes:
-                        print(entity.start, entity.end, entity.notes)
-                        command = entities_api_to_db_commands.WritePlanPeriodToDB(entity)
+                        location_ids, person_ids = get_locations_actors_in_period(entity.start, entity.end,
+                                                                                  entity.team.id)
+                        command = entities_api_to_db_commands.WritePlanPeriodToDB(entity, person_ids, location_ids)
                         self.controller.execute(command)
                         QMessageBox.information(self, 'Erfolg',
                                                 f'Plan {entity.start: %d.%m.%y} - {entity.end: %d.%m.%y}, '

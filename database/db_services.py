@@ -954,9 +954,7 @@ class PlanPeriod:
     def delete(cls, plan_period_id: UUID) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
-        print(f'{plan_period_db=}')
         plan_period_db.prep_delete = datetime.datetime.utcnow()
-        print(f'{plan_period_db.prep_delete=}')
 
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
@@ -972,7 +970,7 @@ class PlanPeriod:
     @classmethod
     @db_session(sql_debug=True, show_values=True)
     def delete_prep_deletes(cls, team_id: UUID):
-        pp_with_prep_deletes_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id and pp.Prep_delete)
+        pp_with_prep_deletes_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id and pp.prep_delete)
         for plan_period in pp_with_prep_deletes_db:
             plan_period.delete()
 

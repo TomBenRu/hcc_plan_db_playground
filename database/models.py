@@ -117,6 +117,7 @@ class Project(db.Entity):
 
 
 class Team(db.Entity):
+    # not_sure: time_of_days, time_of_day_standards auch hier?
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())

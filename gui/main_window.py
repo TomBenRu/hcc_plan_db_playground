@@ -42,7 +42,8 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
+        # self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
+        self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
         # self.choose_project()
         self.curr_team: schemas.TeamShow | None = None
 
@@ -499,7 +500,7 @@ class MainWindow(QMainWindow):
         print('Hilfe...')
 
     def import_from_plan_api(self):
-        dlg = DlgRemoteAccessPlanApi(self)
+        dlg = DlgRemoteAccessPlanApi(self, self.project_id)
         if not dlg.exec():
             return
 

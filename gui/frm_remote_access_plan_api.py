@@ -1,6 +1,7 @@
 import json
 import pprint
 from typing import Union
+from uuid import UUID
 
 import jwt
 import requests
@@ -14,10 +15,11 @@ from database import schemas_plan_api, db_services
 
 
 class DlgRemoteAccessPlanApi(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, project_id: UUID = None):
         super().__init__(parent)
         self.setWindowTitle('Plan API')
 
+        self.project_id = project_id
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
         self.session = requests.Session()
@@ -65,17 +67,44 @@ class DlgRemoteAccessPlanApi(QDialog):
             entity: schemas_plan_api.Project = schema.model_validate(response.json())
             project_in_db = db_services.Project.get_all()
             if entity.name in [p.name for p in project_in_db] or entity.id in [p.id for p in project_in_db]:
-                QMessageBox.critical(self, 'Fehler', 'Projekt mit diesem Namen oder ID existiert bereits')
+                QMessageBox.critical(self, 'Fehler', f'Projekt mit diesem Namen oder ID existiert bereits:\n'
+                                                     f'{entity.name}, id: {entity.id}')
                 return
             else:
                 command = entities_api_to_db_commands.WriteProjectToDB(entity)
                 self.controller.execute(command)
-                print(command.created_project)
-
-        if isinstance(response.json(), list):
-            pprint.pprint([schema.model_validate(d) for d in response.json()])
-        else:
-            pprint.pprint(schema.model_validate(response.json()))
+                QMessageBox.information(self, 'Erfolg', f'Projekt mit Namen {entity.name} und ID {entity.id}\n'
+                                                        f'wurde angelegt.')
+        elif self.combo_endpoint.currentText() == 'get_persons':
+            for p in response.json():
+                entity: schemas_plan_api.PersonShow = schema.model_validate(p)
+                persons_in_db = db_services.Person.get_all_from__project(self.project_id)
+                if (entity.f_name in [p.f_name for p in persons_in_db]
+                        or entity.l_name in [p.l_name for p in persons_in_db]
+                        or entity.id in [p.id for p in persons_in_db]):
+                    QMessageBox.critical(self, 'Fehler', f'Person mit diesem Namen oder ID existiert bereits:\n'
+                                                         f'{entity.f_name} {entity.l_name}, id: {entity.id}')
+                    continue
+                else:
+                    command = entities_api_to_db_commands.WritePersonToDB(entity)
+                    self.controller.execute(command)
+                    QMessageBox.information(self, 'Erfolg',
+                                            f'Person mit Namen {entity.f_name} {entity.l_name} und ID {entity.id}\n'
+                                            f'wurde angelegt.')
+        elif self.combo_endpoint.currentText() == 'get_teams':
+            for t in response.json():
+                entity: schemas_plan_api.Team = schema.model_validate(t)
+                teams_in_db = db_services.Team.get_all_from__project(self.project_id)
+                if entity.name in [t.name for t in teams_in_db] or entity.id in [t.id for t in teams_in_db]:
+                    QMessageBox.critical(self, 'Fehler', f'Team mit diesem Namen oder ID existiert bereits:\n'
+                                                         f'{entity.name}, id: {entity.id}')
+                    continue
+                else:
+                    command = entities_api_to_db_commands.WriteTeamToDB(entity)
+                    self.controller.execute(command)
+                    QMessageBox.information(self, 'Erfolg',
+                                            f'Team mit Namen {entity.name} und ID {entity.id}\n'
+                                            f'wurde angelegt.')
 
     def write_entity_to_db(self, entity):
         ...

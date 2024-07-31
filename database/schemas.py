@@ -85,7 +85,7 @@ class Person(PersonCreate):
 
     id: UUID
     project: 'Project'
-    address: 'Address'
+    address: Optional['Address'] = None
     notes: Optional[str] = None
     prep_delete: Optional[datetime.datetime]
     requested_assignments: int

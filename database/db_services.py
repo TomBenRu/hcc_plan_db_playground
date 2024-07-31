@@ -45,9 +45,11 @@ class EntitiesApiToDB:
     def create_person(cls, person: schemas_plan_api.PersonShow) -> schemas.PersonShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=person.project.id)
+        address_db = models.Address(street='keine Angabe', postal_code='keine Angabe',
+                                    city='keine Angabe', project=project_db)
         person_db = models.Person(id=person.id, f_name=person.f_name, l_name=person.l_name, gender=Gender.divers,
                                   email=person.email, phone_nr='', username=person.username, password=person.password,
-                                  project=project_db)
+                                  project=project_db, address=address_db)
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod

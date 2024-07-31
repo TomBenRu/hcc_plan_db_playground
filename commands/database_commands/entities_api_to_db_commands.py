@@ -1,5 +1,5 @@
 from commands.command_base_classes import Command
-from database import schemas_plan_api, schemas
+from database import schemas_plan_api, schemas, db_services
 
 
 class WriteProjectToDB(Command):
@@ -10,10 +10,30 @@ class WriteProjectToDB(Command):
         self.created_project: schemas.ProjectShow | None = None
 
     def execute(self):
-        self.created_project = db_services.Project.create(self.project)
+        self.created_project = db_services.EntitiesApiToDB.create_project.create(self.project)
 
     def undo(self):
-        db_services.Project.delete(self.created_project.id)
+        db_services.EntitiesApiToDB.delete_project(self.created_project.id)
 
     def redo(self):
-        db_services.Project.undelete(self.created_project.id)
+        raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+
+class WritePersonToDB(Command):
+    def __init__(self, person: schemas_plan_api.PersonShow):
+        super().__init__()
+        self.person = person
+        self.created_person: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.created_person = db_services.EntitiesApiToDB.create_person(self.person)
+
+    def undo(self):
+        db_services.EntitiesApiToDB.delete_person(self.created_person.id)
+
+    def redo(self):
+        raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+
+class WriteTeamToDB(Command):
+    def __init__(self):

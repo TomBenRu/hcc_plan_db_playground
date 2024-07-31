@@ -71,7 +71,6 @@ class EntitiesApiToDB:
         models.Team.get(id=team_id).delete()
 
 
-
 class Project:
     @classmethod
     @db_session

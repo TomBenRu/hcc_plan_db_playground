@@ -7,6 +7,8 @@ import requests
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox
 from pydantic import BaseModel
 
+from commands import command_base_classes
+from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services
 
@@ -16,6 +18,7 @@ class DlgRemoteAccessPlanApi(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Plan API')
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
         self.session = requests.Session()
         self.remote_schemas: dict[str, BaseModel] = {'get_project': schemas_plan_api.Project,
@@ -65,6 +68,9 @@ class DlgRemoteAccessPlanApi(QDialog):
                 QMessageBox.critical(self, 'Fehler', 'Projekt mit diesem Namen oder ID existiert bereits')
                 return
             else:
+                command = entities_api_to_db_commands.WriteProjectToDB(entity)
+                self.controller.execute(command)
+                print(command.created_project)
 
         if isinstance(response.json(), list):
             pprint.pprint([schema.model_validate(d) for d in response.json()])

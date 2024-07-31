@@ -49,3 +49,19 @@ class WriteTeamToDB(Command):
 
     def redo(self):
         raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+
+class WritePlanPeriodToDB(Command):
+    def __init__(self, plan_period: schemas_plan_api.PlanPeriod):
+        super().__init__()
+        self.plan_period = plan_period
+        self.created_plan_period: schemas.PlanPeriod | None = None
+
+    def execute(self):
+        self.created_plan_period = db_services.EntitiesApiToDB.create_plan_period(self.plan_period)
+
+    def undo(self):
+        db_services.EntitiesApiToDB.delete_plan_period(self.created_plan_period.id)
+
+    def redo(self):
+        raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')

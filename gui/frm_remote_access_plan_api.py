@@ -5,13 +5,47 @@ from uuid import UUID
 
 import jwt
 import requests
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox, \
+    QWidget
 from pydantic import BaseModel
 
 from commands import command_base_classes
 from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
-from database import schemas_plan_api, db_services
+from database import schemas_plan_api, db_services, schemas
+
+
+class DlgChooseTeam(QDialog):
+    def __init__(self, parent: QWidget, project_id: UUID):
+        super().__init__(parent)
+        self.setWindowTitle('Team')
+
+        self.project_id = project_id
+        self.team_id: UUID | None = None
+        self.layout = QVBoxLayout(self)
+        self.group_team = QGroupBox('Team')
+        self.layout.addWidget(self.group_team)
+        self.form_team = QFormLayout(self.group_team)
+        self.combo_team = QComboBox(self)
+        self.form_team.addRow('auswählen:', self.combo_team)
+        self.fill_combo_team()
+
+        self.create_button_box()
+
+    def fill_combo_team(self):
+        for team in db_services.Team.get_all_from__project(self.project_id):
+            self.combo_team.addItem(team.name, team.id)
+
+    def create_button_box(self):
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+    def accept(self):
+        self.team_id = self.combo_team.currentData()
+        super().accept()
+
 
 
 class DlgRemoteAccessPlanApi(QDialog):
@@ -25,7 +59,8 @@ class DlgRemoteAccessPlanApi(QDialog):
         self.session = requests.Session()
         self.remote_schemas: dict[str, BaseModel] = {'get_project': schemas_plan_api.Project,
                                                      'get_persons': schemas_plan_api.PersonShow,
-                                                     'get_teams': schemas_plan_api.Team}
+                                                     'get_teams': schemas_plan_api.Team,
+                                                     'get_plan_periods': schemas_plan_api.PlanPeriod}
         self.login_to_api()
 
         self.setup_layout()
@@ -105,13 +140,39 @@ class DlgRemoteAccessPlanApi(QDialog):
                     QMessageBox.information(self, 'Erfolg',
                                             f'Team mit Namen {entity.name} und ID {entity.id}\n'
                                             f'wurde angelegt.')
+        elif self.combo_endpoint.currentText() == 'get_plan_periods':
+            for p in sorted(response.json(), key=lambda x: x['start']):
+                entity: schemas_plan_api.PlanPeriod = schemas_plan_api.PlanPeriod.model_validate(p)
+                plan_periods_in_db = db_services.PlanPeriod.get_all_from__project(self.project_id)
+                if entity.id in [p.id for p in plan_periods_in_db]:
+                    QMessageBox.critical(self, 'Fehler', f'Plan-Periode mit dieser ID existiert bereits:\n'
+                                                         f'id: {entity.id}')
+                    continue
+                else:
+                    question = QMessageBox.question(self, 'Planperiode hinzufügen',
+                                                    f'Soll die Planperiode hinzugefügt werde?\n'
+                                                    f'{entity.start: %d.%m.%y} - {entity.end: %d.%m.%y}')
+                    if question == QMessageBox.StandardButton.Yes:
+                        print(entity.start, entity.end, entity.notes)
+                        command = entities_api_to_db_commands.WritePlanPeriodToDB(entity)
+                        self.controller.execute(command)
+                        QMessageBox.information(self, 'Erfolg',
+                                                f'Plan {entity.start: %d.%m.%y} - {entity.end: %d.%m.%y}, '
+                                                f'ID {entity.id}\nwurde angelegt.')
 
     def write_entity_to_db(self, entity):
         ...
 
     def get_data_from_endpoint(self):
         endpoint = self.combo_endpoint.currentData()
-        response = self.session.get(f'{self.config_remote.host}/{endpoint}')
+        if self.combo_endpoint.currentText() == 'get_plan_periods':
+            dlg = DlgChooseTeam(self, self.project_id)
+            if not dlg.exec():
+                return
+            team_id = str(dlg.team_id)
+            response = self.session.get(f'{self.config_remote.host}/{endpoint}', params={'team_id': team_id})
+        else:
+            response = self.session.get(f'{self.config_remote.host}/{endpoint}')
         self.proof_for_data_in_db(response)
 
     def accept(self):

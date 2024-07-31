@@ -15,6 +15,7 @@ class Endpoints(BaseModel):
     get_project: str
     get_persons: str
     get_teams: str
+    get_plan_periods: str
 
 
 class ApiRemote(BaseModel):

@@ -72,6 +72,22 @@ class EntitiesApiToDB:
         log_function_info(cls)
         models.Team.get(id=team_id).delete()
 
+    @classmethod
+    @db_session
+    def create_plan_period(cls, plan_period: schemas_plan_api.PlanPeriod) -> schemas.PlanPeriodShow:
+        log_function_info(cls)
+        team_db = models.Team.get_for_update(id=plan_period.team.id)
+        plan_period_db = models.PlanPeriod(id=plan_period.id, start=plan_period.start, end=plan_period.end,
+                                           deadline=plan_period.deadline, notes=plan_period.notes,
+                                           closed=plan_period.closed, remainder=True, team=team_db)
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
+
+    @classmethod
+    @db_session
+    def delete_plan_period(cls, plan_period_id: UUID) -> None:
+        log_function_info(cls)
+        models.PlanPeriod.get(id=plan_period_id).delete()
+
 
 class Project:
     @classmethod

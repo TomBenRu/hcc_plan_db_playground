@@ -1,13 +1,7 @@
 import functools
-import json
 import os.path
-import sys
-from typing import Tuple
 from uuid import UUID
 
-import jwt
-import requests
-from PySide6 import QtCore
 from PySide6.QtCore import QRect, QPoint
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
@@ -42,7 +36,6 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        # self.project_id = UUID('38A5C448ED054C6BB6BED838E8CD3AE3')
         self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
         # self.choose_project()
         self.curr_team: schemas.TeamShow | None = None

@@ -581,7 +581,10 @@ class DlgGroupMode(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.bt_edit_main_group = QPushButton('Hauptgruppe bearbeiten',
+        num_groups = (builder.master_group.nr_avail_day_groups if builder.mandatory_nr_group_field
+                      else builder.master_group.nr_event_groups)
+        text_master_group = f'Hauptgruppe bearbeiten (mögl. Anzahl: {"alle" if num_groups is None else num_groups})'
+        self.bt_edit_main_group = QPushButton(text_master_group,
                                               clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
         self.layout_body.addWidget(self.bt_edit_main_group)
         self.tree_groups = TreeWidget(self.builder, self.item_moved)
@@ -691,6 +694,8 @@ class DlgGroupMode(QDialog):
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         nr_groups = self.builder.get_nr_groups_from_group(new_group_data)
         text_nr_groups = str(nr_groups) if nr_groups else 'alle'
+        if item == self.tree_groups.invisibleRootItem():
+            self.bt_edit_main_group.setText(f'Hauptgruppe bearbeiten (mögl. Anzahl: {text_nr_groups})')
         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)
         item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
         child_items = (item.child(i) for i in range(item.childCount()))

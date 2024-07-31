@@ -236,7 +236,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location_id: UUID | None = None
         self.location: schemas.PersonShow | None = None
         self.frame_events: FrmLocationPlanPeriod | None = None
-        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
+        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum der Einrichtung:')
         self.lb_notes_pp.setFixedHeight(20)
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)

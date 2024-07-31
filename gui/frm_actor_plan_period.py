@@ -553,7 +553,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.person: schemas.PersonShow | None = None
 
         self.frame_availables: FrmActorPlanPeriod | None = None
-        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum:')
+        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum der Person:')
         self.lb_notes_pp.setFixedHeight(20)
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)

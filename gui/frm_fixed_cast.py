@@ -303,6 +303,8 @@ class DlgFixedCast(QDialog):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
+        self.fixed_cast_simplified: str | None = None
+
         self.col_operator_between_rows = 2
         self.width_cb_actors = 150
         self.width_bt_new_row = 30
@@ -393,8 +395,8 @@ class DlgFixedCast(QDialog):
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
         if self.object_with_fixed_cast.fixed_cast:
             simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
-            fixed_cast_simplified = simplifier.simplified_fixed_cast
-            self.controller.execute(self.builder.update_command(fixed_cast_simplified))
+            self.fixed_cast_simplified = simplifier.simplified_fixed_cast
+            self.controller.execute(self.builder.update_command(self.fixed_cast_simplified))
 
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
                 # fixme: für cast_groups ohne event

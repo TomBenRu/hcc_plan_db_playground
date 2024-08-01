@@ -201,7 +201,9 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         signal_handling.handler_location_plan_period.signal_reset_styling_fixed_cast_configs.connect(
             self.reset_styling
         )
+        self.clicked.connect(self.set_fixed_casts_of_day)
 
+        self.parent = parent
         self.location_plan_period = location_plan_period
         self.date = date
         self.setObjectName(f'fixed_cast: {date}')
@@ -212,13 +214,16 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
         self.set_stylesheet()
 
-    def check_fixed_cast__eq_to__local_pp(self):
+    def cast_groups_with_event_at_day(self):
         cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
         cast_groups_at_day = [c for c in cast_groups_of_pp
                               if c.event
                               and c.event.location_plan_period.id == self.location_plan_period.id
                               and c.event.date == self.date]
-        if not cast_groups_at_day:
+        return cast_groups_at_day
+
+    def check_fixed_cast__eq_to__local_pp(self):
+        if not (cast_groups_at_day := self.cast_groups_with_event_at_day()):
             return
         fixed_casts_at_day = [c.fixed_cast for c in cast_groups_at_day]
         return (
@@ -246,6 +251,19 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                 f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
                 f"ButtonFixedCast::disabled {{ background-color: "
                 f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
+
+    @Slot()
+    def set_fixed_casts_of_day(self):
+        if not (cast_groups_at_day := self.cast_groups_with_event_at_day()):
+            QMessageBox.information(self, 'Feste Besetzung am Tag',
+                                    f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_groups_at_day[0]).build()
+        if dlg.exec():
+            if len(cast_groups_at_day) > 1:
+                for cg in cast_groups_at_day[1:]:
+                    cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified).execute()
+            self.set_stylesheet()
 
     @Slot(signal_handling.DataLocationPPWithDate)
     def reload_location_plan_period(self, data: signal_handling.DataLocationPPWithDate):
@@ -662,7 +680,6 @@ class FrmLocationPlanPeriod(QWidget):
         ...
 
     def edit_fixed_cast(self):
-        # todo: noch implementieren: Signale an Config-Buttons
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())

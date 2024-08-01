@@ -612,6 +612,13 @@ class FrmLocationPlanPeriod(QWidget):
 
     def reset_all_fixed_cast(self):
         # todo: noch implementieren
+        reply = QMessageBox.question(self, 'Besetzungen zurücksetzen',
+                                        f'Möchten Sie wirklich die Festen Besetzungen aller Events auf den '
+                                        f'Besetzungsstandard der dieser Planungsperiode von '
+                                        f'{self.location_plan_period.location_of_work.name} '
+                                        f'{self.location_plan_period.location_of_work.address.city} zurücksetzen?')
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         cast_groups_of_plan_period = db_services.CastGroup.get_all_from__plan_period(
             self.location_plan_period.plan_period.id)
         event_cast_groups = (c for c in cast_groups_of_plan_period
@@ -621,6 +628,9 @@ class FrmLocationPlanPeriod(QWidget):
         for c in event_cast_groups:
             command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast)
             self.controller.execute(command)
+
+        QMessageBox.information(self, 'Besetzungen zurücksetzen',
+                                'Die Besetzungen aller Events wurden erfolgreich zurückgesetzt.')
 
 
 

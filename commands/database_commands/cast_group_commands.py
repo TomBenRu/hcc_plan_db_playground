@@ -66,7 +66,6 @@ class RemoveFromParent(Command):
         db_services.CastGroup.remove_from_parent(self.cast_group_id, self.parent_group_id)
 
 
-
 class UpdateFixedCast(Command):
     def __init__(self, cast_group_id: UUID, fixed_cast: str):
         self.cast_group_id = cast_group_id

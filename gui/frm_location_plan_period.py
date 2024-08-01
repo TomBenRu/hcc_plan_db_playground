@@ -1,6 +1,7 @@
 import datetime
 import functools
 import os
+from pprint import pprint
 from typing import Callable, Literal
 from uuid import UUID
 
@@ -17,7 +18,7 @@ from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widge
 from gui.custom_widgets import side_menu
 from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import event_commands
+from commands.database_commands import event_commands, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -611,7 +612,17 @@ class FrmLocationPlanPeriod(QWidget):
 
     def reset_all_fixed_cast(self):
         # todo: noch implementieren
-        ...
+        cast_groups_of_plan_period = db_services.CastGroup.get_all_from__plan_period(
+            self.location_plan_period.plan_period.id)
+        event_cast_groups = (c for c in cast_groups_of_plan_period
+                             if c.event
+                             and c.event.location_plan_period.id == self.location_plan_period.id
+                             and c.fixed_cast != self.location_plan_period.fixed_cast)
+        for c in event_cast_groups:
+            command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast)
+            self.controller.execute(command)
+
+
 
 
 if __name__ == '__main__':

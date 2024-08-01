@@ -41,10 +41,11 @@ class ButtonEvent(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
         super().__init__(parent)
+        self.slot__event_toggled = slot__event_toggled
         self.setObjectName(f'{date}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCheckable(True)
-        self.clicked.connect(lambda: slot__event_toggled(self))
+        self.clicked.connect(self.button_clicked)
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -75,12 +76,6 @@ class ButtonEvent(QPushButton):
         self.create_actions_times_of_day()
         self.menu_times_of_day.addActions(self.actions)
         self.set_tooltip()
-
-    # def deleteLater(self):
-    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
-    #     signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect(self.set_group_mode)
-    #     signal_handling.handler_location_plan_period.signal_reload_location_pp__events.disconnect(self.reload_location_plan_period)
-    #     super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
@@ -189,6 +184,13 @@ class ButtonEvent(QPushButton):
         else:
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
+    @Slot()
+    def button_clicked(self):
+        self.slot__event_toggled(self)
+        signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
+            signal_handling.DataDate(self.date)
+        )
+
 
 class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Besetzung der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
@@ -257,6 +259,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         if not (cast_groups_at_day := self.cast_groups_with_event_at_day()):
             QMessageBox.information(self, 'Feste Besetzung am Tag',
                                     f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            return
 
         dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_groups_at_day[0]).build()
         if dlg.exec():

@@ -69,10 +69,12 @@ class WritePlanPeriodToDB(Command):
             self.created_actor_plan_periods.append(
                 db_services.ActorPlanPeriod.create(self.created_plan_period.id, person_id)
             )
+            db_services.AvailDayGroup.create(actor_plan_period_id=self.created_actor_plan_periods[-1].id)
         for location_id in self.location_ids:
             self.created_location_plan_periods.append(
                 db_services.LocationPlanPeriod.create(self.created_plan_period.id, location_id)
             )
+            db_services.EventGroup.create(location_plan_period_id=self.created_location_plan_periods[-1].id)
 
     def undo(self):
         db_services.EntitiesApiToDB.delete_plan_period(self.created_plan_period.id)

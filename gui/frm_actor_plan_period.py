@@ -918,7 +918,8 @@ class FrmActorPlanPeriod(QWidget):
 
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
 
-    def set_button_avail_day_to_checked(self, date: datetime.date, time_of_day: schemas.TimeOfDay):
+    def set_button_avail_day_to_checked(self, date: datetime.date,
+                                        time_of_day: schemas.TimeOfDay) -> ButtonAvailDay | None:
         button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{date}-{time_of_day.time_of_day_enum.name}')
         if not button:
             QMessageBox.critical(self, 'Fehlende Standards',
@@ -931,6 +932,8 @@ class FrmActorPlanPeriod(QWidget):
         button.create_actions()
         button.reset_context_menu(self.actor_plan_period)
         button.set_tooltip()
+
+        return button
 
     def get_avail_days(self):
         avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
@@ -1145,11 +1148,11 @@ class FrmActorPlanPeriod(QWidget):
 
                 for abbreviation in abbreviation_dict[day.time_of_day.value]:
                     date = day.day
-                    pprint.pprint(self.actor_plan_period.time_of_day_standards)
                     t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
                                  if t.time_of_day_enum.abbreviation == abbreviation)
-                    self.set_button_avail_day_to_checked(date, t_o_d)
-
+                    button_avail_day = self.set_button_avail_day_to_checked(date, t_o_d)
+                    if button_avail_day:
+                        self.save_avail_day(button_avail_day)
 
 
 if __name__ == '__main__':

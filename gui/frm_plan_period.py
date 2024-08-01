@@ -291,8 +291,6 @@ class DlgPlanPeriodEdit(QDialog):
     def delete(self):
         reply = QMessageBox.question(self, 'Planungsperiode löschen',
                                      'Wollen Sie diese Planungsperiode wirklich löschen?')
-        print(f'{reply=}')
         if reply == QMessageBox.StandardButton.Yes:
-            print('accepted')
             plan_period_commands.Delete(self.cb_planperiods.currentData().id).execute()
             self.accept()

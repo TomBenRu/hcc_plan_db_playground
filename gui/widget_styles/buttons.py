@@ -60,3 +60,12 @@ class PartnerLocPrefs:
                           group: Literal['locs', 'partners']) -> tuple[str, str]:
         """Returns a tuple (button text, bg color)"""
         return cls.dict_style_buttons[style]['text'][group], cls.dict_style_buttons[style]["color"][group]
+
+
+class ConfigButtonsInCheckFields:
+    standard_colors = "#fff4d6"
+    standard_colors_disabled = "#6e6e6e"
+    all_properties_are_default = "#acf49f"
+    all_properties_are_default_disabled = "#6e6e6e"
+    any_properties_are_different = "#f4b2a5"
+    any_properties_are_different_disabled = "#6e6e6e"

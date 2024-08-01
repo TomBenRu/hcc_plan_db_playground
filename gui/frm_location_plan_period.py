@@ -193,11 +193,51 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
+        self.location_plan_period = location_plan_period
+        self.date = date
         self.setObjectName(f'fixed_cast: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
+
+        self.set_stylesheet()
+
+    def check_fixed_cast__eq_to__local_pp(self):
+        cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
+        cast_groups_at_day = [c for c in cast_groups_of_pp
+                              if c.event
+                              and c.event.location_plan_period.id == self.location_plan_period.id
+                              and c.event.date == self.date]
+        print(f'{self.date}:\n{[c.fixed_cast for c in cast_groups_at_day]}')
+        if not cast_groups_at_day:
+            return
+        fixed_casts_at_day = [c.fixed_cast for c in cast_groups_at_day]
+        return (
+            len(set(fixed_casts_at_day)) == 1
+            and fixed_casts_at_day[0] == self.location_plan_period.fixed_cast
+        )
+
+    def set_stylesheet(self):
+        check_all_equal = self.check_fixed_cast__eq_to__local_pp()
+        if check_all_equal is None:
+            self.setStyleSheet(
+                f"ButtonFixedCast {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonFixedCast::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
+        elif check_all_equal:
+            self.setStyleSheet(
+                f"ButtonFixedCast {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonFixedCast::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
+        else:
+            self.setStyleSheet(
+                f"ButtonFixedCast {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonFixedCast::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag

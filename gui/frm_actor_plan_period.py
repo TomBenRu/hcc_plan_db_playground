@@ -196,15 +196,23 @@ class ButtonCombLocPossible(QPushButton):
     def set_stylesheet(self):
         check_comb_of_day__eq__comb_of_actor_pp = self.check_comb_of_day__eq__comb_of_actor_pp()
         if check_comb_of_day__eq__comb_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #fff4d6}}"
-                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonCombLocPossible {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonCombLocPossible::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
         elif check_comb_of_day__eq__comb_of_actor_pp:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #acf49f}}"
-                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonCombLocPossible {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonCombLocPossible::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
         else:
-            self.setStyleSheet(f"ButtonCombLocPossible {{background-color: #f4b2a5}}"
-                               f"ButtonCombLocPossible::disabled {{ background-color: #6e6e6e; }}")
-        'acf49f'
+            self.setStyleSheet(
+                f"ButtonCombLocPossible {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonCombLocPossible::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
         return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
@@ -329,15 +337,23 @@ class ButtonActorLocationPref(QPushButton):
     def set_stylesheet(self):
         check_loc_pref__eq__loc_pref_of_actor_pp = self.check_loc_pref_of_day__eq__loc_pref_of_actor_pp()
         if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #fff4d6;}}"
-                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonActorLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors};}}"
+                f"ButtonActorLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
         elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #acf49f;}}"
-                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonActorLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default};}}"
+                f"ButtonActorLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
         else:
-            self.setStyleSheet(f"ButtonActorLocationPref {{background-color: #f4b2a5;}}"
-                               f"ButtonActorLocationPref::disabled {{ background-color: #6e6e6e; }}")
-        '6e6e6e'
+            self.setStyleSheet(
+                f"ButtonActorLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different};}}"
+                f"ButtonActorLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
         return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
@@ -437,7 +453,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
                                if (not p.prep_delete or p.prep_delete > self.date)
                            and p.id != self.actor_plan_period.person.id}
         locations_at_date_ids = {loc.id for loc in get_locations_of_team_at_date(self.actor_plan_period.team.id, self.date)
-                                if not loc.prep_delete or loc.prep_delete > self.date}
+                                 if not loc.prep_delete or loc.prep_delete > self.date}
 
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
@@ -486,15 +502,23 @@ class ButtonActorPartnerLocationPref(QPushButton):
     def set_stylesheet(self):
         check_loc_pref__eq__loc_pref_of_actor_pp = self.check_pref_of_day__eq__pref_of_actor_pp()
         if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #fff4d6}}"
-                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonActorPartnerLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
         elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #acf49f}}"
-                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
+            self.setStyleSheet(
+                f"ButtonActorPartnerLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
         else:
-            self.setStyleSheet(f"ButtonActorPartnerLocationPref {{background-color: #f4b2a5}}"
-                               f"ButtonActorPartnerLocationPref::disabled {{ background-color: #6e6e6e; }}")
-        'acf49f'
+            self.setStyleSheet(
+                f"ButtonActorPartnerLocationPref {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
 
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
         return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]

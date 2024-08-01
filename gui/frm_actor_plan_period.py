@@ -919,7 +919,7 @@ class FrmActorPlanPeriod(QWidget):
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
 
     def set_button_avail_day_to_checked(self, date: datetime.date,
-                                        time_of_day: schemas.TimeOfDay) -> ButtonAvailDay | None:
+                                        time_of_day: schemas.TimeOfDay, uncheck=False) -> ButtonAvailDay | None:
         button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{date}-{time_of_day.time_of_day_enum.name}')
         if not button:
             QMessageBox.critical(self, 'Fehlende Standards',
@@ -927,7 +927,7 @@ class FrmActorPlanPeriod(QWidget):
                                  f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
                                  f'"{time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
             return
-        button.setChecked(True)
+        button.setChecked(not uncheck)
         button.time_of_day = time_of_day
         button.create_actions()
         button.reset_context_menu(self.actor_plan_period)
@@ -1137,6 +1137,10 @@ class FrmActorPlanPeriod(QWidget):
         self.reload_actor_plan_period()
 
     def fetch_avail_days_from_api(self):
+        for avail_day in self.actor_plan_period.avail_days:
+            db_services.AvailDay.delete(avail_day.id)
+            # todo: besser... send AvailDayButton Signal to uncheck:
+            self.set_button_avail_day_to_checked(avail_day.date, avail_day.time_of_day, True)
         data = fetch_available_days.fetch_data(self, self.actor_plan_period.plan_period.id)
         for dict_notes_days in (d for person_id, d in data.items()
                                 if UUID(person_id) == self.actor_plan_period.person.id):
@@ -1153,6 +1157,9 @@ class FrmActorPlanPeriod(QWidget):
                     button_avail_day = self.set_button_avail_day_to_checked(date, t_o_d)
                     if button_avail_day:
                         self.save_avail_day(button_avail_day)
+        self.reload_actor_plan_period()
+        signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
+            signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
 
 if __name__ == '__main__':

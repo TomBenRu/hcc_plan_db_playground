@@ -19,7 +19,8 @@ from commands.database_commands import cast_group_commands
 from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.frm_cast_rule import simplify_cast_rule
-from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup, generate_fixed_cast_clear_text
+from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup
+from gui.tools.helper_functions import generate_fixed_cast_clear_text
 from gui.observer import signal_handling
 from gui.tools import custom_validators
 from gui.tools.screen import Screen

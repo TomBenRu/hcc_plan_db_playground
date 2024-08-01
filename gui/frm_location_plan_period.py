@@ -16,6 +16,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
 from gui.custom_widgets import side_menu
+from gui.tools import helper_functions
 from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands
@@ -208,32 +209,33 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         self.parent = parent
         self.location_plan_period = location_plan_period
         self.date = date
+        self.cast_groups_at_day: list[schemas.CastGroupShow] = []
         self.setObjectName(f'fixed_cast: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
 
-        self.set_stylesheet()
+        self.set_stylesheet_and_tooltip()
 
     def cast_groups_with_event_at_day(self):
         cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
-        cast_groups_at_day = [c for c in cast_groups_of_pp
-                              if c.event
-                              and c.event.location_plan_period.id == self.location_plan_period.id
-                              and c.event.date == self.date]
-        return cast_groups_at_day
+        self.cast_groups_at_day = [c for c in cast_groups_of_pp
+                                   if c.event
+                                   and c.event.location_plan_period.id == self.location_plan_period.id
+                                   and c.event.date == self.date]
 
     def check_fixed_cast__eq_to__local_pp(self):
-        if not (cast_groups_at_day := self.cast_groups_with_event_at_day()):
+        self.cast_groups_with_event_at_day()
+        if not self.cast_groups_at_day:
             return
-        fixed_casts_at_day = [c.fixed_cast for c in cast_groups_at_day]
+        fixed_casts_at_day = [c.fixed_cast for c in self.cast_groups_at_day]
         return (
             len(set(fixed_casts_at_day)) == 1
             and fixed_casts_at_day[0] == self.location_plan_period.fixed_cast
         )
 
-    def set_stylesheet(self):
+    def set_stylesheet_and_tooltip(self):
         check_all_equal = self.check_fixed_cast__eq_to__local_pp()
         if check_all_equal is None:
             self.setStyleSheet(
@@ -254,19 +256,34 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                 f"ButtonFixedCast::disabled {{ background-color: "
                 f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
 
+        self.set_tooltip()
+
+    def set_tooltip(self):
+        if not self.cast_groups_at_day:
+            additional_txt = ''
+        elif len({cg.fixed_cast for cg in self.cast_groups_at_day}) > 1:
+            additional_txt = '\nBesetzung der Events an diesem Tag:\nUnterschiedliche Besetzungen.'
+        else:
+            cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(self.cast_groups_at_day[0].fixed_cast)
+            additional_txt = (f'\nBesetzung der Events an diesem Tag:\n'
+                              f'{cast_clear_txt or "Keine Festen Besetzungen."}')
+
+        self.setToolTip(f'Hier können die Festen Besetzungen des Tages geändert werden.{additional_txt}')
+
     @Slot()
     def set_fixed_casts_of_day(self):
-        if not (cast_groups_at_day := self.cast_groups_with_event_at_day()):
+        self.cast_groups_with_event_at_day()
+        if not self.cast_groups_at_day:
             QMessageBox.information(self, 'Feste Besetzung am Tag',
                                     f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
             return
 
-        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_groups_at_day[0]).build()
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, self.cast_groups_at_day[0]).build()
         if dlg.exec():
-            if len(cast_groups_at_day) > 1:
-                for cg in cast_groups_at_day[1:]:
+            if len(self.cast_groups_at_day) > 1:
+                for cg in self.cast_groups_at_day[1:]:
                     cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified).execute()
-            self.set_stylesheet()
+            self.set_stylesheet_and_tooltip()
 
     @Slot(signal_handling.DataLocationPPWithDate)
     def reload_location_plan_period(self, data: signal_handling.DataLocationPPWithDate):
@@ -276,7 +293,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
     @Slot(signal_handling.DataDate)
     def reset_styling(self, data: signal_handling.DataDate):
         if (data.date and data.date == self.date) or not data.date:
-            self.set_stylesheet()
+            self.set_stylesheet_and_tooltip()
 
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag

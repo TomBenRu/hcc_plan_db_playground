@@ -720,8 +720,8 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
     """Besetzungen von Events an unterschiedlichen Locations welche am gleichen Tag stattfinden müssen unterschiedlich
        sein.
        Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
-       todo: Diese Funktionalität soll deaktiviert werden: Entweder über Configuration oder durch zusätzliche Felder in
-        Projekt und Team.
+       todo: Diese Funktionalität soll deaktiviert werden können: Entweder über Configuration oder durch zusätzliche
+        Felder in Projekt und Team.
     """
 
     def comb_locations_possible(adg_id_1: UUID, eg_id_1: UUID, adg_id_2: UUID, eg_id_2: UUID) -> bool:

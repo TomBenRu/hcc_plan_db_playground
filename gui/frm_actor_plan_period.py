@@ -1,6 +1,7 @@
 import datetime
 import functools
 import os.path
+import pprint
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -12,12 +13,13 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
 
-from database import schemas, db_services
+from database import schemas, db_services, schemas_plan_api, enums
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
     get_curr_team_of_person_at_date, get_curr_assignment_of_person
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.custom_widgets import side_menu
+from gui.frm_remote_access_plan_api import fetch_available_days
 from gui.tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
@@ -733,6 +735,8 @@ class FrmActorPlanPeriod(QWidget):
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
+        bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
+        self.side_menu.add_button(bt_fetch_avail_days_from_api)
         bt_requested_assignments = QPushButton('Anz. gewünschter Einsätze', clicked=self.set_requested_assignments)
         self.side_menu.add_button(bt_requested_assignments)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
@@ -914,22 +918,37 @@ class FrmActorPlanPeriod(QWidget):
 
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
 
+    def set_button_avail_day_to_checked(self, date: datetime.date, time_of_day: schemas.TimeOfDay):
+        button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{date}-{time_of_day.time_of_day_enum.name}')
+        if not button:
+            QMessageBox.critical(self, 'Fehlende Standards',
+                                 f'Fehler:\n'
+                                 f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
+                                 f'"{time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+            return
+        button.setChecked(True)
+        button.time_of_day = time_of_day
+        button.create_actions()
+        button.reset_context_menu(self.actor_plan_period)
+        button.set_tooltip()
+
     def get_avail_days(self):
         avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete)
         for ad in avail_days:
-            button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{ad.date}-{ad.time_of_day.time_of_day_enum.name}')
-            if not button:
-                QMessageBox.critical(self, 'Fehlende Standards',
-                                     f'Fehler:\n'
-                                     f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
-                                     f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
-                return
-            button.setChecked(True)
-            button.time_of_day = ad.time_of_day
-            button.create_actions()
-            button.reset_context_menu(self.actor_plan_period)
-            button.set_tooltip()
+            self.set_button_avail_day_to_checked(ad.date, ad.time_of_day)
+            # button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{ad.date}-{ad.time_of_day.time_of_day_enum.name}')
+            # if not button:
+            #     QMessageBox.critical(self, 'Fehlende Standards',
+            #                          f'Fehler:\n'
+            #                          f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
+            #                          f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+            #     return
+            # button.setChecked(True)
+            # button.time_of_day = ad.time_of_day
+            # button.create_actions()
+            # button.reset_context_menu(self.actor_plan_period)
+            # button.set_tooltip()
 
     def set_requested_assignments(self):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
@@ -1113,6 +1132,24 @@ class FrmActorPlanPeriod(QWidget):
                 button_partner_location_pref.reload_actor_plan_period()
                 button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
+
+    def fetch_avail_days_from_api(self):
+        data = fetch_available_days.fetch_data(self, self.actor_plan_period.plan_period.id)
+        for dict_notes_days in (d for person_id, d in data.items()
+                                if UUID(person_id) == self.actor_plan_period.person.id):
+            notes = dict_notes_days['notes']
+            self.parent.te_notes_pp.setText(notes)
+            for day in dict_notes_days['days']:
+                day: schemas_plan_api.AvailDay
+                abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
+
+                for abbreviation in abbreviation_dict[day.time_of_day.value]:
+                    date = day.day
+                    pprint.pprint(self.actor_plan_period.time_of_day_standards)
+                    t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
+                                 if t.time_of_day_enum.abbreviation == abbreviation)
+                    self.set_button_avail_day_to_checked(date, t_o_d)
+
 
 
 if __name__ == '__main__':

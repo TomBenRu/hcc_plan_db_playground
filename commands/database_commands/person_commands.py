@@ -181,6 +181,7 @@ class RemoveActorPartnerLocationPref(Command):
 
 
 class AssignToTeam(Command):
+    # todo: ActorPlanPeriods für alle PlanPeriods des Teams ab start hinzufügen.
     def __init__(self, person_id: UUID, team_id: UUID, start: datetime.date):
         self.person_id = person_id
         self.team_id = team_id
@@ -299,3 +300,5 @@ class RemoveFlag(Command):
 
     def redo(self):
         db_services.Person.remove_flag(self.person_id, self.flag_id)
+
+# todo: Create hinzufügen.

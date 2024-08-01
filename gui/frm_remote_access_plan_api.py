@@ -11,6 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services, schemas
+from database.schemas_plan_api import AvailDay
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
 
 
@@ -201,6 +202,39 @@ class DlgRemoteAccessPlanApi(QDialog):
     def accept(self):
         self.get_data_from_endpoint()
         # super().accept()
+
+
+class FetchAvailDaysFromAPI:
+    def __init__(self):
+        self.session = requests.Session()
+        self.config_remote = api_remote_config.current_config_handler.get_api_remote()
+
+    def fetch_data(self, parent: QWidget, plan_period_id: UUID) -> list[dict]:
+        if not self.session.headers.get('Authorization'):
+            self.authorize(parent)
+        while True:
+            response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}',
+                                        params={'planperiod_id': str(plan_period_id)})
+            if response.status_code == 200 and response.json().get('status_code') != 401:
+                QMessageBox.information(parent, 'Erfolg', 'Daten wurden erfolgreich heruntergeladen.')
+                break
+            self.authorize(parent)
+
+        data = {person_id: {'notes': dict_notes_days['notes'],
+                            'days': [AvailDay.model_validate(d) for d in dict_notes_days['days']]}
+                for person_id, dict_notes_days in response.json().items()}
+        return data
+
+    def authorize(self, parent: QWidget):
+        response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',
+                                     data={'username': self.config_remote.authentication.username,
+                                           'password': self.config_remote.authentication.password})
+        payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
+        QMessageBox.information(parent, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
+        self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
+
+
+fetch_available_days = FetchAvailDaysFromAPI()
 
 
 

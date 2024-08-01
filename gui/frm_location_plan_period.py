@@ -667,6 +667,12 @@ class FrmLocationPlanPeriod(QWidget):
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
+            signal_handling.handler_location_plan_period.reload_location_pp__event_configs(
+                signal_handling.DataLocationPPWithDate(self.location_plan_period)
+            )
+            signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
+                signal_handling.DataDate()
+            )
 
     def reset_all_fixed_cast(self):
         # todo: noch implementieren

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QComboBox, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QComboBox, QDialogButtonBox, QLabel, QGroupBox, QFormLayout
 
 from database import db_services, schemas
 from gui.custom_widgets.tabbars import TabBar
@@ -10,6 +10,8 @@ class DlgOpenPlanPeriodMask(QDialog):
     def __init__(self, parent: QWidget | None, team_id: UUID, tabs_planungsmasken: TabBar):
         super().__init__(parent=parent)
 
+        self.setWindowTitle('Planungsmasken')
+
         self.team_id = team_id
         self.tabs_planungsmasken = tabs_planungsmasken
         self.layout = QVBoxLayout()
@@ -17,9 +19,21 @@ class DlgOpenPlanPeriodMask(QDialog):
 
         self.plan_periods: list[schemas.PlanPeriodShow] = []
         self.curr_plan_period_id: UUID | None = None
-        self.combo_plan_periods = QComboBox()
-        self.layout.addWidget(self.combo_plan_periods)
+
+        self._set_layout()
         self.fill_combo_plan_periods()
+
+    def _set_layout(self):
+        self.lb_description = QLabel()
+        self.lb_description.setText('Wählen Sie aus, für welche Planungsperiode\n'
+                                    'die Planungsmasken geöffnet werden sollen.')
+        self.layout.addWidget(self.lb_description)
+        self.group_plan_periods = QGroupBox('Planungsperioden')
+        self.layout.addWidget(self.group_plan_periods)
+        self.layout_plan_periods = QFormLayout()
+        self.group_plan_periods.setLayout(self.layout_plan_periods)
+        self.combo_plan_periods = QComboBox()
+        self.layout_plan_periods.addRow('wählen:', self.combo_plan_periods)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.layout.addWidget(self.button_box)

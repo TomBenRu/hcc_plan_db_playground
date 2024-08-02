@@ -226,7 +226,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                                    and c.event.date == self.date]
 
     def check_fixed_cast__eq_to__local_pp(self):
-        self.cast_groups_with_event_at_day()
         if not self.cast_groups_at_day:
             return
         fixed_casts_at_day = [c.fixed_cast for c in self.cast_groups_at_day]
@@ -236,6 +235,11 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         )
 
     def set_stylesheet_and_tooltip(self):
+        self.cast_groups_with_event_at_day()
+        self.set_stylesheet()
+        self.set_tooltip()
+
+    def set_stylesheet(self):
         check_all_equal = self.check_fixed_cast__eq_to__local_pp()
         if check_all_equal is None:
             self.setStyleSheet(
@@ -255,8 +259,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                 f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
                 f"ButtonFixedCast::disabled {{ background-color: "
                 f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
-
-        self.set_tooltip()
 
     def set_tooltip(self):
         if not self.cast_groups_at_day:

@@ -386,6 +386,9 @@ class MainWindow(QMainWindow):
                 for team in teams}
 
     def open_plan_period_masks(self, plan_period_id: UUID):
+        if not self.curr_team:
+            QMessageBox.critical(self, 'Planungsmasken', 'Sie müssen zuerst ein Team auswählen.')
+            return
         dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
         if not dlg.exec():
             return

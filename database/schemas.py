@@ -764,6 +764,7 @@ class Plan(PlanCreate):
 
 class PlanShow(Plan):
     appointments: List[Appointment]
+    excel_export_settings: Optional['ExcelExportSettings']
 
     @field_validator('appointments')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

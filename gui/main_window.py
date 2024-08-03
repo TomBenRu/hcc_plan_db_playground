@@ -9,7 +9,7 @@ from pydantic_core import ValidationError
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
-from configuration import team_start_config, api_remote_config
+from configuration import team_start_config
 from database import db_services, schemas
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -421,6 +421,7 @@ class MainWindow(QMainWindow):
 
         self.curr_team = db_services.Team.get(team_id)
         self.load_current_team_config()
+        self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -527,11 +528,12 @@ class MainWindow(QMainWindow):
                 self.curr_team = db_services.Team.get(curr_team_id)
             except ValidationError:
                 config = team_start_config.curr_start_config_handler.load_config_from_file()
-                config.default_team_id  = None
+                config.default_team_id = None
                 config.teams = []
                 team_start_config.curr_start_config_handler.save_config_to_file(config)
                 return
             self.load_current_team_config()
+            self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
 
     def exit(self):
         self.close()

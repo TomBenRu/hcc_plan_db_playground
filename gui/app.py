@@ -6,13 +6,13 @@ import time
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from gui.custom_widgets.splash_screen import SplashScreen, simulate_loading
+from gui.custom_widgets.splash_screen import SplashScreen
 
 app = QApplication(sys.argv)
 
 splash = SplashScreen()
 splash.show()
-simulate_loading(splash)
+splash.simulate_loading()
 
 
 from gui.main_window import MainWindow

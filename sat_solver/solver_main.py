@@ -315,6 +315,10 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
 
 def add_constraints_avail_day_groups_activity(model: cp_model):
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
+    wie in der Parent-Event-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    """
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
         if not avail_day_group.children:
             continue

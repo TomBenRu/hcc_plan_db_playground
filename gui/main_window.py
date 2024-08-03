@@ -11,6 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from configuration import team_start_config
 from database import db_services, schemas
+from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
@@ -231,10 +232,10 @@ class MainWindow(QMainWindow):
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
         context_menu = QMenu()
-        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Tab schließen', None,
-                                                 lambda: self.remove_plan(index)))
         context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan löschen...', None,
                                                  lambda: self.delete_plan(index)))
+        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan als Excel-File exportieren...', None,
+                                                 lambda: self.export_to_excel(index)))
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
 
     def remove_plan(self, index: int):
@@ -247,6 +248,11 @@ class MainWindow(QMainWindow):
         if confirmation == QMessageBox.Yes:
             self.remove_plan(index)
             self.controller.execute(plan_commands.Delete(widget.plan.id))
+
+    def export_to_excel(self, index: int):
+        widget: FrmTabPlan = self.tabs_plans.widget(index)
+        export_to_file = plan_to_xlsx.ExportToXlsx(widget)
+        export_to_file.execute()
 
     def plans_of_team_delete_prep_deletes(self):
         num_plans_to_delete = len([p for p in db_services.Plan.get_all_from__team(self.curr_team.id) if p.prep_delete])
@@ -453,9 +459,8 @@ class MainWindow(QMainWindow):
 
         dlg = frm_calculate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():
-            confirmation = QMessageBox.question(self, 'Plänen anzeigen',
-                                                'Sollen die erstellten Pläne angezeigt werden?')
-            if confirmation == QMessageBox.StandardButton.Yes:
+            reply = QMessageBox.question(self, 'Plänen anzeigen', 'Sollen die erstellten Pläne angezeigt werden?')
+            if reply == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
                     self.open_plan_tab(plan_id)
 

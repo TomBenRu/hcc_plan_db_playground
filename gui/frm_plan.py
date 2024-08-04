@@ -212,7 +212,7 @@ class FrmTabPlan(QWidget):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
-        self.weekdays_names = {
+        self.weekday_names = {
             1: 'Montag',
             2: 'Dienstag',
             3: 'Mittwoch',
@@ -249,7 +249,7 @@ class FrmTabPlan(QWidget):
         return weekdays_locations
 
     def generate_weekdays_locations(self):
-        weekdays_locations = {weekday_num: [] for weekday_num in self.weekdays_names}
+        weekdays_locations = {weekday_num: [] for weekday_num in self.weekday_names}
         for appointment in self.plan.appointments:
             weekday = appointment.event.date.isoweekday()
             if (appointment.event.location_plan_period.location_of_work.id
@@ -300,7 +300,7 @@ class FrmTabPlan(QWidget):
 
     def display_headers_week_day_names(self):
         # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
-        for i, weekday_name in enumerate(self.weekdays_names.values()):
+        for i, weekday_name in enumerate(self.weekday_names.values()):
             item = QTableWidgetItem(weekday_name)
             item.setBackground(horizontal_header_colors[i % 2])
             self.table_plan.setHorizontalHeaderItem(i, item)
@@ -329,7 +329,7 @@ class FrmTabPlan(QWidget):
         return {week_num: week_num - min(self.all_week_nums_of_month) + 1 for week_num in self.all_week_nums_of_month}
 
     def generate_weekday_col(self):
-        return {weekday: weekday - min(self.weekdays_names) for weekday in self.weekdays_names}
+        return {weekday: weekday - min(self.weekday_names) for weekday in self.weekday_names}
 
     def generate_day_appointments(self):
         day_location_id_appointments: defaultdict[datetime.date, defaultdict[UUID, list]] = defaultdict(lambda: defaultdict(list))

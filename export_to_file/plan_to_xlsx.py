@@ -120,7 +120,7 @@ class ExportToXlsx:
                         self.worksheet_plan.write(
                             self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i,
                             self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
-                            f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name})\n'
+                            f'{appointment.event.time_of_day.start:"%H:%M"}\n'
                             f'{[avd.actor_plan_period.person.f_name for avd in appointment.avail_days]}'
                         )
 

@@ -47,7 +47,6 @@ class ExportToXlsx:
             location_id = appointment.event.location_plan_period.location_of_work.id
             self.week_num__weekday_location_appointments[week_num][weekday][location_id].append(appointment)
 
-        min_week_num = min(self.week_num__weekday_location_appointments.keys())
         curr_row = 4
         for week_num in sorted(self.week_num__weekday_location_appointments.keys()):
             weekday_location_appointment = self.week_num__weekday_location_appointments[week_num]
@@ -55,8 +54,8 @@ class ExportToXlsx:
                 max(len(appointments) for appointments in location_appointments.values())
                 for weekday, location_appointments in weekday_location_appointment.items()
             )
-            self.week_num__row_merge[week_num] = {'row': curr_row, 'merge': max_appointments_in_week}
-            curr_row += max_appointments_in_week
+            self.week_num__row_merge[week_num] = {'row': curr_row, 'merge': max_appointments_in_week + 1}
+            curr_row += max_appointments_in_week + 1
 
     def _create_workbook(self):
         self.workbook = xlsxwriter.Workbook(self.excel_output_path)
@@ -92,6 +91,24 @@ class ExportToXlsx:
             else:
                 self.worksheet_plan.write(row_merge['row'], 0, f'KW {week_num}')
 
+    def _write_dates(self):
+        min_date = min(appointment.event.date for appointment in self.tab_plan.plan.appointments)
+        max_date = max(appointment.event.date for appointment in self.tab_plan.plan.appointments)
+        curr_date = min_date
+        while curr_date <= max_date:
+            if not (column_locations := self.weekday_num__col_locations.get(curr_date.isocalendar()[2])):
+                curr_date += datetime.timedelta(days=1)
+                continue
+            column = column_locations['column'] + 1
+            row = self.week_num__row_merge[curr_date.isocalendar()[1]]['row']
+            merge_cols = len(column_locations['locations'])
+            print(f'{row=}, {column=}, {merge_cols=}: {curr_date=}')
+            if merge_cols > 1:
+                self.worksheet_plan.merge_range(row, column, row, column + merge_cols - 1, curr_date.strftime('%d.%m.%y'))
+            else:
+                self.worksheet_plan.write(row, column, curr_date.strftime('%d.%m.%y'))
+            curr_date += datetime.timedelta(days=1)
+
     def _write_appointments(self):
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
             for weekday, location_appointments in weekday_location_appointments.items():
@@ -101,7 +118,7 @@ class ExportToXlsx:
                         loc_header = self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['locations']
                         loc_indexes = {loc.id: i for i, loc in enumerate(loc_header)}
                         self.worksheet_plan.write(
-                            self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + i,
+                            self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i,
                             self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
                             f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name})\n'
                             f'{[avd.actor_plan_period.person.f_name for avd in appointment.avail_days]}'
@@ -113,6 +130,7 @@ class ExportToXlsx:
         self._write_headers_week_day_names()
         self._write_locations()
         self._write_week_nums()
+        self._write_dates()
         self._write_appointments()
 
         self.workbook.close()

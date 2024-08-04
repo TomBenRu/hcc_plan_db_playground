@@ -72,7 +72,11 @@ class DlgExcelExportSettings(QDialog):
         if bt_color.isValid():
             widget.setStyleSheet(f"background-color : {bt_color.name()}")
             self.excel_settings.__setattr__(widget.objectName(), bt_color.name())
-        #
+
+        # Bei einer Änderung einer Farbe wird die aktuelle Excel-Settings-ID auf die ID der ursprünglichen
+        # Excel-Settings gesetzt, falls diese nicht zu den Excel-Settings des übergeordneten Objekts gehört. Andernfalls
+        # wird die aktuelle Excel-Settings-ID auf None gesetzt, was bedeutet, dass neue Excel-Settings mit den aktuellen
+        # Einstellungen für das aktuelle Objekt erstellt werden sollen:
         self.curr_excel_settings_id = (
             self.excel_settings.id
             if self.excel_settings.id != self.former_object_containing_settings.excel_export_settings.id else None)
@@ -81,4 +85,8 @@ class DlgExcelExportSettings(QDialog):
         for key, color in self.former_object_containing_settings.excel_export_settings.model_dump(exclude={'id'}).items():
             self.buttons_color[key].setStyleSheet(f"background-color : {color}")
             self.excel_settings.__setattr__(key, color)
+
+        # Durch Setzen der aktuellen Excel-Settings-ID auf die ID der Excel-Settings des übergeordneten Objekts wird
+        # angezeigt, dass die Excel-Settings des aktuellen Objekts auf die des übergeordneten Objekts zurückgesetzt
+        # wurden. Das aktuelle Objekt soll also mit den Excel-Settings des übergeordneten Objekts aktualisiert werden.
         self.curr_excel_settings_id = self.former_object_containing_settings.excel_export_settings.id

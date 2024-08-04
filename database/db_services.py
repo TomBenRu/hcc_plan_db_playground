@@ -900,20 +900,6 @@ class ExcelExportSettings:
 
         return schemas.ExcelExportSettings.model_validate(excel_export_settings_db)
 
-    @classmethod
-    @db_session(sql_debug=True, show_values=True)
-    def set_deleted(cls, excel_settings_id: UUID) -> schemas.ExcelExportSettingsShow:
-        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
-        excel_settings_db.prep_delete = datetime.datetime.utcnow()
-        return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
-
-    @classmethod
-    @db_session(sql_debug=True, show_values=True)
-    def set_undeleted(cls, excel_settings_id: UUID) -> schemas.ExcelExportSettingsShow:
-        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
-        excel_settings_db.prep_delete = None
-        return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
-
 
 class Address:
     @classmethod

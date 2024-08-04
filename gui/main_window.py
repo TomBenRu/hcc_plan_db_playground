@@ -302,12 +302,13 @@ class MainWindow(QMainWindow):
             elif dlg.curr_excel_settings_id is None:
                 self.controller.execute(
                     team_commands.NewExcelExportSettings(
-                        team.id, schemas.ExcelExportSettingsCreate.model_validate(dlg.excel_settings)
+                        team.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
                     )
                 )
             else:
-                dlg.excel_settings.id = dlg.curr_excel_settings_id
-                db_services
+                self.controller.execute(
+                    team_commands.PutInExcelExportSettings(team.id, dlg.curr_excel_settings_id)
+                )
 
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.

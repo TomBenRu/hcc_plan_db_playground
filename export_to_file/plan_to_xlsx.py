@@ -76,6 +76,9 @@ class ExportToXlsx:
         self.format_day_nrs_2 = self.workbook.add_format({'bold': False, 'font_size': 10})
         self.format_column_kw_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
         self.format_column_kw_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
+        self.format_appointments = self.workbook.add_format({'bold': False, 'font_size': 10})
+        self.format_appointments_unbesetzt = self.workbook.add_format({'bold': False, 'font_size': 10,
+                                                                       'font_color': 'red'})
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
         self.format_locations_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_1
@@ -188,6 +191,10 @@ class ExportToXlsx:
 
         for row in rows:
             self.worksheet_plan.set_row(row, self.row_height_appointments)
+        self.worksheet_plan.conditional_format(min(rows), min(cols), max(rows), max(cols),
+                                               {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
+                                                'format': self.format_appointments_unbesetzt})
+
 
     def execute(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)

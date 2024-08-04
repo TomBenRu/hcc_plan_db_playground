@@ -110,7 +110,15 @@ class HandlerShowDialog(QObject):
         self.signal_show_dlg_event_group.emit()
 
 
+class HandlerExcelExport(QObject):
+    signal_finished = Signal(str)
+
+    def finished(self, output_path):
+        self.signal_finished.emit(output_path)
+
+
 handler_actor_plan_period = HandlerActorPlanPeriod()
 handler_location_plan_period = HandlerLocationPlanPeriod()
 handler_plan_tabs = HandlerPlanTabs()
 handler_show_dialog = HandlerShowDialog()
+handler_excel_export = HandlerExcelExport()

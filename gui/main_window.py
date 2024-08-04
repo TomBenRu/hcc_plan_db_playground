@@ -2,7 +2,7 @@ import functools
 import os.path
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QPoint
+from PySide6.QtCore import QRect, QPoint, Slot
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
 from pydantic_core import ValidationError
@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan löschen...', None,
                                                  lambda: self.delete_plan(index)))
         context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan als Excel-File exportieren...', None,
-                                                 lambda: self.export_to_excel(index)))
+                                                 lambda: self.plan_export_to_excel(index)))
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
 
     def remove_plan(self, index: int):
@@ -248,11 +248,6 @@ class MainWindow(QMainWindow):
         if confirmation == QMessageBox.Yes:
             self.remove_plan(index)
             self.controller.execute(plan_commands.Delete(widget.plan.id))
-
-    def export_to_excel(self, index: int):
-        widget: FrmTabPlan = self.tabs_plans.widget(index)
-        export_to_file = plan_to_xlsx.ExportToXlsx(widget)
-        export_to_file.execute()
 
     def plans_of_team_delete_prep_deletes(self):
         num_plans_to_delete = len([p for p in db_services.Plan.get_all_from__team(self.curr_team.id) if p.prep_delete])
@@ -363,8 +358,18 @@ class MainWindow(QMainWindow):
     def sheets_for_availables(self):
         ...
 
-    def plan_export_to_excel(self):
-        ...
+    def plan_export_to_excel(self, index: int = None):
+        @Slot(str)
+        def export_finished(output_path: str):
+            QMessageBox.information(self, 'Plan Excel-Export',
+                                    f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
+            signal_handling.handler_excel_export.signal_finished.disconnect()
+        signal_handling.handler_excel_export.signal_finished.connect(export_finished)
+        if index is None:
+            index = self.tabs_plans.currentIndex()
+        widget: FrmTabPlan = self.tabs_plans.widget(index)
+        export_to_file = plan_to_xlsx.ExportToXlsx(widget)
+        export_to_file.execute()
 
     def lookup_for_excel_plan(self):
         ...

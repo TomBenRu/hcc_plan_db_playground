@@ -9,6 +9,7 @@ import xlsxwriter
 from configuration import project_paths
 from database import db_services, schemas
 from gui import frm_plan
+from gui.observer import signal_handling
 
 
 class ExportToXlsx:
@@ -62,19 +63,25 @@ class ExportToXlsx:
 
     def _define_formats(self):
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})
+        self.format_weekday_1 = self.workbook.add_format({'bold': True, 'font_size': 12})
+        self.format_weekday_2 = self.workbook.add_format({'bold': True, 'font_size': 12})
+        self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
+        self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
 
     def _create_worksheet_plan(self):
         self.worksheet_plan = self.workbook.add_worksheet(self.tab_plan.plan.name)
 
     def _write_headers_week_day_names(self):
-        for weekday_num, col_locations in self.weekday_num__col_locations.items():
+        format_weekdays = (self.format_weekday_1, self.format_weekday_2)
+        for i, (weekday_num, col_locations) in enumerate(self.weekday_num__col_locations.items()):
             if len(col_locations['locations']) > 1:
                 self.worksheet_plan.merge_range(
                     2, col_locations['column'] + 1, 2, col_locations['column'] + len(col_locations['locations']),
-                    self.tab_plan.weekday_names[weekday_num]
+                    self.tab_plan.weekday_names[weekday_num], format_weekdays[i % 2]
                 )
             else:
-                self.worksheet_plan.write(2, col_locations['column'] + 1, self.tab_plan.weekday_names[weekday_num])
+                self.worksheet_plan.write(2, col_locations['column'] + 1, self.tab_plan.weekday_names[weekday_num],
+                                          format_weekdays[i % 2])
 
     def _write_locations(self):
         for weekday_num, col_locations in self.weekday_num__col_locations.items():
@@ -102,7 +109,6 @@ class ExportToXlsx:
             column = column_locations['column'] + 1
             row = self.week_num__row_merge[curr_date.isocalendar()[1]]['row']
             merge_cols = len(column_locations['locations'])
-            print(f'{row=}, {column=}, {merge_cols=}: {curr_date=}')
             if merge_cols > 1:
                 self.worksheet_plan.merge_range(row, column, row, column + merge_cols - 1, curr_date.strftime('%d.%m.%y'))
             else:
@@ -120,7 +126,7 @@ class ExportToXlsx:
                         self.worksheet_plan.write(
                             self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i,
                             self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
-                            f'{appointment.event.time_of_day.start:"%H:%M"}\n'
+                            f'{appointment.event.time_of_day.start.strftime("%H:%M")}\n'
                             f'{[avd.actor_plan_period.person.f_name for avd in appointment.avail_days]}'
                         )
 
@@ -134,6 +140,8 @@ class ExportToXlsx:
         self._write_appointments()
 
         self.workbook.close()
+
+        signal_handling.handler_excel_export.finished(self.excel_output_path)
 
 # todo: extra rows for day numbers
 #  plan = xlsxwriter.Workbook(os.path.relpath(f'clients/{self.active_client}/ergebnisse/{self.year}-{self.month:02}/{filename}.xlsx'))

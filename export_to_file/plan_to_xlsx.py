@@ -1,5 +1,7 @@
 import datetime
 import os
+from collections import defaultdict
+from pprint import pprint
 from uuid import UUID
 
 import xlsxwriter
@@ -21,6 +23,7 @@ class ExportToXlsx:
         self._define_formats()
         self._create_worksheet_plan()
         self._generate_weekday_num__col_locations()
+        self._generate_week_num__row_merge()
 
     def _generate_weekday_num__col_locations(self):
         self.weekday_num__col_locations: dict[int, dict[str, int | list[schemas.LocationOfWorkShow]]] = {}
@@ -30,6 +33,30 @@ class ExportToXlsx:
                 continue
             self.weekday_num__col_locations[weekday_num] = {'column': curr_col, 'locations': locations}
             curr_col += len(locations)
+
+    def _generate_week_num__row_merge(self):
+        self.week_num__weekday_location_appointments: defaultdict[
+            int, defaultdict[int, defaultdict[UUID, list[schemas.Appointment]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
+        self.week_num__row_merge: dict[int, dict[str, int]] = {}
+
+        for appointment in self.tab_plan.plan.appointments:
+            week_num = appointment.event.date.isocalendar()[1]
+            weekday = appointment.event.date.isocalendar()[2]
+            location_id = appointment.event.location_plan_period.location_of_work.id
+            self.week_num__weekday_location_appointments[week_num][weekday][location_id].append(appointment)
+
+        min_week_num = min(self.week_num__weekday_location_appointments.keys())
+        curr_row = 4
+        for week_num in sorted(self.week_num__weekday_location_appointments.keys()):
+            weekday_location_appointment = self.week_num__weekday_location_appointments[week_num]
+            max_appointments_in_week = max(
+                max(len(appointments) for appointments in location_appointments.values())
+                for weekday, location_appointments in weekday_location_appointment.items()
+            )
+            self.week_num__row_merge[week_num] = {'row': curr_row, 'merge': max_appointments_in_week}
+            curr_row += max_appointments_in_week
 
     def _create_workbook(self):
         self.workbook = xlsxwriter.Workbook(self.excel_output_path)
@@ -56,11 +83,29 @@ class ExportToXlsx:
                 self.worksheet_plan.write(3, col_locations['column'] + 1 + i, location.name)
 
     def _write_week_nums(self):
-        for week_num, row in self.tab_plan.week_num_rows.items():
-            self.worksheet_plan.write(row + 3, 0, f'KW {week_num}')
+        for week_num, row_merge in self.week_num__row_merge.items():
+            if row_merge['merge'] > 1:
+                self.worksheet_plan.merge_range(
+                    row_merge['row'], 0, row_merge['row'] + row_merge['merge'] - 1, 0,
+                    f'KW {week_num}'
+                )
+            else:
+                self.worksheet_plan.write(row_merge['row'], 0, f'KW {week_num}')
 
     def _write_appointments(self):
-        pass
+        for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
+            for weekday, location_appointments in weekday_location_appointments.items():
+                for location_id, appointments in location_appointments.items():
+                    for i, appointment in enumerate(
+                            sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index)):
+                        loc_header = self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['locations']
+                        loc_indexes = {loc.id: i for i, loc in enumerate(loc_header)}
+                        self.worksheet_plan.write(
+                            self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + i,
+                            self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
+                            f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name})\n'
+                            f'{[avd.actor_plan_period.person.f_name for avd in appointment.avail_days]}'
+                        )
 
     def execute(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)
@@ -68,5 +113,6 @@ class ExportToXlsx:
         self._write_headers_week_day_names()
         self._write_locations()
         self._write_week_nums()
+        self._write_appointments()
 
         self.workbook.close()

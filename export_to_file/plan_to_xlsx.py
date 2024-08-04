@@ -156,7 +156,19 @@ class ExportToXlsx:
             self.worksheet_plan.set_row(row, self.row_height_dates)
 
     def _write_appointments(self):
+        def make_text_names():
+            text = ''
+            if len(appointment.avail_days):
+                text = '\n' + '\n'.join(f'{avd.actor_plan_period.person.f_name} '
+                                              f'{avd.actor_plan_period.person.l_name}'
+                                              for avd in appointment.avail_days)
+            cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
+            for _ in range(cast_group.nr_actors - len(appointment.avail_days)):
+                text += '\nunbesetzt'
+            return text
+
         rows = set()
+        cols = set()
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
             for weekday, location_appointments in weekday_location_appointments.items():
                 for location_id, appointments in location_appointments.items():
@@ -165,14 +177,13 @@ class ExportToXlsx:
                         loc_header = self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['locations']
                         loc_indexes = {loc.id: i for i, loc in enumerate(loc_header)}
                         row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
+                        col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
+                               + 1 + loc_indexes[location_id])
                         rows.add(row)
-                        text_names = '\n'.join(f'{avd.actor_plan_period.person.f_name} '
-                                               f'{avd.actor_plan_period.person.l_name}'
-                                               for avd in appointment.avail_days)
+                        cols.add(col)
+                        text_names = make_text_names()
                         self.worksheet_plan.write(
-                            row,
-                            self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
-                            f'{appointment.event.time_of_day.start.strftime("%H:%M")}\n{text_names}',
+                            row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
                         )
 
         for row in rows:

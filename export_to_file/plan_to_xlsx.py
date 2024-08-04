@@ -118,3 +118,14 @@ class ExportToXlsx:
         self.workbook.close()
 
 # todo: extra rows for day numbers
+#  plan = xlsxwriter.Workbook(os.path.relpath(f'clients/{self.active_client}/ergebnisse/{self.year}-{self.month:02}/{filename}.xlsx'))
+#         spielplan = plan.add_worksheet('Spielplan')
+#         clowntermine = plan.add_worksheet('Clowntermine')
+#         spielplan.set_landscape()
+#         clowntermine.set_landscape()
+#         spielplan.set_paper(9)
+#         clowntermine.set_paper(9)
+#         spielplan.set_margins(0.4, 0.4, 0.4, 0.4)
+#         clowntermine.set_margins(0.4, 0.4, 0.4, 0.4)
+#         spielplan.fit_to_pages(1, 1)
+#         clowntermine.fit_to_pages(1, 1)

@@ -116,3 +116,5 @@ class ExportToXlsx:
         self._write_appointments()
 
         self.workbook.close()
+
+# todo: extra rows for day numbers

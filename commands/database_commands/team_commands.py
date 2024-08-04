@@ -40,7 +40,6 @@ class NewExcelExportSettings(Command):
     def __init__(self, team_id: UUID, excel_settings: schemas.ExcelExportSettingsCreate):
         self.team_id = team_id
         self.team = db_services.Team.get(team_id)
-        self.excel_settings_id_of_project = self.team.excel_export_settings.id
         self.excel_settings = excel_settings
         self.old_excel_settings_id = self.team.excel_export_settings.id
         self.created_excel_settings: schemas.ExcelExportSettingsShow | None = None

@@ -886,6 +886,12 @@ class TimeOfDayEnum:
 class ExcelExportSettings:
     @classmethod
     @db_session
+    def get(cls, excel_export_settings_id: UUID) -> schemas.ExcelExportSettingsShow:
+        excel_export_settings_db = models.ExcelExportSettings.get_for_update(id=excel_export_settings_id)
+        return schemas.ExcelExportSettingsShow.model_validate(excel_export_settings_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def create(cls, excel_settings: schemas.ExcelExportSettingsCreate) -> schemas.ExcelExportSettingsShow:
         log_function_info(cls)
         excel_settings_db = models.ExcelExportSettings(**excel_settings.model_dump())
@@ -2070,6 +2076,15 @@ class Plan:
         plan_db = models.Plan.get_for_update(id=plan_id)
         plan_db.location_columns = location_columns
 
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def put_in_excel_settings(cls, plan_id: UUID, excel_settings_id: UUID) -> schemas.PlanShow:
+        log_function_info(cls)
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
+        plan_db.excel_export_settings = excel_settings_db
         return schemas.PlanShow.model_validate(plan_db)
 
 

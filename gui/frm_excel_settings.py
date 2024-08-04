@@ -1,10 +1,9 @@
 from uuid import UUID
 
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QVBoxLayout, QGroupBox, QColorDialog, QMainWindow
+from PySide6.QtWidgets import (QDialog, QWidget, QLabel, QPushButton, QGridLayout, QDialogButtonBox, QVBoxLayout,
+                               QGroupBox, QColorDialog)
 
-from database import schemas
+from database import schemas, db_services
 
 
 class DlgExcelExportSettings(QDialog):
@@ -40,7 +39,8 @@ class DlgExcelExportSettings(QDialog):
 
         self.autofill()
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)

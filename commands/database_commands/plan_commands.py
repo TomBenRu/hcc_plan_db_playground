@@ -89,3 +89,38 @@ class UpdateLocationColumns(Command):
     def redo(self):
         db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
 
+
+class NewExcelExportSettings(Command):
+    def __init__(self, plan_id: UUID, excel_settings: schemas.ExcelExportSettingsCreate):
+        self.plan_id = plan_id
+        self.plan = db_services.Plan.get(plan_id)
+        self.excel_settings = excel_settings
+        self.old_excel_settings_id = self.plan.excel_export_settings.id
+        self.created_excel_settings: schemas.ExcelExportSettingsShow | None = None
+
+    def execute(self):
+        self.created_excel_settings = db_services.ExcelExportSettings.create(self.excel_settings)
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
+
+    def undo(self):
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
+
+    def redo(self):
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
+
+
+class PutInExcelExportSettings(Command):
+    def __init__(self, plan_id: UUID, excel_settings_id: UUID):
+        self.plan_id = plan_id
+        self.old_excel_settings_id = db_services.Plan.get(plan_id).excel_export_settings.id
+        self.excel_settings_id = excel_settings_id
+
+    def execute(self):
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)
+
+    def undo(self):
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
+
+    def redo(self):
+        db_services.Plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)
+

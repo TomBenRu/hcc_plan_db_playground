@@ -293,6 +293,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def edit_team_excel_export_settings(self, team: schemas.Team):
+        team = db_services.Team.get(team.id)
         project = db_services.Project.get(team.project.id)
         dlg = frm_excel_settings.DlgExcelExportSettings(self, team.excel_export_settings,
                                                         project)
@@ -309,6 +310,29 @@ class MainWindow(QMainWindow):
                 self.controller.execute(
                     team_commands.PutInExcelExportSettings(team.id, dlg.curr_excel_settings_id)
                 )
+
+        signal_handling.handler_plan_tabs.reload_plan_from_db()
+
+    def plan_excel_configs(self):
+        plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        team = plan_widget.plan.plan_period.team
+        dlg = frm_excel_settings.DlgExcelExportSettings(
+            self, plan_widget.plan.excel_export_settings, team)
+        if dlg.exec():
+            if dlg.curr_excel_settings_id == dlg.excel_settings.id:
+                db_services.ExcelExportSettings.update(dlg.excel_settings)
+            elif dlg.curr_excel_settings_id is None:
+                self.controller.execute(
+                    plan_commands.NewExcelExportSettings(
+                        plan_widget.plan.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
+                    )
+                )
+            else:
+                self.controller.execute(
+                    plan_commands.PutInExcelExportSettings(plan_widget.plan.id, dlg.curr_excel_settings_id)
+                )
+
+        signal_handling.handler_plan_tabs.reload_plan_from_db()
 
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
@@ -376,14 +400,6 @@ class MainWindow(QMainWindow):
 
     def sheets_for_availables(self):
         ...
-
-    def plan_excel_configs(self):
-        plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
-        team = plan_widget.plan.plan_period.team
-        dlg = frm_excel_settings.DlgExcelExportSettings(
-            self, plan_widget.plan.excel_export_settings, team)
-        if dlg.exec():
-            print('ausgeführt')
 
     def plan_export_to_excel(self, index: int = None):
         @Slot(str)

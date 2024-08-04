@@ -11,6 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
+from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 
 
@@ -208,6 +209,8 @@ class FrmTabPlan(QWidget):
     def __init__(self, parent: QWidget, plan: schemas.PlanShow):
         super().__init__(parent=parent)
 
+        signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_plan)
+
         self.plan = plan
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -237,6 +240,9 @@ class FrmTabPlan(QWidget):
         self.layout.addWidget(self.table_plan)
 
         self.configure_table_plan()
+
+    def reload_plan(self):
+        self.plan = db_services.Plan.get(self.plan.id)
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:

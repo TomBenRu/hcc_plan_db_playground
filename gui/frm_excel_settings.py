@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QVBoxLayout, QGroupBox, QColorDialog, QMainWindow
@@ -5,12 +7,15 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QLineEdit, QTimeEdit, QP
 from database import schemas
 
 
-class FrmExcelExportSettings(QDialog):
-    def __init__(self, parent: QWidget, excel_settings: schemas.ExcelExportSettings):
+class DlgExcelExportSettings(QDialog):
+    def __init__(self, parent: QWidget, excel_settings: schemas.ExcelExportSettings,
+                 former_object_containing_settings: schemas.ModelWithExcelSettings = None):
         super().__init__(parent)
-        self.setWindowTitle('Exce-Export-Settings')
+        self.setWindowTitle('Excel-Export-Settings')
 
+        self.former_object_containing_settings = former_object_containing_settings
         self.excel_settings = excel_settings.model_copy()
+        self.curr_excel_settings_id: UUID = excel_settings.id
 
         self.layout = QVBoxLayout(self)
 
@@ -26,6 +31,13 @@ class FrmExcelExportSettings(QDialog):
         self.layout_group_side = QGridLayout(self.group_side)
         self.layout_group_body = QGridLayout(self.group_body)
 
+        if self.former_object_containing_settings:
+            self.bt_reset = QPushButton(f'reset to {former_object_containing_settings.name}')
+            self.bt_reset.clicked.connect(self.reset_to_former_object)
+            self.layout.addWidget(self.bt_reset)
+
+        self.buttons_color: dict[str, QPushButton] = {}
+
         self.autofill()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
@@ -36,19 +48,19 @@ class FrmExcelExportSettings(QDialog):
     def autofill(self):
         for i, (key, val) in enumerate(self.excel_settings.model_dump(exclude={'id'}).items()):
             label = QLabel(key)
-            button = QPushButton()
-            button.clicked.connect(self.get_color)
-            button.setObjectName(key)
-            button.setStyleSheet(f'background-color: {val}')
+            self.buttons_color[key] = QPushButton()
+            self.buttons_color[key].clicked.connect(self.get_color)
+            self.buttons_color[key].setObjectName(key)
+            self.buttons_color[key].setStyleSheet(f'background-color: {val}')
             if i < 4:
                 self.layout_group_top.addWidget(label, i, 0)
-                self.layout_group_top.addWidget(button, i, 1)
+                self.layout_group_top.addWidget(self.buttons_color[key], i, 1)
             elif i < 6:
                 self.layout_group_body.addWidget(label, i-4, 0)
-                self.layout_group_body.addWidget(button, i-4, 1)
+                self.layout_group_body.addWidget(self.buttons_color[key], i-4, 1)
             else:
                 self.layout_group_side.addWidget(label, i-6, 0)
-                self.layout_group_side.addWidget(button, i-6, 1)
+                self.layout_group_side.addWidget(self.buttons_color[key], i-6, 1)
 
     def get_color(self):
         widget = self.sender()
@@ -60,3 +72,13 @@ class FrmExcelExportSettings(QDialog):
         if bt_color.isValid():
             widget.setStyleSheet(f"background-color : {bt_color.name()}")
             self.excel_settings.__setattr__(widget.objectName(), bt_color.name())
+        #
+        self.curr_excel_settings_id = (
+            self.excel_settings.id
+            if self.excel_settings.id != self.former_object_containing_settings.excel_export_settings.id else None)
+
+    def reset_to_former_object(self):
+        for key, color in self.former_object_containing_settings.excel_export_settings.model_dump(exclude={'id'}).items():
+            self.buttons_color[key].setStyleSheet(f"background-color : {color}")
+            self.excel_settings.__setattr__(key, color)
+        self.curr_excel_settings_id = self.former_object_containing_settings.excel_export_settings.id

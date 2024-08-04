@@ -8,11 +8,11 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from pydantic_core import ValidationError
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands
+from commands.database_commands import plan_commands, team_commands
 from configuration import team_start_config
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
-from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params
+from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -63,6 +63,9 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'disk.png'), 'Plan speichern...',
                               'Speichert den aktiven Plan',
                               self.plan_save),
+            MenuToolbarAction(self, None, 'Excel-Einstellungen',
+                              'Einstellungen der Farben in der exportierten Excel-Datei',
+                              self.plan_excel_configs),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'tables.png'),
                               'Listen für Sperrtermine erzeugen...',
                               'Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.',
@@ -140,7 +143,7 @@ class MainWindow(QMainWindow):
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
-                           self.actions['plan_calculation_settings'], None,
+                           self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'], None,
                            self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan'], None,
@@ -277,6 +280,7 @@ class MainWindow(QMainWindow):
         dlg = DlgSettingsProject(self, self.project_id)
         dlg.exec()
 
+
     def edit_team(self, team: schemas.Team):
         ...
 
@@ -288,8 +292,22 @@ class MainWindow(QMainWindow):
         dlg.disable_reset_bt()
         dlg.exec()
 
-    def edit_excel_export_settings(self, team: schemas.Team):
-        ...
+    def edit_team_excel_export_settings(self, team: schemas.Team):
+        project = db_services.Project.get(team.project.id)
+        dlg = frm_excel_settings.DlgExcelExportSettings(self, team.excel_export_settings,
+                                                        project)
+        if dlg.exec():
+            if dlg.curr_excel_settings_id == dlg.excel_settings.id:
+                db_services.ExcelExportSettings.update(dlg.excel_settings)
+            elif dlg.curr_excel_settings_id is None:
+                self.controller.execute(
+                    team_commands.NewExcelExportSettings(
+                        team.id, schemas.ExcelExportSettingsCreate.model_validate(dlg.excel_settings)
+                    )
+                )
+            else:
+                dlg.excel_settings.id = dlg.curr_excel_settings_id
+                db_services
 
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
@@ -358,6 +376,14 @@ class MainWindow(QMainWindow):
     def sheets_for_availables(self):
         ...
 
+    def plan_excel_configs(self):
+        plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        team = plan_widget.plan.plan_period.team
+        dlg = frm_excel_settings.DlgExcelExportSettings(
+            self, plan_widget.plan.excel_export_settings, team)
+        if dlg.exec():
+            print('ausgeführt')
+
     def plan_export_to_excel(self, index: int = None):
         @Slot(str)
         def export_finished(output_path: str):
@@ -393,7 +419,7 @@ class MainWindow(QMainWindow):
                                    'Mögliche Kombinationen von Einrichtungen bearbeiten.',
                                               functools.partial(self.edit_comb_loc_poss, team)),
                             MenuToolbarAction(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
-                                              functools.partial(self.edit_excel_export_settings, team))]
+                                              functools.partial(self.edit_team_excel_export_settings, team))]
                 for team in teams}
 
     def open_plan_period_masks(self, plan_period_id: UUID):

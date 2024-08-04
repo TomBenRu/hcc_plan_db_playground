@@ -68,6 +68,13 @@ class ModelWithFixedCast(Protocol):
         ...
 
 
+@ runtime_checkable
+class ModelWithExcelSettings(Protocol):
+    id: UUID
+    name: str
+    excel_export_settings: ['ExcelExportSettings']
+
+
 class PersonCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -119,6 +126,7 @@ class Project(ProjectCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    excel_export_settings: Optional['ExcelExportSettings']
 
 
 class ProjectShow(Project):
@@ -130,7 +138,6 @@ class ProjectShow(Project):
     time_of_day_standards: List['TimeOfDay']
     time_of_day_enums: List['TimeOfDayEnum']
     time_of_day_enum_standards: List['TimeOfDayEnum']
-    excel_export_settings: Optional['ExcelExportSettings']
     skills: list['Skill']
     flags: list['Flag']
     cast_rules: list['CastRule']
@@ -152,6 +159,7 @@ class Team(TeamCreate):
 
     id: UUID
     prep_delete: Optional[datetime.datetime]
+    excel_export_settings: Optional['ExcelExportSettings']
 
 
 class TeamShow(Team):
@@ -160,7 +168,6 @@ class TeamShow(Team):
     team_location_assigns: List['TeamLocationAssign']
     plan_periods: List['PlanPeriod']
     combination_locations_possibles: List['CombinationLocationsPossible']
-    excel_export_settings: Optional['ExcelExportSettings']
 
     @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

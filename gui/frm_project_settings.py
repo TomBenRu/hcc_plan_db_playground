@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
 
 from database import db_services
 from . import frm_time_of_day
-from .frm_excel_settings import FrmExcelExportSettings
+from .frm_excel_settings import DlgExcelExportSettings
 from .frm_team import FrmTeam
 from .frm_time_of_day_enum import DlgTimeOfDayEnumsEditList
 
@@ -161,7 +161,7 @@ class DlgSettingsProject(QDialog):
             self.fill_time_of_day_enums()
 
     def edit_excel_export_settings(self):
-        dlg = FrmExcelExportSettings(self, self.project.excel_export_settings)
+        dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)
         if dlg.exec():
             updated_excel_settings = db_services.ExcelExportSettings.update(dlg.excel_settings)
             QMessageBox.information(self, 'Excel Expert-Settings', f'Update wurde durchgeführt:\n'

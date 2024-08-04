@@ -235,6 +235,15 @@ class Team:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
+    def put_in_excel_settings(cls, team_id: UUID, excel_settings_id: UUID) -> schemas.TeamShow:
+        log_function_info(cls)
+        team_db = models.Team.get_for_update(id=team_id)
+        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
+        team_db.excel_export_settings = excel_settings_db
+        return schemas.TeamShow.model_validate(team_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def remove_comb_loc_possible(cls, team_id: UUID, comb_loc_possible_id: UUID) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -876,15 +885,34 @@ class TimeOfDayEnum:
 
 class ExcelExportSettings:
     @classmethod
+    @db_session
+    def create(cls, excel_settings: schemas.ExcelExportSettingsCreate) -> schemas.ExcelExportSettingsShow:
+        log_function_info(cls)
+        excel_settings_db = models.ExcelExportSettings(**excel_settings.model_dump())
+        return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def update(cls, excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
         log_function_info(cls)
         excel_export_settings_db = models.ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
-        # for key, val in excel_export_settings.model_dump(exclude={'id'}).items():
-        #     excel_export_settings_db.__setattr__(key, val)
         excel_export_settings_db.set(**excel_export_settings.model_dump(exclude={'id'}))
 
         return schemas.ExcelExportSettings.model_validate(excel_export_settings_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_deleted(cls, excel_settings_id: UUID) -> schemas.ExcelExportSettingsShow:
+        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
+        excel_settings_db.prep_delete = datetime.datetime.utcnow()
+        return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_undeleted(cls, excel_settings_id: UUID) -> schemas.ExcelExportSettingsShow:
+        excel_settings_db = models.ExcelExportSettings.get_for_update(id=excel_settings_id)
+        excel_settings_db.prep_delete = None
+        return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
 
 
 class Address:

@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
         if index is None:
             index = self.tabs_plans.currentIndex()
         widget: FrmTabPlan = self.tabs_plans.widget(index)
-        export_to_file = plan_to_xlsx.ExportToXlsx(widget)
+        export_to_file = plan_to_xlsx.ExportToXlsx(self, widget)
         export_to_file.execute()
 
     def lookup_for_excel_plan(self):

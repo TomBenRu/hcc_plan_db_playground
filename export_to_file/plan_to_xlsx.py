@@ -5,6 +5,8 @@ from pprint import pprint
 from uuid import UUID
 
 import xlsxwriter
+from PySide6.QtWidgets import QWidget, QMessageBox
+from xlsxwriter.exceptions import FileCreateError
 
 from configuration import project_paths
 from database import db_services, schemas
@@ -13,7 +15,8 @@ from gui.observer import signal_handling
 
 
 class ExportToXlsx:
-    def __init__(self, tab_plan: frm_plan.FrmTabPlan):
+    def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan):
+        self.parent = parent
         self.tab_plan = tab_plan
         self.excel_output_path = os.path.join(project_paths.Paths.root_path,
                                               'excel_output',
@@ -63,14 +66,16 @@ class ExportToXlsx:
 
     def _define_formats(self):
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})
-        self.format_weekday_1 = self.workbook.add_format({'bold': True, 'font_size': 12})
-        self.format_weekday_2 = self.workbook.add_format({'bold': True, 'font_size': 12})
-        self.format_locations_1 = self.workbook.add_format({'bold': True, 'font_size': 10})
-        self.format_locations_2 = self.workbook.add_format({'bold': True, 'font_size': 10})
+        self.format_weekday_1 = self.workbook.add_format({'bold': True, 'font_size': 12, 'font_color': 'white'})
+        self.format_weekday_2 = self.workbook.add_format({'bold': True, 'font_size': 12, 'font_color': 'white'})
+        self.format_locations_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white',
+                                                            'text_wrap': True})
+        self.format_locations_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white',
+                                                            'text_wrap': True})
         self.format_day_nrs_1 = self.workbook.add_format({'bold': False, 'font_size': 10})
         self.format_day_nrs_2 = self.workbook.add_format({'bold': False, 'font_size': 10})
-        self.format_column_kw_1 = self.workbook.add_format({'bold': True, 'font_size': 10})
-        self.format_column_kw_2 = self.workbook.add_format({'bold': True, 'font_size': 10})
+        self.format_column_kw_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
+        self.format_column_kw_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
         self.format_locations_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_1
@@ -157,7 +162,19 @@ class ExportToXlsx:
         self._write_dates()
         self._write_appointments()
 
-        self.workbook.close()
+        while True:
+            try:
+                self.workbook.close()
+            except FileCreateError as e:
+                reply = QMessageBox.critical(self.parent,
+                                             'Excel-Export',
+                                             'Datei kann nicht gespeichert werden. Bitte schließen Sie die Datei, '
+                                             'falls sie in Excel geöffnet ist.\nMöchten Sie erneut versuchen, '
+                                             'die Datei zu speichern?',
+                                             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if reply == QMessageBox.StandardButton.Yes:
+                    continue
+            break
 
         signal_handling.handler_excel_export.finished(self.excel_output_path)
 

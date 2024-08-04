@@ -77,12 +77,14 @@ class DlgExcelExportSettings(QDialog):
         # Excel-Settings gesetzt, falls diese nicht zu den Excel-Settings des übergeordneten Objekts gehört. Andernfalls
         # wird die aktuelle Excel-Settings-ID auf None gesetzt, was bedeutet, dass neue Excel-Settings mit den aktuellen
         # Einstellungen für das aktuelle Objekt erstellt werden sollen:
-        self.curr_excel_settings_id = (
-            self.excel_settings.id
-            if self.excel_settings.id != self.former_object_containing_settings.excel_export_settings.id else None)
+        if self.former_object_containing_settings:
+            self.curr_excel_settings_id = (
+                self.excel_settings.id
+                if self.excel_settings.id != self.former_object_containing_settings.excel_export_settings.id else None)
 
     def reset_to_former_object(self):
-        for key, color in self.former_object_containing_settings.excel_export_settings.model_dump(exclude={'id'}).items():
+        for key, color in (
+                self.former_object_containing_settings.excel_export_settings.model_dump(exclude={'id'}).items()):
             self.buttons_color[key].setStyleSheet(f"background-color : {color}")
             self.excel_settings.__setattr__(key, color)
 

@@ -1166,6 +1166,12 @@ class CastGroup:
         return [schemas.CastGroupShow.model_validate(cg) for cg in plan_period_db.cast_groups]
 
     @classmethod
+    @db_session
+    def get_cast_group_of_event(cls, event_id: UUID) -> schemas.CastGroupShow:
+        cast_group_db = models.Event.get(id=event_id).cast_group
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, *, plan_period_id: UUID, restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:
         log_function_info(cls)

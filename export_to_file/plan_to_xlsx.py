@@ -83,10 +83,18 @@ class ExportToXlsx:
         self.format_day_nrs_1.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_1
         self.format_day_nrs_2.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_2
 
+        self.row_height_weekdays = 20
+        self.row_height_locations = 25
+        self.row_height_appointments = 35
+        self.row_height_dates = 20
+        self.col_width_kw = 7
+        self.col_width_locations = 18
+
     def _create_worksheet_plan(self):
         self.worksheet_plan = self.workbook.add_worksheet(self.tab_plan.plan.name)
 
     def _write_headers_week_day_names(self):
+        self.worksheet_plan.set_row(2, self.row_height_weekdays)
         for i, (weekday_num, col_locations) in enumerate(self.weekday_num__col_locations.items()):
             if len(col_locations['locations']) > 1:
                 self.worksheet_plan.merge_range(
@@ -99,14 +107,18 @@ class ExportToXlsx:
                                           self.format_weekday_1 if i % 2 else self.format_weekday_2)
 
     def _write_locations(self):
+        self.worksheet_plan.set_row(3, self.row_height_locations)
         format_idx = 0
         for weekday_num, col_locations in self.weekday_num__col_locations.items():
             for i, location in enumerate(col_locations['locations']):
-                self.worksheet_plan.write(3, col_locations['column'] + 1 + i, location.name,
+                column = col_locations['column'] + 1 + i
+                self.worksheet_plan.write(3, column, location.name,
                                           self.format_locations_1 if format_idx % 2 else self.format_locations_2)
+                self.worksheet_plan.set_column(column, column, self.col_width_locations)
                 format_idx += 1
 
     def _write_week_nums(self):
+        self.worksheet_plan.set_column(0, 0, self.col_width_kw)
         for i, (week_num, row_merge) in enumerate(self.week_num__row_merge.items()):
             if row_merge['merge'] > 1:
                 self.worksheet_plan.merge_range(
@@ -118,6 +130,7 @@ class ExportToXlsx:
                                           self.format_weekday_1 if i % 2 else self.format_weekday_2)
 
     def _write_dates(self):
+        date_rows = set()
         min_date = min(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         max_date = max(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         curr_date = min_date
@@ -127,6 +140,7 @@ class ExportToXlsx:
                 continue
             column = column_locations['column'] + 1
             row = self.week_num__row_merge[curr_date.isocalendar()[1]]['row']
+            date_rows.add(row)
             merge_cols = len(column_locations['locations'])
             color_idx = list(self.weekday_num__col_locations.keys()).index(curr_date.isocalendar()[2])
             if merge_cols > 1:
@@ -138,7 +152,11 @@ class ExportToXlsx:
                                           self.format_day_nrs_1 if color_idx % 2 else self.format_day_nrs_2)
             curr_date += datetime.timedelta(days=1)
 
+        for row in date_rows:
+            self.worksheet_plan.set_row(row, self.row_height_dates)
+
     def _write_appointments(self):
+        rows = set()
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
             for weekday, location_appointments in weekday_location_appointments.items():
                 for location_id, appointments in location_appointments.items():
@@ -146,12 +164,19 @@ class ExportToXlsx:
                             sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index)):
                         loc_header = self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['locations']
                         loc_indexes = {loc.id: i for i, loc in enumerate(loc_header)}
+                        row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
+                        rows.add(row)
+                        text_names = '\n'.join(f'{avd.actor_plan_period.person.f_name} '
+                                               f'{avd.actor_plan_period.person.l_name}'
+                                               for avd in appointment.avail_days)
                         self.worksheet_plan.write(
-                            self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i,
+                            row,
                             self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column'] + 1 + loc_indexes[location_id],
-                            f'{appointment.event.time_of_day.start.strftime("%H:%M")}\n'
-                            f'{[avd.actor_plan_period.person.f_name for avd in appointment.avail_days]}'
+                            f'{appointment.event.time_of_day.start.strftime("%H:%M")}\n{text_names}',
                         )
+
+        for row in rows:
+            self.worksheet_plan.set_row(row, self.row_height_appointments)
 
     def execute(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)

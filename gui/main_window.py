@@ -7,6 +7,7 @@ from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
 from pydantic_core import ValidationError
 
+import configuration
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands
 from configuration import team_start_config, project_paths
@@ -100,6 +101,8 @@ class MainWindow(QMainWindow):
                               'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'), 'Einstellungen...',
                               'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
+            MenuToolbarAction(self, None, 'Excel Output-Ordner...',
+                              'Ordner für die Ausgabe von Excel-Files festlegen', self.determine_excel_output_folder),
             MenuToolbarAction(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
                               f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
                               self.plans_of_team_delete_prep_deletes),
@@ -143,7 +146,8 @@ class MainWindow(QMainWindow):
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
-                           self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'], None,
+                           self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'],
+                           self.actions['determine_excel_output_folder'], None,
                            self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan'], None,
@@ -334,6 +338,16 @@ class MainWindow(QMainWindow):
 
         signal_handling.handler_plan_tabs.reload_plan_from_db()
 
+    def determine_excel_output_folder(self):
+        path_handler = configuration.project_paths.curr_user_path_handler
+        paths = path_handler.get_config()
+        output_folder = QFileDialog.getExistingDirectory(self, "Ordner auswählen", paths.excel_output_path)
+        if not output_folder:
+            return
+        paths.excel_output_path = output_folder
+        path_handler.save_config_to_file(paths)
+
+
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
         Falls ein Plan dieses Namens schon vorhanden ist, wird angeboten diesen Plan zu löschen und den aktuellen Plan
@@ -427,11 +441,12 @@ class MainWindow(QMainWindow):
         if index is None:
             index = self.tabs_plans.currentIndex()
         widget: FrmTabPlan = self.tabs_plans.widget(index)
-        output_folder = QFileDialog.getExistingDirectory(self, "Ordner auswählen")
-        if not output_folder:  # Prüft, ob ein Ordner ausgewählt wurde
-            output_folder = 'excel_output'
+
+        path_handler = configuration.project_paths.curr_user_path_handler
+        if not (output_folder := path_handler.get_config().excel_output_path):
+            output_folder = os.path.join(project_paths.Paths.root_path, 'excel_output')
         excel_output_path = os.path.join(
-            project_paths.Paths.root_path, output_folder, widget.plan.plan_period.team.name,
+            output_folder, widget.plan.plan_period.team.name,
             f"{widget.plan.plan_period.start.strftime('%d.%m.%y')}-{widget.plan.plan_period.end.strftime('%d.%m.%y')}",
             f'{widget.plan.name}.xlsx')
         create_dir_if_not_exist(excel_output_path)

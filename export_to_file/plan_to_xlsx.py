@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import os
 from collections import defaultdict
 from pprint import pprint
@@ -134,6 +135,7 @@ class ExportToXlsx:
 
     def _write_dates(self):
         date_rows = set()
+        self.cells_for_default_appointments = []
         min_date = min(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         max_date = max(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         curr_date = min_date
@@ -145,6 +147,15 @@ class ExportToXlsx:
             row = self.week_num__row_merge[curr_date.isocalendar()[1]]['row']
             date_rows.add(row)
             merge_cols = len(column_locations['locations'])
+
+            # Dies wird gebraucht, um Appointment-Zellen mit einem Default-Format zu füllen:
+            cols_of_date_cells = [column + i for i in range(merge_cols)]
+            rows_of_loc_cells = [row + i for i in range(1, self.week_num__row_merge[curr_date.isocalendar()[1]]['merge'])]
+            print(f'{rows_of_loc_cells=}')
+            print(f'{cols_of_date_cells=}')
+            for r, c in itertools.product(rows_of_loc_cells, cols_of_date_cells):
+                self.cells_for_default_appointments.append((r, c))
+
             color_idx = list(self.weekday_num__col_locations.keys()).index(curr_date.isocalendar()[2])
             if merge_cols > 1:
                 self.worksheet_plan.merge_range(
@@ -159,6 +170,10 @@ class ExportToXlsx:
             self.worksheet_plan.set_row(row, self.row_height_dates)
 
     def _write_appointments(self):
+
+        for row, col in self.cells_for_default_appointments:
+            self.worksheet_plan.write(row, col, '', self.format_appointments)
+
         def make_text_names():
             text = ''
             if len(appointment.avail_days):
@@ -196,12 +211,6 @@ class ExportToXlsx:
             self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
                                                    {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
                                                     'format': self.format_appointments_unbesetzt})
-            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
-                                                   {'type': 'no_blanks',
-                                                    'format': self.format_appointments})
-            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
-                                                   {'type': 'blanks',
-                                                    'format': self.format_appointments})
 
     def execute(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)

@@ -163,12 +163,14 @@ class AppointmentField(QWidget):
         self.layout = QVBoxLayout(self)
         self.lb_time_of_day = QLabel()
         self.lb_employees = QLabel()
+        self.lb_missing = QLabel()
 
         self.set_styling()
-        self.fill_in_data()
 
         self.layout.addWidget(self.lb_time_of_day)
         self.layout.addWidget(self.lb_employees)
+
+        self.fill_in_data()
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
@@ -189,6 +191,13 @@ class AppointmentField(QWidget):
                                for avd in sorted(self.appointment.avail_days,
                                                  key=lambda x: (x.actor_plan_period.person.f_name,
                                                                 x.actor_plan_period.person.l_name))])
+        nr_required_persons = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id).nr_actors
+
+        if missing := (nr_required_persons - len(self.appointment.avail_days)):
+            missing_txt = f'\nunbesetzt: {missing}'
+            self.lb_missing.setText(missing_txt)
+            self.layout.addWidget(self.lb_missing)
+
         self.lb_employees.setText(employees)
 
     def set_styling(self):
@@ -203,6 +212,11 @@ class AppointmentField(QWidget):
         font_lb_employees.setBold(True)
         self.lb_time_of_day.setFont(font_lb_time_of_day)
         self.lb_employees.setFont(font_lb_employees)
+        font_lb_missing = self.lb_missing.font()
+        font_lb_missing.setPointSizeF(font_lb_time_of_day.pointSize() * 1)
+        self.lb_missing.setFont(font_lb_missing)
+        self.lb_missing.setContentsMargins(5, 0, 0, 0)
+        self.lb_missing.setStyleSheet('color: #ff7c00')
 
 
 class FrmTabPlan(QWidget):

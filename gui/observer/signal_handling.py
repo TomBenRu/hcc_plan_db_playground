@@ -115,10 +115,10 @@ class HandlerShowDialog(QObject):
 
 
 class HandlerExcelExport(QObject):
-    signal_finished = Signal(str)
+    signal_finished = Signal(bool)
 
-    def finished(self, output_path):
-        self.signal_finished.emit(output_path)
+    def finished(self, success: bool):
+        self.signal_finished.emit(success)
 
 
 handler_actor_plan_period = HandlerActorPlanPeriod()

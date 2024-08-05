@@ -9,7 +9,7 @@ from pydantic_core import ValidationError
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands
-from configuration import team_start_config
+from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
@@ -402,23 +402,37 @@ class MainWindow(QMainWindow):
         ...
 
     def plan_export_to_excel(self, index: int = None):
-        @Slot(str)
-        def export_finished(output_path: str):
-            QMessageBox.information(self, 'Plan Excel-Export',
-                                    f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
-            signal_handling.handler_excel_export.signal_finished.disconnect()
-            reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
-            if reply == QMessageBox.StandardButton.Yes:
-                os.startfile(output_path)
-            else:
-                reply = QMessageBox.question(self, 'Plan Excel-Export', 'Möchten Sie den Ordner öffnen?')
+        @Slot(bool)
+        def export_finished(success: bool):
+            if success:
+                QMessageBox.information(self, 'Plan Excel-Export',
+                                        f'Plan wurde erfolgreich unter\n{excel_output_path}\nexportiert.')
+                signal_handling.handler_excel_export.signal_finished.disconnect()
+                reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
                 if reply == QMessageBox.StandardButton.Yes:
-                    os.startfile(os.path.dirname(output_path))
+                    os.startfile(excel_output_path)
+                else:
+                    reply = QMessageBox.question(self, 'Plan Excel-Export', 'Möchten Sie den Ordner öffnen?')
+                    if reply == QMessageBox.StandardButton.Yes:
+                        os.startfile(os.path.dirname(excel_output_path))
+            else:
+                QMessageBox.critical(self, 'Plan Excel-Export', 'Plan konnte nicht exportiert werden.')
+
+        def create_dir_if_not_exist(path: str):
+            dir_path = path.rsplit(os.sep, 1)[0]
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
         if index is None:
             index = self.tabs_plans.currentIndex()
         widget: FrmTabPlan = self.tabs_plans.widget(index)
-        export_to_file = plan_to_xlsx.ExportToXlsx(self, widget)
+        excel_output_path = os.path.join(
+            project_paths.Paths.root_path, 'excel_output', widget.plan.plan_period.team.name,
+            f"{widget.plan.plan_period.start.strftime('%d.%m.%y')}-{widget.plan.plan_period.end.strftime('%d.%m.%y')}",
+            f'{widget.plan.name}.xlsx')
+        create_dir_if_not_exist(excel_output_path)
+        export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path)
         export_to_file.execute()
 
     def lookup_for_excel_plan(self):

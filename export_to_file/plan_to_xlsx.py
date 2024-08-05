@@ -16,12 +16,10 @@ from gui.observer import signal_handling
 
 
 class ExportToXlsx:
-    def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan):
+    def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str):
         self.parent = parent
         self.tab_plan = tab_plan
-        self.excel_output_path = os.path.join(project_paths.Paths.root_path,
-                                              'excel_output',
-                                              f'{self.tab_plan.plan.name}.xlsx')
+        self.excel_output_path = output_path
         self.offset_x = 0
         self.offset_y = 0
         self._create_workbook()
@@ -111,7 +109,7 @@ class ExportToXlsx:
         self.col_width_locations = 18
 
     def _create_worksheet_plan(self):
-        self.worksheet_plan = self.workbook.add_worksheet(self.tab_plan.plan.name)
+        self.worksheet_plan = self.workbook.add_worksheet('Plan')
         self.worksheet_plan.set_landscape()
         self.worksheet_plan.set_paper(9)
         self.worksheet_plan.set_margins(0.4, 0.4, 0.4, 0.4)
@@ -249,6 +247,7 @@ class ExportToXlsx:
         self._write_title_and_creation_date()
 
         while True:
+            success = True
             try:
                 self.workbook.close()
             except FileCreateError as e:
@@ -260,6 +259,8 @@ class ExportToXlsx:
                                              QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
                 if reply == QMessageBox.StandardButton.Yes:
                     continue
+                else:
+                    success = False
             break
 
-        signal_handling.handler_excel_export.finished(self.excel_output_path)
+        signal_handling.handler_excel_export.finished(success)

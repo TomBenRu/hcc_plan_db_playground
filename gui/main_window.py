@@ -341,7 +341,8 @@ class MainWindow(QMainWindow):
     def determine_excel_output_folder(self):
         path_handler = configuration.project_paths.curr_user_path_handler
         paths = path_handler.get_config()
-        output_folder = QFileDialog.getExistingDirectory(self, "Ordner auswählen", paths.excel_output_path)
+        output_folder = QFileDialog.getExistingDirectory(
+            self, "Ordner auswählen, an dem die Excel-Pläne gespeichert werden sollen", paths.excel_output_path)
         if not output_folder:
             return
         paths.excel_output_path = output_folder
@@ -445,6 +446,7 @@ class MainWindow(QMainWindow):
         path_handler = configuration.project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):
             output_folder = os.path.join(project_paths.Paths.root_path, 'excel_output')
+            output_folder = 'excel_output'
         excel_output_path = os.path.join(
             output_folder, widget.plan.plan_period.team.name,
             f"{widget.plan.plan_period.start.strftime('%d.%m.%y')}-{widget.plan.plan_period.end.strftime('%d.%m.%y')}",

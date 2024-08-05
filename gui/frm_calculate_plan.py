@@ -91,6 +91,13 @@ class DlgCalculate(QDialog):
             QMessageBox.critical(self, 'Zeitraum', 'Bitte wählen Sie zuerst einen Zeitraum.')
             return
 
+        if not db_services.Event.get_all_from__plan_period(self.curr_plan_period_id):
+            QMessageBox.critical(self, 'Pläne erstellen',
+                                 f'Es können keine Pläne für den Zeitraum {self.combo_plan_periods.currentText()} '
+                                 f'erstellt werden.\n'
+                                 f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
+            return
+
         # Create and configure the progress dialog
         progress_dialog = QProgressDialog(self)
         progress_dialog.setLabelText("Solving...")

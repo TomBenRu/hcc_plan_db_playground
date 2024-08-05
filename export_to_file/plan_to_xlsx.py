@@ -111,6 +111,10 @@ class ExportToXlsx:
 
     def _create_worksheet_plan(self):
         self.worksheet_plan = self.workbook.add_worksheet(self.tab_plan.plan.name)
+        self.worksheet_plan.set_landscape()
+        self.worksheet_plan.set_paper(9)
+        self.worksheet_plan.set_margins(0.4, 0.4, 0.4, 0.4)
+        self.worksheet_plan.fit_to_pages(1, 1)
 
     def _write_headers_week_day_names(self):
         self.worksheet_plan.set_row(2, self.row_height_weekdays)
@@ -191,15 +195,15 @@ class ExportToXlsx:
         def make_text_names():
             text = ''
             if len(appointment.avail_days):
-                text = '\n' + '\n'.join(f'{avd.actor_plan_period.person.f_name} '
+                text = '\n ' + '\n '.join(f'{avd.actor_plan_period.person.f_name} '
                                         f'{avd.actor_plan_period.person.l_name}'
                                         for avd in appointment.avail_days)
             cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
             for _ in range(cast_group.nr_actors - len(appointment.avail_days)):
-                text += '\nunbesetzt'
+                text += '\n unbesetzt'
             return text
 
-        rows_cols: defaultdict[int, list[int]] = defaultdict(list)
+        rows_cols: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
             for weekday, location_appointments in weekday_location_appointments.items():
                 for location_id, appointments in location_appointments.items():

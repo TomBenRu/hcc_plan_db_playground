@@ -96,10 +96,6 @@
   {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/configuration/api_remote_config.toml;configuration"
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/excel_output;excel_output/"
   }
  ],
  "nonPyinstallerOptions": {

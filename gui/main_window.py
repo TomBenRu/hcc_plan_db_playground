@@ -407,6 +407,13 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, 'Plan Excel-Export',
                                     f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
             signal_handling.handler_excel_export.signal_finished.disconnect()
+            reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
+            if reply == QMessageBox.StandardButton.Yes:
+                os.startfile(output_path)
+            else:
+                reply = QMessageBox.question(self, 'Plan Excel-Export', 'Möchten Sie den Ordner öffnen?')
+                if reply == QMessageBox.StandardButton.Yes:
+                    os.startfile(os.path.dirname(output_path))
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
         if index is None:
             index = self.tabs_plans.currentIndex()

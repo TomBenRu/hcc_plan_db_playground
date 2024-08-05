@@ -76,9 +76,9 @@ class ExportToXlsx:
         self.format_day_nrs_2 = self.workbook.add_format({'bold': False, 'font_size': 10})
         self.format_column_kw_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
         self.format_column_kw_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
-        self.format_appointments = self.workbook.add_format({'bold': False, 'font_size': 10})
+        self.format_appointments = self.workbook.add_format({'bold': False, 'font_size': 10, 'border': 1})
         self.format_appointments_unbesetzt = self.workbook.add_format({'bold': False, 'font_size': 10,
-                                                                       'font_color': 'red'})
+                                                                       'font_color': 'red', 'border': 1})
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
         self.format_locations_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_1
@@ -163,13 +163,14 @@ class ExportToXlsx:
             text = ''
             if len(appointment.avail_days):
                 text = '\n' + '\n'.join(f'{avd.actor_plan_period.person.f_name} '
-                                              f'{avd.actor_plan_period.person.l_name}'
-                                              for avd in appointment.avail_days)
+                                        f'{avd.actor_plan_period.person.l_name}'
+                                        for avd in appointment.avail_days)
             cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
             for _ in range(cast_group.nr_actors - len(appointment.avail_days)):
                 text += '\nunbesetzt'
             return text
 
+        rows_cols: defaultdict[int, list[int]] = defaultdict(list)
         rows = set()
         cols = set()
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
@@ -182,6 +183,7 @@ class ExportToXlsx:
                         row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
                         col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
                                + 1 + loc_indexes[location_id])
+                        rows_cols[row].append(col)
                         rows.add(row)
                         cols.add(col)
                         text_names = make_text_names()
@@ -189,12 +191,17 @@ class ExportToXlsx:
                             row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
                         )
 
-        for row in rows:
+        for row, cols_ in rows_cols.items():
             self.worksheet_plan.set_row(row, self.row_height_appointments)
-        self.worksheet_plan.conditional_format(min(rows), min(cols), max(rows), max(cols),
-                                               {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
-                                                'format': self.format_appointments_unbesetzt})
-
+            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
+                                                   {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
+                                                    'format': self.format_appointments_unbesetzt})
+            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
+                                                   {'type': 'no_blanks',
+                                                    'format': self.format_appointments})
+            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
+                                                   {'type': 'blanks',
+                                                    'format': self.format_appointments})
 
     def execute(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)

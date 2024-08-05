@@ -4,7 +4,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
 from pydantic_core import ValidationError
 
 from commands import command_base_classes
@@ -427,8 +427,11 @@ class MainWindow(QMainWindow):
         if index is None:
             index = self.tabs_plans.currentIndex()
         widget: FrmTabPlan = self.tabs_plans.widget(index)
+        output_folder = QFileDialog.getExistingDirectory(self, "Ordner auswählen")
+        if not output_folder:  # Prüft, ob ein Ordner ausgewählt wurde
+            output_folder = 'excel_output'
         excel_output_path = os.path.join(
-            project_paths.Paths.root_path, 'excel_output', widget.plan.plan_period.team.name,
+            project_paths.Paths.root_path, output_folder, widget.plan.plan_period.team.name,
             f"{widget.plan.plan_period.start.strftime('%d.%m.%y')}-{widget.plan.plan_period.end.strftime('%d.%m.%y')}",
             f'{widget.plan.name}.xlsx')
         create_dir_if_not_exist(excel_output_path)

@@ -67,31 +67,45 @@ class ExportToXlsx:
 
     def _define_formats(self):
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})
-        self.format_weekday_1 = self.workbook.add_format({'bold': True, 'font_size': 12, 'font_color': 'white'})
-        self.format_weekday_2 = self.workbook.add_format({'bold': True, 'font_size': 12, 'font_color': 'white'})
-        self.format_locations_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white',
-                                                            'text_wrap': True})
-        self.format_locations_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white',
-                                                            'text_wrap': True})
-        self.format_day_nrs_1 = self.workbook.add_format({'bold': False, 'font_size': 10})
-        self.format_day_nrs_2 = self.workbook.add_format({'bold': False, 'font_size': 10})
-        self.format_column_kw_1 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
-        self.format_column_kw_2 = self.workbook.add_format({'bold': True, 'font_size': 10, 'font_color': 'white'})
-        self.format_appointments = self.workbook.add_format({'bold': False, 'font_size': 10, 'border': 1})
-        self.format_appointments_unbesetzt = self.workbook.add_format({'bold': False, 'font_size': 10,
-                                                                       'font_color': 'red', 'border': 1})
+        self.format_weekday_1 = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        self.format_weekday_2 = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        self.format_locations_1 = self.workbook.add_format(
+            {'bold': True, 'font_size': 10, 'font_color': 'white', 'border': 1, 'text_wrap': True,
+             'align': 'center', 'valign': 'vcenter'})
+        self.format_locations_2 = self.workbook.add_format(
+            {'bold': True, 'font_size': 10, 'font_color': 'white', 'border': 1, 'text_wrap': True,
+             'align': 'center', 'valign': 'vcenter'})
+        self.format_day_nrs_1 = self.workbook.add_format(
+            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        self.format_day_nrs_2 = self.workbook.add_format(
+            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        self.format_column_kw_1 = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'text_wrap': True,
+             'align': 'center', 'valign': 'top'})
+        self.format_column_kw_2 = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'text_wrap': True,
+             'align': 'center', 'valign': 'top'})
+        self.format_appointments = self.workbook.add_format(
+            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        self.format_appointments_unbesetzt = self.workbook.add_format(
+            {'bold': False, 'font_size': 10, 'font_color': 'red', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
         self.format_locations_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_1
         self.format_locations_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_2
         self.format_day_nrs_1.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_1
         self.format_day_nrs_2.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_2
+        self.format_column_kw_1.bg_color = self.tab_plan.plan.excel_export_settings.color_column_kw_1
+        self.format_column_kw_2.bg_color = self.tab_plan.plan.excel_export_settings.color_column_kw_2
 
         self.row_height_weekdays = 20
         self.row_height_locations = 25
-        self.row_height_appointments = 35
+        self.row_height_appointments = 40
         self.row_height_dates = 20
-        self.col_width_kw = 7
+        self.col_width_kw = 5
         self.col_width_locations = 18
 
     def _create_worksheet_plan(self):
@@ -127,11 +141,11 @@ class ExportToXlsx:
             if row_merge['merge'] > 1:
                 self.worksheet_plan.merge_range(
                     row_merge['row'], 0, row_merge['row'] + row_merge['merge'] - 1, 0,
-                    f'KW {week_num}', self.format_weekday_1 if i % 2 else self.format_weekday_2
+                    f'KW\n{week_num}', self.format_column_kw_1 if i % 2 else self.format_column_kw_2
                 )
             else:
-                self.worksheet_plan.write(row_merge['row'], 0, f'KW {week_num}',
-                                          self.format_weekday_1 if i % 2 else self.format_weekday_2)
+                self.worksheet_plan.write(row_merge['row'], 0, f'KW\n{week_num}',
+                                          self.format_column_kw_1 if i % 2 else self.format_column_kw_2)
 
     def _write_dates(self):
         date_rows = set()
@@ -150,9 +164,8 @@ class ExportToXlsx:
 
             # Dies wird gebraucht, um Appointment-Zellen mit einem Default-Format zu füllen:
             cols_of_date_cells = [column + i for i in range(merge_cols)]
-            rows_of_loc_cells = [row + i for i in range(1, self.week_num__row_merge[curr_date.isocalendar()[1]]['merge'])]
-            print(f'{rows_of_loc_cells=}')
-            print(f'{cols_of_date_cells=}')
+            rows_of_loc_cells = [row + i
+                                 for i in range(1, self.week_num__row_merge[curr_date.isocalendar()[1]]['merge'])]
             for r, c in itertools.product(rows_of_loc_cells, cols_of_date_cells):
                 self.cells_for_default_appointments.append((r, c))
 
@@ -186,8 +199,6 @@ class ExportToXlsx:
             return text
 
         rows_cols: defaultdict[int, list[int]] = defaultdict(list)
-        rows = set()
-        cols = set()
         for week_num, weekday_location_appointments in self.week_num__weekday_location_appointments.items():
             for weekday, location_appointments in weekday_location_appointments.items():
                 for location_id, appointments in location_appointments.items():
@@ -199,14 +210,12 @@ class ExportToXlsx:
                         col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
                                + 1 + loc_indexes[location_id])
                         rows_cols[row].append(col)
-                        rows.add(row)
-                        cols.add(col)
                         text_names = make_text_names()
                         self.worksheet_plan.write(
                             row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
                         )
 
-        for row, cols_ in rows_cols.items():
+        for row, cols in rows_cols.items():
             self.worksheet_plan.set_row(row, self.row_height_appointments)
             self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
                                                    {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',

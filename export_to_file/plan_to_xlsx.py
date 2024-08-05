@@ -88,9 +88,9 @@ class ExportToXlsx:
             {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'text_wrap': True,
              'align': 'center', 'valign': 'top'})
         self.format_appointments = self.workbook.add_format(
-            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': False, 'font_size': 10, 'border': 1, 'valign': 'top', 'text_wrap': True})
         self.format_appointments_unbesetzt = self.workbook.add_format(
-            {'bold': False, 'font_size': 10, 'font_color': 'red', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': False, 'font_size': 10, 'font_color': 'red', 'border': 1, 'valign': 'top', 'text_wrap': True})
 
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
@@ -103,7 +103,8 @@ class ExportToXlsx:
 
         self.row_height_weekdays = 20
         self.row_height_locations = 25
-        self.row_height_appointments = 40
+        # self.row_height_appointments = 40
+        self.line_height_appointments = 12
         self.row_height_dates = 20
         self.col_width_kw = 5
         self.col_width_locations = 18
@@ -209,15 +210,20 @@ class ExportToXlsx:
                         row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
                         col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
                                + 1 + loc_indexes[location_id])
-                        rows_cols[row].append(col)
                         text_names = make_text_names()
+                        rows_in_cell = 1 + text_names.count('\n')
+                        rows_cols[row].append((col, rows_in_cell))
                         self.worksheet_plan.write(
                             row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
+                            self.format_appointments
                         )
 
-        for row, cols in rows_cols.items():
-            self.worksheet_plan.set_row(row, self.row_height_appointments)
-            self.worksheet_plan.conditional_format(row, min(cols), row, max(cols),
+        for row, cols_rows_in_cell in rows_cols.items():
+            min_cols = min(c for c, _ in cols_rows_in_cell)
+            max_cols = max(c for c, _ in cols_rows_in_cell)
+            max_rows_in_cells = max(r for _, r in cols_rows_in_cell)
+            self.worksheet_plan.set_row(row, max_rows_in_cells * self.line_height_appointments)
+            self.worksheet_plan.conditional_format(row, min_cols, row, max_cols,
                                                    {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
                                                     'format': self.format_appointments_unbesetzt})
 

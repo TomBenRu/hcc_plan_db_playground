@@ -21,7 +21,7 @@ class ExportToXlsx:
         self.tab_plan = tab_plan
         self.excel_output_path = output_path
         self.offset_x = 0
-        self.offset_y = 0
+        self.offset_y = 3
         self._create_workbook()
         self._define_formats()
         self._create_worksheet_plan()
@@ -50,7 +50,7 @@ class ExportToXlsx:
             location_id = appointment.event.location_plan_period.location_of_work.id
             self.week_num__weekday_location_appointments[week_num][weekday][location_id].append(appointment)
 
-        curr_row = 4
+        curr_row = self.offset_y + 2
         for week_num in sorted(self.week_num__weekday_location_appointments.keys()):
             weekday_location_appointment = self.week_num__weekday_location_appointments[week_num]
             max_appointments_in_week = max(
@@ -116,27 +116,29 @@ class ExportToXlsx:
         self.worksheet_plan.fit_to_pages(1, 1)
 
     def _write_headers_week_day_names(self):
-        self.worksheet_plan.set_row(2, self.row_height_weekdays)
+        self.worksheet_plan.set_row(self.offset_y, self.row_height_weekdays)
         for i, (weekday_num, col_locations) in enumerate(self.weekday_num__col_locations.items()):
             if len(col_locations['locations']) > 1:
                 self.worksheet_plan.merge_range(
-                    2, col_locations['column'] + 1, 2, col_locations['column'] + len(col_locations['locations']),
+                    self.offset_y, col_locations['column'] + 1,
+                    self.offset_y, col_locations['column'] + len(col_locations['locations']),
                     self.tab_plan.weekday_names[weekday_num],
                     self.format_weekday_1 if i % 2 else self.format_weekday_2
                 )
             else:
-                self.worksheet_plan.write(2, col_locations['column'] + 1, self.tab_plan.weekday_names[weekday_num],
+                self.worksheet_plan.write(self.offset_y, col_locations['column'] + 1,
+                                          self.tab_plan.weekday_names[weekday_num],
                                           self.format_weekday_1 if i % 2 else self.format_weekday_2)
 
     def _write_locations(self):
         self.max_col_locations = 0
-        self.worksheet_plan.set_row(3, self.row_height_locations)
+        self.worksheet_plan.set_row(self.offset_y + 1, self.row_height_locations)
         format_idx = 0
         for weekday_num, col_locations in self.weekday_num__col_locations.items():
             for i, location in enumerate(col_locations['locations']):
                 column = col_locations['column'] + 1 + i
                 self.max_col_locations = max(self.max_col_locations, column)
-                self.worksheet_plan.write(3, column, f'{location.name}\n({location.address.city})',
+                self.worksheet_plan.write(self.offset_y + 1, column, f'{location.name}\n({location.address.city})',
                                           self.format_locations_1 if format_idx % 2 else self.format_locations_2)
                 self.worksheet_plan.set_column(column, column, self.col_width_locations)
                 format_idx += 1
@@ -234,7 +236,7 @@ class ExportToXlsx:
 
     def _write_title_and_creation_date(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)
-        self.worksheet_plan.merge_range(0, self.max_col_locations - 1, 0, self.max_col_locations,
+        self.worksheet_plan.merge_range(1, self.max_col_locations - 1, 1, self.max_col_locations,
                                         f'Datum: {datetime.date.today().strftime("%d.%m.%Y")}',
                                         self.format_creation_date)
 

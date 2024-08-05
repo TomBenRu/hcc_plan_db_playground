@@ -439,9 +439,8 @@ class MainWindow(QMainWindow):
                 os.makedirs(dir_path)
 
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
-        if index is None:
-            index = self.tabs_plans.currentIndex()
-        widget: FrmTabPlan = self.tabs_plans.widget(index)
+
+        widget: FrmTabPlan = self.tabs_plans.currentWidget()
 
         path_handler = configuration.project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):

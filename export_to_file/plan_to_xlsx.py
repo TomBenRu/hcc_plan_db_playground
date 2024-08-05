@@ -67,6 +67,7 @@ class ExportToXlsx:
 
     def _define_formats(self):
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})
+        self.format_creation_date = self.workbook.add_format({'italic': True, 'font_size': 10, 'align': 'right'})
         self.format_weekday_1 = self.workbook.add_format(
             {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
         self.format_weekday_2 = self.workbook.add_format(
@@ -130,11 +131,13 @@ class ExportToXlsx:
                                           self.format_weekday_1 if i % 2 else self.format_weekday_2)
 
     def _write_locations(self):
+        self.max_col_locations = 0
         self.worksheet_plan.set_row(3, self.row_height_locations)
         format_idx = 0
         for weekday_num, col_locations in self.weekday_num__col_locations.items():
             for i, location in enumerate(col_locations['locations']):
                 column = col_locations['column'] + 1 + i
+                self.max_col_locations = max(self.max_col_locations, column)
                 self.worksheet_plan.write(3, column, location.name,
                                           self.format_locations_1 if format_idx % 2 else self.format_locations_2)
                 self.worksheet_plan.set_column(column, column, self.col_width_locations)
@@ -231,14 +234,19 @@ class ExportToXlsx:
                                                    {'type': 'text', 'criteria': 'containing', 'value': 'unbesetzt',
                                                     'format': self.format_appointments_unbesetzt})
 
-    def execute(self):
+    def _write_title_and_creation_date(self):
         self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)
-        self.worksheet_plan.write(0, 7, f'Datum: {datetime.date.today().strftime("%d.%m.%Y")}')
+        self.worksheet_plan.merge_range(0, self.max_col_locations - 1, 0, self.max_col_locations,
+                                        f'Datum: {datetime.date.today().strftime("%d.%m.%Y")}',
+                                        self.format_creation_date)
+
+    def execute(self):
         self._write_headers_week_day_names()
         self._write_locations()
         self._write_week_nums()
         self._write_dates()
         self._write_appointments()
+        self._write_title_and_creation_date()
 
         while True:
             try:
@@ -255,16 +263,3 @@ class ExportToXlsx:
             break
 
         signal_handling.handler_excel_export.finished(self.excel_output_path)
-
-# todo: extra rows for day numbers
-#  plan = xlsxwriter.Workbook(os.path.relpath(f'clients/{self.active_client}/ergebnisse/{self.year}-{self.month:02}/{filename}.xlsx'))
-#         spielplan = plan.add_worksheet('Spielplan')
-#         clowntermine = plan.add_worksheet('Clowntermine')
-#         spielplan.set_landscape()
-#         clowntermine.set_landscape()
-#         spielplan.set_paper(9)
-#         clowntermine.set_paper(9)
-#         spielplan.set_margins(0.4, 0.4, 0.4, 0.4)
-#         clowntermine.set_margins(0.4, 0.4, 0.4, 0.4)
-#         spielplan.fit_to_pages(1, 1)
-#         clowntermine.fit_to_pages(1, 1)

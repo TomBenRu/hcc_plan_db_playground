@@ -62,6 +62,7 @@ class ExportToXlsx:
 
     def _create_workbook(self):
         self.workbook = xlsxwriter.Workbook(self.excel_output_path)
+        self.workbook.set_properties({'title': self.tab_plan.plan.name, 'subject': 'Einsatzplan', 'author': 'hcc-plan'})
 
     def _define_formats(self):
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})

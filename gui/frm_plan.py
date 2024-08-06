@@ -213,7 +213,7 @@ class AppointmentField(QWidget):
         self.lb_time_of_day.setFont(font_lb_time_of_day)
         self.lb_employees.setFont(font_lb_employees)
         font_lb_missing = self.lb_missing.font()
-        font_lb_missing.setPointSizeF(font_lb_time_of_day.pointSize() * 1)
+        font_lb_missing.setPointSizeF(font_lb_missing.pointSize() * 0.8)
         self.lb_missing.setFont(font_lb_missing)
         self.lb_missing.setContentsMargins(5, 0, 0, 0)
         self.lb_missing.setStyleSheet('color: #ff7c00')

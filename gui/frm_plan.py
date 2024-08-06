@@ -194,7 +194,7 @@ class AppointmentField(QWidget):
         nr_required_persons = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id).nr_actors
 
         if missing := (nr_required_persons - len(self.appointment.avail_days)):
-            missing_txt = f'\nunbesetzt: {missing}'
+            missing_txt = f'unbesetzt: {missing}'
             self.lb_missing.setText(missing_txt)
             self.layout.addWidget(self.lb_missing)
 

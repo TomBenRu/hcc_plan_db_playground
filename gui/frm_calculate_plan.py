@@ -52,24 +52,39 @@ class SolverThread(QThread):
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
+class SolverWorker(QObject):
+    finished = Signal()
+
+
+
+
 class DlgProgress(QProgressDialog):
     def __init__(self, parent: QWidget, window_title: str, label_text: str,
                  minimum: int, maximum: int, cancel_button_text: str):
         super().__init__(label_text, cancel_button_text, minimum, maximum, parent)
-        signal_handling.handler_solver_progress.signal_progress.connect(self.update_progress)
+        signal_handling.handler_solver.signal_progress.connect(self.update_progress)
         self.setWindowTitle(window_title)
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setMinimumDuration(minimum)
         self.setMaximum(maximum)
 
+        self.canceled.connect(self.cancel_solving)
+
+
     @Slot(int)
     def update_progress(self, progress: int):
         self.setValue(progress)
+
+    def cancel_solving(self):
+        print('progress canceling')
+        signal_handling.handler_solver.cancel_solving()
 
 
 class DlgCalculate(QDialog):
     def __init__(self, parent: QWidget, team_id: UUID):
         super().__init__(parent)
+
+        signal_handling.handler_solver.signal_cancel_solving.connect(self.quit_solver_tread)
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
@@ -97,12 +112,12 @@ class DlgCalculate(QDialog):
                                            | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
 
-        self.button_box.accepted.connect(self.calculate_schedule_versions)
+        self.button_box.accepted.connect(self._calculate_schedule_versions)
         self.button_box.rejected.connect(self.reject)
 
         self.fill_out_widgets()
 
-    def calculate_schedule_versions(self):
+    def _calculate_schedule_versions(self):
         if not self.curr_plan_period_id:
             QMessageBox.critical(self, 'Zeitraum', 'Bitte wählen Sie zuerst einen Zeitraum.')
             return
@@ -118,12 +133,17 @@ class DlgCalculate(QDialog):
         progress_dialog.show()
 
         # Create the solver thread
-        solver_thread = SolverThread(self, self.curr_plan_period_id)
-        solver_thread.finished.connect(self.save_plan_to_db)
-        solver_thread.finished.connect(self.accept)
+        self.solver_thread = SolverThread(self, self.curr_plan_period_id)
+        self.solver_thread.finished.connect(self.save_plan_to_db)
+        self.solver_thread.finished.connect(self.accept)
 
         # Start the solver thread
-        solver_thread.start()
+        self.solver_thread.start()
+
+    def quit_solver_tread(self):
+        print('quitting solver tread')
+        self.solver_thread.terminate()
+        # self.solver_thread.quit()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

@@ -121,11 +121,15 @@ class HandlerExcelExport(QObject):
         self.signal_finished.emit(success)
 
 
-class HandlerSolverProgress(QObject):
+class HandlerSolver(QObject):
     signal_progress = Signal(int)
+    signal_cancel_solving = Signal()
 
     def progress(self, step_of_total_steps: int):
         self.signal_progress.emit(step_of_total_steps)
+
+    def cancel_solving(self):
+        self.signal_cancel_solving.emit()
 
 
 handler_actor_plan_period = HandlerActorPlanPeriod()
@@ -133,4 +137,4 @@ handler_location_plan_period = HandlerLocationPlanPeriod()
 handler_plan_tabs = HandlerPlanTabs()
 handler_show_dialog = HandlerShowDialog()
 handler_excel_export = HandlerExcelExport()
-handler_solver_progress = HandlerSolverProgress()
+handler_solver = HandlerSolver()

@@ -965,7 +965,10 @@ def define_objective__fixed_constraint_results(
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts_res)
     model.Add(sum(constraints_cast_rule) == sum_cast_rules_res)
 
+
 solver: cp_model.CpSolver | None = None
+
+
 def solve_model_with_solver_solution_callback(
         model: cp_model.CpModel, unassigned_shifts_per_event: list[IntVar],
         sum_assigned_shifts: dict[UUID, IntVar],

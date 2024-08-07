@@ -134,10 +134,9 @@ class DlgCalculate(QDialog):
         # Start the solver thread
         self.solver_thread.start()
 
+    @Slot()
     def quit_solver_tread(self):
-        print('quitting solver tread')
         sat_solver.solver_main.solver_quit()
-        # self.solver_thread.quit()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

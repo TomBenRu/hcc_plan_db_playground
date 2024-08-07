@@ -444,7 +444,6 @@ class MainWindow(QMainWindow):
 
         path_handler = configuration.project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):
-            output_folder = os.path.join(project_paths.Paths.root_path, 'excel_output')
             output_folder = 'excel_output'
         excel_output_path = os.path.join(
             output_folder, widget.plan.plan_period.team.name,

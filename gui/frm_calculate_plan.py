@@ -64,13 +64,12 @@ class DlgProgress(QProgressDialog):
 
         self.canceled.connect(self.cancel_solving)
 
-
     @Slot(int)
     def update_progress(self, progress: int):
         self.setValue(progress)
 
+    @Slot()
     def cancel_solving(self):
-        print('progress canceling')
         signal_handling.handler_solver.cancel_solving()
 
 

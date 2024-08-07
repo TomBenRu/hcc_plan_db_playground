@@ -1298,6 +1298,5 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
 
 
 def solver_quit():
-    print('quitting solver')
     if solver:
         solver.stop_search()

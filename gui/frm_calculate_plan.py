@@ -13,6 +13,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import db_services, schemas
 from gui import frm_cast_group
+from gui.observer import signal_handling
 
 
 class DlgAskNrPlansToSave(QDialog):
@@ -49,6 +50,21 @@ class SolverThread(QThread):
         # Call the solver function here
         schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id)
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
+
+
+class DlgProgress(QProgressDialog):
+    def __init__(self, parent: QWidget, window_title: str, label_text: str,
+                 minimum: int, maximum: int, cancel_button_text: str):
+        super().__init__(label_text, cancel_button_text, minimum, maximum, parent)
+        signal_handling.handler_solver_progress.signal_progress.connect(self.update_progress)
+        self.setWindowTitle(window_title)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setMinimumDuration(minimum)
+        self.setMaximum(maximum)
+
+    @Slot(int)
+    def update_progress(self, progress: int):
+        self.setValue(progress)
 
 
 class DlgCalculate(QDialog):
@@ -98,22 +114,15 @@ class DlgCalculate(QDialog):
                                  f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
             return
 
-        # Create and configure the progress dialog
-        progress_dialog = QProgressDialog(self)
-        progress_dialog.setLabelText("Solving...")
-        progress_dialog.setRange(0, 0)  # Indeterminate progress bar
-        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)  # Set as modal window
-        progress_dialog.setFixedWidth(300)
-        progress_dialog.setCancelButton(None)
+        progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung läuft...', 0, 4, 'Abbrechen')
+        progress_dialog.show()
 
-        # Create the solver thread and connect the finished signal to close the progress dialog
+        # Create the solver thread
         solver_thread = SolverThread(self, self.curr_plan_period_id)
-        solver_thread.finished.connect(progress_dialog.close)
         solver_thread.finished.connect(self.save_plan_to_db)
         solver_thread.finished.connect(self.accept)
 
-        # Show the progress dialog and start the solver thread
-        progress_dialog.show()
+        # Start the solver thread
         solver_thread.start()
 
     def fill_out_widgets(self):

@@ -121,8 +121,16 @@ class HandlerExcelExport(QObject):
         self.signal_finished.emit(success)
 
 
+class HandlerSolverProgress(QObject):
+    signal_progress = Signal(int)
+
+    def progress(self, step_of_total_steps: int):
+        self.signal_progress.emit(step_of_total_steps)
+
+
 handler_actor_plan_period = HandlerActorPlanPeriod()
 handler_location_plan_period = HandlerLocationPlanPeriod()
 handler_plan_tabs = HandlerPlanTabs()
 handler_show_dialog = HandlerShowDialog()
 handler_excel_export = HandlerExcelExport()
+handler_solver_progress = HandlerSolverProgress()

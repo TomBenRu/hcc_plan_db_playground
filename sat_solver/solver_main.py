@@ -16,6 +16,7 @@ from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
 from configuration.solver import curr_config_handler
+from gui.observer import signal_handling
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -1226,6 +1227,9 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
                                                                          avail_day_group_tree,
                                                                          cast_group_tree,
                                                                          log_search_process)
+    signal_handling.handler_solver_progress.progress(1)
+    time.sleep(5)
+
     max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
                                                                   avail_day_group_tree,
                                                                   cast_group_tree,
@@ -1237,6 +1241,8 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
                                                                   False,
                                                                   log_search_process,
                                                                   False)
+    signal_handling.handler_solver_progress.progress(2)
+
     (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
      sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res,
      sum_fixed_cast_conflicts_res, sum_cast_rules) = call_solver_with_adjusted_requested_assignments(event_group_tree,
@@ -1245,6 +1251,8 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
                                                                                      assigned_shifts,
                                                                                      max_shifts_per_app,
                                                                                      log_search_process)
+    signal_handling.handler_solver_progress.progress(3)
+
     solution_printer, fixed_cast_conflicts = call_solver_with__fixed_constraint_results(
         event_group_tree,
         avail_day_group_tree,
@@ -1260,6 +1268,8 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
         True,
         log_search_process,
         True)
+    signal_handling.handler_solver_progress.progress(4)
+
     return solution_printer.get_schedule_versions(), fixed_cast_conflicts
 
 

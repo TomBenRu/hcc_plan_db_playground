@@ -52,12 +52,6 @@ class SolverThread(QThread):
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
-class SolverWorker(QObject):
-    finished = Signal()
-
-
-
-
 class DlgProgress(QProgressDialog):
     def __init__(self, parent: QWidget, window_title: str, label_text: str,
                  minimum: int, maximum: int, cancel_button_text: str):
@@ -142,7 +136,7 @@ class DlgCalculate(QDialog):
 
     def quit_solver_tread(self):
         print('quitting solver tread')
-        self.solver_thread.terminate()
+        sat_solver.solver_main.solver_quit()
         # self.solver_thread.quit()
 
     def fill_out_widgets(self):
@@ -165,8 +159,14 @@ class DlgCalculate(QDialog):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
 
     @Slot(object, object)
-    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]],
-                        fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int]):
+    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
+                        fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None):
+        if schedule_versions is None and fixed_cast_conflicts is None:
+            QMessageBox.critical(self, 'Fehler',
+                                 'Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\n'
+                                 'oder die Vorgaben zur Planerstellung waren widersprüchlich.')
+            self.reject()
+            return
         if sum(fixed_cast_conflicts.values()) > 0:
             events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
             conflict_string = '\n'.join([f'  - {e.date:%d.%m.%y} ({e.time_of_day.name}) '

@@ -236,7 +236,7 @@ class ExportToXlsx:
                                                     'format': self.format_appointments_unbesetzt})
 
     def _write_title_and_creation_date(self):
-        self.worksheet_plan.write(0, 1, f'Plan: {self.tab_plan.plan.name}', self.format_title)
+        self.worksheet_plan.write(0, 1, f'{self.tab_plan.plan.name}', self.format_title)
         self.worksheet_plan.merge_range(1, self.max_col_locations - 1, 1, self.max_col_locations,
                                         f'Datum: {datetime.date.today().strftime("%d.%m.%Y")}',
                                         self.format_creation_date)

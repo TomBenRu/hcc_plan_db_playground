@@ -141,8 +141,8 @@ class MainWindow(QMainWindow):
                        self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
                        self.actions['import_from_plan_api'], None, self.actions['exit'],
                        self.actions['settings_project']],
-            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self._put_clients_to_menu, None,
-                          self.actions['master_data']],
+            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
+                          None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
@@ -677,6 +677,17 @@ class MainWindow(QMainWindow):
         )
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
+        """
+        menu: ist immer eine Menübar (Hauptmenü oder Untermenü)
+        actions_menu: actions_menus können entweder Listen oder Dictionaries sein.
+                      dictionaries listen immer Menüpunkte (keys) auf. Diese Untermenüs beinhalten entweder Listen von
+                      QActions oder weitere Untermenüs oder Mischungen daraus.
+                      Beinhaltende Tuples zeigen an, dass die QActions in einer ActionGroup zusammengefasst werden
+                      sollen, um Radiobuttons oder Checkboxes zu erhalten.
+                      Beinhaltet das actions_menu ein Callable, wird durch Ausführen dieser Funktion dynamisch ein
+                      actions_meu erzeugt.
+                      Der Wert None erzeugt einen Separator.
+        """
         if type(actions_menu) == tuple:
             ag = QActionGroup(self)
             ag.setExclusive(True)
@@ -686,17 +697,17 @@ class MainWindow(QMainWindow):
                 menu.addAction(a)
         else:
             for value in actions_menu:
-                if type(value) == str:
+                if isinstance(value, str):
                     current_menu = menu.addMenu(value)
                     current_menu.setObjectName(value.replace('&', ''))
                     self.put_actions_to_menu(current_menu, actions_menu[value])
-                elif type(value) == dict:
+                elif isinstance(value, dict):
                     self.put_actions_to_menu(menu, value)
                 elif value is None:
                     menu.addSeparator()
-                elif type(value) == MenuToolbarAction:
+                elif isinstance(value, MenuToolbarAction):
                     menu.addAction(value)
-                else:
+                else:  # callable
                     self.put_actions_to_menu(menu, value())
 
 

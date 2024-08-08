@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
                        self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
                        self.actions['import_from_plan_api'], None, self.actions['exit'],
                        self.actions['settings_project']],
-            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self.put_clients_to_menu, None,
+            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, self._put_clients_to_menu, None,
                           self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                          self.actions['show_availables'], self.actions['statistics']],
@@ -456,14 +456,17 @@ class MainWindow(QMainWindow):
     def lookup_for_excel_plan(self):
         ...
 
-    def put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
+    def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
         try:
             teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
-        return tuple(MenuToolbarAction(self, None, team.name, f'Zu {team.name} wechseln.',
-                                       lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams)
+        self.actions_teams_in_clients_menu = {
+            team.id: MenuToolbarAction(self, None, team.name, f'Zu {team.name} wechseln.',
+                                       lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams
+        }
+        return tuple(self.actions_teams_in_clients_menu.values())
 
     def put_teams_to__teams_edit_menu(self) -> dict[str, list[MenuToolbarAction]] | None:
         try:
@@ -618,6 +621,7 @@ class MainWindow(QMainWindow):
         if curr_team_id:
             try:
                 self.curr_team = db_services.Team.get(curr_team_id)
+                self.actions_teams_in_clients_menu[curr_team_id].setChecked(True)
             except ValidationError:
                 config = team_start_config.curr_start_config_handler.load_config_from_file()
                 config.default_team_id = None
@@ -626,6 +630,19 @@ class MainWindow(QMainWindow):
                 return
             self.load_current_team_config()
             self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
+
+    def load_current_team_config(self):
+        start_config_handler = team_start_config.curr_start_config_handler
+        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
+        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
+            self.open_plan_period_tab(plan_period_id,
+                                      pp_tab_config['curr_index_actors_locals_tabs'],
+                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
+        for plan_id in config_curr_team.tabs_plans:
+            self.open_plan_tab(plan_id)
+        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
+        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
+        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
 
     def exit(self):
         self.close()
@@ -658,19 +675,6 @@ class MainWindow(QMainWindow):
                 current_index_left_tabs=curr_left_tabs_index
             )
         )
-
-    def load_current_team_config(self):
-        start_config_handler = team_start_config.curr_start_config_handler
-        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
-        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
-            self.open_plan_period_tab(plan_period_id,
-                                      pp_tab_config['curr_index_actors_locals_tabs'],
-                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
-        for plan_id in config_curr_team.tabs_plans:
-            self.open_plan_tab(plan_id)
-        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
-        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
-        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         if type(actions_menu) == tuple:

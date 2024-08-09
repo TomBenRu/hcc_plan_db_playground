@@ -442,19 +442,35 @@ class MainWindow(QMainWindow):
 
         widget: FrmTabPlan = self.tabs_plans.currentWidget()
 
-        path_handler = configuration.project_paths.curr_user_path_handler
-        if not (output_folder := path_handler.get_config().excel_output_path):
-            output_folder = 'excel_output'
-        excel_output_path = os.path.join(
-            output_folder, widget.plan.plan_period.team.name,
-            f"{widget.plan.plan_period.start.strftime('%d.%m.%y')}-{widget.plan.plan_period.end.strftime('%d.%m.%y')}",
-            f'{widget.plan.name}.xlsx')
+        excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), f'{widget.plan.name}.xlsx')
         create_dir_if_not_exist(excel_output_path)
         export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path)
         export_to_file.execute()
 
     def lookup_for_excel_plan(self):
-        ...
+        widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        if not widget:
+            QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
+            return
+        excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), '')
+        try:
+            os.startfile(os.path.dirname(excel_output_path))
+        except FileNotFoundError:
+            QMessageBox.critical(self, 'Excel-Ordner',
+                                 f'Es wurde noch keine Excel-Datei für den Zeitraum '
+                                 f'{widget.plan.plan_period.start:%d.%m.%y}-{widget.plan.plan_period.end:%d.%m.%y} '
+                                 f'des Teams {widget.plan.plan_period.team.name} erstellt.')
+            return
+
+    def _get_excel_folder_output_path(self, plan_tab: FrmTabPlan) -> str:
+        path_handler = configuration.project_paths.curr_user_path_handler
+        if not (output_folder := path_handler.get_config().excel_output_path):
+            output_folder = 'excel_output'
+        excel_output_path = os.path.join(
+                output_folder, plan_tab.plan.plan_period.team.name,
+                f"{plan_tab.plan.plan_period.start.strftime('%d.%m.%y')}-"
+                f"{plan_tab.plan.plan_period.end.strftime('%d.%m.%y')}")
+        return excel_output_path
 
     def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
         try:
@@ -712,3 +728,5 @@ class MainWindow(QMainWindow):
 
 
 # todo: Funktion zur Komprimierung der Datenbank hinzufügen.
+# not_sure: team_start_config.toml wird korrupt, falls zwischen Teams gewechselt wird und die Team keine
+#  geöffneten Planperioden haben.

@@ -426,10 +426,6 @@ class MainWindow(QMainWindow):
                 reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
                 if reply == QMessageBox.StandardButton.Yes:
                     os.startfile(excel_output_path)
-                else:
-                    reply = QMessageBox.question(self, 'Plan Excel-Export', 'Möchten Sie den Ordner öffnen?')
-                    if reply == QMessageBox.StandardButton.Yes:
-                        os.startfile(os.path.dirname(excel_output_path))
             else:
                 QMessageBox.critical(self, 'Plan Excel-Export', 'Plan konnte nicht exportiert werden.')
 

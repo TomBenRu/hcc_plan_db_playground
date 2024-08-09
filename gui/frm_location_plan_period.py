@@ -333,7 +333,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location_id__location_pp = {str(loc_pp.location_of_work.id): loc_pp
                                          for loc_pp in self.plan_period.location_plan_periods}
         self.location_id: UUID | None = None
-        self.location: schemas.PersonShow | None = None
+        self.location: schemas.LocationOfWorkShow | None = None
         self.frame_events: FrmLocationPlanPeriod | None = None
         self.lb_notes_pp = QLabel('Infos zum Planungszeitraum der Einrichtung:')
         self.lb_notes_pp.setFixedHeight(20)
@@ -343,6 +343,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.te_notes_pp = QTextEdit()
         self.te_notes_pp.textChanged.connect(self.save_info_location_pp)
         self.te_notes_pp.setFixedHeight(180)
+        self.te_notes_pp.setDisabled(True)
 
         self.lb_notes_location = QLabel('Infos zur Einrichtung:')
         self.lb_notes_location.setFixedHeight(20)
@@ -352,6 +353,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.te_notes_location = QTextEdit()
         self.te_notes_location.textChanged.connect(self.save_info_location)
         self.te_notes_location.setFixedHeight(180)
+        self.te_notes_location.setDisabled(True)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -441,6 +443,8 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.location_id = UUID(self.table_select_location.item(row, 0).text())
         else:
             self.location_id = location_id
+        self.te_notes_location.setEnabled(True)
+        self.te_notes_pp.setEnabled(True)
         self.location = db_services.LocationOfWork.get(self.location_id)
         location_plan_period = self.location_id__location_pp[str(self.location_id)]
         location_plan_period_show = db_services.LocationPlanPeriod.get(location_plan_period.id)

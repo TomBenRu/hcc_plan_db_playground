@@ -587,6 +587,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.te_notes_pp = QTextEdit()
         self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
         self.te_notes_pp.setFixedHeight(180)
+        self.te_notes_pp.setDisabled(True)
 
         self.lb_notes_actor = QLabel('Infos zur Person:')
         self.lb_notes_actor.setFixedHeight(20)
@@ -596,6 +597,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.te_notes_actor = QTextEdit()
         self.te_notes_actor.textChanged.connect(self.save_info_person)
         self.te_notes_actor.setFixedHeight(180)
+        self.te_notes_actor.setDisabled(True)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -680,6 +682,8 @@ class FrmTabActorPlanPeriods(QWidget):
             self.person_id = UUID(self.table_select_actor.item(row, 0).text())
         else:
             self.person_id = person_id
+        self.te_notes_actor.setEnabled(True)
+        self.te_notes_pp.setEnabled(True)
         self.person = db_services.Person.get(self.person_id)
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)

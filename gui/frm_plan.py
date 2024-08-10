@@ -2,8 +2,8 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QContextMenuEvent, QColor
+from PySide6.QtCore import Qt, QRect
+from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView
 
@@ -52,7 +52,7 @@ class LabelDayNr(QLabel):
 class DayField(QWidget):
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
-                 plan_period: schemas.PlanPeriod):
+                 plan_period: schemas.PlanPeriod, appointment_widget_width: int):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -60,6 +60,7 @@ class DayField(QWidget):
         self.location_ids_appointments = location_ids_appointments
         self.location_ids_order = location_ids_order
         self.plan_period = plan_period
+        self.appointment_widget_width = appointment_widget_width
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -72,7 +73,7 @@ class DayField(QWidget):
         self.layout.addWidget(self.container_locations)
         self.layout_container_locations.setContentsMargins(0, 0, 0, 0)
         self.containers_appointments: dict[int, 'ContainerAppointments'] = {
-            i: ContainerAppointments(loc_id) for i, loc_id in enumerate(location_ids_order)}
+            i: ContainerAppointments(loc_id, appointment_widget_width) for i, loc_id in enumerate(location_ids_order)}
         self.display_appointment_containers()
         self.display_appointments()
 
@@ -99,7 +100,8 @@ class DayField(QWidget):
             if decision == QMessageBox.StandardButton.No:
                 return
         self.containers_appointments: dict[int, 'ContainerAppointments'] = {
-            i: ContainerAppointments(loc_id) for i, loc_id in enumerate(location_ids_order)}
+            i: ContainerAppointments(loc_id, self.appointment_widget_width)
+            for i, loc_id in enumerate(location_ids_order)}
         for i, container_appointments in self.containers_appointments.items():
             self.layout_container_locations.addWidget(container_appointments, 0, i)
 
@@ -109,7 +111,7 @@ class DayField(QWidget):
                 container.add_appointment_field(appointment_field)
                 break
         else:
-            new_container = ContainerAppointments(appointment_field.location_id)
+            new_container = ContainerAppointments(appointment_field.location_id, self.appointment_widget_width)
             new_container.add_appointment_field(appointment_field)
             self.containers_appointments[len(self.containers_appointments)] = new_container
 
@@ -130,9 +132,11 @@ class DayField(QWidget):
 
 
 class ContainerAppointments(QWidget):
-    def __init__(self, location_id: UUID):
+    def __init__(self, location_id: UUID, width: int):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
+        self.setFixedWidth(width)
+        # self.setStyleSheet(f'border: 1px solid white;')
         self.location_id = location_id
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -226,6 +230,8 @@ class FrmTabPlan(QWidget):
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_plan)
 
         self.plan = plan
+
+        self.appointment_widget_with = 120
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -367,7 +373,7 @@ class FrmTabPlan(QWidget):
             day_field = DayField(day,
                                  location_ids_order,
                                  self.day_location_id_appointments.get(day),
-                                 self.plan.plan_period)
+                                 self.plan.plan_period, self.appointment_widget_with)
             self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):
@@ -377,7 +383,7 @@ class FrmTabPlan(QWidget):
             container_layout = QHBoxLayout(container)
             for location in locations:
                 widget = QLabel(f'{location.name} {location.address.city}')
-                widget.setFixedWidth(150)
+                widget.setFixedWidth(self.appointment_widget_with)
                 widget.setWordWrap(True)
                 container_layout.addWidget(widget)
             self.table_plan.setCellWidget(0, self.weekday_cols[weekday], container)

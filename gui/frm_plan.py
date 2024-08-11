@@ -68,10 +68,11 @@ class DayField(QWidget):
         self.lb_date = LabelDayNr(day, plan_period)
         self.layout.addWidget(self.lb_date)
         self.container_locations = QWidget()
-        self.layout_container_locations = QGridLayout(self.container_locations)
         self.container_locations.setContentsMargins(0, 0, 0, 0)
-        self.layout.addWidget(self.container_locations)
+        self.layout_container_locations = QGridLayout(self.container_locations)
+        self.layout_container_locations.setSpacing(0)
         self.layout_container_locations.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.container_locations)
         self.containers_appointments: dict[int, 'ContainerAppointments'] = {
             i: ContainerAppointments(loc_id, appointment_widget_width) for i, loc_id in enumerate(location_ids_order)}
         self.display_appointment_containers()
@@ -136,7 +137,6 @@ class ContainerAppointments(QWidget):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
         self.setFixedWidth(width)
-        # self.setStyleSheet(f'border: 1px solid white;')
         self.location_id = location_id
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -165,6 +165,7 @@ class AppointmentField(QWidget):
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
         self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(0)
         self.lb_time_of_day = QLabel()
         self.lb_employees = QLabel()
         self.lb_missing = QLabel()
@@ -205,11 +206,12 @@ class AppointmentField(QWidget):
         self.lb_employees.setText(employees)
 
     def set_styling(self):
+        self.setStyleSheet("background-color: rgba(128, 128, 128, 64);")
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setContentsMargins(0, 0, 0, 0)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.lb_time_of_day.setContentsMargins(5, 0, 0, 0)
-        self.lb_employees.setContentsMargins(10, 0, 0, 0)
+        self.lb_time_of_day.setContentsMargins(5, 2, 0, 0)
+        self.lb_employees.setContentsMargins(10, 5, 0, 5)
         font_lb_time_of_day = self.lb_time_of_day.font()
         font_lb_employees = self.lb_employees.font()
         font_lb_time_of_day.setPointSizeF(font_lb_time_of_day.pointSize() * 0.8)
@@ -219,7 +221,7 @@ class AppointmentField(QWidget):
         font_lb_missing = self.lb_missing.font()
         font_lb_missing.setPointSizeF(font_lb_missing.pointSize() * 0.8)
         self.lb_missing.setFont(font_lb_missing)
-        self.lb_missing.setContentsMargins(5, 0, 0, 0)
+        self.lb_missing.setContentsMargins(5, 0, 0, 2)
         self.lb_missing.setStyleSheet('color: #ff7c00')
 
 

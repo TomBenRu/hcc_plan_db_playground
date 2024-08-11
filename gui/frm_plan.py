@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView
+    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -64,6 +64,7 @@ class DayField(QWidget):
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.lb_date = LabelDayNr(day, plan_period)
         self.layout.addWidget(self.lb_date)
@@ -140,6 +141,7 @@ class ContainerAppointments(QWidget):
         self.location_id = location_id
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(1)
         self.appointment_fields: list['AppointmentField'] = []
 
     def add_appointment_field(self, appointment_field: 'AppointmentField'):
@@ -206,9 +208,10 @@ class AppointmentField(QWidget):
         self.lb_employees.setText(employees)
 
     def set_styling(self):
-        self.setStyleSheet("background-color: rgba(128, 128, 128, 64);")
+        self.setStyleSheet("background-color: #393939;")
+        '444444'
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.setContentsMargins(0, 0, 0, 0)
+        self.setContentsMargins(2, 2, 2, 2)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.lb_time_of_day.setContentsMargins(5, 2, 0, 0)
         self.lb_employees.setContentsMargins(10, 5, 0, 5)
@@ -313,7 +316,7 @@ class FrmTabPlan(QWidget):
         num_cols = max(self.weekday_cols.values()) + 1
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
-
+        self.table_plan.setStyleSheet('background-color: #2d2d2d; color: white')
         self.display_headers_week_day_names()
         # self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
 
@@ -381,10 +384,16 @@ class FrmTabPlan(QWidget):
     def display_headers_locations(self):
         for weekday, locations in self.weekdays_locations.items():
             container = QWidget()
+            container.setContentsMargins(0, 0, 0, 0)
             container.setStyleSheet(f'background-color: {locations_bg_color};')
             container_layout = QHBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(0)
             for location in locations:
                 widget = QLabel(f'{location.name} {location.address.city}')
+                widget.setStyleSheet(f'border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
+                '3d3d3d'
+                widget.setContentsMargins(7, 7, 7, 7)
                 widget.setFixedWidth(self.appointment_widget_with)
                 widget.setWordWrap(True)
                 container_layout.addWidget(widget)

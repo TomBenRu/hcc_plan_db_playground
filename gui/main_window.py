@@ -190,6 +190,8 @@ class MainWindow(QMainWindow):
 
         self.frm_master_data = None
 
+        self.restore_tabs()
+
     def choose_project(self):
         dlg = DlgProjectSelect(self)
         if dlg.exec():
@@ -627,8 +629,7 @@ class MainWindow(QMainWindow):
             for action in menu.actions():
                 action.setEnabled(True)
 
-    def showEvent(self, event):
-        super().showEvent(event)
+    def restore_tabs(self):
         curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
         if curr_team_id:
             try:

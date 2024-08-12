@@ -156,7 +156,7 @@ class ButtonEvent(QPushButton):
         if dlg.exec():
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(self.date)
+                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
             )
 
     def edit_flags(self):
@@ -190,7 +190,7 @@ class ButtonEvent(QPushButton):
     def button_clicked(self):
         self.slot__event_toggled(self)
         signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-            signal_handling.DataDate(self.date)
+            signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
         )
 
 
@@ -204,6 +204,10 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         )
         signal_handling.handler_location_plan_period.signal_reset_styling_fixed_cast_configs.connect(
             self.reset_styling
+        )
+
+        signal_handling.handler_location_plan_period.signal_reload_cast_groups__cast_configs.connect(
+            self.reload_cast_groups_at_day
         )
         self.clicked.connect(self.set_fixed_casts_of_day)
 
@@ -221,6 +225,20 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
         self.set_stylesheet_and_tooltip()
 
+    @Slot(signal_handling.DataDate)
+    def reload_cast_groups_at_day(self, data: signal_handling.DataDate = None):
+        if data:
+            if data.plan_period_id != self.location_plan_period.plan_period.id:
+                return
+            if data.date is not None and data.date != self.date:
+                return
+        self.cast_groups_at_day = [
+            cast_group for cast_group in
+            db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
+            if cast_group.event and cast_group.event.date == self.date
+               and cast_group.event.location_plan_period.id == self.location_plan_period.id
+        ]
+
     def check_fixed_cast__eq_to__local_pp(self):
         if not self.cast_groups_at_day:
             return
@@ -236,6 +254,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
     def set_stylesheet(self):
         check_all_equal = self.check_fixed_cast__eq_to__local_pp()
+        print(f'{check_all_equal=}')
         if check_all_equal is None:
             self.setStyleSheet(
                 f"ButtonFixedCast {{background-color: "
@@ -269,7 +288,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
     @Slot()
     def set_fixed_casts_of_day(self):
-        self.cast_groups_with_event_at_day()
         if not self.cast_groups_at_day:
             QMessageBox.information(self, 'Feste Besetzung am Tag',
                                     f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
@@ -289,7 +307,10 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
     @Slot(signal_handling.DataDate)
     def reset_styling(self, data: signal_handling.DataDate):
+        if data.plan_period_id != self.location_plan_period.plan_period.id:
+            return
         if (data.date and data.date == self.date) or not data.date:
+            self.reload_cast_groups_at_day()
             self.set_stylesheet_and_tooltip()
 
 
@@ -712,7 +733,7 @@ class FrmLocationPlanPeriod(QWidget):
                 signal_handling.DataLocationPPWithDate(self.location_plan_period)
             )
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate()
+                signal_handling.DataDate(plan_period_id=self.location_plan_period.plan_period.id)
             )
 
     def reset_all_fixed_cast(self):
@@ -734,7 +755,7 @@ class FrmLocationPlanPeriod(QWidget):
             command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast)
             self.controller.execute(command)
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(c.event.date)
+                signal_handling.DataDate(self.location_plan_period.plan_period.id, c.event.date)
             )
 
         QMessageBox.information(self, 'Besetzungen zurücksetzen',

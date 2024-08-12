@@ -43,8 +43,10 @@ class DataPlanEvent:
     event_id: UUID
     added: bool
 
+
 @dataclass
 class DataDate:
+    plan_period_id: UUID | None = None
     date: datetime.date | None = None
 
 
@@ -73,6 +75,7 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reload_location_pp__event_configs = Signal(object)
     signal_reset_styling_fixed_cast_configs = Signal(object)
     signal_reload_location_pp__events = Signal(object)
+    signal_reload_cast_groups__cast_configs = Signal(object)
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
     signal_change_location_plan_period_group_mode = Signal(object)
 
@@ -90,6 +93,9 @@ class HandlerLocationPlanPeriod(QObject):
 
     def change_location_plan_period_group_mode(self, group_mode: DataGroupMode):
         self.signal_change_location_plan_period_group_mode.emit(group_mode)
+
+    def reload_cast_groups__cast_configs(self, data: DataDate):
+        self.signal_reload_cast_groups__cast_configs.emit(data)
 
 
 class HandlerPlanTabs(QObject):

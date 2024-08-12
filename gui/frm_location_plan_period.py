@@ -11,6 +11,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
     QMenu
+from line_profiler_pycharm import profile
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
@@ -195,7 +196,7 @@ class ButtonEvent(QPushButton):
 
 class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Besetzung der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow):
+                 location_plan_period: schemas.LocationPlanPeriodShow, cast_groups_of_pp: list[schemas.CastGroupShow]):
         super().__init__(parent=parent)
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.connect(
@@ -209,7 +210,9 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         self.parent = parent
         self.location_plan_period = location_plan_period
         self.date = date
-        self.cast_groups_at_day: list[schemas.CastGroupShow] = []
+        self.cast_groups_at_day = [c for c in cast_groups_of_pp if c.event
+                                   and c.event.location_plan_period.id == self.location_plan_period.id
+                                   and c.event.date == self.date]
         self.setObjectName(f'fixed_cast: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
@@ -217,13 +220,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         self.setMinimumHeight(width_height)
 
         self.set_stylesheet_and_tooltip()
-
-    def cast_groups_with_event_at_day(self):
-        cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
-        self.cast_groups_at_day = [c for c in cast_groups_of_pp
-                                   if c.event
-                                   and c.event.location_plan_period.id == self.location_plan_period.id
-                                   and c.event.date == self.date]
 
     def check_fixed_cast__eq_to__local_pp(self):
         if not self.cast_groups_at_day:
@@ -235,7 +231,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         )
 
     def set_stylesheet_and_tooltip(self):
-        self.cast_groups_with_event_at_day()
         self.set_stylesheet()
         self.set_tooltip()
 
@@ -576,8 +571,11 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(label, 0, col, 1, count)
             col += count
 
+    @profile
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
         location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
+        cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(
+            self.location_plan_period.plan_period.id)
 
         # Tageszeiten Reihen-Bezeichner:
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
@@ -616,7 +614,7 @@ class FrmLocationPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet(
                     f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string}')
             self.layout.addWidget(lb_weekday, row + 1, col)
-            bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period)
+            bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period, cast_groups_of_pp)
             bt_fixed_cast.setDisabled(disable_buttons)
             self.layout.addWidget(bt_fixed_cast, row + 2, col)
             bt_notes = ButtonNotes(self, d, 24, self.location_plan_period)

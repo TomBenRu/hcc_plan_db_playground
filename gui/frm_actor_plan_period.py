@@ -12,10 +12,12 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
+from line_profiler_pycharm import profile
 
 from database import schemas, db_services, schemas_plan_api, enums
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
-    get_curr_team_of_person_at_date, get_curr_assignment_of_person
+    get_curr_team_of_person_at_date, get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
+    get_persons_of_team_at_date_2
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.custom_widgets import side_menu
@@ -155,7 +157,7 @@ class ButtonCombLocPossible(QPushButton):
         self.setMinimumHeight(width_height)
 
         self.actor_plan_period = actor_plan_period
-        self.person = db_services.Person.get(self.actor_plan_period.person.id)
+        self.person: schemas.PersonShow | None = None
         self.date = date
 
         self.setToolTip(f'Einrichtungskombinationen am {date.strftime("%d.%m.%Y")}')
@@ -217,6 +219,11 @@ class ButtonCombLocPossible(QPushButton):
     def avail_days_at_date(self) -> list[schemas.AvailDay]:
         return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
 
+    def get_person(self) -> schemas.PersonShow:
+        if self.person is None:
+            self.person = db_services.Person.get(self.actor_plan_period.person.id)
+        return self.person
+
     def mouseReleaseEvent(self, e) -> None:
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
@@ -226,7 +233,7 @@ class ButtonCombLocPossible(QPushButton):
             return
 
         parent_model_factory = lambda date: self.actor_plan_period
-        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
+        team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.get_person())
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], parent_model_factory,
                                                                team_at_date_factory)
@@ -259,7 +266,8 @@ class ButtonCombLocPossible(QPushButton):
 
 
 class ButtonActorLocationPref(QPushButton):
-    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow,
+                 team: schemas.TeamShow):
         super().__init__(parent)
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -273,24 +281,15 @@ class ButtonActorLocationPref(QPushButton):
         self.setMinimumHeight(width_height)
 
         self.actor_plan_period = actor_plan_period
+        self.team = team
         self.date = date
 
         self.setToolTip(f'Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
-    # def deleteLater(self):
-    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
-    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-    #         self.reload_actor_plan_period)
-    #     super().deleteLater()
-
     def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
-        locations_at_date_ids = {
-            loc.id for loc in get_locations_of_team_at_date(self.actor_plan_period.team.id, self.date)
-            if not loc.prep_delete or loc.prep_delete > self.date
-        }
-
+        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
         if not avail_days_at_date:
@@ -422,7 +421,8 @@ class ButtonActorLocationPref(QPushButton):
 
 
 class ButtonActorPartnerLocationPref(QPushButton):
-    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow,
+                 team: schemas.TeamShow):
         super().__init__(parent)
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -436,6 +436,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
         self.setMinimumHeight(width_height)
 
         self.actor_plan_period = actor_plan_period
+        self.team = team
         self.date = date
 
         self.setToolTip(f'Mitarbeiter- / Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
@@ -448,12 +449,10 @@ class ButtonActorPartnerLocationPref(QPushButton):
     #         self.reload_actor_plan_period)
     #     super().deleteLater()
 
+    @profile
     def check_pref_of_day__eq__pref_of_actor_pp(self):
-        partner_at_date_ids = {p.id for p in get_persons_of_team_at_date(self.actor_plan_period.team.id, self.date)
-                               if (not p.prep_delete or p.prep_delete > self.date)
-                           and p.id != self.actor_plan_period.person.id}
-        locations_at_date_ids = {loc.id for loc in get_locations_of_team_at_date(self.actor_plan_period.team.id, self.date)
-                                 if not loc.prep_delete or loc.prep_delete > self.date}
+        partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
+        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
 
         avail_days = self.actor_plan_period.avail_days
         avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
@@ -810,6 +809,7 @@ class FrmActorPlanPeriod(QWidget):
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Umsetzung automatisch über Group-Mode.
         person = db_services.Person.get(self.actor_plan_period.person.id)
+        team = db_services.Team.get(self.actor_plan_period.team.id)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
         bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin. -> Reset', clicked=self.reset_all_avail_combs)
@@ -853,10 +853,10 @@ class FrmActorPlanPeriod(QWidget):
             bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
             bt_comb_loc_poss.setDisabled(disable_buttons)
             self.layout.addWidget(bt_comb_loc_poss, row+2, col)
-            bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period)
+            bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period, team)
             bt_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_loc_prefs, row+3, col)
-            bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period)
+            bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period, team)
             bt_partner_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_partner_loc_prefs, row+4, col)
 

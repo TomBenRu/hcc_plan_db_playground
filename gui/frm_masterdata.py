@@ -208,9 +208,10 @@ class TablePersons(QTableWidget):
                 plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__team(team_id)
                                 if pp.end > datetime.date.today()]
                 for plan_period in plan_periods:
-                    db_services.ActorPlanPeriod.create(plan_period.id, person_id)
+                    new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period.id, person_id)
+                    db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
                 QMessageBox.information(self, 'Neue Planperioden',
-                                        f'Für {person_full_name} wurden folgede Planperioden erstellt:\n'
+                                        f'Für {person_full_name} wurden folgende Planperioden erstellt:\n'
                                         f'{[pp.start for pp in plan_periods]}')
         else:
             person_commands.LeaveTeam(person_id, dlg.start_date_new_team).execute()

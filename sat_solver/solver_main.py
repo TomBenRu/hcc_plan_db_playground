@@ -1311,4 +1311,4 @@ def solver_quit():
 #    werden kann (sum(shift_vars[adg, eg] for eg in entities.event_groups_with_event) == 1) sondern auch mehrere
 #    Events mit 1 AvailDay. Das einschränkende Constraint würde dann wegfallen. Stattdessen müsste ein Constraint
 #    hinzugefügt werden welches garantiert, dass sich die Zeiten (+ Zwischenzeiten, falls Events an verschiedenen Orten
-#    kombiniert werden) nicht überlappen. Dafür gibt es bei ortools eine eingbaute Funktionalität.
+#    kombiniert werden) nicht überlappen. Dafür gibt es bei ortools eine eingebaute Funktionalität.

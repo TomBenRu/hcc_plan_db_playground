@@ -202,6 +202,16 @@ class TablePersons(QTableWidget):
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
                                                     f'{text_start} dem Team '
                                                     f'"{text_team_name}" zugeordnet.')
+            reply = QMessageBox.question(self, 'Neuer Mitarbeiter',
+                                         f'Sollen für {person_full_name} Planperioden erstellt werden?')
+            if reply == QMessageBox.StandardButton.Yes:
+                plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__team(team_id)
+                                if pp.end > datetime.date.today()]
+                for plan_period in plan_periods:
+                    db_services.ActorPlanPeriod.create(plan_period.id, person_id)
+                QMessageBox.information(self, 'Neue Planperioden',
+                                        f'Für {person_full_name} wurden folgede Planperioden erstellt:\n'
+                                        f'{[pp.start for pp in plan_periods]}')
         else:
             person_commands.LeaveTeam(person_id, dlg.start_date_new_team).execute()
             QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '

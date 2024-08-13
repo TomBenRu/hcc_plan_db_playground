@@ -6,6 +6,14 @@ from commands.database_commands import team_actor_assignment_commands
 from commands.command_base_classes import Command, ContrExecUndoRedo
 
 
+class Create(Command):
+    def __init__(self, person: schemas.PersonCreate):
+        self.person = person
+        # todo: implementieren
+        ...
+
+
+
 class Update(Command):
     def __init__(self, person: schemas.PersonShow):
         self.new_data = person.model_copy()

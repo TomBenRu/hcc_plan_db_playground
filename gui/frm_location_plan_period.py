@@ -254,7 +254,6 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
     def set_stylesheet(self):
         check_all_equal = self.check_fixed_cast__eq_to__local_pp()
-        print(f'{check_all_equal=}')
         if check_all_equal is None:
             self.setStyleSheet(
                 f"ButtonFixedCast {{background-color: "

@@ -1308,7 +1308,17 @@ def solver_quit():
 #  Lösungsansatz:
 #  - Zusammenhängende AvailDays sollten grundsätzlich zu einem AvailDay zusammengeführt werden.
 #    Der Solver muss so modifiziert werden, dass nicht wie bisher nur genau 1 AvailDay mit genau 1 Event kombiniert
-#    werden kann (sum(shift_vars[adg, eg] for eg in entities.event_groups_with_event) == 1) sondern auch mehrere
-#    Events mit 1 AvailDay. Das einschränkende Constraint würde dann wegfallen. Stattdessen müsste ein Constraint
-#    hinzugefügt werden welches garantiert, dass sich die Zeiten (+ Zwischenzeiten, falls Events an verschiedenen Orten
-#    kombiniert werden) nicht überlappen. Dafür gibt es bei ortools eine eingebaute Funktionalität.
+#    werden kann, sondern auch mehrere.
+#    Siehe: add_constraints_unsigned_shift ->
+#         # Summe aller zugewiesenen Freelancer zum Event:
+#         num_assigned_employees = sum(
+#             entities.shift_vars[(adg_id, event_group_id)] for adg_id in entities.avail_day_groups_with_avail_day
+#         )
+#         # Summe der zugewiesenen Freelancer muss kleiner oder gleich der einzusetzenden Mitarbeiter sein, falls
+#         # wenn das Event stattfindet (über add_constraints_event_groups_activity wird das eingeschränkt):
+#         model.Add(
+#             num_assigned_employees <= (entities.event_group_vars[event_group.event_group_id]
+#                                        * event_group.event.cast_group.nr_actors)
+#    Das einschränkende Constraint würde dann wegfallen. Stattdessen müsste ein Constraint hinzugefügt werden welches
+#    garantiert, dass sich die Zeiten (+ Zwischenzeiten, falls Events an verschiedenen Orten kombiniert werden) nicht
+#    überlappen. Dafür gibt es bei ortools eine eingebaute Funktionalität.

@@ -1300,3 +1300,15 @@ def solve(plan_period_id: UUID, log_search_process=False) -> tuple[list[list[sch
 def solver_quit():
     if solver:
         solver.stop_search()
+
+
+# todo: Eine Möglichkeit soll implementiert werden, um mehrere zusammenhängende AvailDays eines Mitarbeiters so
+#  aufzuteilen, dass mehrere Events zugeordnet werden können, auch wenn die Start- und End-Zeiten nicht mit denen der
+#  Events übereinstimmen. Auch ein AvailDay sollte auf mehrere Events aufgeteilt werden können.
+#  Lösungsansatz:
+#  - Zusammenhängende AvailDays sollten grundsätzlich zu einem AvailDay zusammengeführt werden.
+#    Der Solver muss so modifiziert werden, dass nicht wie bisher nur genau 1 AvailDay mit genau 1 Event kombiniert
+#    werden kann (sum(shift_vars[adg, eg] for eg in entities.event_groups_with_event) == 1) sondern auch mehrere
+#    Events mit 1 AvailDay. Das einschränkende Constraint würde dann wegfallen. Stattdessen müsste ein Constraint
+#    hinzugefügt werden welches garantiert, dass sich die Zeiten (+ Zwischenzeiten, falls Events an verschiedenen Orten
+#    kombiniert werden) nicht überlappen. Dafür gibt es bei ortools eine eingbaute Funktionalität.

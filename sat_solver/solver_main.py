@@ -1322,3 +1322,6 @@ def solver_quit():
 #    Das einschränkende Constraint würde dann wegfallen. Stattdessen müsste ein Constraint hinzugefügt werden welches
 #    garantiert, dass sich die Zeiten (+ Zwischenzeiten, falls Events an verschiedenen Orten kombiniert werden) nicht
 #    überlappen. Dafür gibt es bei ortools eine eingebaute Funktionalität.
+# todo: claimed_assignments implementieren (auch im ActorPlanPeriod-Model).
+# todo: Möglichkeit implementieren um die Anzahl der Einsätze eines Mitarbeiters an einer bestimmten Location zu
+#  steuern. Einerseits die maximalen gewünschten Einsätze, alternativ die Anzahl der geforderten Einsätze.

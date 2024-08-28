@@ -873,8 +873,10 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
 def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     max_shifts_of_app = model.NewIntVar(0, 1000, 'max_sifts')
     model.Add(
-        max_shifts_of_app == sum(shift_var for (adg, eg), shift_var in entities.shift_vars.items()
-                                 if entities.avail_day_groups_with_avail_day[adg].avail_day.actor_plan_period.id == app_id)
+        max_shifts_of_app == sum(
+            shift_var for (adg, eg), shift_var in entities.shift_vars.items()
+            if entities.avail_day_groups_with_avail_day[adg].avail_day.actor_plan_period.id == app_id
+        )
     )
     return max_shifts_of_app
 
@@ -1111,7 +1113,6 @@ def print_solver_status(status: CpSolverStatus) -> bool:
 
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-        cast_group_tree: CastGroupTree,
         max_search_time: int, log_search_process: bool) -> tuple[int, int, int, int, int, int, bool]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
@@ -1149,11 +1150,10 @@ def call_solver_with_unadjusted_requested_assignments(
             success)
 
 
-def call_solver_with_fixed_unassigned_shifts(
-        event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, cast_group_tree: CastGroupTree,
-        unassigned_shifts: int, sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int,
-        sum_cast_rules: int, assigned_shifts: int, print_solution_printer_results: bool, max_search_time: int,
-        log_search_process: bool, collect_schedule_versions: bool) -> Generator[bool, None, bool]:
+def call_solver_to_get_max_shifts_per_app(
+        event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
+        sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
+        assigned_shifts: int, max_search_time: int, log_search_process: bool,) -> Generator[bool, None, bool]:
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
@@ -1205,7 +1205,6 @@ def call_solver_with_fixed_unassigned_shifts(
 def call_solver_with_adjusted_requested_assignments(
         event_group_tree: EventGroupTree,
         avail_day_group_tree: AvailDayGroupTree,
-        cast_group_tree: CastGroupTree,
         max_search_time: int,
         log_search_process: bool) -> tuple[int, list[int], int, int, int, int,
                                            dict[tuple[datetime.date, str, UUID], int], int,
@@ -1266,7 +1265,7 @@ def call_solver_with__fixed_constraint_results(
 ) -> tuple[PartialSolutionCallback | None, dict[tuple[datetime.date, str, UUID], int], bool]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
-    create_vars(model, event_group_tree, avail_day_group_tree, cast_group_tree)
+    create_vars(model, event_group_tree, avail_day_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1314,25 +1313,21 @@ def solve(plan_period_id: UUID, num_plans: int,
     (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, sum_fixed_cast_conflicts,
      sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
                                                                                   avail_day_group_tree,
-                                                                                  cast_group_tree,
                                                                                   20,
                                                                                   log_search_process)
     if not success:
         return None, None
 
-    get_max_shifts_per_app = call_solver_with_fixed_unassigned_shifts(event_group_tree,
-                                                                           avail_day_group_tree,
-                                                                           cast_group_tree,
-                                                                           unassigned_shifts,
-                                                                           sum_location_prefs,
-                                                                           sum_partner_loc_prefs,
-                                                                           sum_fixed_cast_conflicts,
-                                                                           sum_cast_rules,
-                                                                      assigned_shifts,
-                                                                           False,
-                                                                           50,
-                                                                           log_search_process,
-                                                                           False)
+    get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(event_group_tree,
+                                                                   avail_day_group_tree,
+                                                                   unassigned_shifts,
+                                                                   sum_location_prefs,
+                                                                   sum_partner_loc_prefs,
+                                                                   sum_fixed_cast_conflicts,
+                                                                   sum_cast_rules,
+                                                                   assigned_shifts,
+                                                                   50,
+                                                                   log_search_process)
     step += 1
     while True:
         try:
@@ -1356,7 +1351,6 @@ def solve(plan_period_id: UUID, num_plans: int,
          sum_cast_rules, appointments,
          success) = call_solver_with_adjusted_requested_assignments(event_group_tree,
                                                                     avail_day_group_tree,
-                                                                    cast_group_tree,
                                                                     10,
                                                                     log_search_process)
         if not success:

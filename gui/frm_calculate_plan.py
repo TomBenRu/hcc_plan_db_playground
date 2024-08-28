@@ -27,6 +27,7 @@ class DlgAskNrPlansToSave(QDialog):
                                   f'Wie viele davon möchten Sie verwenden?')
         self.spin_nr_plans = QSpinBox()
         self.spin_nr_plans.setRange(1, poss_nr_plans)
+        self.spin_nr_plans.setValue(self.poss_nr_plans)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -42,13 +43,14 @@ class DlgAskNrPlansToSave(QDialog):
 class SolverThread(QThread):
     finished = Signal(object, object)  # Signal emitted when the solver finishes
 
-    def __init__(self, parent: QObject, plan_period_id: UUID):
+    def __init__(self, parent: QObject, plan_period_id: UUID, num_plans: int):
         super().__init__(parent)
         self.plan_period_id = plan_period_id
+        self.num_plans = num_plans
 
     def run(self):
         # Call the solver function here
-        schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id)
+        schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id, self.num_plans)
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
@@ -59,14 +61,14 @@ class DlgProgress(QProgressDialog):
         signal_handling.handler_solver.signal_progress.connect(self.update_progress)
         self.setWindowTitle(window_title)
         self.setWindowModality(Qt.WindowModality.WindowModal)
-        self.setMinimumDuration(minimum)
-        self.setMaximum(maximum)
+        self.label_text = label_text
 
         self.canceled.connect(self.cancel_solving)
 
-    @Slot(int)
-    def update_progress(self, progress: int):
+    @Slot(int, str)
+    def update_progress(self, progress: int, comment: str):
         self.setValue(progress)
+        self.setLabelText(f'{self.label_text}\n{comment}')
 
     @Slot()
     def cancel_solving(self):
@@ -88,7 +90,7 @@ class DlgCalculate(QDialog):
         self.layout = QVBoxLayout(self)
 
         self.layout_head = QVBoxLayout()
-        self.layout_body = QVBoxLayout()
+        self.layout_body = QFormLayout()
         self.layout_foot = QVBoxLayout()
 
         self.layout.addLayout(self.layout_head)
@@ -97,10 +99,10 @@ class DlgCalculate(QDialog):
 
         self.lb_explanation = QLabel()
         self.layout_head.addWidget(self.lb_explanation)
-        self.lb_combo_plan_periods = QLabel('Wählen Sie den entsprechenden Zeitraum für die Planung:')
-        self.layout_body.addWidget(self.lb_combo_plan_periods)
         self.combo_plan_periods = QComboBox()
-        self.layout_body.addWidget(self.combo_plan_periods)
+        self.spin_num_plans = QSpinBox()
+        self.layout_body.addRow('Zeitraum für die Planung', self.combo_plan_periods)
+        self.layout_body.addRow('Anzahl zu erstellender Planungsvorschläge', self.spin_num_plans)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
                                            | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
@@ -122,11 +124,14 @@ class DlgCalculate(QDialog):
                                  f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
             return
 
-        progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung läuft...', 0, 4, 'Abbrechen')
+        num_actor_plan_periods = len(db_services.PlanPeriod.get(self.curr_plan_period_id).actor_plan_periods)
+
+        progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
+                                      0, self.spin_num_plans.value()+num_actor_plan_periods+2, 'Abbrechen')
         progress_dialog.show()
 
         # Create the solver thread
-        self.solver_thread = SolverThread(self, self.curr_plan_period_id)
+        self.solver_thread = SolverThread(self, self.curr_plan_period_id, self.spin_num_plans.value())
         self.solver_thread.finished.connect(self.save_plan_to_db)
         self.solver_thread.finished.connect(self.accept)
 
@@ -152,6 +157,7 @@ class DlgCalculate(QDialog):
                                             plan_period.id)
         self.combo_plan_periods.currentIndexChanged.connect(self.combo_index_changed)
         self.combo_index_changed()
+        self.spin_num_plans.setMinimum(1)
 
     def combo_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()

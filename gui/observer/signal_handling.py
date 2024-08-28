@@ -128,11 +128,11 @@ class HandlerExcelExport(QObject):
 
 
 class HandlerSolver(QObject):
-    signal_progress = Signal(int)
+    signal_progress = Signal(int, str)
     signal_cancel_solving = Signal()
 
-    def progress(self, step_of_total_steps: int):
-        self.signal_progress.emit(step_of_total_steps)
+    def progress(self, step_of_total_steps: int, comment: str):
+        self.signal_progress.emit(step_of_total_steps, comment)
 
     def cancel_solving(self):
         self.signal_cancel_solving.emit()

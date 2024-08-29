@@ -5,7 +5,7 @@ from uuid import UUID
 
 from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
-    QProgressDialog, QFormLayout, QSpinBox
+    QProgressDialog, QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
 import gui.tools.helper_functions
 import sat_solver.solver_main
@@ -43,14 +43,22 @@ class DlgAskNrPlansToSave(QDialog):
 class SolverThread(QThread):
     finished = Signal(object, object)  # Signal emitted when the solver finishes
 
-    def __init__(self, parent: QObject, plan_period_id: UUID, num_plans: int):
+    def __init__(self, parent: QObject, plan_period_id: UUID, num_plans: int,
+                 time_calc_max_shifts: int, time_calc_fair_distribution: int, time_calc_plan: int):
         super().__init__(parent)
         self.plan_period_id = plan_period_id
         self.num_plans = num_plans
+        self.time_calc_max_shifts = time_calc_max_shifts
+        self.time_calc_fair_distribution = time_calc_fair_distribution
+        self.time_calc_plan = time_calc_plan
 
     def run(self):
         # Call the solver function here
-        schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id, self.num_plans)
+        schedule_versions, fixed_cast_conflicts = sat_solver.solver_main.solve(self.plan_period_id,
+                                                                               self.num_plans,
+                                                                               self.time_calc_max_shifts,
+                                                                               self.time_calc_fair_distribution,
+                                                                               self.time_calc_plan)
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
@@ -84,13 +92,20 @@ class DlgCalculate(QDialog):
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
         self._created_plan_ids: list[UUID] = []
+        self.num_actor_plan_periods: int | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout(self)
 
         self.layout_head = QVBoxLayout()
-        self.layout_body = QFormLayout()
+        self.layout_body = QHBoxLayout()
+        self.group_plan_select = QGroupBox('Zeitraum und Anzahl')
+        self.group_time_config = QGroupBox('Berechnungszeiten (sec)')
+        self.layout_body.addWidget(self.group_plan_select)
+        self.layout_body.addWidget(self.group_time_config)
+        self.layout_plan_select = QFormLayout(self.group_plan_select)
+        self.layout_times_config = QFormLayout(self.group_time_config)
         self.layout_foot = QVBoxLayout()
 
         self.layout.addLayout(self.layout_head)
@@ -101,8 +116,15 @@ class DlgCalculate(QDialog):
         self.layout_head.addWidget(self.lb_explanation)
         self.combo_plan_periods = QComboBox()
         self.spin_num_plans = QSpinBox()
-        self.layout_body.addRow('Zeitraum für die Planung', self.combo_plan_periods)
-        self.layout_body.addRow('Anzahl zu erstellender Planungsvorschläge', self.spin_num_plans)
+        self.layout_plan_select.addRow('Zeitraum für die Planung', self.combo_plan_periods)
+        self.layout_plan_select.addRow('Anzahl zu erstellender Planungsvorschläge', self.spin_num_plans)
+        self.spin_time_calculate_max_shifts = QSpinBox()
+        self.spin_time_calculate_fair_distribution = QSpinBox()
+        self.spin_time_calculate_plan = QSpinBox()
+        self.layout_times_config.addRow('Max. Zeit für Vorberechnung', self.spin_time_calculate_max_shifts)
+        self.layout_times_config.addRow('Max. Zeit für Berechnung fairer Verteilung',
+                                        self.spin_time_calculate_fair_distribution)
+        self.layout_times_config.addRow('Max. Zeit für Planberechnung', self.spin_time_calculate_plan)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
                                            | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
@@ -124,14 +146,17 @@ class DlgCalculate(QDialog):
                                  f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
             return
 
-        num_actor_plan_periods = len(db_services.PlanPeriod.get(self.curr_plan_period_id).actor_plan_periods)
-
         progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
-                                      0, self.spin_num_plans.value()+num_actor_plan_periods+2, 'Abbrechen')
+                                      0, self.spin_num_plans.value() + self.num_actor_plan_periods + 2, 'Abbrechen')
         progress_dialog.show()
 
         # Create the solver thread
-        self.solver_thread = SolverThread(self, self.curr_plan_period_id, self.spin_num_plans.value())
+        self.solver_thread = SolverThread(
+            self, self.curr_plan_period_id, self.spin_num_plans.value(),
+            self.spin_time_calculate_max_shifts.value(),
+            self.spin_time_calculate_fair_distribution.value() // self.num_actor_plan_periods,
+            self.spin_time_calculate_plan.value()
+        )
         self.solver_thread.finished.connect(self.save_plan_to_db)
         self.solver_thread.finished.connect(self.accept)
 
@@ -150,6 +175,8 @@ class DlgCalculate(QDialog):
         self.lb_explanation.setText(f'Sie können automatisch für das Team {team.name}\n'
                                     f'Spielpläne für einen gewählten Planungszeitraum erstellen.')
 
+        self.spin_time_calculate_fair_distribution.setMaximum(10000)
+
         plan_periods = sorted([pp for pp in team.plan_periods if not pp.prep_delete],
                               key=lambda x: x.start, reverse=True)
         for plan_period in plan_periods:
@@ -158,9 +185,18 @@ class DlgCalculate(QDialog):
         self.combo_plan_periods.currentIndexChanged.connect(self.combo_index_changed)
         self.combo_index_changed()
         self.spin_num_plans.setMinimum(1)
+        self.spin_time_calculate_max_shifts.setMinimum(5)
+        self.spin_time_calculate_plan.setMinimum(5)
+        self.spin_time_calculate_max_shifts.setValue(20)
+        self.spin_time_calculate_plan.setValue(10)
 
     def combo_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
+        self.num_actor_plan_periods = len(db_services.PlanPeriod.get(self.curr_plan_period_id).actor_plan_periods)
+        self.spin_time_calculate_fair_distribution.setMinimum(self.num_actor_plan_periods * 5)
+        self.spin_time_calculate_fair_distribution.setSingleStep(self.num_actor_plan_periods)
+        self.spin_time_calculate_fair_distribution.setValue(self.num_actor_plan_periods * 50)
+
 
     @Slot(object, object)
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
@@ -168,6 +204,7 @@ class DlgCalculate(QDialog):
         if schedule_versions is None and fixed_cast_conflicts is None:
             QMessageBox.critical(self, 'Fehler',
                                  'Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\n'
+                                 'oder die Zeitvorgaben für die Planerstellung waren zu gering,\n'
                                  'oder die Vorgaben zur Planerstellung waren widersprüchlich.')
             self.reject()
             return

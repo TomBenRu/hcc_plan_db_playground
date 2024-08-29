@@ -80,10 +80,21 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         self._count_same_max_assigned = 0
         self._print_results = print_results
         self._collect_schedule_versions = collect_schedule_versions
+        self._curr_objective_value = float('inf')
+        self._num_equal_objective_values = 0
 
         self._schedule_versions: list[list[schemas.AppointmentCreate]] = []
 
     def on_solution_callback(self):
+        print(f'{self.ObjectiveValue()=}')
+        if abs(self._curr_objective_value - self.ObjectiveValue()) <= 50:
+            print('abs(self._curr_objective_value - self.ObjectiveValue()) <= 50')
+            self._num_equal_objective_values += 1
+        else:
+            self._num_equal_objective_values = 0
+        if self._num_equal_objective_values == 5:
+            self.StopSearch()
+        self._curr_objective_value = self.ObjectiveValue()
         self._solution_count += 1
         if self._print_results:
             self.print_results()
@@ -96,6 +107,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         if self._solution_limit and self._solution_count >= self._solution_limit:
             print(f"Stop search after {self._solution_count} solutions")
             self.StopSearch()
+
 
     def count_same_max_assigned_shifts(self):
         old_sum_max_assigned = self._sum_max_assigned
@@ -1247,6 +1259,22 @@ def call_solver_with_adjusted_requested_assignments(
             )
         )
 
+    # solver.parameters.log_search_progress = log_search_process
+    # solver.parameters.randomize_search = True
+    # solver.parameters.linearization_level = 0
+    # solver.parameters.enumerate_all_solutions = True
+    # solver.parameters.max_time_in_seconds = 100
+    # status = solver.Solve(
+    #     model, PartialSolutionCallback(
+    #         list(unassigned_shifts_per_event.values()),
+    #         sum_assigned_shifts,
+    #         sum_squared_deviations,
+    #         constraints_fixed_cast_conflicts,
+    #         None,
+    #         False)
+    # )
+    # print('OPTIMAL' if status == cp_model.OPTIMAL else 'FEASIBLE' if status == cp_model.FEASIBLE else 'FAILED')
+
     return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
             sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
             sum(solver.Value(v) for v in constraints_weights_in_event_groups),
@@ -1297,9 +1325,9 @@ def call_solver_with__fixed_constraint_results(
     return solution_printer, constraints_fixed_cast_conflicts, success
 
 
-def solve(plan_period_id: UUID, num_plans: int,
-          log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]] | None,
-                                             dict[tuple[datetime.date, str, UUID], int] | None]:
+def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
+          time_calc_plan: int, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]] | None,
+                                                                  dict[tuple[datetime.date, str, UUID], int] | None]:
     step = 0
     signal_handling.handler_solver.progress(step, 'Vorberechnungen...')
     global entities
@@ -1313,7 +1341,7 @@ def solve(plan_period_id: UUID, num_plans: int,
     (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, sum_fixed_cast_conflicts,
      sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
                                                                                   avail_day_group_tree,
-                                                                                  20,
+                                                                                  time_calc_max_shifts,
                                                                                   log_search_process)
     if not success:
         return None, None
@@ -1326,7 +1354,7 @@ def solve(plan_period_id: UUID, num_plans: int,
                                                                    sum_fixed_cast_conflicts,
                                                                    sum_cast_rules,
                                                                    assigned_shifts,
-                                                                   50,
+                                                                   time_calc_fair_distribution,
                                                                    log_search_process)
     step += 1
     while True:
@@ -1351,7 +1379,7 @@ def solve(plan_period_id: UUID, num_plans: int,
          sum_cast_rules, appointments,
          success) = call_solver_with_adjusted_requested_assignments(event_group_tree,
                                                                     avail_day_group_tree,
-                                                                    10,
+                                                                    time_calc_plan,
                                                                     log_search_process)
         if not success:
             return None, None

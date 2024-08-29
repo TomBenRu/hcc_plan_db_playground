@@ -71,7 +71,7 @@ class DlgEditAppointment(QDialog):
             self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
 
     def accept(self):
-        self.new_avail_day_ids = [combo.currentData() for combo in self.combos_employees]
+        self.new_avail_day_ids = [combo.currentData() for combo in self.combos_employees if combo.currentData()]
         super().accept()
 
 
@@ -248,7 +248,8 @@ class AppointmentField(QWidget):
         if dlg.exec():
             command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
             self.controller.execute(command)
-
+            self.appointment = command.updated_appointment
+            self.fill_in_data()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -272,6 +273,8 @@ class AppointmentField(QWidget):
             missing_txt = f'unbesetzt: {missing}'
             self.lb_missing.setText(missing_txt)
             self.layout.addWidget(self.lb_missing)
+        else:
+            self.lb_missing.setParent(None)
 
         self.lb_employees.setText(employees)
 

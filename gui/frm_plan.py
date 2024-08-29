@@ -112,7 +112,8 @@ class LabelDayNr(QLabel):
 class DayField(QWidget):
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
-                 plan_period: schemas.PlanPeriod, appointment_widget_width: int):
+                 plan_period: schemas.PlanPeriod, appointment_widget_width: int,
+                 controller: command_base_classes.ContrExecUndoRedo):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -121,6 +122,7 @@ class DayField(QWidget):
         self.location_ids_order = location_ids_order
         self.plan_period = plan_period
         self.appointment_widget_width = appointment_widget_width
+        self.controller = controller
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -151,7 +153,7 @@ class DayField(QWidget):
                 if loc_id == container.location_id:
                     for appointment in sorted(appointments,
                                               key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                        container.add_appointment_field(AppointmentField(appointment))
+                        container.add_appointment_field(AppointmentField(appointment, self.controller))
 
     def set_location_ids_order(self, location_ids_order: list[UUID]):
         self.location_ids_order = location_ids_order
@@ -222,11 +224,11 @@ class ContainerAppointments(QWidget):
 
 
 class AppointmentField(QWidget):
-    def __init__(self, appointment: schemas.Appointment):
+    def __init__(self, appointment: schemas.Appointment, controller: command_base_classes.ContrExecUndoRedo):
         super().__init__()
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
-        self.controller = command_base_classes.ContrExecUndoRedo()
+        self.controller = controller
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
         self.lb_time_of_day = QLabel()
@@ -449,7 +451,9 @@ class FrmTabPlan(QWidget):
             day_field = DayField(day,
                                  location_ids_order,
                                  self.day_location_id_appointments.get(day),
-                                 self.plan.plan_period, self.appointment_widget_with)
+                                 self.plan.plan_period,
+                                 self.appointment_widget_with,
+                                 self.controller)
             self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):
@@ -462,7 +466,7 @@ class FrmTabPlan(QWidget):
             container_layout.setSpacing(0)
             for location in locations:
                 widget = QLabel(f'{location.name} {location.address.city}')
-                widget.setStyleSheet(f'border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
+                widget.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
                 '3d3d3d'
                 widget.setContentsMargins(7, 7, 7, 7)
                 widget.setFixedWidth(self.appointment_widget_with)
@@ -479,4 +483,4 @@ class FrmTabPlan(QWidget):
             day_field.set_location_ids_order([loc.id for loc in self.weekdays_locations[day.isoweekday()]])
             for loc_id, appointments in location_ids_appointments.items():
                 for appointment in appointments:
-                    day_field.add_appointment_field(AppointmentField(appointment))
+                    day_field.add_appointment_field(AppointmentField(appointment, self.controller))

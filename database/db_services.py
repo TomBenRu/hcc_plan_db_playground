@@ -2096,6 +2096,12 @@ class Plan:
 
 class Appointment:
     @classmethod
+    @db_session
+    def get(cls, appointment_id: UUID) -> schemas.AppointmentShow:
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
@@ -2105,6 +2111,16 @@ class Appointment:
         appointment_db = models.Appointment(
             avail_days=avail_days_db, event=event_db, plan=plan_db, notes=appointment.notes)
 
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_avail_days(cls, appointment_id: UUID, avail_day_ids: list[UUID]) -> schemas.AppointmentShow:
+        log_function_info(cls)
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        appointment_db.avail_days.clear()
+        for avd_id in avail_day_ids:
+            appointment_db.avail_days.add(models.AvailDay.get(id=avd_id))
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod

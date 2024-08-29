@@ -19,3 +19,19 @@ class Create(Command):
     def redo(self):
         db_services.Appointment.undelete(self.appointment_created.id)
 
+
+class UpdateAvailDays(Command):
+    def __init__(self, appointment_id: UUID, avail_day_ids: list[UUID]):
+        self.appointment_id = appointment_id
+        self.avail_day_ids = avail_day_ids
+        self.appointment = db_services.Appointment.get(self.appointment_id)
+        self.updated_appointment: schemas.AppointmentShow | None = None
+
+    def execute(self):
+        self.updated_appointment = db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+
+    def undo(self):
+        db_services.Appointment.update_avail_days(self.appointment_id, [avd.id for avd in self.appointment.avail_days])
+
+    def redo(self):
+        db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)

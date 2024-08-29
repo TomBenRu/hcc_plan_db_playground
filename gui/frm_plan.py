@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTable
     QDialogButtonBox, QComboBox
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands
+from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -54,6 +54,8 @@ class DlgEditAppointment(QDialog):
         )
         self.possible_avail_days.sort(key=lambda x: x.actor_plan_period.person.f_name)
 
+        self.new_avail_day_ids: list[UUID] = []
+
     def _setup_employee_combos(self):
         self.combos_employees = []
         for i in range(1, self.cast_group.nr_actors + 1):
@@ -67,6 +69,10 @@ class DlgEditAppointment(QDialog):
                 )
         for j, avd in enumerate(self.appointment.avail_days):
             self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
+
+    def accept(self):
+        self.new_avail_day_ids = [combo.currentData() for combo in self.combos_employees]
+        super().accept()
 
 
 class LabelDayNr(QLabel):
@@ -220,6 +226,7 @@ class AppointmentField(QWidget):
         super().__init__()
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
         self.lb_time_of_day = QLabel()
@@ -237,9 +244,10 @@ class AppointmentField(QWidget):
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
 
     def mouseReleaseEvent(self, event):
-        print(event)
         dlg = DlgEditAppointment(self, self.appointment)
-        dlg.exec()
+        if dlg.exec():
+            command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
+            self.controller.execute(command)
 
 
     def contextMenuEvent(self, event: QContextMenuEvent):

@@ -12,6 +12,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
+from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 
@@ -45,12 +46,27 @@ class DlgEditAppointment(QDialog):
 
     def _setup_data(self):
         self.cast_group = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id)
+        self.possible_avail_days = db_services.AvailDay.get_all_from__plan_period__date__time_of_day__location_prefs(
+            self.appointment.event.location_plan_period.plan_period.id,
+            self.appointment.event.date,
+            self.appointment.event.time_of_day.time_of_day_enum.time_index,
+            {self.appointment.event.location_plan_period.location_of_work.id}
+        )
+        self.possible_avail_days.sort(key=lambda x: x.actor_plan_period.person.f_name)
 
     def _setup_employee_combos(self):
         self.combos_employees = []
         for i in range(1, self.cast_group.nr_actors + 1):
-            self.combos_employees.append(QComboBox())
+            self.combos_employees.append(QComboBoxToFindData())
             self.form_employees.addRow(f'Mitarbeiter {i:02}', self.combos_employees[-1])
+            self.combos_employees[-1].addItem('Unbesetzt', None)
+            for avd in self.possible_avail_days:
+                self.combos_employees[-1].addItem(
+                    f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}',
+                    avd.id
+                )
+        for j, avd in enumerate(self.appointment.avail_days):
+            self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
 
 
 class LabelDayNr(QLabel):

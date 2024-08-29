@@ -1124,8 +1124,9 @@ def print_solver_status(status: CpSolverStatus) -> bool:
 
 
 def call_solver_with_unadjusted_requested_assignments(
-        event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-        max_search_time: int, log_search_process: bool) -> tuple[int, int, int, int, int, int, bool]:
+        event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, max_search_time: int,
+        log_search_process: bool) -> tuple[int, int, int, int,
+                                           dict[tuple[datetime.date, str, UUID], int], int, bool]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
@@ -1157,7 +1158,7 @@ def call_solver_with_unadjusted_requested_assignments(
             unassigned_shifts,
             solver.Value(sum(constraints_location_prefs)),
             solver.Value(sum(constraints_partner_loc_prefs)),
-            solver.Value(sum(constraints_fixed_cast_conflicts.values())),
+            {key: solver.Value(int_var) for key, int_var in constraints_fixed_cast_conflicts.items()},
             solver.Value(sum(constraints_cast_rule)),
             success)
 
@@ -1338,11 +1339,13 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
     cast_group_tree = get_cast_group_tree(plan_period_id)
     create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_id)
 
-    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, sum_fixed_cast_conflicts,
+    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, fixed_cast_conflicts,
      sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
                                                                                   avail_day_group_tree,
                                                                                   time_calc_max_shifts,
                                                                                   log_search_process)
+    if sum(fixed_cast_conflicts.values()):
+        return [], fixed_cast_conflicts
     if not success:
         return None, None
 
@@ -1351,7 +1354,7 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                    unassigned_shifts,
                                                                    sum_location_prefs,
                                                                    sum_partner_loc_prefs,
-                                                                   sum_fixed_cast_conflicts,
+                                                                   sum(fixed_cast_conflicts.values()),
                                                                    sum_cast_rules,
                                                                    assigned_shifts,
                                                                    time_calc_fair_distribution,

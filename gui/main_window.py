@@ -569,7 +569,13 @@ class MainWindow(QMainWindow):
                     self.open_plan_tab(plan_id)
 
     def open_plan_tab(self, plan_id: UUID):
-        plan = db_services.Plan.get(plan_id)
+        try:
+            plan = db_services.Plan.get(plan_id)
+        except Exception as e:
+            QMessageBox.critical(self, 'Plan öffnen',
+                                 f'Der Plan mit der ID {plan_id} konnte nicht geöffnet werden.\n'
+                                 f'Fehler: {e}')
+            return
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
         self.tabs_plans.addTab(new_widget, plan.name)
         self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')

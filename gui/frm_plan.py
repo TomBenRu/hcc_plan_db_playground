@@ -5,7 +5,8 @@ from uuid import UUID
 from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect
+    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
+    QDialogButtonBox, QComboBox
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands
@@ -13,6 +14,43 @@ from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
+
+
+class DlgEditAppointment(QDialog):
+    def __init__(self, parent: QWidget, appointment: schemas.Appointment):
+        super().__init__(parent=parent)
+        self.appointment = appointment
+
+        self._setup_layout()
+        self._setup_data()
+        self._setup_employee_combos()
+
+    def _setup_layout(self):
+        self.layout = QVBoxLayout(self)
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QVBoxLayout()
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+        self.lb_explanation = QLabel('Hier können Sie die Besetzung ändern.')
+        self.layout_head.addWidget(self.lb_explanation)
+        self.group_employees = QGroupBox('Mitarbeiter')
+        self.layout_body.addWidget(self.group_employees)
+        self.form_employees = QFormLayout(self.group_employees)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.layout_foot.addWidget(self.button_box)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+    def _setup_data(self):
+        self.cast_group = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id)
+
+    def _setup_employee_combos(self):
+        self.combos_employees = []
+        for i in range(1, self.cast_group.nr_actors + 1):
+            self.combos_employees.append(QComboBox())
+            self.form_employees.addRow(f'Mitarbeiter {i:02}', self.combos_employees[-1])
 
 
 class LabelDayNr(QLabel):
@@ -181,6 +219,12 @@ class AppointmentField(QWidget):
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
+
+    def mouseReleaseEvent(self, event):
+        print(event)
+        dlg = DlgEditAppointment(self, self.appointment)
+        dlg.exec()
+
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)

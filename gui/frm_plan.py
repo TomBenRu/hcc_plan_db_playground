@@ -6,16 +6,37 @@ from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
-    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar
+    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
+from gui.custom_widgets import side_menu
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
+
+
+def fill_in_data(appointment_field: 'AppointmentField'):
+    appointment_field.lb_time_of_day.setText(f'{appointment_field.appointment.event.time_of_day.name}: '
+                                f'{appointment_field.appointment.event.time_of_day.start:%H:%M}'
+                                f'-{appointment_field.appointment.event.time_of_day.end:%H:%M}')
+    employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
+                           for avd in sorted(appointment_field.appointment.avail_days,
+                                             key=lambda x: (x.actor_plan_period.person.f_name,
+                                                            x.actor_plan_period.person.l_name))])
+    nr_required_persons = db_services.CastGroup.get_cast_group_of_event(appointment_field.appointment.event.id).nr_actors
+
+    if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)):
+        missing_txt = f'unbesetzt: {missing}'
+        appointment_field.lb_missing.setText(missing_txt)
+        appointment_field.layout.addWidget(appointment_field.lb_missing)
+    else:
+        appointment_field.lb_missing.setParent(None)
+
+    appointment_field.lb_employees.setText(employees)
 
 
 class CheckPlanThread(QThread):
@@ -255,6 +276,7 @@ class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, controller: command_base_classes.ContrExecUndoRedo, 
                  plan_id: UUID):
         super().__init__()
+        self.setObjectName(str(appointment.id))
         self.plan_id = plan_id
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
@@ -270,7 +292,7 @@ class AppointmentField(QWidget):
         self.layout.addWidget(self.lb_time_of_day)
         self.layout.addWidget(self.lb_employees)
 
-        self.fill_in_data()
+        fill_in_data(self)
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
@@ -281,7 +303,7 @@ class AppointmentField(QWidget):
             self.command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
             self.controller.execute(self.command)
             self.appointment = self.command.updated_appointment
-            self.fill_in_data()
+            fill_in_data(self)
 
             self.progress_bar = DlgProgress(self, 'Überprüfung',
                                             'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
@@ -308,7 +330,7 @@ class AppointmentField(QWidget):
             if reply == QMessageBox.StandardButton.Yes:
                 self.controller.undo()
                 self.appointment = self.command.appointment
-                self.fill_in_data()
+                fill_in_data(self)
             else:
                 signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_id)
 
@@ -319,25 +341,6 @@ class AppointmentField(QWidget):
         context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
                                f'{self.appointment.event.location_plan_period.location_of_work.name}')
         context_menu.exec(event.globalPos())
-
-    def fill_in_data(self):
-        self.lb_time_of_day.setText(f'{self.appointment.event.time_of_day.name}: '
-                                    f'{self.appointment.event.time_of_day.start:%H:%M}'
-                                    f'-{self.appointment.event.time_of_day.end:%H:%M}')
-        employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
-                               for avd in sorted(self.appointment.avail_days,
-                                                 key=lambda x: (x.actor_plan_period.person.f_name,
-                                                                x.actor_plan_period.person.l_name))])
-        nr_required_persons = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id).nr_actors
-
-        if missing := (nr_required_persons - len(self.appointment.avail_days)):
-            missing_txt = f'unbesetzt: {missing}'
-            self.lb_missing.setText(missing_txt)
-            self.layout.addWidget(self.lb_missing)
-        else:
-            self.lb_missing.setParent(None)
-
-        self.lb_employees.setText(employees)
 
     def set_styling(self):
         self.setStyleSheet("background-color: #393939;")
@@ -368,7 +371,7 @@ class FrmTabPlan(QWidget):
 
         self.plan = plan
 
-        self.appointment_widget_with = 120
+        self.appointment_widget_width = 120
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -396,7 +399,40 @@ class FrmTabPlan(QWidget):
         self.table_plan = QTableWidget()
         self.layout.addWidget(self.table_plan)
 
+        self._setup_side_menu()
+
         self.configure_table_plan()
+
+    def _setup_side_menu(self):
+        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
+        self.bt_undo = QPushButton('Undo')
+        self.bt_undo.clicked.connect(self._undo_shift_command)
+        self.side_menu.add_button(self.bt_undo)
+        self.bt_redo = QPushButton('Redo')
+        self.bt_redo.clicked.connect(self._redo_shift_command)
+        self.side_menu.add_button(self.bt_redo)
+
+    def _undo_shift_command(self):
+        command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()
+        if command is None:
+            return
+        appointment = command.appointment
+        appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+        appointment_field.appointment = appointment
+        fill_in_data(appointment_field)
+        self.controller.undo()
+        self.reload_plan(None)
+
+    def _redo_shift_command(self):
+        command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_redo_command()
+        if command is None:
+            return
+        appointment = command.updated_appointment
+        appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+        appointment_field.appointment = appointment
+        fill_in_data(appointment_field)
+        self.controller.redo()
+        self.reload_plan(None)
 
     @Slot(object)
     def reload_plan(self, plan_id: UUID | None):
@@ -516,8 +552,8 @@ class FrmTabPlan(QWidget):
                                  location_ids_order,
                                  self.day_location_id_appointments.get(day),
                                  self.plan.plan_period,
-                                 self.appointment_widget_with,
-                                 self.controller, 
+                                 self.appointment_widget_width,
+                                 self.controller,
                                  self.plan.id)
             self.table_plan.setCellWidget(row, col, day_field)
 
@@ -534,7 +570,7 @@ class FrmTabPlan(QWidget):
                 widget.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
                 '3d3d3d'
                 widget.setContentsMargins(7, 7, 7, 7)
-                widget.setFixedWidth(self.appointment_widget_with)
+                widget.setFixedWidth(self.appointment_widget_width)
                 widget.setWordWrap(True)
                 container_layout.addWidget(widget)
             self.table_plan.setCellWidget(0, self.weekday_cols[weekday], container)

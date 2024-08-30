@@ -68,6 +68,13 @@ class ContrExecUndoRedo(Invoker):
         else:
             self.undo_stack.append(value)
 
+    def get_recent_undo_command(self) -> Command | None:
+        return self.undo_stack[-1] if self.undo_stack else None
+
+    def get_recent_redo_command(self) -> Command | None:
+        return self.redo_stack[-1] if self.redo_stack else None
+
+
 
 class BatchCommand(Command):
     def __init__(self, parent_window: QWidget, commands: list[Command]):

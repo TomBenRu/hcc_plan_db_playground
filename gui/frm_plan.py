@@ -2,11 +2,11 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QRect
+from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
-    QDialogButtonBox, QComboBox
+    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
@@ -16,6 +16,32 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
+
+
+class SolverThread(QThread):
+    finished = Signal(bool)  # Signal emitted when the solver finishes
+
+    def __init__(self, parent: QObject, plan_id: UUID):
+        super().__init__(parent)
+        self.plan_id = plan_id
+
+    def run(self):
+        # Call the solver function here
+        success = solver_main.test_plan(self.plan_id)
+        self.finished.emit(success)  # Emit the finished signal when the solver completes
+
+
+class DlgProgress(QProgressDialog):
+    def __init__(self, parent: QWidget, window_title: str, label_text: str, cancel_button_text: str):
+        super().__init__(label_text, cancel_button_text, 0, 0, parent)
+        self.setWindowTitle(window_title)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.canceled.connect(self.cancel_solving)
+        # self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+
+    @Slot()
+    def cancel_solving(self):
+        signal_handling.handler_solver.cancel_solving()
 
 
 class DlgEditAppointment(QDialog):
@@ -252,12 +278,21 @@ class AppointmentField(QWidget):
     def mouseReleaseEvent(self, event):
         dlg = DlgEditAppointment(self, self.appointment)
         if dlg.exec():
-            command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
-            self.controller.execute(command)
-            self.appointment = command.updated_appointment
+            self.command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
+            self.controller.execute(self.command)
+            self.appointment = self.command.updated_appointment
             self.fill_in_data()
+
+            self.progress_bar = DlgProgress(self, 'Überprüfung',
+                                            'Besetzungsänderungen werden auf Validität getestet.', 'Abbruch')
+            self.progress_bar.show()
+
+            solver_thread = SolverThread(self, self.plan_id)
+            solver_thread.finished.connect(self.test_finished)
+            solver_thread.start()
+            return
+
             success = solver_main.test_plan(self.plan_id)
-            print(f'{success=}')
             if success:
                 QMessageBox.information(self, 'Besetzungsänderung',
                                         'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
@@ -268,8 +303,24 @@ class AppointmentField(QWidget):
                                              QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
                 if reply == QMessageBox.StandardButton.Yes:
                     self.controller.undo()
-                    self.appointment = command.appointment
+                    self.appointment = self.command.appointment
                     self.fill_in_data()
+
+    @Slot(bool)
+    def test_finished(self, success: bool):
+        self.progress_bar.close()
+        if success:
+            QMessageBox.information(self, 'Besetzungsänderung',
+                                    'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
+        else:
+            reply = QMessageBox.critical(self, 'Besetzungsänderung',
+                                         'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n'
+                                         'Sollen die Änderungen zurückgenommen werden',
+                                         QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
+                self.controller.undo()
+                self.appointment = self.command.appointment
+                self.fill_in_data()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)

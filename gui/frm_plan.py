@@ -258,6 +258,18 @@ class AppointmentField(QWidget):
             self.fill_in_data()
             success = solver_main.test_plan(self.plan_id)
             print(f'{success=}')
+            if success:
+                QMessageBox.information(self, 'Besetzungsänderung',
+                                        'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
+            else:
+                reply = QMessageBox.critical(self, 'Besetzungsänderung',
+                                             'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n'
+                                             'Sollen die Änderungen zurückgenommen werden',
+                                             QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.controller.undo()
+                    self.appointment = command.appointment
+                    self.fill_in_data()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)

@@ -15,6 +15,7 @@ from database.special_schema_requests import get_persons_of_team_at_date
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
+from sat_solver import solver_main
 
 
 class DlgEditAppointment(QDialog):
@@ -113,10 +114,11 @@ class DayField(QWidget):
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
                  plan_period: schemas.PlanPeriod, appointment_widget_width: int,
-                 controller: command_base_classes.ContrExecUndoRedo):
+                 controller: command_base_classes.ContrExecUndoRedo, plan_id: UUID):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
 
+        self.plan_id = plan_id
         self.day = day
         self.location_ids_appointments = location_ids_appointments
         self.location_ids_order = location_ids_order
@@ -153,7 +155,7 @@ class DayField(QWidget):
                 if loc_id == container.location_id:
                     for appointment in sorted(appointments,
                                               key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                        container.add_appointment_field(AppointmentField(appointment, self.controller))
+                        container.add_appointment_field(AppointmentField(appointment, self.controller, self.plan_id))
 
     def set_location_ids_order(self, location_ids_order: list[UUID]):
         self.location_ids_order = location_ids_order
@@ -224,8 +226,10 @@ class ContainerAppointments(QWidget):
 
 
 class AppointmentField(QWidget):
-    def __init__(self, appointment: schemas.Appointment, controller: command_base_classes.ContrExecUndoRedo):
+    def __init__(self, appointment: schemas.Appointment, controller: command_base_classes.ContrExecUndoRedo, 
+                 plan_id: UUID):
         super().__init__()
+        self.plan_id = plan_id
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
         self.controller = controller
@@ -252,6 +256,8 @@ class AppointmentField(QWidget):
             self.controller.execute(command)
             self.appointment = command.updated_appointment
             self.fill_in_data()
+            success = solver_main.test_plan(self.plan_id)
+            print(f'{success=}')
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -453,7 +459,8 @@ class FrmTabPlan(QWidget):
                                  self.day_location_id_appointments.get(day),
                                  self.plan.plan_period,
                                  self.appointment_widget_with,
-                                 self.controller)
+                                 self.controller, 
+                                 self.plan.id)
             self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):
@@ -483,4 +490,4 @@ class FrmTabPlan(QWidget):
             day_field.set_location_ids_order([loc.id for loc in self.weekdays_locations[day.isoweekday()]])
             for loc_id, appointments in location_ids_appointments.items():
                 for appointment in appointments:
-                    day_field.add_appointment_field(AppointmentField(appointment, self.controller))
+                    day_field.add_appointment_field(AppointmentField(appointment, self.controller, self.plan.id))

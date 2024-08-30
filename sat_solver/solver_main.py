@@ -1117,6 +1117,10 @@ def print_solver_status(status: CpSolverStatus) -> bool:
         print('########################### OPTIMAL ############################################')
     elif status == cp_model.FEASIBLE:
         print('########################### FEASIBLE ############################################')
+    elif status == cp_model.INFEASIBLE:
+        print('########################### INFEASIBLE ############################################')
+        print(solver.SufficientAssumptionsForInfeasibility())
+        return False
     else:
         print('########################### FAILED ############################################')
         return False
@@ -1145,7 +1149,7 @@ def call_solver_with_unadjusted_requested_assignments(
 
     success = print_solver_status(solver_status)
     if not success:
-        return 0, 0, 0, 0, 0, 0, False
+        return 0, 0, 0, 0, {}, 0, False
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
@@ -1326,6 +1330,38 @@ def call_solver_with__fixed_constraint_results(
     return solution_printer, constraints_fixed_cast_conflicts, success
 
 
+def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow):
+    for appointment in plan.appointments:
+        event_group_id = db_services.Event.get(appointment.event.id).event_group.id
+        for avd in appointment.avail_days:
+            model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True)
+
+
+def call_solver_to_test_plan(plan: schemas.PlanShow,
+                             event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
+                             max_search_time: int, log_search_process: bool):
+    model = cp_model.CpModel()
+    create_vars(model, event_group_tree, avail_day_group_tree)
+    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
+     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+     constraints_location_prefs, constraints_partner_loc_prefs,
+     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+    set_test_plan_constraints(model, plan)
+    define_objective_minimize(model,
+                              unassigned_shifts_per_event,
+                              sum_squared_deviations,
+                              constraints_weights_in_avail_day_groups,
+                              constraints_weights_in_event_groups,
+                              constraints_location_prefs,
+                              constraints_partner_loc_prefs,
+                              constraints_fixed_cast_conflicts,
+                              constraints_cast_rule)
+    solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
+
+    success = print_solver_status(solver_status)
+    return success
+
+
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
           time_calc_plan: int, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]] | None,
                                                                   dict[tuple[datetime.date, str, UUID], int] | None]:
@@ -1390,6 +1426,18 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
         step += 1
     signal_handling.handler_solver.progress(step, 'Alle Pläne wurden berechnet.')
     return plan_datas, fixed_cast_conflicts
+
+
+def test_plan(plan_id: UUID) -> bool:
+    plan = db_services.Plan.get(plan_id)
+    global entities
+    entities = Entities()
+    event_group_tree = get_event_group_tree(plan.plan_period.id)
+    avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
+    cast_group_tree = get_cast_group_tree(plan.plan_period.id)
+    create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
+    success = call_solver_to_test_plan(plan, event_group_tree, avail_day_group_tree, 20, False)
+    return success
 
 
 def solver_quit():

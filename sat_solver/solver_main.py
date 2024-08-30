@@ -709,13 +709,25 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         if not cast_group.fixed_cast:
             continue
 
-        fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)] = model.NewBoolVar('')
-
         # String wird zu Python-Objekt umgewandelt:
         fixed_cast_as_list = eval(cast_group.fixed_cast
                                   .replace('and', ',"and",')
                                   .replace('or', ',"or",')
                                   .replace('in team', ''))
+
+        if isinstance(fixed_cast_as_list, UUID):
+            text_fixed_cast_var = db_services.Person.get(fixed_cast_as_list).f_name
+        else:
+            text_fixed_cast_var = ' '.join([db_services.Person.get(p_id).f_name if isinstance(p_id, UUID)
+                                            else 'und' if p_id == 'and' else 'oder' for p_id in fixed_cast_as_list])
+        text_fixed_cast_var = (f'{text_fixed_cast_var}\n'
+                               f'    am: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
+                               f'    Ort: {cast_group.event.location_plan_period.location_of_work.name} '
+                               f'{cast_group.event.location_plan_period.location_of_work.address.city}')
+
+        fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)] = (
+            model.NewBoolVar(text_fixed_cast_var)
+        )
 
         (model.Add(fixed_cast_vars[key] == proof_recursive(fixed_cast_as_list, cast_group).Not())
          .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
@@ -1331,7 +1343,9 @@ def call_solver_with__fixed_constraint_results(
     return solution_printer, constraints_fixed_cast_conflicts, success
 
 
-def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow):
+def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
+                              constraints_fixed_cast_conflicts:  dict[tuple[datetime.date, str, UUID], IntVar]):
+    indexes_shift_vars = set(entities.shift_vars.keys())
     for appointment in plan.appointments:
         event_group_id = db_services.Event.get(appointment.event.id).event_group.id
         for avd in appointment.avail_days:
@@ -1342,6 +1356,13 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow):
                                  f'{appointment.event.location_plan_period.location_of_work.address.city}')
             model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True).OnlyEnforceIf(a)
             model.AddAssumption(a)
+            indexes_shift_vars.remove((avd.avail_day_group.id, event_group_id))
+    for idx in indexes_shift_vars:
+        model.Add(entities.shift_vars[idx] == False)
+    for int_var in constraints_fixed_cast_conflicts.values():
+        a = model.NewBoolVar(f'Feste Besetzung von {int_var.name}')
+        model.Add(int_var == 0).OnlyEnforceIf(a)
+        model.AddAssumption(a)
 
 
 def call_solver_to_test_plan(plan: schemas.PlanShow,
@@ -1353,16 +1374,7 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
      constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
-    set_test_plan_constraints(model, plan)
-    # define_objective_minimize(model,
-    #                           unassigned_shifts_per_event,
-    #                           sum_squared_deviations,
-    #                           constraints_weights_in_avail_day_groups,
-    #                           constraints_weights_in_event_groups,
-    #                           constraints_location_prefs,
-    #                           constraints_partner_loc_prefs,
-    #                           constraints_fixed_cast_conflicts,
-    #                           constraints_cast_rule)
+    set_test_plan_constraints(model, plan, constraints_fixed_cast_conflicts)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
     success, problems = print_solver_status(model, solver_status)

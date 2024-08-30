@@ -18,7 +18,7 @@ from gui.widget_styles.plan_table import horizontal_header_colors, vertical_head
 from sat_solver import solver_main
 
 
-class SolverThread(QThread):
+class CheckPlanThread(QThread):
     finished = Signal(bool, list)  # Signal emitted when the solver finishes
 
     def __init__(self, parent: QObject, plan_id: UUID):
@@ -287,12 +287,12 @@ class AppointmentField(QWidget):
                                             'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
             self.progress_bar.show()
 
-            solver_thread = SolverThread(self, self.plan_id)
-            solver_thread.finished.connect(self.test_finished)
-            solver_thread.start()
+            check_plan_thread = CheckPlanThread(self, self.plan_id)
+            check_plan_thread.finished.connect(self.check_finished)
+            check_plan_thread.start()
 
     @Slot(bool, list)
-    def test_finished(self, success: bool, problems: list[str]):
+    def check_finished(self, success: bool, problems: list[str]):
         self.progress_bar.close()
         if success:
             QMessageBox.information(self, 'Besetzungsänderung',

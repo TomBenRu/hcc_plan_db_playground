@@ -19,7 +19,7 @@ from sat_solver import solver_main
 
 
 class SolverThread(QThread):
-    finished = Signal(bool)  # Signal emitted when the solver finishes
+    finished = Signal(bool, list)  # Signal emitted when the solver finishes
 
     def __init__(self, parent: QObject, plan_id: UUID):
         super().__init__(parent)
@@ -27,8 +27,8 @@ class SolverThread(QThread):
 
     def run(self):
         # Call the solver function here
-        success = solver_main.test_plan(self.plan_id)
-        self.finished.emit(success)  # Emit the finished signal when the solver completes
+        success, problems = solver_main.test_plan(self.plan_id)
+        self.finished.emit(success, problems)  # Emit the finished signal when the solver completes
 
 
 class DlgProgress(QProgressDialog):
@@ -284,38 +284,25 @@ class AppointmentField(QWidget):
             self.fill_in_data()
 
             self.progress_bar = DlgProgress(self, 'Überprüfung',
-                                            'Besetzungsänderungen werden auf Validität getestet.', 'Abbruch')
+                                            'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
             self.progress_bar.show()
 
             solver_thread = SolverThread(self, self.plan_id)
             solver_thread.finished.connect(self.test_finished)
             solver_thread.start()
-            return
 
-            success = solver_main.test_plan(self.plan_id)
-            if success:
-                QMessageBox.information(self, 'Besetzungsänderung',
-                                        'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
-            else:
-                reply = QMessageBox.critical(self, 'Besetzungsänderung',
-                                             'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n'
-                                             'Sollen die Änderungen zurückgenommen werden',
-                                             QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.controller.undo()
-                    self.appointment = self.command.appointment
-                    self.fill_in_data()
-
-    @Slot(bool)
-    def test_finished(self, success: bool):
+    @Slot(bool, list)
+    def test_finished(self, success: bool, problems: list[str]):
         self.progress_bar.close()
         if success:
             QMessageBox.information(self, 'Besetzungsänderung',
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
         else:
+            problems_txt = "\n        +\n    ".join(problems)
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
-                                         'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n'
-                                         'Sollen die Änderungen zurückgenommen werden',
+                                         f'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n\n'
+                                         f'Unvereinbarkeiten:\n    {problems_txt}\n\n'
+                                         f'Sollen die Änderungen zurückgenommen werden',
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
                 self.controller.undo()

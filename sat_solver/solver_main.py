@@ -1109,22 +1109,23 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
     print(f'sum_constraints_cast_rule: {sum(solver.Value(w) for w in constraints_cast_rule)}')
 
 
-def print_solver_status(status: CpSolverStatus) -> bool:
+def print_solver_status(model: cp_model.CpModel, status: CpSolverStatus) -> tuple[bool, list[str]]:
     if status == cp_model.MODEL_INVALID:
         print('########################### INVALID MODEL ######################################')
-        return False
+        return False, []
     elif status == cp_model.OPTIMAL:
         print('########################### OPTIMAL ############################################')
     elif status == cp_model.FEASIBLE:
         print('########################### FEASIBLE ############################################')
     elif status == cp_model.INFEASIBLE:
         print('########################### INFEASIBLE ############################################')
-        print(solver.SufficientAssumptionsForInfeasibility())
-        return False
+        for i in solver.SufficientAssumptionsForInfeasibility():
+            print(model.GetIntVarFromProtoIndex(i).name)
+        return False, [model.GetIntVarFromProtoIndex(i).name for i in solver.SufficientAssumptionsForInfeasibility()]
     else:
         print('########################### FAILED ############################################')
-        return False
-    return True
+        return False, []
+    return True, []
 
 
 def call_solver_with_unadjusted_requested_assignments(
@@ -1147,7 +1148,7 @@ def call_solver_with_unadjusted_requested_assignments(
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
-    success = print_solver_status(solver_status)
+    success, problems = print_solver_status(model, solver_status)
     if not success:
         return 0, 0, 0, 0, {}, 0, False
     print_statistics(solver, None, unassigned_shifts_per_event,
@@ -1200,7 +1201,7 @@ def call_solver_to_get_max_shifts_per_app(
 
         yield True
 
-        if success := print_solver_status(status):
+        if success_problems := print_solver_status(model, status):
             max_shifts_of_apps[app_id] = solver.value(max_shifts_of_app)
 
         else:
@@ -1240,7 +1241,7 @@ def call_solver_with_adjusted_requested_assignments(
                               constraints_fixed_cast_conflicts, constraints_cast_rule)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
-    success = print_solver_status(solver_status)
+    success, problems = print_solver_status(model, solver_status)
     if not success:
         return 0, [], 0, 0, 0, 0, {}, 0, [], False
     print_statistics(solver, None, unassigned_shifts_per_event,
@@ -1316,7 +1317,7 @@ def call_solver_with__fixed_constraint_results(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
         print_solution_printer_results, 100, log_search_process, collect_schedule_versions)
-    success = print_solver_status(solver_status)
+    success, problems = print_solver_status(model, solver_status)
     if not success:
         return None, {}, False
     print_statistics(solver, solution_printer, unassigned_shifts_per_event,
@@ -1334,12 +1335,18 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow):
     for appointment in plan.appointments:
         event_group_id = db_services.Event.get(appointment.event.id).event_group.id
         for avd in appointment.avail_days:
-            model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True)
+            a = model.NewBoolVar(f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}, '
+                                 f'{appointment.event.date: %d.%m.%y}, '
+                                 f'{appointment.event.time_of_day.name}, '
+                                 f'{appointment.event.location_plan_period.location_of_work.name} '
+                                 f'{appointment.event.location_plan_period.location_of_work.address.city}')
+            model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True).OnlyEnforceIf(a)
+            model.AddAssumption(a)
 
 
 def call_solver_to_test_plan(plan: schemas.PlanShow,
                              event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-                             max_search_time: int, log_search_process: bool):
+                             max_search_time: int, log_search_process: bool) -> tuple[bool, list[str]]:
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
@@ -1347,19 +1354,19 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
      constraints_location_prefs, constraints_partner_loc_prefs,
      constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
     set_test_plan_constraints(model, plan)
-    define_objective_minimize(model,
-                              unassigned_shifts_per_event,
-                              sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups,
-                              constraints_weights_in_event_groups,
-                              constraints_location_prefs,
-                              constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts,
-                              constraints_cast_rule)
+    # define_objective_minimize(model,
+    #                           unassigned_shifts_per_event,
+    #                           sum_squared_deviations,
+    #                           constraints_weights_in_avail_day_groups,
+    #                           constraints_weights_in_event_groups,
+    #                           constraints_location_prefs,
+    #                           constraints_partner_loc_prefs,
+    #                           constraints_fixed_cast_conflicts,
+    #                           constraints_cast_rule)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
-    success = print_solver_status(solver_status)
-    return success
+    success, problems = print_solver_status(model, solver_status)
+    return success, problems
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
@@ -1428,7 +1435,7 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
     return plan_datas, fixed_cast_conflicts
 
 
-def test_plan(plan_id: UUID) -> bool:
+def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
     plan = db_services.Plan.get(plan_id)
     global entities
     entities = Entities()
@@ -1436,8 +1443,8 @@ def test_plan(plan_id: UUID) -> bool:
     avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
     cast_group_tree = get_cast_group_tree(plan.plan_period.id)
     create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
-    success = call_solver_to_test_plan(plan, event_group_tree, avail_day_group_tree, 20, False)
-    return success
+    success, problems = call_solver_to_test_plan(plan, event_group_tree, avail_day_group_tree, 20, False)
+    return success, problems
 
 
 def solver_quit():

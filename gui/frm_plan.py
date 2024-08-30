@@ -365,7 +365,7 @@ class FrmTabPlan(QWidget):
         super().__init__(parent=parent)
 
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_plan)
-        # todo: Slot wird 2 Mal aufgerufen!
+        # fixme: Slot wird 2 Mal aufgerufen!
 
         self.plan = plan
 

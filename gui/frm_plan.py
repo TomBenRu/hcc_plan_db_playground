@@ -316,7 +316,7 @@ class AppointmentField(QWidget):
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
                                          'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n'
                                          'Sollen die Änderungen zurückgenommen werden',
-                                         QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+                                         QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
                 self.controller.undo()
                 self.appointment = self.command.appointment

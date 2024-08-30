@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
                     plan_commands.PutInExcelExportSettings(plan_widget.plan.id, dlg.curr_excel_settings_id)
                 )
 
-        signal_handling.handler_plan_tabs.reload_plan_from_db()
+        signal_handling.handler_plan_tabs.reload_plan_from_db(plan_widget.plan.id)
 
     def determine_excel_output_folder(self):
         path_handler = configuration.project_paths.curr_user_path_handler

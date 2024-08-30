@@ -297,7 +297,7 @@ class AppointmentField(QWidget):
         if success:
             QMessageBox.information(self, 'Besetzungsänderung',
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
-            signal_handling.handler_plan_tabs.reload_plan_from_db()
+            signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_id)
         else:
             problems_txt = "\n        +\n    ".join(problems)
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
@@ -310,7 +310,7 @@ class AppointmentField(QWidget):
                 self.appointment = self.command.appointment
                 self.fill_in_data()
             else:
-                signal_handling.handler_plan_tabs.reload_plan_from_db()
+                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_id)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -365,7 +365,6 @@ class FrmTabPlan(QWidget):
         super().__init__(parent=parent)
 
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_plan)
-        # fixme: Slot wird 2 Mal aufgerufen!
 
         self.plan = plan
 
@@ -399,10 +398,13 @@ class FrmTabPlan(QWidget):
 
         self.configure_table_plan()
 
-    @Slot()
-    def reload_plan(self):
-        print('plan reloading')
-        self.plan = db_services.Plan.get(self.plan.id)
+    @Slot(object)
+    def reload_plan(self, plan_id: UUID | None):
+        if plan_id:
+            if self.plan.id == plan_id:
+                self.plan = db_services.Plan.get(self.plan.id)
+        else:
+            self.plan = db_services.Plan.get(self.plan.id)
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:

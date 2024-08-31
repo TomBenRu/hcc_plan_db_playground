@@ -780,6 +780,8 @@ class FrmActorPlanPeriod(QWidget):
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.set_instance_variables()
+        signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
+        signal_handling.handler_plan_tabs.refresh_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
 
     def set_instance_variables(self):
         self.t_o_d_standards = sorted([t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards

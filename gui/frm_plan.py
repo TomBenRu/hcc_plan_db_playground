@@ -162,12 +162,10 @@ class LabelDayNr(QLabel):
 class DayField(QWidget):
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
-                 plan_period: schemas.PlanPeriod, appointment_widget_width: int, plan_id: UUID,
-                 plan_widget: 'FrmTabPlan'):
+                 plan_period: schemas.PlanPeriod, appointment_widget_width: int, plan_widget: 'FrmTabPlan'):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.plan_id = plan_id
         self.day = day
         self.location_ids_appointments = location_ids_appointments
         self.location_ids_order = location_ids_order
@@ -204,7 +202,7 @@ class DayField(QWidget):
                 if loc_id == container.location_id:
                     for appointment in sorted(appointments,
                                               key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                        container.add_appointment_field(AppointmentField(appointment, self.plan_id, self.plan_widget))
+                        container.add_appointment_field(AppointmentField(appointment, self.plan_widget))
 
     def set_location_ids_order(self, location_ids_order: list[UUID]):
         self.location_ids_order = location_ids_order
@@ -275,10 +273,9 @@ class ContainerAppointments(QWidget):
 
 
 class AppointmentField(QWidget):
-    def __init__(self, appointment: schemas.Appointment, plan_id: UUID, plan_widget: 'FrmTabPlan'):
+    def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
         self.setObjectName(str(appointment.id))
-        self.plan_id = plan_id
         self.plan_widget = plan_widget
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
@@ -307,13 +304,15 @@ class AppointmentField(QWidget):
             fill_in_data(self)
             if self.plan_widget.permanent_plan_check:
                 self._start_plan_check()
+            else:
+                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgress(self, 'Überprüfung',
                                         'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
         self.progress_bar.show()
 
-        check_plan_thread = CheckPlanThread(self, self.plan_id)
+        check_plan_thread = CheckPlanThread(self, self.plan_widget.plan.id)
         check_plan_thread.finished.connect(self.check_finished)
         check_plan_thread.start()
 
@@ -323,7 +322,7 @@ class AppointmentField(QWidget):
         if success:
             QMessageBox.information(self, 'Besetzungsänderung',
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
-            signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_id)
+            signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
         else:
             problems_txt = "\n        +\n    ".join(problems)
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
@@ -336,7 +335,7 @@ class AppointmentField(QWidget):
                 self.appointment = self.command.appointment
                 fill_in_data(self)
             else:
-                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_id)
+                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -371,7 +370,9 @@ class FrmTabPlan(QWidget):
     def __init__(self, parent: QWidget, plan: schemas.PlanShow):
         super().__init__(parent=parent)
 
-        signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_plan)
+        signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_specific_plan)
+        signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
+        signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.refresh_plan_period_plan)
 
         self.plan = plan
 
@@ -389,24 +390,14 @@ class FrmTabPlan(QWidget):
             6: 'Samstag',
             7: 'Sonntag',
         }
-        self.all_days_of_month = self.generate_all_days()
-        self.all_week_nums_of_month = self.generate_all_week_nums_of_month()
-        self.week_num_rows = self.generate_week_num_row()
-        self.weekday_cols = self.generate_weekday_col()
-
-        self.week_num_weekday = self.generate_week_num_weekday()
-        self.weekdays_locations = self.get_weekdays_locations()
-        self.column_assignments = self.generate_column_assignments()
-        self.day_location_id_appointments = self.generate_day_appointments()
 
         self.layout = QVBoxLayout(self)
 
-        self.table_plan = QTableWidget()
-        self.layout.addWidget(self.table_plan)
+        self._generate_plan_data()
+
+        self._show_table_plan()
 
         self._setup_side_menu()
-
-        self.configure_table_plan()
 
     def _setup_side_menu(self):
         self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
@@ -423,6 +414,17 @@ class FrmTabPlan(QWidget):
         self.bt_redo = QPushButton('Redo')
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
+
+    def _generate_plan_data(self):
+        self.all_days_of_month = self.generate_all_days()
+        self.all_week_nums_of_month = self.generate_all_week_nums_of_month()
+        self.week_num_rows = self.generate_week_num_row()
+        self.weekday_cols = self.generate_weekday_col()
+
+        self.week_num_weekday = self.generate_week_num_weekday()
+        self.weekdays_locations = self.get_weekdays_locations()
+        self.column_assignments = self.generate_column_assignments()
+        self.day_location_id_appointments = self.generate_day_appointments()
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
@@ -457,7 +459,7 @@ class FrmTabPlan(QWidget):
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.undo()
-        self.reload_plan(None)
+        self.reload_plan()
 
     def _redo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_redo_command()
@@ -468,15 +470,33 @@ class FrmTabPlan(QWidget):
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.redo()
-        self.reload_plan(None)
+        self.reload_plan()
+
+    def reload_plan(self):
+        self.plan = db_services.Plan.get(self.plan.id)
+
+    def refresh_plan(self):
+        self.table_plan.deleteLater()
+        self._generate_plan_data()
+        self._show_table_plan()
 
     @Slot(object)
-    def reload_plan(self, plan_id: UUID | None):
+    def reload_specific_plan(self, plan_id: UUID | None):
         if plan_id:
             if self.plan.id == plan_id:
-                self.plan = db_services.Plan.get(self.plan.id)
+                self.reload_plan()
         else:
-            self.plan = db_services.Plan.get(self.plan.id)
+            self.reload_plan()
+
+    @Slot(UUID)
+    def refresh_plan_period_plan(self, plan_period_id: UUID):
+        if self.plan.plan_period.id == plan_period_id:
+            self.refresh_plan()
+
+    @Slot(UUID)
+    def reload_plan_period_plan(self, plan_period_id: UUID):
+        if self.plan.plan_period.id == plan_period_id:
+            self.reload_plan()
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:
@@ -523,7 +543,9 @@ class FrmTabPlan(QWidget):
                 curr_column += 1
         return column_assignments
 
-    def configure_table_plan(self):
+    def _show_table_plan(self):
+        self.table_plan = QTableWidget()
+        self.layout.addWidget(self.table_plan)
         num_rows = max(self.week_num_rows.values()) + 1
         num_cols = max(self.weekday_cols.values()) + 1
         self.table_plan.setRowCount(num_rows)
@@ -592,7 +614,6 @@ class FrmTabPlan(QWidget):
                                  self.day_location_id_appointments.get(day),
                                  self.plan.plan_period,
                                  self.appointment_widget_width,
-                                 self.plan.id,
                                  self)
             self.table_plan.setCellWidget(row, col, day_field)
 
@@ -624,4 +645,4 @@ class FrmTabPlan(QWidget):
             for loc_id, appointments in location_ids_appointments.items():
                 for appointment in appointments:
                     day_field.add_appointment_field(
-                        AppointmentField(appointment, self.plan.id, self))
+                        AppointmentField(appointment, self))

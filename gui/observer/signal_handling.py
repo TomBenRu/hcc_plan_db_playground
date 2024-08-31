@@ -101,12 +101,20 @@ class HandlerLocationPlanPeriod(QObject):
 class HandlerPlanTabs(QObject):
     signal_event_changed = Signal(object)
     signal_reload_plan_from_db = Signal(object)
+    signal_reload_all_plan_period_plans_from_db = Signal(UUID)
+    signal_refresh_all_plan_period_plans_from_db = Signal(UUID)
 
     def event_changed(self, plan_event: DataPlanEvent):
         self.signal_event_changed.emit(plan_event)
 
     def reload_plan_from_db(self, plan_id: UUID = None):
         self.signal_reload_plan_from_db.emit(plan_id)
+
+    def reload_all_plan_period_plans_from_db(self, plan_period_id: UUID):
+        self.signal_reload_all_plan_period_plans_from_db.emit(plan_period_id)
+
+    def refresh_all_plan_period_plans_from_db(self, plan_period_id: UUID):
+        self.signal_refresh_all_plan_period_plans_from_db.emit(plan_period_id)
 
 
 class HandlerShowDialog(QObject):

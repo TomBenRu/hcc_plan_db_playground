@@ -1,8 +1,8 @@
 from typing import Literal, Iterable
 
 from PySide6.QtGui import QMouseEvent, Qt
-from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene, \
-    QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea
+from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene,
+                               QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox)
 from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent
 
 
@@ -116,6 +116,16 @@ Examples:
     def add_button(self, button: QPushButton):
         button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
         self.layout_fields.addWidget(button)
+        self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
+
+    def add_check_box(self, check_box: QCheckBox):
+        widget = QWidget()
+        widget.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
+        widget.setContentsMargins(10, 2, 10, 2)
+        widget_layout = QVBoxLayout(widget)
+        widget_layout.setContentsMargins(0, 0, 0, 0)
+        widget_layout.addWidget(check_box)
+        self.layout_fields.addWidget(widget)
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
     def delete_all_buttons(self):

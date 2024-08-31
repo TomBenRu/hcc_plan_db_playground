@@ -22,13 +22,14 @@ from sat_solver import solver_main
 
 def fill_in_data(appointment_field: 'AppointmentField'):
     appointment_field.lb_time_of_day.setText(f'{appointment_field.appointment.event.time_of_day.name}: '
-                                f'{appointment_field.appointment.event.time_of_day.start:%H:%M}'
-                                f'-{appointment_field.appointment.event.time_of_day.end:%H:%M}')
+                                             f'{appointment_field.appointment.event.time_of_day.start:%H:%M}'
+                                             f'-{appointment_field.appointment.event.time_of_day.end:%H:%M}')
     employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
                            for avd in sorted(appointment_field.appointment.avail_days,
                                              key=lambda x: (x.actor_plan_period.person.f_name,
                                                             x.actor_plan_period.person.l_name))])
-    nr_required_persons = db_services.CastGroup.get_cast_group_of_event(appointment_field.appointment.event.id).nr_actors
+    nr_required_persons = db_services.CastGroup.get_cast_group_of_event(
+        appointment_field.appointment.event.id).nr_actors
 
     if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)):
         missing_txt = f'unbesetzt: {missing}'
@@ -42,11 +43,8 @@ def fill_in_data(appointment_field: 'AppointmentField'):
 
 @dataclasses.dataclass
 class CommonPlanData:
-    controller: command_base_classes.ContrExecUndoRedo = None
+    controller: command_base_classes.ContrExecUndoRedo = command_base_classes.ContrExecUndoRedo()
     permanent_plan_check: bool = True
-
-
-common_plan_data = CommonPlanData()
 
 
 class CheckPlanThread(QThread):
@@ -170,7 +168,8 @@ class LabelDayNr(QLabel):
 class DayField(QWidget):
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
-                 plan_period: schemas.PlanPeriod, appointment_widget_width: int, plan_id: UUID):
+                 plan_period: schemas.PlanPeriod, appointment_widget_width: int, plan_id: UUID,
+                 common_plan_data: CommonPlanData):
         super().__init__()
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -180,6 +179,7 @@ class DayField(QWidget):
         self.location_ids_order = location_ids_order
         self.plan_period = plan_period
         self.appointment_widget_width = appointment_widget_width
+        self.common_plan_data = common_plan_data
 
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -210,7 +210,7 @@ class DayField(QWidget):
                 if loc_id == container.location_id:
                     for appointment in sorted(appointments,
                                               key=lambda x: x.event.time_of_day.time_of_day_enum.time_index):
-                        container.add_appointment_field(AppointmentField(appointment, self.plan_id))
+                        container.add_appointment_field(AppointmentField(appointment, self.plan_id, self.common_plan_data))
 
     def set_location_ids_order(self, location_ids_order: list[UUID]):
         self.location_ids_order = location_ids_order
@@ -281,10 +281,11 @@ class ContainerAppointments(QWidget):
 
 
 class AppointmentField(QWidget):
-    def __init__(self, appointment: schemas.Appointment, plan_id: UUID):
+    def __init__(self, appointment: schemas.Appointment, plan_id: UUID, common_plan_data: CommonPlanData):
         super().__init__()
         self.setObjectName(str(appointment.id))
         self.plan_id = plan_id
+        self.common_plan_data = common_plan_data
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
         self.layout = QVBoxLayout(self)
@@ -307,10 +308,10 @@ class AppointmentField(QWidget):
         dlg = DlgEditAppointment(self, self.appointment)
         if dlg.exec():
             self.command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
-            common_plan_data.controller.execute(self.command)
+            self.common_plan_data.controller.execute(self.command)
             self.appointment = self.command.updated_appointment
             fill_in_data(self)
-            if common_plan_data.permanent_plan_check:
+            if self.common_plan_data.permanent_plan_check:
                 self._start_plan_check()
 
     def _start_plan_check(self):
@@ -337,7 +338,7 @@ class AppointmentField(QWidget):
                                          f'Sollen die Änderungen zurückgenommen werden',
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
-                common_plan_data.controller.undo()
+                self.common_plan_data.controller.undo()
                 self.appointment = self.command.appointment
                 fill_in_data(self)
             else:
@@ -382,7 +383,7 @@ class FrmTabPlan(QWidget):
 
         self.appointment_widget_width = 120
 
-        common_plan_data.controller = command_base_classes.ContrExecUndoRedo()
+        self.common_plan_data = CommonPlanData()
 
         self.weekday_names = {
             1: 'Montag',
@@ -414,40 +415,64 @@ class FrmTabPlan(QWidget):
 
     def _setup_side_menu(self):
         self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
+        self.chk_permanent_plan_check = QCheckBox('Überprüfung an')
+        self.chk_permanent_plan_check.setChecked(True)
+        self.chk_permanent_plan_check.toggled.connect(self._chk_permanent_plan_check_toggled)
+        self.side_menu.add_check_box(self.chk_permanent_plan_check)
+        self.bt_check_plan = QPushButton('Plan überprüfen')
+        self.bt_check_plan.clicked.connect(self._check_plan)
+        self.side_menu.add_button(self.bt_check_plan)
         self.bt_undo = QPushButton('Undo')
         self.bt_undo.clicked.connect(self._undo_shift_command)
         self.side_menu.add_button(self.bt_undo)
         self.bt_redo = QPushButton('Redo')
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
-        self.chk_permanent_plan_check = QCheckBox('Überprüfung an')
-        self.chk_permanent_plan_check.setChecked(True)
-        self.chk_permanent_plan_check.toggled.connect(self._chk_permanent_plan_check_toggled)
-        self.side_menu.add_check_box(self.chk_permanent_plan_check)
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
-        common_plan_data.permanent_plan_check = checked
+        self.common_plan_data.permanent_plan_check = checked
+
+    def _check_plan(self):
+        self.progress_bar = DlgProgress(self, 'Überprüfung',
+                                        'Plan wird auf Fehler getestet.', 'Abbruch')
+        self.progress_bar.show()
+
+        check_plan_thread = CheckPlanThread(self, self.plan.id)
+        check_plan_thread.finished.connect(self.check_finished)
+        check_plan_thread.start()
+
+    @Slot(bool, list)
+    def check_finished(self, success: bool, problems: list[str]):
+        self.progress_bar.close()
+        if success:
+            QMessageBox.information(self, 'Plan Überprüfung',
+                                    'Es wurden keine Fehler in diesem Plan festgestellt.')
+        else:
+            problems_txt = "\n        +\n    ".join(problems)
+            QMessageBox.critical(self, 'Besetzungsänderung',
+                                 f'Es wurden Konflikte in diesem Plan festgestellt.\n\n'
+                                 f'Unvereinbarkeiten:\n    {problems_txt}\n\n')
 
     def _undo_shift_command(self):
-        command: appointment_commands.UpdateAvailDays | None = common_plan_data.controller.get_recent_undo_command()
+        command: appointment_commands.UpdateAvailDays | None = self.common_plan_data.controller.get_recent_undo_command()
         if command is None:
             return
         appointment = command.appointment
         appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
-        common_plan_data.controller.undo()
+        self.common_plan_data.controller.undo()
         self.reload_plan(None)
 
     def _redo_shift_command(self):
-        command: appointment_commands.UpdateAvailDays | None = common_plan_data.controller.get_recent_redo_command()
+        command: appointment_commands.UpdateAvailDays | None = self.common_plan_data.controller.get_recent_redo_command()
         if command is None:
             return
         appointment = command.updated_appointment
         appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
-        common_plan_data.controller.redo()
+        self.common_plan_data.controller.redo()
         self.reload_plan(None)
 
     @Slot(object)
@@ -466,7 +491,7 @@ class FrmTabPlan(QWidget):
         weekdays_locations = self.generate_weekdays_locations()
 
         location_columns = {k: [loc.id for loc in v] for k, v in weekdays_locations.items()}
-        common_plan_data.controller.execute(
+        self.common_plan_data.controller.execute(
             plan_commands.UpdateLocationColumns(self.plan.id, location_columns)
         )
         return weekdays_locations
@@ -572,7 +597,8 @@ class FrmTabPlan(QWidget):
                                  self.day_location_id_appointments.get(day),
                                  self.plan.plan_period,
                                  self.appointment_widget_width,
-                                 self.plan.id)
+                                 self.plan.id,
+                                 self.common_plan_data)
             self.table_plan.setCellWidget(row, col, day_field)
 
     def display_headers_locations(self):
@@ -603,4 +629,4 @@ class FrmTabPlan(QWidget):
             for loc_id, appointments in location_ids_appointments.items():
                 for appointment in appointments:
                     day_field.add_appointment_field(
-                        AppointmentField(appointment, self.plan.id))
+                        AppointmentField(appointment, self.plan.id, self.common_plan_data))

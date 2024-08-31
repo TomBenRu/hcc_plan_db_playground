@@ -297,6 +297,8 @@ class AppointmentField(QWidget):
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
 
     def mouseReleaseEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
         dlg = DlgEditAppointment(self, self.appointment)
         if dlg.exec():
             self.command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
@@ -403,7 +405,8 @@ class FrmTabPlan(QWidget):
 
     def _setup_side_menu(self):
         self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
-        self.chk_permanent_plan_check = QCheckBox('Überprüfung an')
+        self.chk_permanent_plan_check = QCheckBox('Überprüfung im Hintergrund')
+        self.chk_permanent_plan_check.setToolTip('Fehlerüberprüfung bei jeder Besetzungsänderung.')
         self.chk_permanent_plan_check.setChecked(True)
         self.chk_permanent_plan_check.toggled.connect(self._chk_permanent_plan_check_toggled)
         self.side_menu.add_check_box(self.chk_permanent_plan_check)

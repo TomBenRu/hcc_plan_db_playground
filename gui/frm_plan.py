@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import pprint
 from collections import defaultdict
 from uuid import UUID
 
@@ -371,6 +372,7 @@ class FrmTabPlan(QWidget):
         super().__init__(parent=parent)
 
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_specific_plan)
+        signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.refresh_plan_period_plan)
 
@@ -488,6 +490,11 @@ class FrmTabPlan(QWidget):
                 self.reload_plan()
         else:
             self.reload_plan()
+
+    @Slot(UUID)
+    def refresh_specific_plan(self, plan_id: UUID):
+        if self.plan.id == plan_id:
+            self.refresh_plan()
 
     @Slot(UUID)
     def refresh_plan_period_plan(self, plan_period_id: UUID):

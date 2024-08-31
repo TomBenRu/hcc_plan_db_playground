@@ -44,7 +44,6 @@ class MainWindow(QMainWindow):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
-        signal_handling.handler_plan_tabs.signal_event_changed.connect(lambda e: self.plan_tabs_event_changed(e))
         path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.actions = {
@@ -273,14 +272,6 @@ class MainWindow(QMainWindow):
                                            QMessageBox.Yes, QMessageBox.Cancel)
         if confirmation == QMessageBox.Yes:
             db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)
-
-    def plan_tabs_event_changed(self, e: signal_handling.DataPlanEvent):
-        for i in range(self.tabs_plans.count()):
-            plan_widget: frm_plan.FrmTabPlan = self.tabs_plans.widget(i)
-            if plan_widget.plan.id == e.plan_id:
-                self.remove_plan(i)
-                plan = db_services.Plan.get(e.plan_id)
-                self.tabs_plans.insertTab(i, frm_plan.FrmTabPlan(self.tabs_plans, plan), plan.name)
 
     def settings_project(self):
         dlg = DlgSettingsProject(self, self.project_id)

@@ -89,24 +89,19 @@ class LocationPlanPeriodData:
         )
 
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
+        QMessageBox.information(self.parent, 'Pläne', 'Die Reihenfolge der betroffenen Pläne wird zurückgesetzt.')
         plans = [p for p in db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
                  if not p.prep_delete]
         for plan in plans:
             if mode == 'added':
                 self._create_new_empty_appointment_in_plan(plan.id, event)
-            if plan.location_columns:
-                self._reset_plan_location_columns(plan)
-            signal_handling.handler_plan_tabs.event_changed(
-                signal_handling.DataPlanEvent(
-                    plan.id, event.id, mode == 'added'
-                )
-            )
+            self._reset_plan_location_columns(plan.id)
+            signal_handling.handler_plan_tabs.reload_plan_from_db(plan.id)
+            signal_handling.handler_plan_tabs.refresh_plan(plan.id)
 
     def _create_new_empty_appointment_in_plan(self, plan_id: UUID, event: schemas.Event):
         self.controller.execute(
             appointment_commands.Create(schemas.AppointmentCreate(avail_days=[], event=event), plan_id))
 
-    def _reset_plan_location_columns(self, plan: schemas.PlanShow):
-        self.controller.execute(plan_commands.UpdateLocationColumns(plan.id, {}))
-        QMessageBox.information(self.parent, 'Plan Layout',
-                                f'Die Reihenfolge der Spalten im Plan {plan.name} wurde zurückgesetzt.')
+    def _reset_plan_location_columns(self, plan_id: UUID):
+        self.controller.execute(plan_commands.UpdateLocationColumns(plan_id, {}))

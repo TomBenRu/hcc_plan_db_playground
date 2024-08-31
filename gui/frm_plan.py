@@ -479,6 +479,7 @@ class FrmTabPlan(QWidget):
         self.table_plan.deleteLater()
         self._generate_plan_data()
         self._show_table_plan()
+        self.side_menu.raise_()
 
     @Slot(object)
     def reload_specific_plan(self, plan_id: UUID | None):

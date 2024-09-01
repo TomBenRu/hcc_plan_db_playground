@@ -2,7 +2,7 @@ import functools
 import os.path
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QPoint, Slot
+from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
 from pydantic_core import ValidationError
@@ -560,6 +560,7 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
                     self.open_plan_tab(plan_id)
+                    QCoreApplication.processEvents()
 
     def open_plan_tab(self, plan_id: UUID):
         try:

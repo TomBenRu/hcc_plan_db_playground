@@ -560,7 +560,6 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
                     self.open_plan_tab(plan_id)
-        signal_handling.handler_solver.progress('Erstellung der Pläne abgeschlossen.')
 
     def open_plan_tab(self, plan_id: UUID):
         try:

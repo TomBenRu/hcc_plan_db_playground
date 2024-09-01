@@ -1,9 +1,8 @@
 import datetime
-import pprint
-import random
+from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot
+from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot, QCoreApplication
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QProgressDialog, QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
@@ -13,6 +12,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import db_services, schemas
 from gui import frm_cast_group
+from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
 
 
@@ -62,28 +62,45 @@ class SolverThread(QThread):
         self.finished.emit(schedule_versions, fixed_cast_conflicts)  # Emit the finished signal when the solver completes
 
 
-class DlgProgress(QProgressDialog):
-    def __init__(self, parent: QWidget, window_title: str, label_text: str,
-                 minimum: int, maximum: int, cancel_button_text: str):
-        super().__init__(label_text, cancel_button_text, minimum, maximum, parent)
-        signal_handling.handler_solver.signal_progress.connect(self.update_progress)
-        self.setWindowTitle(window_title)
-        self.setWindowModality(Qt.WindowModality.WindowModal)
-        self.label_text = label_text
+class SaveThread(QThread):
+    finished = Signal(list)
 
-        self.curr_progress = -1
+    def __init__(self, parent: QObject,
+                 plan_period_id: UUID, team_id: UUID,
+                 schedule_versions: list[list[schemas.AppointmentCreate]], nr_versions_to_use: int,
+                 controller: command_base_classes.ContrExecUndoRedo):
+        super().__init__(parent=parent)
+        self._created_plan_ids: list[UUID] = []
+        self.plan_period_id = plan_period_id
+        self.team_id = team_id
+        self.schedule_versions = schedule_versions
+        self.nr_versions_to_use = nr_versions_to_use
+        self.controller = controller
 
-        self.canceled.connect(self.cancel_solving)
+    def run(self):
+        plan_period = db_services.PlanPeriod.get(self.plan_period_id)
+        saved_plan_names = self.get_saved_plan_period_names()
+        plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
+        new_first_plan_index = 1
 
-    @Slot(int, str)
-    def update_progress(self, comment: str):
-        self.curr_progress += 1
-        self.setValue(self.curr_progress)
-        self.setLabelText(f'{self.label_text}\n{comment}')
+        for version in self.schedule_versions[:self.nr_versions_to_use]:
+            while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
+                new_first_plan_index += 1
+            version: list[schemas.AppointmentCreate]
+            name_plan = f'{plan_base_name} ({new_first_plan_index:0>2})'
+            new_first_plan_index += 1
 
-    @Slot()
-    def cancel_solving(self):
-        signal_handling.handler_solver.cancel_solving()
+            plan_create_command = plan_commands.Create(self.plan_period_id, name_plan)
+            self.controller.execute(plan_create_command)
+            self._created_plan_ids.append(plan_create_command.plan.id)
+            for appointment in version:
+                self.controller.execute(
+                    appointment_commands.Create(appointment, self._created_plan_ids[-1]))
+
+        self.finished.emit(self._created_plan_ids)
+
+    def get_saved_plan_period_names(self) -> set[str]:
+        return set(db_services.Plan.get_all_from__team(self.team_id, True, True).keys())
 
 
 class DlgCalculate(QDialog):
@@ -149,9 +166,10 @@ class DlgCalculate(QDialog):
                                  f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
             return
 
-        progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
-                                      0, self.spin_num_plans.value() + self.num_actor_plan_periods + 3, 'Abbrechen')
-        progress_dialog.show()
+        self.progress_dialog_solver = DlgProgressSteps(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
+                                                       0, self.spin_num_plans.value() + self.num_actor_plan_periods + 2,
+                                                       'Abbrechen', signal_handling.handler_solver.cancel_solving)
+        self.progress_dialog_solver.show()
 
         # Create the solver thread
         self.solver_thread = SolverThread(
@@ -161,7 +179,6 @@ class DlgCalculate(QDialog):
             self.spin_time_calculate_plan.value()
         )
         self.solver_thread.finished.connect(self.save_plan_to_db)
-        self.solver_thread.finished.connect(self.accept)
 
         # Start the solver thread
         self.solver_thread.start()
@@ -200,10 +217,10 @@ class DlgCalculate(QDialog):
         self.spin_time_calculate_fair_distribution.setSingleStep(self.num_actor_plan_periods)
         self.spin_time_calculate_fair_distribution.setValue(self.num_actor_plan_periods * 50)
 
-
     @Slot(object, object)
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
                         fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None):
+        self.progress_dialog_solver.close()
         if schedule_versions is None and fixed_cast_conflicts is None:
             QMessageBox.critical(self, 'Fehler',
                                  'Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\n'
@@ -223,7 +240,7 @@ class DlgCalculate(QDialog):
                                  f'{conflict_string}')
             self.reject()
             return
-        plan_period = db_services.PlanPeriod.get(self.curr_plan_period_id)
+
         nr_versions_to_use = (len_versions := len(schedule_versions))
         if len_versions > 1:
             dlg = DlgAskNrPlansToSave(self, len_versions)
@@ -233,23 +250,18 @@ class DlgCalculate(QDialog):
                 self.reject()
                 return
 
-        saved_plan_names = self.get_saved_plan_period_names()
-        plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
-        new_first_plan_index = 1
+        self.plans_save_progress_bar = DlgProgressInfinite(self, 'Pläne sichern', 'In Progress...', 'Abbruch')
+        self.plans_save_progress_bar.show()
+        save_thread = SaveThread(self, self.curr_plan_period_id, self.team_id,
+                                 schedule_versions, nr_versions_to_use, self.controller)
+        save_thread.finished.connect(self._collect_plan_ids)
+        save_thread.start()
 
-        for version in schedule_versions[:nr_versions_to_use]:
-            while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
-                new_first_plan_index += 1
-            version: list[schemas.AppointmentCreate]
-            name_plan = f'{plan_base_name} ({new_first_plan_index:0>2})'
-            new_first_plan_index += 1
-
-            plan_create_command = plan_commands.Create(self.curr_plan_period_id, name_plan)
-            self.controller.execute(plan_create_command)
-            self._created_plan_ids.append(plan_create_command.plan.id)
-            for appointment in version:
-                self.controller.execute(
-                    appointment_commands.Create(appointment, self._created_plan_ids[-1]))
+    @Slot(list)
+    def _collect_plan_ids(self, plan_ids: list[UUID]):
+        self._created_plan_ids = plan_ids
+        self.plans_save_progress_bar.close()
+        self.accept()
 
     def get_saved_plan_period_names(self) -> set[str]:
         return set(db_services.Plan.get_all_from__team(self.team_id, True, True).keys())

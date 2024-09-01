@@ -16,6 +16,7 @@ from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.custom_widgets import side_menu
+from gui.custom_widgets.progress_bars import DlgProgressInfinite
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
@@ -54,19 +55,6 @@ class CheckPlanThread(QThread):
         # Call the solver function here
         success, problems = solver_main.test_plan(self.plan_id)
         self.finished.emit(success, problems)  # Emit the finished signal when the solver completes
-
-
-class DlgProgress(QProgressDialog):
-    def __init__(self, parent: QWidget, window_title: str, label_text: str, cancel_button_text: str):
-        super().__init__(label_text, cancel_button_text, 0, 0, parent)
-        self.setWindowTitle(window_title)
-        self.setWindowModality(Qt.WindowModality.WindowModal)
-        self.canceled.connect(self.cancel_solving)
-        # self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-
-    @Slot()
-    def cancel_solving(self):
-        signal_handling.handler_solver.cancel_solving()
 
 
 class DlgEditAppointment(QDialog):
@@ -312,7 +300,7 @@ class AppointmentField(QWidget):
                 signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
-        self.progress_bar = DlgProgress(self, 'Überprüfung',
+        self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
                                         'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
         self.progress_bar.show()
 
@@ -436,7 +424,7 @@ class FrmTabPlan(QWidget):
         self.permanent_plan_check = checked
 
     def _check_plan(self):
-        self.progress_bar = DlgProgress(self, 'Überprüfung',
+        self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
                                         'Plan wird auf Fehler getestet.', 'Abbruch')
         self.progress_bar.show()
 

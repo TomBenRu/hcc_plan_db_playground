@@ -71,11 +71,14 @@ class DlgProgress(QProgressDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.label_text = label_text
 
+        self.curr_progress = -1
+
         self.canceled.connect(self.cancel_solving)
 
     @Slot(int, str)
-    def update_progress(self, progress: int, comment: str):
-        self.setValue(progress)
+    def update_progress(self, comment: str):
+        self.curr_progress += 1
+        self.setValue(self.curr_progress)
         self.setLabelText(f'{self.label_text}\n{comment}')
 
     @Slot()
@@ -147,7 +150,7 @@ class DlgCalculate(QDialog):
             return
 
         progress_dialog = DlgProgress(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
-                                      0, self.spin_num_plans.value() + self.num_actor_plan_periods + 2, 'Abbrechen')
+                                      0, self.spin_num_plans.value() + self.num_actor_plan_periods + 3, 'Abbrechen')
         progress_dialog.show()
 
         # Create the solver thread

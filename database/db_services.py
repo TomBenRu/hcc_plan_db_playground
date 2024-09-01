@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Optional, Callable
 from uuid import UUID
 
-from pony.orm import db_session, commit, select
+from pony.orm import db_session, commit, select, desc
 
 from . import schemas, schemas_plan_api
 from .authentication import hash_psw
@@ -2036,10 +2036,29 @@ class Plan:
 
     @classmethod
     @db_session
-    def get_all_from__team(cls, team_id: UUID) -> list[schemas.PlanShow]:
-        plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id)
+    def get_all_from__team(cls, team_id: UUID, minimal: bool = False) -> list[schemas.PlanShow] | dict[str, UUID]:
+        """
+        Wenn minimal == True:
+        Lediglich ein Dictionary mit plan.name und plan.id wird zurückgegeben.
+        Zum Löschen markierte Pläne werden ausgeschlossen.
+        Sortierung: (plan.start, plan.name), reversed.
+        Wenn minimal == False:
+        Eine Liste aller Pläne als schemas.PlanShow wird zurückgegeben.
+        """
+        if not minimal:
+            plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id)
+            return [schemas.PlanShow.model_validate(p) for p in plans_db]
+        else:
+            plans_db = (models.Plan
+                        .select(lambda x: x.plan_period.team.id == team_id and not x.prep_delete)
+                        .sort_by(lambda p: (p.plan_period.start, p.name)))
+            return {p.name: p.id for p in plans_db}
 
-        return [schemas.PlanShow.model_validate(p) for p in plans_db]
+    @classmethod
+    @db_session
+    def get_prep_deleted_from__team(cls, team_id: UUID) -> list[UUID]:
+        plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id and x.prep_delete)
+        return [p.id for p in plans_db]
 
     @classmethod
     @db_session

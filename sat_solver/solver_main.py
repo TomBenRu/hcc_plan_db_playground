@@ -1384,8 +1384,8 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
           time_calc_plan: int, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]] | None,
                                                                   dict[tuple[datetime.date, str, UUID], int] | None]:
-    step = 0
-    signal_handling.handler_solver.progress(step, 'Vorberechnungen...')
+
+    signal_handling.handler_solver.progress('Vorberechnungen...')
     global entities
     entities = Entities()
 
@@ -1414,24 +1414,23 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                    assigned_shifts,
                                                                    time_calc_fair_distribution,
                                                                    log_search_process)
-    step += 1
+
     while True:
         try:
-            signal_handling.handler_solver.progress(step, 'Bestimmung gerechter Einsätze...')
+            signal_handling.handler_solver.progress('Bestimmung gerechter Einsätze...')
             next(get_max_shifts_per_app)
-            step += 1
         except StopIteration as e:
             success = e.value
             break
 
     if not success:
         return None, None
-    step += 1
+
     time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
 
     plan_datas = []
     for n in range(1, num_plans + 1):
-        signal_handling.handler_solver.progress(step, f'Pläne werden berechnet. ({n})')
+        signal_handling.handler_solver.progress(f'Pläne werden berechnet. ({n})')
         (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
          sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res, fixed_cast_conflicts,
          sum_cast_rules, appointments,
@@ -1442,8 +1441,8 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
         if not success:
             return None, None
         plan_datas.append(appointments)
-        step += 1
-    signal_handling.handler_solver.progress(step, 'Alle Pläne wurden berechnet.')
+
+    signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
     return plan_datas, fixed_cast_conflicts
 
 

@@ -221,11 +221,11 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
             return
         plans = {
-            p.name: p.id for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
-                                         key=lambda x: (x.plan_period.start, x.name), reverse=True)
-            if not p.prep_delete
-               and p.id not in {tab.plan.id for tab in [self.tabs_plans.widget(i)
-                                                        for i in range(self.tabs_plans.count())]}
+            name: p_id
+            for name, p_id in db_services.Plan.get_all_from__team(self.curr_team.id, True).items()
+            if p_id not in {
+                tab.plan.id for tab in [self.tabs_plans.widget(i) for i in range(self.tabs_plans.count())]
+            }
         }
         if not plans:
             QMessageBox.critical(self, 'Plan öffnen',
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
 
         # Zeige den Dialog an, um einen Plan auszuwählen
         chosen_plan_name, ok = QInputDialog.getItem(self, "Plan auswählen", "Wähle einen Plan aus:",
-                                                    list(plans), editable=False)
+                                                    reversed(list(plans)), editable=False)
         plan_id = plans[chosen_plan_name] if ok else None
 
         if ok:
@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
             self.controller.execute(plan_commands.Delete(widget.plan.id))
 
     def plans_of_team_delete_prep_deletes(self):
-        num_plans_to_delete = len([p for p in db_services.Plan.get_all_from__team(self.curr_team.id) if p.prep_delete])
+        num_plans_to_delete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))
         if not num_plans_to_delete:
             QMessageBox.information(self, 'Pläne löschen',
                                     f'Es gibt keine Pläne des Teams "{self.curr_team.name}, '
@@ -560,6 +560,7 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.Yes:
                 for plan_id in dlg.get_created_plan_ids():
                     self.open_plan_tab(plan_id)
+        signal_handling.handler_solver.progress('Erstellung der Pläne abgeschlossen.')
 
     def open_plan_tab(self, plan_id: UUID):
         try:

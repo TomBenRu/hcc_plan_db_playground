@@ -2036,7 +2036,8 @@ class Plan:
 
     @classmethod
     @db_session
-    def get_all_from__team(cls, team_id: UUID, minimal: bool = False) -> list[schemas.PlanShow] | dict[str, UUID]:
+    def get_all_from__team(cls, team_id: UUID,
+                           minimal: bool = False, inclusive_prep_deleted=False) -> list[schemas.PlanShow] | dict[str, UUID]:
         """
         Wenn minimal == True:
         Lediglich ein Dictionary mit plan.name und plan.id wird zurückgegeben.
@@ -2049,9 +2050,14 @@ class Plan:
             plans_db = models.Plan.select(lambda x: x.plan_period.team.id == team_id)
             return [schemas.PlanShow.model_validate(p) for p in plans_db]
         else:
-            plans_db = (models.Plan
-                        .select(lambda x: x.plan_period.team.id == team_id and not x.prep_delete)
-                        .sort_by(lambda p: (p.plan_period.start, p.name)))
+            if not inclusive_prep_deleted:
+                plans_db = (models.Plan
+                            .select(lambda x: x.plan_period.team.id == team_id and not x.prep_delete)
+                            .sort_by(lambda p: (p.plan_period.start, p.name)))
+            else:
+                plans_db = (models.Plan
+                            .select(lambda x: x.plan_period.team.id == team_id)
+                            .sort_by(lambda p: (p.plan_period.start, p.name)))
             return {p.name: p.id for p in plans_db}
 
     @classmethod

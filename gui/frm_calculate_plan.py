@@ -233,13 +233,11 @@ class DlgCalculate(QDialog):
                 self.reject()
                 return
 
-        versions_to_use = random.sample(schedule_versions, k=nr_versions_to_use)
-
         saved_plan_names = self.get_saved_plan_period_names()
         plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
         new_first_plan_index = 1
 
-        for version in versions_to_use:
+        for version in schedule_versions[:nr_versions_to_use]:
             while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
                 new_first_plan_index += 1
             version: list[schemas.AppointmentCreate]
@@ -254,7 +252,7 @@ class DlgCalculate(QDialog):
                     appointment_commands.Create(appointment, self._created_plan_ids[-1]))
 
     def get_saved_plan_period_names(self) -> set[str]:
-        return {p.name for p in db_services.Plan.get_all_from__team(self.team_id)}
+        return set(db_services.Plan.get_all_from__team(self.team_id, True, True).keys())
 
     def get_created_plan_ids(self):
         return self._created_plan_ids

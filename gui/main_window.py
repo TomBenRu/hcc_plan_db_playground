@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
         widget: FrmTabPlan = self.tabs_plans.widget(index)
         confirmation = QMessageBox.question(self, 'Plan löschen',
                                             f'Möchten Sie den Plan {widget.plan.name} wirklich löschen?')
-        if confirmation == QMessageBox.Yes:
+        if confirmation == QMessageBox.StandardButton.Yes:
             self.remove_plan(index)
             self.controller.execute(plan_commands.Delete(widget.plan.id))
 

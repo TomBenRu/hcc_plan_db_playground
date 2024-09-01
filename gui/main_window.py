@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
             return
-        plans = {p.name: p for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
+        plans = {p.name: p.id for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
                                            key=lambda x: (x.plan_period.start, x.name), reverse=True)
                  if not p.prep_delete
                  and p.id not in {tab.plan.id
@@ -233,10 +233,10 @@ class MainWindow(QMainWindow):
         # Zeige den Dialog an, um einen Plan auszuwählen
         chosen_plan_name, ok = QInputDialog.getItem(self, "Plan auswählen", "Wähle einen Plan aus:",
                                                     list(plans), editable=False)
-        plan = plans[chosen_plan_name] if ok else None
+        plan_id = plans[chosen_plan_name] if ok else None
 
         if ok:
-            self.open_plan_tab(plan.id)
+            self.open_plan_tab(plan_id)
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
         context_menu = QMenu()

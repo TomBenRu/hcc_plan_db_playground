@@ -220,11 +220,13 @@ class MainWindow(QMainWindow):
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
             return
-        plans = {p.name: p.id for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
-                                           key=lambda x: (x.plan_period.start, x.name), reverse=True)
-                 if not p.prep_delete
-                 and p.id not in {tab.plan.id
-                                  for tab in [self.tabs_plans.widget(i)for i in range(self.tabs_plans.count())]}}
+        plans = {
+            p.name: p.id for p in sorted(db_services.Plan.get_all_from__team(self.curr_team.id),
+                                         key=lambda x: (x.plan_period.start, x.name), reverse=True)
+            if not p.prep_delete
+               and p.id not in {tab.plan.id for tab in [self.tabs_plans.widget(i)
+                                                        for i in range(self.tabs_plans.count())]}
+        }
         if not plans:
             QMessageBox.critical(self, 'Plan öffnen',
                                  f'Es sind keine weiteren Pläne des Teams {self.curr_team.name} vorhanden. ')

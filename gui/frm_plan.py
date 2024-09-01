@@ -4,7 +4,7 @@ import pprint
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot
+from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot, QTimer
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
@@ -458,9 +458,11 @@ class FrmTabPlan(QWidget):
     def _undo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()
         if command is None:
+            self._undo_redo_no_mor_action(self.bt_undo)
             return
         appointment = command.appointment
         appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+        self._emphasize_undo_redo_appointment_field(appointment_field)
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.undo()
@@ -469,13 +471,37 @@ class FrmTabPlan(QWidget):
     def _redo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_redo_command()
         if command is None:
+            self._undo_redo_no_mor_action(self.bt_redo)
             return
         appointment = command.updated_appointment
         appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+        self._emphasize_undo_redo_appointment_field(appointment_field)
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.redo()
         self.reload_plan()
+
+    def _emphasize_undo_redo_appointment_field(self, appointment_field: AppointmentField):
+        def reset_field(style_sheet: str):
+            appointment_field.setStyleSheet(style_sheet)
+
+        style_sheet = appointment_field.styleSheet()
+        appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
+        QTimer.singleShot(1500, lambda: reset_field(style_sheet))
+
+    def _undo_redo_no_mor_action(self, button: QPushButton):
+        def reset_button(text: str, style_sheet: str):
+            # Setze den Button-Text und die Farbe zurück
+            button.setText(text)
+            button.setStyleSheet(style_sheet)
+
+        text = button.text()
+        style_sheet = button.styleSheet()
+        # Ändere den Button-Text und die Farbe
+        button.setText("Keine verbleibende Aktion")
+        button.setStyleSheet("color: red")
+        # Timer für 1 Sekunde starten
+        QTimer.singleShot(1000, lambda: reset_button(text, style_sheet))
 
     def reload_plan(self):
         self.plan = db_services.Plan.get(self.plan.id)

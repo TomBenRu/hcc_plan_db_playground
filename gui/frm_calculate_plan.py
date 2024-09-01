@@ -220,7 +220,6 @@ class DlgCalculate(QDialog):
     @Slot(object, object)
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
                         fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None):
-        self.progress_dialog_solver.close()
         if schedule_versions is None and fixed_cast_conflicts is None:
             QMessageBox.critical(self, 'Fehler',
                                  'Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\n'

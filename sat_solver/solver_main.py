@@ -1487,4 +1487,5 @@ def solver_quit():
 #  generate_adjusted_requested_assignments
 # todo: Möglichkeit implementieren um die Anzahl der Einsätze eines Mitarbeiters an einer bestimmten Location zu
 #  steuern. Einerseits die maximalen gewünschten Einsätze, alternativ die Anzahl der geforderten Einsätze.
-# todo: Berechnung der gerechten Anzahl der zugewiesenen Einsätze ist noch mangelhaft. Verbessern.
+# todo: Neben der Reduktion von shift_vars können die Berechnungen vermutlich beschleunigt werden, indem das aktuelle
+#  model weiterverwendet wird und für nachfolgende Teilberechnungen Constraints entfernt bzw. hinzugefügt werden.

@@ -1190,15 +1190,17 @@ def call_solver_to_get_max_shifts_per_app(
     berechnet und requested_assignments der entsprechenden Instanzen von ActorPlanPeriodShow in
     entities.actor_plan_periods mit diesen gerechten Einsätzen überschrieben.
     """
-    model = cp_model.CpModel()
-    create_vars(model, event_group_tree, avail_day_group_tree)
-    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-     constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
 
     max_shifts_of_apps = {}
     for app_id in entities.actor_plan_periods.keys():
+
+        model = cp_model.CpModel()
+        create_vars(model, event_group_tree, avail_day_group_tree)
+        (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
+         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
+         constraints_location_prefs, constraints_partner_loc_prefs,
+         constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+
         max_shifts_of_app = create_constraint_max_shift_of_app(model, app_id)
 
         define_objective__max_shift_of_app(

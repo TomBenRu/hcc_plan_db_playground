@@ -573,6 +573,7 @@ class MainWindow(QMainWindow):
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
         self.tabs_plans.addTab(new_widget, plan.name)
         self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')
+        self.tabs_plans.setCurrentIndex(self.tabs_plans.indexOf(new_widget))
 
     def plan_infos(self):
         ...

@@ -1183,7 +1183,13 @@ def call_solver_with_unadjusted_requested_assignments(
 def call_solver_to_get_max_shifts_per_app(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
         sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
-        assigned_shifts: int, max_search_time: int, log_search_process: bool,) -> Generator[bool, None, bool]:
+        assigned_shifts: int, max_search_time: int, log_search_process: bool) -> Generator[bool, None, bool]:
+    """
+    Berechnet für jeden Mitarbeiter die maximal mögliche Anzahl von Einsätzen.
+    Anhand dieser Werte wird über die Funktion generate_adjusted_requested_assignments() eine gerechte Verteilung
+    berechnet und requested_assignments der entsprechenden Instanzen von ActorPlanPeriodShow in
+    entities.actor_plan_periods mit diesen gerechten Einsätzen überschrieben.
+    """
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
@@ -1219,9 +1225,13 @@ def call_solver_to_get_max_shifts_per_app(
         else:
             return False
 
+    print(f'{sum(max_shifts_of_apps.values())=}')
+
     print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
+
     generate_adjusted_requested_assignments(assigned_shifts, max_shifts_of_apps)
+
     print('------------------------ Adjusted Assignments ----------------------------------')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
     print(
@@ -1487,5 +1497,3 @@ def solver_quit():
 #  generate_adjusted_requested_assignments
 # todo: Möglichkeit implementieren um die Anzahl der Einsätze eines Mitarbeiters an einer bestimmten Location zu
 #  steuern. Einerseits die maximalen gewünschten Einsätze, alternativ die Anzahl der geforderten Einsätze.
-# todo: Neben der Reduktion von shift_vars können die Berechnungen vermutlich beschleunigt werden, indem das aktuelle
-#  model weiterverwendet wird und für nachfolgende Teilberechnungen Constraints entfernt bzw. hinzugefügt werden.

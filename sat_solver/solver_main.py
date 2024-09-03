@@ -11,6 +11,7 @@ from uuid import UUID
 
 import anytree
 from PySide6.QtCore import QObject
+from line_profiler.line_profiler import LineProfiler
 from line_profiler_pycharm import profile
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
@@ -378,6 +379,66 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
         model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
 
 
+def add_constraints_weights_in_avail_day_groups_new(model: cp_model.CpModel) -> list[IntVar]:
+    multiplier_constraints = curr_config_handler.get_solver_config().constraints_multipliers.sliders_weights_avail_day_groups
+    multiplier_level = curr_config_handler.get_solver_config().constraints_multipliers.sliders_levels_weights_av_day_groups
+
+    # Vorberechnung
+    shifts_exclusive_cache = {
+        adg_id: sum(val for (adg, evg), val in entities.shifts_exclusive.items() if adg == adg_id)
+        for adg_id in entities.avail_day_groups_with_avail_day
+    }
+
+    event_data = {
+        evg_id: (event.event.date, event.event.time_of_day.time_of_day_enum.time_index)
+        for evg_id, event in entities.event_groups_with_event.items()
+    }
+
+    avail_day_data = {
+        adg_id: (ad.date, ad.time_of_day.time_of_day_enum.time_index, ad.actor_plan_period.person.f_name)
+        for adg_id, ad in
+        ((adg.avail_day_group_id, adg.avail_day) for adg in entities.avail_day_groups_with_avail_day.values())
+    }
+
+    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, cumulative_adjusted_weight: int = 0) -> list[
+        IntVar]:
+        weight_vars = []
+        for c in group.children:
+            if c.avail_day:
+                if not shifts_exclusive_cache.get(c.avail_day_group_id, 0):
+                    continue
+
+                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[group.depth]
+                ad_date, ad_time, person_name = avail_day_data[c.avail_day_group_id]
+
+                weight_var = model.NewIntVar(-1000000, 100000000,
+                                             f'Depth {group.depth}, AvailDay: {ad_date:%d.%m.%y}, '
+                                             f'{c.avail_day.time_of_day.name}, {person_name}')
+                weight_vars.append(weight_var)
+
+                shift_with_this_avd = model.NewBoolVar('')
+                model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
+                                                     if avg_id == c.avail_day_group_id))
+                model.Add(weight_var == ((cumulative_adjusted_weight + adjusted_weight) * shift_with_this_avd))
+            else:
+                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[max_depth - 1]
+                weight_vars.extend(
+                    calculate_weight_vars_of_children_recursive(c, cumulative_adjusted_weight + adjusted_weight))
+        return weight_vars
+
+    root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
+    max_depth = (max(node.depth for node in entities.avail_day_groups.values())
+                 - (1 if root_group.group_is_actor_plan_period_master_group else 0))
+
+    if root_group.group_is_actor_plan_period_master_group:
+        all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
+    else:
+        all_weight_vars = sum((calculate_weight_vars_of_children_recursive(app_master_group)
+                               for app_master_group in root_group.children), [])
+
+    return all_weight_vars
+
+
 def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
     """
         Fügt Constraints hinzu, um sicherzustellen, dass Child-Avail-Day-Groups mit höherer Gewichtung bevorzugt werden.
@@ -396,6 +457,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                               .constraints_multipliers.sliders_weights_avail_day_groups)
     multiplier_level = (curr_config_handler.get_solver_config()
                         .constraints_multipliers.sliders_levels_weights_av_day_groups)
+    shift_vars_of_adg_ids: defaultdict[UUID, list] = defaultdict(list)
 
     def calculate_weight_vars_of_children_recursive(group: AvailDayGroup,
                                                     cumulative_adjusted_weight: int = 0) -> list[IntVar]:
@@ -420,8 +482,9 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                 )
                 # stelle fest, ob ein zugehöriges Event stattfindet:
                 shift_with_this_avd = model.NewBoolVar('')
-                model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
-                                                     if avg_id == c.avail_day_group_id))
+                # model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
+                #                                      if avg_id == c.avail_day_group_id))
+                model.Add(shift_with_this_avd == sum(shift_vars_of_adg_ids[c.avail_day_group_id]))
                 model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight) * shift_with_this_avd))
             else:
                 adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[max_depth - 1]
@@ -433,6 +496,9 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
     root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
     max_depth = (max(node.depth for node in entities.avail_day_groups.values())
                  - (1 if root_group.group_is_actor_plan_period_master_group else 0))
+
+    for (adg_id, _), bool_var in entities.shift_vars.items():
+        shift_vars_of_adg_ids[adg_id].append(bool_var)
 
     if root_group.group_is_actor_plan_period_master_group:
         all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
@@ -714,6 +780,7 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     return constraints_cast_rule
 
 
+@profile
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
     # todo: funktioniert bislang nur für CastGroups mit Event
     
@@ -762,9 +829,9 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
                                   .replace('in team', ''))
 
         if isinstance(fixed_cast_as_list, UUID):
-            text_fixed_cast_var = db_services.Person.get(fixed_cast_as_list).f_name
+            text_fixed_cast_var = db_services.Person.get_full_name_of_person(fixed_cast_as_list)
         else:
-            text_fixed_cast_var = ' '.join([db_services.Person.get(p_id).f_name if isinstance(p_id, UUID)
+            text_fixed_cast_var = ' '.join([db_services.Person.get_full_name_of_person(p_id) if isinstance(p_id, UUID)
                                             else 'und' if p_id == 'and' else 'oder' for p_id in fixed_cast_as_list])
         text_fixed_cast_var = (f'{text_fixed_cast_var}\n'
                                f'    am: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'

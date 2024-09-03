@@ -269,6 +269,12 @@ class Person:
 
     @classmethod
     @db_session
+    def get_full_name_of_person(cls, person_id: UUID) -> str:
+        person_db = models.Person.get(id=person_id)
+        return f'{person_db.f_name} {person_db.l_name}'
+
+    @classmethod
+    @db_session
     def get_all_from__project(cls, project_id: UUID) -> list[schemas.PersonShow]:
         project_in_db = models.Project.get_for_update(id=project_id)
         persons_in_db = models.Person.select(lambda p: p.project == project_in_db and not p.prep_delete)

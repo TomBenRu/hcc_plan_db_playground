@@ -449,7 +449,6 @@ class ButtonActorPartnerLocationPref(QPushButton):
     #         self.reload_actor_plan_period)
     #     super().deleteLater()
 
-    @profile
     def check_pref_of_day__eq__pref_of_actor_pp(self):
         partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
         locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)

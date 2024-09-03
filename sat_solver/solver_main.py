@@ -188,6 +188,7 @@ class Entities:
     cast_groups: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
     cast_groups_with_event: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
     shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
+    shifts_exclusive: dict = dataclasses.field(default_factory=dict)
 
 
 entities: Entities | None = None
@@ -237,38 +238,40 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
         if avail_day_group.children or avail_day_group.avail_day
     }
 
-    entities.shift_vars = {}
     for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
         for event_group_id, event_group in entities.event_groups_with_event.items():
             location_of_work = event_group.event.location_plan_period.location_of_work
             #######################################################################################################
             # todo: später implementieren, um die shift_vars zu minimieren und die Effektivität zu verbessern
-            # # shift_vars werden nicht gesetzt, wenn das zur location_of_work zugehörige actor_location_pref
-            # # des avail_day einen Score von 0 besitzt:
-            # if found_alf := next((alf for alf in adg.avail_day.actor_location_prefs_defaults
-            #                      if alf.location_of_work.id == location_of_work.id), None):
-            #     if found_alf.score == 0:
-            #         continue
-            # # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
-            # if not (adg.avail_day.date == event_group.event.date
-            #         and adg.avail_day.time_of_day.start <= event_group.event.time_of_day.start
-            #         and adg.avail_day.time_of_day.end >= event_group.event.time_of_day.end):
-            #     continue
+            # shift_vars werden nicht gesetzt, wenn das zur location_of_work zugehörige actor_location_pref
+            # des avail_day einen Score von 0 besitzt:
+            entities.shifts_exclusive[adg_id, event_group_id] = 1
+            if found_alf := next((alf for alf in adg.avail_day.actor_location_prefs_defaults
+                                 if alf.location_of_work.id == location_of_work.id), None):
+                if found_alf.score == 0:
+                    entities.shifts_exclusive[adg_id, event_group_id] = 0
+            # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
+            if (
+                adg.avail_day.date != event_group.event.date
+                or adg.avail_day.time_of_day.start > event_group.event.time_of_day.start
+                or adg.avail_day.time_of_day.end < event_group.event.time_of_day.end
+            ):
+                entities.shifts_exclusive[adg_id, event_group_id] = 0
             #########################################################################################################
             entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(f'shift ({adg_id}, {event_group_id})')
-    print(f'{len(entities.shift_vars)=}')
+    # print(f'{len(entities.shift_vars)=}')
+    # print(f'{sum(entities.shifts_exclusive.values())=}')
 
 
 def add_constraints_employee_availability(model: cp_model.CpModel):
-    # for adg in entities.avail_day_groups_with_avail_day.values():
-    #     for event_group in entities.event_groups_with_event.values():
-    #         if (event_group.event.date != adg.avail_day.date
-    #                 or (event_group.event.time_of_day.start < adg.avail_day.time_of_day.start)
-    #                 or (event_group.event.time_of_day.end > adg.avail_day.time_of_day.end)):
-    #             model.Add(entities.shift_vars[(adg.avail_day_group_id, event_group.event_group_id)] == 0)
-
     # todo: shift_vars können schon bei der Variablenerstellung ausgeschlossen werden, falls die unten angegebene
     #  Bedingung nicht erfüllt ist.
+
+    for key, val in entities.shifts_exclusive.items():
+        if not val:
+            model.Add(entities.shift_vars[key] == 0)
+    return
+
     for (adg_id, eg_id), var in entities.shift_vars.items():
         avail_day_group = entities.avail_day_groups[adg_id]
         event_group = entities.event_groups[eg_id]
@@ -399,6 +402,15 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         weight_vars: list[IntVar] = []
         for c in group.children:
             if c.avail_day:
+                # Es wird kein InVar erstellt, wenn kein Einsatz dieses AvalDays möglich ist:
+                if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
+                           if adg_id == c.avail_day_group_id
+                           and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
+                              == entities.event_groups_with_event[evg_id].event.date
+                              and entities.avail_day_groups_with_avail_day[adg_id].avail_day.time_of_day.time_of_day_enum.time_index
+                              == entities.event_groups_with_event[evg_id].event.time_of_day.time_of_day_enum.time_index):
+                    continue
+
                 adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[group.depth]
                 weight_vars.append(
                     model.NewIntVar(-1000000, 100000000,
@@ -406,7 +418,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                                     f'{c.avail_day.time_of_day.name}, '
                                     f'{c.avail_day.actor_plan_period.person.f_name}')
                 )
-                # stelle fest, ob der zugehörige Event stattfindet:
+                # stelle fest, ob ein zugehöriges Event stattfindet:
                 shift_with_this_avd = model.NewBoolVar('')
                 model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
                                                      if avg_id == c.avail_day_group_id))
@@ -434,35 +446,48 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
 def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
     # todo: Schleifen können vermutlich vereinfacht werden, indem zuerst über entities.shift_vars iteriert wird.
     loc_pref_vars = []
+
+    multiplier_slider = curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs
+
+    event_data = {
+        (
+            event_group.event.date,
+            event_group.event.time_of_day.time_of_day_enum.time_index,
+            event_group.event.location_plan_period.location_of_work.id
+        ): (eg_id, event_group)
+        for eg_id, event_group in entities.event_groups_with_event.items()
+    }
+
     for avail_day_group_id, avail_day_group in entities.avail_day_groups_with_avail_day.items():
         avail_day = avail_day_group.avail_day
         for loc_pref in [alp for alp in avail_day_group.avail_day.actor_location_prefs_defaults if not alp.prep_delete]:
-            for (adg_id, eg_id), shift_var in entities.shift_vars.items():
-                event = entities.event_groups[eg_id].event
-                event_time_of_day_index = event.time_of_day.time_of_day_enum.time_index
-                event_location_id = event.location_plan_period.location_of_work.id
-                if (adg_id == avail_day_group_id and event.date == avail_day.date
-                        and event_time_of_day_index == avail_day.time_of_day.time_of_day_enum.time_index
-                        and event_location_id == loc_pref.location_of_work.id):
+            eg_id__event_group = event_data.get(
+                (avail_day.date, avail_day.time_of_day.time_of_day_enum.time_index, loc_pref.location_of_work.id))
+            if not eg_id__event_group:
+                continue
+            eg_id, event_group = eg_id__event_group
+            shift_var = entities.shift_vars[(avail_day_group_id, eg_id)]
+            event = event_group.event
 
-                    if loc_pref.score == 0:
-                        model.add(shift_var == 0)
-                        continue
-                    loc_pref_vars.append(
-                        model.NewIntVar(
-                            curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs[2],
-                            curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs[0],
-                            f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
-                            f'{event.location_plan_period.location_of_work.name}: '
-                            f'{avail_day.actor_plan_period.person.f_name}'))
-                    # Intermediate variable that allows the calculation of the Location-Pref variable based on the
-                    # Shift variable and Event-Group variable:
-                    all_active_var = model.NewBoolVar('')
+            if loc_pref.score == 0:
+                model.add(shift_var == 0)
+                continue
+            loc_pref_vars.append(
+                model.NewIntVar(
+                    multiplier_slider[2],
+                    multiplier_slider[0.5],
+                    f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
+                    f'{event.location_plan_period.location_of_work.name}: '
+                    f'{avail_day.actor_plan_period.person.f_name}'))
 
-                    model.AddMultiplicationEquality(
-                        all_active_var, [shift_var, entities.event_group_vars[eg_id]])
-                    model.Add(loc_pref_vars[-1] == all_active_var * curr_config_handler.get_solver_config()
-                              .constraints_multipliers.sliders_location_prefs[loc_pref.score])
+            model.AddMultiplicationEquality(
+                loc_pref_vars[-1],
+                [
+                    shift_var,
+                    entities.event_group_vars[eg_id],
+                    multiplier_slider[loc_pref.score]
+                ]
+            )
 
     return loc_pref_vars
 
@@ -476,10 +501,8 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
         if event_group.event.cast_group.nr_actors < 2:
             continue
         # Get all AvailDayGroups with the same date and time of day
-        avail_day_groups = (adg for adg in entities.avail_day_groups_with_avail_day.values()
-                            if adg.avail_day.date == event_group.event.date
-                            and adg.avail_day.time_of_day.time_of_day_enum.time_index
-                            == event_group.event.time_of_day.time_of_day_enum.time_index)
+        avail_day_groups = (adg for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                            if entities.shifts_exclusive[adg_id, eg_id])
         # Get all combinations of possible AvailDayGroups for this event
         duo_combs = itertools.combinations(avail_day_groups, 2)
         for combo in duo_combs:
@@ -543,6 +566,26 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     #       wird.
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
 
+    def different_cast_new(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
+                       strict_rule_pref: int) -> list[IntVar]:
+        broken_rules_vars: list[IntVar] = []
+
+        all_employees_of_groups = sum()
+
+        all_shifts = sum(var for (adg_id, eg_id), var in entities.shift_vars.items()
+                         if eg_id in {event_group_1.id, event_group_2.id}
+                         and entities.shifts_exclusive[(adg_id, eg_id)])
+
+        if strict_rule_pref == 2:
+            model.Add(all_shifts <= len(entities.actor_plan_periods))
+        elif strict_rule_pref == 1:
+            broken_rules_var = model.NewIntVar(0, len(entities.actor_plan_periods),
+                                               f'{event_group_1.event.date:%d.%m.} + {event_group_2.event.date:%d.%m.}')
+            model.Add(broken_rules_var == all_shifts - len(entities.actor_plan_periods))
+            broken_rules_vars.append(broken_rules_var)
+
+        return broken_rules_vars
+
     def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
                        strict_rule_pref: int) -> list[IntVar]:
 
@@ -553,7 +596,8 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
                           if eg_id in {event_group_1.id, event_group_2.id}
                           and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
                           and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
-                          in {event_group_1.event.date, event_group_2.event.date}}
+                          in {event_group_1.event.date, event_group_2.event.date}
+                          and entities.shifts_exclusive[(adg_id, eg_id)]}
 
             if strict_rule_pref == 2:
                 (model.Add(sum(shift_vars.values()) <= 1))
@@ -582,10 +626,12 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
         for i, app_id in enumerate(entities.actor_plan_periods):
             shift_vars_1 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                             if eg_id == event_group_1_id
-                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                            and entities.shifts_exclusive[(adg_id, eg_id)]}
             shift_vars_2 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
                             if eg_id == event_group_2_id
-                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id}
+                            and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                            and entities.shifts_exclusive[(adg_id, eg_id)]}
             model.Add(applied_shifts_1[i] == sum(shift_vars_1.values()))
             model.Add(applied_shifts_2[i] == sum(shift_vars_2.values()))
 
@@ -803,9 +849,12 @@ def add_constraints_different_casts_on_shifts_with_different_locations_on_same_d
     dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[tuple[tuple[UUID, UUID], IntVar]]]]] = (
         defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
     for (adg_id, eg_id), shift_var in entities.shift_vars.items():
-        if ((date := entities.event_groups_with_event[eg_id].event.date)
-                != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date):
+        if not entities.shifts_exclusive[(adg_id, eg_id)]:
             continue
+        date = entities.event_groups_with_event[eg_id].event.date
+        # if ((date := entities.event_groups_with_event[eg_id].event.date)
+        #         != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date):
+        #     continue
         actor_plan_period_id = entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id
         location_id = entities.event_groups_with_event[eg_id].event.location_plan_period.location_of_work.id
         dict_date_shift_var[date][actor_plan_period_id][location_id].append(((adg_id, eg_id), shift_var))
@@ -905,6 +954,7 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     return max_shifts_of_app
 
 
+@profile
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar]]:

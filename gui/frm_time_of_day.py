@@ -5,9 +5,10 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem
+    QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QApplication
 
 from database import schemas, db_services
 from commands import command_base_classes

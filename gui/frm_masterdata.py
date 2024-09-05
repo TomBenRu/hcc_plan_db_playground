@@ -17,7 +17,8 @@ from database.special_schema_requests import get_curr_team_of_person_at_date, \
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team
 from commands import command_base_classes
-from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands
+from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
+    location_plan_period_commands, event_group_commands
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -485,7 +486,7 @@ class WidgetLocationsOfWork(QWidget):
     def edit_location(self):
         row = self.table_locations.currentRow()
         if row == -1:
-            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
+            QMessageBox.information(self, 'Bearbeiten', 'Sie müssen zuerst einen Eintrag auswählen.\n'
                                                      'Klicken Sie dafür in die entsprechende Zeile.')
             return
         location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
@@ -720,14 +721,20 @@ class FrmLocationModify(FrmLocationData):
         return db_services.Team.get_all_from__project(self.project_id)
 
     def change_team(self):
-        curr_team = get_curr_team_of_location_at_date(self.location_of_work)
-        curr_team_id = curr_team.id if curr_team else None
+        curr_team_assign = db_services.TeamLocationAssign.get_at__date(self.location_id, datetime.date.today())
+
+        curr_team_id = curr_team_assign.team.id if curr_team_assign else None
         new_team_id = self.cb_teams.currentData()
         dlg = frm_assign_to_team.DlgAssignDate(self, curr_team_id, new_team_id)
         if dlg.exec():
             start_date = dlg.start_date_new_team
             if new_team_id:
+                if not new_team_id and not curr_team_id:
+                    return
+                if (new_team_id == curr_team_id) and (start_date < curr_team_assign.end):
+                    return
                 command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
+                self.create_new_location_plan_periods(start_date, new_team_id, self.location_id)
             else:
                 command = location_of_work_commands.LeaveTeam(self.location_of_work.id, start_date)
             self.controller.execute(command)
@@ -737,3 +744,10 @@ class FrmLocationModify(FrmLocationData):
             self.cb_teams.blockSignals(True)
             self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
             self.cb_teams.blockSignals(False)
+
+    def create_new_location_plan_periods(self, start_date: datetime.date, team_id: UUID, location_id: UUID):
+        command = location_plan_period_commands.CreateLocationPlanPeriodsFromDate(start_date, location_id, team_id)
+        self.controller.execute(command)
+        for lpp in command.location_plan_periods:
+            command = event_group_commands.Create(loc_act_plan_period_id=lpp.id)
+            self.controller.execute(command)

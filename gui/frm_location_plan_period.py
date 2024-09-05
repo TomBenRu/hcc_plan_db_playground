@@ -612,7 +612,11 @@ class FrmLocationPlanPeriod(QWidget):
 
         # Tages-Config_Buttons:
         for col, d in enumerate(self.days, start=1):
-            disable_buttons = get_curr_assignment_of_location(location_of_work, d).team.id != self.location_plan_period.team.id
+            curr_assignment_of_location = get_curr_assignment_of_location(location_of_work, d)
+            if curr_assignment_of_location is None:
+                disable_buttons = True
+            else:
+                disable_buttons = curr_assignment_of_location.team.id != self.location_plan_period.team.id
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)

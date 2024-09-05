@@ -56,6 +56,10 @@ class Person(db.Entity):
 
     composite_key(f_name, l_name, project)
 
+    @property
+    def full_name(self):
+        return f'{self.f_name} {self.l_name}'
+
     def before_update(self):
         """Wenn sich der Wert von team_of_actor geändert hat, werden die aktuellen availables-Eiträge
         der Person gelöscht. die verbundenen avail_day-Einträge werden dann automatisch gelöscht."""
@@ -354,6 +358,10 @@ class LocationOfWork(db.Entity):
     combination_locations_possibles = Set('CombinationLocationsPossible')
 
     composite_key(project, name)
+
+    @property
+    def name_and_city(self):
+        return f'{self.name} {self.address.city}' if self.address.city else self.name
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()

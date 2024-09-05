@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import logging
+import time
 from functools import wraps
 from typing import Optional, Callable
 from uuid import UUID
@@ -289,6 +290,33 @@ class Person:
         return [schemas.PersonShow.model_validate(p) for p in persons_db]
 
     @classmethod
+    @db_session
+    def get_all_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict['str', UUID]:
+        """
+        gibt alle der Planperiode zugehörigen Mitarbeiter zurück.
+        Ausgabe: Dictionary Mitarbeitername: Mitarbeiter_id
+        """
+        persons_db = {app.person.full_name: app.person.id
+                      for app in models.PlanPeriod.get(id=plan_period_id).actor_plan_periods}
+        return persons_db
+
+    @classmethod
+    @db_session
+    def get_all_possible_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict['str', UUID]:
+        """
+        gibt in der Zeitspanne der Planperiode verfügbaren Mitarbeiter zurück, welche nicht zum Löschen markiert sind.
+        Ausgabe: Dictionary Mitarbeitername: Mitarbeiter_id
+        """
+        plan_period_db = models.PlanPeriod.get(id=plan_period_id)
+        start, end, team = plan_period_db.start, plan_period_db.end, plan_period_db.team
+        team_actor_assigns = (models.TeamActorAssign.select()
+                              .filter(lambda t: t.team == team)
+                              .filter(lambda t: (t.end > end) if t.end else True)
+                              .filter(lambda t: t.start < end))
+        print([(taa.person.full_name, taa.team.name, taa.start, taa.end) for taa in team_actor_assigns])
+        return {taa.person.full_name: taa.person.id for taa in team_actor_assigns}
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
         log_function_info(cls)
@@ -468,6 +496,33 @@ class LocationOfWork:
         project_in_db = models.Project[project_id]
         locations_in_db = models.LocationOfWork.select(lambda l: l.project == project_in_db and not l.prep_delete)
         return [schemas.LocationOfWorkShow.model_validate(loc) for loc in locations_in_db]
+
+    @classmethod
+    @db_session
+    def get_all_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict['str', UUID]:
+        """
+        gibt alle der Planperiode zugehörigen Locations zurück, welche nicht zum Löschen markiert sind.
+        Ausgabe: Dictionary Location-Name: Location_id
+        """
+        locations_db = {lpp.location_of_work.name: lpp.location_of_work.id
+                        for lpp in models.PlanPeriod.get(id=plan_period_id).location_plan_periods}
+        return locations_db
+
+    @classmethod
+    @db_session
+    def get_all_possible_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict['str', UUID]:
+        """
+        gibt in der Zeitspanne der Planperiode verfügbaren Mitarbeiter zurück, welche nicht zum Löschen markiert sind.
+        Ausgabe: Dictionary Mitarbeitername: Mitarbeiter_id
+        """
+        plan_period_db = models.PlanPeriod.get(id=plan_period_id)
+        start, end, team = plan_period_db.start, plan_period_db.end, plan_period_db.team
+        team_location_assigns = (models.TeamLocationAssign.select()
+                                 .filter(lambda t: t.team == team)
+                                 .filter(lambda t: (t.end > end) if t.end else True)
+                                 .filter(lambda t: t.start < end))
+        print([(tla.location_of_work.name, tla.location_of_work.address.city) for tla in team_location_assigns])
+        return {tla.location_of_work.name_and_city: tla.location_of_work.id for tla in team_location_assigns}
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
@@ -733,15 +788,23 @@ class TimeOfDay:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(cls, time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDayShow:
+    def create(cls, time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day.time_of_day_enum.id)
 
-        exclude = {'time_of_day_enum', 'project_standard'}  # if time_of_day.id else {'id', 'time_of_day_enum', 'project_standard'}
-        time_of_day_db = models.TimeOfDay(**time_of_day.model_dump(exclude=exclude),
-                                          project=project_db, time_of_day_enum=time_of_day_enum_db)
-        return schemas.TimeOfDayShow.model_validate(time_of_day_db)
+        time_of_day_db = models.TimeOfDay(name=time_of_day.name,
+                                          time_of_day_enum=time_of_day_enum_db,
+                                          project=project_db,
+                                          start=time_of_day.start,
+                                          end=time_of_day.end)
+        # PonyOrm hat offenbar Probleme erzeugte Entities mit Optional-Values gleich im Anschluss zu parsen.
+        # Daher dieser Umweg:
+        time_of_day_partial = time_of_day_db.to_dict(exclude=['prep_delete', 'project_standard', 'project_defaults'],
+                                                     related_objects=True)
+
+        return schemas.TimeOfDay(**time_of_day_partial, prep_delete=None, project_standard=None)
+
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
@@ -1011,12 +1074,23 @@ class LocationPlanPeriod:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(cls, plan_period_id: UUID, location_id: UUID) -> schemas.LocationPlanPeriodShow:
+    def create(cls, plan_period_id: UUID, location_id: UUID, location_plan_period_id: UUID = None) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
-        location_plan_period_db = models.LocationPlanPeriod(plan_period=plan_period_db, location_of_work=location_db)
+        if location_plan_period_id:
+            location_plan_period_db = models.LocationPlanPeriod(id=location_plan_period_id, plan_period=plan_period_db,
+                                                                location_of_work=location_db)
+        else:
+            location_plan_period_db = models.LocationPlanPeriod(plan_period=plan_period_db,
+                                                                location_of_work=location_db)
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cls, location_plan_period_id: UUID):
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        location_plan_period_db.delete()
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

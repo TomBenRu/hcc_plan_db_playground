@@ -1,17 +1,12 @@
 import collections
 import dataclasses
 import itertools
-import pprint
-import sys
 import time
 from collections import defaultdict
 import datetime
 from typing import Generator
 from uuid import UUID
 
-import anytree
-from PySide6.QtCore import QObject
-from line_profiler.line_profiler import LineProfiler
 from line_profiler_pycharm import profile
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
@@ -1021,7 +1016,6 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     return max_shifts_of_app
 
 
-@profile
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar]]:

@@ -1,7 +1,35 @@
+import datetime
 from uuid import UUID
 
-from database import db_services
+from database import db_services, schemas
 from commands.command_base_classes import Command
+
+
+class CreateLocationPlanPeriodsFromDate(Command):
+    def __init__(self, start_date: datetime.date, location_id: UUID, team_id: UUID):
+        self.start_date = start_date
+        self.location_id = location_id
+        self.team_id = team_id
+        self.location_plan_periods: list[schemas.LocationPlanPeriodShow] = []
+        self.master_event_groups = []
+
+    def get_plan_periods(self) -> list[schemas.PlanPeriodShow]:
+        return [pp for pp in db_services.PlanPeriod.get_all_from__team(self.team_id)
+                if pp.end > self.start_date]
+
+    def execute(self):
+        for pp in self.get_plan_periods():
+            if self.location_id in {lpp.location_of_work.id for lpp in pp.location_plan_periods}:
+                continue
+            self.location_plan_periods.append(db_services.LocationPlanPeriod.create(pp.id, self.location_id))
+
+    def undo(self):
+        for lpp in self.location_plan_periods:
+            db_services.LocationPlanPeriod.delete(lpp.id)
+
+    def redo(self):
+        for lpp in self.location_plan_periods:
+            db_services.LocationPlanPeriod.create(lpp.plan_period.id, lpp.location_of_work.id, lpp.id)
 
 
 class PutInTimeOfDay(Command):

@@ -3,6 +3,7 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
+from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands
@@ -88,16 +89,15 @@ class LocationPlanPeriodData:
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
+    @profile
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
-        QMessageBox.information(self.parent, 'Pläne', 'Die Reihenfolge der betroffenen Pläne wird zurückgesetzt.')
-        plans = [p for p in db_services.Plan.get_all_from__plan_period(self.location_plan_period.plan_period.id)
-                 if not p.prep_delete]
-        for plan in plans:
+        plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
+        for plan_id in plans.values():
             if mode == 'added':
-                self._create_new_empty_appointment_in_plan(plan.id, event)
-            self._reset_plan_location_columns(plan.id)
-            signal_handling.handler_plan_tabs.reload_plan_from_db(plan.id)
-            signal_handling.handler_plan_tabs.refresh_plan(plan.id)
+                self._create_new_empty_appointment_in_plan(plan_id, event)
+            self._reset_plan_location_columns(plan_id)
+            signal_handling.handler_plan_tabs.reload_plan_from_db(plan_id)
+            signal_handling.handler_plan_tabs.refresh_plan(plan_id)
 
     def _create_new_empty_appointment_in_plan(self, plan_id: UUID, event: schemas.Event):
         self.controller.execute(

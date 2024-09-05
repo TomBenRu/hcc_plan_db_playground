@@ -798,7 +798,7 @@ class TimeOfDay:
                                           project=project_db,
                                           start=time_of_day.start,
                                           end=time_of_day.end)
-        # PonyOrm hat offenbar Probleme erzeugte Entities mit Optional-Values gleich im Anschluss zu parsen.
+        # PonyOrm hat offenbar Probleme erzeugte Entities mit Optional-Values gleich im Anschluss zu validieren.
         # Daher dieser Umweg:
         time_of_day_partial = time_of_day_db.to_dict(exclude=['prep_delete', 'project_standard', 'project_defaults'],
                                                      related_objects=True)
@@ -2152,6 +2152,21 @@ class Plan:
         plans_db = models.Plan.select(lambda x: x.plan_period.id == plan_period_id)
 
         return [schemas.PlanShow.model_validate(p) for p in plans_db]
+
+    @classmethod
+    @db_session
+    def get_all_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict[str, UUID]:
+        plans_db = (models.Plan.select(lambda x: x.plan_period.id == plan_period_id)
+                    .filter(lambda p: p.plan_period.id == plan_period_id)
+                    .filter(lambda p: p.prep_delete is None))
+        return {p.name: p.id for p in plans_db}
+
+    @classmethod
+    @db_session
+    def get_location_columns(cls, plan_id: UUID):
+        location_columns = models.Plan.get_for_update(id=plan_id).location_columns
+        return location_columns
+
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

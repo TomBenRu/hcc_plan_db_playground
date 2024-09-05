@@ -195,6 +195,8 @@ class TablePersons(QTableWidget):
             sender.blockSignals(False)
             return
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
+        # fixme: schon vorhandene ActorPlanPeriods müssen noch berücksichtigt werden.
+        #  Siehe auch "CreateLocationPlanPeriodsFromDate(Command)".
         if team_id:
             person_commands.AssignToTeam(person_id, team_id, dlg.start_date_new_team).execute()
             next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())

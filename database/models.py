@@ -567,6 +567,7 @@ class Appointment(db.Entity):
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
     avail_days = Set(AvailDay)  # je nach Besetzung werden mehrere Inst. von AvailDay zugeordnet.
+    guests = Required(Json, default="[]")  # Es können die Namen von temporären Gastmitarbeitern eingesetzt werden.
     event = Required(Event)
     plan = Required('Plan')
 

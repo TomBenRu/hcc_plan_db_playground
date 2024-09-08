@@ -94,7 +94,14 @@ class LocationPlanPeriodData:
         plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
         for plan_id in plans.values():
             if mode == 'added':
+                QMessageBox.information(self.parent, 'Pläne',
+                                        'Durch das Einfügen des Termins in die bereits bestehenden Pläne muss die '
+                                        'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
                 self._create_new_empty_appointment_in_plan(plan_id, event)
+            else:
+                QMessageBox.information(self.parent, 'Pläne',
+                                        'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
+                                        'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
             self._reset_plan_location_columns(plan_id)
             signal_handling.handler_plan_tabs.reload_plan_from_db(plan_id)
             signal_handling.handler_plan_tabs.refresh_plan(plan_id)

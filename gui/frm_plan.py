@@ -74,7 +74,12 @@ class DlgEditAppointment(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
-        self.lb_explanation = QLabel('Hier können Sie die Besetzung ändern.')
+        self.lb_explanation = QLabel(f'Einsätze am:\n'
+                                     f'{self.appointment.event.date:%d.%m.%y}, '
+                                     f'{self.appointment.event.location_plan_period.location_of_work.name} - '
+                                     f'{self.appointment.event.location_plan_period.location_of_work.address.city}, '
+                                     f'{self.appointment.event.time_of_day.name}\n'
+                                     f'Hier können Sie die Besetzung ändern.')
         self.layout_head.addWidget(self.lb_explanation)
         self.group_employees = QGroupBox('Mitarbeiter')
         self.layout_body.addWidget(self.group_employees)

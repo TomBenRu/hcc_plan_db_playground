@@ -15,6 +15,7 @@ from ortools.sat.python.cp_model import IntVar
 from database import db_services, schemas
 from configuration.solver import curr_config_handler
 from gui.observer import signal_handling
+from gui.tools.helper_functions import generate_fixed_cast_clear_text
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -823,12 +824,8 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
                                   .replace('or', ',"or",')
                                   .replace('in team', ''))
 
-        if isinstance(fixed_cast_as_list, UUID):
-            text_fixed_cast_var = db_services.Person.get_full_name_of_person(fixed_cast_as_list)
-        else:
-            text_fixed_cast_var = ' '.join([db_services.Person.get_full_name_of_person(p_id) if isinstance(p_id, UUID)
-                                            else 'und' if p_id == 'and' else 'oder' for p_id in fixed_cast_as_list])
-        text_fixed_cast_var = (f'{text_fixed_cast_var}\n'
+        text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast)
+        text_fixed_cast_var = (f'{text_fixed_cast_persons}\n'
                                f'    am: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
                                f'    Ort: {cast_group.event.location_plan_period.location_of_work.name} '
                                f'{cast_group.event.location_plan_period.location_of_work.address.city}')

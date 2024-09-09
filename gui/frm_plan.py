@@ -153,12 +153,12 @@ class DlgEditAppointment(QDialog):
                 .currentData() == UUID('00000000000000000000000000000000')):
             dlg = DlgGuest(self)
             if dlg.exec():
-                if (idx := combo.findData(UUID('00000000000000000000000000000001'))) != -1:
-                    combo.setItemText(idx, dlg.le_guest.text())
-                    combo.setCurrentIndex(idx)
-                else:
+                if (idx := combo.findData(UUID('00000000000000000000000000000001'))) == -1:
                     combo.addItem(dlg.le_guest.text(), UUID('00000000000000000000000000000001'))
                     combo.setCurrentIndex(combo.findData(UUID('00000000000000000000000000000001')))
+                else:
+                    combo.setItemText(idx, dlg.le_guest.text())
+                    combo.setCurrentIndex(idx)
 
     def accept(self):
         self.new_avail_day_ids = {combo.currentData(): combo.currentText()

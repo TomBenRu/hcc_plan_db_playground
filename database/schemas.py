@@ -596,6 +596,7 @@ class AppointmentCreate(BaseModel):
 
 class Appointment(AppointmentCreate):
     model_config = ConfigDict(from_attributes=True)
+    guests: Json[list[str]]
 
     id: UUID
 

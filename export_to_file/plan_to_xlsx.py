@@ -198,12 +198,11 @@ class ExportToXlsx:
 
         def make_text_names():
             text = ''
-            if len(appointment.avail_days):
-                text = '\n ' + '\n '.join(f'{avd.actor_plan_period.person.f_name} '
-                                        f'{avd.actor_plan_period.person.l_name}'
-                                        for avd in appointment.avail_days)
+            if len(appointment.avail_days) + len(appointment.guests):
+                text = '\n ' + '\n '.join([f'{avd.actor_plan_period.person.full_name}'
+                                          for avd in appointment.avail_days] + appointment.guests)
             cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
-            for _ in range(cast_group.nr_actors - len(appointment.avail_days)):
+            for _ in range(cast_group.nr_actors - len(appointment.avail_days) - len(appointment.guests)):
                 text += '\n unbesetzt'
             return text
 

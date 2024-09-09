@@ -97,6 +97,10 @@ class Person(PersonCreate):
     prep_delete: Optional[datetime.datetime]
     requested_assignments: int
 
+    @property
+    def full_name(self):
+        return f'{self.f_name} {self.l_name}'
+
 
 class PersonShow(Person):
     requested_assignments: Optional[int]

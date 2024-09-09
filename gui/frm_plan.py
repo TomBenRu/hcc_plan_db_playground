@@ -144,6 +144,9 @@ class DlgEditAppointment(QDialog):
             self.combos_employees[-1].currentIndexChanged.connect(partial(self.combo_employees_index_changed, i - 1))
         for j, avd in enumerate(self.appointment.avail_days):
             self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
+        for k, name in enumerate(self.appointment.guests, start=len(self.appointment.avail_days)):
+            self.combos_employees[k].addItem(name, UUID('00000000000000000000000000000001'))
+            self.combos_employees[k].setCurrentIndex(self.combos_employees[-1].findText(name))
 
     def combo_employees_index_changed(self, index_in_combos_employees: int, curr_index: int):
         if ((combo := self.combos_employees[index_in_combos_employees])

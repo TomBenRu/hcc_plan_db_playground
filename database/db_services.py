@@ -1,5 +1,6 @@
 import datetime
 import inspect
+import json
 import logging
 import time
 from functools import wraps
@@ -2241,6 +2242,14 @@ class Appointment:
         appointment_db.avail_days.clear()
         for avd_id in avail_day_ids:
             appointment_db.avail_days.add(models.AvailDay.get(id=avd_id))
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_guests(cls, appointment_id: UUID, guests: list[str]) -> schemas.AppointmentShow:
+        log_function_info(cls)
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        appointment_db.guests = json.dumps(guests)
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod

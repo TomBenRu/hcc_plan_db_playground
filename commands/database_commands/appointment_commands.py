@@ -35,3 +35,20 @@ class UpdateAvailDays(Command):
 
     def redo(self):
         db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+
+
+class UpdateGuests(Command):
+    def __init__(self, appointment_id: UUID, guests: list[str]):
+        self.appointment_id = appointment_id
+        self.guests = guests
+        self.appointment = db_services.Appointment.get(self.appointment_id)
+        self.updated_appointment: schemas.AppointmentShow | None = None
+
+    def execute(self):
+        self.updated_appointment = db_services.Appointment.update_guests(self.appointment_id, self.guests)
+
+    def undo(self):
+        db_services.Appointment.update_guests(self.appointment_id, self.appointment.guests)
+
+    def redo(self):
+        db_services.Appointment.update_guests(self.appointment_id, self.guests)

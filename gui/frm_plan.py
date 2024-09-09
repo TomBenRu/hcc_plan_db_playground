@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 import pprint
 from collections import defaultdict
+from functools import partial
 from typing import Literal
 from uuid import UUID
 
@@ -9,7 +10,7 @@ from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot, QTimer
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
-    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox
+    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
@@ -30,11 +31,13 @@ def fill_in_data(appointment_field: 'AppointmentField'):
     employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
                            for avd in sorted(appointment_field.appointment.avail_days,
                                              key=lambda x: (x.actor_plan_period.person.f_name,
-                                                            x.actor_plan_period.person.l_name))])
+                                                            x.actor_plan_period.person.l_name))]
+                          + appointment_field.appointment.guests)
     nr_required_persons = db_services.CastGroup.get_cast_group_of_event(
         appointment_field.appointment.event.id).nr_actors
 
-    if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)):
+    if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)
+                   - len(appointment_field.appointment.guests)):
         missing_txt = f'unbesetzt: {missing}'
         appointment_field.lb_missing.setText(missing_txt)
         appointment_field.layout.addWidget(appointment_field.lb_missing)
@@ -55,6 +58,31 @@ class CheckPlanThread(QThread):
         # Call the solver function here
         success, problems = solver_main.test_plan(self.plan_id)
         self.finished.emit(success, problems)  # Emit the finished signal when the solver completes
+
+
+class DlgGuest(QDialog):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent=parent)
+        self.setWindowTitle('Gastbesetzung')
+
+        self._setup_layout()
+
+    def _setup_layout(self):
+        self.layout = QVBoxLayout(self)
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QFormLayout()
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+        self.lb_explanation = QLabel('Fügen Sie den Namen des Gastes ein.')
+        self.le_guest = QLineEdit()
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_head.addWidget(self.lb_explanation)
+        self.layout_body.addRow('Gastbesetzung:', self.le_guest)
+        self.layout_foot.addWidget(self.button_box)
 
 
 class DlgEditAppointment(QDialog):
@@ -99,7 +127,7 @@ class DlgEditAppointment(QDialog):
         )
         self.possible_avail_days.sort(key=lambda x: x.actor_plan_period.person.f_name)
 
-        self.new_avail_day_ids: list[UUID] = []
+        self.new_avail_day_ids: dict[UUID, str] = {}
 
     def _setup_employee_combos(self):
         self.combos_employees = []
@@ -112,11 +140,26 @@ class DlgEditAppointment(QDialog):
                     f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}',
                     avd.id
                 )
+            self.combos_employees[-1].addItem('Gast', UUID('00000000000000000000000000000000'))
+            self.combos_employees[-1].currentIndexChanged.connect(partial(self.combo_employees_index_changed, i - 1))
         for j, avd in enumerate(self.appointment.avail_days):
             self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
 
+    def combo_employees_index_changed(self, index_in_combos_employees: int, curr_index: int):
+        if ((combo := self.combos_employees[index_in_combos_employees])
+                .currentData() == UUID('00000000000000000000000000000000')):
+            dlg = DlgGuest(self)
+            if dlg.exec():
+                if (idx := combo.findData(UUID('00000000000000000000000000000001'))) != -1:
+                    combo.setItemText(idx, dlg.le_guest.text())
+                    combo.setCurrentIndex(idx)
+                else:
+                    combo.addItem(dlg.le_guest.text(), UUID('00000000000000000000000000000001'))
+                    combo.setCurrentIndex(combo.findData(UUID('00000000000000000000000000000001')))
+
     def accept(self):
-        self.new_avail_day_ids = [combo.currentData() for combo in self.combos_employees if combo.currentData()]
+        self.new_avail_day_ids = {combo.currentData(): combo.currentText()
+                                  for combo in self.combos_employees if combo.currentData()}
         super().accept()
 
 
@@ -287,6 +330,9 @@ class AppointmentField(QWidget):
 
         fill_in_data(self)
 
+        self.command_avail_days: appointment_commands.UpdateAvailDays | None = None
+        self.command_guests: appointment_commands.UpdateGuests | None = None
+
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
 
@@ -295,9 +341,17 @@ class AppointmentField(QWidget):
             return
         dlg = DlgEditAppointment(self, self.appointment)
         if dlg.exec():
-            self.command = appointment_commands.UpdateAvailDays(self.appointment.id, dlg.new_avail_day_ids)
-            self.plan_widget.controller.execute(self.command)
-            self.appointment = self.command.updated_appointment
+            new_avail_day_ids = [avd_id for avd_id in dlg.new_avail_day_ids.keys()
+                                 if avd_id != UUID('00000000000000000000000000000001')]
+            new_guests = [guest for avd_id, guest in dlg.new_avail_day_ids.items()
+                          if avd_id == UUID('00000000000000000000000000000001')]
+            self.command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_day_ids)
+            self.plan_widget.controller.execute(self.command_avail_days)
+            self.appointment = self.command_avail_days.updated_appointment
+            if sorted(new_guests) != sorted(self.appointment.guests):
+                self.command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
+                self.plan_widget.controller.execute(self.command_guests)
+                self.appointment = self.command_guests.updated_appointment
             fill_in_data(self)
             if self.plan_widget.permanent_plan_check:
                 self._start_plan_check()
@@ -329,7 +383,9 @@ class AppointmentField(QWidget):
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
                 self.plan_widget.controller.undo()
-                self.appointment = self.command.appointment
+                if self.command_guests:
+                    self.plan_widget.controller.undo()
+                self.appointment = self.command_avail_days.appointment
                 fill_in_data(self)
             else:
                 signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)

@@ -11,6 +11,7 @@ from commands.database_commands import event_commands, cast_group_commands, appo
 from database import schemas, db_services
 from gui import concurrency
 from gui.concurrency import general_worker
+from gui.custom_widgets.progress_bars import DlgProgressInfinite
 from gui.observer import signal_handling
 
 
@@ -20,6 +21,9 @@ class LocationPlanPeriodData:
         self.location_plan_period = location_plan_period
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.thread_pool = QThreadPool()
+        self.progress_bar_save_event = DlgProgressInfinite(parent, 'Neuer Termin',
+                                                           'Termin wird in vorhandenen Plänen ergänzt.',
+                                                           'Abbruch')
 
     def reload_location_plan_period(self):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
@@ -95,6 +99,9 @@ class LocationPlanPeriodData:
 
     @profile
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
+        plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
+        if not plans:
+            return
 
         if mode == 'added':
             QMessageBox.information(self.parent, 'Pläne',
@@ -105,21 +112,22 @@ class LocationPlanPeriodData:
                                     'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
                                     'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
 
-        worker = general_worker.Worker(
+        worker = general_worker.WorkerGeneral(
             self._save_new_empty_appointment_in_plan_and_reset_columns,
-            event, self.location_plan_period.plan_period.id, mode
+            event, plans, mode
         )
         worker.signals.finished.connect(
             lambda: signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(
                 self.location_plan_period.plan_period.id
             )
         )
+        worker.signals.finished.connect(self.progress_bar_save_event.close)
+        self.progress_bar_save_event.show()
         self.thread_pool.start(worker)
 
     def _save_new_empty_appointment_in_plan_and_reset_columns(self, event: schemas.EventShow,
-                                                              plan_period_id: UUID,
+                                                              plans: dict[str, UUID],
                                                               mode: Literal['added', 'deleted']):
-        plans = db_services.Plan.get_all_from__plan_period_minimal(plan_period_id)
         for plan_id in plans.values():
             if mode == 'added':
                 self._create_new_empty_appointment_in_plan(plan_id, event)

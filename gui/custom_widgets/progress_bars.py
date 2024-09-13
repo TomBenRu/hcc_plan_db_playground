@@ -58,7 +58,6 @@ class GlobalUpdatePlanTabsProgressManager(QObject):
         self.finished_tabs = 0  # Anzahl der abgeschlossenen Tabs
 
     def tab_started(self):
-        print(f'tab_started:\n{self.total_tabs=}\n{self.finished_tabs=}')
         # Setze die ProgressBar in den indeterministischen Modus
         if self.total_tabs == 0:
             self.start_progress_bar()
@@ -67,7 +66,6 @@ class GlobalUpdatePlanTabsProgressManager(QObject):
 
     def tab_finished(self):
         # Wird aufgerufen, wenn ein Tab die Aktualisierung abgeschlossen hat
-        print(f'tab_finished:\n{self.total_tabs=}\n{self.finished_tabs=}')
         self.finished_tabs += 1
         if self.finished_tabs == self.total_tabs:
             self.progress_bar.close()

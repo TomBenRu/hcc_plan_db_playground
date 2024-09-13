@@ -7,7 +7,7 @@ from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot, QTimer, QCoreApplication, QThreadPool, QRunnable
+from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
@@ -48,19 +48,6 @@ def fill_in_data(appointment_field: 'AppointmentField'):
         appointment_field.lb_missing.setParent(None)
 
     appointment_field.lb_employees.setText(employees)
-
-
-class CheckPlanThread(QThread):
-    finished = Signal(bool, list)  # Signal emitted when the solver finishes
-
-    def __init__(self, parent: QObject, plan_id: UUID):
-        super().__init__(parent)
-        self.plan_id = plan_id
-
-    def run(self):
-        # Call the solver function here
-        success, problems = solver_main.test_plan(self.plan_id)
-        self.finished.emit(success, problems)  # Emit the finished signal when the solver completes
 
 
 class DlgGuest(QDialog):
@@ -338,6 +325,7 @@ class AppointmentField(QWidget):
 
         self.command_avail_days: appointment_commands.UpdateAvailDays | None = None
         self.command_guests: appointment_commands.UpdateGuests | None = None
+        self.thread_pool = QThreadPool()
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
@@ -369,10 +357,9 @@ class AppointmentField(QWidget):
                                                 'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch',
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
-
-        check_plan_thread = CheckPlanThread(self, self.plan_widget.plan.id)
-        check_plan_thread.finished.connect(self.check_finished)
-        check_plan_thread.start()
+        worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
+        worker.signals.finished.connect(self.check_finished)
+        self.thread_pool.start(worker)
 
     @Slot(bool, list)
     def check_finished(self, success: bool, problems: list[str]):
@@ -503,9 +490,9 @@ class FrmTabPlan(QWidget):
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
-        check_plan_thread = CheckPlanThread(self, self.plan.id)
-        check_plan_thread.finished.connect(self.check_finished)
-        check_plan_thread.start()
+        worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
+        worker.signals.finished.connect(self.check_finished)
+        self.thread_pool.start(worker)
 
     @Slot(bool, list)
     def check_finished(self, success: bool, problems: list[str]):
@@ -600,7 +587,7 @@ class FrmTabPlan(QWidget):
     @Slot(UUID)
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
-            worker = general_worker.Worker(self._reload_from_db_and_generate_plan_data)
+            worker = general_worker.WorkerGeneral(self._reload_from_db_and_generate_plan_data)
             worker.signals.finished.connect(self.update_progress_manager.tab_finished)
             worker.signals.finished.connect(self.refresh_plan)
             self.update_progress_manager.tab_started()

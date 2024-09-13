@@ -2,7 +2,7 @@ import datetime
 from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot, QCoreApplication
+from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot, QCoreApplication, QThreadPool
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QProgressDialog, QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
@@ -115,6 +115,7 @@ class DlgCalculate(QDialog):
         self.num_actor_plan_periods: int | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+        self.thread_pool = QThreadPool()
 
         self.layout = QVBoxLayout(self)
 

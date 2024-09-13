@@ -1,23 +1,25 @@
 import dataclasses
 import datetime
 import pprint
+import time
 from collections import defaultdict
 from functools import partial
-from typing import Literal
+from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot, QTimer
+from PySide6.QtCore import Qt, QRect, QThread, Signal, QObject, Slot, QTimer, QCoreApplication, QThreadPool, QRunnable
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
     QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit
+from line_profiler import profile
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.custom_widgets import side_menu
-from gui.custom_widgets.progress_bars import DlgProgressInfinite
+from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
@@ -45,6 +47,17 @@ def fill_in_data(appointment_field: 'AppointmentField'):
         appointment_field.lb_missing.setParent(None)
 
     appointment_field.lb_employees.setText(employees)
+
+
+class PlanReloadAndUpdateWorker(QThread):    # Signal für Abschluss
+    finished = Signal()
+
+    def __init__(self, func: Callable[[], None]):
+        super().__init__()
+        self.func = func
+
+    def run(self):
+        self.func()
 
 
 class CheckPlanThread(QThread):
@@ -363,7 +376,8 @@ class AppointmentField(QWidget):
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
-                                        'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch')
+                                                'Besetzungsänderungen werden auf Fehler getestet.', 'Abbruch',
+                                                signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
         check_plan_thread = CheckPlanThread(self, self.plan_widget.plan.id)
@@ -423,15 +437,18 @@ class AppointmentField(QWidget):
 
 
 class FrmTabPlan(QWidget):
-    def __init__(self, parent: QWidget, plan: schemas.PlanShow):
+    def __init__(self, parent: QWidget, plan: schemas.PlanShow,
+                 update_progress_manager: GlobalUpdatePlanTabsProgressManager):
         super().__init__(parent=parent)
 
+        self.reload_and_refresh_worker: PlanReloadAndUpdateWorker | None = None
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_specific_plan)
-        signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
+        signal_handling.handler_plan_tabs.signal_reload_and_refresh_plan_tab.connect(self.reload_and_refresh_specific_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.refresh_plan_period_plan)
 
         self.plan = plan
+        self.update_progress_manager = update_progress_manager
 
         self.appointment_widget_width = 120
 
@@ -472,6 +489,9 @@ class FrmTabPlan(QWidget):
         self.bt_redo = QPushButton('Redo')
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
+        self.bt_refresh = QPushButton('Ansicht aktualisieren')
+        self.bt_refresh.clicked.connect(self.refresh_plan)
+        self.side_menu.add_button(self.bt_refresh)
 
     def _generate_plan_data(self):
         self.all_days_of_month = self.generate_all_days()
@@ -489,7 +509,8 @@ class FrmTabPlan(QWidget):
 
     def _check_plan(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
-                                        'Plan wird auf Fehler getestet.', 'Abbruch')
+                                                'Plan wird auf Fehler getestet.', 'Abbruch',
+                                                signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
         check_plan_thread = CheckPlanThread(self, self.plan.id)
@@ -582,6 +603,22 @@ class FrmTabPlan(QWidget):
         self._show_table_plan()
         self.side_menu.raise_()
 
+    def _reload_from_db_and_generate_plan_data(self):
+        self.reload_plan()
+        self._generate_plan_data()
+
+    @Slot(UUID)
+    def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
+        if self.plan.plan_period.id == plan_period_id:
+            if self.reload_and_refresh_worker is None or not self.reload_and_refresh_worker.isRunning():
+                self.reload_and_refresh_worker = PlanReloadAndUpdateWorker(self._reload_from_db_and_generate_plan_data)
+                self.reload_and_refresh_worker.finished.connect(self.update_progress_manager.tab_finished)
+                self.reload_and_refresh_worker.finished.connect(self.refresh_plan)
+                self.update_progress_manager.tab_started()
+
+                self.reload_and_refresh_worker.start()
+
+
     @Slot(object)
     def reload_specific_plan(self, plan_id: UUID | None):
         if plan_id:
@@ -589,11 +626,6 @@ class FrmTabPlan(QWidget):
                 self.reload_plan()
         else:
             self.reload_plan()
-
-    @Slot(UUID)
-    def refresh_specific_plan(self, plan_id: UUID):
-        if self.plan.id == plan_id:
-            self.refresh_plan()
 
     @Slot(UUID)
     def refresh_plan_period_plan(self, plan_period_id: UUID):

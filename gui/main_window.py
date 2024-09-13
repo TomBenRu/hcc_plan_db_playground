@@ -14,6 +14,7 @@ from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
+from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
@@ -43,6 +44,11 @@ class MainWindow(QMainWindow):
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.global_update_plan_tabs_progress_bar = DlgProgressInfinite(
+            self, 'Update Plan-Tabs', 'Die betreffenden Pläne werden aktualisiert.', 'Abbruch')
+        self.global_update_plan_tabs_progress_manager = GlobalUpdatePlanTabsProgressManager(
+            self.global_update_plan_tabs_progress_bar)
 
         path_to_toolbar_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
@@ -570,7 +576,7 @@ class MainWindow(QMainWindow):
                                  f'Der Plan mit der ID {plan_id} konnte nicht geöffnet werden.\n'
                                  f'Fehler: {e}')
             return
-        new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan)
+        new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan, self.global_update_plan_tabs_progress_manager)
         self.tabs_plans.addTab(new_widget, plan.name)
         self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')
         self.tabs_plans.setCurrentIndex(self.tabs_plans.indexOf(new_widget))

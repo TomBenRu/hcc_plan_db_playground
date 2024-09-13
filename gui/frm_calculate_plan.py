@@ -249,7 +249,8 @@ class DlgCalculate(QDialog):
                 self.reject()
                 return
 
-        self.plans_save_progress_bar = DlgProgressInfinite(self, 'Pläne sichern', 'In Progress...', 'Abbruch')
+        self.plans_save_progress_bar = DlgProgressInfinite(self, 'Pläne sichern', 'In Progress...', 'Abbruch',
+                                                           signal_handling.handler_solver.cancel_solving)
         self.plans_save_progress_bar.show()
         save_thread = SaveThread(self, self.curr_plan_period_id, self.team_id,
                                  schedule_versions, nr_versions_to_use, self.controller)

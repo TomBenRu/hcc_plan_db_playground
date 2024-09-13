@@ -92,19 +92,21 @@ class LocationPlanPeriodData:
     @profile
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
         plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
+
+        if mode == 'added':
+            QMessageBox.information(self.parent, 'Pläne',
+                                    'Durch das Einfügen des Termins in die bereits bestehenden Pläne muss die '
+                                    'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
+        else:
+            QMessageBox.information(self.parent, 'Pläne',
+                                    'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
+                                    'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
+
         for plan_id in plans.values():
             if mode == 'added':
-                QMessageBox.information(self.parent, 'Pläne',
-                                        'Durch das Einfügen des Termins in die bereits bestehenden Pläne muss die '
-                                        'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
                 self._create_new_empty_appointment_in_plan(plan_id, event)
-            else:
-                QMessageBox.information(self.parent, 'Pläne',
-                                        'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
-                                        'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
             self._reset_plan_location_columns(plan_id)
-            signal_handling.handler_plan_tabs.reload_plan_from_db(plan_id)
-            signal_handling.handler_plan_tabs.refresh_plan(plan_id)
+        signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.location_plan_period.plan_period.id)
 
     def _create_new_empty_appointment_in_plan(self, plan_id: UUID, event: schemas.Event):
         self.controller.execute(

@@ -18,6 +18,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
+from gui.concurrency import general_worker
 from gui.custom_widgets import side_menu
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -47,17 +48,6 @@ def fill_in_data(appointment_field: 'AppointmentField'):
         appointment_field.lb_missing.setParent(None)
 
     appointment_field.lb_employees.setText(employees)
-
-
-class PlanReloadAndUpdateWorker(QThread):    # Signal für Abschluss
-    finished = Signal()
-
-    def __init__(self, func: Callable[[], None]):
-        super().__init__()
-        self.func = func
-
-    def run(self):
-        self.func()
 
 
 class CheckPlanThread(QThread):
@@ -441,7 +431,6 @@ class FrmTabPlan(QWidget):
                  update_progress_manager: GlobalUpdatePlanTabsProgressManager):
         super().__init__(parent=parent)
 
-        self.reload_and_refresh_worker: PlanReloadAndUpdateWorker | None = None
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_specific_plan)
         signal_handling.handler_plan_tabs.signal_reload_and_refresh_plan_tab.connect(self.reload_and_refresh_specific_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
@@ -449,6 +438,7 @@ class FrmTabPlan(QWidget):
 
         self.plan = plan
         self.update_progress_manager = update_progress_manager
+        self.thread_pool = QThreadPool()
 
         self.appointment_widget_width = 120
 
@@ -610,14 +600,11 @@ class FrmTabPlan(QWidget):
     @Slot(UUID)
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
-            if self.reload_and_refresh_worker is None or not self.reload_and_refresh_worker.isRunning():
-                self.reload_and_refresh_worker = PlanReloadAndUpdateWorker(self._reload_from_db_and_generate_plan_data)
-                self.reload_and_refresh_worker.finished.connect(self.update_progress_manager.tab_finished)
-                self.reload_and_refresh_worker.finished.connect(self.refresh_plan)
-                self.update_progress_manager.tab_started()
-
-                self.reload_and_refresh_worker.start()
-
+            worker = general_worker.Worker(self._reload_from_db_and_generate_plan_data)
+            worker.signals.finished.connect(self.update_progress_manager.tab_finished)
+            worker.signals.finished.connect(self.refresh_plan)
+            self.update_progress_manager.tab_started()
+            self.thread_pool.start(worker)
 
     @Slot(object)
     def reload_specific_plan(self, plan_id: UUID | None):

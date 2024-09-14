@@ -732,6 +732,7 @@ class Plan(db.Entity):
 
     def before_insert(self):
         self.excel_export_settings = self.team.excel_export_settings
+        self.notes = self.plan_period.notes
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()

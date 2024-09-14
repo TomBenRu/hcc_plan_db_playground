@@ -21,9 +21,10 @@ class LocationPlanPeriodData:
         self.location_plan_period = location_plan_period
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.thread_pool = QThreadPool()
-        self.progress_bar_save_event = DlgProgressInfinite(parent, 'Neuer Termin',
-                                                           'Termin wird in vorhandenen Plänen ergänzt.',
-                                                           'Abbruch')
+        self.progress_bar_save_event = DlgProgressInfinite(
+            parent, 'Terminänderung',
+            'Die Terminänderung wird in den vorhandenen Plänen gespeichert.',
+            'Abbruch')
 
     def reload_location_plan_period(self):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)

@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.global_update_plan_tabs_progress_bar = DlgProgressInfinite(
-            self, 'Update Plan-Tabs', 'Die betreffenden Pläne werden aktualisiert.', 'Abbruch')
+            self, 'Update Plan-Tabs', 'Die betreffenden geöffneten Pläne werden aktualisiert.', 'Abbruch')
         self.global_update_plan_tabs_progress_manager = GlobalUpdatePlanTabsProgressManager(
             self.global_update_plan_tabs_progress_bar)
 

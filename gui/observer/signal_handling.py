@@ -115,8 +115,8 @@ class HandlerPlanTabs(QObject):
     def reload_and_refresh_plan_tab(self, plan_period_id: UUID):
         self.signal_reload_and_refresh_plan_tab.emit(plan_period_id)
 
-    # def refresh_plan(self, plan_id: UUID):
-    #     self.signal_refresh_plan.emit(plan_id)
+    def refresh_plan(self, plan_id: UUID):
+        self.signal_refresh_plan.emit(plan_id)
 
     def reload_all_plan_period_plans_from_db(self, plan_period_id: UUID):
         self.signal_reload_all_plan_period_plans_from_db.emit(plan_period_id)

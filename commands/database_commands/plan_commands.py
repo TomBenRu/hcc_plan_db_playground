@@ -90,6 +90,23 @@ class UpdateLocationColumns(Command):
         db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
 
 
+class UpdateNotes(Command):
+    def __init__(self, plan_id, notes: str):
+        self.plan_id = plan_id
+        self.plan = db_services.Plan.get(plan_id)
+        self.updated_plan: schemas.PlanShow | None = None
+        self.notes = notes
+
+    def execute(self):
+        self.updated_plan = db_services.Plan.update_notes(self.plan_id, self.notes)
+
+    def undo(self):
+        db_services.Plan.update_notes(self.plan_id, self.plan.notes)
+
+    def redo(self):
+        db_services.Plan.update_notes(self.plan_id, self.notes)
+
+
 class NewExcelExportSettings(Command):
     def __init__(self, plan_id: UUID, excel_settings: schemas.ExcelExportSettingsCreate):
         self.plan_id = plan_id

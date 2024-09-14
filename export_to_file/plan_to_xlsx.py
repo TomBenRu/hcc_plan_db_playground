@@ -91,6 +91,10 @@ class ExportToXlsx:
             {'bold': False, 'font_size': 10, 'border': 1, 'valign': 'top', 'text_wrap': True})
         self.format_appointments_unbesetzt = self.workbook.add_format(
             {'bold': False, 'font_size': 10, 'font_color': 'red', 'border': 1, 'valign': 'top', 'text_wrap': True})
+        self.format_notes_headline = self.workbook.add_format(
+            {'bold': True, 'font_size': 12})
+        self.format_notes = self.workbook.add_format(
+            {'indent': 2, 'text_wrap': True})
 
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
@@ -240,6 +244,14 @@ class ExportToXlsx:
                                         f'Datum: {datetime.date.today().strftime("%d.%m.%Y")}',
                                         self.format_creation_date)
 
+    def _write_notes(self):
+        max_row_of_plan = (self.week_num__row_merge[max(self.week_num__row_merge.keys())]['row']
+                           + self.week_num__row_merge[max(self.week_num__row_merge.keys())]['merge'] - 1)
+        self.worksheet_plan.write(max_row_of_plan + 2, 1, 'Anmerkungen:', self.format_notes_headline)
+
+        self.worksheet_plan.merge_range(max_row_of_plan + 3, 1, max_row_of_plan + 3, self.max_col_locations,
+                                        self.tab_plan.plan.notes, self.format_notes)
+
     def execute(self):
         self._write_headers_week_day_names()
         self._write_locations()
@@ -247,6 +259,7 @@ class ExportToXlsx:
         self._write_dates()
         self._write_appointments()
         self._write_title_and_creation_date()
+        self._write_notes()
 
         while True:
             success = True

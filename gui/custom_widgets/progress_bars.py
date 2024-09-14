@@ -1,8 +1,9 @@
 from typing import Callable
+from uuid import UUID
 
 from PySide6.QtCore import Slot, QObject
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QProgressDialog, QWidget
+from PySide6.QtWidgets import QProgressDialog, QWidget, QApplication
 
 from gui.observer import signal_handling
 
@@ -56,6 +57,7 @@ class GlobalUpdatePlanTabsProgressManager(QObject):
         self.progress_bar = progress_bar
         self.total_tabs = 0  # Gesamtzahl der zu aktualisierenden Tabs
         self.finished_tabs = 0  # Anzahl der abgeschlossenen Tabs
+        self.processed_plan_ids = []
 
     def tab_started(self):
         # Setze die ProgressBar in den indeterministischen Modus
@@ -64,13 +66,18 @@ class GlobalUpdatePlanTabsProgressManager(QObject):
             # self.progress_bar.setRange(0, 0)  # Setzt die ProgressBar auf unbestimmt
         self.total_tabs += 1
 
-    def tab_finished(self):
+    def tab_finished(self, plan_id: UUID):
         # Wird aufgerufen, wenn ein Tab die Aktualisierung abgeschlossen hat
         self.finished_tabs += 1
+        self.processed_plan_ids.append(plan_id)
         if self.finished_tabs == self.total_tabs:
             self.progress_bar.close()
             self.total_tabs = 0
             self.finished_tabs = 0
+            for p_id in self.processed_plan_ids:
+                signal_handling.handler_plan_tabs.refresh_plan(p_id)
+                QApplication.processEvents()
+            self.processed_plan_ids.clear()
             # self.update_progress_bar()
 
     def update_progress_bar(self):

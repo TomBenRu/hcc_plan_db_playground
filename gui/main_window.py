@@ -9,11 +9,12 @@ from pydantic_core import ValidationError
 
 import configuration
 from commands import command_base_classes
-from commands.database_commands import plan_commands, team_commands
+from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
+from .FrmPlanPeriodInfos import DlgPlanPeriodInfos
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
@@ -582,7 +583,15 @@ class MainWindow(QMainWindow):
         self.tabs_plans.setCurrentIndex(self.tabs_plans.indexOf(new_widget))
 
     def plan_infos(self):
-        ...
+        curr_plan: schemas.PlanShow = self.tabs_plans.currentWidget().plan
+        dlg = DlgPlanPeriodInfos(self, curr_plan)
+        if dlg.exec():
+            self.controller.execute(plan_commands.UpdateNotes(curr_plan.id, dlg.notes))
+            if dlg.chk_sav_to_plan_period.isChecked():
+                self.controller.execute(plan_period_commands.UpdateNotes(curr_plan.plan_period.id, dlg.notes))
+                signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(curr_plan.plan_period.id)
+            else:
+                signal_handling.handler_plan_tabs.reload_plan_from_db(curr_plan.id)
 
     def plan_calculation_settings(self):
         dlg = frm_settings_solver_params.DlgSettingsSolverParams(self)

@@ -1041,6 +1041,15 @@ class PlanPeriod:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_notes(cls, plan_period_id: UUID, notes: str) -> schemas.PlanPeriodShow:
+        log_function_info(cls)
+        plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
+        plan_period_db.notes = notes
+
+        return schemas.PlanPeriodShow.model_validate(plan_period_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cls, plan_period_id: UUID) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -2080,6 +2089,15 @@ class Plan:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         plan_db = models.Plan(name=name, plan_period=plan_period_db, notes=notes)
+
+        return schemas.PlanShow.model_validate(plan_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_notes(cls, plan_id: UUID, notes: str) -> schemas.PlanShow:
+        log_function_info(cls)
+        plan_db = models.Plan.get_for_update(id=plan_id)
+        plan_db.notes = notes
 
         return schemas.PlanShow.model_validate(plan_db)
 

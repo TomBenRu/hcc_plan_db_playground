@@ -420,8 +420,9 @@ class FrmTabPlan(QWidget):
 
         signal_handling.handler_plan_tabs.signal_reload_plan_from_db.connect(self.reload_specific_plan)
         signal_handling.handler_plan_tabs.signal_reload_and_refresh_plan_tab.connect(self.reload_and_refresh_specific_plan)
-        signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
+        signal_handling.handler_plan_tabs.signal_reload_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.refresh_plan_period_plan)
+        signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
 
         self.plan = plan
         self.update_progress_manager = update_progress_manager
@@ -580,6 +581,11 @@ class FrmTabPlan(QWidget):
         self._show_table_plan()
         self.side_menu.raise_()
 
+    @Slot(UUID)
+    def refresh_specific_plan(self, plan_id: UUID):
+        if plan_id == self.plan.id:
+            self.refresh_plan()
+
     def _reload_from_db_and_generate_plan_data(self):
         self.reload_plan()
         self._generate_plan_data()
@@ -588,8 +594,7 @@ class FrmTabPlan(QWidget):
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
             worker = general_worker.WorkerGeneral(self._reload_from_db_and_generate_plan_data)
-            worker.signals.finished.connect(self.update_progress_manager.tab_finished)
-            worker.signals.finished.connect(self.refresh_plan)
+            worker.signals.finished.connect(lambda: self.update_progress_manager.tab_finished(self.plan.id))
             self.update_progress_manager.tab_started()
             self.thread_pool.start(worker)
 

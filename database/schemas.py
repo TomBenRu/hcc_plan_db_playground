@@ -163,6 +163,7 @@ class Team(TeamCreate):
 
     id: UUID
     prep_delete: Optional[datetime.datetime]
+    notes: Optional[str]
     excel_export_settings: Optional['ExcelExportSettings']
 
 
@@ -183,6 +184,7 @@ class PlanPeriodCreate(BaseModel):
     end: datetime.date
     deadline: datetime.date
     notes: Optional[str]
+    notes_for_employees: Optional[str] = None
     remainder: bool
     team: Team
 

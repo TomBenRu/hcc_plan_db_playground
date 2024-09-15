@@ -80,7 +80,7 @@ class EntitiesApiToDB:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=plan_period.team.id)
         plan_period_db = models.PlanPeriod(id=plan_period.id, start=plan_period.start, end=plan_period.end,
-                                           deadline=plan_period.deadline, notes=plan_period.notes,
+                                           deadline=plan_period.deadline, notes_for_emloyees=plan_period.notes,
                                            closed=plan_period.closed, remainder=True, team=team_db)
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
@@ -224,6 +224,14 @@ class Team:
         dispatcher_db = models.Person.get_for_update(id=team.dispatcher.id) if team.dispatcher else None
         team_db.name = team.name
         team_db.dispatcher = dispatcher_db
+        return schemas.TeamShow.model_validate(team_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_notes(cls, team_id: UUID, notes: str) -> schemas.TeamShow:
+        log_function_info(cls)
+        team_db = models.Team.get_for_update(id=team_id)
+        team_db.notes = notes
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod

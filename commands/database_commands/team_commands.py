@@ -70,3 +70,20 @@ class PutInExcelExportSettings(Command):
     def redo(self):
         db_services.Team.put_in_excel_settings(self.team_id, self.excel_settings_id)
 
+
+class UpdateNotes(Command):
+    def __init__(self, team_id: UUID, notes: str):
+        self.team_id = team_id
+        self.notes = notes
+        self.team = db_services.Team.get(team_id)
+        self.updated_team: schemas.TeamShow | None = None
+
+    def execute(self):
+        self.updated_team = db_services.Team.update_notes(self.team_id, self.notes)
+
+    def undo(self):
+        db_services.Team.update_notes(self.team_id, self.team.notes)
+
+    def redo(self):
+        db_services.Team.update_notes(self.team_id, self.notes)
+

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel
 from database import db_services, schemas
 
 
-class DlgPlanPeriodInfos(QDialog):
+class DlgPlanPeriodNotes(QDialog):
     def __init__(self, parent: QWidget, plan: schemas.PlanShow):
         super().__init__(parent=parent)
         self.setWindowTitle('Plan-Infos')
@@ -48,6 +48,45 @@ class DlgPlanPeriodInfos(QDialog):
 
     def reset_from_plan_period(self):
         self.text_info.setText(self.plan.plan_period.notes)
+
+    def accept(self):
+        self.notes = self.text_info.toPlainText()
+        super().accept()
+
+
+class DlgTeamNotes(QDialog):
+    def __init__(self, parent: QWidget, team: schemas.TeamShow):
+        super().__init__(parent=parent)
+        self.setWindowTitle('Team-Infos')
+        self.team = team
+
+        self._prepare_data()
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QVBoxLayout()
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+
+        self.lb_explanation = QLabel(
+            f'Geben Sie hier die Informationen ein, die für das Team relevant sind.\n'
+            f'Diese werden in neu erstellten Planperioden übernommen.\n'
+            f'Team: {self.team.name}')
+        self.layout_head.addWidget(self.lb_explanation)
+        self.text_info = QTextEdit()
+        self.text_info.setText(self.team.notes or '')
+        self.layout_body.addWidget(self.text_info)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_foot.addWidget(self.button_box)
+
+    def _prepare_data(self):
+        self.notes: str = ''
 
     def accept(self):
         self.notes = self.text_info.toPlainText()

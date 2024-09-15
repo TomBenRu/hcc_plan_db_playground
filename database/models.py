@@ -127,6 +127,7 @@ class Team(db.Entity):
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
+    notes = Optional(str, nullable=True, default=None)
     project = Required(Project)
     # locations_of_work = Set('LocationOfWork')  # wird entfernt
     # persons = Set(Person, reverse='team_of_actor')  # wird entfernt
@@ -154,7 +155,8 @@ class PlanPeriod(db.Entity):
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
-    notes = Optional(str, nullable=True)  # Anmerkungen und Mitteilungen des Dispatchers.
+    notes = Optional(str, nullable=True)
+    notes_for_employees = Optional(str, nullable=True, default=None)  # Anmerkungen und Mitteilungen des Dispatchers.
     closed = Required(bool, default=False)
     remainder = Required(bool, default=True)
     team = Required(Team)
@@ -169,6 +171,9 @@ class PlanPeriod(db.Entity):
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
+
+    def before_insert(self):
+        self.notes = self.team.notes
 
 
 class ActorPlanPeriod(db.Entity):

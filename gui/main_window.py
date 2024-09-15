@@ -14,7 +14,7 @@ from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
-from .FrmPlanPeriodInfos import DlgPlanPeriodInfos
+from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
@@ -221,6 +221,9 @@ class MainWindow(QMainWindow):
         else:
             dlg = DlgPlanPeriodEdit(self, self.project_id)
             if dlg.exec():
+                # todo: Implementieren
+                # Wenn die Planperiode in der DB geupdatet wird, müssen AvailDays mit zugehöriger AvalDayGroup
+                # und Events mit zugehörigen EventGroup und CastGroup gelöscht werden.
                 ...
 
     def open_plan(self):
@@ -318,6 +321,11 @@ class MainWindow(QMainWindow):
                 )
 
         signal_handling.handler_plan_tabs.reload_plan_from_db()
+
+    def edit_team_notes(self, team: schemas.TeamShow):
+        dlg = DlgTeamNotes(self, team)
+        if dlg.exec():
+            self.controller.execute(team_commands.UpdateNotes(team.id, dlg.notes))
 
     def plan_excel_configs(self):
         plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
@@ -489,10 +497,12 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
             return
         return {team.name: [MenuToolbarAction(self, None, 'Einrichtunskombis...',
-                                   'Mögliche Kombinationen von Einrichtungen bearbeiten.',
+                                              'Mögliche Kombinationen von Einrichtungen bearbeiten.',
                                               functools.partial(self.edit_comb_loc_poss, team)),
                             MenuToolbarAction(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
-                                              functools.partial(self.edit_team_excel_export_settings, team))]
+                                              functools.partial(self.edit_team_excel_export_settings, team)),
+                            MenuToolbarAction(self, None, 'Bemerkungen...', 'Bemerkungen des Teams bearbeiten.',
+                                              functools.partial(self.edit_team_notes, team))]
                 for team in teams}
 
     def open_plan_period_masks(self, plan_period_id: UUID):
@@ -584,7 +594,7 @@ class MainWindow(QMainWindow):
 
     def plan_infos(self):
         curr_plan: schemas.PlanShow = self.tabs_plans.currentWidget().plan
-        dlg = DlgPlanPeriodInfos(self, curr_plan)
+        dlg = DlgPlanPeriodNotes(self, curr_plan)
         if dlg.exec():
             self.controller.execute(plan_commands.UpdateNotes(curr_plan.id, dlg.notes))
             if dlg.chk_sav_to_plan_period.isChecked():

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
-    QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton
+    QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton, QTextEdit
 
 from database import db_services, schemas
 from database.special_schema_requests import get_locations_of_team_at_date, \
@@ -204,7 +204,8 @@ class DlgPlanPeriodEdit(QDialog):
         self.de_end = QDateEdit()
         self.de_end.dateChanged.connect(self.proof_with_start)
         self.de_deadline = QDateEdit()
-        self.te_notes = QPlainTextEdit()
+        self.te_notes = QTextEdit()
+        self.te_notes_for_employees = QTextEdit()
         self.chk_remainder = QCheckBox('Remainder verschicken')
 
         self.layout_pp_datas.addRow('Start:', self.de_start)
@@ -212,6 +213,8 @@ class DlgPlanPeriodEdit(QDialog):
         self.layout_pp_datas.addRow('Deadline:', self.de_deadline)
         self.layout_pp_datas.addRow('Notizen:', None)
         self.layout_pp_datas.addRow(self.te_notes)
+        self.layout_pp_datas.addRow('API-Mitteilungen an die Mitarbeiter', None)
+        self.layout_pp_datas.addRow(self.te_notes_for_employees)
         self.layout_pp_datas.addRow(self.chk_remainder)
 
         self.bt_delete = QPushButton('Delete')
@@ -263,7 +266,8 @@ class DlgPlanPeriodEdit(QDialog):
             if pp_after:
                 self.de_end.setMaximumDate(pp_after.start - datetime.timedelta(days=1))
             self.de_deadline.setDate(plan_period.deadline)
-            self.te_notes.setPlainText(plan_period.notes)
+            self.te_notes.setText(plan_period.notes)
+            self.te_notes_for_employees.setText(plan_period.notes_for_employees or '')
             self.chk_remainder.setChecked(plan_period.remainder)
         else:
             self.de_start.setDate(datetime.date(year=1999, month=1, day=1))

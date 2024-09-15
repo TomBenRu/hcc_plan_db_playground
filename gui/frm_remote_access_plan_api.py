@@ -62,7 +62,6 @@ class DlgChooseTeam(QDialog):
         super().accept()
 
 
-
 class DlgRemoteAccessPlanApi(QDialog):
     def __init__(self, parent=None, project_id: UUID = None):
         super().__init__(parent)

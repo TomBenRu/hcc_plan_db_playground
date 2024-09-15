@@ -1039,11 +1039,11 @@ class PlanPeriod:
                            remainder=plan_period.remainder)
         for actor_plan_period in plan_period_db.actor_plan_periods:
             for avail_day in actor_plan_period.avail_days:
-                if not (plan_period.start <= avail_day <= plan_period.end) and not avail_day.prep_delete:
+                if not (plan_period.start <= avail_day.date <= plan_period.end) and not avail_day.prep_delete:
                     avail_day.prep_delete = datetime.datetime.utcnow()
         for location_plan_period in plan_period_db.location_plan_periods:
             for event in location_plan_period.events:
-                if not (plan_period.start <= event <= plan_period.end) and not event.prep_delete:
+                if not (plan_period.start <= event.date <= plan_period.end) and not event.prep_delete:
                     event.prep_delete = datetime.datetime.utcnow()
 
         return schemas.PlanPeriodShow.model_validate(plan_period_db)

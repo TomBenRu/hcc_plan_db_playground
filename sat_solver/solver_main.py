@@ -58,6 +58,22 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
         app.requested_assignments = requested_assignments_new[app.id]
 
 
+def check_time_span_avail_day_fits_event(
+        event: schemas.Event, avail_day: schemas.AvailDay, only_time_index: bool = True) -> bool:
+    if only_time_index:
+        return (
+            avail_day.date == event.date
+            and avail_day.time_of_day.time_of_day_enum.time_index
+            == event.time_of_day.time_of_day_enum.time_index
+        )
+    else:
+        return (
+            avail_day.date == event.date
+            and avail_day.time_of_day.start <= event.time_of_day.start
+            and avail_day.time_of_day.end >= event.time_of_day.end
+        )
+
+
 class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
     """Print intermediate solutions."""
 
@@ -248,11 +264,7 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
                 if found_alf.score == 0:
                     entities.shifts_exclusive[adg_id, event_group_id] = 0
             # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
-            if (
-                adg.avail_day.date != event_group.event.date
-                or adg.avail_day.time_of_day.start > event_group.event.time_of_day.start
-                or adg.avail_day.time_of_day.end < event_group.event.time_of_day.end
-            ):
+            if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
                 entities.shifts_exclusive[adg_id, event_group_id] = 0
             #########################################################################################################
             entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(f'shift ({adg_id}, {event_group_id})')
@@ -268,14 +280,6 @@ def add_constraints_employee_availability(model: cp_model.CpModel):
         if not val:
             model.Add(entities.shift_vars[key] == 0)
     return
-
-    for (adg_id, eg_id), var in entities.shift_vars.items():
-        avail_day_group = entities.avail_day_groups[adg_id]
-        event_group = entities.event_groups[eg_id]
-        if (event_group.event.date != avail_day_group.avail_day.date
-                or (event_group.event.time_of_day.start < avail_day_group.avail_day.time_of_day.start)
-                or (event_group.event.time_of_day.end > avail_day_group.avail_day.time_of_day.end)):
-            model.Add(var == 0)
 
 
 def add_constraints_event_groups_activity(model: cp_model.CpModel):
@@ -463,10 +467,9 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                 # Es wird kein InVar erstellt, wenn kein Einsatz dieses AvalDays möglich ist:
                 if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
                            if adg_id == c.avail_day_group_id
-                           and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
-                              == entities.event_groups_with_event[evg_id].event.date
-                              and entities.avail_day_groups_with_avail_day[adg_id].avail_day.time_of_day.time_of_day_enum.time_index
-                              == entities.event_groups_with_event[evg_id].event.time_of_day.time_of_day_enum.time_index):
+                           and check_time_span_avail_day_fits_event(
+                               entities.event_groups_with_event[evg_id].event,
+                               entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
                     continue
 
                 adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[group.depth]

@@ -165,6 +165,15 @@ class DlgPlanPeriodEdit(QDialog):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
+        self.updated_plan_period: schemas.PlanPeriod | None = None
+
+        self.delete_plan_period: bool = False
+
+        self._setup_ui()
+
+        self.fill_dispatchers()
+
+    def _setup_ui(self):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.layout.setSpacing(20)
@@ -205,6 +214,8 @@ class DlgPlanPeriodEdit(QDialog):
         self.de_end.dateChanged.connect(self.proof_with_start)
         self.de_deadline = QDateEdit()
         self.te_notes = QTextEdit()
+        self.bt_reset_from_team = QPushButton('Übernehme von Team-Notes')
+        self.bt_reset_from_team.clicked.connect(self.reset_notes_from_team)
         self.te_notes_for_employees = QTextEdit()
         self.chk_remainder = QCheckBox('Remainder verschicken')
 
@@ -213,25 +224,28 @@ class DlgPlanPeriodEdit(QDialog):
         self.layout_pp_datas.addRow('Deadline:', self.de_deadline)
         self.layout_pp_datas.addRow('Notizen:', None)
         self.layout_pp_datas.addRow(self.te_notes)
-        self.layout_pp_datas.addRow('API-Mitteilungen an die Mitarbeiter', None)
+        self.layout_pp_datas.addRow(self.bt_reset_from_team)
+        self.layout_pp_datas.addRow('API-Mitteilungen an die Mitarbeiter:', None)
         self.layout_pp_datas.addRow(self.te_notes_for_employees)
         self.layout_pp_datas.addRow(self.chk_remainder)
 
         self.bt_delete = QPushButton('Delete')
         self.bt_delete.clicked.connect(self.delete)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.ActionRole)
-        self.button_box.accepted.connect(self.accept)
+        self.button_box.accepted.connect(self.save_changes)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
-
-        self.fill_dispatchers()
 
     def fill_dispatchers(self):
         dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)
                       if p.teams_of_dispatcher and not p.prep_delete]
         for d in dispatcher:
-            self.cb_dispatcher.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/user.png')), f'{d.f_name} {d.l_name}', d)
+            self.cb_dispatcher.addItem(
+                QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/user.png')),
+                f'{d.f_name} {d.l_name}', d
+            )
 
     def fill_teams(self):
         self.cb_teams.clear()
@@ -292,9 +306,23 @@ class DlgPlanPeriodEdit(QDialog):
         if self.de_end.date() < self.de_start.date():
             self.de_start.setDate(self.de_end.date())
 
+    def reset_notes_from_team(self):
+        team: schemas.Team = self.cb_teams.currentData()
+        self.te_notes.setText(team.notes)
+
+    def save_changes(self):
+        plan_period: schemas.PlanPeriod = self.cb_planperiods.currentData()
+        plan_period.start = self.de_start.date().toPython()
+        plan_period.end = self.de_end.date().toPython()
+        plan_period.deadline = self.de_deadline.date().toPython()
+        plan_period.notes = self.te_notes.toPlainText()
+        plan_period.notes_for_employees = self.te_notes_for_employees.toPlainText()
+        plan_period.remainder = self.chk_remainder.isChecked()
+
+        self.updated_plan_period = plan_period
+
+        self.accept()
+
     def delete(self):
-        reply = QMessageBox.question(self, 'Planungsperiode löschen',
-                                     'Wollen Sie diese Planungsperiode wirklich löschen?')
-        if reply == QMessageBox.StandardButton.Yes:
-            plan_period_commands.Delete(self.cb_planperiods.currentData().id).execute()
-            self.accept()
+        self.delete_plan_period = True
+        self.accept()

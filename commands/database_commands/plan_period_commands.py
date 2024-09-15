@@ -18,6 +18,21 @@ class Delete(Command):
         db_services.PlanPeriod.delete(self.plan_period_id)
 
 
+class Update(Command):
+    def __init__(self, plan_period: schemas.PlanPeriod):
+        self.plan_period = plan_period
+        self.plan_period_old = db_services.PlanPeriod.get(plan_period.id)
+
+    def execute(self):
+        db_services.PlanPeriod.update(self.plan_period)
+
+    def undo(self):
+        db_services.PlanPeriod.update(self.plan_period_old)
+
+    def redo(self):
+        db_services.PlanPeriod.update(self.plan_period)
+        
+
 class UpdateNotes(Command):
     def __init__(self, plan_period_id, notes: str):
         self.plan_period_id = plan_period_id

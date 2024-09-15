@@ -224,7 +224,14 @@ class MainWindow(QMainWindow):
                 # todo: Implementieren
                 # Wenn die Planperiode in der DB geupdatet wird, müssen AvailDays mit zugehöriger AvalDayGroup
                 # und Events mit zugehörigen EventGroup und CastGroup gelöscht werden.
-                ...
+                if dlg.delete_plan_period:
+                    reply = QMessageBox.question(self, 'Planungsperiode löschen',
+                                                 'Wollen Sie diese Planungsperiode wirklich löschen?')
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.controller.execute(plan_period_commands.Delete(dlg.cb_planperiods.currentData().id))
+                else:
+                    self.controller.execute(plan_period_commands.Update(dlg.updated_plan_period))
+                    signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(dlg.updated_plan_period.id)
 
     def open_plan(self):
         if not self.curr_team:

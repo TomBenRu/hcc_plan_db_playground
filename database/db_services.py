@@ -1035,7 +1035,8 @@ class PlanPeriod:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period.id)
         plan_period_db.set(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
-                           notes=plan_period.notes, remainder=plan_period.remainder)
+                           notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
+                           remainder=plan_period.remainder)
         for actor_plan_period in plan_period_db.actor_plan_periods:
             for avail_day in actor_plan_period.avail_days:
                 if not (plan_period.start <= avail_day <= plan_period.end) and not avail_day.prep_delete:

@@ -304,13 +304,15 @@ class ExportToXlsx:
             self.offset_y_dates_scheduling_overview - 1, self.offset_x_dates_scheduling_overview + 1,
             '', format_space_rows[0]
         )
-        name_appointment: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
+        name_appointments: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
         for appointment in self.tab_plan.plan.appointments:
             for avail_day in appointment.avail_days:
-                name_appointment[avail_day.actor_plan_period.person.full_name].append(appointment)
-        for appointments in name_appointment.values():
+                name_appointments[avail_day.actor_plan_period.person.full_name].append(appointment)
+            for name in appointment.guests:
+                name_appointments[name].append(appointment)
+        for appointments in name_appointments.values():
             appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
-        for row, name in enumerate(sorted(name_appointment.keys())):
+        for row, name in enumerate(sorted(name_appointments.keys())):
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview,
                 f'{name}:', formats_names[row % 2]
@@ -321,7 +323,7 @@ class ExportToXlsx:
                                       f'({a.event.location_plan_period.location_of_work.name.replace(" ", nbsp)}{nbsp}'
                                       f'{a.event.location_plan_period.location_of_work.address.city}){nbsp}'
                                       f'{a.event.time_of_day.start:%H:%M}'
-                                      for a in name_appointment[name]])
+                                      for a in name_appointments[name]])
             )
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview + 1,

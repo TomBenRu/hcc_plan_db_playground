@@ -22,6 +22,8 @@ class ExportToXlsx:
         self.excel_output_path = output_path
         self.offset_x = 0
         self.offset_y = 3
+        self.offset_x_dates_scheduling_overview = 0
+        self.offset_y_dates_scheduling_overview = 4
         self._create_workbook()
         self._define_formats()
         self._create_worksheets()
@@ -271,22 +273,36 @@ class ExportToXlsx:
                                         self.tab_plan.plan.notes, self.format_notes)
 
     def _write_scheduling_overview(self):
-        self.worksheet_scheduling_overview.set_column(1, 1, self.col_width_names_scheduling_overview)
-        self.worksheet_scheduling_overview.set_column(2, 2, self.col_width_dates_scheduling_overview)
+        self.worksheet_scheduling_overview.set_column(
+            self.offset_x_dates_scheduling_overview, self.offset_y_dates_scheduling_overview,
+            self.col_width_names_scheduling_overview
+        )
+        self.worksheet_scheduling_overview.set_column(
+            self.offset_x_dates_scheduling_overview + 1, self.offset_x_dates_scheduling_overview + 1,
+            self.col_width_dates_scheduling_overview
+        )
+
         nbsp = '\u00A0'
 
-        formats_names = (self.format_names_scheduling_overview_even, self.format_names_scheduling_overview_odd)
-        formats_dates = (self.format_dates_scheduling_overview_even, self.format_dates_scheduling_overview_odd)
-        format_space_rows = (self.format_space_rows_scheduling_overview_even, self.format_space_rows_scheduling_overview_odd)
+        formats_names = (self.format_names_scheduling_overview_even,
+                         self.format_names_scheduling_overview_odd)
+        formats_dates = (self.format_dates_scheduling_overview_even,
+                         self.format_dates_scheduling_overview_odd)
+        format_space_rows = (self.format_space_rows_scheduling_overview_even,
+                             self.format_space_rows_scheduling_overview_odd)
 
         self.worksheet_scheduling_overview.write(
             0, 0, f'Terminübersicht: {self.tab_plan.plan.plan_period.team.name} '
                   f'{self.tab_plan.plan.plan_period.start:%d.%m.%y} - {self.tab_plan.plan.plan_period.end:%d.%m.%y}',
             self.format_title_scheduling_overview
         )
-        self.worksheet_scheduling_overview.set_row(2, self.space_rows_height_scheduling_overview)
+        self.worksheet_scheduling_overview.set_row(
+            self.offset_y_dates_scheduling_overview - 1, self.space_rows_height_scheduling_overview
+        )
         self.worksheet_scheduling_overview.merge_range(
-            2, 1, 2, 2, '', format_space_rows[0]
+            self.offset_y_dates_scheduling_overview - 1, self.offset_x_dates_scheduling_overview,
+            self.offset_y_dates_scheduling_overview - 1, self.offset_x_dates_scheduling_overview + 1,
+            '', format_space_rows[0]
         )
         name_appointment: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
         for appointment in self.tab_plan.plan.appointments:
@@ -295,19 +311,29 @@ class ExportToXlsx:
         for appointments in name_appointment.values():
             appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
         for row, name in enumerate(sorted(name_appointment.keys())):
-            self.worksheet_scheduling_overview.write(row * 2 + 3, 1, f'{name}:', formats_names[row % 2])
             self.worksheet_scheduling_overview.write(
-                row * 2 + 3, 2,
-                ' ● '.join([f'{a.event.date:%d.%m.%y}{nbsp}'
-                            f'({a.event.location_plan_period.location_of_work.name.replace(" ", nbsp)}{nbsp}'
-                            f'{a.event.location_plan_period.location_of_work.address.city}){nbsp}'
-                            f'{a.event.time_of_day.start:%H:%M}'
-                            for a in name_appointment[name]]),
-                formats_dates[row % 2]
+                row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview,
+                f'{name}:', formats_names[row % 2]
             )
-            self.worksheet_scheduling_overview.set_row(row * 2 + 4, self.space_rows_height_scheduling_overview)
+            text_dates = (
+                    f'●{nbsp}' +
+                    f' ●{nbsp}'.join([f'{a.event.date:%d.%m.%y}{nbsp}'
+                                      f'({a.event.location_plan_period.location_of_work.name.replace(" ", nbsp)}{nbsp}'
+                                      f'{a.event.location_plan_period.location_of_work.address.city}){nbsp}'
+                                      f'{a.event.time_of_day.start:%H:%M}'
+                                      for a in name_appointment[name]])
+            )
+            self.worksheet_scheduling_overview.write(
+                row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview + 1,
+                text_dates, formats_dates[row % 2]
+            )
+            self.worksheet_scheduling_overview.set_row(
+                row * 2 + self.offset_y_dates_scheduling_overview + 1, self.space_rows_height_scheduling_overview
+            )
             self.worksheet_scheduling_overview.merge_range(
-                row * 2 + 4, 1, row * 2 + 4, 2, '', format_space_rows[(row + 1) % 2]
+                row * 2 + self.offset_y_dates_scheduling_overview + 1, self.offset_x_dates_scheduling_overview,
+                row * 2 + self.offset_y_dates_scheduling_overview + 1, self.offset_x_dates_scheduling_overview + 1,
+                '', format_space_rows[(row + 1) % 2]
             )
 
     def execute(self):

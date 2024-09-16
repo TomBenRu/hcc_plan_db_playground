@@ -24,7 +24,7 @@ class ExportToXlsx:
         self.offset_y = 3
         self._create_workbook()
         self._define_formats()
-        self._create_worksheet_plan()
+        self._create_worksheets()
         self._generate_weekday_num__col_locations()
         self._generate_week_num__row_merge()
 
@@ -95,6 +95,18 @@ class ExportToXlsx:
             {'bold': True, 'font_size': 12})
         self.format_notes = self.workbook.add_format(
             {'indent': 2, 'text_wrap': True})
+        self.format_title_scheduling_overview = self.workbook.add_format(
+            {'bold': True, 'font_size': 14})
+        self.format_names_scheduling_overview_odd = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'valign': 'top'})
+        self.format_names_scheduling_overview_even = self.workbook.add_format(
+            {'bold': True, 'font_size': 12, 'valign': 'top', 'bg_color': '#D3D3D3'})
+        self.format_dates_scheduling_overview_odd = self.workbook.add_format(
+            {'font_size': 12, 'text_wrap': True})
+        self.format_dates_scheduling_overview_even = self.workbook.add_format(
+            {'font_size': 12, 'text_wrap': True, 'bg_color': '#D3D3D3'})
+        self.format_space_rows_scheduling_overview_odd = self.workbook.add_format({'bg_color': 'white'})
+        self.format_space_rows_scheduling_overview_even = self.workbook.add_format({'bg_color': '#D3D3D3'})
 
         self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
         self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
@@ -112,13 +124,19 @@ class ExportToXlsx:
         self.row_height_dates = 20
         self.col_width_kw = 5
         self.col_width_locations = 18
+        self.col_width_names_scheduling_overview = 20
+        self.col_width_dates_scheduling_overview = 160
+        self.space_rows_height_scheduling_overview = 5
 
-    def _create_worksheet_plan(self):
+    def _create_worksheets(self):
         self.worksheet_plan = self.workbook.add_worksheet('Plan')
-        self.worksheet_plan.set_landscape()
-        self.worksheet_plan.set_paper(9)
-        self.worksheet_plan.set_margins(0.4, 0.4, 0.4, 0.4)
-        self.worksheet_plan.fit_to_pages(1, 1)
+        self.worksheet_scheduling_overview = self.workbook.add_worksheet('Terminübersicht')
+
+        for worksheet in (self.worksheet_plan, self.worksheet_scheduling_overview):
+            worksheet.set_landscape()
+            worksheet.set_paper(9)
+            worksheet.set_margins(0.4, 0.4, 0.4, 0.4)
+            worksheet.fit_to_pages(1, 1)
 
     def _write_headers_week_day_names(self):
         self.worksheet_plan.set_row(self.offset_y, self.row_height_weekdays)
@@ -252,6 +270,46 @@ class ExportToXlsx:
         self.worksheet_plan.merge_range(max_row_of_plan + 3, 1, max_row_of_plan + 3, self.max_col_locations,
                                         self.tab_plan.plan.notes, self.format_notes)
 
+    def _write_scheduling_overview(self):
+        self.worksheet_scheduling_overview.set_column(1, 1, self.col_width_names_scheduling_overview)
+        self.worksheet_scheduling_overview.set_column(2, 2, self.col_width_dates_scheduling_overview)
+        nbsp = '\u00A0'
+
+        formats_names = (self.format_names_scheduling_overview_even, self.format_names_scheduling_overview_odd)
+        formats_dates = (self.format_dates_scheduling_overview_even, self.format_dates_scheduling_overview_odd)
+        format_space_rows = (self.format_space_rows_scheduling_overview_even, self.format_space_rows_scheduling_overview_odd)
+
+        self.worksheet_scheduling_overview.write(
+            0, 0, f'Terminübersicht: {self.tab_plan.plan.plan_period.team.name} '
+                  f'{self.tab_plan.plan.plan_period.start:%d.%m.%y} - {self.tab_plan.plan.plan_period.end:%d.%m.%y}',
+            self.format_title_scheduling_overview
+        )
+        self.worksheet_scheduling_overview.set_row(2, self.space_rows_height_scheduling_overview)
+        self.worksheet_scheduling_overview.merge_range(
+            2, 1, 2, 2, '', format_space_rows[0]
+        )
+        name_appointment: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
+        for appointment in self.tab_plan.plan.appointments:
+            for avail_day in appointment.avail_days:
+                name_appointment[avail_day.actor_plan_period.person.full_name].append(appointment)
+        for appointments in name_appointment.values():
+            appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+        for row, name in enumerate(sorted(name_appointment.keys())):
+            self.worksheet_scheduling_overview.write(row * 2 + 3, 1, f'{name}:', formats_names[row % 2])
+            self.worksheet_scheduling_overview.write(
+                row * 2 + 3, 2,
+                ' ● '.join([f'{a.event.date:%d.%m.%y}{nbsp}'
+                            f'({a.event.location_plan_period.location_of_work.name.replace(" ", nbsp)}{nbsp}'
+                            f'{a.event.location_plan_period.location_of_work.address.city}){nbsp}'
+                            f'{a.event.time_of_day.start:%H:%M}'
+                            for a in name_appointment[name]]),
+                formats_dates[row % 2]
+            )
+            self.worksheet_scheduling_overview.set_row(row * 2 + 4, self.space_rows_height_scheduling_overview)
+            self.worksheet_scheduling_overview.merge_range(
+                row * 2 + 4, 1, row * 2 + 4, 2, '', format_space_rows[(row + 1) % 2]
+            )
+
     def execute(self):
         self._write_headers_week_day_names()
         self._write_locations()
@@ -260,6 +318,7 @@ class ExportToXlsx:
         self._write_appointments()
         self._write_title_and_creation_date()
         self._write_notes()
+        self._write_scheduling_overview()
 
         while True:
             success = True

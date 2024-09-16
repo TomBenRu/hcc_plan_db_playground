@@ -162,6 +162,7 @@ class SlideInMenu(QWidget):
         self.align = align
         self.menu_size = menu_size  # Width or Height depending on alignment
         self.snap_size = snap_size
+        self.content_margins = content_margins
         self.pos_hide = 0
         self.pos_show = 0
 
@@ -170,6 +171,13 @@ class SlideInMenu(QWidget):
         self.color_buttons = '#e1e1e1'
         self.color_text = 'black'
 
+        self._setup_ui()
+
+        self.animation = QPropertyAnimation(self, b"pos")
+
+        parent.resizeEvent = self.parent_resize_event
+
+    def _setup_ui(self):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -178,23 +186,19 @@ class SlideInMenu(QWidget):
         self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
         self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        self.container_fields.setContentsMargins(*content_margins)
+        self.container_fields.setContentsMargins(*self.content_margins)
         self.scroll_area_fields.setWidget(self.container_fields)
 
-        if align in ('left', 'right'):
-            self.setGeometry(self.pos_hide, 0, menu_size, self.parent.height())
-            self.container_fields.setMinimumWidth(menu_size - 20)
+        if self.align in ('left', 'right'):
+            self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
+            self.container_fields.setMinimumWidth(self.menu_size - 20)
             self.layout_fields = QVBoxLayout(self.container_fields)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignTop)
         else:
-            self.setGeometry(0, self.pos_hide, self.parent.width(), menu_size)
-            self.container_fields.setMinimumHeight(menu_size - 20)
+            self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
+            self.container_fields.setMinimumHeight(self.menu_size - 20)
             self.layout_fields = QHBoxLayout(self.container_fields)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        self.animation = QPropertyAnimation(self, b"pos")
-
-        parent.resizeEvent = self.parent_resize_event
 
     def set_positions(self):
         """Set the hide and show positions based on the alignment."""

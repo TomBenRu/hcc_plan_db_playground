@@ -638,7 +638,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout_notes_actor.addWidget(self.lb_notes_actor)
         self.layout_notes_actor.addWidget(self.te_notes_actor)
 
-        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
+        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
 
     def setup_selector_table(self):
         self.table_select_actor.setSortingEnabled(True)
@@ -721,7 +721,7 @@ class FrmTabActorPlanPeriods(QWidget):
 
 class FrmActorPlanPeriod(QWidget):
     def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodShow,
-                 side_menu: side_menu.WidgetSideMenu):
+                 side_menu: side_menu.SlideInMenu):
         super().__init__(parent)
 
         self.setContentsMargins(0, 0, 0, 10)

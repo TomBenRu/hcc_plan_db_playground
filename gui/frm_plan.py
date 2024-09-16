@@ -452,7 +452,7 @@ class FrmTabPlan(QWidget):
         self._setup_side_menu()
 
     def _setup_side_menu(self):
-        self.side_menu = side_menu.WidgetSideMenu(self, 250, 10, 'right')
+        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
         self.chk_permanent_plan_check = QCheckBox('Überprüfung im Hintergrund')
         self.chk_permanent_plan_check.setToolTip('Fehlerüberprüfung bei jeder Besetzungsänderung.')
         self.chk_permanent_plan_check.setChecked(True)

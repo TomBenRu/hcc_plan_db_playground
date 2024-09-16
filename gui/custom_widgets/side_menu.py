@@ -137,7 +137,7 @@ Examples:
             button.deleteLater()
 
 
-class WidgetSideMenu(QWidget):
+class SlideInMenu(QWidget):
     def __init__(self, parent: QWidget, menu_size: int, snap_size: int,
                  align: Literal['left', 'right', 'top', 'bottom'],
                  content_margins: tuple[int, int, int, int] = (20, 20, 0, 20)):
@@ -283,25 +283,3 @@ class WidgetSideMenu(QWidget):
         buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
         for button in buttons:
             button.deleteLater()
-
-
-if __name__ == '__main__':
-    app = QApplication()
-
-    class Window(QWidget):
-        def __init__(self):
-            super().__init__()
-            self.resize(800, 600)
-            self.layout = QVBoxLayout()
-            self.setLayout(self.layout)
-            self.layout.addWidget(QLabel('dlkfjlakdsjflöaksdjflkjadslfjalsdkjflaskdjflasdjflkajsdflkajsd'))
-
-            self.side_menu = WidgetSideMenu(self, 150, 10, 'left')
-            for i in range(1, 11):
-                button = QPushButton(f'Option {i:02}')
-                self.side_menu.add_button(button)
-
-
-    window = Window()
-    window.show()
-    app.exec()

@@ -141,19 +141,20 @@ class SlideInMenu(QWidget):
     def __init__(self, parent: QWidget, menu_size: int, snap_size: int,
                  align: Literal['left', 'right', 'top', 'bottom'],
                  content_margins: tuple[int, int, int, int] = (20, 20, 0, 20)):
-        super().__init__(parent)
         """
         Initializes a custom side/top/bottom menu widget.
 
         Args:
-            parent (QWidget): The parent widget.
-            menu_size (int): The size (width for left/right, height for top/bottom) of the menu.
-            snap_size (int): The snap size.
-            align (Literal['left', 'right', 'top', 'bottom']): The alignment of the menu.
+            parent: The parent widget.
+            menu_size: The size (width for left/right, height for top/bottom) of the menu.
+            snap_size: The snap size.
+            align: The alignment of the menu.
+            content_margins: The padding of containing widgets ('left', 'top', 'right', 'bottom')
 
         Returns:
             None
         """
+        super().__init__(parent)
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
@@ -172,13 +173,13 @@ class SlideInMenu(QWidget):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.scrollarea_fields = QScrollArea()
-        self.scrollarea_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
-        self.layout.addWidget(self.scrollarea_fields)
+        self.scroll_area_fields = QScrollArea()
+        self.scroll_area_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
+        self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
         self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
         self.container_fields.setContentsMargins(*content_margins)
-        self.scrollarea_fields.setWidget(self.container_fields)
+        self.scroll_area_fields.setWidget(self.container_fields)
 
         if align in ('left', 'right'):
             self.setGeometry(self.pos_hide, 0, menu_size, self.parent.height())

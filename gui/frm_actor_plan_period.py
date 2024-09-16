@@ -1,7 +1,6 @@
 import datetime
 import functools
 import os.path
-import pprint
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -12,17 +11,15 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
-from line_profiler_pycharm import profile
 
-from database import schemas, db_services, schemas_plan_api, enums
-from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date, \
-    get_curr_team_of_person_at_date, get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
+from database import schemas, db_services, schemas_plan_api
+from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
     get_persons_of_team_at_date_2
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.custom_widgets import side_menu
 from gui.frm_remote_access_plan_api import fetch_available_days
-from gui.tools.actions import MenuToolbarAction
+from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling

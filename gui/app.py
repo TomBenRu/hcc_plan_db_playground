@@ -7,7 +7,8 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from gui.custom_widgets.splash_screen import SplashScreen
-from gui.tools import proof_only_one_instance
+from tools import proof_only_one_instance
+from tools.screen import Screen
 
 app = QApplication(sys.argv)
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
@@ -24,7 +25,6 @@ splash.simulate_loading()
 
 
 from gui.main_window import MainWindow
-from gui.tools.screen import Screen
 
 logging.basicConfig(filename='pony.log', level=logging.INFO,
                     format='%(created)f-%(asctime)s\n%(message)s\n')

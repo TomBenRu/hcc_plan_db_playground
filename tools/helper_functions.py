@@ -1,6 +1,7 @@
+from collections import defaultdict
 from uuid import UUID
 
-from database import db_services
+from database import db_services, schemas
 
 
 def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
@@ -49,3 +50,16 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None):
         clear_text = clear_text[:-1]
 
     return clear_text
+
+
+def get_appointments_of_actors_from_plan(plan: schemas.PlanShow) -> dict[str, list[schemas.Appointment]]:
+    name_appointments: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
+    for appointment in plan.appointments:
+        for avail_day in appointment.avail_days:
+            name_appointments[avail_day.actor_plan_period.person.full_name].append(appointment)
+        for name in appointment.guests:
+            name_appointments[name].append(appointment)
+    for appointments in name_appointments.values():
+        appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+
+    return {name: name_appointments[name] for name in sorted(name_appointments.keys())}

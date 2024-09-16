@@ -1,6 +1,4 @@
 import datetime
-import json
-import os
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Callable, Sequence, TypeAlias, NewType
@@ -20,8 +18,8 @@ from commands.database_commands import avail_day_group_commands
 from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.observer import signal_handling
-from gui.tools.screen import Screen
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
+from tools.screen import Screen
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1

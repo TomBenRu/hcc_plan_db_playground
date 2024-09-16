@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from configuration.solver import curr_config_handler
 from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
-from gui.tools.custom_validators import IntAndFloatValidator, IntValidator
+from tools.custom_validators import IntAndFloatValidator, IntValidator
 
 
 class DlgSettingsSolverParams(QDialog):

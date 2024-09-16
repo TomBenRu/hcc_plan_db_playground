@@ -1,17 +1,15 @@
 import datetime
-from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Qt, Slot, QCoreApplication
+from PySide6.QtCore import QThread, Signal, QObject, Slot
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
-    QProgressDialog, QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
+    QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
-import gui.tools.helper_functions
+import tools
 import sat_solver.solver_main
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands
 from database import db_services, schemas
-from gui import frm_cast_group
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
 
@@ -232,7 +230,7 @@ class DlgCalculate(QDialog):
             conflict_string = '\n'.join([f'  - {e.date:%d.%m.%y} ({e.time_of_day.name}) '
                                          f'{e.location_plan_period.location_of_work.name}:\n'
                                          f'      - Feste Besetzung: '
-                                         f'{gui.tools.helper_functions.generate_fixed_cast_clear_text(e.cast_group.fixed_cast)}'
+                                         f'{tools.helper_functions.generate_fixed_cast_clear_text(e.cast_group.fixed_cast)}'
                                          for e in events])
             QMessageBox.critical(self, 'Fehler',
                                  f'Es wurden {sum(fixed_cast_conflicts.values())} Fixcast-Konflikte gefunden.\n'

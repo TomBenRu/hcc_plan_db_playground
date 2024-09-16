@@ -23,8 +23,8 @@ class RotatableContainer(QGraphicsView):
         self.proxy.setRotation(rotation)
 
 
-class WidgetSideMenu(QWidget):
-    def __init__(self, parent: QWidget, menu_width: int, snap_width: int, align: Literal['left', 'right']):
+class WidgetSideMenuOld(QWidget):
+    def __init__(self, parent: QWidget, menu_size: int, snap_size: int, align: Literal['left', 'right']):
         super().__init__(parent)
         """
 Initializes a custom side menu widget.
@@ -47,13 +47,16 @@ Examples:
 
         self.parent = parent
         self.align = align
-        self.menu_width = menu_width
-        self.snap_width = snap_width
-        self.pos_x_hide = 0
-        self.pos_x_show = 0
+        self.menu_size = menu_size
+        self.snap_width = snap_size
+        self.pos_hide = 0
+        self.pos_show = 0
 
         self.set_positions()
-        self.setGeometry(self.pos_x_hide, 0, menu_width, 600)
+        if self.align in ['left', 'right']:
+            self.setGeometry(self.pos_hide, 0, menu_size, self.parent.height())
+        else:
+            self.setGeometry(0, self.pos_hide, self.parent.width(), menu_size)
         self.color_buttons = '#e1e1e1'
         self.color_text = 'black'
 
@@ -63,9 +66,9 @@ Examples:
         self.scrollarea_fields = QScrollArea()
         self.scrollarea_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
         self.layout.addWidget(self.scrollarea_fields)
-        self.container_fields = QLabel()
+        self.container_fields = QWidget()
         self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
-        self.container_fields.setMinimumWidth(menu_width - 20)
+        self.container_fields.setMinimumWidth(menu_size - 20)
         self.container_fields.setContentsMargins(20, 20, 0, 20)
         self.scrollarea_fields.setWidget(self.container_fields)
 
@@ -81,37 +84,37 @@ Examples:
 
     def set_positions(self):
         if self.align == 'left':
-            self.pos_x_hide = self.snap_width - self.menu_width
-            self.pos_x_show = 0
+            self.pos_hide = self.snap_width - self.menu_size
+            self.pos_show = 0
         elif self.align == 'right':
-            self.pos_x_hide = self.parent.width() - self.snap_width
-            self.pos_x_show = self.parent.width() - self.menu_width
+            self.pos_hide = self.parent.width() - self.snap_width
+            self.pos_show = self.parent.width() - self.menu_size
 
     def parent_resize_event(self, e):
         self.set_positions()
-        self.setGeometry(self.pos_x_hide, 0, self.menu_width, self.parent.height())
+        self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
 
     def enterEvent(self, event: QMouseEvent) -> None:
-        self.show_sidemenu()
+        self.show_menu()
 
     def leaveEvent(self, event: QEvent) -> None:
-        self.hide_siedemenu()
+        self.hide_menu()
 
-    def show_sidemenu(self):
+    def show_menu(self):
         self.animation.setEasingCurve(QEasingCurve.OutBounce)
-        self.animation.setEndValue(QPoint(self.pos_x_show, 0))
+        self.animation.setEndValue(QPoint(self.pos_show, 0))
         self.animation.setDuration(750)
         self.animation.start()
 
-    def hide_siedemenu(self):
+    def hide_menu(self):
         self.animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.animation.setEndValue(QPoint(self.pos_x_hide, 0))
+        self.animation.setEndValue(QPoint(self.pos_hide, 0))
         self.animation.setDuration(750)
         self.animation.start()
 
-    def set_side_menu_width(self, width: int):
-        self.menu_width = width
-        self.setGeometry(self.pos_x_hide, 0, self.menu_width, self.parent.height())
+    def set_menu_size(self, width: int):
+        self.menu_size = width
+        self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
 
     def add_button(self, button: QPushButton):
         button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
@@ -129,6 +132,154 @@ Examples:
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
     def delete_all_buttons(self):
+        buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
+        for button in buttons:
+            button.deleteLater()
+
+
+class WidgetSideMenu(QWidget):
+    def __init__(self, parent: QWidget, menu_size: int, snap_size: int,
+                 align: Literal['left', 'right', 'top', 'bottom'],
+                 content_margins: tuple[int, int, int, int] = (20, 20, 0, 20)):
+        super().__init__(parent)
+        """
+        Initializes a custom side/top/bottom menu widget.
+
+        Args:
+            parent (QWidget): The parent widget.
+            menu_size (int): The size (width for left/right, height for top/bottom) of the menu.
+            snap_size (int): The snap size.
+            align (Literal['left', 'right', 'top', 'bottom']): The alignment of the menu.
+
+        Returns:
+            None
+        """
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+
+        self.parent = parent
+        self.align = align
+        self.menu_size = menu_size  # Width or Height depending on alignment
+        self.snap_size = snap_size
+        self.pos_hide = 0
+        self.pos_show = 0
+
+        self.set_positions()
+
+        self.color_buttons = '#e1e1e1'
+        self.color_text = 'black'
+
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.scrollarea_fields = QScrollArea()
+        self.scrollarea_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
+        self.layout.addWidget(self.scrollarea_fields)
+        self.container_fields = QWidget()
+        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        self.container_fields.setContentsMargins(*content_margins)
+        self.scrollarea_fields.setWidget(self.container_fields)
+
+        if align in ('left', 'right'):
+            self.setGeometry(self.pos_hide, 0, menu_size, self.parent.height())
+            self.container_fields.setMinimumWidth(menu_size - 20)
+            self.layout_fields = QVBoxLayout(self.container_fields)
+            self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignTop)
+        else:
+            self.setGeometry(0, self.pos_hide, self.parent.width(), menu_size)
+            self.container_fields.setMinimumHeight(menu_size - 20)
+            self.layout_fields = QHBoxLayout(self.container_fields)
+            self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.animation = QPropertyAnimation(self, b"pos")
+
+        parent.resizeEvent = self.parent_resize_event
+
+    def set_positions(self):
+        """Set the hide and show positions based on the alignment."""
+        if self.align == 'left':
+            self.pos_hide = self.snap_size - self.menu_size
+            self.pos_show = 0
+        elif self.align == 'right':
+            self.pos_hide = self.parent.width() - self.snap_size
+            self.pos_show = self.parent.width() - self.menu_size
+        elif self.align == 'top':
+            self.pos_hide = self.snap_size - self.menu_size
+            self.pos_show = 0
+        elif self.align == 'bottom':
+            self.pos_hide = self.parent.height() - self.snap_size
+            self.pos_show = self.parent.height() - self.menu_size
+
+    def parent_resize_event(self, e):
+        """Handle resizing of the parent widget."""
+        self.set_positions()
+        if self.align in ['left', 'right']:
+            self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
+        else:
+            self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
+
+    def enterEvent(self, event: QMouseEvent) -> None:
+        """Show the menu when the mouse enters."""
+        self.show_menu()
+
+    def leaveEvent(self, event: QEvent) -> None:
+        """Hide the menu when the mouse leaves."""
+        self.hide_menu()
+
+    def show_menu(self):
+        """Show the menu with an animation."""
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)
+        if self.align in ['left', 'right']:
+            self.animation.setEndValue(QPoint(self.pos_show, 0))
+        else:
+            self.animation.setEndValue(QPoint(0, self.pos_show))
+        self.animation.setDuration(750)
+        self.animation.start()
+
+    def hide_menu(self):
+        """Hide the menu with an animation."""
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        if self.align in ['left', 'right']:
+            self.animation.setEndValue(QPoint(self.pos_hide, 0))
+        else:
+            self.animation.setEndValue(QPoint(0, self.pos_hide))
+        self.animation.setDuration(750)
+        self.animation.start()
+
+    def set_menu_size(self, size: int):
+        """Set the width (left/right) or height (top/bottom) of the menu."""
+        self.menu_size = size
+        if self.align in ['left', 'right']:
+            self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
+        else:
+            self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
+
+    def add_button(self, button: QPushButton):
+        """Add a button to the menu."""
+        button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
+        self.layout_fields.addWidget(button)
+        self.adjust_container_size()
+
+    def add_check_box(self, check_box: QCheckBox):
+        """Add a checkbox to the menu."""
+        widget = QWidget()
+        widget.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
+        widget.setContentsMargins(10, 2, 10, 2)
+        widget_layout = QVBoxLayout(widget)
+        widget_layout.setContentsMargins(0, 0, 0, 0)
+        widget_layout.addWidget(check_box)
+        self.layout_fields.addWidget(widget)
+        self.adjust_container_size()
+
+    def adjust_container_size(self):
+        """Adjust the container size based on the number of child widgets."""
+        if self.align in ['left', 'right']:
+            self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
+        else:
+            self.container_fields.setMinimumWidth(len(self.container_fields.children()) * 100 + 30)
+
+    def delete_all_buttons(self):
+        """Delete all buttons from the menu."""
         buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
         for button in buttons:
             button.deleteLater()

@@ -19,7 +19,7 @@ from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, D
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
-from gui.tools.actions import MenuToolbarAction
+from tools.actions import MenuToolbarAction
 from .frm_open_panperiod_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit

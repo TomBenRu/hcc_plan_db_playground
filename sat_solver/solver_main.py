@@ -15,10 +15,10 @@ from ortools.sat.python.cp_model import IntVar
 from database import db_services, schemas
 from configuration.solver import curr_config_handler
 from gui.observer import signal_handling
-from gui.tools.helper_functions import generate_fixed_cast_clear_text
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
+from tools.helper_functions import generate_fixed_cast_clear_text
 
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):

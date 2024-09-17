@@ -7,7 +7,7 @@ from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool
+from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool, Signal
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
@@ -25,6 +25,7 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
+from tools.helper_functions import get_appointments_of_actors_from_plan
 
 
 def fill_in_data(appointment_field: 'AppointmentField'):
@@ -414,6 +415,8 @@ class AppointmentField(QWidget):
 
 
 class FrmTabPlan(QWidget):
+    resize_signal = Signal()
+    
     def __init__(self, parent: QWidget, plan: schemas.PlanShow,
                  update_progress_manager: GlobalUpdatePlanTabsProgressManager):
         super().__init__(parent=parent)
@@ -450,7 +453,12 @@ class FrmTabPlan(QWidget):
         self._show_table_plan()
 
         self._setup_side_menu()
+        self._setup_bottom_menu()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.resize_signal.emit()
+    
     def _setup_side_menu(self):
         self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
         self.chk_permanent_plan_check = QCheckBox('Überprüfung im Hintergrund')
@@ -470,6 +478,11 @@ class FrmTabPlan(QWidget):
         self.bt_refresh = QPushButton('Ansicht aktualisieren')
         self.bt_refresh.clicked.connect(self.refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
+
+    def _setup_bottom_menu(self):
+        self.bottom_menu = side_menu.SlideInMenu(self, 200, 10, 'bottom', (20, 10, 20, 10))
+        self.plan_statistics = TblPlanStatistics(self, self.plan.id)
+        self.bottom_menu.add_widget(self.plan_statistics)
 
     def _generate_plan_data(self):
         self.all_days_of_month = self.generate_all_days()
@@ -764,3 +777,32 @@ class FrmTabPlan(QWidget):
                 for appointment in appointments:
                     day_field.add_appointment_field(
                         AppointmentField(appointment, self))
+
+
+class TblPlanStatistics(QTableWidget):
+    def __init__(self, parent: QWidget, plan_id: UUID):
+        super().__init__(parent)
+
+        self.plan_id = plan_id
+        self._setup_data()
+        self._setup_table_schedule()
+
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.table_schedule_statistic = QTableWidget()
+        self._setup_table_schedule()
+        self.layout.addWidget(self.table_schedule_statistic)
+
+    def _setup_table_schedule(self):
+        self.setColumnCount(len(self.appointments_of_employees))
+        self.setRowCount(4)
+        self.setHorizontalHeaderLabels(self.appointments_of_employees.keys())
+        for i in range(self.columnCount()):
+            self.setColumnWidth(i, 100)
+        self.setVerticalHeaderLabels(('Wunsch', 'kann', 'gerecht', 'zugeteilt'))
+
+    def _setup_data(self):
+        self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
+        self.appointments_of_employees = get_appointments_of_actors_from_plan(self.plan)
+

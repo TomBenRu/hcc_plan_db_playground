@@ -6,7 +6,7 @@ from typing import Callable
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
@@ -564,6 +564,8 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
 
 class FrmTabActorPlanPeriods(QWidget):
+    resize_signal = Signal()
+
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
 
@@ -639,6 +641,10 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout_notes_actor.addWidget(self.te_notes_actor)
 
         self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.resize_signal.emit()
 
     def setup_selector_table(self):
         self.table_select_actor.setSortingEnabled(True)

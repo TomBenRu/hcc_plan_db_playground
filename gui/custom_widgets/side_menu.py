@@ -2,7 +2,7 @@ from typing import Literal, Iterable
 
 from PySide6.QtGui import QMouseEvent, Qt
 from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene,
-                               QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout)
+                               QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout, QTableWidget)
 from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent
 
 
@@ -155,6 +155,9 @@ class SlideInMenu(QWidget):
             None
         """
         super().__init__(parent)
+
+        parent.resize_signal.connect(self.parent_resize_event)
+
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
@@ -174,8 +177,6 @@ class SlideInMenu(QWidget):
         self._setup_ui()
 
         self.animation = QPropertyAnimation(self, b"pos")
-
-        parent.resizeEvent = self.parent_resize_event
 
     def _setup_ui(self):
         self.layout = QHBoxLayout(self)
@@ -217,7 +218,7 @@ class SlideInMenu(QWidget):
             self.pos_hide = self.parent.height() - self.snap_size
             self.pos_show = self.parent.height() - self.menu_size
 
-    def parent_resize_event(self, e):
+    def parent_resize_event(self):
         """Handle resizing of the parent widget."""
         self.set_positions()
         if self.align in ['left', 'right']:
@@ -278,6 +279,10 @@ class SlideInMenu(QWidget):
         self.layout_fields.addWidget(widget)
         self.adjust_container_size()
 
+    def add_widget(self, widget: QWidget):
+        self.layout_fields.addWidget(widget)
+        self.adjust_container_size()
+
     def adjust_container_size(self):
         """Adjust the container size based on the number of child widgets."""
         widgets_of_container = [w for w in self.container_fields.children()
@@ -290,11 +295,18 @@ class SlideInMenu(QWidget):
                 + self.content_margins[1] + self.content_margins[3]
             )
         else:
+            table_width = 0
+            for widget in widgets_of_container:
+                if isinstance(widget, QTableWidget):
+                    # Breite des horizontalen Headers des QTableWidget ermitteln
+                    header_width = widget.horizontalHeader().length()  # Gesamtlänge der Spalten
+                    table_width += header_width + widget.verticalHeader().width()
             self.container_fields.setMinimumWidth(
-                sum(w.sizeHint().width() for w in widgets_of_container)
+                sum(w.sizeHint().width() for w in widgets_of_container if not isinstance(w, QTableWidget))
                 + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1)
                 + sum((w.contentsMargins().left() + w.contentsMargins().right()) for w in widgets_of_container)
                 + self.content_margins[0] + self.content_margins[2]
+                + table_width or 0
             )
 
     def delete_all_buttons(self):

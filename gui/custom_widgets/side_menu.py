@@ -2,7 +2,7 @@ from typing import Literal, Iterable
 
 from PySide6.QtGui import QMouseEvent, Qt
 from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene,
-                               QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox)
+                               QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout)
 from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent
 
 
@@ -185,18 +185,18 @@ class SlideInMenu(QWidget):
         self.scroll_area_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
         self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
-        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
+        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 100);")
         self.container_fields.setContentsMargins(*self.content_margins)
         self.scroll_area_fields.setWidget(self.container_fields)
 
         if self.align in ('left', 'right'):
             self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
-            self.container_fields.setMinimumWidth(self.menu_size - 20)
+            self.container_fields.setMinimumWidth(self.menu_size - self.snap_size)
             self.layout_fields = QVBoxLayout(self.container_fields)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignTop)
         else:
             self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
-            self.container_fields.setMinimumHeight(self.menu_size - 20)
+            self.container_fields.setMinimumHeight(self.menu_size - self.snap_size)
             self.layout_fields = QHBoxLayout(self.container_fields)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
@@ -278,10 +278,20 @@ class SlideInMenu(QWidget):
 
     def adjust_container_size(self):
         """Adjust the container size based on the number of child widgets."""
+        widgets_of_container = [w for w in self.container_fields.children()
+                                if isinstance(w, QWidget) and w.parent() == self.container_fields]
         if self.align in ['left', 'right']:
-            self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
+            self.container_fields.setMinimumHeight(
+                sum(w.sizeHint().height() for w in widgets_of_container)
+                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1) * 2
+                + self.content_margins[1] + self.content_margins[3]
+            )
         else:
-            self.container_fields.setMinimumWidth(len(self.container_fields.children()) * 100 + 30)
+            self.container_fields.setMinimumWidth(
+                sum(w.sizeHint().width() for w in widgets_of_container)
+                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1) * 2
+                + self.content_margins[0] + self.content_margins[2]
+            )
 
     def delete_all_buttons(self):
         """Delete all buttons from the menu."""

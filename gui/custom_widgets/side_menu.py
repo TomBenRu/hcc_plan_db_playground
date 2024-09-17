@@ -185,7 +185,7 @@ class SlideInMenu(QWidget):
         self.scroll_area_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
         self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
-        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 100);")
+        self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
         self.container_fields.setContentsMargins(*self.content_margins)
         self.scroll_area_fields.setWidget(self.container_fields)
 
@@ -193,11 +193,13 @@ class SlideInMenu(QWidget):
             self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
             self.container_fields.setMinimumWidth(self.menu_size - self.snap_size)
             self.layout_fields = QVBoxLayout(self.container_fields)
+            self.layout_fields.setContentsMargins(0, 0, 0, 0)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignTop)
         else:
             self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
             self.container_fields.setMinimumHeight(self.menu_size - self.snap_size)
             self.layout_fields = QHBoxLayout(self.container_fields)
+            self.layout_fields.setContentsMargins(0, 0, 0, 0)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
     def set_positions(self):
@@ -283,13 +285,15 @@ class SlideInMenu(QWidget):
         if self.align in ['left', 'right']:
             self.container_fields.setMinimumHeight(
                 sum(w.sizeHint().height() for w in widgets_of_container)
-                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1) * 2
+                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1)
+                + sum((w.contentsMargins().top() + w.contentsMargins().bottom()) for w in widgets_of_container)
                 + self.content_margins[1] + self.content_margins[3]
             )
         else:
             self.container_fields.setMinimumWidth(
                 sum(w.sizeHint().width() for w in widgets_of_container)
-                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1) * 2
+                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1)
+                + sum((w.contentsMargins().left() + w.contentsMargins().right()) for w in widgets_of_container)
                 + self.content_margins[0] + self.content_margins[2]
             )
 

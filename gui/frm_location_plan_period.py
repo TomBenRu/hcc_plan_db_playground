@@ -416,7 +416,7 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.layout.addWidget(self.bt_cast_groups_plan_period)
 
-        self.side_menu = side_menu.SlideInMenu(self, 80, 10, 'bottom', (20, 0, 20, 0))
+        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
 
     def setup_selector_table(self):
         self.table_select_location.setSortingEnabled(True)

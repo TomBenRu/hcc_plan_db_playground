@@ -53,6 +53,7 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None):
 
 
 def get_appointments_of_actors_from_plan(plan: schemas.PlanShow) -> dict[str, list[schemas.Appointment]]:
+    pp: schemas.PlanPeriodShow
     name_appointments: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
     for appointment in plan.appointments:
         for avail_day in appointment.avail_days:
@@ -63,3 +64,22 @@ def get_appointments_of_actors_from_plan(plan: schemas.PlanShow) -> dict[str, li
         appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
 
     return {name: name_appointments[name] for name in sorted(name_appointments.keys())}
+
+
+def get_appointments_of_all_actors_from_plan(
+        plan: schemas.PlanShow) -> dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]]:
+    plan_period = db_services.PlanPeriod.get(plan.plan_period.id)
+    result: dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]] = {
+        app.person.full_name: (app, []) for app in plan_period.actor_plan_periods
+    }
+    for appointment in plan.appointments:
+        for avail_day in appointment.avail_days:
+            result[avail_day.actor_plan_period.person.full_name][1].append(appointment)
+        for name in appointment.guests:
+            if not result.get(name):
+                result[name] = (None, [])
+            result[name][1].append(appointment)
+    for _, appointments in result.values():
+        appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+
+    return {name: result[name] for name in sorted(result.keys())}

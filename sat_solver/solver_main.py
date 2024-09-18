@@ -4,7 +4,8 @@ import itertools
 import time
 from collections import defaultdict
 import datetime
-from typing import Generator
+from datetime import date
+from typing import Generator, Tuple, List, Any, Dict
 from uuid import UUID
 
 from line_profiler_pycharm import profile
@@ -14,6 +15,7 @@ from ortools.sat.python.cp_model import IntVar
 
 from database import db_services, schemas
 from configuration.solver import curr_config_handler
+from database.schemas import AppointmentCreate
 from gui.observer import signal_handling
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
@@ -56,6 +58,8 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
                 break
     for app in entities.actor_plan_periods.values():
         app.requested_assignments = requested_assignments_new[app.id]
+
+    return requested_assignments_new
 
 
 def check_time_span_avail_day_fits_event(
@@ -1294,7 +1298,8 @@ def call_solver_with_unadjusted_requested_assignments(
 def call_solver_to_get_max_shifts_per_app(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
         sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
-        assigned_shifts: int, max_search_time: int, log_search_process: bool) -> Generator[bool, None, bool]:
+        assigned_shifts: int, max_search_time: int,
+        log_search_process: bool) -> Generator[bool, None, tuple[bool, dict[UUID, int], dict[UUID, float]]]:
     """
     Berechnet für jeden Mitarbeiter die maximal mögliche Anzahl von Einsätzen.
     Anhand dieser Werte wird über die Funktion generate_adjusted_requested_assignments() eine gerechte Verteilung
@@ -1336,14 +1341,14 @@ def call_solver_to_get_max_shifts_per_app(
             max_shifts_of_apps[app_id] = solver.value(max_shifts_of_app)
 
         else:
-            return False
+            return False, {}, {}
 
     print(f'{sum(max_shifts_of_apps.values())=}')
 
     print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
 
-    generate_adjusted_requested_assignments(assigned_shifts, max_shifts_of_apps)
+    fair_assignments = generate_adjusted_requested_assignments(assigned_shifts, max_shifts_of_apps)
 
     print('------------------------ Adjusted Assignments ----------------------------------')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
@@ -1352,7 +1357,7 @@ def call_solver_to_get_max_shifts_per_app(
     print(f'{sum(app.requested_assignments for app in entities.actor_plan_periods.values())=}')
     print(f'{assigned_shifts=}')
 
-    return True
+    return True, max_shifts_of_apps, fair_assignments
 
 
 def call_solver_with_adjusted_requested_assignments(
@@ -1505,8 +1510,10 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=False) -> tuple[list[list[schemas.AppointmentCreate]] | None,
-                                                                  dict[tuple[datetime.date, str, UUID], int] | None]:
+          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+                                                                  dict[tuple[date, str, UUID], int] | None,
+                                                                  dict[UUID, int] | None,
+                                                                  dict[UUID, int] | None]:
 
     signal_handling.handler_solver.progress('Vorberechnungen...')
     global entities
@@ -1523,9 +1530,9 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                                   time_calc_max_shifts,
                                                                                   log_search_process)
     if sum(fixed_cast_conflicts.values()):
-        return [], fixed_cast_conflicts
+        return [], fixed_cast_conflicts, None, None
     if not success:
-        return None, None
+        return None, None, None, None
 
     get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(event_group_tree,
                                                                    avail_day_group_tree,
@@ -1543,11 +1550,11 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
             signal_handling.handler_solver.progress('Bestimmung gerechter Einsätze...')
             next(get_max_shifts_per_app)
         except StopIteration as e:
-            success = e.value
+            success, max_shifts_per_app, fair_shifts_per_app = e.value
             break
 
     if not success:
-        return None, None
+        return None, None, None, None
 
     time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
 
@@ -1562,11 +1569,11 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                     time_calc_plan,
                                                                     log_search_process)
         if not success:
-            return None, None
+            return None, None, None, None
         plan_datas.append(appointments)
 
     signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
-    return plan_datas, fixed_cast_conflicts
+    return plan_datas, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app
 
 
 def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:

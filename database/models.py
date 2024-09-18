@@ -194,6 +194,7 @@ class ActorPlanPeriod(db.Entity):
     time_of_day_standards = Set('TimeOfDay', reverse='actor_plan_periods_standard')
     # Standard-Tageszeiten, die verwendet werden, um das Check-Field in der ActorPlanPeriod-View aufzubauen.
     # Beim ersten Setzen eines AvailDays wird die Standard-Tageszeit ausgewählt.
+    max_fair_shifts_of_apps = Set('MaxFairShiftsOfApp')
 
     @property
     def team(self):
@@ -728,6 +729,7 @@ class Plan(db.Entity):
     plan_period = Required(PlanPeriod)
     location_columns = Required(Json, default="{}")  # type -> dict[int, list[int]] ({weekday_nr: [Institution.id]})
     excel_export_settings = Optional('ExcelExportSettings')
+    max_fair_shifts_of_apps = Set('MaxFairShiftsOfApp')
 
     composite_key(name, plan_period)
 
@@ -741,6 +743,16 @@ class Plan(db.Entity):
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
+
+
+class MaxFairShiftsOfApp(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    max_shifts = Required(int, size=16, default=0, unsigned=True)
+    fair_shifts = Required(float, default=0)
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    plan = Required(Plan)
+    actor_plan_period = Required(ActorPlanPeriod)
 
 
 class ExcelExportSettings(db.Entity):

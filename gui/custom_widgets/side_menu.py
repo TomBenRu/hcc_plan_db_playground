@@ -140,7 +140,8 @@ Examples:
 class SlideInMenu(QWidget):
     def __init__(self, parent: QWidget, menu_size: int, snap_size: int,
                  align: Literal['left', 'right', 'top', 'bottom'],
-                 content_margins: tuple[int, int, int, int] = (20, 20, 0, 20)):
+                 content_margins: tuple[int, int, int, int] = (20, 20, 0, 20),
+                 menu_background: tuple[int, ...] = (130, 205, 203, 100)):
         """
         Initializes a custom side/top/bottom menu widget.
 
@@ -166,6 +167,7 @@ class SlideInMenu(QWidget):
         self.menu_size = menu_size  # Width or Height depending on alignment
         self.snap_size = snap_size
         self.content_margins = content_margins
+        self.menu_background = menu_background
         self.pos_hide = 0
         self.pos_show = 0
 
@@ -183,7 +185,7 @@ class SlideInMenu(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.scroll_area_fields = QScrollArea()
-        self.scroll_area_fields.setStyleSheet("background-color: rgba(130, 205, 203, 100);")
+        self.scroll_area_fields.setStyleSheet(f"background-color: rgba{self.menu_background};")
         self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
         self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")

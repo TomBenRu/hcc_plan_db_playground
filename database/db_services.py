@@ -1004,6 +1004,38 @@ class Address:
         return schemas.Address.model_validate(address_db)
 
 
+class MaxFairShiftsOfApp:
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(cls, max_fair_shifts_per_app: schemas.MaxFairShiftsOfAppCreate) -> schemas.MaxFairShiftsOfAppShow:
+        log_function_info(cls)
+        plan_db = models.Plan.get_for_update(id=max_fair_shifts_per_app.plan_id)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=max_fair_shifts_per_app.actor_plan_period_id)
+        if not max_fair_shifts_per_app.id:
+            max_fair_shifts_per_app_db = models.MaxFairShiftsOfApp(
+                max_shifts=max_fair_shifts_per_app.max_shifts,
+                fair_shifts=max_fair_shifts_per_app.fair_shifts,
+                plan=plan_db,
+                actor_plan_period=actor_plan_period_db
+            )
+        else:
+            max_fair_shifts_per_app_db = models.MaxFairShiftsOfApp(
+                id=max_fair_shifts_per_app.id,
+                max_shifts=max_fair_shifts_per_app.max_shifts,
+                fair_shifts=max_fair_shifts_per_app.fair_shifts,
+                plan=plan_db,
+                actor_plan_period=actor_plan_period_db
+            )
+        return schemas.MaxFairShiftsOfAppShow.model_validate(max_fair_shifts_per_app_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cls, max_fair_shifts_per_app_id: UUID):
+        log_function_info(cls)
+        max_fair_shifts_per_app_db = models.MaxFairShiftsOfApp.get_for_update(id=max_fair_shifts_per_app_id)
+        max_fair_shifts_per_app_db.delete()
+
+
 class PlanPeriod:
     @classmethod
     @db_session

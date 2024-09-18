@@ -25,7 +25,7 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
-from tools.helper_functions import get_appointments_of_actors_from_plan
+from tools.helper_functions import get_appointments_of_actors_from_plan, get_appointments_of_all_actors_from_plan
 
 
 def fill_in_data(appointment_field: 'AppointmentField'):
@@ -480,7 +480,7 @@ class FrmTabPlan(QWidget):
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
-        self.bottom_menu = side_menu.SlideInMenu(self, 200, 10, 'bottom', (20, 10, 20, 10))
+        self.bottom_menu = side_menu.SlideInMenu(self, 200, 10, 'bottom', (20, 10, 20, 10), (128, 128, 128,255))
         self.plan_statistics = TblPlanStatistics(self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
 
@@ -785,24 +785,56 @@ class TblPlanStatistics(QTableWidget):
 
         self.plan_id = plan_id
         self._setup_data()
-        self._setup_table_schedule()
+        self._setup_table()
+        self._fill_in_table_cells()
 
-    def _setup_ui(self):
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.table_schedule_statistic = QTableWidget()
-        self._setup_table_schedule()
-        self.layout.addWidget(self.table_schedule_statistic)
-
-    def _setup_table_schedule(self):
+    def _setup_table(self):
         self.setColumnCount(len(self.appointments_of_employees))
         self.setRowCount(4)
         self.setHorizontalHeaderLabels(self.appointments_of_employees.keys())
         for i in range(self.columnCount()):
             self.setColumnWidth(i, 100)
         self.setVerticalHeaderLabels(('Wunsch', 'kann', 'gerecht', 'zugeteilt'))
+        self.setShowGrid(True)
+        self.setGridStyle(Qt.PenStyle.SolidLine)
+        self.setStyleSheet("QTableView {gridline-color: black;}")
+        # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
+        self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+
+    def _fill_in_table_cells(self):
+        max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
+                                      for mfs in self.plan.max_fair_shifts_of_apps}
+        for c, (name, (actor_plan_period, appointments)) in enumerate(self.appointments_of_employees.items()):
+            requested = actor_plan_period.requested_assignments if actor_plan_period else 0
+            if actor_plan_period and (max_fair_shifts := max_fair_shifts_of_app_ids.get(actor_plan_period.id)):
+                max_shifts, fair_shifts = max_fair_shifts
+            else:
+                max_shifts, fair_shifts = 0, 0
+            self._create_item_dates_of_actor(c, requested, 'requested')
+            self._create_item_dates_of_actor(c, max_shifts, 'able')
+            self._create_item_dates_of_actor(c, fair_shifts, 'fair')
+            self._create_item_dates_of_actor(c, len(appointments), 'current')
+
+    def _create_item_dates_of_actor(self, column: int, num_dates: int | float,
+                                    kind: Literal['requested', 'able', 'fair', 'current']) -> None:
+        item = QTableWidgetItem(str(num_dates))
+        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        item.setForeground(QColor('black'))
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
+        color = QColor(self.cell_backgrounds[kind][column % 2])
+        item.setBackground(color)
+        self.setItem(self.row_kind_of_dates[kind], column, item)
 
     def _setup_data(self):
         self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
-        self.appointments_of_employees = get_appointments_of_actors_from_plan(self.plan)
+        self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.plan)
+        self.cell_backgrounds = {
+            'requested': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
+            'able': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
+            'fair': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
+            'current': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)]
+        }
+        self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
 

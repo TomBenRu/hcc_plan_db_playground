@@ -26,6 +26,7 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
+from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_actors_from_plan, get_appointments_of_all_actors_from_plan
 
 
@@ -328,6 +329,7 @@ class AppointmentField(QWidget):
         self.command_avail_days: appointment_commands.UpdateAvailDays | None = None
         self.command_guests: appointment_commands.UpdateGuests | None = None
         self.thread_pool = QThreadPool()
+        self.execution_timer_post_cast_change = DelayedTimerSingleShot(500, self._handle_post_cast_change_actions)
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
@@ -352,9 +354,12 @@ class AppointmentField(QWidget):
             if self.plan_widget.permanent_plan_check:
                 self._start_plan_check()
             else:
-                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
-                signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
-                signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
+                self.execution_timer_post_cast_change.start_timer()
+
+    def _handle_post_cast_change_actions(self):
+        signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
@@ -371,9 +376,7 @@ class AppointmentField(QWidget):
         if success:
             QMessageBox.information(self, 'Besetzungsänderung',
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
-            signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
-            signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
-            signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
+            self.execution_timer_post_cast_change.start_timer()
         else:
             problems_txt = "\n        +\n    ".join(problems)
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
@@ -388,9 +391,7 @@ class AppointmentField(QWidget):
                 self.appointment = self.command_avail_days.appointment
                 fill_in_data(self)
             else:
-                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
-                signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
-                signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
+                self.execution_timer_post_cast_change.start_timer()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -504,11 +505,8 @@ class FrmTabPlan(QWidget):
         self.weekdays_locations = self.get_weekdays_locations()
         self.column_assignments = self.generate_column_assignments()
         self.day_location_id_appointments = self.generate_day_appointments()
-        self.execution_allowed: bool = True
-        self.post_undo_redo_timer = QTimer()
-        self.post_undo_redo_timer.setInterval(1000)
-        self.post_undo_redo_timer.setSingleShot(True)
-        self.post_undo_redo_timer.timeout.connect(self._post_undo_redo_actions)
+
+        self.execution_handler_post_undo_redo = DelayedTimerSingleShot(1000, self._post_undo_redo_actions)
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
@@ -594,7 +592,7 @@ class FrmTabPlan(QWidget):
         QTimer.singleShot(1500, reset_field)
 
     def _handle_post_undo_redo_actions(self):
-        self.post_undo_redo_timer.start()
+        self.execution_handler_post_undo_redo.start_timer()
 
     def _post_undo_redo_actions(self):
         self.reload_plan()

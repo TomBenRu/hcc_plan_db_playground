@@ -858,14 +858,17 @@ class TblPlanStatistics(QTableWidget):
             else:
                 max_shifts, fair_shifts = 0, 0
             actor_plan_period_id = actor_plan_period.id if actor_plan_period else None
-            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period_id)
-            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period_id)
-            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period_id)
-            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period_id)
+            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period_id, name)
+            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period_id, name)
+            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period_id, name)
+            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period_id, name)
 
     def _create_item_dates_of_actor(self, column: int, num_dates: int | float,
                                     kind: Literal['requested', 'able', 'fair', 'current'],
-                                    actor_plan_period_id: UUID) -> None:
+                                    actor_plan_period_id: UUID | None, full_name: str) -> None:
+        # todo: Bei Klick auf die Zellen able und current der entsprechenden Personen werden die Zellen mit möglichen
+        #  und aktuellen Einsätzen im Spielplan markiert.
+        #  Entsprechende Tooltips hinzufügen.
         item = QTableWidgetItem(str(num_dates))
         item.setData(Qt.ItemDataRole.UserRole, actor_plan_period_id)
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -875,7 +878,14 @@ class TblPlanStatistics(QTableWidget):
         item.setFont(font)
         color = QColor(self.cell_backgrounds[kind][column % 2])
         item.setBackground(color)
+        self.set_tool_tip(item, kind, actor_plan_period_id, full_name)
         self.setItem(self.row_kind_of_dates[kind], column, item)
+
+    def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period_id: UUID | None, full_name: str):
+        if kind == 'able' and actor_plan_period_id:
+            item.setToolTip(f'Klick:\nMögliche Einsätze von {full_name}\nim Plan markieren.')
+        if kind == 'current':
+            item.setToolTip(f'Klick:\nAktuelle Einsätze von {full_name}\nim Plan markieren.')
 
     def _setup_data(self):
         self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)

@@ -13,8 +13,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QMenu, QApplication
 
 from database import schemas, db_services, schemas_plan_api
-from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
-    get_persons_of_team_at_date_2
+from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, \
+    get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
+    get_persons_of_team_at_date_2, get_next_assignment_of_person
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.custom_widgets import side_menu
@@ -834,7 +835,9 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
 
         for col, d in enumerate(self.days, start=1):
-            disable_buttons = get_curr_assignment_of_person(person, d).team.id != self.actor_plan_period.team.id
+            assignment_of_person = get_curr_assignment_of_person(person, d)
+            disable_buttons = ((assignment_of_person is None)
+                               or (assignment_of_person.team.id != self.actor_plan_period.team.id))
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)

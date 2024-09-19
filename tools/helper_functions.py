@@ -71,6 +71,8 @@ def get_appointments_of_all_actors_from_plan(
     plan_period = db_services.PlanPeriod.get(plan.plan_period.id)
     result: dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]] = {
         app.person.full_name: (app, []) for app in plan_period.actor_plan_periods
+        if db_services.TeamActorAssign.get_all_between_dates(app.person.id, plan_period.team.id,
+                                                             plan_period.start, plan_period.end)
     }
     for appointment in plan.appointments:
         for avail_day in appointment.avail_days:

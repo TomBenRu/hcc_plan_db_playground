@@ -345,8 +345,11 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.location_plan_periods = self.plan_period.location_plan_periods
-        self.location_id__location_pp = {str(loc_pp.location_of_work.id): loc_pp
-                                         for loc_pp in self.plan_period.location_plan_periods}
+        self.location_id__location_pp = {
+            str(loc_pp.location_of_work.id): loc_pp for loc_pp in self.plan_period.location_plan_periods
+            if db_services.TeamLocationAssign.get_all_between_dates(loc_pp.location_of_work.id, plan_period.team.id,
+                                                                    plan_period.start, plan_period.end)
+        }
         self.location_id: UUID | None = None
         self.location: schemas.LocationOfWorkShow | None = None
         self.frame_events: FrmLocationPlanPeriod | None = None

@@ -572,7 +572,10 @@ class FrmTabActorPlanPeriods(QWidget):
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.actor_plan_periods = self.plan_period.actor_plan_periods
-        self.pers_id__actor_pp = {str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods}
+        self.pers_id__actor_pp = {
+            str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods
+            if db_services.TeamActorAssign.get_all_between_dates(a_pp.person.id, plan_period.team.id,
+                                                                 plan_period.start, plan_period.end)}
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
 

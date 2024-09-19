@@ -15,13 +15,13 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTable
 from line_profiler import profile
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, appointment_commands
+from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.concurrency import general_worker
 from gui.concurrency.general_worker import WorkerGetMaxFairShifts
 from gui.custom_widgets import side_menu
-from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager
+from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager, DlgProgressSteps
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
@@ -525,9 +525,11 @@ class FrmTabPlan(QWidget):
                                  f'Unvereinbarkeiten:\n    {problems_txt}\n\n')
 
     def _update_statistics(self):
-        self.progress_bar = DlgProgressInfinite(self, 'Statistiken aktualisieren',
-                                                'Die Besetzungsstatistiken werden aktualisiert.', 'Abbruch',
-                                                signal_handling.handler_solver.cancel_solving)
+        num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)
+        self.progress_bar = DlgProgressSteps(self, 'Statistiken aktualisieren',
+                                             'Die Besetzungsstatistiken werden aktualisiert.',
+                                             0, num_actor_plan_periods + 1,
+                                             'Abbruch', signal_handling.handler_solver.cancel_solving)
         worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
         self.progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished)
@@ -535,9 +537,12 @@ class FrmTabPlan(QWidget):
 
     @Slot(object, object)
     def _update_statistics_finished(self, max_shifts: dict[UUID, int], fair_shifts: dict[UUID, float]):
-        print(max_shifts)
-        print(fair_shifts)
-        self.progress_bar.close()
+        for app_id in max_shifts:
+            max_fair_shifts_create = schemas.MaxFairShiftsOfAppCreate(max_shifts=max_shifts[app_id],
+                                                                      fair_shifts=fair_shifts[app_id],
+                                                                      actor_plan_period_id=app_id)
+            command = max_fair_shifts_per_app.Create(max_fair_shifts_create)
+            self.controller.execute(command)
 
     def _undo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()
@@ -821,18 +826,22 @@ class TblPlanStatistics(QTableWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
     def _fill_in_table_cells(self):
+        # max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
+        #                               for mfs in self.plan.max_fair_shifts_of_apps}
+        max_fair_shifts = db_services.MaxFairShiftsOfApp.get_all_from__plan_period(self.plan.plan_period.id)
         max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
-                                      for mfs in self.plan.max_fair_shifts_of_apps}
+                                      for mfs in max_fair_shifts}
         for c, (name, (actor_plan_period, appointments)) in enumerate(self.appointments_of_employees.items()):
             requested = actor_plan_period.requested_assignments if actor_plan_period else 0
             if actor_plan_period and (max_fair_shifts := max_fair_shifts_of_app_ids.get(actor_plan_period.id)):
                 max_shifts, fair_shifts = max_fair_shifts
             else:
                 max_shifts, fair_shifts = 0, 0
-            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period.id)
-            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period.id)
-            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period.id)
-            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period.id)
+            actor_plan_period_id = actor_plan_period.id if actor_plan_period else None
+            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period_id)
+            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period_id)
+            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period_id)
+            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period_id)
 
     def _create_item_dates_of_actor(self, column: int, num_dates: int | float,
                                     kind: Literal['requested', 'able', 'fair', 'current'],

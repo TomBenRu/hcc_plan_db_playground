@@ -779,9 +779,8 @@ class Plan(PlanCreate):
 class PlanShow(Plan):
     appointments: List[Appointment]
     excel_export_settings: Optional['ExcelExportSettings']
-    max_fair_shifts_of_apps: list['MaxFairShiftsOfApp']
 
-    @field_validator('appointments', 'max_fair_shifts_of_apps')
+    @field_validator('appointments')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -792,7 +791,6 @@ class MaxFairShiftsOfAppCreate(BaseModel):
     id: Optional[UUID] = None
     max_shifts: int
     fair_shifts: float
-    plan_id: UUID
     actor_plan_period_id: UUID
 
 
@@ -804,12 +802,10 @@ class MaxFairShiftsOfApp(BaseModel):
     fair_shifts: float
     created_at: datetime.datetime
     last_modified: datetime.datetime
-    plan: Plan
-    actor_plan_period: ActorPlanPeriod
 
 
 class MaxFairShiftsOfAppShow(MaxFairShiftsOfApp):
-    ...
+    actor_plan_period: ActorPlanPeriod
 
 
 class ExcelExportSettingsCreate(BaseModel):

@@ -729,7 +729,6 @@ class Plan(db.Entity):
     plan_period = Required(PlanPeriod)
     location_columns = Required(Json, default="{}")  # type -> dict[int, list[int]] ({weekday_nr: [Institution.id]})
     excel_export_settings = Optional('ExcelExportSettings')
-    max_fair_shifts_of_apps = Set('MaxFairShiftsOfApp')
 
     composite_key(name, plan_period)
 
@@ -751,7 +750,6 @@ class MaxFairShiftsOfApp(db.Entity):
     fair_shifts = Required(float, default=0)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    plan = Required(Plan)
     actor_plan_period = Required(ActorPlanPeriod)
 
 

@@ -100,15 +100,14 @@ class SaveThread(QThread):
             for appointment in version:
                 self.controller.execute(
                     appointment_commands.Create(appointment, self._created_plan_ids[-1]))
-            for app_id in self.max_shifts_per_app:
-                max_fair_shifts_per_app_create = schemas.MaxFairShiftsOfAppCreate(
-                    max_shifts=self.max_shifts_per_app[app_id],
-                    fair_shifts=self.fair_shifts_per_app[app_id],
-                    plan_id=plan_create_command.plan.id,
-                    actor_plan_period_id=app_id
-                )
-                max_fair_shifts_per_app_command = max_fair_shifts_per_app.Create(max_fair_shifts_per_app_create)
-                self.controller.execute(max_fair_shifts_per_app_command)
+        for app_id in self.max_shifts_per_app:
+            max_fair_shifts_per_app_create = schemas.MaxFairShiftsOfAppCreate(
+                max_shifts=self.max_shifts_per_app[app_id],
+                fair_shifts=self.fair_shifts_per_app[app_id],
+                actor_plan_period_id=app_id
+            )
+            max_fair_shifts_per_app_command = max_fair_shifts_per_app.Create(max_fair_shifts_per_app_create)
+            self.controller.execute(max_fair_shifts_per_app_command)
 
         self.finished.emit(self._created_plan_ids)
 

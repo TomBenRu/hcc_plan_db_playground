@@ -1006,16 +1006,21 @@ class Address:
 
 class MaxFairShiftsOfApp:
     @classmethod
+    @db_session
+    def get_all_from__plan_period(cls, plan_period_id: UUID) -> list[schemas.MaxFairShiftsOfAppShow]:
+        max_fair_shifts = (models.MaxFairShiftsOfApp.select()
+                           .filter(lambda mfs: mfs.actor_plan_period.plan_period.id == plan_period_id))
+        return [schemas.MaxFairShiftsOfAppShow.model_validate(mfs) for mfs in max_fair_shifts]
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, max_fair_shifts_per_app: schemas.MaxFairShiftsOfAppCreate) -> schemas.MaxFairShiftsOfAppShow:
         log_function_info(cls)
-        plan_db = models.Plan.get_for_update(id=max_fair_shifts_per_app.plan_id)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=max_fair_shifts_per_app.actor_plan_period_id)
         if not max_fair_shifts_per_app.id:
             max_fair_shifts_per_app_db = models.MaxFairShiftsOfApp(
                 max_shifts=max_fair_shifts_per_app.max_shifts,
                 fair_shifts=max_fair_shifts_per_app.fair_shifts,
-                plan=plan_db,
                 actor_plan_period=actor_plan_period_db
             )
         else:
@@ -1023,7 +1028,6 @@ class MaxFairShiftsOfApp:
                 id=max_fair_shifts_per_app.id,
                 max_shifts=max_fair_shifts_per_app.max_shifts,
                 fair_shifts=max_fair_shifts_per_app.fair_shifts,
-                plan=plan_db,
                 actor_plan_period=actor_plan_period_db
             )
         return schemas.MaxFairShiftsOfAppShow.model_validate(max_fair_shifts_per_app_db)
@@ -1041,6 +1045,7 @@ class PlanPeriod:
     @db_session
     def get(cls, plan_period_id: UUID) -> schemas.PlanPeriodShow:
         return schemas.PlanPeriodShow.model_validate(models.PlanPeriod.get_for_update(id=plan_period_id))
+
     @classmethod
     @db_session
     def get_all_from__project(cls, project_id: UUID) -> list[schemas.PlanPeriodShow]:

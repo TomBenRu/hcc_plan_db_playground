@@ -353,6 +353,8 @@ class AppointmentField(QWidget):
                 self._start_plan_check()
             else:
                 signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
+                signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
+                signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
@@ -370,6 +372,8 @@ class AppointmentField(QWidget):
             QMessageBox.information(self, 'Besetzungsänderung',
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
             signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
+            signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
+            signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
         else:
             problems_txt = "\n        +\n    ".join(problems)
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
@@ -385,6 +389,8 @@ class AppointmentField(QWidget):
                 fill_in_data(self)
             else:
                 signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
+                signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
+                signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -498,6 +504,11 @@ class FrmTabPlan(QWidget):
         self.weekdays_locations = self.get_weekdays_locations()
         self.column_assignments = self.generate_column_assignments()
         self.day_location_id_appointments = self.generate_day_appointments()
+        self.execution_allowed: bool = True
+        self.post_undo_redo_timer = QTimer()
+        self.post_undo_redo_timer.setInterval(1000)
+        self.post_undo_redo_timer.setSingleShot(True)
+        self.post_undo_redo_timer.timeout.connect(self._post_undo_redo_actions)
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
@@ -556,7 +567,7 @@ class FrmTabPlan(QWidget):
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.undo()
-        self.reload_plan()
+        self._handle_post_undo_redo_actions()
 
     def _redo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_redo_command()
@@ -569,7 +580,7 @@ class FrmTabPlan(QWidget):
         appointment_field.appointment = appointment
         fill_in_data(appointment_field)
         self.controller.redo()
-        self.reload_plan()
+        self._handle_post_undo_redo_actions()
 
     def _highlight_undo_redo_appointment_field(self, appointment_field: AppointmentField):
         def reset_field():
@@ -581,6 +592,14 @@ class FrmTabPlan(QWidget):
             self._original_undo_redo_highlight_style_sheet = appointment_field.styleSheet()
         appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
         QTimer.singleShot(1500, reset_field)
+
+    def _handle_post_undo_redo_actions(self):
+        self.post_undo_redo_timer.start()
+
+    def _post_undo_redo_actions(self):
+        self.reload_plan()
+        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
+        signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
         def reset_button():
@@ -809,6 +828,8 @@ class TblPlanStatistics(QTableWidget):
         super().__init__(parent)
 
         signal_handling.handler_plan_tabs.signal_refresh_plan_statistics.connect(self.refresh_statistics)
+        signal_handling.handler_plan_tabs.signal_reload_specific_plan_statistics_plan.connect(self._reload_plan)
+        signal_handling.handler_plan_tabs.signal_refresh_specific_plan_statistics_plan.connect(self._refresh_statistics)
 
         self.plan_id = plan_id
         self._setup_data()
@@ -869,9 +890,20 @@ class TblPlanStatistics(QTableWidget):
         }
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
 
-    def refresh_statistics(self, plan_period_id: UUID):
-        if self.plan.plan_period.id == plan_period_id:
+    @Slot(UUID)
+    def refresh_statistics(self, plan_period_id: UUID | None):
+        if self.plan.plan_period.id == plan_period_id or plan_period_id is None:
             self.clear()
             self._setup_data()
             self._setup_table()
             self._fill_in_table_cells()
+
+    @Slot(UUID)
+    def _reload_plan(self, plan_id: UUID):
+        if plan_id == self.plan_id:
+            self.plan = db_services.Plan.get(self.plan_id)
+
+    @Slot(UUID)
+    def _refresh_statistics(self, plan_id: UUID):
+        if plan_id == self.plan_id:
+            self.refresh_statistics(None)

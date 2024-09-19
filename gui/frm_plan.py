@@ -543,6 +543,7 @@ class FrmTabPlan(QWidget):
                                                                       actor_plan_period_id=app_id)
             command = max_fair_shifts_per_app.Create(max_fair_shifts_create)
             self.controller.execute(command)
+        signal_handling.handler_plan_tabs.refresh_plan_statistics(self.plan.plan_period.id)
 
     def _undo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()
@@ -807,6 +808,8 @@ class TblPlanStatistics(QTableWidget):
     def __init__(self, parent: QWidget, plan_id: UUID):
         super().__init__(parent)
 
+        signal_handling.handler_plan_tabs.signal_refresh_plan_statistics.connect(self.refresh_statistics)
+
         self.plan_id = plan_id
         self._setup_data()
         self._setup_table()
@@ -826,8 +829,6 @@ class TblPlanStatistics(QTableWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
     def _fill_in_table_cells(self):
-        # max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
-        #                               for mfs in self.plan.max_fair_shifts_of_apps}
         max_fair_shifts = db_services.MaxFairShiftsOfApp.get_all_from__plan_period(self.plan.plan_period.id)
         max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
                                       for mfs in max_fair_shifts}
@@ -868,3 +869,9 @@ class TblPlanStatistics(QTableWidget):
         }
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
 
+    def refresh_statistics(self, plan_period_id: UUID):
+        if self.plan.plan_period.id == plan_period_id:
+            self.clear()
+            self._setup_data()
+            self._setup_table()
+            self._fill_in_table_cells()

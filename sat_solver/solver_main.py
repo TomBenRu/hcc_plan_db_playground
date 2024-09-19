@@ -1509,12 +1509,10 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
     return success, problems
 
 
-def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
-                                                                  dict[tuple[date, str, UUID], int] | None,
-                                                                  dict[UUID, int] | None,
-                                                                  dict[UUID, int] | None]:
-
+def _get_max_fair_shifts_and_max_shifts_to_assign(
+        plan_period_id: UUID, time_calc_max_shifts: int, time_calc_fair_distribution: int,
+        log_search_process=False) -> tuple[EventGroupTree, AvailDayGroupTree, dict[tuple[date, str, UUID], int],
+                                           dict[UUID, int], dict[UUID, float]] | None:
     signal_handling.handler_solver.progress('Vorberechnungen...')
     global entities
     entities = Entities()
@@ -1530,9 +1528,9 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                                   time_calc_max_shifts,
                                                                                   log_search_process)
     if sum(fixed_cast_conflicts.values()):
-        return [], fixed_cast_conflicts, None, None
+        return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, {}, {}
     if not success:
-        return None, None, None, None
+        return
 
     get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(event_group_tree,
                                                                    avail_day_group_tree,
@@ -1553,10 +1551,32 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
             success, max_shifts_per_app, fair_shifts_per_app = e.value
             break
 
+    time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
+
+    return ((event_group_tree, avail_day_group_tree, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app)
+            if success else None)
+
+
+def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
+          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+                                                                  dict[tuple[date, str, UUID], int] | None,
+                                                                  dict[UUID, int] | None,
+                                                                  dict[UUID, float] | None]:
+
+    result_shifts = _get_max_fair_shifts_and_max_shifts_to_assign(plan_period_id,
+                                                                  time_calc_max_shifts,
+                                                                  time_calc_fair_distribution,
+                                                                  log_search_process)
+    success = True
+    if result_shifts is None:
+        success = False
+    (event_group_tree, avail_day_group_tree,
+     fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app) = result_shifts
+
     if not success:
         return None, None, None, None
-
-    time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
+    if sum(fixed_cast_conflicts.values()):
+        return [], fixed_cast_conflicts, None, None
 
     plan_datas = []
     for n in range(1, num_plans + 1):
@@ -1574,6 +1594,21 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
 
     signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
     return plan_datas, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app
+
+
+def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int, time_calc_fair_distribution: int,
+                                log_search_process=False) -> bool | tuple[dict[UUID, int], dict[UUID, float]]:
+    result_shifts = _get_max_fair_shifts_and_max_shifts_to_assign(plan_period_id,
+                                                                  time_calc_max_shifts,
+                                                                  time_calc_fair_distribution,
+                                                                  log_search_process)
+
+    if result_shifts is None:
+        return False
+    _, _, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app = result_shifts
+
+    return max_shifts_per_app, fair_shifts_per_app
+
 
 
 def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:

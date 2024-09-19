@@ -19,6 +19,7 @@ from commands.database_commands import plan_commands, appointment_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui.concurrency import general_worker
+from gui.concurrency.general_worker import WorkerGetMaxFairShifts
 from gui.custom_widgets import side_menu
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -469,6 +470,9 @@ class FrmTabPlan(QWidget):
         self.bt_check_plan = QPushButton('Plan überprüfen')
         self.bt_check_plan.clicked.connect(self._check_plan)
         self.side_menu.add_button(self.bt_check_plan)
+        self.bt_get_max_fair_shifts = QPushButton('Statistiken aktualisieren')
+        self.bt_get_max_fair_shifts.clicked.connect(self._update_statistics)
+        self.side_menu.add_button(self.bt_get_max_fair_shifts)
         self.bt_undo = QPushButton('Undo')
         self.bt_undo.clicked.connect(self._undo_shift_command)
         self.side_menu.add_button(self.bt_undo)
@@ -505,11 +509,11 @@ class FrmTabPlan(QWidget):
         self.progress_bar.show()
 
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
-        worker.signals.finished.connect(self.check_finished)
+        worker.signals.finished.connect(self._check_finished)
         self.thread_pool.start(worker)
 
     @Slot(bool, list)
-    def check_finished(self, success: bool, problems: list[str]):
+    def _check_finished(self, success: bool, problems: list[str]):
         self.progress_bar.close()
         if success:
             QMessageBox.information(self, 'Plan Überprüfung',
@@ -519,6 +523,21 @@ class FrmTabPlan(QWidget):
             QMessageBox.critical(self, 'Besetzungsänderung',
                                  f'Es wurden Konflikte in diesem Plan festgestellt.\n\n'
                                  f'Unvereinbarkeiten:\n    {problems_txt}\n\n')
+
+    def _update_statistics(self):
+        self.progress_bar = DlgProgressInfinite(self, 'Statistiken aktualisieren',
+                                                'Die Besetzungsstatistiken werden aktualisiert.', 'Abbruch',
+                                                signal_handling.handler_solver.cancel_solving)
+        worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 80, 80)
+        self.progress_bar.show()
+        worker.signals.finished.connect(self._update_statistics_finished)
+        self.thread_pool.start(worker)
+
+    @Slot(object, object)
+    def _update_statistics_finished(self, max_shifts: dict[UUID, int], fair_shifts: dict[UUID, float]):
+        print(max_shifts)
+        print(fair_shifts)
+        self.progress_bar.close()
 
     def _undo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()

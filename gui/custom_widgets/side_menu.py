@@ -3,7 +3,7 @@ from typing import Literal, Iterable
 from PySide6.QtGui import QMouseEvent, Qt
 from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene,
                                QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout, QTableWidget)
-from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent
+from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent, Slot
 
 
 class RotatableContainer(QGraphicsView):
@@ -200,7 +200,8 @@ class SlideInMenu(QWidget):
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignTop)
         else:
             self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
-            self.container_fields.setMinimumHeight(self.menu_size - self.snap_size)
+            self.container_fields.setMinimumHeight(self.menu_size - self.snap_size
+                                                   - self.content_margins[1] - self.content_margins[3])
             self.layout_fields = QHBoxLayout(self.container_fields)
             self.layout_fields.setContentsMargins(0, 0, 0, 0)
             self.layout_fields.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -220,6 +221,7 @@ class SlideInMenu(QWidget):
             self.pos_hide = self.parent.height() - self.snap_size
             self.pos_show = self.parent.height() - self.menu_size
 
+    @Slot()
     def parent_resize_event(self):
         """Handle resizing of the parent widget."""
         self.set_positions()
@@ -227,6 +229,8 @@ class SlideInMenu(QWidget):
             self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
         else:
             self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
+            if len(self.widgets_of_container) == 1 and isinstance(self.widgets_of_container[0], QTableWidget):
+                self._adjust_container_size()
 
     def enterEvent(self, event: QMouseEvent) -> None:
         """Show the menu when the mouse enters."""
@@ -268,7 +272,7 @@ class SlideInMenu(QWidget):
         """Add a button to the menu."""
         button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
         self.layout_fields.addWidget(button)
-        self.adjust_container_size()
+        self._adjust_container_size()
 
     def add_check_box(self, check_box: QCheckBox):
         """Add a checkbox to the menu."""
@@ -279,34 +283,39 @@ class SlideInMenu(QWidget):
         widget_layout.setContentsMargins(0, 0, 0, 0)
         widget_layout.addWidget(check_box)
         self.layout_fields.addWidget(widget)
-        self.adjust_container_size()
+        self._adjust_container_size()
 
     def add_widget(self, widget: QWidget):
         self.layout_fields.addWidget(widget)
-        self.adjust_container_size()
+        self._adjust_container_size()
 
-    def adjust_container_size(self):
+    def _adjust_container_size(self):
         """Adjust the container size based on the number of child widgets."""
-        widgets_of_container = [w for w in self.container_fields.children()
-                                if isinstance(w, QWidget) and w.parent() == self.container_fields]
+        self.widgets_of_container = [w for w in self.container_fields.children()
+                                     if isinstance(w, QWidget) and w.parent() == self.container_fields]
         if self.align in ['left', 'right']:
             self.container_fields.setMinimumHeight(
-                sum(w.sizeHint().height() for w in widgets_of_container)
-                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1)
-                + sum((w.contentsMargins().top() + w.contentsMargins().bottom()) for w in widgets_of_container)
+                sum(w.sizeHint().height() for w in self.widgets_of_container)
+                + self.container_fields.layout().spacing() * (len(self.widgets_of_container) - 1)
+                + sum((w.contentsMargins().top() + w.contentsMargins().bottom()) for w in self.widgets_of_container)
                 + self.content_margins[1] + self.content_margins[3]
             )
         else:
+            if len(self.widgets_of_container) == 1 and isinstance(self.widgets_of_container[0], QTableWidget):
+                # Damit die Breite der Tabelle auf die Breite des Containers begrenzt ist
+                # und somit der horizontale Scrollbalken der Tabelle erscheint.
+                self.container_fields.setFixedWidth(self.width() - 10)
+                return
             table_width = 0
-            for widget in widgets_of_container:
+            for widget in self.widgets_of_container:
                 if isinstance(widget, QTableWidget):
                     # Breite des horizontalen Headers des QTableWidget ermitteln
                     header_width = widget.horizontalHeader().length()  # Gesamtlänge der Spalten
                     table_width += header_width + widget.verticalHeader().width()
             self.container_fields.setMinimumWidth(
-                sum(w.sizeHint().width() for w in widgets_of_container if not isinstance(w, QTableWidget))
-                + self.container_fields.layout().spacing() * (len(widgets_of_container) - 1)
-                + sum((w.contentsMargins().left() + w.contentsMargins().right()) for w in widgets_of_container)
+                sum(w.sizeHint().width() for w in self.widgets_of_container if not isinstance(w, QTableWidget))
+                + self.container_fields.layout().spacing() * (len(self.widgets_of_container) - 1)
+                + sum((w.contentsMargins().left() + w.contentsMargins().right()) for w in self.widgets_of_container)
                 + self.content_margins[0] + self.content_margins[2]
                 + table_width or 0
             )

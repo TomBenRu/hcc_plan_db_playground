@@ -528,7 +528,7 @@ class FrmTabPlan(QWidget):
         self.progress_bar = DlgProgressInfinite(self, 'Statistiken aktualisieren',
                                                 'Die Besetzungsstatistiken werden aktualisiert.', 'Abbruch',
                                                 signal_handling.handler_solver.cancel_solving)
-        worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 80, 80)
+        worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
         self.progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished)
         self.thread_pool.start(worker)
@@ -829,14 +829,16 @@ class TblPlanStatistics(QTableWidget):
                 max_shifts, fair_shifts = max_fair_shifts
             else:
                 max_shifts, fair_shifts = 0, 0
-            self._create_item_dates_of_actor(c, requested, 'requested')
-            self._create_item_dates_of_actor(c, max_shifts, 'able')
-            self._create_item_dates_of_actor(c, fair_shifts, 'fair')
-            self._create_item_dates_of_actor(c, len(appointments), 'current')
+            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period.id)
+            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period.id)
+            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period.id)
+            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period.id)
 
     def _create_item_dates_of_actor(self, column: int, num_dates: int | float,
-                                    kind: Literal['requested', 'able', 'fair', 'current']) -> None:
+                                    kind: Literal['requested', 'able', 'fair', 'current'],
+                                    actor_plan_period_id: UUID) -> None:
         item = QTableWidgetItem(str(num_dates))
+        item.setData(Qt.ItemDataRole.UserRole, actor_plan_period_id)
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         item.setForeground(QColor('black'))
         font = item.font()

@@ -54,6 +54,49 @@ def fill_in_data(appointment_field: 'AppointmentField'):
     appointment_field.lb_employees.setText(employees)
 
 
+class DlgAvailAtDay(QDialog):
+    def __init__(self, parent: QWidget, plan_period_id: UUID, date: datetime.date):
+        super().__init__(parent)
+        self.setWindowTitle('Verfügbar')
+
+        self.plan_period_id = plan_period_id
+        self.date = date
+
+        self._generate_data()
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(30)
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QFormLayout()
+        self.layout_body.setSpacing(10)
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+        self.lb_description = QLabel(f'Am {self.weekday_names[self.date.weekday()]}, {self.date:%d.%m.%y}\n'
+                                     f'sind folgende Mitarbeiter verfügbar.')
+        self.layout_head.addWidget(self.lb_description)
+
+        for name, tz in self.actor_time_of_day.items():
+            label = QLabel(", ".join(tz))
+            self.layout_body.addRow(f'{name}:', label)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        self.button_box.accepted.connect(self.accept)
+        self.layout_foot.addWidget(self.button_box)
+
+    def _generate_data(self):
+        self.weekday_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+        avail_days = sorted(db_services.AvailDay.get_all_from__plan_period_date(self.plan_period_id, self.date),
+                            key=lambda x: (x.actor_plan_period.person.full_name,
+                                           x.time_of_day.time_of_day_enum.time_index))
+        self.actor_time_of_day: defaultdict[str, list[str]] = defaultdict(list)
+        for avd in avail_days:
+            self.actor_time_of_day[avd.actor_plan_period.person.full_name].append(avd.time_of_day.name)
+
+
 class DlgGuest(QDialog):
     def __init__(self, parent: QWidget):
         super().__init__(parent=parent)
@@ -163,6 +206,7 @@ class DlgEditAppointment(QDialog):
 class LabelDayNr(QLabel):
     def __init__(self, day: datetime.date, plan_period: schemas.PlanPeriod):
         super().__init__()
+        self.setObjectName(f'LabelDayNr_{day:%d_%m_%y}')
 
         self.day = day
         self.plan_period = plan_period
@@ -175,9 +219,9 @@ class LabelDayNr(QLabel):
         self.setContentsMargins(0, 0, 0, 0)
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         if self.day.isoweekday() % 2:
-            self.setStyleSheet('background-color: #71bdff; color: #2b2b2b')
+            self.setStyleSheet(f'QLabel#{self.objectName()}{{background-color: #71bdff; color: #2b2b2b}}')
         else:
-            self.setStyleSheet('background-color: #91d2ff; color: #2b2b2b')
+            self.setStyleSheet(f'QLabel#{self.objectName()}{{background-color: #91d2ff; color: #2b2b2b}}')
         font = self.font()
         font.setBold(True)
         self.setFont(font)
@@ -192,6 +236,11 @@ class LabelDayNr(QLabel):
         menu.addAction('Day Action 1')
         menu.addAction('Day Action 2')
         menu.exec(event.globalPos())
+
+    def mouseReleaseEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        DlgAvailAtDay(self, self.plan_period.id, self.day).exec()
 
 
 class DayField(QWidget):

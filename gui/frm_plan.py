@@ -635,6 +635,7 @@ class FrmTabPlan(QWidget):
         self._generate_plan_data()
         self._show_table_plan()
         self.side_menu.raise_()
+        self.bottom_menu.raise_()
 
     @Slot(UUID)
     def refresh_specific_plan(self, plan_id: UUID):

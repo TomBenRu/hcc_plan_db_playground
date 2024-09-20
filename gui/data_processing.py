@@ -98,7 +98,6 @@ class LocationPlanPeriodData:
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    @profile
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
         plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
         if not plans:

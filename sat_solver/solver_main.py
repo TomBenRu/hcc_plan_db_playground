@@ -783,7 +783,6 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     return constraints_cast_rule
 
 
-@profile
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
     # todo: funktioniert bislang nur für CastGroups mit Event
     

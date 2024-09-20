@@ -12,7 +12,7 @@ from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
     QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit
-from line_profiler import profile
+from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
@@ -823,6 +823,7 @@ class FrmTabPlan(QWidget):
 
 
 class TblPlanStatistics(QTableWidget):
+    @profile
     def __init__(self, parent: QWidget, frm_plan: FrmTabPlan, plan_id: UUID):
         super().__init__(parent)
 
@@ -841,7 +842,7 @@ class TblPlanStatistics(QTableWidget):
     def on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
         data = item.data(Qt.ItemDataRole.UserRole)
-        actor_plan_period: schemas.ActorPlanPeriodShow = data['app']
+        actor_plan_period: schemas.ActorPlanPeriod = data['app']
         if row == self.row_kind_of_dates['current']:
             for appointment_field in self.frm_plan.findChildren(AppointmentField):
                 appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_default)
@@ -853,16 +854,17 @@ class TblPlanStatistics(QTableWidget):
                 elif data['name'] in appointment_field.appointment.guests:
                     appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_marked)
         elif row == self.row_kind_of_dates['able'] and actor_plan_period:
+            all_avail_days = db_services.AvailDay.get_all_from__actor_plan_period(actor_plan_period.id)
             for label_day_num in self.frm_plan.findChildren(LabelDayNr):
                 label_day_num: LabelDayNr
                 label_day_num.setText(self.label_day_text_and_style_sheet[label_day_num.day]['text'])
                 label_day_num.setStyleSheet(self.label_day_text_and_style_sheet[label_day_num.day]['style_sheet'])
-                if avds := sorted([avd for avd in actor_plan_period.avail_days if avd.date == label_day_num.day],
+                if avds := sorted([avd for avd in all_avail_days if avd.date == label_day_num.day],
                                   key=lambda x: x.time_of_day.time_of_day_enum.time_index):
                     label_day_num.setText(
                         f'{label_day_num.text()} '
                         f'({", ".join([avd.time_of_day.time_of_day_enum.abbreviation for avd in avds])})')
-                    label_day_num.setStyleSheet('background-color: blue')
+                    label_day_num.setStyleSheet('background-color: #b7833f; color: #2b2b2b')
 
     def _setup_table(self):
         self.setColumnCount(len(self.appointments_of_employees))
@@ -887,7 +889,6 @@ class TblPlanStatistics(QTableWidget):
                 max_shifts, fair_shifts = max_fair_shifts
             else:
                 max_shifts, fair_shifts = 0, 0
-            actor_plan_period_id = actor_plan_period.id if actor_plan_period else None
             self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period, name)
             self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period, name)
             self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period, name)
@@ -897,7 +898,6 @@ class TblPlanStatistics(QTableWidget):
                                     kind: Literal['requested', 'able', 'fair', 'current'],
                                     actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str) -> None:
         # todo: actor_plan_period cachen
-        actor_plan_period = db_services.ActorPlanPeriod.get(actor_plan_period.id) if actor_plan_period else None
         item = QTableWidgetItem(str(num_dates))
         item.setData(Qt.ItemDataRole.UserRole, {'app': actor_plan_period, 'name': full_name, 'kind': kind})
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -916,6 +916,7 @@ class TblPlanStatistics(QTableWidget):
         if kind == 'current':
             item.setToolTip(f'Klick:\nAktuelle Einsätze von {full_name}\nim Plan markieren.')
 
+    @profile
     def _setup_data(self):
         self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
         self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.plan)

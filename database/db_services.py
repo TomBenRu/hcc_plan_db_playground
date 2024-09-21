@@ -818,6 +818,12 @@ class TimeOfDay:
         return schemas.TimeOfDayShow.model_validate(time_of_day_db)
 
     @classmethod
+    @db_session
+    def get_all_from_location_plan_period(cls, location_plan_period_id: UUID) -> list[schemas.TimeOfDay]:
+        time_of_days_db = models.LocationPlanPeriod.get(id=location_plan_period_id).time_of_days
+        return [schemas.TimeOfDay.model_validate(t_o_d) for t_o_d in time_of_days_db]
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)

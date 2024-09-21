@@ -7,11 +7,12 @@ from functools import partial
 from typing import Literal, Callable, Any
 from uuid import UUID
 
-from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool, Signal
+from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool, Signal, QDate
 from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
-    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit
+    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit, QDateEdit, \
+    QCalendarWidget
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
@@ -208,6 +209,74 @@ class DlgEditAppointment(QDialog):
         self.new_avail_day_ids = {combo.currentData(): combo.currentText()
                                   for combo in self.combos_employees if combo.currentData()}
         super().accept()
+
+
+class DlgMoveAppointment(QDialog):
+    def __init__(self, parent: QWidget, appointment: schemas.Appointment, plan_period: schemas.PlanPeriod):
+        super().__init__(parent)
+        self.setWindowTitle('Termin bewegen')
+        self.appointment = appointment
+        self.plan_period = plan_period
+
+        self._generate_data()
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(30)
+        self.layout_head = QVBoxLayout()
+        self.layout_body = QVBoxLayout()
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout.addLayout(self.layout_body)
+        self.layout.addLayout(self.layout_foot)
+
+        self.lb_description = QLabel(f'Hier können Sie den Termin\n'
+                                     f'{self.appointment.event.location_plan_period.location_of_work.name_an_city}, '
+                                     f'{self.appointment.event.date:%d.%m.%y} '
+                                     f'({self.appointment.event.time_of_day.name})\n'
+                                     f'auf einen anderen Tag und andere Tageszeit verschieben.')
+        self.layout_head.addWidget(self.lb_description)
+        self.calendar_select_date = QCalendarWidget()
+        self.calendar_select_date.setSelectedDate(QDate(self.appointment.event.date.year,
+                                                        self.appointment.event.date.month,
+                                                        self.appointment.event.date.day))
+        self.calendar_select_date.selectionChanged.connect(self._date_changed)
+        self.calendar_select_date.setMinimumDate(self.plan_period.start)
+        self.calendar_select_date.setMaximumDate(self.plan_period.end)
+        self.layout_body.addWidget(self.calendar_select_date)
+
+        self.combo_time_of_day = QComboBox()
+        for time_of_day in self.time_of_days:
+            self.combo_time_of_day.addItem(time_of_day.name, time_of_day)
+        self.layout_body.addWidget(self.combo_time_of_day)
+
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.layout_foot.addWidget(self.button_box)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+    def _generate_data(self):
+        self.time_of_days = db_services.TimeOfDay.get_all_from_location_plan_period(
+            self.appointment.event.location_plan_period.id)
+        self.time_of_days.sort(key=lambda x: x.time_of_day_enum.time_index)
+
+    @property
+    def new_date(self) -> datetime.date:
+        return self.calendar_select_date.selectedDate().toPython()
+
+    @property
+    def new_time_of_day(self) -> schemas.TimeOfDay:
+        return self.combo_time_of_day.currentData()
+
+    def _date_changed(self):
+        print(self.calendar_select_date.selectedDate())
+
+    def accept(self):
+        super().accept()
+
+
 
 
 class LabelDayNr(QLabel):
@@ -453,10 +522,16 @@ class AppointmentField(QWidget):
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
         context_menu.addAction(f'Action 1 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
-                               f'{self.appointment.event.location_plan_period.location_of_work.name}')
+                               f'{self.appointment.event.location_plan_period.location_of_work.name}',
+                               self._move_appointment)
         context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
                                f'{self.appointment.event.location_plan_period.location_of_work.name}')
         context_menu.exec(event.globalPos())
+
+    def _move_appointment(self):
+        dlg = DlgMoveAppointment(self, self.appointment, self.plan_widget.plan.plan_period)
+        if dlg.exec():
+            print(f'accepted: {dlg.new_date} ({dlg.new_time_of_day.name})')
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)

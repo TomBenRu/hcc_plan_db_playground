@@ -392,6 +392,10 @@ class LocationOfWork(LocationOfWorkCreate):
     project: Project
     prep_delete: Optional[datetime.datetime]
 
+    @property
+    def name_an_city(self):
+        return f'{self.name} {self.address.city}'
+
 
 class LocationOfWorkShow(LocationOfWork):
 

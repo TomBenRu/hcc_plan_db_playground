@@ -366,7 +366,7 @@ class ContainerAppointments(QWidget):
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
-        self.setObjectName(str(appointment.id).replace('-', '_'))
+        self.setObjectName(str(appointment.id))
         self.plan_widget = plan_widget
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id

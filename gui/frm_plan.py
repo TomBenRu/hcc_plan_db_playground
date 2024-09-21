@@ -66,22 +66,28 @@ class DlgAvailAtDay(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.setStyleSheet('background-color: none')
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(30)
         self.layout_head = QVBoxLayout()
-        self.layout_body = QFormLayout()
-        self.layout_body.setSpacing(10)
+        self.layout_body = QVBoxLayout()
+        self.layout_body.setSpacing(0)
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
+        self.group_actors = QGroupBox()
+        self.layout_body.addWidget(self.group_actors)
+        self.group_actors.setStyleSheet('background-color: #2b2b2b')
+        self.layout_actors = QFormLayout(self.group_actors)
+        self.layout_actors.setSpacing(10)
         self.lb_description = QLabel(f'Am {self.weekday_names[self.date.weekday()]}, {self.date:%d.%m.%y}\n'
                                      f'sind folgende Mitarbeiter verfügbar.')
         self.layout_head.addWidget(self.lb_description)
 
         for name, tz in self.actor_time_of_day.items():
             label = QLabel(", ".join(tz))
-            self.layout_body.addRow(f'{name}:', label)
+            self.layout_actors.addRow(f'{name}:', label)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self.button_box.accepted.connect(self.accept)
@@ -132,6 +138,7 @@ class DlgEditAppointment(QDialog):
         self._setup_employee_combos()
 
     def _setup_layout(self):
+        self.setStyleSheet('background-color: none;')
         self.layout = QVBoxLayout(self)
         self.layout_head = QVBoxLayout()
         self.layout_body = QVBoxLayout()
@@ -359,7 +366,7 @@ class ContainerAppointments(QWidget):
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
-        self.setObjectName(str(appointment.id))
+        self.setObjectName(str(appointment.id).replace('-', '_'))
         self.plan_widget = plan_widget
         self.appointment = appointment
         self.location_id = appointment.event.location_plan_period.location_of_work.id
@@ -913,7 +920,8 @@ class TblPlanStatistics(QTableWidget):
                     label_day_num.setText(
                         f'{label_day_num.text()} '
                         f'({", ".join([avd.time_of_day.time_of_day_enum.abbreviation for avd in avds])})')
-                    label_day_num.setStyleSheet('background-color: #b7833f; color: #2b2b2b')
+                    label_day_num.setStyleSheet(f'QLabel#{label_day_num.objectName()}'
+                                                f'{{background-color: #b7833f; color: #2b2b2b}}')
 
     def _setup_table(self):
         self.setColumnCount(len(self.appointments_of_employees))

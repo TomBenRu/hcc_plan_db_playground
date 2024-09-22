@@ -669,11 +669,8 @@ class FrmTabPlan(QWidget):
         self.column_assignments = self.generate_column_assignments()
         self.day_location_id_appointments = self.generate_day_appointments()
 
-        self.execution_handler_post_undo_redo_avail_days = DelayedTimerSingleShot(
-            1000, self._post_undo_redo_actions, 'avail_days_of_appointment')
-        self.execution_handler_post_undo_redo_move_appointment = DelayedTimerSingleShot(
-            1000, self._post_undo_redo_actions, 'moving_appointment'
-        )
+        self.execution_handler_post_undo_redo = DelayedTimerSingleShot(
+            1000, self._post_undo_redo_actions)
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
@@ -733,11 +730,8 @@ class FrmTabPlan(QWidget):
             self._highlight_undo_redo_appointment_field(appointment_field)
             appointment_field.appointment = appointment
             fill_in_data(appointment_field)
-            self.controller.undo()
-            self._handle_post_undo_redo_actions('avail_days_of_appointment')
-        else:
-            self.controller.undo()
-            self._handle_post_undo_redo_actions('moving_appointment')
+        self.controller.undo()
+        self._handle_post_undo_redo_actions()
 
     def _redo_shift_command(self):
         command: appointment_commands.UpdateAvailDays | appointment_commands.UpdateCurrEvent | None = (
@@ -751,11 +745,8 @@ class FrmTabPlan(QWidget):
             self._highlight_undo_redo_appointment_field(appointment_field)
             appointment_field.appointment = appointment
             fill_in_data(appointment_field)
-            self.controller.redo()
-            self._handle_post_undo_redo_actions('avail_days_of_appointment')
-        else:
-            self.controller.redo()
-            self._handle_post_undo_redo_actions('moving_appointment')
+        self.controller.redo()
+        self._handle_post_undo_redo_actions()
 
     def _highlight_undo_redo_appointment_field(self, appointment_field: AppointmentField):
         def reset_field():
@@ -768,19 +759,14 @@ class FrmTabPlan(QWidget):
         appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
         QTimer.singleShot(1500, reset_field)
 
-    def _handle_post_undo_redo_actions(self, kind: Literal['avail_days_of_appointment', 'moving_appointment']):
-        if kind == 'avail_days_of_appointment':
-            self.execution_handler_post_undo_redo_avail_days.start_timer()
-        else:
-            self.execution_handler_post_undo_redo_move_appointment.start_timer()
+    def _handle_post_undo_redo_actions(self):
+        self.execution_handler_post_undo_redo.start_timer()
 
-    def _post_undo_redo_actions(self, kind: Literal['avail_days_of_appointment', 'moving_appointment']):
+    def _post_undo_redo_actions(self):
         self.reload_plan()
-        if kind == 'avail_days_of_appointment':
-            signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
-            signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
-        else:
-            self.refresh_plan()
+        self.refresh_plan()
+        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
+        signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
         def reset_button():
@@ -1054,7 +1040,7 @@ class TblPlanStatistics(QTableWidget):
         self.setHorizontalHeaderLabels(self.appointments_of_employees.keys())
         for i in range(self.columnCount()):
             self.setColumnWidth(i, 100)
-        self.setVerticalHeaderLabels(('Wunsch', 'kann', 'gerecht', 'zugeteilt'))
+        self.setVerticalHeaderLabels(('gewünscht', 'möglich', 'gerecht', 'zugeteilt'))
         self.setShowGrid(True)
         self.setGridStyle(Qt.PenStyle.SolidLine)
         self.setStyleSheet("QTableView {gridline-color: black;}")
@@ -1112,6 +1098,7 @@ class TblPlanStatistics(QTableWidget):
         self.label_day_text_and_style_sheet = {lb.day: {'text': lb.text(), 'style_sheet': lb.styleSheet()}
                                                for lb in self.frm_plan.findChildren(LabelDayNr)}
 
+    @profile
     @Slot(UUID)
     def refresh_statistics(self, plan_period_id: UUID | None):
         if self.plan.plan_period.id == plan_period_id or plan_period_id is None:
@@ -1120,6 +1107,7 @@ class TblPlanStatistics(QTableWidget):
             self._setup_table()
             self._fill_in_table_cells()
 
+    @profile
     @Slot(UUID)
     def _reload_plan(self, plan_id: UUID):
         if plan_id == self.plan_id:

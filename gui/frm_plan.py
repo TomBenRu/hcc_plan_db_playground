@@ -1004,35 +1004,70 @@ class TblPlanStatistics(QTableWidget):
         self._setup_table()
         self._fill_in_table_cells()
 
-        self.cellClicked.connect(self.on_cell_clicked)
-
     def on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
         data = item.data(Qt.ItemDataRole.UserRole)
         actor_plan_period: schemas.ActorPlanPeriod = data['app']
         if row == self.row_kind_of_dates['current']:
-            for appointment_field in self.frm_plan.findChildren(AppointmentField):
-                appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_default)
-                appointment_field: AppointmentField
+            self._highligt_set_cell_item(row, column, 'current')
+            self._highlight_plan_appointment_fields(row, column)
+        elif row == self.row_kind_of_dates['able'] and actor_plan_period:
+            self._highligt_set_cell_item(row, column, 'able')
+            self._highlight_plan_labels_day_num(row, column)
+
+    def _highligt_set_cell_item(self, row: int, column: int, kind: Literal['able', 'current']):
+        item = self.item(row, column)
+        if self.item_statistics_selected[(row, column)]:
+            item.setBackground(self.item_statistics_stylesheets[(row, column)]['bg'])
+            item.setForeground(self.item_statistics_stylesheets[(row, column)]['fg'])
+            self.item_statistics_selected[(row, column)] = False
+        else:
+            self.item_statistics_stylesheets[(row, column)]['bg'] = item.background()
+            self.item_statistics_stylesheets[(row, column)]['fg'] = item.foreground()
+            if kind == 'able':
+                item.setBackground(QColor(widget_styles.plan_table.label_day_num_marked_bg))
+                item.setForeground(QColor(widget_styles.plan_table.label_day_num_marked_fg))
+            else:
+                item.setBackground(QColor(widget_styles.plan_table.appointment_field_marked_bg))
+            for key in self.item_statistics_selected.keys():
+                if self.item_statistics_selected[key] and key[0] == self.row_kind_of_dates[kind]:
+                    self.item_statistics_selected[key] = False
+                    self.item(*key).setBackground(self.item_statistics_stylesheets[key]['bg'])
+                    self.item(*key).setForeground(self.item_statistics_stylesheets[key]['fg'])
+            self.item_statistics_selected[(row, column)] = True
+
+    def _highlight_plan_labels_day_num(self, row: int, column: int):
+        item = self.item(row, column)
+        data = item.data(Qt.ItemDataRole.UserRole)
+        actor_plan_period: schemas.ActorPlanPeriod = data['app']
+        all_avail_days = db_services.AvailDay.get_all_from__actor_plan_period(actor_plan_period.id)
+        for label_day_num in self.frm_plan.findChildren(LabelDayNr):
+            label_day_num: LabelDayNr
+            label_day_num.setText(self.label_day_text_and_style_sheet[label_day_num.day]['text'])
+            label_day_num.setStyleSheet(self.label_day_text_and_style_sheet[label_day_num.day]['style_sheet'])
+            if ((avds := sorted([avd for avd in all_avail_days if avd.date == label_day_num.day],
+                                key=lambda x: x.time_of_day.time_of_day_enum.time_index))
+                    and self.item_statistics_selected[(row, column)]):
+                label_day_num.setText(
+                    f'{label_day_num.text()} '
+                    f'({", ".join([avd.time_of_day.time_of_day_enum.abbreviation for avd in avds])})')
+                label_day_num.setStyleSheet(f'QLabel#{label_day_num.objectName()}'
+                                            f'{{{widget_styles.plan_table.label_day_num_marked}}}')
+
+    def _highlight_plan_appointment_fields(self, row: int, column: int):
+        item = self.item(row, column)
+        data = item.data(Qt.ItemDataRole.UserRole)
+        actor_plan_period: schemas.ActorPlanPeriod = data['app']
+        for appointment_field in self.frm_plan.findChildren(AppointmentField):
+            appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_default)
+            appointment_field: AppointmentField
+            if self.item_statistics_selected[(row, column)]:
                 if actor_plan_period:
                     if actor_plan_period.id in [avd.actor_plan_period.id
                                                 for avd in appointment_field.appointment.avail_days]:
                         appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_marked)
                 elif data['name'] in appointment_field.appointment.guests:
                     appointment_field.setStyleSheet(widget_styles.plan_table.appointment_field_marked)
-        elif row == self.row_kind_of_dates['able'] and actor_plan_period:
-            all_avail_days = db_services.AvailDay.get_all_from__actor_plan_period(actor_plan_period.id)
-            for label_day_num in self.frm_plan.findChildren(LabelDayNr):
-                label_day_num: LabelDayNr
-                label_day_num.setText(self.label_day_text_and_style_sheet[label_day_num.day]['text'])
-                label_day_num.setStyleSheet(self.label_day_text_and_style_sheet[label_day_num.day]['style_sheet'])
-                if avds := sorted([avd for avd in all_avail_days if avd.date == label_day_num.day],
-                                  key=lambda x: x.time_of_day.time_of_day_enum.time_index):
-                    label_day_num.setText(
-                        f'{label_day_num.text()} '
-                        f'({", ".join([avd.time_of_day.time_of_day_enum.abbreviation for avd in avds])})')
-                    label_day_num.setStyleSheet(f'QLabel#{label_day_num.objectName()}'
-                                                f'{{background-color: #b7833f; color: #2b2b2b}}')
 
     def _setup_table(self):
         self.setColumnCount(len(self.appointments_of_employees))
@@ -1046,6 +1081,7 @@ class TblPlanStatistics(QTableWidget):
         self.setStyleSheet("QTableView {gridline-color: black;}")
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.cellClicked.connect(self.on_cell_clicked)
 
     def _fill_in_table_cells(self):
         max_fair_shifts = db_services.MaxFairShiftsOfApp.get_all_from__plan_period(self.plan.plan_period.id)
@@ -1097,6 +1133,8 @@ class TblPlanStatistics(QTableWidget):
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
         self.label_day_text_and_style_sheet = {lb.day: {'text': lb.text(), 'style_sheet': lb.styleSheet()}
                                                for lb in self.frm_plan.findChildren(LabelDayNr)}
+        self.item_statistics_stylesheets: defaultdict[tuple[int, int], dict] = defaultdict(dict)
+        self.item_statistics_selected: defaultdict[tuple[int, int], bool] = defaultdict(lambda: False)
 
     @profile
     @Slot(UUID)

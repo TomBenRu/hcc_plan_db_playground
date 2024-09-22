@@ -1516,11 +1516,11 @@ class Event:
     def get_from__location_pp_date_time_index(cls, location_plan_period_id: UUID, date: datetime.date,
                                        time_index: int) -> schemas.Event | None:
         event_db = (models.Event.select()
-                     .filter(lambda e: e.location_plan_period.id == location_plan_period_id)
-                     .filter(lambda e: e.date == date)
-                     .filter(lambda e: e.time_of_day.time_of_day_enum.time_index == time_index)).first()
+                    .filter(lambda e: e.location_plan_period.id == location_plan_period_id)
+                    .filter(lambda e: e.date == date)
+                    .filter(lambda e: e.time_of_day.time_of_day_enum.time_index == time_index)).first()
 
-        return schemas.Event.model_validate(event_db)
+        return schemas.Event.model_validate(event_db) if event_db else None
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

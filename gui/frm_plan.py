@@ -1004,18 +1004,20 @@ class TblPlanStatistics(QTableWidget):
         self._setup_table()
         self._fill_in_table_cells()
 
+        self.cellClicked.connect(self.on_cell_clicked)
+
     def on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
         data = item.data(Qt.ItemDataRole.UserRole)
         actor_plan_period: schemas.ActorPlanPeriod = data['app']
         if row == self.row_kind_of_dates['current']:
-            self._highligt_set_cell_item(row, column, 'current')
+            self._highlight_set_cell_item(row, column, 'current')
             self._highlight_plan_appointment_fields(row, column)
         elif row == self.row_kind_of_dates['able'] and actor_plan_period:
-            self._highligt_set_cell_item(row, column, 'able')
+            self._highlight_set_cell_item(row, column, 'able')
             self._highlight_plan_labels_day_num(row, column)
 
-    def _highligt_set_cell_item(self, row: int, column: int, kind: Literal['able', 'current']):
+    def _highlight_set_cell_item(self, row: int, column: int, kind: Literal['able', 'current']):
         item = self.item(row, column)
         if self.item_statistics_selected[(row, column)]:
             item.setBackground(self.item_statistics_stylesheets[(row, column)]['bg'])
@@ -1081,7 +1083,6 @@ class TblPlanStatistics(QTableWidget):
         self.setStyleSheet("QTableView {gridline-color: black;}")
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self.cellClicked.connect(self.on_cell_clicked)
 
     def _fill_in_table_cells(self):
         max_fair_shifts = db_services.MaxFairShiftsOfApp.get_all_from__plan_period(self.plan.plan_period.id)

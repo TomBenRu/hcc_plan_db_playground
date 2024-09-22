@@ -173,8 +173,6 @@ class DlgEditAppointment(QDialog):
         )
         self.possible_avail_days.sort(key=lambda x: x.actor_plan_period.person.f_name)
 
-        self.new_avail_day_ids: dict[UUID, str] = {}
-
     def _setup_employee_combos(self):
         self.combos_employees = []
         for i in range(1, self.cast_group.nr_actors + 1):
@@ -189,10 +187,10 @@ class DlgEditAppointment(QDialog):
             self.combos_employees[-1].addItem('Gast', UUID('00000000000000000000000000000000'))
             self.combos_employees[-1].currentIndexChanged.connect(partial(self.combo_employees_index_changed, i - 1))
         for j, avd in enumerate(self.appointment.avail_days):
-            self.combos_employees[j].setCurrentIndex(self.combos_employees[-1].findData(avd.id))
+            self.combos_employees[j].setCurrentIndex(self.combos_employees[j].findData(avd.id))
         for k, name in enumerate(self.appointment.guests, start=len(self.appointment.avail_days)):
             self.combos_employees[k].addItem(name, UUID('00000000000000000000000000000001'))
-            self.combos_employees[k].setCurrentIndex(self.combos_employees[-1].findText(name))
+            self.combos_employees[k].setCurrentIndex(self.combos_employees[k].findText(name))
 
     def combo_employees_index_changed(self, index_in_combos_employees: int, curr_index: int):
         if ((combo := self.combos_employees[index_in_combos_employees])
@@ -206,10 +204,17 @@ class DlgEditAppointment(QDialog):
                     combo.setItemText(idx, dlg.le_guest.text())
                     combo.setCurrentIndex(idx)
 
-    def accept(self):
-        self.new_avail_day_ids = {combo.currentData(): combo.currentText()
-                                  for combo in self.combos_employees if combo.currentData()}
-        super().accept()
+    @property
+    def new_avail_days(self) -> set[UUID]:
+        """Returns a set of avail_day_ids"""
+        return {combo.currentData() for combo in self.combos_employees
+                if combo.currentData() and combo.currentData() != UUID('00000000000000000000000000000001')}
+
+    @property
+    def new_guests(self) -> set[str]:
+        """Returns a set of strings"""
+        return {combo.currentText() for combo in self.combos_employees
+                if combo.currentData() and combo.currentData() == UUID('00000000000000000000000000000001')}
 
 
 class DlgMoveAppointment(QDialog):
@@ -461,18 +466,18 @@ class AppointmentField(QWidget):
             return
         dlg = DlgEditAppointment(self, self.appointment)
         if dlg.exec():
-            new_avail_day_ids = [avd_id for avd_id in dlg.new_avail_day_ids.keys()
-                                 if avd_id != UUID('00000000000000000000000000000001')]
-            new_guests = [guest for avd_id, guest in dlg.new_avail_day_ids.items()
-                          if avd_id == UUID('00000000000000000000000000000001')]
 
             commands_to_batch = []
-            command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_day_ids)
-            commands_to_batch.append(command_avail_days)
+            if (new_avail_days := sorted(dlg.new_avail_days)) != sorted(avd.id for avd in self.appointment.avail_days):
+                command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_days)
+                commands_to_batch.append(command_avail_days)
 
-            if sorted(new_guests) != sorted(self.appointment.guests):
+            if (new_guests := sorted(dlg.new_guests)) != sorted(self.appointment.guests):
                 command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
                 commands_to_batch.append(command_guests)
+
+            if not commands_to_batch:
+                return
 
             self.batch_command = BatchCommand(self, commands_to_batch)
             self.batch_command.appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
@@ -969,7 +974,6 @@ class FrmTabPlan(QWidget):
             for location in locations:
                 widget = QLabel(f'{location.name} {location.address.city}')
                 widget.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
-                '3d3d3d'
                 widget.setContentsMargins(7, 7, 7, 7)
                 widget.setFixedWidth(self.appointment_widget_width)
                 widget.setWordWrap(True)

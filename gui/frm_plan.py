@@ -228,6 +228,7 @@ class DlgMoveAppointment(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.setStyleSheet("background-color: none")
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(30)
         self.layout_head = QVBoxLayout()
@@ -305,15 +306,7 @@ class LabelDayNr(QLabel):
         self.setFont(font)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
-        print('An diesem Tag im Team:')
-        print([p.f_name for p in get_persons_of_team_at_date(self.plan_period.team.id, self.day)])
-        print('An diesem Tag verfügbar:')
-        print([(avd.actor_plan_period.person.f_name, avd.time_of_day.name)
-               for avd in db_services.AvailDay.get_all_from__plan_period_date(self.plan_period.id, self.day)])
-        menu = QMenu()
-        menu.addAction('Day Action 1')
-        menu.addAction('Day Action 2')
-        menu.exec(event.globalPos())
+        ...
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
@@ -458,8 +451,7 @@ class AppointmentField(QWidget):
         self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
 
-        self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
-                        f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
+        self.setToolTip('Benutze Rechtsklick,\num zum Context-Menü zu gelangen.')
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
@@ -529,6 +521,7 @@ class AppointmentField(QWidget):
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
+        context_menu.setStyleSheet("background-color: none")
         context_menu.addAction(f'Bewege {self.appointment.event.location_plan_period.location_of_work.name_an_city} am '
                                f'{self.appointment.event.date:%d.%m.%y} ({self.appointment.event.time_of_day.name})',
                                self._move_appointment)

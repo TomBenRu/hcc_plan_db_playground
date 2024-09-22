@@ -75,7 +75,6 @@ class ContrExecUndoRedo(Invoker):
         return self.redo_stack[-1] if self.redo_stack else None
 
 
-
 class BatchCommand(Command):
     def __init__(self, parent_window: QWidget, commands: list[Command]):
         self.parent_window = parent_window

@@ -1,3 +1,4 @@
+import datetime
 from uuid import UUID
 
 from database import db_services, schemas
@@ -35,6 +36,42 @@ class UpdateAvailDays(Command):
 
     def redo(self):
         db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+
+
+class UpdateCurrEvent(Command):
+    def __init__(self, appointment: schemas.Appointment, new_date: datetime.date, new_time_of_day_id: UUID):
+        self.appointment = appointment
+        self.new_date = new_date
+        self.new_time_of_day_id = new_time_of_day_id
+        self.updated_event: schemas.EventShow | None = None
+
+    def execute(self):
+        self.updated_event = db_services.Event.update_time_of_day_and_date(
+            self.appointment.event.id, self.new_time_of_day_id, self.new_date)
+
+    def undo(self):
+        db_services.Event.update_time_of_day_and_date(
+            self.appointment.event.id, self.appointment.event.time_of_day.id, self.appointment.event.date)
+
+    def redo(self):
+        db_services.Event.update_time_of_day_and_date(
+            self.appointment.event.id, self.new_time_of_day_id, self.new_date)
+
+
+class UpdateEvent(Command):
+    def __init__(self, appointment: schemas.Appointment, new_event_id: UUID):
+        self.appointment = appointment
+        self.new_event_id = new_event_id
+        self.updated_appointment: schemas.AppointmentShow | None = None
+
+    def execute(self):
+        self.updated_appointment = db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
+
+    def undo(self):
+        db_services.Appointment.update_event(self.appointment.id, self.appointment.event.id)
+
+    def redo(self):
+        db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
 
 
 class UpdateGuests(Command):

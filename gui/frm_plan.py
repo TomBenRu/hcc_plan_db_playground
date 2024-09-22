@@ -16,7 +16,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTable
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
+from commands.command_base_classes import BatchCommand
+from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, event_commands
 from database import schemas, db_services
 from database.special_schema_requests import get_persons_of_team_at_date
 from gui import widget_styles
@@ -214,7 +215,7 @@ class DlgEditAppointment(QDialog):
 class DlgMoveAppointment(QDialog):
     def __init__(self, parent: QWidget, appointment: schemas.Appointment, plan_period: schemas.PlanPeriod):
         super().__init__(parent)
-        self.setWindowTitle('Termin bewegen')
+        self.setWindowTitle('Termin verschieben')
         self.appointment = appointment
         self.plan_period = plan_period
 
@@ -241,7 +242,6 @@ class DlgMoveAppointment(QDialog):
         self.calendar_select_date.setSelectedDate(QDate(self.appointment.event.date.year,
                                                         self.appointment.event.date.month,
                                                         self.appointment.event.date.day))
-        self.calendar_select_date.selectionChanged.connect(self._date_changed)
         self.calendar_select_date.setMinimumDate(self.plan_period.start)
         self.calendar_select_date.setMaximumDate(self.plan_period.end)
         self.layout_body.addWidget(self.calendar_select_date)
@@ -249,8 +249,8 @@ class DlgMoveAppointment(QDialog):
         self.combo_time_of_day = QComboBox()
         for time_of_day in self.time_of_days:
             self.combo_time_of_day.addItem(time_of_day.name, time_of_day)
+        self.combo_time_of_day.setCurrentIndex(self.combo_time_of_day.findText(self.appointment.event.time_of_day.name))
         self.layout_body.addWidget(self.combo_time_of_day)
-
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
@@ -269,9 +269,6 @@ class DlgMoveAppointment(QDialog):
     @property
     def new_time_of_day(self) -> schemas.TimeOfDay:
         return self.combo_time_of_day.currentData()
-
-    def _date_changed(self):
-        print(self.calendar_select_date.selectedDate())
 
     def accept(self):
         super().accept()
@@ -452,10 +449,9 @@ class AppointmentField(QWidget):
 
         fill_in_data(self)
 
-        self.command_avail_days: appointment_commands.UpdateAvailDays | None = None
-        self.command_guests: appointment_commands.UpdateGuests | None = None
         self.thread_pool = QThreadPool()
-        self.execution_timer_post_cast_change = DelayedTimerSingleShot(500, self._handle_post_cast_change_actions)
+        self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
+        self.batch_command: BatchCommand | None = None
 
         self.setToolTip(f'Hallo {" und ".join([a.actor_plan_period.person.f_name for a in appointment.avail_days])}.\n'
                         f'Benutze Rechtsklick, um zum Context-Menü zu gelangen.')
@@ -469,14 +465,22 @@ class AppointmentField(QWidget):
                                  if avd_id != UUID('00000000000000000000000000000001')]
             new_guests = [guest for avd_id, guest in dlg.new_avail_day_ids.items()
                           if avd_id == UUID('00000000000000000000000000000001')]
-            self.command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_day_ids)
-            self.plan_widget.controller.execute(self.command_avail_days)
-            self.appointment = self.command_avail_days.updated_appointment
+
+            commands_to_batch = []
+            command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_day_ids)
+            commands_to_batch.append(command_avail_days)
+
             if sorted(new_guests) != sorted(self.appointment.guests):
-                self.command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
-                self.plan_widget.controller.execute(self.command_guests)
-                self.appointment = self.command_guests.updated_appointment
+                command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
+                commands_to_batch.append(command_guests)
+
+            self.batch_command = BatchCommand(self, commands_to_batch)
+            self.batch_command.appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
+            self.plan_widget.controller.execute(self.batch_command)
+            self.appointment = commands_to_batch[-1].updated_appointment
+            self.batch_command.updated_appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
             fill_in_data(self)
+
             if self.plan_widget.permanent_plan_check:
                 self._start_plan_check()
             else:
@@ -486,6 +490,7 @@ class AppointmentField(QWidget):
         signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.refresh_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',
@@ -512,17 +517,15 @@ class AppointmentField(QWidget):
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
                 self.plan_widget.controller.undo()
-                if self.command_guests:
-                    self.plan_widget.controller.undo()
-                self.appointment = self.command_avail_days.appointment
+                self.appointment = self.batch_command.appointment
                 fill_in_data(self)
             else:
                 self.execution_timer_post_cast_change.start_timer()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
-        context_menu.addAction(f'Action 1 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
-                               f'{self.appointment.event.location_plan_period.location_of_work.name}',
+        context_menu.addAction(f'Bewege {self.appointment.event.location_plan_period.location_of_work.name_an_city} am '
+                               f'{self.appointment.event.date:%d.%m.%y} ({self.appointment.event.time_of_day.name})',
                                self._move_appointment)
         context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
                                f'{self.appointment.event.location_plan_period.location_of_work.name}')
@@ -531,7 +534,36 @@ class AppointmentField(QWidget):
     def _move_appointment(self):
         dlg = DlgMoveAppointment(self, self.appointment, self.plan_widget.plan.plan_period)
         if dlg.exec():
-            print(f'accepted: {dlg.new_date} ({dlg.new_time_of_day.name})')
+            if [a for a in self.plan_widget.plan.appointments
+                if a.event.date == dlg.new_date
+                and a.event.time_of_day.time_of_day_enum.time_index == dlg.new_time_of_day.time_of_day_enum.time_index
+                    and a.event.location_plan_period.id == self.appointment.event.location_plan_period.id]:
+                QMessageBox.critical(self, 'Termin verschieben',
+                                     f'Am {dlg.new_date:%d.%m.%y} ({dlg.new_time_of_day.name})\n'
+                                     f'ist schon ein Termin von '
+                                     f'{self.appointment.event.location_plan_period.location_of_work.name_an_city} '
+                                     f'vorhanden')
+                return
+            existing_event = db_services.Event.get_from__location_pp_date_time_index(
+                self.appointment.event.location_plan_period.id, dlg.new_date,
+                dlg.new_time_of_day.time_of_day_enum.time_index)
+            if existing_event:
+                QMessageBox.information(self, 'Termin verschieben',
+                                        f'Am {dlg.new_date:%d.%m.%y} ({dlg.new_time_of_day.time_of_day_enum.name})\n'
+                                        f'ist bereits ein Terminvorschlag für '
+                                        f'{self.appointment.event.location_plan_period.location_of_work.name_an_city} '
+                                        f'vorhanden.\n'
+                                        f'Dieser wird für die Änderung übernommen.\n'
+                                        f'Eventuell müssen sie die Variante der Tageszeit anpassen.')
+                command1 = appointment_commands.UpdateEvent(self.appointment, existing_event.id)
+            else:
+                command1 = appointment_commands.UpdateCurrEvent(self.appointment, dlg.new_date, dlg.new_time_of_day.id)
+
+            command2 = plan_commands.UpdateLocationColumns(self.plan_widget.plan.id, {})
+            command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
+            batch_command = BatchCommand(self, [command1, command2, command3])
+            self.plan_widget.controller.execute(batch_command)
+            self.execution_timer_post_cast_change.start_timer()
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)
@@ -637,7 +669,11 @@ class FrmTabPlan(QWidget):
         self.column_assignments = self.generate_column_assignments()
         self.day_location_id_appointments = self.generate_day_appointments()
 
-        self.execution_handler_post_undo_redo = DelayedTimerSingleShot(1000, self._post_undo_redo_actions)
+        self.execution_handler_post_undo_redo_avail_days = DelayedTimerSingleShot(
+            1000, self._post_undo_redo_actions, 'avail_days_of_appointment')
+        self.execution_handler_post_undo_redo_move_appointment = DelayedTimerSingleShot(
+            1000, self._post_undo_redo_actions, 'moving_appointment'
+        )
 
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
@@ -686,30 +722,40 @@ class FrmTabPlan(QWidget):
         signal_handling.handler_plan_tabs.refresh_plan_statistics(self.plan.plan_period.id)
 
     def _undo_shift_command(self):
-        command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_undo_command()
+        command: appointment_commands.UpdateAvailDays | BatchCommand | None = (
+            self.controller.get_recent_undo_command())
         if command is None:
             self._undo_redo_no_more_action(self.bt_undo, 'undo')
             return
-        appointment = command.appointment
-        appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
-        self._highlight_undo_redo_appointment_field(appointment_field)
-        appointment_field.appointment = appointment
-        fill_in_data(appointment_field)
-        self.controller.undo()
-        self._handle_post_undo_redo_actions()
+        if hasattr(command, 'appointment'):
+            appointment = command.appointment
+            appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+            self._highlight_undo_redo_appointment_field(appointment_field)
+            appointment_field.appointment = appointment
+            fill_in_data(appointment_field)
+            self.controller.undo()
+            self._handle_post_undo_redo_actions('avail_days_of_appointment')
+        else:
+            self.controller.undo()
+            self._handle_post_undo_redo_actions('moving_appointment')
 
     def _redo_shift_command(self):
-        command: appointment_commands.UpdateAvailDays | None = self.controller.get_recent_redo_command()
+        command: appointment_commands.UpdateAvailDays | appointment_commands.UpdateCurrEvent | None = (
+            self.controller.get_recent_redo_command())
         if command is None:
             self._undo_redo_no_more_action(self.bt_redo, 'redo')
             return
-        appointment = command.updated_appointment
-        appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
-        self._highlight_undo_redo_appointment_field(appointment_field)
-        appointment_field.appointment = appointment
-        fill_in_data(appointment_field)
-        self.controller.redo()
-        self._handle_post_undo_redo_actions()
+        if hasattr(command, 'updated_appointment'):
+            appointment = command.updated_appointment
+            appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
+            self._highlight_undo_redo_appointment_field(appointment_field)
+            appointment_field.appointment = appointment
+            fill_in_data(appointment_field)
+            self.controller.redo()
+            self._handle_post_undo_redo_actions('avail_days_of_appointment')
+        else:
+            self.controller.redo()
+            self._handle_post_undo_redo_actions('moving_appointment')
 
     def _highlight_undo_redo_appointment_field(self, appointment_field: AppointmentField):
         def reset_field():
@@ -722,13 +768,19 @@ class FrmTabPlan(QWidget):
         appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
         QTimer.singleShot(1500, reset_field)
 
-    def _handle_post_undo_redo_actions(self):
-        self.execution_handler_post_undo_redo.start_timer()
+    def _handle_post_undo_redo_actions(self, kind: Literal['avail_days_of_appointment', 'moving_appointment']):
+        if kind == 'avail_days_of_appointment':
+            self.execution_handler_post_undo_redo_avail_days.start_timer()
+        else:
+            self.execution_handler_post_undo_redo_move_appointment.start_timer()
 
-    def _post_undo_redo_actions(self):
+    def _post_undo_redo_actions(self, kind: Literal['avail_days_of_appointment', 'moving_appointment']):
         self.reload_plan()
-        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
-        signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
+        if kind == 'avail_days_of_appointment':
+            signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
+            signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
+        else:
+            self.refresh_plan()
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
         def reset_button():
@@ -811,13 +863,11 @@ class FrmTabPlan(QWidget):
         weekdays_locations = self.generate_weekdays_locations()
 
         location_columns = {k: [loc.id for loc in v] for k, v in weekdays_locations.items()}
-        self.controller.execute(
-            plan_commands.UpdateLocationColumns(self.plan.id, location_columns)
-        )
+        plan_commands.UpdateLocationColumns(self.plan.id, location_columns).execute()
         return weekdays_locations
 
     def generate_weekdays_locations(self):
-        weekdays_locations = {weekday_num: [] for weekday_num in self.weekday_names}
+        weekdays_locations: dict[int, list[schemas.LocationOfWork]] = {weekday_num: [] for weekday_num in self.weekday_names}
         for appointment in self.plan.appointments:
             weekday = appointment.event.date.isoweekday()
             if (appointment.event.location_plan_period.location_of_work.id
@@ -892,7 +942,7 @@ class FrmTabPlan(QWidget):
         days_between = (end - start).days + 1
         return [start + datetime.timedelta(days=i) for i in range(days_between)]
 
-    def generate_all_week_nums_of_month(self):
+    def generate_all_week_nums_of_month(self) -> list[int]:
         return sorted({d.isocalendar()[1] for d in self.all_days_of_month})
 
     def generate_week_num_row(self):

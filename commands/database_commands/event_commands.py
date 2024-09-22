@@ -1,3 +1,4 @@
+import datetime
 from uuid import UUID
 
 from database import db_services, schemas
@@ -26,13 +27,33 @@ class UpdateTimeOfDay(Command):
         self.new_time_of_day_id = new_time_of_day_id
 
     def execute(self):
-        db_services.Event.update_time_of_day(self.event.id, self.new_time_of_day_id)
+        db_services.Event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
 
     def undo(self):
-        db_services.Event.update_time_of_day(self.event.id, self.old_time_of_day_id)
+        db_services.Event.update_time_of_day_and_date(self.event.id, self.old_time_of_day_id)
 
     def redo(self):
-        db_services.Event.update_time_of_day(self.event.id, self.new_time_of_day_id)
+        db_services.Event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
+
+
+class UpdateDateTimeOfDay(Command):
+    def __init__(self, event: schemas.Event, new_date: datetime.date, new_time_of_day_id: UUID):
+        self.event = event
+        self.new_date = new_date
+        self.new_time_of_day_id = new_time_of_day_id
+        self.updated_event: schemas.EventShow | None = None
+
+    def execute(self):
+        self.updated_event = db_services.Event.update_time_of_day_and_date(
+            self.event.id, self.new_time_of_day_id, self.new_date)
+
+    def undo(self):
+        self.updated_event = db_services.Event.update_time_of_day_and_date(
+            self.event.id, self.event.time_of_day.id, self.event.date)
+
+    def redo(self):
+        self.updated_event = db_services.Event.update_time_of_day_and_date(
+            self.event.id, self.new_time_of_day_id, self.new_date)
 
 
 class Delete(Command):

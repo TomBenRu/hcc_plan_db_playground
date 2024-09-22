@@ -1512,6 +1512,17 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
+    @db_session
+    def get_from__location_pp_date_time_index(cls, location_plan_period_id: UUID, date: datetime.date,
+                                       time_index: int) -> schemas.Event | None:
+        event_db = (models.Event.select()
+                     .filter(lambda e: e.location_plan_period.id == location_plan_period_id)
+                     .filter(lambda e: e.date == date)
+                     .filter(lambda e: e.time_of_day.time_of_day_enum.time_index == time_index)).first()
+
+        return schemas.Event.model_validate(event_db)
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, event: schemas.EventCreate) -> schemas.EventShow:
         log_function_info(cls)
@@ -1532,11 +1543,14 @@ class Event:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def update_time_of_day(cls, event_id: UUID, new_time_of_day_id: UUID) -> schemas.EventShow:
+    def update_time_of_day_and_date(cls, event_id: UUID, new_time_of_day_id: UUID,
+                                    new_date: datetime.date = None) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
         new_time_of_day_db = models.TimeOfDay.get_for_update(id=new_time_of_day_id)
         event_db.time_of_day = new_time_of_day_db
+        if new_date:
+            event_db.date = new_date
 
         return schemas.EventShow.model_validate(event_db)
 
@@ -2342,6 +2356,15 @@ class Appointment:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
         appointment_db.guests = json.dumps(guests)
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_event(cls, appointment_id: UUID, event_id: UUID) -> schemas.AppointmentShow:
+        log_function_info(cls)
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        event_db = models.Event.get_for_update(id=event_id)
+        appointment_db.event = event_db
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod

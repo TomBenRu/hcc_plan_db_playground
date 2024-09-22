@@ -488,9 +488,9 @@ class AppointmentField(QWidget):
 
     def _handle_post_cast_change_actions(self):
         signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.refresh_plan(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
-        signal_handling.handler_plan_tabs.refresh_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
         self.progress_bar = DlgProgressInfinite(self, 'Überprüfung',

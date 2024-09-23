@@ -12,7 +12,7 @@ from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
     QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit, QDateEdit, \
-    QCalendarWidget
+    QCalendarWidget, QToolTip
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
@@ -286,6 +286,7 @@ class LabelDayNr(QLabel):
     def __init__(self, day: datetime.date, plan_period: schemas.PlanPeriod):
         super().__init__()
         self.setObjectName(f'LabelDayNr_{day:%d_%m_%y}')
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.day = day
         self.plan_period = plan_period
@@ -450,8 +451,9 @@ class AppointmentField(QWidget):
         self.thread_pool = QThreadPool()
         self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.setToolTip('Benutze Rechtsklick,\num zum Context-Menü zu gelangen.')
+        self.setToolTip('Rechtsklick,für weitere Aktionen.')
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
@@ -1002,6 +1004,7 @@ class TblPlanStatistics(QTableWidget):
         self._fill_in_table_cells()
 
         self.cellClicked.connect(self.on_cell_clicked)
+        self.setMouseTracking(True)
 
     def on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
@@ -1013,6 +1016,16 @@ class TblPlanStatistics(QTableWidget):
         elif row == self.row_kind_of_dates['able'] and actor_plan_period:
             self._highlight_set_cell_item(row, column, 'able')
             self._highlight_plan_labels_day_num(row, column)
+
+    def mouseMoveEvent(self, event):
+        item = self.itemAt(event.position().toPoint())
+        if item is None:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        elif (item.row(), item.column()) in self.cells_with_action:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def _highlight_set_cell_item(self, row: int, column: int, kind: Literal['able', 'current']):
         item = self.item(row, column)
@@ -1109,14 +1122,17 @@ class TblPlanStatistics(QTableWidget):
         item.setFont(font)
         color = QColor(self.cell_backgrounds[kind][column % 2])
         item.setBackground(color)
-        self.set_tool_tip(item, kind, actor_plan_period, full_name)
+        self.set_tool_tip(item, kind, actor_plan_period, full_name, column)
         self.setItem(self.row_kind_of_dates[kind], column, item)
 
-    def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str):
+    def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str,
+                     column: int):
         if kind == 'able' and actor_plan_period:
             item.setToolTip(f'Klick:\nMögliche Einsätze von {full_name}\nim Plan markieren.')
+            self.cells_with_action.add((self.row_kind_of_dates['able'], column))
         if kind == 'current':
             item.setToolTip(f'Klick:\nAktuelle Einsätze von {full_name}\nim Plan markieren.')
+            self.cells_with_action.add((self.row_kind_of_dates['current'], column))
 
     @profile
     def _setup_data(self):
@@ -1133,6 +1149,7 @@ class TblPlanStatistics(QTableWidget):
                                                for lb in self.frm_plan.findChildren(LabelDayNr)}
         self.item_statistics_stylesheets: defaultdict[tuple[int, int], dict] = defaultdict(dict)
         self.item_statistics_selected: defaultdict[tuple[int, int], bool] = defaultdict(lambda: False)
+        self.cells_with_action = set()
 
     @profile
     @Slot(UUID)

@@ -1514,7 +1514,7 @@ class Event:
     @classmethod
     @db_session
     def get_from__location_pp_date_time_index(cls, location_plan_period_id: UUID, date: datetime.date,
-                                       time_index: int) -> schemas.Event | None:
+                                              time_index: int) -> schemas.Event | None:
         event_db = (models.Event.select()
                     .filter(lambda e: e.location_plan_period.id == location_plan_period_id)
                     .filter(lambda e: e.date == date)

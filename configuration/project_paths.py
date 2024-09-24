@@ -43,3 +43,4 @@ class UserPathHandlerToml:
 
 
 curr_user_path_handler = UserPathHandlerToml
+paths = Paths()

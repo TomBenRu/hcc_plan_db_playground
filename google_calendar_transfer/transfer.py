@@ -8,32 +8,36 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from configuration import project_paths
 from google_calendar_transfer.event_object import GoogleCalendarEvent
 
 # Wenn der Zugriff auf den Kalender nur zum Erstellen/Ändern von Events benötigt wird
 SCOPES = ['https://www.googleapis.com/auth/calendar']
+credentials_dir = os.path.join(os.path.dirname(__file__))
+
 
 def authenticate_google():
     creds = None
     # Wenn Token schon existiert, laden
-    if os.path.exists('credentials/token.json'):
-        creds = Credentials.from_authorized_user_file('credentials/token.json', SCOPES)
+    if os.path.exists(token := os.path.join(credentials_dir, 'token.json')):
+        creds = Credentials.from_authorized_user_file(token, SCOPES)
     # Wenn keine (gültigen) Anmeldeinformationen vorhanden, melde Benutzer erneut an
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials/client_secret.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(os.path.join(credentials_dir, 'client_secret.json'),
+                                                             SCOPES)
             creds = flow.run_local_server(port=0)
         # Speichere die Anmeldeinformationen für das nächste Mal
-        with open('credentials/token.json', 'w') as token:
+        with open(token, 'w') as token:
             token.write(creds.to_json())
     return creds
+
 
 def add_event_to_calendar(calendar_id, event):
     creds = authenticate_google()
     service = build('calendar', 'v3', credentials=creds)
-
 
     try:
         # Das Event erstellen
@@ -47,7 +51,6 @@ def add_event_to_calendar(calendar_id, event):
 
 
 if __name__ == '__main__':
-    # Beispieltermin
     # Erstellen eines datetime-Objekts für die Start- und Endzeit
     start_time = datetime.datetime(2024, 9, 29, 10, 0, 0)  # 29. Sept. 2024, 10:00 Uhr
     end_time = datetime.datetime(2024, 9, 29, 11, 0, 0)  # 29. Sept. 2024, 11:00 Uhr

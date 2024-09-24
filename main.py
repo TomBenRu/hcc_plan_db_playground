@@ -8,5 +8,5 @@ from gui import app
 
 r_path = os.path.dirname(__file__)
 print(r_path)
-project_paths.Paths.root_path = r_path
+project_paths.paths.root_path = r_path
 app.app.exec()

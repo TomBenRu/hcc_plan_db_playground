@@ -19,7 +19,6 @@ from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, event_commands
 from database import schemas, db_services
-from database.special_schema_requests import get_persons_of_team_at_date
 from gui import widget_styles
 from gui.concurrency import general_worker
 from gui.concurrency.general_worker import WorkerGetMaxFairShifts

@@ -8,7 +8,7 @@ from toml.decoder import TomlDecodeError
 
 @dataclasses.dataclass
 class Paths:
-    root_path: str
+    root_path: str = ''
 
 
 class UserPaths(BaseModel):

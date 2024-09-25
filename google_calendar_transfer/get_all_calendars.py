@@ -61,6 +61,11 @@ def list_all_calendars_with_acl():
         return None
 
 
+def synchronize_local_calendars():
+    calendars = list_all_calendars_with_acl()
+    curr_calendars_handler.save_json_to_file(calendars)
+
+
 if __name__ == '__main__':
     # Rufe alle Kalender mit ihren Freigaben (ACL) ab
     calendars = list_all_calendars_with_acl()

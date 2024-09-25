@@ -17,19 +17,27 @@ class SignalsGetMaxFairShifts(QObject):
     finished = Signal(object, object)
 
 
+class WorkerSignalsReturnValue(QObject):
+    finished = Signal(object)
+
+
 class WorkerGeneral(QRunnable):
-    def __init__(self, function: Callable, *args, **kwargs):
+    def __init__(self, function: Callable, has_return_val: bool = False, *args, **kwargs):
         super().__init__()
         self.function = function  # Die Funktion, die ausgeführt wird
         self.args = args          # Argumente für die Funktion
+        self.has_return_val = has_return_val
         self.kwargs = kwargs      # Keyword-Argumente für die Funktion
-        self.signals = WorkerSignals()
+        self.signals = WorkerSignalsReturnValue() if has_return_val else WorkerSignals()
 
     @Slot()  # Der Worker wird als Slot ausgeführt
     def run(self):
         # Führe die übergebene Funktion mit den Argumenten aus
-        self.function(*self.args, **self.kwargs)
-        self.signals.finished.emit()  # Signal für den Abschluss senden
+        result = self.function(*self.args, **self.kwargs)
+        if self.has_return_val:
+            self.signals.finished.emit(result)
+        else:
+            self.signals.finished.emit()  # Signal für den Abschluss senden
 
 
 class WorkerCheckPlan(QRunnable):

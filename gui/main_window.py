@@ -2,7 +2,7 @@ import functools
 import os.path
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication
+from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
 from pydantic_core import ValidationError
@@ -13,7 +13,9 @@ from commands.database_commands import plan_commands, team_commands, plan_period
 from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
+from google_calendar_transfer.get_all_calendars import synchronize_local_calendars
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
+from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
@@ -46,6 +48,8 @@ class MainWindow(QMainWindow):
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+
+        self.thread_pool = QThreadPool()
 
         self.global_update_plan_tabs_progress_bar = DlgProgressInfinite(
             self, 'Update Plan-Tabs', 'Die betreffenden geöffneten Pläne werden aktualisiert.', 'Abbruch')
@@ -121,6 +125,12 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 'Termine übertragen',
                               'Termine des aktiven Plans zum Google-Kalender übertragen',
                               self.plan_events_to_google_calendar),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--plus.png'),
+                              'Google-Kalender anlegen',
+                              'Einen neuen Google-Kalender anlegen', self.create_google_calendar),
+            MenuToolbarAction(self, None, 'Lokale Kalenderliste abgleichen',
+                              'Gleicht die lokale Kalenderliste mit den online verfügbarn Google-kalendern ab',
+                              self.synchronize_google_calenders),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'),
                               'Google-Kalender öffnen...',
                               'Öffnet den Google-Kalender im Browser', self.open_google_calendar),
@@ -162,6 +172,8 @@ class MainWindow(QMainWindow):
                            ],
             '&Emails': [self.actions['send_email']],
             '&Google Kalender': [self.actions['plan_events_to_google_calendar'], self.actions['open_google_calendar'],
+                                 None, self.actions['create_google_calendar'],
+                                 self.actions['synchronize_google_calenders'],
                                  None, self.actions['set_google_calendar_id']],
             'E&xtras': [self.actions['upgrade_hcc_plan'], None, self.actions['general_setting']],
             '&Hilfe': [self.actions['open_help'], None, self.actions['check_for_updates'], None,
@@ -626,6 +638,39 @@ class MainWindow(QMainWindow):
 
     def open_google_calendar(self):
         ...
+
+    def create_google_calendar(self):
+        ...
+
+    def synchronize_google_calenders(self):
+        def synchronize():
+            try:
+                synchronize_local_calendars()
+                return True
+            except Exception as e:
+                return e
+
+        @Slot(object)
+        def finished(result):
+            progressbar.close()
+            if result is True:
+                QMessageBox.information(
+                    self, 'Kalender-Synchronisation',
+                    'Die lokale Kalenderliste enthält jetzt alle online verfügbaren Google-Kalender.')
+            else:
+                QMessageBox.critical(
+                    self, 'Synchronisationsfehler',
+                    f'Beim Versuch die lokale Kalenderliste mit den\n'
+                    f'online verfügbaren Google-Kalendern abzugleichen ist folgender Fehler aufgetreten:\n'
+                    f'{result}')
+
+        worker = WorkerGeneral(synchronize, True)
+        worker.signals.finished.connect(finished)
+        progressbar = DlgProgressInfinite(self, 'Kalendersynchronisation',
+                                          'Google-Kalender werden heruntergeladen...', 'Abbruch')
+        progressbar.show()
+        self.thread_pool.start(worker)
+
 
     def set_google_calendar_id(self):
         ...

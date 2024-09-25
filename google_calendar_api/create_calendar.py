@@ -3,7 +3,7 @@ import pprint
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from google_calendar_transfer.authenticate import authenticate_google
+from google_calendar_api.authenticate import authenticate_google
 
 
 class CalendarData:
@@ -22,7 +22,7 @@ class CalendarData:
         }
 
 
-def create_new_calendar(calendar_data: dict[str, str]):
+def create_new_google_calendar(calendar_data: dict[str, str]):
     creds = authenticate_google()
     service = build('calendar', 'v3', credentials=creds)
 
@@ -68,7 +68,7 @@ def share_calendar(calendar_id: str, email: str, role: str = 'reader'):
 
 if __name__ == '__main__':
     calendar = CalendarData('Mitarbeiter_01', 'Visiten von Mitarbeiter 01')
-    created_calendar = create_new_calendar(calendar.to_google_calendar_json())
+    created_calendar = create_new_google_calendar(calendar.to_google_calendar_json())
     print(created_calendar)
 
     ##################################################################

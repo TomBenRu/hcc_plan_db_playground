@@ -1,4 +1,5 @@
 import functools
+import json
 import os.path
 from uuid import UUID
 
@@ -8,15 +9,18 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from pydantic_core import ValidationError
 
 import configuration
+import google_calendar_api
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
-from google_calendar_transfer.get_all_calendars import synchronize_local_calendars
+from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
+from google_calendar_api.get_all_calendars import synchronize_local_calendars
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
+from .frm_create_google_calendar import CreateGoogleCalendar
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -640,7 +644,16 @@ class MainWindow(QMainWindow):
         ...
 
     def create_google_calendar(self):
-        ...
+        dlg = CreateGoogleCalendar(self, self.project_id)
+        if dlg.exec():
+            print(json.dumps({"description": "Termine von Adeline Rüss",
+                              "person_id": "0b31fc7b-332d-44e0-973e-683d5edf61d4"}))
+            print(dlg.new_calender_data)
+            print(json.loads(dlg.new_calender_data['description']))
+            created_calendar = create_new_google_calendar(dlg.new_calender_data)
+            if dlg.email_for_access_control:
+                share_calendar(created_calendar['id'], dlg.email_for_access_control)
+
 
     def synchronize_google_calenders(self):
         def synchronize():

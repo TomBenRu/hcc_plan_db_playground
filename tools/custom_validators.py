@@ -1,6 +1,7 @@
 import string
 
-from PySide6.QtGui import QValidator
+from PySide6.QtCore import QRegularExpression
+from PySide6.QtGui import QValidator, QRegularExpressionValidator
 
 
 class LettersAndSymbolsValidator(QValidator):
@@ -37,3 +38,9 @@ class IntValidator(QValidator):
             return QValidator.State.Acceptable, text, pos
         except ValueError:
             return QValidator.State.Invalid, text, pos
+
+
+# Erstelle einen Validator für einen regulären Ausdruck
+_email_regex = QRegularExpression(r"^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$")
+email_validator = QRegularExpressionValidator(_email_regex)
+

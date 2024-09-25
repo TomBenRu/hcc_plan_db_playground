@@ -2,10 +2,8 @@ import datetime
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
-from configuration import project_paths
-from google_calendar_transfer.appointments_from_plan import GoogleCalendarEvent
-from google_calendar_transfer.authenticate import authenticate_google
+from google_calendar_api.appointments_from_plan import GoogleCalendarEvent
+from google_calendar_api.authenticate import authenticate_google
 
 
 def add_event_to_calendar(calendar_id, event):

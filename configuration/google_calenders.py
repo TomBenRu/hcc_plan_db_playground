@@ -36,7 +36,7 @@ class CalendarsHandlerToml:
             return {}
 
     def save_calenders_to_file(self, calenders: list[GoogleCalendar]):
-        # self._calenders = calenders
+        self._calenders = calenders
         with open(self._calender_file_path, 'w') as f:
             toml.dump({c.summary: c.model_dump(mode='json') for c in calenders}, f)
 
@@ -44,7 +44,7 @@ class CalendarsHandlerToml:
         calendar_objects = [GoogleCalendar.model_validate(c) for c in calendars]
         self.save_calenders_to_file(calendar_objects)
 
-    def get_calenders(self) -> list[GoogleCalendar]:
+    def get_calenders(self) -> dict[str, GoogleCalendar]:
         if self._calenders is None:
             self._calenders = self.load_calenders_from_file()
         return self._calenders

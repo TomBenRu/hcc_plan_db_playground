@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from configuration.google_calenders import curr_calendars_handler
-from google_calendar_transfer.authenticate import authenticate_google
+from google_calendar_api.authenticate import authenticate_google
 
 
 def list_calendar_acl(calendar_id: str):

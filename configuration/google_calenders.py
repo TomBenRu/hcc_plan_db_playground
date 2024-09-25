@@ -17,8 +17,14 @@ class GoogleCalendar(BaseModel):
 
 class CalendarsHandlerToml:
     def __init__(self):
-        self._calender_file_path = os.path.join(os.path.dirname(__file__), 'google_calendars', 'google_calendars.toml')
+        self.toml_dir = 'google_calendars'
+        self._calender_file_path = os.path.join(os.path.dirname(__file__), self.toml_dir, 'google_calendars.toml')
         self._calenders: list[GoogleCalendar] | None = None
+        self._check_toml_dir()
+
+    def _check_toml_dir(self):
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), self.toml_dir)):
+            os.mkdir(os.path.join(os.path.dirname(__file__), self.toml_dir))
 
     def load_calenders_from_file(self) -> dict[str, GoogleCalendar]:
         try:

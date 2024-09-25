@@ -1,38 +1,11 @@
 import datetime
-import os.path
-import pprint
 
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from configuration import project_paths
-from google_calendar_transfer.event_object import GoogleCalendarEvent
-
-# Wenn der Zugriff auf den Kalender nur zum Erstellen/Ändern von Events benötigt wird
-SCOPES = ['https://www.googleapis.com/auth/calendar']
-credentials_dir = os.path.join(os.path.dirname(__file__))
-
-
-def authenticate_google():
-    creds = None
-    # Wenn Token schon existiert, laden
-    if os.path.exists(token := os.path.join(credentials_dir, 'token.json')):
-        creds = Credentials.from_authorized_user_file(token, SCOPES)
-    # Wenn keine (gültigen) Anmeldeinformationen vorhanden, melde Benutzer erneut an
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(os.path.join(credentials_dir, 'client_secret.json'),
-                                                             SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Speichere die Anmeldeinformationen für das nächste Mal
-        with open(token, 'w') as token:
-            token.write(creds.to_json())
-    return creds
+from google_calendar_transfer.appointments_from_plan import GoogleCalendarEvent
+from google_calendar_transfer.authenticate import authenticate_google
 
 
 def add_event_to_calendar(calendar_id, event):
@@ -68,7 +41,6 @@ if __name__ == '__main__':
 
     # Konvertiere das Event-Objekt ins Google Event Format
     google_event = event_obj.to_google_event()
-    pprint.pprint(google_event)
 
     # Füge das Event in den Kalender ein
     add_event_to_calendar('01e7ea578547693819a0c97a926a2871c1178c5f129eb35563734c7b106985ea@group.calendar.google.com',

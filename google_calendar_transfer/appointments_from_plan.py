@@ -1,5 +1,9 @@
+from collections import defaultdict
 from datetime import datetime
 import pytz
+
+from database import schemas
+
 
 class GoogleCalendarEvent:
     def __init__(self, summary, location, description, start_time, end_time, time_zone='Europe/Berlin', attendees=None):
@@ -35,3 +39,7 @@ class GoogleCalendarEvent:
             event['attendees'] = [{'email': email} for email in self.attendees]
 
         return event
+
+
+def _extract_gc_events_from_plan(plan: schemas.PlanShow):
+    gc_events: defaultdict[str, list[GoogleCalendarEvent]] = defaultdict(list)

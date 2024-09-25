@@ -14,6 +14,7 @@ from configuration import team_start_config, project_paths
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
+from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -618,7 +619,10 @@ class MainWindow(QMainWindow):
         ...
 
     def plan_events_to_google_calendar(self):
-        ...
+        plan = self.tabs_plans.currentWidget().plan
+        if DlgSendAppointmentsToGoogleCal(self, plan).exec():
+            ...
+
 
     def open_google_calendar(self):
         ...

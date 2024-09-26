@@ -52,12 +52,15 @@ def transfer_plan_appointments(plan: schemas.PlanShow):
                                datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time()),
                                datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()))
     team_calendar = next((c for c in calendars.values() if c.team_id == plan.plan_period.team.id), None)
+    delete_events_in_range(team_calendar.id,
+                           datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time()),
+                           datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()))
     for appointment in plan.appointments:
         user_calendars = (c for c in calendars.values()
                           if c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
         google_event = create_google_event(appointment)
 
-        # if team_calendar:
-        #     add_event_to_calendar(team_calendar.id, google_event)
+        if team_calendar:
+            add_event_to_calendar(team_calendar.id, google_event)
         for c in user_calendars:
             add_event_to_calendar(c.id, google_event)

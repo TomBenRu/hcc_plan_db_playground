@@ -114,7 +114,7 @@ class LocationPlanPeriodData:
 
         worker = general_worker.WorkerGeneral(
             self._save_new_empty_appointment_in_plan_and_reset_columns,
-            event, plans, mode
+            False, plans, mode
         )
         worker.signals.finished.connect(
             lambda: signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(

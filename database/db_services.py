@@ -660,7 +660,7 @@ class TeamActorAssign:
                     assignment_db = None
             else:
                 for assignm in all_assignments_db:
-                    if assignm.start <= date and (assignm.end > date or assignm.end is None):
+                    if assignm.start <= date and (assignm.end is None or assignm.end > date or assignm.end):
                         assignment_db = assignm
                         break
                 else:

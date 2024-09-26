@@ -17,6 +17,7 @@ from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
+from google_calendar_api.add_access import add_or_update_access_to_calendar
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
 from google_calendar_api.transfer_appointments import transfer_plan_appointments
@@ -652,6 +653,8 @@ class MainWindow(QMainWindow):
                 created_calendar = create_new_google_calendar(dlg.new_calender_data)
                 if dlg.email_for_access_control:
                     share_calendar(created_calendar['id'], dlg.email_for_access_control)
+                if calendar_id := dlg.add_email_to_team_calendar:
+                    add_or_update_access_to_calendar(calendar_id, dlg.email_for_access_control)
                 calendar = get_calendar_by_id(created_calendar['id'])
                 curr_calendars_handler.save_calendar_json_to_file(calendar)
                 return True

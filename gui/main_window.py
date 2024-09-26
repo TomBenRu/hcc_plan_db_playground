@@ -639,10 +639,39 @@ class MainWindow(QMainWindow):
         ...
 
     def plan_events_to_google_calendar(self):
+        def transfer(plan: schemas.PlanShow):
+            try:
+                transfer_plan_appointments(plan)
+                return True
+            except Exception as e:
+                return e
+
+        def finished(result):
+            progressbar.close()
+            if result is True:
+                QMessageBox.information(
+                    self, 'Übertragung der Termine',
+                    f'Die Termine des Teams {plan.plan_period.team.name}\n'
+                    f'des Planungszeitraums {plan.plan_period.start:%d.%m.%y} - {plan.plan_period.end:%d.%m.%y}\n'
+                    f'wurden erfolgreich zu den betreffenden Google-Kalendern übertragen.')
+            else:
+                QMessageBox.critical(self, 'Übertragungsfehler',
+                                     f'Bei der Übertragung der Termine ist ein Fehler aufgetreten:\n'
+                                     f'{result}')
+
         plan = self.tabs_plans.currentWidget().plan
         if DlgSendAppointmentsToGoogleCal(self, plan).exec():
-            transfer_plan_appointments(plan)
-
+            worker = WorkerGeneral(transfer, True, plan)
+            worker.signals.finished.connect(finished)
+            progressbar = DlgProgressInfinite(
+                self, 'Termine übertragen',
+                f'Termine des Teams {plan.plan_period.team.name}\n'
+                f'des Planungszeitraums {plan.plan_period.start:%d.%m.%y} - {plan.plan_period.end:%d.%m.%y}\n'
+                f'werden zu den betreffenden Google-Kalendern übertragen.',
+                'Abbruch'
+            )
+            progressbar.show()
+            self.thread_pool.start(worker)
 
     def open_google_calendar(self):
         ...

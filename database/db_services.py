@@ -680,6 +680,16 @@ class TeamActorAssign:
 
     @classmethod
     @db_session
+    def get_all_actor_ids_between_dates(cls, team_id: UUID,
+                                        date_start: datetime.date, date_end: datetime.date) -> set[UUID]:
+        assignments_db = ((models.TeamActorAssign.select()
+                          .filter(lambda taa: taa.team.id == team_id))
+                          .filter(lambda taa: taa.start <= date_end)
+                          .filter(lambda taa: taa.end >= date_start or taa.end is None))
+        return {taa.person.id for taa in assignments_db}
+
+    @classmethod
+    @db_session
     def get_all_at__date(cls, date: datetime.date, team_id: UUID) -> list[schemas.TeamActorAssignShow]:
         all_actor_location_assigns = models.TeamActorAssign.select(
             lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)

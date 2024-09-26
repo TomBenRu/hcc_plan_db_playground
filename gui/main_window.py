@@ -19,6 +19,7 @@ from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
+from google_calendar_api.transfer_appointments import transfer_plan_appointments
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
@@ -639,7 +640,7 @@ class MainWindow(QMainWindow):
     def plan_events_to_google_calendar(self):
         plan = self.tabs_plans.currentWidget().plan
         if DlgSendAppointmentsToGoogleCal(self, plan).exec():
-            ...
+            transfer_plan_appointments(plan)
 
 
     def open_google_calendar(self):
@@ -694,7 +695,6 @@ class MainWindow(QMainWindow):
             )
             progressbar.show()
             self.thread_pool.start(worker)
-
 
     def synchronize_google_calenders(self):
         def synchronize():

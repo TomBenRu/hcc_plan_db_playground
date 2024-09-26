@@ -33,6 +33,3 @@ class DlgSendAppointmentsToGoogleCal(QDialog):
 
     def _setup_data(self):
         self.text_time_span = f'{self.plan.plan_period.start:%d.%m.%y} - {self.plan.plan_period.end:%d.%m.%y}'
-
-    def accept(self):
-        ...

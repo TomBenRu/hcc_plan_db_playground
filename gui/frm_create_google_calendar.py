@@ -51,6 +51,7 @@ class CreateGoogleCalendar(QDialog):
         self.project = db_services.Project.get(self.projekt_id)
         self.persons_of_project = db_services.Person.get_all_from__project(self.projekt_id)
         self.avail_google_calendars = curr_calendars_handler.get_calenders()
+        print(self.avail_google_calendars)
         self.persons_for_new_calendar = sorted((p for p in self.persons_of_project
                                                 if p.id not in {c.person_id
                                                                 for c in self.avail_google_calendars.values()}),

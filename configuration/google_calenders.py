@@ -13,6 +13,8 @@ class GoogleCalendar(BaseModel):
     access_control: list[EmailStr]
     person_name: str | None = None
     person_id: UUID | None = None
+    team_id: UUID | None = None  # Wenn vorhanden, handelt es sich um einen Team-Kalender
+    # (Zugriff von allen Team-Mitgliedern.
 
 
 class CalendarsHandlerToml:
@@ -36,12 +38,18 @@ class CalendarsHandlerToml:
             return {}
 
     def save_calenders_to_file(self, calenders: list[GoogleCalendar]):
-        self._calenders = calenders
+        self._calenders = {c.summary: c for c in calenders}
         with open(self._calender_file_path, 'w') as f:
             toml.dump({c.summary: c.model_dump(mode='json') for c in calenders}, f)
 
-    def save_json_to_file(self, calendars: list[dict]):
+    def save_calendars_json_to_file(self, calendars: list[dict]):
         calendar_objects = [GoogleCalendar.model_validate(c) for c in calendars]
+        self.save_calenders_to_file(calendar_objects)
+
+    def save_calendar_json_to_file(self, calendar: dict):
+        calendar_object = GoogleCalendar.model_validate(calendar)
+        calendar_objects = list(self.get_calenders().values())
+        calendar_objects += [calendar_object]
         self.save_calenders_to_file(calendar_objects)
 
     def get_calenders(self) -> dict[str, GoogleCalendar]:

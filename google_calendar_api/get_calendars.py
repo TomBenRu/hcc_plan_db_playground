@@ -122,4 +122,3 @@ if __name__ == '__main__':
     pprint.pprint(calendars)
 
     curr_calendars_handler.save_calendars_json_to_file(calendars)
-    print(curr_calendars_handler.get_calenders())

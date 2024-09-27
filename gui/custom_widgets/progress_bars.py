@@ -1,7 +1,7 @@
 from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import Slot, QObject
+from PySide6.QtCore import Slot, QObject, Signal
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QProgressDialog, QWidget, QApplication
 
@@ -10,13 +10,20 @@ from gui.observer import signal_handling
 
 class DlgProgressInfinite(QProgressDialog):
     def __init__(self, parent: QWidget, window_title: str, label_text: str, cancel_button_text: str,
-                 cancel_func: Callable[[], None] | None = None):
+                 cancel_func: Callable[[], None] | None = None,
+                 signal_for_label_text_update: Signal | None = None):
         super().__init__(label_text, cancel_button_text, 0, 0, parent)
+        if signal_for_label_text_update:
+            signal_for_label_text_update.connect(self.update_label)
         self.setWindowTitle(window_title)
         self.setWindowModality(Qt.WindowModality.WindowModal)
         # self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.cancel_func = cancel_func
         self.close()  # damit die Progressbar nicht automatisch nach Initialisierung angezeigt wird.
+
+    @Slot(str)
+    def update_label(self, message: str):
+        self.setLabelText(message)
 
     def cancel(self):
         if self.cancel_func:

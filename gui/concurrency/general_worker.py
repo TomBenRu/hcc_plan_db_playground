@@ -32,7 +32,6 @@ class WorkerGeneral(QRunnable):
 
     @Slot()  # Der Worker wird als Slot ausgeführt
     def run(self):
-        print(self.args, self.kwargs)
         # Führe die übergebene Funktion mit den Argumenten aus
         result = self.function(*self.args, **self.kwargs)
         if self.has_return_val:

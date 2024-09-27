@@ -668,7 +668,9 @@ class MainWindow(QMainWindow):
                 f'Termine des Teams {plan.plan_period.team.name}\n'
                 f'des Planungszeitraums {plan.plan_period.start:%d.%m.%y} - {plan.plan_period.end:%d.%m.%y}\n'
                 f'werden zu den betreffenden Google-Kalendern übertragen.',
-                'Abbruch'
+                'Abbruch',
+                None,
+                signal_handling.handler_google_cal_api.signal_transfer_appointments_progress
             )
             progressbar.show()
             self.thread_pool.start(worker)

@@ -166,9 +166,17 @@ class HandlerSolver(QObject):
         self.signal_cancel_solving.emit()
 
 
+class HandlerGoogleCalAPI(QObject):
+    signal_transfer_appointments_progress = Signal(str)
+
+    def transfer_appointments_progress(self, message: str):
+        self.signal_transfer_appointments_progress.emit(message)
+
+
 handler_actor_plan_period = HandlerActorPlanPeriod()
 handler_location_plan_period = HandlerLocationPlanPeriod()
 handler_plan_tabs = HandlerPlanTabs()
 handler_show_dialog = HandlerShowDialog()
 handler_excel_export = HandlerExcelExport()
 handler_solver = HandlerSolver()
+handler_google_cal_api = HandlerGoogleCalAPI()

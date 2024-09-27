@@ -659,7 +659,12 @@ class MainWindow(QMainWindow):
                                      f'Bei der Übertragung der Termine ist ein Fehler aufgetreten:\n'
                                      f'{result}')
 
-        plan = self.tabs_plans.currentWidget().plan
+        curr_widget: frm_plan.FrmTabPlan | None = self.tabs_plans.currentWidget()
+        if curr_widget:
+            plan = curr_widget.plan
+        else:
+            QMessageBox.critical(self, 'Termine übertragen', 'Es muss ein Plan geöffnet sein.')
+            return
         if DlgSendAppointmentsToGoogleCal(self, plan).exec():
             worker = WorkerGeneral(transfer, True, plan)
             worker.signals.finished.connect(finished)

@@ -341,7 +341,7 @@ class FrmTabLocationPlanPeriods(QWidget):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
 
-        signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self.edit_cast_groups_plan_period)
+        signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.location_plan_periods = self.plan_period.location_plan_periods
@@ -515,6 +515,11 @@ class FrmTabLocationPlanPeriods(QWidget):
         if dlg.exec():
             print('ausgeführt')
 
+    @Slot(UUID)
+    def _edit_cast_groups_plan_period(self, plan_period_id: UUID):
+        if plan_period_id == self.plan_period.id:
+            self.edit_cast_groups_plan_period()
+
 
 class FrmLocationPlanPeriod(QWidget):
     def __init__(self, parent: FrmTabLocationPlanPeriods, location_plan_period: schemas.LocationPlanPeriodShow,
@@ -528,7 +533,7 @@ class FrmLocationPlanPeriod(QWidget):
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
             self.reload_location_plan_period)
-        signal_handling.handler_show_dialog.signal_show_dlg_event_group.connect(self.change_mode__event_group)
+        signal_handling.handler_show_dialog.signal_show_dlg_event_group.connect(self._change_mode__event_group)
 
         self.data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period)
 
@@ -687,6 +692,11 @@ class FrmLocationPlanPeriod(QWidget):
 
         signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
+
+    @Slot(UUID)
+    def _change_mode__event_group(self, location_plan_period_id: UUID):
+        if location_plan_period_id == self.location_plan_period.id:
+            self.change_mode__event_group()
 
     def change_mode__cast_group(self):
         plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)

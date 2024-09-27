@@ -15,7 +15,7 @@
   },
   {
    "optionDest": "console",
-   "value": false
+   "value": true
   },
   {
    "optionDest": "icon_file",
@@ -99,11 +99,7 @@
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/google_calendar_transfer/credentials/client_secret.json;."
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/google_calendar_transfer/credentials;google_calendar_transfer/credentials"
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/google_calendar_api/credentials;google_calendar_api/credentials"
   }
  ],
  "nonPyinstallerOptions": {

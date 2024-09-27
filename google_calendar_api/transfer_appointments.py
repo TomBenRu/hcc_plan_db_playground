@@ -1,6 +1,6 @@
 import datetime
 
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 
 from configuration.google_calenders import curr_calendars_handler
@@ -10,9 +10,10 @@ from google_calendar_api.authenticate import authenticate_google
 from google_calendar_api.del_calendar_events import delete_events_in_range
 
 
-def add_event_to_calendar(calendar_id, event):
-    creds = authenticate_google()
-    service = build('calendar', 'v3', credentials=creds)
+def add_event_to_calendar(calendar_id, event, service: Resource | None = None):
+    if service is None:
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
 
     try:
         # Das Event erstellen
@@ -46,21 +47,26 @@ def transfer_plan_appointments(plan: schemas.PlanShow):
     person_ids = db_services.TeamActorAssign.get_all_actor_ids_between_dates(plan.plan_period.team.id,
                                                                              plan.plan_period.start,
                                                                              plan.plan_period.end)
+    creds = authenticate_google()
+    service = build('calendar', 'v3', credentials=creds)
+
     team_user_calendars = (c for c in calendars.values() if c.person_id in person_ids)
     for c in team_user_calendars:
         delete_events_in_range(c.id,
                                datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time()),
-                               datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()))
+                               datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()),
+                               service)
     team_calendar = next((c for c in calendars.values() if c.team_id == plan.plan_period.team.id), None)
     delete_events_in_range(team_calendar.id,
                            datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time()),
-                           datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()))
+                           datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()),
+                           service)
     for appointment in plan.appointments:
         user_calendars = (c for c in calendars.values()
                           if c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
         google_event = create_google_event(appointment)
 
         if team_calendar:
-            add_event_to_calendar(team_calendar.id, google_event)
+            add_event_to_calendar(team_calendar.id, google_event, service)
         for c in user_calendars:
-            add_event_to_calendar(c.id, google_event)
+            add_event_to_calendar(c.id, google_event, service)

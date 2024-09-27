@@ -138,14 +138,14 @@ class HandlerPlanTabs(QObject):
 
 
 class HandlerShowDialog(QObject):
-    signal_show_dlg_cast_group_pp = Signal()
-    signal_show_dlg_event_group = Signal()
+    signal_show_dlg_cast_group_pp = Signal(UUID)
+    signal_show_dlg_event_group = Signal(UUID)
 
-    def show_dlg_cast_group_pp(self):
-        self.signal_show_dlg_cast_group_pp.emit()
+    def show_dlg_cast_group_pp(self, plan_period_id: UUID):
+        self.signal_show_dlg_cast_group_pp.emit(plan_period_id)
 
-    def show_dlg_event_group(self):
-        self.signal_show_dlg_event_group.emit()
+    def show_dlg_event_group(self, location_plan_period_id: UUID):
+        self.signal_show_dlg_event_group.emit(location_plan_period_id)
 
 
 class HandlerExcelExport(QObject):

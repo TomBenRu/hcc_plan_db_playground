@@ -1,22 +1,27 @@
 from datetime import datetime
 
-from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 
 from google_calendar_api.authenticate import authenticate_google
 
 
-def delete_events_in_range(calendar_id: str, start_time: datetime, end_time: datetime):
+def delete_events_in_range(calendar_id: str, start_time: datetime, end_time: datetime,
+                           service: Resource | None = None):
     """
     Diese Funktion löscht alle Events aus einem Kalender im angegebenen Zeitraum.
 
     :param calendar_id: Die Kalender-ID, aus dem die Events gelöscht werden sollen.
     :param start_time: Start des Zeitraums als datetime-Objekt.
     :param end_time: Ende des Zeitraums als datetime-Objekt.
+    :param service: Resource Objekt
     :return: Die Anzahl der gelöschten Events.
     """
-    creds = authenticate_google()
-    service = build('calendar', 'v3', credentials=creds)
+
+    if service is None:
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
 
     try:
         # Konvertiere start_time und end_time in das RFC3339-Format (ISO 8601)

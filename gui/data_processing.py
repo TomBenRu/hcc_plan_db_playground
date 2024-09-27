@@ -40,7 +40,16 @@ class LocationPlanPeriodData:
             raise NameError('Keyword mode: only literals "added" or "deleted" are allowed.')
         self.reload_location_plan_period()
         self._emit_reload_signals(date)
-        self._send_event_changes_to_plans(event, mode)
+        start, end = self.location_plan_period.plan_period.start, self.location_plan_period.plan_period.end
+        existing_plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
+        if mode == 'added' and existing_plans:
+            reply = QMessageBox.question(self.parent, 'Appointments in Plänen',
+                                         f'Möchten Sie einen neuen unbesetzten Termin in allen bestehenden Plänen des '
+                                         f'Zeitraums {start:%d.%m.%y} - {start:%d.%m.%y} erzeugen?')
+            if reply == QMessageBox.StandardButton.Yes:
+                self._send_event_changes_to_plans(event, mode, existing_plans)
+        else:
+            self._send_event_changes_to_plans(event, mode, existing_plans)
 
     def _save_new_event(self, date, t_o_d):
         existing_events_on_day = [event for event in self.location_plan_period.events
@@ -79,7 +88,7 @@ class LocationPlanPeriodData:
                                      f'Termin: {solo_event.date.strftime("%d.%m.%y")}\n'
                                      f'Bitte korrigieren Sie dies im folgenden Dialog.')
 
-                signal_handling.handler_show_dialog.show_dlg_event_group()
+                signal_handling.handler_show_dialog.show_dlg_event_group(self.location_plan_period.id)
         if containing_cast_groups:
             for parent_cast_group in containing_cast_groups:
                 if len(db_services.CastGroup.get(parent_cast_group.id).child_groups) < 2:
@@ -88,7 +97,7 @@ class LocationPlanPeriodData:
                                          'Termin oder eine einzelne Untergruppe.'
                                          'Bitte korrigieren Sie dies im folgenden Dialog.')
 
-                    signal_handling.handler_show_dialog.show_dlg_cast_group_pp()
+                    signal_handling.handler_show_dialog.show_dlg_cast_group_pp(self.location_plan_period.plan_period.id)
 
     def _emit_reload_signals(self, date):
         signal_handling.handler_location_plan_period.reload_location_pp__events(
@@ -98,9 +107,9 @@ class LocationPlanPeriodData:
             signal_handling.DataLocationPPWithDate(self.location_plan_period, date)
         )
 
-    def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted']):
-        plans = db_services.Plan.get_all_from__plan_period_minimal(self.location_plan_period.plan_period.id)
-        if not plans:
+    def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted'],
+                                     existing_plans: dict[str, UUID]):
+        if not existing_plans:
             return
 
         if mode == 'added':
@@ -114,7 +123,7 @@ class LocationPlanPeriodData:
 
         worker = general_worker.WorkerGeneral(
             self._save_new_empty_appointment_in_plan_and_reset_columns,
-            False, event, plans, mode
+            False, event, existing_plans, mode
         )
         worker.signals.finished.connect(
             lambda: signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(

@@ -666,7 +666,7 @@ class TeamActorAssign:
                 else:
                     assignment_db = None
 
-        return None if not assignment_db else schemas.TeamActorAssignShow.model_validate(assignment_db)
+        return schemas.TeamActorAssignShow.model_validate(assignment_db) if assignment_db else None
 
     @classmethod
     @db_session
@@ -674,8 +674,10 @@ class TeamActorAssign:
             cls, person_id: UUID, team_id: UUID,
             date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamActorAssignShow]:
         assignments_db = (models.TeamActorAssign.select()
-                          .filter(lambda taa: taa.team.id == team_id).filter(lambda taa: taa.person.id == person_id)
-                          .filter(lambda taa: taa.start <= date_end).filter(lambda taa: taa.end >= date_start or taa.end is None))
+                          .filter(lambda taa: taa.team.id == team_id)
+                          .filter(lambda taa: taa.person.id == person_id)
+                          .filter(lambda taa: taa.start <= date_end)
+                          .filter(lambda taa: taa.end >= date_start or taa.end is None))
         return [schemas.TeamActorAssignShow.model_validate(taa) for taa in assignments_db]
 
     @classmethod

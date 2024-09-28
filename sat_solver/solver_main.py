@@ -1610,7 +1610,8 @@ def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int,
 
 
 def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
-    # todo: Möglichkeit hinzufügen, um die Besetzung von Gästen auf CastRules zu überprüfen
+    # todo: Möglichkeit hinzufügen, um die Besetzung von Gästen auf CastRules zu überprüfen.
+    #  Statistiken von möglichen und gerechten Einsätzen zurückgeben.
     plan = db_services.Plan.get(plan_id)
     global entities
     entities = Entities()

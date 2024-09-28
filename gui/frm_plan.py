@@ -430,6 +430,8 @@ class ContainerAppointments(QWidget):
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
+        # todo: Appointment-Notes hinzufügen, die dann auch in den Google-Events
+        #  und eventuell auch im Excel-Plan auftauchen
         self.setObjectName(str(appointment.id))
         self.plan_widget = plan_widget
         self.appointment = appointment

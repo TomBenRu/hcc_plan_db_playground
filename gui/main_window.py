@@ -652,7 +652,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(
                     self, 'Übertragung der Termine',
                     f'Die Termine des Teams {plan.plan_period.team.name}\n'
-                    f'des Planungszeitraums {plan.plan_period.start:%d.%m.%y} - {plan.plan_period.end:%d.%m.%y}\n'
+                    f'im Planungszeitraum {plan.plan_period.start:%d.%m.%y} - {plan.plan_period.end:%d.%m.%y}\n'
                     f'wurden erfolgreich zu den betreffenden Google-Kalendern übertragen.')
             else:
                 QMessageBox.critical(self, 'Übertragungsfehler',

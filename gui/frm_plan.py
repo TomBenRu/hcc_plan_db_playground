@@ -431,10 +431,8 @@ class ContainerAppointments(QWidget):
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
-        # todo: Appointment-Notes hinzufügen, die dann auch in den Google-Events
-        #  und eventuell auch im Excel-Plan auftauchen.
-        # not_sure: Sollen die Appointment-Notes automatisch von den Event-Notes übernommen werden?
-        #  (pony-model ergänzen)
+        signal_handling.handler_plan_tabs.signal_event_changed.connect(self._event_changed)
+
         self.setObjectName(str(appointment.id))
         self.plan_widget = plan_widget
         self.appointment = appointment
@@ -575,6 +573,7 @@ class AppointmentField(QWidget):
         if dlg.exec():
             appointment_commands.UpdateNotes(self.appointment, dlg.notes).execute()
             self.appointment = db_services.Appointment.get(self.appointment.id)
+            QMessageBox.information(self, 'Termin-Anmerkungen', 'Die neuen Anmerkungen wurden übernommen.')
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)
@@ -594,6 +593,11 @@ class AppointmentField(QWidget):
         self.lb_missing.setFont(font_lb_missing)
         self.lb_missing.setContentsMargins(5, 0, 0, 2)
         self.lb_missing.setStyleSheet('color: #ff7c00')
+
+    @Slot(UUID)
+    def _event_changed(self, event_id: UUID):
+        if event_id == self.appointment.event.id:
+            self.appointment = db_services.Appointment.get(self.appointment.id)
 
 
 class FrmTabPlan(QWidget):

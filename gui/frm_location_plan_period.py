@@ -188,6 +188,7 @@ class ButtonEvent(QPushButton):
             command = event_commands.UpdateNotes(event, dlg.notes)
             self.controller.execute(command)
             QMessageBox.information(self, 'Event-Notes', 'Die neuen Anmerkungen wurden übernommen.')
+            signal_handling.handler_plan_tabs.event_changed(event.id)
 
 
     def set_tooltip(self):

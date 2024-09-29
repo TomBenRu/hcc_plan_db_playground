@@ -36,15 +36,6 @@ class DataGroupMode:
 
 
 @dataclass
-class DataPlanEvent:
-    """Wenn added==True: Event wurde hinzugefügt.
-    Wenn added==False: Event wurde entfernt."""
-    plan_id: UUID
-    event_id: UUID
-    added: bool
-
-
-@dataclass
 class DataDate:
     plan_period_id: UUID | None = None
     date: datetime.date | None = None
@@ -99,7 +90,7 @@ class HandlerLocationPlanPeriod(QObject):
 
 
 class HandlerPlanTabs(QObject):
-    signal_event_changed = Signal(object)
+    signal_event_changed = Signal(UUID)
     signal_reload_plan_from_db = Signal(object)
     signal_refresh_plan = Signal(UUID)
     signal_reload_all_plan_period_plans_from_db = Signal(UUID)
@@ -109,8 +100,8 @@ class HandlerPlanTabs(QObject):
     signal_refresh_specific_plan_statistics_plan = Signal(UUID)
     signal_refresh_plan_statistics = Signal(UUID)
 
-    def event_changed(self, plan_event: DataPlanEvent):
-        self.signal_event_changed.emit(plan_event)
+    def event_changed(self, event_id: UUID):
+        self.signal_event_changed.emit(event_id)
 
     def reload_plan_from_db(self, plan_id: UUID = None):
         self.signal_reload_plan_from_db.emit(plan_id)

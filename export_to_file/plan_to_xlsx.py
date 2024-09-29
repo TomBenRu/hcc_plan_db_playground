@@ -68,7 +68,7 @@ class ExportToXlsx:
         self.workbook.set_properties({'title': self.tab_plan.plan.name, 'subject': 'Einsatzplan', 'author': 'hcc-plan'})
 
     def _define_formats(self):
-        self.format_title = self.workbook.add_format({'bold': True, 'font_size': 14})
+        self.format_title = self.workbook.add_format({'bold': True, 'font_size': 18})
         self.format_creation_date = self.workbook.add_format({'italic': True, 'font_size': 10, 'align': 'right'})
         self.format_weekday_1 = self.workbook.add_format(
             {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})

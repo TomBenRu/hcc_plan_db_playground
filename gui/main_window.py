@@ -472,6 +472,7 @@ class MainWindow(QMainWindow):
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
 
         widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        widget.reload_plan()
 
         excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), f'{widget.plan.name}.xlsx')
         create_dir_if_not_exist(excel_output_path)

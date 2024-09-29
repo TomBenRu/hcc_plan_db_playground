@@ -249,9 +249,10 @@ class ExportToXlsx:
                             row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
                             self.format_appointments
                         )
-                        self.location_appointment_notes[
-                            appointment.event.location_plan_period.location_of_work.name_an_city].append(
-                            appointment)
+                        if appointment.notes:
+                            self.location_appointment_notes[
+                                appointment.event.location_plan_period.location_of_work.name_an_city].append(
+                                appointment)
 
         for row, cols_rows_in_cell in rows_cols.items():
             min_cols = min(c for c, _ in cols_rows_in_cell)
@@ -275,6 +276,9 @@ class ExportToXlsx:
 
         self.worksheet_plan.merge_range(max_row_of_plan + 3, 1, max_row_of_plan + 3, self.max_col_locations,
                                         self.tab_plan.plan.notes, self.format_notes)
+
+        if not self.location_appointment_notes:
+            return
         self.worksheet_plan.write(max_row_of_plan + 4, 1, 'Anmerkungen zu Terminen:', self.format_notes_headline)
         for i, location_name in enumerate(
                 sorted([n for n, apps in self.location_appointment_notes.items() if any(a.notes for a in apps)])):

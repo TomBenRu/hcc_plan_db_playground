@@ -35,7 +35,7 @@ def create_google_event(appointment: schemas.Appointment):
     event_obj = GoogleCalendarEvent(
         summary=appointment.event.location_plan_period.location_of_work.name_an_city,
         location=appointment.event.location_plan_period.location_of_work.name_an_city,
-        description=', '.join(names_of_employees) + (f'\nInfo: {appointment.notes}' or ''),
+        description=', '.join(names_of_employees) + (f'\nInfo: {appointment.notes}' if appointment.notes else ''),
         start_time=datetime.datetime(appointment.event.date.year, appointment.event.date.month,
                                      appointment.event.date.day, appointment.event.time_of_day.start.hour,
                                      appointment.event.time_of_day.start.minute),

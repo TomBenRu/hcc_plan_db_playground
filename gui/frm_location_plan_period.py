@@ -267,6 +267,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
         )
 
     def set_stylesheet_and_tooltip(self):
+        self.reload_cast_groups_at_day()
         self.set_stylesheet()
         self.set_tooltip()
 

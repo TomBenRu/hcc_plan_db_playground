@@ -70,7 +70,8 @@ class ButtonAvailDay(QPushButton):
     #     super().deleteLater()
 
     def set_stylesheet(self):
-        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
+        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
+                           .replace('<<ObjectName>>', self.objectName()))
 
     @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):

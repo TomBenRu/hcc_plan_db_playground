@@ -217,7 +217,7 @@ class ExportToXlsx:
             self.worksheet_plan.set_row(row, self.row_height_dates)
 
     def _write_appointments(self):
-
+        self.location_appointment_notes: defaultdict[str, [schemas.Appointment]] = defaultdict(list)
         for row, col in self.cells_for_default_appointments:
             self.worksheet_plan.write(row, col, '', self.format_appointments)
 
@@ -249,6 +249,9 @@ class ExportToXlsx:
                             row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
                             self.format_appointments
                         )
+                        self.location_appointment_notes[
+                            appointment.event.location_plan_period.location_of_work.name_an_city].append(
+                            appointment)
 
         for row, cols_rows_in_cell in rows_cols.items():
             min_cols = min(c for c, _ in cols_rows_in_cell)
@@ -272,6 +275,20 @@ class ExportToXlsx:
 
         self.worksheet_plan.merge_range(max_row_of_plan + 3, 1, max_row_of_plan + 3, self.max_col_locations,
                                         self.tab_plan.plan.notes, self.format_notes)
+        self.worksheet_plan.write(max_row_of_plan + 4, 1, 'Anmerkungen zu Terminen:', self.format_notes_headline)
+        for i, location_name in enumerate(
+                sorted([n for n, apps in self.location_appointment_notes.items() if any(a.notes for a in apps)])):
+            text_notes = ', '.join(
+                [
+                    f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name}) - {appointment.notes}'
+                    for appointment in
+                    sorted(self.location_appointment_notes[location_name],
+                           key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+                    if appointment.notes
+                ]
+            )
+            self.worksheet_plan.merge_range(max_row_of_plan + 5 + i, 1, max_row_of_plan + 5 + i, self.max_col_locations,
+                                            f'{location_name}: {text_notes}', self.format_notes)
 
     def _write_scheduling_overview(self):
         self.worksheet_scheduling_overview.set_column(

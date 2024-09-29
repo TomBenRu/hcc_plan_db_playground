@@ -605,13 +605,8 @@ class MainWindow(QMainWindow):
                     QCoreApplication.processEvents()
 
     def open_plan_tab(self, plan_id: UUID):
-        try:
-            plan = db_services.Plan.get(plan_id)
-        except Exception as e:
-            QMessageBox.critical(self, 'Plan öffnen',
-                                 f'Der Plan mit der ID {plan_id} konnte nicht geöffnet werden.\n'
-                                 f'Fehler: {e}')
-            return
+        plan = db_services.Plan.get(plan_id)
+
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan, self.global_update_plan_tabs_progress_manager)
         self.tabs_plans.addTab(new_widget, plan.name)
         self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')

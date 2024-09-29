@@ -1568,6 +1568,14 @@ class Event:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
+    def update_notes(cls, event_id: UUID, notes: str) -> schemas.EventShow:
+        log_function_info(cls)
+        event_db = models.Event.get_for_update(id=event_id)
+        event_db.notes = notes
+        return schemas.EventShow.model_validate(event_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cls, event_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -2360,6 +2368,14 @@ class Appointment:
         appointment_db.avail_days.clear()
         for avd_id in avail_day_ids:
             appointment_db.avail_days.add(models.AvailDay.get(id=avd_id))
+        return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_notes(cls, appointment_id: UUID, notes: str) -> schemas.AppointmentShow:
+        log_function_info(cls)
+        appointment_db = models.Appointment.get_for_update(id=appointment_id)
+        appointment_db.notes = notes
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod

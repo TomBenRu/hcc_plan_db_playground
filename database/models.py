@@ -457,7 +457,7 @@ class Event(db.Entity):
 
 
 class EventGroup(db.Entity):
-    """Eventgroups können entweder genau 1 Event beinhalten, oden 1 oder mehrere Eventgroups.
+    """Eventgroups können entweder genau 1 Event beinhalten, oder 1 oder mehrere Eventgroups.
        Jede Eventgroup ist entweder genau 1 Eventgroup zugeordnet oder genau 1 Location PlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     location_plan_period = Optional('LocationPlanPeriod')
@@ -476,7 +476,7 @@ class EventGroup(db.Entity):
 
     @property
     def location_plan_period_getter(self):
-        return self.location_plan_period if self.location_plan_period else self.event_group.location_plan_period_getter
+        return self.location_plan_period or self.event_group.location_plan_period_getter
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
@@ -587,6 +587,9 @@ class Appointment(db.Entity):
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
+
+    def before_insert(self):
+        self.notes = self.event.notes
 
 
 class ActorPartnerLocationPref(db.Entity):

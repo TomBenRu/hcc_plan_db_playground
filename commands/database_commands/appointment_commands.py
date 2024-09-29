@@ -38,6 +38,22 @@ class UpdateAvailDays(Command):
         db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
 
+class UpdateNotes(Command):
+    def __init__(self, appointment: schemas.Appointment, notes: str):
+        self.appointment = appointment
+        self.notes = notes
+        self.updated_appointment: schemas.AppointmentShow | None = None
+
+    def execute(self):
+        self.updated_appointment = db_services.Appointment.update_notes(self.appointment.id, self.notes)
+
+    def undo(self):
+        db_services.Appointment.update_notes(self.appointment.id, self.appointment.notes)
+
+    def redo(self):
+        db_services.Appointment.update_notes(self.appointment.id, self.notes)
+
+
 class UpdateCurrEvent(Command):
     def __init__(self, appointment: schemas.Appointment, new_date: datetime.date, new_time_of_day_id: UUID):
         self.appointment = appointment

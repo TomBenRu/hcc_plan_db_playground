@@ -599,7 +599,7 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
 
 
 class AppointmentCreate(BaseModel):
-    notes: str = ''
+    notes: Optional[str] = ''
     avail_days: List[AvailDay]
     event: Event
 

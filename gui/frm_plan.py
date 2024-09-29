@@ -25,6 +25,7 @@ from gui.concurrency.general_worker import WorkerGetMaxFairShifts
 from gui.custom_widgets import side_menu
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager, DlgProgressSteps
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from gui.frm_notes import DlgAppointmentNotes
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
@@ -530,8 +531,9 @@ class AppointmentField(QWidget):
         context_menu.addAction(f'Bewege {self.appointment.event.location_plan_period.location_of_work.name_an_city} am '
                                f'{self.appointment.event.date:%d.%m.%y} ({self.appointment.event.time_of_day.name})',
                                self._move_appointment)
-        context_menu.addAction(f'Action 2 {self.appointment.event.date} ({self.appointment.event.time_of_day.name}) '
-                               f'{self.appointment.event.location_plan_period.location_of_work.name}')
+        context_menu.addAction(
+            f'Anmerkungen für {self.appointment.event.location_plan_period.location_of_work.name_an_city} '
+            f'am {self.appointment.event.date:%d.%m.%y} ({self.appointment.event.time_of_day.name})', self._edit_notes)
         context_menu.exec(event.globalPos())
 
     def _move_appointment(self):
@@ -567,6 +569,12 @@ class AppointmentField(QWidget):
             batch_command = BatchCommand(self, [command1, command2, command3])
             self.plan_widget.controller.execute(batch_command)
             self.execution_timer_post_cast_change.start_timer()
+
+    def _edit_notes(self):
+        dlg = DlgAppointmentNotes(self, self.appointment)
+        if dlg.exec():
+            appointment_commands.UpdateNotes(self.appointment, dlg.notes).execute()
+            self.appointment = db_services.Appointment.get(self.appointment.id)
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)

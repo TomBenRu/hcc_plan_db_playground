@@ -56,6 +56,22 @@ class UpdateDateTimeOfDay(Command):
             self.event.id, self.new_time_of_day_id, self.new_date)
 
 
+class UpdateNotes(Command):
+    def __init__(self, event: schemas.EventShow, notes: str):
+        self.event = event
+        self.notes = notes
+        self.updated_event: schemas.EventShow | None = None
+
+    def execute(self):
+        self.updated_event = db_services.Event.update_notes(self.event.id, self.notes)
+
+    def undo(self):
+        db_services.Event.update_notes(self.event.id, self.event.notes)
+
+    def redo(self):
+        db_services.Event.update_notes(self.event.id, self.notes)
+
+
 class Delete(Command):
     def __init__(self, event_id):
         self.event_id = event_id

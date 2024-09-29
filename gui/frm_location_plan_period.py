@@ -15,6 +15,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
 from gui.custom_widgets import side_menu
+from gui.frm_notes import DlgEventNotes
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
@@ -39,8 +40,10 @@ def disconnect_event_button_signals():
 
 class ButtonEvent(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow, slot__event_toggled: Callable):
+                 location_plan_period: schemas.LocationPlanPeriodShow,
+                 controller: command_base_classes.ContrExecUndoRedo, slot__event_toggled: Callable):
         super().__init__(parent)
+        self.controller = controller
         self.slot__event_toggled = slot__event_toggled
         self.setObjectName(f'{date}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -78,7 +81,14 @@ class ButtonEvent(QPushButton):
         self.set_tooltip()
 
     def set_stylesheet(self):
-        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index])
+        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
+                           .replace('<<ObjectName>>', self.objectName()))
+    
+    def get_curr_event(self) -> schemas.EventShow:
+        if self.isChecked():
+            return db_services.Event.get_from__location_pp_date_tod(
+                self.location_plan_period.id, self.date, self.time_of_day.id
+            )
 
     @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
@@ -128,8 +138,7 @@ class ButtonEvent(QPushButton):
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
-            event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id,
-                                                                     self.date, self.time_of_day.id)
+            event = self.get_curr_event()
             event_commands.UpdateTimeOfDay(event, new_time_of_day.id).execute()
 
         self.time_of_day = new_time_of_day
@@ -169,7 +178,17 @@ class ButtonEvent(QPushButton):
             ...
 
     def edit_notes(self):
-        print('edit_notes')
+        event = self.get_curr_event()
+        if event is None:
+            QMessageBox.critical(self, 'Event-Notes',
+                                 'Es können keine Anmerkungen gesetzt werden, wenn kein Termin geplant ist.')
+            return
+        dlg = DlgEventNotes(self, event)
+        if dlg.exec():
+            command = event_commands.UpdateNotes(event, dlg.notes)
+            self.controller.execute(command)
+            QMessageBox.information(self, 'Event-Notes', 'Die neuen Anmerkungen wurden übernommen.')
+
 
     def set_tooltip(self):
         self.setToolTip(f'Rechtsklick:\n'
@@ -664,7 +683,8 @@ class FrmLocationPlanPeriod(QWidget):
 
     def create_event_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
         # sourcery skip: inline-immediately-returned-variable
-        button = ButtonEvent(self, date, time_of_day, 24, self.location_plan_period, self.save_event)
+        button = ButtonEvent(self, date, time_of_day, 24, self.location_plan_period,
+                             self.controller, self.save_event)
         return button
 
     def setup_controllers(self):

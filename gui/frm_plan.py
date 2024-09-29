@@ -455,7 +455,9 @@ class AppointmentField(QWidget):
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.setToolTip('Rechtsklick,für weitere Aktionen.')
+        self.setToolTip(f'◦ Klick: Besetzungsänderungen.\n'
+                        f'◦ Rechtsklick: weitere Aktionen.\n'
+                        f'Anmerkungen:\n{self.appointment.notes or ""}')
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
@@ -572,8 +574,14 @@ class AppointmentField(QWidget):
         dlg = DlgAppointmentNotes(self, self.appointment)
         if dlg.exec():
             appointment_commands.UpdateNotes(self.appointment, dlg.notes).execute()
-            self.appointment = db_services.Appointment.get(self.appointment.id)
+            self._reload_appointment_and_tooltip()
             QMessageBox.information(self, 'Termin-Anmerkungen', 'Die neuen Anmerkungen wurden übernommen.')
+
+    def _reload_appointment_and_tooltip(self):
+        self.appointment = db_services.Appointment.get(self.appointment.id)
+        self.setToolTip(f'◦ Klick: Besetzungsänderungen.\n'
+                        f'◦ Rechtsklick: weitere Aktionen.\n'
+                        f'Anmerkungen:\n{self.appointment.notes or ""}')
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)
@@ -597,7 +605,7 @@ class AppointmentField(QWidget):
     @Slot(UUID)
     def _event_changed(self, event_id: UUID):
         if event_id == self.appointment.event.id:
-            self.appointment = db_services.Appointment.get(self.appointment.id)
+            self._reload_appointment_and_tooltip()
 
 
 class FrmTabPlan(QWidget):

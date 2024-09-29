@@ -22,7 +22,7 @@ class DlgSendAppointmentsToGoogleCal(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         self.lb_description = QLabel(f'Möchten Sie die Termine des Zeitraums {self.text_time_span}\n'
-                                     'in die entsprechenden Google-kalender der Mitarbeiter eintragen?\n'
+                                     'in die entsprechenden Google-Kalender der Mitarbeiter eintragen?\n'
                                      'Bei diesem Vorgang werden vorhandene Termine dieses Zeitraums\n'
                                      'aus den Kalendern entfernt.')
         self.layout_head.addWidget(self.lb_description)

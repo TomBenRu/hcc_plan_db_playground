@@ -187,19 +187,24 @@ class ExportToXlsx:
         min_date = min(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         max_date = max(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         curr_date = min_date
+        print(self.week_num__row_merge)
         while curr_date <= max_date:
             if not (column_locations := self.weekday_num__col_locations.get(curr_date.isocalendar()[2])):
                 curr_date += datetime.timedelta(days=1)
                 continue
             column = column_locations['column'] + 1
-            row = self.week_num__row_merge[curr_date.isocalendar()[1]]['row']
+            week_num = curr_date.isocalendar()[1]
+            if not self.week_num__row_merge.get(week_num):
+                curr_date += datetime.timedelta(days=1)
+                continue
+            row = self.week_num__row_merge[week_num]['row']
             date_rows.add(row)
             merge_cols = len(column_locations['locations'])
 
             # Dies wird gebraucht, um Appointment-Zellen mit einem Default-Format zu füllen:
             cols_of_date_cells = [column + i for i in range(merge_cols)]
             rows_of_loc_cells = [row + i
-                                 for i in range(1, self.week_num__row_merge[curr_date.isocalendar()[1]]['merge'])]
+                                 for i in range(1, self.week_num__row_merge[week_num]['merge'])]
             for r, c in itertools.product(rows_of_loc_cells, cols_of_date_cells):
                 self.cells_for_default_appointments.append((r, c))
 

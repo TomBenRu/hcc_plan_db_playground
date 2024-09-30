@@ -1390,8 +1390,11 @@ def call_solver_with_adjusted_requested_assignments(
                      constraints_weights_in_event_groups,
                      constraints_weights_in_avail_day_groups, constraints_cast_rule)
 
-    event_group_id_avail_day_group_ids: defaultdict[UUID, list[UUID]] = defaultdict(list)
+    event_group_id_avail_day_group_ids: dict[UUID, list[UUID]] = {}
     for (adg_id, eg_id), var in entities.shift_vars.items():
+        if solver.Value(entities.event_group_vars[eg_id]):
+            if not event_group_id_avail_day_group_ids.get(eg_id):
+                event_group_id_avail_day_group_ids[eg_id] = []
         if solver.Value(var):
             event_group_id_avail_day_group_ids[eg_id].append(adg_id)
 
@@ -1592,6 +1595,7 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
         plan_datas.append(appointments)
 
     signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
+
     return plan_datas, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app
 
 

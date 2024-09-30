@@ -10,11 +10,11 @@ from toml import TomlDecodeError
 
 class MinimizationWeights(BaseModel):
     unassigned_shifts: float = 100_000
-    sum_squared_deviations: float = 0.005
+    sum_squared_deviations: float = 0.5
     constraints_weights_in_avail_day_groups: float = 1
     constraints_weights_in_event_groups: float = 1
     constraints_location_prefs: float = 0.001  # bei Faktor 0.0001 hat location prefs keinen Einfluss, komisch!
-    constraints_partner_loc_prefs: float = 0.0001
+    constraints_partner_loc_prefs: float = 0.1
     constraints_fixed_casts_conflicts: float = 1_000_000_000
     constraints_cast_rule: float = 10
 

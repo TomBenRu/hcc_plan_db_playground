@@ -722,13 +722,14 @@ class FrmTabPlan(QWidget):
 
     def _update_statistics(self):
         num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)
-        self.progress_bar = DlgProgressSteps(self, 'Statistiken aktualisieren',
+        progress_bar = DlgProgressSteps(self, 'Statistiken aktualisieren',
                                              'Die Besetzungsstatistiken werden aktualisiert.',
                                              0, num_actor_plan_periods + 1,
                                              'Abbruch', signal_handling.handler_solver.cancel_solving)
         worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
-        self.progress_bar.show()
+        progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished)
+        worker.signals.finished.connect(progress_bar.deleteLater)
         self.thread_pool.start(worker)
 
     @Slot(object, object)

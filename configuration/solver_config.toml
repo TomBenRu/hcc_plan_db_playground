@@ -1,10 +1,10 @@
 [minimization_weights]
 unassigned_shifts = 100000.0
-sum_squared_deviations = 0.3
+sum_squared_deviations = 0.5
 constraints_weights_in_avail_day_groups = 1.0
 constraints_weights_in_event_groups = 1.0
 constraints_location_prefs = 0.001
-constraints_partner_loc_prefs = 0.0001
+constraints_partner_loc_prefs = 0.1
 constraints_fixed_casts_conflicts = 1000000000.0
 constraints_cast_rule = 1000.0
 

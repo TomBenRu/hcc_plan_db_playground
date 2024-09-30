@@ -1110,8 +1110,9 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
                                        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                                        max_shift_of_app: IntVar
                                        ):
-    model.Add(sum(constraints_location_prefs) == sum_location_prefs)
-    model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
+    # Mit den Constraints für location_prefs und partner_loc_prefs werden falsche max_shifts_per_app berechnet.
+    # model.Add(sum(constraints_location_prefs) == sum_location_prefs)
+    # model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)
     model.Maximize(max_shift_of_app * 100)
@@ -1308,7 +1309,6 @@ def call_solver_to_get_max_shifts_per_app(
 
     max_shifts_of_apps = {}
     for app_id in entities.actor_plan_periods.keys():
-
         model = cp_model.CpModel()
         create_vars(model, event_group_tree, avail_day_group_tree)
         (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,

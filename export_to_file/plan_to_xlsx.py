@@ -53,8 +53,14 @@ class ExportToXlsx:
             location_id = appointment.event.location_plan_period.location_of_work.id
             self.week_num__weekday_location_appointments[week_num][weekday][location_id].append(appointment)
 
+        min_week_num = min(self.tab_plan.plan.appointments, key=lambda a: a.event.date).event.date.isocalendar()[1]
+        sorted_week_nums = (sorted(wn for wn in self.week_num__weekday_location_appointments.keys()
+                                   if wn >= min_week_num)
+                            + sorted(wn for wn in self.week_num__weekday_location_appointments.keys()
+                                     if wn < min_week_num))
+
         curr_row = self.offset_y + 2
-        for week_num in sorted(self.week_num__weekday_location_appointments.keys()):
+        for week_num in sorted_week_nums:
             weekday_location_appointment = self.week_num__weekday_location_appointments[week_num]
             max_appointments_in_week = max(
                 max(len(appointments) for appointments in location_appointments.values())
@@ -187,7 +193,6 @@ class ExportToXlsx:
         min_date = min(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         max_date = max(appointment.event.date for appointment in self.tab_plan.plan.appointments)
         curr_date = min_date
-        print(self.week_num__row_merge)
         while curr_date <= max_date:
             if not (column_locations := self.weekday_num__col_locations.get(curr_date.isocalendar()[2])):
                 curr_date += datetime.timedelta(days=1)
@@ -275,8 +280,8 @@ class ExportToXlsx:
                                         self.format_creation_date)
 
     def _write_notes(self):
-        max_row_of_plan = (self.week_num__row_merge[max(self.week_num__row_merge.keys())]['row']
-                           + self.week_num__row_merge[max(self.week_num__row_merge.keys())]['merge'] - 1)
+        max_row_and_merge = max(self.week_num__row_merge.values(), key=lambda r: r['row'])
+        max_row_of_plan = max_row_and_merge['row'] + max_row_and_merge['merge'] - 1
         self.worksheet_plan.write(max_row_of_plan + 2, 1, 'Anmerkungen:', self.format_notes_headline)
 
         self.worksheet_plan.merge_range(max_row_of_plan + 3, 1, max_row_of_plan + 3, self.max_col_locations,

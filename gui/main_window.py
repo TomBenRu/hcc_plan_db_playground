@@ -606,7 +606,11 @@ class MainWindow(QMainWindow):
                     QCoreApplication.processEvents()
 
     def open_plan_tab(self, plan_id: UUID):
-        plan = db_services.Plan.get(plan_id)
+        try:
+            plan = db_services.Plan.get(plan_id)
+        except ValidationError:
+            QMessageBox.critical(self, 'Plan öffnen', f'Der Plan min der ID {plan_id} konnte nicht geöffnet werden.')
+            return
 
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan, self.global_update_plan_tabs_progress_manager)
         self.tabs_plans.addTab(new_widget, plan.name)

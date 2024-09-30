@@ -952,10 +952,22 @@ class FrmTabPlan(QWidget):
         return [start + datetime.timedelta(days=i) for i in range(days_between)]
 
     def generate_all_week_nums_of_month(self) -> list[int]:
-        return sorted({d.isocalendar()[1] for d in self.all_days_of_month})
+        all_weeks_of_month = []
+        for day in self.all_days_of_month:
+            if (week_num := day.isocalendar()[1]) not in all_weeks_of_month:
+                all_weeks_of_month.append(week_num)
+        return all_weeks_of_month
 
     def generate_week_num_row(self):
-        return {week_num: week_num - min(self.all_week_nums_of_month) + 1 for week_num in self.all_week_nums_of_month}
+        min_week_num = self.all_week_nums_of_month[0]
+        week_num_row = {}
+        for i, week_num in enumerate(self.all_week_nums_of_month):
+            if i == 0 or week_num > self.all_week_nums_of_month[i-1]:
+                week_num_row[week_num] = week_num - min_week_num + 1
+            else:
+                week_num_row[week_num] = week_num + max(self.all_week_nums_of_month) - min_week_num + 1
+
+        return week_num_row
 
     def generate_weekday_col(self):
         return {weekday: weekday - min(self.weekday_names) for weekday in self.weekday_names}

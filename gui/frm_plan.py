@@ -1136,7 +1136,8 @@ class TblPlanStatistics(QTableWidget):
                                     kind: Literal['requested', 'able', 'fair', 'current'],
                                     actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str) -> None:
         # todo: actor_plan_period cachen
-        item = QTableWidgetItem(str(num_dates))
+        num_dates = f'{num_dates:.2f}' if kind == 'fair' else str(num_dates)
+        item = QTableWidgetItem(num_dates)
         item.setData(Qt.ItemDataRole.UserRole, {'app': actor_plan_period, 'name': full_name, 'kind': kind})
         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         item.setForeground(QColor('black'))

@@ -1111,7 +1111,7 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
                                        max_shift_of_app: IntVar
                                        ):
     # Mit den Constraints für location_prefs und partner_loc_prefs werden falsche max_shifts_per_app berechnet.
-    # model.Add(sum(constraints_location_prefs) == sum_location_prefs)
+    model.Add(sum(constraints_location_prefs) == sum_location_prefs)
     # model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)

@@ -25,6 +25,7 @@ from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_create_google_calendar import CreateGoogleCalendar
+from .frm_excel_export import DlgPlanToXLSX
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -472,12 +473,16 @@ class MainWindow(QMainWindow):
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
 
         widget: FrmTabPlan = self.tabs_plans.currentWidget()
-        widget.reload_plan()
 
-        excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), f'{widget.plan.name}.xlsx')
-        create_dir_if_not_exist(excel_output_path)
-        export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path)
-        export_to_file.execute()
+        dlg = DlgPlanToXLSX(self, widget.plan)
+        if dlg.exec():
+            widget.reload_plan()
+
+            excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), f'{widget.plan.name}.xlsx')
+            create_dir_if_not_exist(excel_output_path)
+            export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path,
+                                                       dlg.note_in_empty_fields, dlg.note_in_employee_fields)
+            export_to_file.execute()
 
     def lookup_for_excel_plan(self):
         widget: FrmTabPlan = self.tabs_plans.currentWidget()

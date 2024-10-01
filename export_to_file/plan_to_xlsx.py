@@ -17,10 +17,14 @@ from tools.helper_functions import get_appointments_of_actors_from_plan
 
 
 class ExportToXlsx:
-    def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str):
+    def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str,
+                 note_in_empty_fields: bool, note_in_employee_fields: bool):
         self.parent = parent
         self.tab_plan = tab_plan
         self.excel_output_path = output_path
+        self.note_in_empty_fields = note_in_empty_fields
+        self.note_in_employee_fields = note_in_employee_fields
+
         self.offset_x = 0
         self.offset_y = 3
         self.offset_x_dates_scheduling_overview = 0
@@ -231,14 +235,18 @@ class ExportToXlsx:
         for row, col in self.cells_for_default_appointments:
             self.worksheet_plan.write(row, col, '', self.format_appointments)
 
-        def make_text_names():
+        def make_text_names_and_notes():
+            cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
             text = ''
             if len(appointment.avail_days) + len(appointment.guests):
                 text = '\n ' + '\n '.join([f'{avd.actor_plan_period.person.full_name}'
                                           for avd in appointment.avail_days] + appointment.guests)
-            cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
             for _ in range(cast_group.nr_actors - len(appointment.avail_days) - len(appointment.guests)):
                 text += '\n unbesetzt'
+            if self.note_in_empty_fields and cast_group.nr_actors == 0:
+                text = f'\n{appointment.notes}'
+            if self.note_in_employee_fields and cast_group.nr_actors:
+                text += f'\n({appointment.notes})'
             return text
 
         rows_cols: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
@@ -252,7 +260,7 @@ class ExportToXlsx:
                         row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
                         col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
                                + 1 + loc_indexes[location_id])
-                        text_names = make_text_names()
+                        text_names = make_text_names_and_notes()
                         rows_in_cell = 1 + text_names.count('\n')
                         rows_cols[row].append((col, rows_in_cell))
                         self.worksheet_plan.write(

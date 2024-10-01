@@ -323,6 +323,7 @@ class ExportToXlsx:
         )
 
         nbsp = '\u00A0'
+        nb_minus = "\u2212"
 
         formats_names = (self.format_names_scheduling_overview_even,
                          self.format_names_scheduling_overview_odd)
@@ -352,11 +353,10 @@ class ExportToXlsx:
             )
             text_dates = (
                     f'●{nbsp}' +
-                    f' ●{nbsp}'.join([f'{a.event.date:%d.%m.%y}{nbsp}'
-                                      f'({a.event.location_plan_period.location_of_work.name.replace(" ", nbsp)}{nbsp}'
-                                      f'{a.event.location_plan_period.location_of_work.address.city}){nbsp}'
-                                      f'{a.event.time_of_day.start:%H:%M}'
-                                      for a in appointment])
+                    f' ●{nbsp}'.join(
+                        [f'{a.event.date:%d.%m.%y}{nbsp}({a.event.time_of_day.start:%H:%M}){nbsp}-{nbsp}'
+                         f'{a.event.location_plan_period.location_of_work.name_an_city.replace(" ", nbsp).replace("-", nb_minus)}'
+                         for a in appointment])
             )
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview + 1,

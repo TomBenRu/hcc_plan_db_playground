@@ -19,7 +19,7 @@ from database.special_schema_requests import get_locations_of_team_at_date, get_
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments)
 from gui.custom_widgets import side_menu
-from gui.frm_remote_access_plan_api import fetch_available_days
+from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
@@ -1176,29 +1176,48 @@ class FrmActorPlanPeriod(QWidget):
         self.reload_actor_plan_period()
 
     def fetch_avail_days_from_api(self):
+        try:
+            avail_days = plan_api_handler.fetch_avail_days(
+                self, self.actor_plan_period.plan_period.id, self.actor_plan_period.person.id)
+        except Exception as e:
+            QMessageBox.critical(self, 'Verfügbare Tage',
+                                 f'Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n'
+                                 f'{e}')
+            return
+        if not avail_days:
+            reply = QMessageBox.question(
+                self, 'Verfügbare Tage',
+                f'Auf dem Server sind keine verfügbaren Tage von {self.actor_plan_period.person.full_name} '
+                f'im Zeitraum {self.actor_plan_period.plan_period.start:%d.%m.%y} - '
+                f'{self.actor_plan_period.plan_period.end:%d.%m.%y} vorhanden.\n'
+                f'Sollen alle verfügbaren Tage aus der Planungsmaske gelöscht werden?')
+            if reply == QMessageBox.StandardButton.Yes:
+                for avail_day in self.actor_plan_period.avail_days:
+                    db_services.AvailDay.delete(avail_day.id)
+                    # todo: besser... send AvailDayButton Signal to uncheck:
+                    self.set_button_avail_day_to_checked(avail_day.date, avail_day.time_of_day, True)
+            return
+
         for avail_day in self.actor_plan_period.avail_days:
             db_services.AvailDay.delete(avail_day.id)
             # todo: besser... send AvailDayButton Signal to uncheck:
             self.set_button_avail_day_to_checked(avail_day.date, avail_day.time_of_day, True)
-        data = fetch_available_days.fetch_data(self, self.actor_plan_period.plan_period.id)
-        for dict_notes_days in (d for person_id, d in data.items()
-                                if UUID(person_id) == self.actor_plan_period.person.id):
-            notes = dict_notes_days['notes']
-            self.parent.te_notes_pp.setText(notes)
-            for day in dict_notes_days['days']:
-                day: schemas_plan_api.AvailDay
-                abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
 
-                for abbreviation in abbreviation_dict[day.time_of_day.value]:
-                    date = day.day
-                    t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
-                                 if t.time_of_day_enum.abbreviation == abbreviation)
-                    button_avail_day = self.set_button_avail_day_to_checked(date, t_o_d)
-                    if button_avail_day:
-                        self.save_avail_day(button_avail_day)
+        for avail_day in avail_days:
+            abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
+
+            for abbreviation in abbreviation_dict[avail_day.time_of_day.value]:
+                date = avail_day.day
+                t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
+                             if t.time_of_day_enum.abbreviation == abbreviation)
+                button_avail_day = self.set_button_avail_day_to_checked(date, t_o_d)
+                if button_avail_day:
+                    self.save_avail_day(button_avail_day)
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
+
+        QMessageBox.information(self, 'Verfügbare Tage', f'Die verfügbaren Tage wurden erfolgreich heruntergeladen.')
 
 
 if __name__ == '__main__':

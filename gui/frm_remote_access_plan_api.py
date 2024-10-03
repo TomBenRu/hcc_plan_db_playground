@@ -11,7 +11,7 @@ from commands import command_base_classes
 from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services, schemas
-from database.schemas_plan_api import AvailDay
+from database.schemas_plan_api import AvailDay, PlanPeriod
 from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
 
 
@@ -203,26 +203,47 @@ class DlgRemoteAccessPlanApi(QDialog):
         # super().accept()
 
 
-class FetchAvailDaysFromAPI:
+class PlanApiHandler:
     def __init__(self):
         self.session = requests.Session()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
 
-    def fetch_data(self, parent: QWidget, plan_period_id: UUID) -> list[dict]:
+    def fetch_avail_days(self, parent: QWidget, plan_period_id: UUID, person_id: UUID) -> list[AvailDay]:
         if not self.session.headers.get('Authorization'):
             self.authorize(parent)
         while True:
             response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}',
-                                        params={'planperiod_id': str(plan_period_id)})
-            if response.status_code == 200 and response.json().get('status_code') != 401:
-                QMessageBox.information(parent, 'Erfolg', 'Daten wurden erfolgreich heruntergeladen.')
+                                        params={'plan_period_id': str(plan_period_id), 'person_id': str(person_id)})
+            if response.status_code == 200:
+                if type(response.json()) == dict and response.json().get('status_code') == 401:
+                    raise Exception(f'Fehler. {response.json().get("detail")}')
                 break
             self.authorize(parent)
 
-        data = {person_id: {'notes': dict_notes_days['notes'],
-                            'days': [AvailDay.model_validate(d) for d in dict_notes_days['days']]}
-                for person_id, dict_notes_days in response.json().items()}
-        return data
+        avail_days = [AvailDay.model_validate(avd) for avd in response.json()]
+        return avail_days
+
+    def create_plan_period(self, parent: QWidget, team_id: UUID, start: datetime.date, end: datetime.date,
+                           deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID) -> PlanPeriod:
+        if not self.session.headers.get('Authorization'):
+            self.authorize(parent)
+        while True:
+            # team_id = '83E4FEEFAF844EABA3FB15F25BDB7EC1'  # nur für local api
+            response = self.session.post(
+                f'{self.config_remote.host}/{self.config_remote.endpoints.post_plan_period}',
+                params={'team_id': team_id, 'date_start': start.isoformat(),
+                        'date_end': end.isoformat(), 'deadline': deadline, 'remainder': remainder, 'notes': notes,
+                        'plan_period_id': plan_period_id}
+                                         )
+            if response.status_code == 200:
+                if response.json().get('status_code') == 401:
+                    raise Exception(f'Fehler. {response.json().get("detail")}')
+                break
+            self.authorize(parent)
+
+        created_plan_period = PlanPeriod.model_validate(response.json())
+        return created_plan_period
+
 
     def authorize(self, parent: QWidget):
         response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',
@@ -233,7 +254,7 @@ class FetchAvailDaysFromAPI:
         self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
 
 
-fetch_available_days = FetchAvailDaysFromAPI()
+plan_api_handler = PlanApiHandler()
 
 
 

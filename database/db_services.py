@@ -1103,7 +1103,8 @@ class PlanPeriod:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=plan_period.team.id)
         plan_period_db = models.PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
-                                           notes=plan_period.notes, team=team_db)
+                                           notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
+                                           team=team_db)
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod

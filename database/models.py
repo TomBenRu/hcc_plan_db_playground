@@ -172,9 +172,6 @@ class PlanPeriod(db.Entity):
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
 
-    def before_insert(self):
-        self.notes = self.team.notes
-
 
 class ActorPlanPeriod(db.Entity):
     id = PrimaryKey(UUID, auto=True)

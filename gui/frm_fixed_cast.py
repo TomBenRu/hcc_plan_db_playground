@@ -136,14 +136,7 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
     def _generate_field_values(self):
         self.title_text = ('Feste Besetzung eines Events' if self.object_with_fixed_cast.event
                            else 'Feste Besetzung einer Besetzungsgruppe')
-        # location_plan_period = db_services.LocationPlanPeriod.get(
-        #     self.object_with_fixed_cast.location_plan_period.id
-        # )
-        # self.parent_fixed_cast = location_plan_period.fixed_cast
-        if self.location_plan_period:
-            self.location_of_work = db_services.LocationOfWork.get(
-                self.location_plan_period.location_of_work.id
-            )
+        self.parent_fixed_cast = self.location_plan_period.fixed_cast
         self.info_text = (f'''das Event am "{self.object_with_fixed_cast.event.date.strftime('%d.%m.%y')}"'''
                           if self.object_with_fixed_cast.event else 'die Besetzungsgruppe')
         self.make_reset_menu = bool(self.location_plan_period)
@@ -395,7 +388,7 @@ class DlgFixedCast(QDialog):
                                   self.remove_fixed_cast))
             self.reset_menu.addAction(
                 MenuToolbarAction(self, os.path.join(self.path_to_icons, 'arrow-circle-315-left.png'),
-                       'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
+                                  'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
         else:
             self.bt_reset.setText('Clear')

@@ -583,6 +583,7 @@ class LocationPlanPeriod(LocationPlanPeriodCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    fixed_cast: Optional[str] = None
 
 
 class LocationPlanPeriodShow(LocationPlanPeriod):
@@ -590,7 +591,6 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     time_of_day_standards: List[TimeOfDay]
     team: Team
     events: List[Event]
-    fixed_cast: Optional[str] = None
     project: Project
 
     @field_validator('time_of_days', 'time_of_day_standards', 'events')

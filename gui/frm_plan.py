@@ -842,10 +842,8 @@ class FrmTabPlan(QWidget):
     @Slot(UUID)
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
-            worker = general_worker.WorkerGeneral(self._reload_from_db_and_generate_plan_data)
-            worker.signals.finished.connect(lambda: self.update_progress_manager.tab_finished(self.plan.id))
-            self.update_progress_manager.tab_started()
-            self.thread_pool.start(worker)
+            self._reload_from_db_and_generate_plan_data()
+            self.refresh_plan()
 
     @Slot(object)
     def reload_specific_plan(self, plan_id: UUID | None):

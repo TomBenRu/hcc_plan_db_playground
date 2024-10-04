@@ -159,7 +159,8 @@ class ButtonEvent(QPushButton):
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
         cast_group = db_services.CastGroup.get(event.cast_group.id)
-        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group).build()
+        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
@@ -311,7 +312,7 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                                     f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
             return
 
-        dlg = DlgFixedCastBuilderCastGroup(self.parent, self.cast_groups_at_day[0]).build()
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, self.cast_groups_at_day[0], self.location_plan_period).build()
         if dlg.exec():
             if len(self.cast_groups_at_day) > 1:
                 for cg in self.cast_groups_at_day[1:]:

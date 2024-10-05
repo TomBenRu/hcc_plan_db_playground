@@ -5,6 +5,24 @@ from database import db_services, schemas
 from commands.command_base_classes import Command
 
 
+class Create(Command):
+    def __init__(self, plan_period_id: UUID, location_of_work_id: UUID):
+        self.plan_period_id = plan_period_id
+        self.location_of_work_id = location_of_work_id
+        self.created_location_plan_period: schemas.LocationPlanPeriodShow | None = None
+
+    def execute(self):
+        self.created_location_plan_period = db_services.LocationPlanPeriod.create(
+            self.plan_period_id, self.location_of_work_id)
+
+    def undo(self):
+        db_services.LocationPlanPeriod.delete(self.created_location_plan_period.id)
+
+    def redo(self):
+        db_services.LocationPlanPeriod.create(self.plan_period_id, self.location_of_work_id,
+                                              self.created_location_plan_period.id)
+
+
 class CreateLocationPlanPeriodsFromDate(Command):
     def __init__(self, start_date: datetime.date, location_id: UUID, team_id: UUID):
         self.start_date = start_date

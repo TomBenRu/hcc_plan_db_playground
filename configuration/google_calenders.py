@@ -28,7 +28,7 @@ class CalendarsHandlerToml:
         if not os.path.exists(os.path.join(os.path.dirname(__file__), self.toml_dir)):
             os.mkdir(os.path.join(os.path.dirname(__file__), self.toml_dir))
 
-    def load_calenders_from_file(self) -> dict[str, GoogleCalendar]:
+    def _load_calenders_from_file(self) -> dict[str, GoogleCalendar]:
         try:
             with open(self._calender_file_path, 'r') as f:
                 return {name: GoogleCalendar.model_validate(c) for name, c in toml.load(f).items()}
@@ -54,7 +54,7 @@ class CalendarsHandlerToml:
 
     def get_calenders(self) -> dict[str, GoogleCalendar]:
         if self._calenders is None:
-            self._calenders = self.load_calenders_from_file()
+            self._calenders = self._load_calenders_from_file()
         return self._calenders
 
 

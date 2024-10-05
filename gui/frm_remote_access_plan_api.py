@@ -1,8 +1,10 @@
 import datetime
+from typing import Callable, Any
 from uuid import UUID
 
 import jwt
 import requests
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox,
                                QWidget)
 from pydantic import BaseModel
@@ -208,9 +210,9 @@ class PlanApiHandler:
         self.session = requests.Session()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
 
-    def fetch_avail_days(self, parent: QWidget, plan_period_id: UUID, person_id: UUID) -> list[AvailDay]:
+    def fetch_avail_days(self, plan_period_id: UUID, person_id: UUID) -> list[AvailDay]:
         if not self.session.headers.get('Authorization'):
-            self.authorize(parent)
+            self.authorize()
         while True:
             response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}',
                                         params={'plan_period_id': str(plan_period_id), 'person_id': str(person_id)})
@@ -218,39 +220,38 @@ class PlanApiHandler:
                 if type(response.json()) == dict and response.json().get('status_code') == 401:
                     raise Exception(f'Fehler. {response.json().get("detail")}')
                 break
-            self.authorize(parent)
+            self.authorize()
 
         avail_days = [AvailDay.model_validate(avd) for avd in response.json()]
         return avail_days
 
-    def create_plan_period(self, parent: QWidget, team_id: UUID, start: datetime.date, end: datetime.date,
+    def create_plan_period(self, team_id: UUID, start: datetime.date, end: datetime.date,
                            deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID) -> PlanPeriod:
         if not self.session.headers.get('Authorization'):
-            self.authorize(parent)
+            self.authorize()
         while True:
             # team_id = '83E4FEEFAF844EABA3FB15F25BDB7EC1'  # nur für local api
             response = self.session.post(
                 f'{self.config_remote.host}/{self.config_remote.endpoints.post_plan_period}',
-                params={'team_id': team_id, 'date_start': start.isoformat(),
-                        'date_end': end.isoformat(), 'deadline': deadline, 'remainder': remainder, 'notes': notes,
+                params={'team_id': team_id, 'date_start': start,
+                        'date_end': end, 'deadline': deadline, 'remainder': remainder, 'notes': notes,
                         'plan_period_id': plan_period_id}
                                          )
             if response.status_code == 200:
                 if response.json().get('status_code') == 401:
                     raise Exception(f'Fehler. {response.json().get("detail")}')
                 break
-            self.authorize(parent)
+            self.authorize()
 
         created_plan_period = PlanPeriod.model_validate(response.json())
         return created_plan_period
 
-
-    def authorize(self, parent: QWidget):
+    def authorize(self):
         response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',
                                      data={'username': self.config_remote.authentication.username,
                                            'password': self.config_remote.authentication.password})
-        payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
-        QMessageBox.information(parent, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
+        # payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
+        # QMessageBox.information(parent, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
         self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
 
 

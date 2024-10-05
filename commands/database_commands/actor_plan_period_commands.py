@@ -4,6 +4,22 @@ from database import db_services, schemas
 from commands.command_base_classes import Command
 
 
+class Create(Command):
+    def __init__(self, plan_period_id: UUID, person_id: UUID):
+        self.plan_period_id = plan_period_id
+        self.person_id = person_id
+        self.created_actor_plan_period: schemas.ActorPlanPeriodShow | None = None
+
+    def execute(self):
+        self.created_actor_plan_period = db_services.ActorPlanPeriod.create(self.plan_period_id, self.person_id)
+
+    def undo(self):
+        db_services.ActorPlanPeriod.delete(self.created_actor_plan_period.id)
+
+    def redo(self):
+        db_services.ActorPlanPeriod.create(self.plan_period_id, self.person_id, self.created_actor_plan_period.id)
+
+
 class Update(Command):
     def __init__(self, actor_plan_period: schemas.ActorPlanPeriodShow):
         self.new_data = actor_plan_period.model_copy()

@@ -622,7 +622,6 @@ class FrmTabPlan(QWidget):
         signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
 
         self.plan = plan
-        self.update_progress_manager = update_progress_manager
         self.thread_pool = QThreadPool()
 
         self.appointment_widget_width = 120

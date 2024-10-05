@@ -1617,13 +1617,25 @@ class ActorPlanPeriod:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(cls, plan_period_id: UUID, person_id: UUID) -> schemas.ActorPlanPeriodShow:
+    def create(cls, plan_period_id: UUID, person_id: UUID,
+               actor_plan_period_id: UUID = None) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
         person_db = models.Person.get_for_update(id=person_id)
-        actor_plan_period_db = models.ActorPlanPeriod(plan_period=plan_period_db, person=person_db)
+        if actor_plan_period_id:
+            actor_plan_period_db = models.ActorPlanPeriod(id=actor_plan_period_id,
+                                                          plan_period=plan_period_db, person=person_db)
+        else:
+            actor_plan_period_db = models.ActorPlanPeriod(plan_period=plan_period_db, person=person_db)
 
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cls, actor_plan_period_id: UUID):
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        actor_plan_period_db.delete()
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

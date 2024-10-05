@@ -1178,7 +1178,7 @@ class FrmActorPlanPeriod(QWidget):
     def fetch_avail_days_from_api(self):
         try:
             avail_days = plan_api_handler.fetch_avail_days(
-                self, self.actor_plan_period.plan_period.id, self.actor_plan_period.person.id)
+                self.actor_plan_period.plan_period.id, self.actor_plan_period.person.id)
         except Exception as e:
             QMessageBox.critical(self, 'Verfügbare Tage',
                                  f'Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n'

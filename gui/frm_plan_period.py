@@ -5,21 +5,26 @@ from uuid import UUID
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton, QTextEdit
+from urllib3.exceptions import NewConnectionError
 
+from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas
 from database.special_schema_requests import get_locations_of_team_at_date, \
     get_persons_of_team_at_date
-from commands.database_commands import plan_period_commands
+from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
+    actor_plan_period_commands, avail_day_group_commands
 from gui.frm_remote_access_plan_api import plan_api_handler
 
 
-class DlgPlanPeriodData(QDialog):
+class DlgPlanPeriodCreate(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
         self.project_id = project_id
 
         self.setWindowTitle('Planungszeitraum')
+
+        self.controller = ContrExecUndoRedo()
 
         self.max_end_plan_periods: datetime.datetime | None = None
 
@@ -141,7 +146,9 @@ class DlgPlanPeriodData(QDialog):
                                                    notes_for_employees=self.text_notes_for_employees.toPlainText(),
                                                    team=self.cb_teams.currentData(),
                                                    remainder=self.chk_remainder.isChecked())
-        plan_period_created = db_services.PlanPeriod.create(new_plan_period)
+        command = plan_period_commands.Create(new_plan_period)
+        self.controller.execute(command)
+        plan_period_created = command.created_plan_period
 
         location_ids, actor_ids = self.get_locations_actors_in_period(start, end)
 
@@ -158,17 +165,24 @@ class DlgPlanPeriodData(QDialog):
         super().accept()
 
     def _create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
-        new_location_plan_period = db_services.LocationPlanPeriod.create(plan_period_id, loc_id)
-        new_master_event_group = db_services.EventGroup.create(location_plan_period_id=new_location_plan_period.id)
+        command = location_plan_period_commands.Create(plan_period_id, loc_id)
+        self.controller.execute(command)
+        new_location_plan_period = command.created_location_plan_period
+        eg_command = event_group_commands.Create(loc_act_plan_period_id=new_location_plan_period.id)
+        self.controller.execute(eg_command)
 
     def _create_actor_plan_periods(self, plan_period_id: UUID, person_id: UUID):
-        new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period_id, person_id)
-        new_master_avail_day_group = db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
+        command = actor_plan_period_commands.Create(plan_period_id, person_id)
+        self.controller.execute(command)
+        new_actor_plan_period = command.created_actor_plan_period
+        adg_command = avail_day_group_commands.Create(loc_act_plan_period_id=new_actor_plan_period.id)
+        self.controller.execute(adg_command)
 
     def _create_plan_period_on_api(self, team_id: UUID, start: datetime.date, end: datetime.date,
                                    deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID):
+        # team_id = '83E4FEEFAF844EABA3FB15F25BDB7EC1'  # für locale API
         try:
-            created_plan_period = plan_api_handler.create_plan_period(self, team_id, start, end, deadline, remainder,
+            created_plan_period = plan_api_handler.create_plan_period(team_id, start, end, deadline, remainder,
                                                                       notes, plan_period_id)
             QMessageBox.information(self, 'Neue Planungsperiode auf Server',
                                     f'Eine neue Planungsperiode wurde auf dem Server erstellt:\n'
@@ -177,14 +191,11 @@ class DlgPlanPeriodData(QDialog):
                                     f'- {created_plan_period.end:%d.%m.%y}')
         except Exception as e:
             QMessageBox.critical(self, 'Neue Planungsperiode auf Server',
-                                 f'Beim Übertragen der Planungsperiode ist folgender Fehler aufgetreten:\n'
+                                 f'Die Planungsperiode Konnte nicht erstellt werden,\n'
+                                 f'da beim Übertragen der Planungsperiode auf den Server '
+                                 f'folgender Fehler aufgetreten ist:\n'
                                  f'{e}')
-
-
-
-class DlgPlanPeriodCreate(DlgPlanPeriodData):
-    def __init__(self, parent: QWidget, project_id: UUID):
-        super().__init__(parent=parent, project_id=project_id)
+            self.controller.undo_all()
 
 
 class DlgPlanPeriodEdit(QDialog):

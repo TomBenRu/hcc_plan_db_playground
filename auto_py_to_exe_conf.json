@@ -87,10 +87,6 @@
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/configuration/solver_config.json;configuration"
-  },
-  {
-   "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/configuration/solver_config.toml;configuration"
   },
   {

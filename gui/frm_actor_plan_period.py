@@ -11,6 +11,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
+from line_profiler_pycharm import profile
 
 from database import schemas, db_services, schemas_plan_api
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, \
@@ -769,8 +770,6 @@ class FrmActorPlanPeriod(QWidget):
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
-        bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
-        self.side_menu.add_button(bt_fetch_avail_days_from_api)
         bt_requested_assignments = QPushButton('Anz. gewünschter Einsätze', clicked=self.set_requested_assignments)
         self.side_menu.add_button(bt_requested_assignments)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
@@ -783,6 +782,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(bt_actor_loc_prefs)
         bt_actor_partner_loc_prefs = QPushButton('Mitsp.- / Einr.-Präf.', clicked=self.edit_partner_loc_prefs)
         self.side_menu.add_button(bt_actor_partner_loc_prefs)
+        bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
+        self.side_menu.add_button(bt_fetch_avail_days_from_api)
 
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -957,8 +958,8 @@ class FrmActorPlanPeriod(QWidget):
 
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
 
-    def set_button_avail_day_to_checked(self, date: datetime.date,
-                                        time_of_day: schemas.TimeOfDay, uncheck=False) -> ButtonAvailDay | None:
+    def set_button_avail_day_to_checked_and_configure(
+            self, date: datetime.date, time_of_day: schemas.TimeOfDay, uncheck=False) -> ButtonAvailDay | None:
         button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{date}-{time_of_day.time_of_day_enum.name}')
         if not button:
             QMessageBox.critical(self, 'Fehlende Standards',
@@ -978,19 +979,7 @@ class FrmActorPlanPeriod(QWidget):
         avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete)
         for ad in avail_days:
-            self.set_button_avail_day_to_checked(ad.date, ad.time_of_day)
-            # button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{ad.date}-{ad.time_of_day.time_of_day_enum.name}')
-            # if not button:
-            #     QMessageBox.critical(self, 'Fehlende Standards',
-            #                          f'Fehler:\n'
-            #                          f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
-            #                          f'"{ad.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
-            #     return
-            # button.setChecked(True)
-            # button.time_of_day = ad.time_of_day
-            # button.create_actions()
-            # button.reset_context_menu(self.actor_plan_period)
-            # button.set_tooltip()
+            self.set_button_avail_day_to_checked_and_configure(ad.date, ad.time_of_day)
 
     def set_requested_assignments(self):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
@@ -1175,16 +1164,16 @@ class FrmActorPlanPeriod(QWidget):
                 button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
 
-    def fetch_avail_days_from_api(self):
+    def fetch_avail_days_from_api(self, *args, **kwargs):
         try:
-            avail_days = plan_api_handler.fetch_avail_days(
+            avail_days_on_server = plan_api_handler.fetch_avail_days(
                 self.actor_plan_period.plan_period.id, self.actor_plan_period.person.id)
         except Exception as e:
             QMessageBox.critical(self, 'Verfügbare Tage',
                                  f'Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n'
                                  f'{e}')
             return
-        if not avail_days:
+        if not avail_days_on_server:
             reply = QMessageBox.question(
                 self, 'Verfügbare Tage',
                 f'Auf dem Server sind keine verfügbaren Tage von {self.actor_plan_period.person.full_name} '
@@ -1195,22 +1184,30 @@ class FrmActorPlanPeriod(QWidget):
                 for avail_day in self.actor_plan_period.avail_days:
                     db_services.AvailDay.delete(avail_day.id)
                     # todo: besser... send AvailDayButton Signal to uncheck:
-                    self.set_button_avail_day_to_checked(avail_day.date, avail_day.time_of_day, True)
+                    self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
             return
-
+        avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
+        if avail_days:
+            reply = QMessageBox.question(
+                self, 'Verfügbare Tage',
+                f'Es sind bereits verfügbare Tage in der Planungsmaske von {self.actor_plan_period.person.full_name} '
+                f'im Zeitraum {self.actor_plan_period.plan_period.start:%d.%m.%y} - '
+                f'{self.actor_plan_period.plan_period.end:%d.%m.%y} vorhanden.\n'
+                f'Sollen diese verfügbaren Tage aus der Planungsmaske gelöscht werden?')
+            if reply == QMessageBox.StandardButton.No:
+                return
         for avail_day in self.actor_plan_period.avail_days:
             db_services.AvailDay.delete(avail_day.id)
             # todo: besser... send AvailDayButton Signal to uncheck:
-            self.set_button_avail_day_to_checked(avail_day.date, avail_day.time_of_day, True)
+            self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
 
-        for avail_day in avail_days:
-            abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
-
+        abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
+        for avail_day in avail_days_on_server:
             for abbreviation in abbreviation_dict[avail_day.time_of_day.value]:
                 date = avail_day.day
                 t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
                              if t.time_of_day_enum.abbreviation == abbreviation)
-                button_avail_day = self.set_button_avail_day_to_checked(date, t_o_d)
+                button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
                 if button_avail_day:
                     self.save_avail_day(button_avail_day)
         self.reload_actor_plan_period()

@@ -999,6 +999,12 @@ class FrmActorPlanPeriod(QWidget):
         for avail_day in avail_days:
             self.controller_avail_days.execute(
                 avail_day_commands.UpdateTimeOfDays(avail_day.id, self.actor_plan_period.time_of_days))
+            self.controller_avail_days.execute(
+                avail_day_commands.UpdateTimeOfDay(
+                    avail_day,
+                    next(t_o_d.id for t_o_d in self.actor_plan_period.time_of_day_standards
+                         if t_o_d.time_of_day_enum.time_index == avail_day.time_of_day.time_of_day_enum.time_index))
+            )
         db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
         db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
 
@@ -1196,6 +1202,7 @@ class FrmActorPlanPeriod(QWidget):
                 f'Sollen diese verfügbaren Tage aus der Planungsmaske gelöscht werden?')
             if reply == QMessageBox.StandardButton.No:
                 return
+
         for avail_day in self.actor_plan_period.avail_days:
             db_services.AvailDay.delete(avail_day.id)
             # todo: besser... send AvailDayButton Signal to uncheck:

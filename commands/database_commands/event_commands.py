@@ -36,6 +36,22 @@ class UpdateTimeOfDay(Command):
         db_services.Event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
 
 
+class UpdateTimeOfDays(Command):
+    def __init__(self, event_id: UUID, time_of_days: list[schemas.TimeOfDay]):
+        self.event_id = event_id
+        self.new_time_of_days = time_of_days
+        self.old_time_of_days = db_services.TimeOfDay.get_time_of_days_from__event(event_id)
+
+    def execute(self):
+        db_services.Event.update_time_of_days(self.event_id, self.new_time_of_days)
+
+    def undo(self):
+        db_services.AvailDay.update_time_of_days(self.event_id, self.old_time_of_days)
+
+    def redo(self):
+        db_services.AvailDay.update_time_of_days(self.event_id, self.new_time_of_days)
+
+
 class UpdateDateTimeOfDay(Command):
     def __init__(self, event: schemas.Event, new_date: datetime.date, new_time_of_day_id: UUID):
         self.event = event

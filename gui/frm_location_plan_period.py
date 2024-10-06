@@ -762,9 +762,24 @@ class FrmLocationPlanPeriod(QWidget):
             self.reset_chk_field()
 
     def reset_all_event_t_o_ds(self):
-        # not_sure: noch implementieren? Zur Zeit werden Tageszeiten, die für die LocalPlanPeriod festgelegt werden,
-        #  automatisch von den EventButtons übernommen.
-        ...
+        """übernimmt bei allen events die time_of_days der Planperiode."""
+        events = [e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
+                  if not e.prep_delete]
+        for event in events:
+            self.controller.execute(
+                event_commands.UpdateTimeOfDays(event.id, self.location_plan_period.time_of_days))
+            time_of_day = next(t_o_d for t_o_d in self.location_plan_period.time_of_day_standards
+                               if t_o_d.time_of_day_enum.time_index == event.time_of_day.time_of_day_enum.time_index)
+            self.controller.execute(
+                event_commands.UpdateTimeOfDay(
+                    event,
+                    time_of_day.id)
+            )
+        db_services.TimeOfDay.delete_unused(self.location_plan_period.project.id)
+        db_services.TimeOfDay.delete_prep_deletes(self.location_plan_period.project.id)
+
+        self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        self.reset_chk_field()
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()

@@ -831,6 +831,12 @@ class TimeOfDay:
 
     @classmethod
     @db_session
+    def get_time_of_days_from__event(cls, event_id: UUID) -> list[schemas.TimeOfDay]:
+        event_db = models.Event.get_for_update(id=event_id)
+        return [schemas.TimeOfDay.model_validate(t) for t in event_db.time_of_days]
+
+    @classmethod
+    @db_session
     def get_all_from_location_plan_period(cls, location_plan_period_id: UUID) -> list[schemas.TimeOfDay]:
         time_of_days_db = models.LocationPlanPeriod.get(id=location_plan_period_id).time_of_days
         return [schemas.TimeOfDay.model_validate(t_o_d) for t_o_d in time_of_days_db]
@@ -1566,6 +1572,16 @@ class Event:
             event_db.date = new_date
 
         return schemas.EventShow.model_validate(event_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_time_of_days(cls, event_id: UUID, time_of_days: list[schemas.TimeOfDay]) -> schemas.EventShow:
+        log_function_info(cls)
+        event_db = models.Event.get_for_update(id=event_id)
+        time_of_day_ids = [models.TimeOfDay.get_for_update(id=t.id) for t in time_of_days]
+        event_db.time_of_days.add(time_of_day_ids)
+        return schemas.EventShow.model_validate(event_db)
+
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

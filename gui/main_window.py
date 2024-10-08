@@ -1,6 +1,7 @@
 import functools
 import json
 import os.path
+import sys
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
@@ -52,8 +53,8 @@ class MainWindow(QMainWindow):
 
         # db_services.Project.create('Humor Hilft Heilen')
 
-        self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
-        # self.choose_project()
+        # self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
+        self._choose_project()
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -220,10 +221,32 @@ class MainWindow(QMainWindow):
 
         self.restore_tabs()
 
-    def choose_project(self):
-        dlg = DlgProjectSelect(self)
-        if dlg.exec():
-            self.project_id = dlg.project_id
+    def _choose_project(self):
+        if not (start_config := (team_start_config.curr_start_config_handler.get_start_config())).project_id:
+            dlg = DlgProjectSelect(self)
+            if dlg.exec():
+                self.project_id = dlg.project_id
+                if dlg.chk_save_for_next_time.isChecked():
+                    start_config.project_id = self.project_id
+                    team_start_config.curr_start_config_handler.save_config_to_file(start_config)
+            else:
+                sys.exit()
+        else:
+            project = db_services.Project.get(start_config.project_id)
+            reply = QMessageBox.question(self, 'Projekt',
+                                         f'Das aktuelle Projekt ist {project.name}\n'
+                                         f'Möchten Sie dieses Projekt verwenden?')
+            if reply == QMessageBox.StandardButton.Yes:
+                self.project_id = start_config.project_id
+            else:
+                dlg = DlgProjectSelect(self)
+                if dlg.exec():
+                    self.project_id = dlg.project_id
+                    if dlg.chk_save_for_next_time.isChecked():
+                        start_config.project_id = self.project_id
+                        team_start_config.curr_start_config_handler.save_config_to_file(start_config)
+                else:
+                    sys.exit()
 
     def new_plan_period(self):
         if not db_services.Team.get_all_from__project(self.project_id):

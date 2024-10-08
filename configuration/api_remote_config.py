@@ -6,24 +6,24 @@ from toml.decoder import TomlDecodeError
 
 
 class Authentication(BaseModel):
-    username: EmailStr
-    password: str
+    username: EmailStr = 'example@mail.com'
+    password: str = ''
 
 
 class Endpoints(BaseModel):
-    auth: str
-    get_project: str
-    get_persons: str
-    get_teams: str
-    get_plan_periods: str
-    post_plan_period: str
-    fetch_avail_days: str
+    auth: str = ''
+    get_project: str = ''
+    get_persons: str = ''
+    get_teams: str = ''
+    get_plan_periods: str = ''
+    post_plan_period: str = ''
+    fetch_avail_days: str = ''
 
 
 class ApiRemote(BaseModel):
-    host: str
-    authentication: Authentication
-    endpoints: Endpoints
+    host: str = ''
+    authentication: Authentication = Authentication()
+    endpoints: Endpoints = Endpoints()
 
 
 class ConfigHandlerToml:
@@ -32,13 +32,16 @@ class ConfigHandlerToml:
 
     @staticmethod
     def load_config_from_file() -> ApiRemote:
-        try:
-            with open(ConfigHandlerToml._config_file_path, 'r') as f:
-                return ApiRemote.model_validate(toml.load(f))
-        except FileNotFoundError:
-            raise FileNotFoundError('api_remote.toml not found')
-        except TomlDecodeError:
-            raise TomlDecodeError('api_remote.toml not valid')
+        if not os.path.exists(ConfigHandlerToml._config_file_path):
+            return ApiRemote()
+        else:
+            try:
+                with open(ConfigHandlerToml._config_file_path, 'r') as f:
+                    return ApiRemote.model_validate(toml.load(f))
+            except FileNotFoundError:
+                raise FileNotFoundError('api_remote.toml not found')
+            except TomlDecodeError as e:
+                raise Exception(f'Fehler beim laden der "api_remote_config.toml": {e}')
 
     @staticmethod
     def save_config_to_file(config: ApiRemote):

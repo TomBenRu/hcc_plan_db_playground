@@ -8,6 +8,8 @@ from database.models import db
 
 provider = 'sqlite'
 db_path = os.path.join(os.path.dirname(__file__), 'database.sqlite')
+if not os.path.exists(os.path.dirname(__file__)):
+    os.makedirs(os.path.dirname(__file__))
 
 db.bind(provider=provider, filename=db_path, create_db=True)
 

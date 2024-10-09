@@ -475,8 +475,8 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                                entities.event_groups_with_event[evg_id].event,
                                entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
                     continue
-
-                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[group.depth]
+                print(f'{multiplier_level=}')
+                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level.get(group.depth, 1)
                 weight_vars.append(
                     model.NewIntVar(-1000000, 100000000,
                                     f'Depth {group.depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '

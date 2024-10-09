@@ -25,6 +25,8 @@ class CalendarsHandlerToml:
         self._check_toml_dir()
 
     def _check_toml_dir(self):
+        if not os.path.exists(os.path.dirname(__file__)):
+            os.mkdir(os.path.dirname(__file__))
         if not os.path.exists(os.path.join(os.path.dirname(__file__), self.toml_dir)):
             os.mkdir(os.path.join(os.path.dirname(__file__), self.toml_dir))
 

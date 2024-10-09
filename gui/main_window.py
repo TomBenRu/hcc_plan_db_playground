@@ -26,6 +26,7 @@ from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_create_google_calendar import CreateGoogleCalendar
+from .frm_create_project import DlgCreateProject
 from .frm_excel_export import DlgPlanToXLSX
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
@@ -223,6 +224,12 @@ class MainWindow(QMainWindow):
 
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
+        if not db_services.Project.get_all():
+            QMessageBox.information(self, 'Projekt',
+                                    'Sie haben noch kein Projekt angelegt.\n'
+                                    'Legen Sie im folgenden Dialog ein neues Projekt an.')
+            self._create_new_project(start_config)
+            return
         dlg = DlgProjectSelect(self, start_config.project_id)
         if dlg.exec():
             self.project_id = dlg.project_id
@@ -231,6 +238,14 @@ class MainWindow(QMainWindow):
                 team_start_config.curr_start_config_handler.save_config_to_file(start_config)
         else:
             sys.exit()
+
+    def _create_new_project(self, start_config: team_start_config.StartConfig):
+        dlg = DlgCreateProject(self)
+        if dlg.exec():
+            project = db_services.Project.create(dlg.project_name)
+            self.project_id = project.id
+            start_config.project_id = self.project_id
+            team_start_config.curr_start_config_handler.save_config_to_file(start_config)
 
     def new_plan_period(self):
         if not db_services.Team.get_all_from__project(self.project_id):

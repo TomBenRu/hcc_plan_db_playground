@@ -195,7 +195,14 @@ class DlgPlanPeriodCreate(QDialog):
                                  f'da beim Übertragen der Planungsperiode auf den Server '
                                  f'folgender Fehler aufgetreten ist:\n'
                                  f'{e}')
-            self.controller.undo_all()
+            reply = QMessageBox.question(self, 'Neue Planungsperiode',
+                                         'Möchten Sie die Planungsperiode lokal anlegen?\n'
+                                         'Sie können die Planungsperiode später noch übertragen.')
+            if reply == QMessageBox.StandardButton.No:
+                self.controller.undo_all()
+                QMessageBox.information(self, 'Neue Planungsperiode', 'Die Planungsperiode wurde nicht erstellt.')
+            else:
+                QMessageBox.information(self, 'Neue Planungsperiode', 'Die Planungsperiode wurde lokal erstellt.')
 
 
 class DlgPlanPeriodEdit(QDialog):

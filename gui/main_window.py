@@ -222,31 +222,15 @@ class MainWindow(QMainWindow):
         self.restore_tabs()
 
     def _choose_project(self):
-        if not (start_config := (team_start_config.curr_start_config_handler.get_start_config())).project_id:
-            dlg = DlgProjectSelect(self)
-            if dlg.exec():
-                self.project_id = dlg.project_id
-                if dlg.chk_save_for_next_time.isChecked():
-                    start_config.project_id = self.project_id
-                    team_start_config.curr_start_config_handler.save_config_to_file(start_config)
-            else:
-                sys.exit()
+        start_config = team_start_config.curr_start_config_handler.get_start_config()
+        dlg = DlgProjectSelect(self, start_config.project_id)
+        if dlg.exec():
+            self.project_id = dlg.project_id
+            if dlg.chk_save_for_next_time.isChecked():
+                start_config.project_id = self.project_id
+                team_start_config.curr_start_config_handler.save_config_to_file(start_config)
         else:
-            project = db_services.Project.get(start_config.project_id)
-            reply = QMessageBox.question(self, 'Projekt',
-                                         f'Das aktuelle Projekt ist {project.name}\n'
-                                         f'Möchten Sie dieses Projekt verwenden?')
-            if reply == QMessageBox.StandardButton.Yes:
-                self.project_id = start_config.project_id
-            else:
-                dlg = DlgProjectSelect(self)
-                if dlg.exec():
-                    self.project_id = dlg.project_id
-                    if dlg.chk_save_for_next_time.isChecked():
-                        start_config.project_id = self.project_id
-                        team_start_config.curr_start_config_handler.save_config_to_file(start_config)
-                else:
-                    sys.exit()
+            sys.exit()
 
     def new_plan_period(self):
         if not db_services.Team.get_all_from__project(self.project_id):

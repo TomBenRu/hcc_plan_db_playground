@@ -191,7 +191,7 @@ class DlgPlanPeriodCreate(QDialog):
                                     f'- {created_plan_period.end:%d.%m.%y}')
         except Exception as e:
             QMessageBox.critical(self, 'Neue Planungsperiode auf Server',
-                                 f'Die Planungsperiode Konnte nicht erstellt werden,\n'
+                                 f'Die Planungsperiode Konnte nicht auf dem Server erstellt werden,\n'
                                  f'da beim Übertragen der Planungsperiode auf den Server '
                                  f'folgender Fehler aufgetreten ist:\n'
                                  f'{e}')

@@ -22,21 +22,20 @@ from gui.observer import signal_handling
 def callback(request_id, response, exception):
     if exception is not None:
         print(f"Request {request_id} failed: {exception}")
+        raise exception
+    elif isinstance(response, dict):
+        print(f"Request {request_id} succeeded: {response['status']=}")
     else:
-        print(f"Request {request_id} succeeded: {json.dumps(response, indent=2)}")
+        print(f"Request {request_id} succeeded: {response=}")
 
 
 def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
-    # todo: not sure if this works as expected
 
     start_time = datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time())
     end_time = datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time())
 
     creds = authenticate_google()
     service = build('calendar', 'v3', credentials=creds)
-
-    # Batch-Request erstellen
-    batch = BatchHttpRequest(callback=callback)
 
     calendars = curr_calendars_handler.get_calenders()
 
@@ -57,8 +56,10 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
         signal_handling.handler_google_cal_api.transfer_appointments_progress(
             f'Google-Kalender von: Team {plan.plan_period.team.name}\n'
             f'Planungszeitraum: {text_time_span}\n'
-            f'Aktion: Vorhandene Termine werden gelöscht.'
+            f'Aktion: Termine übertragen.'
         )
+        # Batch-Request erstellen
+        batch = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
 
         # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit id user_cal_id abrufen
         events_result = service.events().list(
@@ -68,6 +69,7 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
             singleEvents=True,
             orderBy='startTime'
         ).execute()
+
         # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit id user_cal_id löschen
         for event in events_result.get('items', []):
             batch.add(service.events().delete(calendarId=team_calendar.id, eventId=event['id']),
@@ -76,7 +78,10 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
         # Anfrage hinzufügen: Alle Termine in google_events in den Google-Kalender des Teams übertragen
         for google_event in google_events:
             batch.add(service.events().insert(calendarId=team_calendar.id, body=google_event),
-                      request_id=f'insert_event_to_team_calendar_{google_event["summary"]}')
+                      request_id=f'insert_event_to_team_calendar_{google_event["start"]["dateTime"]}-'
+                                 f'{google_event["end"]["dateTime"]}_{google_event["summary"]}')
+        # Batch-Request ausführen
+        batch.execute()
 
     # Anfrage hinzufügen: Alle Termine von start_time bis end_time aus den Google-Kalendern der Teilnehmer löschen und
     # Anfrage hinzufügen: Alle Termine in user_cal_id__google_events in den Google-Kalendern der Teilnehmer übertragen
@@ -84,8 +89,12 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
         signal_handling.handler_google_cal_api.transfer_appointments_progress(
             f'Google-Kalender von: {user_name}\n'
             f'Planungszeitraum: {text_time_span}\n'
-            f'Aktion: Vorhandene Termine werden gelöscht.'
+            f'Aktion: Termine übertragen.'
         )
+
+        # Batch-Request erstellen
+        batch = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
+
         # Alle Events innerhalb des Zeitrahmens des Kalenders mit id user_cal_id abrufen
         events_result = service.events().list(
             calendarId=user_cal_id,
@@ -101,10 +110,10 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
                       request_id=f'delete_event_{event["id"]}')
         for g_event in g_events:
             batch.add(service.events().insert(calendarId=user_cal_id, body=g_event),
-                      request_id=f'insert_event_to_user_calendar_{user_name}_{g_event["summary"]}')
-
-    # Batch-Request ausführen
-    batch.execute()
+                      request_id=f'insert_event_to_user_calendar_{user_name}_{g_event["start"]["dateTime"]}-'
+                                 f'{g_event["end"]["dateTime"]}_{g_event["summary"]}')
+        # Batch-Request ausführen
+        batch.execute()
 
 
 def add_event_to_calendar(calendar_id, event, service: Resource | None = None):

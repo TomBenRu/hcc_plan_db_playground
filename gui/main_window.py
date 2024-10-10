@@ -21,7 +21,7 @@ from export_to_file import plan_to_xlsx
 from google_calendar_api.add_access import add_or_update_access_to_calendar
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
-from google_calendar_api.transfer_appointments import transfer_plan_appointments
+from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
@@ -668,7 +668,7 @@ class MainWindow(QMainWindow):
     def plan_events_to_google_calendar(self):
         def transfer(plan: schemas.PlanShow):
             try:
-                transfer_plan_appointments(plan)
+                transfer_appointments_with_batch_requests(plan)
                 return True
             except Exception as e:
                 return e

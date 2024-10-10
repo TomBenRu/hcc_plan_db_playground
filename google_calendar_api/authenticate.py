@@ -1,4 +1,5 @@
 # Wenn der Zugriff auf den Kalender nur zum Erstellen/Ändern von Events benötigt wird
+import json
 import os
 
 from google.auth.transport.requests import Request
@@ -27,3 +28,12 @@ def authenticate_google():
         with open(token, 'w') as token:
             token.write(creds.to_json())
     return creds
+
+
+def save_credentials(path_to_credentials_file: str):
+    with open(path_to_credentials_file, 'r') as f:
+        credentials = json.load(f)
+    if not os.path.exists(credentials_dir):
+        os.makedirs(credentials_dir)
+    with open(os.path.join(credentials_dir, 'client_secret.json'), 'w') as f:
+        json.dump(credentials, f)

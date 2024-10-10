@@ -11,7 +11,6 @@ from httplib2 import ServerNotFoundError
 from pydantic_core import ValidationError
 
 import configuration
-import google_calendar_api
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
@@ -19,6 +18,7 @@ from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx
 from google_calendar_api.add_access import add_or_update_access_to_calendar
+from google_calendar_api.authenticate import save_credentials
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
 from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
@@ -145,8 +145,8 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'),
                               'Google-Kalender öffnen...',
                               'Öffnet den Google-Kalender im Browser', self.open_google_calendar),
-            MenuToolbarAction(self, None, 'Kalender-ID setzen...', 'Kalender-ID des Google-Kalenders dieses Teams',
-                              self.set_google_calendar_id),
+            MenuToolbarAction(self, None, 'Google-API Credentials importieren...', 'Kalender-ID des Google-Kalenders dieses Teams',
+                              self.import_google_api_credentials),
             MenuToolbarAction(self, None, 'Upgrade...', 'Zum Erweitern von "hcc-plan"', self.upgrade_hcc_plan),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Einstellungen',
                               'Allgemeine Programmeinstellungen.', self.general_setting),
@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
             '&Google Kalender': [self.actions['plan_events_to_google_calendar'], self.actions['open_google_calendar'],
                                  None, self.actions['create_google_calendar'],
                                  self.actions['synchronize_google_calenders'],
-                                 None, self.actions['set_google_calendar_id']],
+                                 None, self.actions['import_google_api_credentials']],
             'E&xtras': [self.actions['upgrade_hcc_plan'], None, self.actions['general_setting']],
             '&Hilfe': [self.actions['open_help'], None, self.actions['check_for_updates'], None,
                        self.actions['about_hcc_plan']]
@@ -797,9 +797,24 @@ class MainWindow(QMainWindow):
         progressbar.show()
         self.thread_pool.start(worker)
 
+    def import_google_api_credentials(self):
+        """Dialog zum Importieren der Google API Credentials"""
+        dlg = QFileDialog(self, 'Google API Credentials importieren', '', 'JSON-Datei (*.json)')
+        dlg.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+        if dlg.exec():
+            file_path = dlg.selectedFiles()[0]
+            try:
+                save_credentials(file_path)
+            except Exception as e:
+                QMessageBox.critical(self, 'Fehler beim Importieren der Google API Credentials',
+                                     f'Beim Versuch, die Google API Credentials zu importieren ist '
+                                     f'folgender Fehler aufgetreten:\n'
+                                     f'{e}')
+                return
+            QMessageBox.information(self, 'Google API Credentials importieren',
+                                    'Die Google API Credentials wurden erfolgreich importiert.')
 
-    def set_google_calendar_id(self):
-        ...
+
 
     def upgrade_hcc_plan(self):
         ...

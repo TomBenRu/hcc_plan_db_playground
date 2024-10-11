@@ -3,7 +3,7 @@ import pprint
 from json import JSONDecodeError
 from uuid import UUID
 
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 
 from configuration.google_calenders import curr_calendars_handler
@@ -26,14 +26,16 @@ def add_data_from_description_field(calendar: dict) -> dict:
     return calendar
 
 
-def list_calendar_acl(calendar_id: str):
+def list_calendar_acl(calendar_id: str, service: Resource = None):
     """
     Diese Funktion ruft alle Freigaben (ACL) für einen bestimmten Kalender ab.
     :param calendar_id: Die ID des Kalenders.
+    :param service: Das Google API-Objekt, das für die Authentifizierung und Abfrage des Kalenders verwendet wird.
     :return: Eine Liste von ACL-Einträgen oder None bei einem Fehler.
     """
-    creds = authenticate_google()
-    service = build('calendar', 'v3', credentials=creds)
+    if service is None:
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
 
     try:
         acl_result = service.acl().list(calendarId=calendar_id).execute()
@@ -71,7 +73,7 @@ def list_all_calendars_with_acl():
 
         for calendar in calendars:
             # Freigaben (ACLs) für den aktuellen Kalender abrufen
-            acl_entries = list_calendar_acl(calendar['id'])
+            acl_entries = list_calendar_acl(calendar['id'], service)
             calendar['access_control'] = [a['scope'].get('value') for a in acl_entries] if acl_entries else []
 
         return [c for c in calendars if c.get('accessRole') == 'owner' and not c.get('primary')]
@@ -93,7 +95,7 @@ def get_calendar_by_id(calendar_id: str):
     try:
         # Kalenderdaten abrufen
         calendar = service.calendars().get(calendarId=calendar_id).execute()
-        acl_entries = list_calendar_acl(calendar_id)
+        acl_entries = list_calendar_acl(calendar_id, service)
         calendar['access_control'] = [a['scope'].get('value') for a in acl_entries] if acl_entries else []
         try:
             calendar = add_data_from_description_field(calendar)
@@ -112,13 +114,5 @@ def synchronize_local_calendars():
             add_data_from_description_field(c)
         except JSONDecodeError as e:
             print(f'Fehler: description field does not contain valid json string: {e}')
-
-    curr_calendars_handler.save_calendars_json_to_file(calendars)
-
-
-if __name__ == '__main__':
-    # Rufe alle Kalender mit ihren Freigaben (ACL) ab
-    calendars = list_all_calendars_with_acl()
-    pprint.pprint(calendars)
 
     curr_calendars_handler.save_calendars_json_to_file(calendars)

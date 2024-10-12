@@ -1,5 +1,6 @@
 import datetime
 from typing import Callable, Any
+from urllib.error import HTTPError
 from uuid import UUID
 
 import jwt
@@ -7,6 +8,7 @@ import requests
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox,
                                QWidget)
+from numpy.distutils.system_info import NotFoundError
 from pydantic import BaseModel
 
 from commands import command_base_classes
@@ -212,25 +214,26 @@ class PlanApiHandler:
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
 
     def fetch_avail_days(self, plan_period_id: UUID, person_id: UUID) -> list[AvailDay]:
-        if not self.session.headers.get('Authorization'):
+        if not self.session_has_authorization():
             self.authorize()
-        while True:
-            response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}',
+        for _ in range(5):
+            response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}x',
                                         params={'plan_period_id': str(plan_period_id), 'person_id': str(person_id)})
             if response.status_code == 200:
                 if type(response.json()) == dict and response.json().get('status_code') == 401:
                     raise Exception(f'Fehler. {response.json().get("detail")}')
                 break
             self.authorize()
+        else:
+            raise NotFoundError(f'Fehler. {response.json().get("detail")}')
 
-        avail_days = [AvailDay.model_validate(avd) for avd in response.json()]
-        return avail_days
+        return [AvailDay.model_validate(avd) for avd in response.json()]
 
     def create_plan_period(self, team_id: UUID, start: datetime.date, end: datetime.date,
                            deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID) -> PlanPeriod:
-        if not self.session.headers.get('Authorization'):
+        if not self.session_has_authorization():
             self.authorize()
-        while True:
+        for _ in range(5):
             # team_id = '83E4FEEFAF844EABA3FB15F25BDB7EC1'  # nur für local api
             response = self.session.post(
                 f'{self.config_remote.host}/{self.config_remote.endpoints.post_plan_period}',
@@ -243,9 +246,13 @@ class PlanApiHandler:
                     raise Exception(f'Fehler. {response.json().get("detail")}')
                 break
             self.authorize()
+        else:
+            raise NotFoundError(f'Fehler. {response.json().get("detail")}')
 
-        created_plan_period = PlanPeriod.model_validate(response.json())
-        return created_plan_period
+        return PlanPeriod.model_validate(response.json())
+
+    def session_has_authorization(self) -> bool:
+        return bool(self.session.headers.get('Authorization'))
 
     def authorize(self):
         response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',

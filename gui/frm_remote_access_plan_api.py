@@ -1,14 +1,10 @@
 import datetime
-from typing import Callable, Any
-from urllib.error import HTTPError
 from uuid import UUID
 
 import jwt
 import requests
-from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QFormLayout, QComboBox, QDialogButtonBox, QMessageBox,
                                QWidget)
-from numpy.distutils.system_info import NotFoundError
 from pydantic import BaseModel
 
 from commands import command_base_classes
@@ -217,7 +213,7 @@ class PlanApiHandler:
         if not self.session_has_authorization():
             self.authorize()
         for _ in range(5):
-            response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}x',
+            response = self.session.get(f'{self.config_remote.host}/{self.config_remote.endpoints.fetch_avail_days}',
                                         params={'plan_period_id': str(plan_period_id), 'person_id': str(person_id)})
             if response.status_code == 200:
                 if type(response.json()) == dict and response.json().get('status_code') == 401:
@@ -225,7 +221,7 @@ class PlanApiHandler:
                 break
             self.authorize()
         else:
-            raise NotFoundError(f'Fehler. {response.json().get("detail")}')
+            raise Exception(f'Fehler. {response.json().get("detail")}')
 
         return [AvailDay.model_validate(avd) for avd in response.json()]
 
@@ -247,7 +243,7 @@ class PlanApiHandler:
                 break
             self.authorize()
         else:
-            raise NotFoundError(f'Fehler. {response.json().get("detail")}')
+            raise Exception(f'Fehler. {response.json().get("detail")}')
 
         return PlanPeriod.model_validate(response.json())
 

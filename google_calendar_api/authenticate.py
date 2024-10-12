@@ -1,5 +1,4 @@
 import json
-import os
 
 import keyring
 from google.auth.transport.requests import Request
@@ -47,4 +46,3 @@ def save_credentials(path_to_credentials_file: str):
 
 def save_token_data(token_data: str):
     keyring.set_password(SERVICE_NAME_TOKEN_DATA, USER_NAME, token_data)
-

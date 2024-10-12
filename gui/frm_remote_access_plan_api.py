@@ -206,6 +206,7 @@ class DlgRemoteAccessPlanApi(QDialog):
 
 
 class PlanApiHandler:
+    # todo: implement create_project, create_person, create_team, assign_person_to_team, update_person, update_team
     def __init__(self):
         self.session = requests.Session()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()

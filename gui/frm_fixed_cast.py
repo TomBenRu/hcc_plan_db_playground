@@ -16,6 +16,8 @@ from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
 from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
+from gui import widget_styles
+from gui.widget_styles import combo_boxes
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
@@ -494,9 +496,9 @@ class DlgFixedCast(QDialog):
                                   else self.object_name_operator_between_rows)
         cb_operator.setFixedWidth(self.width_inner_operator)
         if typ == 'inner':
-            cb_operator.setStyleSheet('background: #d9e193')
+            cb_operator.setStyleSheet(f'background: {combo_boxes.operator_between_actors_bg}')
         else:
-            cb_operator.setStyleSheet('background: #8ddee1')
+            cb_operator.setStyleSheet(f'background: {combo_boxes.operator_between_groups_bg}')
 
         self.fill_cb_operator(cb_operator)
 

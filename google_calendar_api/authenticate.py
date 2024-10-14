@@ -20,7 +20,9 @@ def authenticate_google():
     # Wenn Token schon existiert, laden
     if token_data:
         token_data = json.loads(token_data)
-        creds = Credentials(token=token_data['token'], refresh_token=token_data['refresh_token'], scopes=SCOPES)
+        creds = Credentials(token=token_data['token'], refresh_token=token_data['refresh_token'],
+                            token_uri=token_data['token_uri'], client_id=token_data['client_id'],
+                            client_secret=token_data['client_secret'], scopes=SCOPES)
     # Wenn keine (gültigen) Anmeldeinformationen vorhanden, melde Benutzer erneut an
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:

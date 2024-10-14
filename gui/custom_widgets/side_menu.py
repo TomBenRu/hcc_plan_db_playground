@@ -159,6 +159,8 @@ class SlideInMenu(QWidget):
 
         parent.resize_signal.connect(self.parent_resize_event)
 
+        self.setObjectName('slide_in_menu')
+
         self.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("background-color: rgba(255, 255, 255, 0);")
 
@@ -185,7 +187,9 @@ class SlideInMenu(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.scroll_area_fields = QScrollArea()
-        self.scroll_area_fields.setStyleSheet(f"background-color: rgba{self.menu_background};")
+        self.scroll_area_fields.setObjectName('scroll_area_fields')
+        self.scroll_area_fields.setStyleSheet(
+            f"QWidget#scroll_area_fields {{background-color: rgba{self.menu_background};}}")
         self.layout.addWidget(self.scroll_area_fields)
         self.container_fields = QWidget()
         self.container_fields.setStyleSheet("background-color: rgba(255, 255, 255, 0);")

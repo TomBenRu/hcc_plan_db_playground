@@ -8,7 +8,7 @@ from typing import Literal, Callable, Any
 from uuid import UUID
 
 from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool, Signal, QDate
-from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen
+from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen, QPalette
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
     QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
     QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit, QDateEdit, \
@@ -672,11 +672,11 @@ class FrmTabPlan(QWidget):
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
         self.bt_refresh = QPushButton('Ansicht aktualisieren')
-        self.bt_refresh.clicked.connect(self.reload_and_refresh_plan())
+        self.bt_refresh.clicked.connect(self.reload_and_refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
-        self.bottom_menu = side_menu.SlideInMenu(self, 210, 10, 'bottom', (20, 10, 20, 10), (128, 128, 128,255))
+        self.bottom_menu = side_menu.SlideInMenu(self, 210, 10, 'bottom', (20, 10, 20, 10))
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
 
@@ -1177,10 +1177,10 @@ class TblPlanStatistics(QTableWidget):
         self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
         self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.plan)
         self.cell_backgrounds = {
-            'requested': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
-            'able': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
-            'fair': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)],
-            'current': [QColor(0, 0, 0, 32), QColor(0, 0, 0, 16)]
+            'requested': [QColor(130, 130, 160, 255), QColor(130, 150, 180, 255)],
+            'able': [QColor(100, 130, 160, 255), QColor(100, 150, 180, 255)],
+            'fair': [QColor(70, 130, 160, 255), QColor(70, 150, 180, 255)],
+            'current': [QColor(40, 130, 160, 255), QColor(40, 150, 180, 255)]
         }
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
         self.label_day_text_and_style_sheet = {lb.day: {'text': lb.text(), 'style_sheet': lb.styleSheet()}

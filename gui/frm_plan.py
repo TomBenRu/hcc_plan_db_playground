@@ -672,7 +672,7 @@ class FrmTabPlan(QWidget):
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
         self.bt_refresh = QPushButton('Ansicht aktualisieren')
-        self.bt_refresh.clicked.connect(self.refresh_plan)
+        self.bt_refresh.clicked.connect(self.reload_and_refresh_plan())
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
@@ -828,6 +828,10 @@ class FrmTabPlan(QWidget):
         self._show_table_plan()
         self.side_menu.raise_()
         self.bottom_menu.raise_()
+
+    def reload_and_refresh_plan(self):
+        self._reload_from_db_and_generate_plan_data()
+        self.refresh_plan()
 
     @Slot(UUID)
     def refresh_specific_plan(self, plan_id: UUID):

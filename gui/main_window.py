@@ -1,8 +1,6 @@
 import functools
-import json
 import os.path
 import sys
-import time
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
@@ -11,7 +9,6 @@ from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox
 from httplib2 import ServerNotFoundError
 from pydantic_core import ValidationError
 
-import configuration
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
@@ -128,7 +125,7 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, 'Excel Output-Ordner...',
                               'Ordner für die Ausgabe von Excel-Files festlegen', self.determine_excel_output_folder),
             MenuToolbarAction(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
-                              f'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
+                              'Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht',
                               self.plans_of_team_delete_prep_deletes),
             MenuToolbarAction(self, None, 'Events aus Plan zu Events-Maske...',
                               'Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.',
@@ -261,7 +258,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def edit_plan_period(self):
-        if not (plan_periods := db_services.PlanPeriod.get_all_from__project(self.project_id)):
+        if not db_services.PlanPeriod.get_all_from__project(self.project_id):
             QMessageBox.critical(self, 'Planungszeitraum Ändern', 'Es wurden noch keine Planungszeiträume angelegt.')
             return
         else:
@@ -399,7 +396,7 @@ class MainWindow(QMainWindow):
         signal_handling.handler_plan_tabs.reload_plan_from_db(plan_widget.plan.id)
 
     def determine_excel_output_folder(self):
-        path_handler = configuration.project_paths.curr_user_path_handler
+        path_handler = project_paths.curr_user_path_handler
         paths = path_handler.get_config()
         output_folder = QFileDialog.getExistingDirectory(
             self, "Ordner auswählen, an dem die Excel-Pläne gespeichert werden sollen", paths.excel_output_path)
@@ -524,7 +521,7 @@ class MainWindow(QMainWindow):
             return
 
     def _get_excel_folder_output_path(self, plan_tab: FrmTabPlan) -> str:
-        path_handler = configuration.project_paths.curr_user_path_handler
+        path_handler = project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):
             output_folder = 'excel_output'
         excel_output_path = os.path.join(
@@ -923,7 +920,7 @@ class MainWindow(QMainWindow):
                       actions_meu erzeugt.
                       Der Wert None erzeugt einen Separator.
         """
-        if type(actions_menu) == tuple:
+        if isinstance(actions_menu, tuple):
             ag = QActionGroup(self)
             ag.setExclusive(True)
             for action in actions_menu:

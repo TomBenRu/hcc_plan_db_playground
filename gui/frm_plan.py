@@ -1,23 +1,19 @@
-import dataclasses
 import datetime
-import pprint
-import time
 from collections import defaultdict
 from functools import partial
-from typing import Literal, Callable, Any
+from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import Qt, Slot, QTimer, QCoreApplication, QThreadPool, Signal, QDate
-from PySide6.QtGui import QContextMenuEvent, QColor, QPainter, QBrush, QPen, QPalette
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout, \
-    QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QGraphicsDropShadowEffect, QDialog, QFormLayout, QGroupBox, \
-    QDialogButtonBox, QComboBox, QProgressDialog, QProgressBar, QPushButton, QCheckBox, QLineEdit, QDateEdit, \
-    QCalendarWidget, QToolTip
+from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate
+from PySide6.QtGui import QContextMenuEvent, QColor
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
+                               QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
+                               QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget)
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
-from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, event_commands
+from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
 from database import schemas, db_services
 from gui import widget_styles
 from gui.concurrency import general_worker
@@ -30,7 +26,7 @@ from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
-from tools.helper_functions import get_appointments_of_actors_from_plan, get_appointments_of_all_actors_from_plan
+from tools.helper_functions import get_appointments_of_all_actors_from_plan
 
 
 def fill_in_data(appointment_field: 'AppointmentField'):

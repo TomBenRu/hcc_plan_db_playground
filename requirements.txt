@@ -1,5 +1,5 @@
 pony~=0.7.17
-pydantic[email]~=2.8.2
+pydantic[email]~=2.9
 pyside6==6.8
 passlib~=1.7.4
 bcrypt ~= 4.1.3

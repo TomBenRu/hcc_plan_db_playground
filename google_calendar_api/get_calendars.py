@@ -22,6 +22,8 @@ def add_data_from_description_field(calendar: dict) -> dict:
         calendar['person_name'] = person_name
     except JSONDecodeError as e:
         print(f'Fehler: description field does not contain valid json string: {e}')
+        raise Exception(
+            f'Fehler beim Hinzufügen der Daten aus description field für Kalender mit ID {calendar["id"]}: {e}')
 
     return calendar
 
@@ -42,7 +44,7 @@ def list_calendar_acl(calendar_id: str, service: Resource = None):
         acl_entries = acl_result.get('items', [])
 
         if not acl_entries:
-            # print(f"Keine Freigaben für Kalender-ID: {calendar_id}")
+            print(f"Keine Freigaben für Kalender-ID: {calendar_id}")
             return None
 
         # for acl in acl_entries:
@@ -50,8 +52,9 @@ def list_calendar_acl(calendar_id: str, service: Resource = None):
 
         return acl_entries
     except HttpError as error:
-        print(f"Fehler beim Abrufen der ACLs für Kalender-ID {calendar_id}: {error}")
-        return None
+        raise Exception(f'Fehler beim Abrufen der ACLs für Kalender-ID {calendar_id}: {error}')
+    except Exception as e:
+        raise Exception(f'Fehler beim Abrufen der ACLs für Kalender-ID {calendar_id}: {e}')
 
 
 def list_all_calendars_with_acl():
@@ -78,8 +81,7 @@ def list_all_calendars_with_acl():
 
         return [c for c in calendars if c.get('accessRole') == 'owner' and not c.get('primary')]
     except HttpError as error:
-        print(f"Fehler beim Abrufen der Kalender: {error}")
-        return None
+        raise Exception(f'Fehler beim Abrufen der Kalender: {error}')
 
 
 def get_calendar_by_id(calendar_id: str):
@@ -100,11 +102,10 @@ def get_calendar_by_id(calendar_id: str):
         try:
             calendar = add_data_from_description_field(calendar)
         except JSONDecodeError as e:
-            print(f'Fehler: description field does not contain valid json string: {e}')
+            raise Exception(f'Fehler beim Abrufen des Kalenders mit ID {calendar_id}: {e}')
         return calendar
     except HttpError as error:
-        print(f"Fehler beim Abrufen des Kalenders mit ID {calendar_id}: {error}")
-        return None
+        raise Exception(f'Fehler beim Abrufen des Kalenders mit ID {calendar_id}: {error}')
 
 
 def synchronize_local_calendars():
@@ -113,6 +114,8 @@ def synchronize_local_calendars():
         try:
             add_data_from_description_field(c)
         except JSONDecodeError as e:
-            print(f'Fehler: description field does not contain valid json string: {e}')
+            raise Exception(f'Fehler beim Synchronisieren der Kalenderdaten: {e}')
+        except Exception as e:
+            raise Exception(f'Fehler beim Synchronisieren der Kalenderdaten: {e}')
 
     curr_calendars_handler.save_calendars_json_to_file(calendars)

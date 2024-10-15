@@ -2,6 +2,7 @@ import functools
 import json
 import os.path
 import sys
+import time
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
@@ -61,6 +62,7 @@ class MainWindow(QMainWindow):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.thread_pool = QThreadPool()
+        self.worker_general: WorkerGeneral | None = None
 
         self.global_update_plan_tabs_progress_bar = DlgProgressInfinite(
             self, 'Update Plan-Tabs', 'Die betreffenden geöffneten Pläne werden aktualisiert.', 'Abbruch')
@@ -693,8 +695,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Termine übertragen', 'Es muss ein Plan geöffnet sein.')
             return
         if DlgSendAppointmentsToGoogleCal(self, plan).exec():
-            worker = WorkerGeneral(transfer, True, plan)
-            worker.signals.finished.connect(finished)
+            self.worker_general = WorkerGeneral(transfer, True, plan)
+            self.worker_general.signals.finished.connect(finished)
             progressbar = DlgProgressInfinite(
                 self, 'Termine übertragen',
                 f'Termine des Teams {plan.plan_period.team.name}\n'
@@ -705,7 +707,7 @@ class MainWindow(QMainWindow):
                 signal_handling.handler_google_cal_api.signal_transfer_appointments_progress
             )
             progressbar.show()
-            self.thread_pool.start(worker)
+            self.thread_pool.start(self.worker_general)
 
     def open_google_calendar(self):
         ...
@@ -751,8 +753,8 @@ class MainWindow(QMainWindow):
 
         dlg = CreateGoogleCalendar(self, self.project_id)
         if dlg.exec():
-            worker = WorkerGeneral(create, True)
-            worker.signals.finished.connect(finished)
+            self.worker_general = WorkerGeneral(create, True)
+            self.worker_general.signals.finished.connect(finished)
             person_name = dlg.combo_persons.currentText()
             progressbar = DlgProgressInfinite(
                 self, 'Google-Kalender erstellen',
@@ -760,7 +762,7 @@ class MainWindow(QMainWindow):
                 'Abbruch'
             )
             progressbar.show()
-            self.thread_pool.start(worker)
+            self.thread_pool.start(self.worker_general)
 
     def synchronize_google_calenders(self):
         def synchronize():
@@ -790,12 +792,12 @@ class MainWindow(QMainWindow):
                     f'online verfügbaren Google-Kalendern abzugleichen ist folgender Fehler aufgetreten:\n'
                     f'{error_text}')
 
-        worker = WorkerGeneral(synchronize, True)
-        worker.signals.finished.connect(finished)
+        self.worker_general = WorkerGeneral(synchronize, True)
+        self.worker_general.signals.finished.connect(finished)
         progressbar = DlgProgressInfinite(self, 'Kalendersynchronisation',
                                           'Google-Kalender werden heruntergeladen...', 'Abbruch')
         progressbar.show()
-        self.thread_pool.start(worker)
+        self.thread_pool.start(self.worker_general)
 
     def import_google_api_credentials(self):
         """Dialog zum Importieren der Google API Credentials"""

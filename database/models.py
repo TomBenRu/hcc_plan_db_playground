@@ -642,7 +642,7 @@ class Skill(db.Entity):
     name = Required(str)
     level = Required(int, size=8, default=2, unsigned=True)
     # Beherrscht den Skill...
-    # o: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
+    # 0: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
     persons = Set(Person)
     avail_days = Set(AvailDay)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
@@ -658,7 +658,7 @@ class Skill(db.Entity):
 
 
 class SkillGroup(db.Entity):
-    """Legt fest, wieviele der eingesetzten Personen den Skill beherrschen müssen."""
+    """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
     id = PrimaryKey(UUID, auto=True)
     skill = Required(Skill)
     nr_actors = Optional(int, size=16)  # Anzahl der Personen die den Skill beherrschen müssen. None: alle

@@ -23,7 +23,8 @@ from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePl
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.frm_notes import DlgAppointmentNotes
 from gui.observer import signal_handling
-from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color
+from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
+    cell_backgrounds_statistics
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan
@@ -1172,12 +1173,7 @@ class TblPlanStatistics(QTableWidget):
     def _setup_data(self):
         self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
         self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.plan)
-        self.cell_backgrounds = {
-            'requested': [QColor(130, 130, 160, 255), QColor(130, 150, 180, 255)],
-            'able': [QColor(100, 130, 160, 255), QColor(100, 150, 180, 255)],
-            'fair': [QColor(70, 130, 160, 255), QColor(70, 150, 180, 255)],
-            'current': [QColor(40, 130, 160, 255), QColor(40, 150, 180, 255)]
-        }
+        self.cell_backgrounds = cell_backgrounds_statistics
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
         self.label_day_text_and_style_sheet = {lb.day: {'text': lb.text(), 'style_sheet': lb.styleSheet()}
                                                for lb in self.frm_plan.findChildren(LabelDayNr)}

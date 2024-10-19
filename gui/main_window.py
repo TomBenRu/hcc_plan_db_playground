@@ -1,5 +1,7 @@
 import functools
 import os.path
+import platform
+import subprocess
 import sys
 from uuid import UUID
 
@@ -482,7 +484,25 @@ class MainWindow(QMainWindow):
                 signal_handling.handler_excel_export.signal_finished.disconnect()
                 reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
                 if reply == QMessageBox.StandardButton.Yes:
-                    os.startfile(excel_output_path)
+                    if platform.system() == 'Windows':
+                        os.startfile(excel_output_path)
+                    elif platform.system() == 'Darwin':  # macOS
+                        subprocess.call(('open', excel_output_path))
+                    elif platform.system() == 'Linux':
+                        # Versuche zuerst xdg-open
+                        try:
+                            subprocess.call(('xdg-open', excel_output_path))
+                        except FileNotFoundError:
+                            try:
+                                # Fallback auf gio open, wenn xdg-open nicht verfügbar ist
+                                subprocess.call(('gio', 'open', excel_output_path))
+                            except FileNotFoundError:
+                                print("Kein geeignetes Tool zum Öffnen gefunden. Bitte installiere xdg-open oder gio.")
+                                # Letzter Fallback: gnome-open oder kde-open (für alte Umgebungen)
+                                if subprocess.call(('gnome-open', excel_output_path)) != 0:
+                                    subprocess.call(('kde-open', excel_output_path))
+                            except Exception as e:
+                                QMessageBox.critical(self, 'Plan Excel-Export', f'Fehler beim Öffnen der Datei: {e}')
             else:
                 QMessageBox.critical(self, 'Plan Excel-Export', 'Plan konnte nicht exportiert werden.')
 
@@ -512,7 +532,24 @@ class MainWindow(QMainWindow):
             return
         excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), '')
         try:
-            os.startfile(os.path.dirname(excel_output_path))
+            if platform.system() == 'Windows':
+                os.startfile(os.path.dirname(excel_output_path))
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.call(('open', os.path.dirname(excel_output_path)))
+            elif platform.system() == 'Linux':
+                # Versuche zuerst xdg-open
+                try:
+                    subprocess.call(('xdg-open', os.path.dirname(excel_output_path)))
+                except FileNotFoundError:
+                    try:
+                        # Fallback auf gio open, wenn xdg-open nicht verfügbar ist
+                        subprocess.call(('gio', 'open', os.path.dirname(excel_output_path)))
+                    except FileNotFoundError:
+                        print("Kein geeignetes Tool zum Öffnen gefunden. Bitte installiere xdg-open oder gio.")
+                        # Letzter Fallback: gnome-open oder kde-open (für alte Umgebungen)
+                        if subprocess.call(('gnome-open', os.path.dirname(excel_output_path))) != 0:
+                            subprocess.call(('kde-open', os.path.dirname(excel_output_path)))
+
         except FileNotFoundError:
             QMessageBox.critical(self, 'Excel-Ordner',
                                  f'Es wurde noch keine Excel-Datei für den Zeitraum '

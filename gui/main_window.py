@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
                               'Anzeigen der Pläne im Explorer...',
                               'Pläne der aktuellen Planung werden im Explorer angezeigt.',
-                              self.lookup_for_excel_plan),
+                              self.lookup_for_excel_plan_folder),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 'Programm beenden',
                               None, self.exit,
                               'Alt+F4'),
@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
             self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'],
             self.actions['plan_save'], None,
             self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
-            self.actions['lookup_for_excel_plan'], None, self.actions['exit']
+            self.actions['lookup_for_excel_plan_folder'], None, self.actions['exit']
         ]
         self.menu_actions = {
             '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
                            self.actions['determine_excel_output_folder'], None,
                            self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
-                           self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan'], None,
+                           self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan_folder'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
             '&Emails': [self.actions['send_email']],
@@ -511,7 +511,7 @@ class MainWindow(QMainWindow):
                                                        dlg.note_in_empty_fields, dlg.note_in_employee_fields)
             export_to_file.execute()
 
-    def lookup_for_excel_plan(self):
+    def lookup_for_excel_plan_folder(self):
         widget: FrmTabPlan = self.tabs_plans.currentWidget()
         if not widget:
             QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')

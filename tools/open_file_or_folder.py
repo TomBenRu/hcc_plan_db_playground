@@ -18,7 +18,9 @@ def open_file_or_folder(path):
         except FileNotFoundError:
             try:
                 # Fallback auf gio open, wenn xdg-open nicht verfügbar ist
-                subprocess.call(('gio', 'open', path))
+                res = subprocess.call(('gio', 'open', path))
+                if res != 0:
+                    raise FileNotFoundError(f'Failed to open {path} with gio')
             except FileNotFoundError:
                 # Letzter Fallback: gnome-open oder kde-open (für alte Umgebungen)
                 if subprocess.call(('gnome-open', path)) != 0:

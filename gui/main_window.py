@@ -516,15 +516,18 @@ class MainWindow(QMainWindow):
         if not widget:
             QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
             return
-        excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), '')
+        excel_output_path = self._get_excel_folder_output_path(widget)
         try:
             open_file_or_folder.open_file_or_folder(excel_output_path)
-        except FileNotFoundError:
-            QMessageBox.critical(self, 'Excel-Ordner',
-                                 f'Es wurde noch keine Excel-Datei für den Zeitraum '
-                                 f'{widget.plan.plan_period.start:%d.%m.%y}-{widget.plan.plan_period.end:%d.%m.%y} '
-                                 f'des Teams {widget.plan.plan_period.team.name} erstellt.')
-            return
+        except Exception as e:
+            if isinstance(e, FileNotFoundError):
+                QMessageBox.critical(self, 'Excel-Ordner',
+                                     f'Es wurde noch keine Excel-Datei für den Zeitraum '
+                                     f'{widget.plan.plan_period.start:%d.%m.%y}-{widget.plan.plan_period.end:%d.%m.%y} '
+                                     f'des Teams {widget.plan.plan_period.team.name} erstellt.')
+            else:
+                QMessageBox.critical(self, 'Fehler beim Öffnen',
+                                     f'Beim Öffnen der Excel-Datei ist ein Fehler aufgetreten:\n{e}')
 
     def _get_excel_folder_output_path(self, plan_tab: FrmTabPlan) -> str:
         path_handler = project_paths.curr_user_path_handler

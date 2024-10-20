@@ -7,6 +7,8 @@ import toml
 from pydantic import BaseModel
 from toml import TomlDecodeError
 
+from configuration.project_paths import curr_user_path_handler
+
 
 class MinimizationWeights(BaseModel):
     unassigned_shifts: float = 100_000
@@ -35,57 +37,65 @@ class SolverConfig(BaseModel):
 
 
 class ConfigHandlerJson:
-    _config_file_path = os.path.join(os.path.dirname(__file__), 'solver_config.json')
-    _solver_config: SolverConfig | None = None
+    def __init__(self):
+        self._json_dir = os.path.join(curr_user_path_handler.get_config().config_file_path, 'solver')
+        self._config_file_path = os.path.join(self._json_dir, 'solver_config.json')
+        self._solver_config: SolverConfig | None = None
+        self._check_json_dir()
 
-    @staticmethod
-    def load_config_from_file() -> SolverConfig:
+    def _check_json_dir(self):
+        if not os.path.exists(self._json_dir):
+            os.makedirs(self._json_dir)
+
+    def load_config_from_file(self) -> SolverConfig:
         try:
-            with open(ConfigHandlerJson._config_file_path, 'r') as f:
+            with open(self._config_file_path, 'r') as f:
                 return SolverConfig.model_validate(json.load(f))
         except FileNotFoundError:
             return SolverConfig()
         except json.JSONDecodeError:
             return SolverConfig()
 
-    @staticmethod
-    def save_config_to_file(config: SolverConfig):
-        ConfigHandlerJson._solver_config = config
-        with open(ConfigHandlerJson._config_file_path, 'w') as f:
+    def save_config_to_file(self, config: SolverConfig):
+        self._solver_config = config
+        with open(self._config_file_path, 'w') as f:
             json.dump(config.model_dump(), f)
 
-    @staticmethod
-    def get_solver_config() -> SolverConfig:
-        if ConfigHandlerJson._solver_config is None:
-            ConfigHandlerJson._solver_config = ConfigHandlerJson.load_config_from_file()
-        return ConfigHandlerJson._solver_config
+    def get_solver_config(self) -> SolverConfig:
+        if self._solver_config is None:
+            self._solver_config = self.load_config_from_file()
+        return self._solver_config
 
 
 class ConfigHandlerToml:
-    _config_file_path = os.path.join(os.path.dirname(__file__), 'solver_config.toml')
-    _solver_config: SolverConfig | None = None
+    def __init__(self):
+        self._toml_dir = os.path.join(curr_user_path_handler.get_config().config_file_path, 'solver')
+        self._config_file_path = os.path.join(self._toml_dir, 'solver_config.toml')
+        self._solver_config: SolverConfig | None = None
+        self._check_toml_dir()
 
-    @staticmethod
-    def load_config_from_file() -> SolverConfig:
+    def _check_toml_dir(self):
+        if not os.path.exists(self._toml_dir):
+            os.makedirs(self._toml_dir)
+
+    def load_config_from_file(self) -> SolverConfig:
         try:
-            with open(ConfigHandlerToml._config_file_path, 'r') as f:
+            with open(self._config_file_path, 'r') as f:
                 return SolverConfig.model_validate(toml.load(f))
         except FileNotFoundError:
             return SolverConfig()
         except TomlDecodeError:
             return SolverConfig()
 
-    @staticmethod
-    def save_config_to_file(config: SolverConfig):
-        ConfigHandlerToml._solver_config = config
-        with open(ConfigHandlerToml._config_file_path, 'w') as f:
+    def save_config_to_file(self, config: SolverConfig):
+        self._solver_config = config
+        with open(self._config_file_path, 'w') as f:
             toml.dump(config.model_dump(mode='json'), f)
 
-    @staticmethod
-    def get_solver_config() -> SolverConfig:
-        if ConfigHandlerToml._solver_config is None:
-            ConfigHandlerToml._solver_config = ConfigHandlerToml.load_config_from_file()
-        return ConfigHandlerToml._solver_config
+    def get_solver_config(self) -> SolverConfig:
+        if self._solver_config is None:
+            self._solver_config = self.load_config_from_file()
+        return self._solver_config
 
 
-curr_config_handler = ConfigHandlerToml
+curr_config_handler = ConfigHandlerToml()

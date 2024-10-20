@@ -5,6 +5,8 @@ import toml
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from toml.decoder import TomlDecodeError
 
+from configuration.project_paths import curr_user_path_handler
+
 
 class GoogleCalendar(BaseModel):
     summary: str | None
@@ -19,16 +21,14 @@ class GoogleCalendar(BaseModel):
 
 class CalendarsHandlerToml:
     def __init__(self):
-        self.toml_dir = 'google_calendars'
-        self._calender_file_path = os.path.join(os.path.dirname(__file__), self.toml_dir, 'google_calendars.toml')
+        self.toml_dir = os.path.join(curr_user_path_handler.get_config().config_file_path, 'google_calendars')
+        self._calender_file_path = os.path.join(self.toml_dir, 'google_calendars.toml')
         self._calenders: list[GoogleCalendar] | None = None
         self._check_toml_dir()
 
     def _check_toml_dir(self):
-        if not os.path.exists(os.path.dirname(__file__)):
-            os.mkdir(os.path.dirname(__file__))
-        if not os.path.exists(os.path.join(os.path.dirname(__file__), self.toml_dir)):
-            os.mkdir(os.path.join(os.path.dirname(__file__), self.toml_dir))
+        if not os.path.exists(self.toml_dir):
+            os.makedirs(self.toml_dir)
 
     def _load_calenders_from_file(self) -> dict[str, GoogleCalendar]:
         try:

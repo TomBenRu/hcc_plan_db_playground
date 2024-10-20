@@ -75,27 +75,11 @@
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/database/database.sqlite;database"
-  },
-  {
-   "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/resources;gui/resources/"
   },
   {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/favicon.ico;."
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/configuration/solver_config.toml;configuration"
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/configuration/api_remote_config.toml;configuration"
-  },
-  {
-   "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/google_calendar_api/credentials;google_calendar_api/credentials"
   }
  ],
  "nonPyinstallerOptions": {

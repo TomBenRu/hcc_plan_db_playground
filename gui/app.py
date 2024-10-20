@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from configuration.project_paths import curr_user_path_handler
 from gui.custom_widgets.splash_screen import SplashScreen
 from tools import proof_only_one_instance
 from tools.screen import Screen
@@ -80,8 +81,11 @@ splash.simulate_loading()
 
 
 from gui.main_window import MainWindow
+if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
+    os.makedirs(log_path)
+log_file_path = os.path.join(log_path, 'hcc-dispo.log')
 
-logging.basicConfig(filename='pony.log', level=logging.INFO,
+logging.basicConfig(filename=log_file_path, level=logging.INFO,
                     format='%(created)f-%(asctime)s\n%(message)s\n')
 logging.Formatter.converter = time.gmtime
 

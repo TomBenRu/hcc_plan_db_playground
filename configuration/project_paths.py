@@ -12,7 +12,10 @@ class Paths:
 
 
 class UserPaths(BaseModel):
-    excel_output_path: str = ''
+    excel_output_path: str = os.path.join(os.path.expanduser('~'), 'Documents', 'happy_code_company', 'hcc_plan', 'excel_output')  # User's documents folder
+    config_file_path: str = os.path.join(os.getenv('APPDATA'), 'happy_code_company', 'hcc_plan', 'config')  # User's config folder
+    db_file_path: str = os.path.join(os.getenv('LOCALAPPDATA'), 'happy_code_company', 'hcc_plan', 'database')  # User's database folder
+    log_file_path: str = os.path.join(os.getenv('LOCALAPPDATA'), 'happy_code_company', 'hcc_plan', 'logs')  # User's logs folder
 
 
 class UserPathHandlerToml:

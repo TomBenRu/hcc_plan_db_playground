@@ -5,6 +5,8 @@ import toml
 from pydantic import BaseModel
 from toml.decoder import TomlDecodeError
 
+from configuration.project_paths import curr_user_path_handler
+
 
 class StartConfigTeam(BaseModel):
     team_id: UUID | None = None
@@ -23,8 +25,14 @@ class StartConfig(BaseModel):
 
 class ConfigHandlerToml:
     def __init__(self):
-        self._config_file_path = os.path.join(os.path.dirname(__file__), 'team_start_config.toml')
+        self._toml_dir = os.path.join(curr_user_path_handler.get_config().config_file_path, 'team_start')
+        self._config_file_path = os.path.join(self._toml_dir, 'team_start_config.toml')
         self._start_config: StartConfig | None = None
+        self._check_config_dir()
+
+    def _check_config_dir(self):
+        if not os.path.exists(self._toml_dir):
+            os.makedirs(self._toml_dir)
 
     def load_config_from_file(self) -> StartConfig:
         try:

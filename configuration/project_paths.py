@@ -1,5 +1,6 @@
 import dataclasses
 import os
+import platform
 
 import toml
 from pydantic import BaseModel
@@ -10,12 +11,30 @@ from toml.decoder import TomlDecodeError
 class Paths:
     root_path: str = ''
 
+if platform.system() == 'Windows':
+    app_is_installed = os.path.dirname(__file__).split(os.sep)[1].startswith('Program Files')
+    prog_name = 'hcc_plan' if app_is_installed else 'hcc_plan_dev'
+    excel_output_root = os.path.join(os.path.expanduser('~'), 'Documents')
+    config_file_root = os.getenv('APPDATA')
+    db_file_root = os.getenv('LOCALAPPDATA')
+    log_file_root = os.getenv('LOCALAPPDATA')
+elif platform.system() == 'Linux':
+    prog_name = 'hcc_plan'
+    excel_output_root = os.path.join(os.path.expanduser('~'), 'Documents')
+    config_file_root = os.path.join(os.path.expanduser('~'), '.config')
+    db_file_root = os.path.join(os.path.expanduser('~'), '.local', 'share')
+    log_file_root = os.path.join(os.path.expanduser('~'), '.local', 'state')
+
 
 class UserPaths(BaseModel):
-    excel_output_path: str = os.path.join(os.path.expanduser('~'), 'Documents', 'happy_code_company', 'hcc_plan', 'excel_output')  # User's documents folder
-    config_file_path: str = os.path.join(os.getenv('APPDATA'), 'happy_code_company', 'hcc_plan', 'config')  # User's config folder
-    db_file_path: str = os.path.join(os.getenv('LOCALAPPDATA'), 'happy_code_company', 'hcc_plan', 'database')  # User's database folder
-    log_file_path: str = os.path.join(os.getenv('LOCALAPPDATA'), 'happy_code_company', 'hcc_plan', 'logs')  # User's logs folder
+    excel_output_path: str = os.path.join(
+        excel_output_root, 'happy_code_company', prog_name, 'excel_output')  # User's documents folder
+    config_file_path: str = os.path.join(
+        config_file_root, 'happy_code_company', prog_name, 'config')  # User's config folder
+    db_file_path: str = os.path.join(
+        db_file_root, 'happy_code_company', prog_name, 'database')  # User's database folder
+    log_file_path: str = os.path.join(
+        log_file_root, 'happy_code_company', prog_name, 'logs')  # User's logs folder
 
 
 class UserPathHandlerToml:

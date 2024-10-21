@@ -452,9 +452,10 @@ class AppointmentField(QWidget):
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.setToolTip(f'◦ Klick: Besetzungsänderungen.\n'
-                        f'◦ Rechtsklick: weitere Aktionen.\n'
-                        f'Anmerkungen:\n{self.appointment.notes or ""}')
+        self.setToolTip(f'<b>{self.appointment.event.location_plan_period.location_of_work.name_an_city}:</b><br>'
+                        f'◦ Klick: Besetzungsänderungen.<br>'
+                        f'◦ Rechtsklick: weitere Aktionen.<br>'
+                        f'<i><b>Anmerkungen:</b><br>{self.appointment.notes or "keine"}</i>')
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:

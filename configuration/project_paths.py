@@ -24,6 +24,14 @@ elif platform.system() == 'Linux':
     config_file_root = os.path.join(os.path.expanduser('~'), '.config')
     db_file_root = os.path.join(os.path.expanduser('~'), '.local', 'share')
     log_file_root = os.path.join(os.path.expanduser('~'), '.local', 'state')
+elif platform.system() == 'Darwin':
+    prog_name = 'hcc_plan'
+    excel_output_root = os.path.join(os.path.expanduser('~'), 'Documents')
+    config_file_root = os.path.join(os.path.expanduser('~'), 'Library', 'Preferences')
+    db_file_root = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support')
+    log_file_root = os.path.join(os.path.expanduser('~'), 'Library', 'Logs')
+else:
+    raise NotImplementedError(f'Unsupported platform: {platform.system()}')
 
 
 class UserPaths(BaseModel):

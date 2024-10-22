@@ -46,31 +46,35 @@ class UserPaths(BaseModel):
 
 
 class UserPathHandlerToml:
-    _config_file_path = os.path.join(os.path.dirname(__file__), 'user_paths.toml')
-    _config: UserPaths | None = None
+    def __init__(self):
+        self._toml_dir = os.path.join(UserPaths().config_file_path, 'paths')
+        self._config_file_path = os.path.join(self._toml_dir, 'user_paths.toml')
+        self._user_paths: UserPaths | None = None
+        self._check_toml_dir()
 
-    @staticmethod
-    def load_config_from_file() -> UserPaths:
+    def _check_toml_dir(self):
+        if not os.path.exists(self._toml_dir):
+            os.makedirs(self._toml_dir)
+
+    def load_config_from_file(self) -> UserPaths:
         try:
-            with open(UserPathHandlerToml._config_file_path, 'r') as f:
+            with open(self._config_file_path, 'r') as f:
                 return UserPaths.model_validate(toml.load(f))
         except FileNotFoundError:
             return UserPaths()
         except TomlDecodeError:
             return UserPaths()
 
-    @staticmethod
-    def save_config_to_file(config: UserPaths):
-        UserPathHandlerToml._start_config = config
-        with open(UserPathHandlerToml._config_file_path, 'w') as f:
-            toml.dump(config.model_dump(mode='json'), f)
+    def save_config_to_file(self, user_paths: UserPaths):
+        self._user_paths = user_paths
+        with open(self._config_file_path, 'w') as f:
+            toml.dump(user_paths.model_dump(mode='json'), f)
 
-    @staticmethod
-    def get_config() -> UserPaths:
-        if UserPathHandlerToml._config is None:
-            UserPathHandlerToml._config = UserPathHandlerToml.load_config_from_file()
-        return UserPathHandlerToml._config
+    def get_config(self) -> UserPaths:
+        if self._user_paths is None:
+            self._user_paths = self.load_config_from_file()
+        return self._user_paths
 
 
-curr_user_path_handler = UserPathHandlerToml
+curr_user_path_handler = UserPathHandlerToml()
 paths = Paths()

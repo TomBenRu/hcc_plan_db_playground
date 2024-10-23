@@ -625,8 +625,6 @@ class FrmTabPlan(QWidget):
 
         self.general_settings = general_settings_handler.get_general_settings()
 
-        self.appointment_widget_width = self.general_settings.plan_settings.column_width
-
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.permanent_plan_check = True
 
@@ -682,6 +680,7 @@ class FrmTabPlan(QWidget):
         self.bottom_menu.add_widget(self.plan_statistics)
 
     def _generate_plan_data(self):
+        self.appointment_widget_width = self.general_settings.plan_settings.column_width
         self.all_days_of_month = self.generate_all_days()
         self.all_week_nums_of_month = self.generate_all_week_nums_of_month()
         self.week_num_rows = self.generate_week_num_row()
@@ -831,7 +830,7 @@ class FrmTabPlan(QWidget):
         self.bottom_menu.raise_()
 
     def reload_and_refresh_plan(self):
-        self._reload_from_db_and_generate_plan_data()
+        self.reload_plan()
         self.refresh_plan()
 
     @Slot(UUID)

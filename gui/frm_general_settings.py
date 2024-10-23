@@ -20,7 +20,9 @@ class DlgGeneralSettings(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel('Systemweite Einstellungen')
+        self.lb_description = QLabel('<h4>Systemweite Einstellungen</h4>'
+                                     '<p>Änderungen werden erst nach einem Neustart wirksam.</p>')
+        self.layout_head.addWidget(self.lb_description)
         self.group_plan = QGroupBox('Plan')
         self.layout_body.addWidget(self.group_plan)
         self.layout_group_plan = QFormLayout(self.group_plan)

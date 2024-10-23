@@ -29,6 +29,7 @@ from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_create_google_calendar import CreateGoogleCalendar
 from .frm_create_project import DlgCreateProject
 from .frm_excel_export import DlgPlanToXLSX
+from .frm_general_settings import DlgGeneralSettings
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_actor_plan_period import FrmTabActorPlanPeriods
@@ -828,7 +829,9 @@ class MainWindow(QMainWindow):
         ...
 
     def general_setting(self):
-        ...
+        dlg = DlgGeneralSettings(self)
+        if dlg.exec():
+            ...
 
     def open_help(self):
         print('Hilfe...')

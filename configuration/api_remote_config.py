@@ -42,14 +42,13 @@ class ConfigHandlerToml:
     def load_config_from_file(self) -> ApiRemote:
         if not os.path.exists(self._config_file_path):
             return ApiRemote()
-        else:
-            try:
-                with open(self._config_file_path, 'r') as f:
-                    return ApiRemote.model_validate(toml.load(f))
-            except FileNotFoundError:
-                raise FileNotFoundError('api_remote.toml not found')
-            except TomlDecodeError as e:
-                raise Exception(f'Fehler beim laden der "api_remote_config.toml": {e}')
+        try:
+            with open(self._config_file_path, 'r') as f:
+                return ApiRemote.model_validate(toml.load(f))
+        except FileNotFoundError as e:
+            raise FileNotFoundError('api_remote.toml not found') from e
+        except TomlDecodeError as e:
+            raise Exception(f'Fehler beim laden der "api_remote_config.toml": {e}') from e
 
     def save_config_to_file(self, config: ApiRemote):
         self._api_remote = config

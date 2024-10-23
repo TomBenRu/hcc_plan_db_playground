@@ -14,6 +14,7 @@ from line_profiler_pycharm import profile
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
+from configuration.general_settings import general_settings_handler
 from database import schemas, db_services
 from gui import widget_styles
 from gui.concurrency import general_worker
@@ -622,7 +623,9 @@ class FrmTabPlan(QWidget):
         self.plan = plan
         self.thread_pool = QThreadPool()
 
-        self.appointment_widget_width = 120
+        self.general_settings = general_settings_handler.get_general_settings()
+
+        self.appointment_widget_width = self.general_settings.plan_settings.column_width
 
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.permanent_plan_check = True

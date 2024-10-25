@@ -1057,6 +1057,15 @@ class MaxFairShiftsOfApp:
         max_fair_shifts = (models.MaxFairShiftsOfApp.select()
                            .filter(lambda mfs: mfs.actor_plan_period.plan_period.id == plan_period_id))
         return [schemas.MaxFairShiftsOfAppShow.model_validate(mfs) for mfs in max_fair_shifts]
+    @classmethod
+    @db_session
+    def get_all_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict[UUID, tuple[int, int]]:
+        """
+        Returns a dictionary with actor_plan_period_id as key and a tuple of max_shifts and fair_shifts as value.
+        """
+        max_fair_shifts = (models.MaxFairShiftsOfApp.select()
+                           .filter(lambda mfs: mfs.actor_plan_period.plan_period.id == plan_period_id))
+        return {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts) for mfs in max_fair_shifts}
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)

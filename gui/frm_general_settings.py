@@ -15,6 +15,7 @@ class DlgGeneralSettings(QDialog):
         self.layout = QVBoxLayout(self)
         self.layout_head = QVBoxLayout()
         self.layout_body = QVBoxLayout()
+        self.layout_body.setContentsMargins(0, 10, 0, 0)
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)

@@ -4,7 +4,7 @@ from functools import partial
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate
+from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication
 from PySide6.QtGui import QContextMenuEvent, QColor
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
@@ -489,8 +489,7 @@ class AppointmentField(QWidget):
                 self.execution_timer_post_cast_change.start_timer()
 
     def _handle_post_cast_change_actions(self):
-        signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.plan_widget.plan.id)
-        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.plan_widget.plan.plan_period.id)
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
@@ -787,7 +786,6 @@ class FrmTabPlan(QWidget):
     def _post_undo_redo_actions(self):
         self.reload_plan()
         self.refresh_plan()
-        signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan.id)
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
@@ -846,8 +844,6 @@ class FrmTabPlan(QWidget):
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
             self.reload_and_refresh_plan()
-        else:
-            self.reload_plan()
 
     @Slot(UUID)
     def refresh_plan_period_plan(self, plan_period_id: UUID):
@@ -1024,7 +1020,6 @@ class TblPlanStatistics(QTableWidget):
         super().__init__(parent)
 
         signal_handling.handler_plan_tabs.signal_refresh_plan_statistics.connect(self.refresh_statistics)
-        signal_handling.handler_plan_tabs.signal_reload_specific_plan_statistics_plan.connect(self._reload_plan)
         signal_handling.handler_plan_tabs.signal_refresh_specific_plan_statistics_plan.connect(self._refresh_statistics)
 
         self.frm_plan = frm_plan
@@ -1124,10 +1119,10 @@ class TblPlanStatistics(QTableWidget):
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
+    @profile
     def _fill_in_table_cells(self):
-        max_fair_shifts = db_services.MaxFairShiftsOfApp.get_all_from__plan_period(self.plan.plan_period.id)
-        max_fair_shifts_of_app_ids = {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts)
-                                      for mfs in max_fair_shifts}
+        max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_all_from__plan_period_minimal(
+            self.frm_plan.plan.plan_period.id)
         for c, (name, (actor_plan_period, appointments)) in enumerate(self.appointments_of_employees.items()):
             requested = actor_plan_period.requested_assignments if actor_plan_period else 0
             if actor_plan_period and (max_fair_shifts := max_fair_shifts_of_app_ids.get(actor_plan_period.id)):
@@ -1167,8 +1162,7 @@ class TblPlanStatistics(QTableWidget):
 
     @profile
     def _setup_data(self):
-        self.plan: schemas.PlanShow = db_services.Plan.get(self.plan_id)
-        self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.plan)
+        self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.frm_plan.plan)
         self.cell_backgrounds = cell_backgrounds_statistics
         self.row_kind_of_dates = {'requested': 0, 'able': 1, 'fair': 2, 'current': 3}
         self.label_day_text_and_style_sheet = {lb.day: {'text': lb.text(), 'style_sheet': lb.styleSheet()}
@@ -1180,17 +1174,11 @@ class TblPlanStatistics(QTableWidget):
     @profile
     @Slot(UUID)
     def refresh_statistics(self, plan_period_id: UUID | None):
-        if self.plan.plan_period.id == plan_period_id or plan_period_id is None:
+        if self.frm_plan.plan.plan_period.id == plan_period_id or plan_period_id is None:
             self.clear()
             self._setup_data()
             self._setup_table()
             self._fill_in_table_cells()
-
-    @profile
-    @Slot(UUID)
-    def _reload_plan(self, plan_id: UUID):
-        if plan_id == self.plan_id:
-            self.plan = db_services.Plan.get(self.plan_id)
 
     @Slot(UUID)
     def _refresh_statistics(self, plan_id: UUID):

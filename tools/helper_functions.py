@@ -1,6 +1,8 @@
 from collections import defaultdict
 from uuid import UUID
 
+from line_profiler_pycharm import profile
+
 from database import db_services, schemas
 
 
@@ -66,6 +68,7 @@ def get_appointments_of_actors_from_plan(plan: schemas.PlanShow) -> dict[str, li
     return {name: name_appointments[name] for name in sorted(name_appointments.keys())}
 
 
+@profile
 def get_appointments_of_all_actors_from_plan(
         plan: schemas.PlanShow) -> dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]]:
     plan_period = db_services.PlanPeriod.get(plan.plan_period.id)

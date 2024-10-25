@@ -489,8 +489,7 @@ class AppointmentField(QWidget):
                 self.execution_timer_post_cast_change.start_timer()
 
     def _handle_post_cast_change_actions(self):
-        signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan_widget.plan.id)
-        signal_handling.handler_plan_tabs.refresh_plan(self.plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.reload_specific_plan_statistics_plan(self.plan_widget.plan.id)
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
@@ -833,26 +832,20 @@ class FrmTabPlan(QWidget):
         self.reload_plan()
         self.refresh_plan()
 
+    @Slot(object)
+    def reload_specific_plan(self, plan_id: UUID | None):
+        if plan_id and self.plan.id == plan_id:
+            self.reload_plan()
+
     @Slot(UUID)
     def refresh_specific_plan(self, plan_id: UUID):
         if plan_id == self.plan.id:
             self.refresh_plan()
 
-    def _reload_from_db_and_generate_plan_data(self):
-        self.reload_plan()
-        self._generate_plan_data()
-
     @Slot(UUID)
     def reload_and_refresh_specific_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
-            self._reload_from_db_and_generate_plan_data()
-            self.refresh_plan()
-
-    @Slot(object)
-    def reload_specific_plan(self, plan_id: UUID | None):
-        if plan_id:
-            if self.plan.id == plan_id:
-                self.reload_plan()
+            self.reload_and_refresh_plan()
         else:
             self.reload_plan()
 

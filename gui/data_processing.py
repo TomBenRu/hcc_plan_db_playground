@@ -21,6 +21,7 @@ class LocationPlanPeriodData:
         self.location_plan_period = location_plan_period
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.thread_pool = QThreadPool()
+        self.worker_save_event = None
         self.progress_bar_save_event = DlgProgressInfinite(
             parent, 'Terminänderung',
             'Die Terminänderung wird in den vorhandenen Plänen gespeichert.',
@@ -121,18 +122,18 @@ class LocationPlanPeriodData:
                                     'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
                                     'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
 
-        worker = general_worker.WorkerGeneral(
+        self.worker_save_event = general_worker.WorkerGeneral(
             self._save_new_empty_appointment_in_plan_and_reset_columns,
             False, event, existing_plans, mode
         )
-        worker.signals.finished.connect(
+        self.worker_save_event.signals.finished.connect(
             lambda: signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(
                 self.location_plan_period.plan_period.id
             )
         )
-        worker.signals.finished.connect(self.progress_bar_save_event.close)
+        self.worker_save_event.signals.finished.connect(self.progress_bar_save_event.close)
         self.progress_bar_save_event.show()
-        self.thread_pool.start(worker)
+        self.thread_pool.start(self.worker_save_event)
 
     def _save_new_empty_appointment_in_plan_and_reset_columns(self, event: schemas.EventShow,
                                                               plans: dict[str, UUID],

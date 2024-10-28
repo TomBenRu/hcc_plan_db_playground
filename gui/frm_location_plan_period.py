@@ -22,6 +22,7 @@ from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
+from try_outs.stop_solver_thread import Controller
 
 
 # Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
@@ -190,6 +191,9 @@ class ButtonEvent(QPushButton):
             self.controller.execute(command)
             QMessageBox.information(self, 'Event-Notes', 'Die neuen Anmerkungen wurden übernommen.')
             signal_handling.handler_plan_tabs.event_changed(event.id)
+            signal_handling.handler_location_plan_period.reset_styling_notes_configs(
+                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
+            )
 
 
     def set_tooltip(self):
@@ -335,14 +339,89 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
 
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow):
+                 location_plan_period: schemas.LocationPlanPeriodShow,
+                 controller: command_base_classes.ContrExecUndoRedo):
         super().__init__(parent=parent)
+
+        signal_handling.handler_location_plan_period.signal_reset_styling_notes_configs.connect(
+            self.reset_stylesheet_and_tooltip)
 
         self.setObjectName(f'notes: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
+
+        self.clicked.connect(self.edit_notes_of_day)
+
+        self.date = date
+        self.location_plan_period = location_plan_period
+        self.controller = controller
+        self.set_stylesheet_and_tooltip()
+
+    def set_stylesheet_and_tooltip(self):
+        self._set_events_at_day()
+        self._set_stylesheet()
+        self._set_tooltip()
+
+    @Slot(object)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
+        if data.plan_period_id == self.location_plan_period.plan_period.id and data.date == self.date:
+            self.set_stylesheet_and_tooltip()
+
+    def _set_events_at_day(self):
+        self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
+
+    def _check_notes_all_equal(self):
+        if not self.events_at_day:
+            return
+        return len({e.notes for e in self.events_at_day}) == 1
+
+    def _set_stylesheet(self):
+        if (all_equal := self._check_notes_all_equal()) is None:
+            self.setStyleSheet(
+                f"ButtonNotes {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonNotes::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
+        elif all_equal:
+            self.setStyleSheet(
+                f"ButtonNotes {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonNotes::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
+        else:
+            self.setStyleSheet(
+                f"ButtonNotes {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonNotes::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
+
+    def _set_tooltip(self):
+        if not self.events_at_day:
+            additional_txt = ''
+        elif self._check_notes_all_equal():
+            additional_txt = (f'\nAnmerkungen der Events an diesem Tag:\n'
+                              f'{self.events_at_day[0].notes if self.events_at_day[0] else "keine"}.')
+        else:
+            additional_txt = '\nAnmerkungen der Events an diesem Tag:\nUnterschiedliche Anmerkungen.'
+        self.setToolTip(f'Hier können die Anmerkungen der Events am Tag {self.date:%d.%m.} bearbeitet werden.'
+                        f'{additional_txt}')
+
+    def edit_notes_of_day(self):
+        if not self.events_at_day:
+            QMessageBox.information(self, 'Event-Notes', f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            return
+        dlg = DlgEventNotes(self, self.events_at_day[0], True)
+        if dlg.exec():
+            for event in self.events_at_day:
+                command = event_commands.UpdateNotes(event, dlg.notes)
+                self.controller.execute(command)
+                signal_handling.handler_plan_tabs.event_changed(event.id)
+            self.set_stylesheet_and_tooltip()
+            QMessageBox.information(self, 'Event-Notes',
+                                    f'Anmerkungen der Events am Tag {self.date:%d.%m.} wurden geändert.')
+
 
 
 class ButtonFlags(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
@@ -674,7 +753,7 @@ class FrmLocationPlanPeriod(QWidget):
             bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period, cast_groups_of_pp)
             bt_fixed_cast.setDisabled(disable_buttons)
             self.layout.addWidget(bt_fixed_cast, row + 2, col)
-            bt_notes = ButtonNotes(self, d, 24, self.location_plan_period)
+            bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller)
             bt_notes.setDisabled(disable_buttons)
             self.layout.addWidget(bt_notes, row + 3, col)
             bt_flags = ButtonFlags(self, d, 24, self.location_plan_period)

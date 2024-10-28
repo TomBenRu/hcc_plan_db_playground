@@ -1551,6 +1551,14 @@ class Event:
         return schemas.Event.model_validate(event_db) if event_db else None
 
     @classmethod
+    @db_session
+    def get_from__location_pp_date(cls, location_plan_period_id: UUID, date: datetime.date) -> list[schemas.EventShow]:
+        events_db = (models.Event.select()
+                     .filter(lambda e: e.location_plan_period.id == location_plan_period_id)
+                     .filter(lambda e: e.date == date))
+        return [schemas.EventShow.model_validate(e) for e in events_db]
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, event: schemas.EventCreate) -> schemas.EventShow:
         log_function_info(cls)

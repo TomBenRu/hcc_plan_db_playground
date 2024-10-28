@@ -86,10 +86,11 @@ class DlgTeamNotes(QDialog):
 
 
 class DlgEventNotes(QDialog):
-    def __init__(self, parent: QWidget, event: schemas.EventShow):
+    def __init__(self, parent: QWidget, event: schemas.EventShow, multiple_events: bool = False):
         super().__init__(parent=parent)
-        self.setWindowTitle('Team-Infos')
+        self.setWindowTitle('Event-Notes')
         self.event = event
+        self.multiple_events = multiple_events
 
         self._setup_ui()
 
@@ -103,9 +104,11 @@ class DlgEventNotes(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         self.lb_explanation = QLabel(
-            f'Geben Sie hier die Informationen ein, die für den Termin relevant sind.\n'
+            f'Geben Sie hier die Informationen ein, die für {"die Termine" if self.multiple_events else "den Termin"} '
+            f'relevant sind.\n'
             f'Diese werden in die damit verknüpften erstellten Termine der Pläne übernommen.\n'
-            f'Termin: {self.event.date:%d.%m.%y} ({self.event.time_of_day.name}) - '
+            f'{"Termine" if self.multiple_events else "Termin"}: {self.event.date:%d.%m.%y} '
+            f'({"alle Tageszeiten" if self.multiple_events else self.event.time_of_day.name}) - '
             f'{self.event.location_plan_period.location_of_work.name_an_city}')
         self.layout_head.addWidget(self.lb_explanation)
         self.text_info = QTextEdit()

@@ -312,11 +312,11 @@ class ButtonFixedCast(QPushButton):
                                     f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
             return
 
-        dlg = DlgFixedCastBuilderCastGroup(self.parent, self.cast_groups_at_day[0], self.location_plan_period).build()
+        cast_group = next((cg for cg in self.cast_groups_at_day if cg.fixed_cast), self.cast_groups_at_day[0])
+        dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
-            if len(self.cast_groups_at_day) > 1:
-                for cg in self.cast_groups_at_day[1:]:
-                    cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified).execute()
+            for cg in self.cast_groups_at_day:
+                cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified).execute()
             self.set_stylesheet_and_tooltip()
 
     @Slot(signal_handling.DataLocationPPWithDate)
@@ -398,7 +398,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             additional_txt = ''
         elif self._check_notes_all_equal():
             additional_txt = (f'\nAnmerkungen der Events an diesem Tag:\n'
-                              f'{self.events_at_day[0].notes if self.events_at_day[0] else "keine"}.')
+                              f'{self.events_at_day[0].notes if self.events_at_day[0].notes else "keine"}.')
         else:
             additional_txt = '\nAnmerkungen der Events an diesem Tag:\nUnterschiedliche Anmerkungen.'
         self.setToolTip(f'Hier können die Anmerkungen der Events am Tag {self.date:%d.%m.} bearbeitet werden.'
@@ -408,7 +408,8 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
         if not self.events_at_day:
             QMessageBox.information(self, 'Event-Notes', f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
             return
-        dlg = DlgEventNotes(self, self.events_at_day[0], True)
+        event = next((e for e in self.events_at_day if e.notes), self.events_at_day[0])
+        dlg = DlgEventNotes(self, event, True)
         if dlg.exec():
             for event in self.events_at_day:
                 command = event_commands.UpdateNotes(event, dlg.notes)

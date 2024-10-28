@@ -46,6 +46,7 @@ from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.toolbars import MainToolBar
+from line_profiler_pycharm import profile
 
 
 class MainWindow(QMainWindow):

@@ -114,7 +114,8 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, 'Masken anzeigen', None, self.show_masks),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'),
                               'Übersicht Verfügbarkeiten',
-                              'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.', self.show_availables),
+                              'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.',
+                              self.overview_avail_days),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'chart.png'),
                               'Übersicht Einsätze der Mitarbeiter',
                               'Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.', self.statistics),
@@ -172,10 +173,10 @@ class MainWindow(QMainWindow):
                        self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
                        self.actions['import_from_plan_api'], None, self.actions['exit'],
                        self.actions['settings_project']],
-            '&Klienten': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
+            '&Teams': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
                           None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
-                         self.actions['show_availables'], self.actions['statistics']],
+                         self.actions['overview_avail_days'], self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
                            self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'],
                            self.actions['determine_excel_output_folder'], None,
@@ -622,7 +623,7 @@ class MainWindow(QMainWindow):
             if self.tabs_left.widget(i).objectName() == 'masks':
                 self.tabs_left.setCurrentIndex(i)
 
-    def show_availables(self):
+    def overview_avail_days(self):
         ...
 
     def statistics(self):

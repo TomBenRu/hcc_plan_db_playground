@@ -22,7 +22,7 @@ from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
-from try_outs.stop_solver_thread import Controller
+from line_profiler_pycharm import profile
 
 
 # Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
@@ -217,7 +217,7 @@ class ButtonEvent(QPushButton):
         )
 
 
-class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Besetzung der Events am Tag
+class ButtonFixedCast(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow, cast_groups_of_pp: list[schemas.CastGroupShow]):
         super().__init__(parent=parent)
@@ -255,12 +255,8 @@ class ButtonFixedCast(QPushButton):  # todo: Fertigstellen... + Tooltip Feste Be
                 return
             if data.date is not None and data.date != self.date:
                 return
-        self.cast_groups_at_day = [
-            cast_group for cast_group in
-            db_services.CastGroup.get_all_from__plan_period(self.location_plan_period.plan_period.id)
-            if cast_group.event and cast_group.event.date == self.date
-               and cast_group.event.location_plan_period.id == self.location_plan_period.id
-        ]
+        self.cast_groups_at_day = db_services.CastGroup.get_all_from__location_plan_period_at_date(
+            self.location_plan_period.id, self.date)
 
     def check_fixed_cast__eq_to__local_pp(self):
         if not self.cast_groups_at_day:

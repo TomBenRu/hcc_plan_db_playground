@@ -1359,6 +1359,16 @@ class CastGroup:
 
     @classmethod
     @db_session
+    def get_all_from__location_plan_period_at_date(
+            cls, location_plan_period_id: UUID, date: datetime.date) -> list[schemas.CastGroupShow]:
+        cast_groups_db = (models.CastGroup.select()
+                          .filter(lambda cg: cg.event is not None
+                                             and cg.event.date == date
+                                             and cg.event.location_plan_period.id == location_plan_period_id))
+        return [schemas.CastGroupShow.model_validate(cg) for cg in cast_groups_db]
+
+    @classmethod
+    @db_session
     def get_cast_group_of_event(cls, event_id: UUID) -> schemas.CastGroupShow:
         cast_group_db = models.Event.get(id=event_id).cast_group
         return schemas.CastGroupShow.model_validate(cast_group_db)

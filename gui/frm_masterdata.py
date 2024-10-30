@@ -15,7 +15,7 @@ from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
-    frm_assign_to_team
+    frm_assign_to_team, frm_skills
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
     location_plan_period_commands, event_group_commands
@@ -237,6 +237,9 @@ class FrmPersonData(QDialog):
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
 
+        self._setup_ui()
+
+    def _setup_ui(self):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -301,27 +304,30 @@ class FrmPersonCreate(FrmPersonData):
 
 class FrmPersonModify(FrmPersonData):
     def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
-        super().__init__(parent, project_id)
-
         self.project_id = project_id
         self.person = person
-
         self.controller = command_base_classes.ContrExecUndoRedo()
 
-        self.sp_nr_requ_assignm = QSpinBox()
-        self.sp_nr_requ_assignm.setMinimum(0)
-        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
-        self.bt_comb_loc_possible = QPushButton('Bearbeiten...', clicked=self.edit_comb_loc_possible)
-        self.bt_actor_loc_prefs = QPushButton('Bearbeiten...', clicked=self.edit_location_prefs)
-        self.bt_actor_partner_loc_prefs = QPushButton('Bearbeiten...',
-                                                      clicked=self.edit_partner_location_prefs)
+        super().__init__(parent, project_id)
 
+
+    def _setup_ui(self):
+        super()._setup_ui()
         self.group_auth_data.close()
         self.group_specific_data = QGroupBox('Spezielles')
         self.group_specific_data_layout = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
-        self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.sp_nr_requ_assignm)
+        self.spin_num_requested_assignments = QSpinBox()
+        self.spin_num_requested_assignments.setMinimum(0)
+        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
+        self.bt_comb_loc_possible = QPushButton('Bearbeiten...', clicked=self.edit_comb_loc_possible)
+        self.bt_actor_loc_prefs = QPushButton('Bearbeiten...', clicked=self.edit_location_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton('Bearbeiten...',
+                                                      clicked=self.edit_partner_location_prefs)
+        self.bt_skills = QPushButton('Bearbeiten...', clicked=self.select_skills)
+
+        self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.spin_num_requested_assignments)
         self.group_specific_data_layout.addRow('Tageszeiten', self.bt_time_of_days)
         self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow('Einrichtungspräferenzen', self.bt_actor_loc_prefs)
@@ -337,7 +343,7 @@ class FrmPersonModify(FrmPersonData):
         self.person.email = self.le_email.text()
         self.person.gender = Gender[self.cb_gender.currentText()]
         self.person.phone_nr = self.le_phone_nr.text()
-        self.person.requested_assignments = self.sp_nr_requ_assignm.value()
+        self.person.requested_assignments = self.spin_num_requested_assignments.value()
         self.person.address.street = self.le_street.text()
         self.person.address.postal_code = self.le_postal_code.text()
         self.person.address.city = self.le_city.text()
@@ -369,7 +375,7 @@ class FrmPersonModify(FrmPersonData):
         self.le_city.setText(self.person.address.city)
 
     def fill_requested_assignm(self):
-        self.sp_nr_requ_assignm.setValue(self.person.requested_assignments)
+        self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderPerson(self, self.person).build()
@@ -435,6 +441,12 @@ class FrmPersonModify(FrmPersonData):
             return
         self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
         self.person = db_services.Person.get(self.person.id)
+
+    def select_skills(self):
+        dlg = frm_skills.DlgSelectSkills(self, self.person)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.person = db_services.Person.get(self.person.id)
 
 
 class WidgetLocationsOfWork(QWidget):

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
 from database import db_services
 from . import frm_time_of_day
 from .frm_excel_settings import DlgExcelExportSettings
+from .frm_skills import DlgEditSkills
 from .frm_team import FrmTeam
 from .frm_time_of_day_enum import DlgTimeOfDayEnumsEditList
 
@@ -41,6 +42,7 @@ class DlgSettingsProject(QDialog):
         # self.cb_time_of_days = QComboBox()
         self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
         self.cb_time_of_day_enums = QComboBox()
+        self.lb_skills = QLabel('Fähigkeiten')
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
@@ -51,6 +53,7 @@ class DlgSettingsProject(QDialog):
         self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
+        self.bt_skills = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_skills)
 
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
@@ -69,9 +72,11 @@ class DlgSettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.lb_time_of_day_enums, 4, 0)
         self.layout_group_project_data.addWidget(self.cb_time_of_day_enums, 4, 1)
         self.layout_group_project_data.addWidget(self.bt_time_of_day_enums, 4, 2)
-        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 5, 0)
-        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 5, 1)
-        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 5, 2)
+        self.layout_group_project_data.addWidget(self.lb_skills, 5, 0)
+        self.layout_group_project_data.addWidget(self.bt_skills, 5, 2)
+        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 6, 0)
+        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 6, 1)
+        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 6, 2)
         for widget in self.color_widgets:
             self.layout_excel_export_settings.addWidget(widget)
 
@@ -159,6 +164,14 @@ class DlgSettingsProject(QDialog):
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
+
+    def edit_skills(self):
+        dlg = DlgEditSkills(self, self.project_id)
+        if dlg.exec():
+            QMessageBox.information(self, 'Skills', 'Skills wurden geändert')
+        else:
+            dlg.controller.undo_all()
+            QMessageBox.information(self, 'Skills', 'Skills wurden nicht geändert')
 
     def edit_excel_export_settings(self):
         dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)

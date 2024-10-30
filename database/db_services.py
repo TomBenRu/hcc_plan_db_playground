@@ -2245,6 +2245,75 @@ class ActorPartnerLocationPref:
             if apl_pref.prep_delete:
                 apl_pref.delete()
 
+class Skills:
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(cls, skill: schemas.SkillCreate, skill_id: UUID = None) -> schemas.Skill:
+        log_function_info(cls)
+        project_db = models.Project.get_for_update(id=skill.project_id)
+        if skill_id:
+            skill_db = models.Skill(id=skill_id, name=skill.name, notes=skill.notes, project=project_db)
+        else:
+            skill_db = models.Skill(name=skill.name, notes=skill.notes, project=project_db)
+        return schemas.Skill.model_validate(skill_db)
+
+    @classmethod
+    @db_session
+    def get(cls, skill_id: UUID) -> schemas.SkillShow:
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        return schemas.SkillShow.model_validate(skill_db)
+
+    @classmethod
+    @db_session
+    def get_all_from__project(cls, project_id: UUID) -> list[schemas.SkillShow]:
+        project_db = models.Project.get_for_update(id=project_id)
+        skills_db = project_db.skills
+        return [schemas.SkillShow.model_validate(s) for s in skills_db]
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update(cls, skill: schemas.SkillUpdate) -> schemas.Skill:
+        log_function_info(cls)
+        skill_db = models.Skill.get_for_update(id=skill.id)
+        skill_db.name = skill.name
+        skill_db.notes = skill.notes
+
+        return schemas.Skill.model_validate(skill_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def prep_delete(cls, skill_id: UUID) -> schemas.Skill:
+        log_function_info(cls)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        skill_db.prep_delete = datetime.datetime.utcnow()
+
+        return schemas.Skill.model_validate(skill_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(cls, skill_id: UUID) -> schemas.Skill:
+        log_function_info(cls)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        skill_db.prep_delete = None
+
+        return schemas.Skill.model_validate(skill_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete_prep_deletes_from__project(cls, project_id: UUID) -> None:
+        log_function_info(cls)
+        project_db = models.Project.get_for_update(id=project_id)
+        skills_to_delete = project_db.skills.select(lambda s: s.prep_delete)
+        for skill in skills_to_delete:
+            skill.delete()
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cls, skill_id: UUID):
+        log_function_info(cls)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        skill_db.delete()
+
 
 class Plan:
     @classmethod

@@ -684,17 +684,25 @@ class FlagShow(Flag):
 
 class SkillCreate(BaseModel):
     name: str
-    level: int
+    notes: str = ''
+    project_id: UUID
 
 
-class Skill(SkillCreate):
+class SkillUpdate(BaseModel):
+    id: UUID
+    name: str
+    notes: str
+
+
+class Skill(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    name: str
+    notes: str
     created_at: datetime.datetime
     last_modified: datetime.datetime
-    prep_delete: datetime.datetime
-    project: Project
+    prep_delete: Optional[datetime.datetime]
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()

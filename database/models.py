@@ -640,9 +640,11 @@ class Skill(db.Entity):
 """
     id = PrimaryKey(UUID, auto=True)
     name = Required(str)
-    level = Required(int, size=8, default=2, unsigned=True)
-    # Beherrscht den Skill...
-    # 0: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
+    notes = Optional(str, default='')
+    # level = Required(int, size=8, default=2, unsigned=True)
+    # # muss in eine gesonderte Tabelle (SkillLevel) aufgelöst werden.
+    # # Beherrscht den Skill...
+    # # 0: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
     persons = Set(Person)
     avail_days = Set(AvailDay)
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())

@@ -32,7 +32,7 @@ class DlgSkill(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("<h3>Skill</h3>"
+        self.lb_description = QLabel(f"<h3>{'Edit Skill' if self.skill_id else 'New Skill'}</h3>"
                                      "<p>Setze hier Name und Beschreibung deiner Fähigkeit/Kenntnis ein.</p>")
         self.layout_head.addWidget(self.lb_description)
         self.le_name = QLineEdit()

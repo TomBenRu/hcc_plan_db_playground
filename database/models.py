@@ -278,6 +278,7 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
         self.time_of_days.add(self.actor_plan_period.time_of_days)
         self.actor_partner_location_prefs_defaults.add(self.actor_plan_period.actor_partner_location_prefs_defaults)
         self.actor_location_prefs_defaults.add(self.actor_plan_period.actor_location_prefs_defaults)
+        self.skills.add(self.actor_plan_period.person.skills)
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()

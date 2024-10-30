@@ -332,6 +332,7 @@ class FrmPersonModify(FrmPersonData):
         self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow('Einrichtungspräferenzen', self.bt_actor_loc_prefs)
         self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', self.bt_actor_partner_loc_prefs)
+        self.group_specific_data_layout.addRow('Fähigkeiten', self.bt_skills)
 
         self.layout.addWidget(self.button_box)
         self.button_box.rejected.connect(self.reject)
@@ -447,6 +448,8 @@ class FrmPersonModify(FrmPersonData):
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.person = db_services.Person.get(self.person.id)
+        else:
+            dlg.controller.undo_all()
 
 
 class WidgetLocationsOfWork(QWidget):

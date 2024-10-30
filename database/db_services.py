@@ -475,6 +475,24 @@ class Person:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
+    def add_skill(cls, person_id: UUID, skill_id: UUID) -> schemas.PersonShow:
+        log_function_info(cls)
+        person_db = models.Person.get_for_update(id=person_id)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        person_db.skills.add(skill_db)
+        return schemas.PersonShow.model_validate(person_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_skill(cls, person_id: UUID, skill_id: UUID) -> schemas.PersonShow:
+        log_function_info(cls)
+        person_db = models.Person.get_for_update(id=person_id)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        person_db.skills.remove(skill_db)
+        return schemas.PersonShow.model_validate(person_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def put_in_flag(cls, person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -2245,7 +2263,7 @@ class ActorPartnerLocationPref:
             if apl_pref.prep_delete:
                 apl_pref.delete()
 
-class Skills:
+class Skill:
     @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, skill: schemas.SkillCreate, skill_id: UUID = None) -> schemas.Skill:
@@ -2282,10 +2300,10 @@ class Skills:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def prep_delete(cls, skill_id: UUID) -> schemas.Skill:
+    def prep_delete(cls, skill_id: UUID, prep_delete: datetime.datetime = None) -> schemas.Skill:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
-        skill_db.prep_delete = datetime.datetime.utcnow()
+        skill_db.prep_delete = prep_delete or datetime.datetime.utcnow()
 
         return schemas.Skill.model_validate(skill_db)
 
@@ -2313,6 +2331,14 @@ class Skills:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
         skill_db.delete()
+
+    @classmethod
+    @db_session
+    def is_used(cls, skill_id: UUID) -> bool:
+        skill_db = models.Skill.get(id=skill_id)
+        if skill_db.persons.is_empty() and skill_db.avail_days.is_empty() and skill_db.skill_groups.is_empty():
+            return False
+        return True
 
 
 class Plan:

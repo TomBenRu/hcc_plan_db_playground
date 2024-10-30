@@ -309,4 +309,36 @@ class RemoveFlag(Command):
     def redo(self):
         db_services.Person.remove_flag(self.person_id, self.flag_id)
 
-# todo: Create hinzufügen.
+class AddSkill(Command):
+    def __init__(self, person_id: UUID, skill_id: UUID):
+        self.person_id = person_id
+        self.skill_id = skill_id
+        self.updated_person: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.updated_person = db_services.Person.add_skill(self.person_id, self.skill_id)
+
+    def undo(self):
+        if self.updated_person:
+            db_services.Person.remove_skill(self.updated_person.id, self.skill_id)
+
+    def redo(self):
+        if self.updated_person:
+            db_services.Person.add_skill(self.updated_person.id, self.skill_id)
+
+class RemoveSkill(Command):
+    def __init__(self, person_id: UUID, skill_id: UUID):
+        self.person_id = person_id
+        self.skill_id = skill_id
+        self.updated_person: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.updated_person = db_services.Person.remove_skill(self.person_id, self.skill_id)
+
+    def undo(self):
+        if self.updated_person:
+            db_services.Person.add_skill(self.updated_person.id, self.skill_id)
+
+    def redo(self):
+        if self.updated_person:
+            db_services.Person.remove_skill(self.updated_person.id, self.skill_id)

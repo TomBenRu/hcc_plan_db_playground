@@ -176,7 +176,11 @@ class DlgSkillGroups(QDialog):
             project_id = self.object_with_skill_groups.location_plan_period.location_of_work.project.id
         else:
             raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
-        dlg = DlgSkillGroup(self, project_id, {sg.skill.id for sg in self.object_with_skill_groups.skill_groups})
+        already_used_skill_ids = {sg.skill.id for sg in self.object_with_skill_groups.skill_groups}
+        if not [s for s in db_services.Skill.get_all_from__project(project_id) if s.id not in already_used_skill_ids]:
+            QMessageBox.warning(self, "Fehler", "Es sind keine weiteren Fähigkeiten/Kenntnisse verfügbar.")
+            return
+        dlg = DlgSkillGroup(self, project_id, already_used_skill_ids)
         if dlg.exec():
             command_create = skill_group_commands.Create(
                 schemas.SkillGroupCreate(skill_id=dlg.skill_id, nr_persons=dlg.nr_actors))

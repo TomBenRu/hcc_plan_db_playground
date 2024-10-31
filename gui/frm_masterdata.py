@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QFormLayout, QHeaderView
 
+from commands.database_commands.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
@@ -651,6 +652,10 @@ class FrmLocationModify(FrmLocationData):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
+        self._setup_ui()
+        self._autofill_widgets()
+
+    def _setup_ui(self):
         self.group_specific_data = QGroupBox('Spezielles')
         self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
@@ -665,14 +670,22 @@ class FrmLocationModify(FrmLocationData):
         self.layout_teams.addWidget(self.lb_teams_info)
         self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
         self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
+        self.bt_skill_groups = QPushButton('Bearbeiten...', clicked=self.edit_skill_groups)
 
         self.layout_group_specific_data.addRow('Besetzungsstärke', self.spin_nr_actors)
         self.layout_group_specific_data.addRow('Tageszeiten', self.bt_time_of_days)
         self.layout_group_specific_data.addRow('Team', self.layout_teams)
         self.layout_group_specific_data.addRow('Besetzung erwünscht', self.bt_fixed_cast)
+        self.layout_group_specific_data.addRow('Fertigkeitsgruppen', self.bt_skill_groups)
         self.layout.addWidget(self.button_box)
 
-        self.autofill()
+    def _autofill_widgets(self):
+        self.le_name.setText(self.location_of_work.name)
+        self.le_street.setText(self.location_of_work.address.street)
+        self.le_postal_code.setText(self.location_of_work.address.postal_code)
+        self.le_city.setText(self.location_of_work.address.city)
+        self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
+        self.fill_teams()
 
     def save_location(self):
         self.location_of_work.name = self.le_name.text()
@@ -725,15 +738,6 @@ class FrmLocationModify(FrmLocationData):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
 
-    def autofill(self):
-        self.le_name.setText(self.location_of_work.name)
-        self.le_street.setText(self.location_of_work.address.street)
-        self.le_postal_code.setText(self.location_of_work.address.postal_code)
-        self.le_city.setText(self.location_of_work.address.city)
-        self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
-        self.fill_teams()
-        # self.fill_time_of_days()
-
     def get_teams(self):
         return db_services.Team.get_all_from__project(self.project_id)
 
@@ -761,6 +765,11 @@ class FrmLocationModify(FrmLocationData):
             self.cb_teams.blockSignals(True)
             self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
             self.cb_teams.blockSignals(False)
+
+    def edit_skill_groups(self):
+        dlg = DlgSkillGroups(self, self.location_of_work)
+        if dlg.exec():
+            ...
 
     def create_new_location_plan_periods(self, start_date: datetime.date, team_id: UUID, location_id: UUID):
         command = location_plan_period_commands.CreateLocationPlanPeriodsFromDate(start_date, location_id, team_id)

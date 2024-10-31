@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QPushButton
 from PySide6.QtCore import Qt
 
 from commands import command_base_classes
-from commands.database_commands import skill_commands, person_commands
+from commands.database_commands import skill_commands, person_commands, avail_day_commands
 from database import db_services, schemas
 
 
@@ -37,7 +37,7 @@ class DlgSkillsOfProject(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(f"<h3>Skills of Project {self.project_id}</h3>"
+        self.lb_description = QLabel("<h3>Skills des Projektes</h3>"
                                      "<p>Hier sind alle Fähigkeiten und Kenntnisse für dein Projekt aufgelistet.</p>")
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
@@ -272,10 +272,10 @@ class DlgEditSkills(QDialog):
 
 
 class DlgSelectSkills(QDialog):
-    def __init__(self, parent: QWidget, person: schemas.PersonShow):
+    def __init__(self, parent: QWidget, object_with_skills: schemas.PersonShow | schemas.AvailDayShow):
         super().__init__(parent)
         self.controller = command_base_classes.ContrExecUndoRedo()
-        self.person = person
+        self.object_with_skills = object_with_skills
 
         self._setup_ui()
 
@@ -289,9 +289,11 @@ class DlgSelectSkills(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(f"<h3>Skills</h3>"
-                                     f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
-                                     f"die {self.person.full_name} für seine Arbeit verwendet.</p>")
+        self.lb_description = QLabel(
+            f"<h3>Skills</h3>"
+            f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
+            f"die {self.object_with_skills.full_name if isinstance(self.object_with_skills, schemas.PersonShow) 
+                   else 'diese Verfügbarkeit'} für seine Arbeit verwendet.</p>")
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
         self._put_skills_in_table()
@@ -319,7 +321,7 @@ class DlgSelectSkills(QDialog):
         return table_skills
 
     def _put_skills_in_table(self):
-        skills = self.person.skills
+        skills = self.object_with_skills.skills
         self.table_skills.setRowCount(len(skills))
         for row, skill in enumerate(skills):
             item_name = QTableWidgetItem(skill.name)
@@ -329,21 +331,31 @@ class DlgSelectSkills(QDialog):
 
     def _add_skill(self):
         dlg = DlgSkillsOfProject(
-            self, self.person.project.id, {skill.id for skill in self.person.skills})
+            self, self.object_with_skills.project.id, {skill.id for skill in self.object_with_skills.skills})
         if dlg.exec():
-            command = person_commands.AddSkill(self.person.id, dlg.selected_skill.id)
+            if isinstance(self.object_with_skills, schemas.PersonShow):
+                command = person_commands.AddSkill(self.object_with_skills.id, dlg.selected_skill.id)
+            elif isinstance(self.object_with_skills, schemas.AvailDayShow):
+                command = avail_day_commands.AddSkill(self.object_with_skills.id, dlg.selected_skill.id)
+            else:
+                raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')
             self.controller.execute(command)
-            self.person = command.updated_person
-            self.table_skills.setRowCount(len(self.person.skills))
+            self.object_with_skills = command.updated_object
+            self.table_skills.setRowCount(len(self.object_with_skills.skills))
             item_name = QTableWidgetItem(dlg.selected_skill.name)
             item_name.setData(Qt.ItemDataRole.UserRole, dlg.selected_skill.id)
-            self.table_skills.setItem(len(self.person.skills) - 1, 0, item_name)
-            self.table_skills.setItem(len(self.person.skills) - 1, 1, QTableWidgetItem(dlg.selected_skill.notes))
+            self.table_skills.setItem(len(self.object_with_skills.skills) - 1, 0, item_name)
+            self.table_skills.setItem(len(self.object_with_skills.skills) - 1, 1, QTableWidgetItem(dlg.selected_skill.notes))
 
     def _remove_skill(self):
         skill_id = self.table_skills.item(self.table_skills.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
-        command = person_commands.RemoveSkill(self.person.id, skill_id)
-        self.person = command.updated_person
+        if isinstance(self.object_with_skills, schemas.PersonShow):
+            command = person_commands.RemoveSkill(self.object_with_skills.id, skill_id)
+        elif isinstance(self.object_with_skills, schemas.AvailDayShow):
+            command = avail_day_commands.RemoveSkill(self.object_with_skills.id, skill_id)
+        else:
+            raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')
+        self.object_with_skills = command.updated_object
         self.controller.execute(command)
         self.table_skills.removeRow(self.table_skills.currentRow())
 

@@ -18,7 +18,7 @@ from database.special_schema_requests import get_locations_of_team_at_date, get_
     get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
     get_persons_of_team_at_date_2, get_next_assignment_of_person
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
-                 frm_time_of_day, widget_styles, frm_requested_assignments)
+                 frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
 from gui.custom_widgets import side_menu
 from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.actions import MenuToolbarAction
@@ -45,6 +45,7 @@ class ButtonAvailDay(QPushButton):
         signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.connect(
             self.reload_actor_plan_period)
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.group_mode = False
         '#999999'
         self.actor_plan_period = actor_plan_period
@@ -52,13 +53,14 @@ class ButtonAvailDay(QPushButton):
         self.date = date
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
-        self.context_menu = QMenu()
 
         self.set_stylesheet()
 
-        self.actions = []
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
+        self._setup_context_menu()
+
+        # self.actions = []
+        # self.create_actions()
+        # self.context_menu.addActions(self.actions)
         self.set_tooltip()
 
     # def deleteLater(self):
@@ -95,6 +97,31 @@ class ButtonAvailDay(QPushButton):
         return [t_o_d for t_o_d in actor_plan_period_time_of_days
                 if t_o_d.time_of_day_enum.time_index == self.time_of_day.time_of_day_enum.time_index]
 
+    def _setup_context_menu(self):
+        self.context_menu = QMenu()
+        self.menu_times_of_day = QMenu('Tageszeiten')
+        self.context_menu.addMenu(self.menu_times_of_day)
+        self.actions_times_of_day = [
+            MenuToolbarAction(self,
+                              QIcon(
+                                  os.path.join(
+                                      os.path.dirname(__file__), 'resources/toolbar_icons/icons/clock-select.png'
+                                               )
+                              )
+                              if t.name == self.time_of_day.name else None,
+                              f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                              functools.partial(self.set_new_time_of_day, t))
+            for t in self.t_o_d_for_selection
+        ]
+        for action in self.actions_times_of_day:
+            self.menu_times_of_day.addAction(action)
+        self.action_skills = MenuToolbarAction(
+            self,
+            os.path.join(os.path.dirname(__file__), 'resources/toolbar_icons/icons/screwdriver.png'),
+            'Fähigkeiten', None, self._set_skills
+        )
+        self.context_menu.addAction(self.action_skills)
+
     def contextMenuEvent(self, pos):
         self.context_menu.exec(pos.globalPos())
 
@@ -103,30 +130,33 @@ class ButtonAvailDay(QPushButton):
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         for action in self.context_menu.actions():
             self.context_menu.removeAction(action)
-        self.create_actions()
-        self.context_menu.addActions(self.actions)
+        self._setup_context_menu()
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
-            avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, self.date, self.time_of_day.id)
+            avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(
+                self.actor_plan_period.id, self.date, self.time_of_day.id)
             avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
 
         self.time_of_day = new_time_of_day
         self.reload_actor_plan_period()
-        self.create_actions()
         self.reset_context_menu(self.actor_plan_period)
         self.set_tooltip()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
-    def create_actions(self):
-        self.actions = [
-            MenuToolbarAction(self,
-                              QIcon(os.path.join(os.path.dirname(__file__),
-                                                 'resources/toolbar_icons/icons/clock-select.png'))
-                              if t.name == self.time_of_day.name else None,
-                              f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
-                              functools.partial(self.set_new_time_of_day, t))
-            for t in self.t_o_d_for_selection]
+    def _set_skills(self):
+        avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(
+            self.actor_plan_period.id, self.date, self.time_of_day.id)
+        if not avail_day:
+            QMessageBox.critical(self, 'Fähigkeiten',
+                                 'Es können keine Fähigkeiten gewählt werden,\n'
+                                 'da hier noch keine Verfügbarkeit gewählt wurde.')
+            return
+        dlg = frm_skills.DlgSelectSkills(self, avail_day)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+        else:
+            dlg.controller.undo_all()
 
     def set_tooltip(self):
         self.setToolTip(f'Rechtsklick:\n'
@@ -969,7 +999,6 @@ class FrmActorPlanPeriod(QWidget):
             return
         button.setChecked(not uncheck)
         button.time_of_day = time_of_day
-        button.create_actions()
         button.reset_context_menu(self.actor_plan_period)
         button.set_tooltip()
 

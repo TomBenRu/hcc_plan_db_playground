@@ -1927,12 +1927,13 @@ class AvailDay:
 
     @classmethod
     @db_session
-    def get_from__actor_pp_date_tod(cls, actor_plan_period_id: UUID, date: datetime.date, time_of_day_id) -> schemas.AvailDayShow:
+    def get_from__actor_pp_date_tod(
+            cls, actor_plan_period_id: UUID, date: datetime.date, time_of_day_id) -> schemas.AvailDayShow | None:
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         avail_day_db = models.AvailDay.get_for_update(
             lambda ad: ad.actor_plan_period == actor_plan_period_db and ad.date == date and
                        ad.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not ad.prep_delete)
-        return schemas.AvailDayShow.model_validate(avail_day_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db) if avail_day_db else None
 
     @classmethod
     @db_session
@@ -2088,6 +2089,24 @@ class AvailDay:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         avail_day_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def add_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        avail_day_db.skills.add(skill_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        skill_db = models.Skill.get_for_update(id=skill_id)
+        avail_day_db.skills.remove(skill_db)
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
 

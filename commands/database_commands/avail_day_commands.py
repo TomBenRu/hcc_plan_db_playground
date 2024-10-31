@@ -162,3 +162,38 @@ class RemoveActorPartnerLocationPref(Command):
 
     def redo(self):
         db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+
+
+class AddSkill(Command):
+    def __init__(self, avail_day_id: UUID, skill_id: UUID):
+        self.avail_day_id = avail_day_id
+        self.skill_id = skill_id
+        self.updated_object: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.updated_object = db_services.AvailDay.add_skill(self.avail_day_id, self.skill_id)
+
+    def undo(self):
+        if self.updated_object:
+            db_services.AvailDay.remove_skill(self.updated_object.id, self.skill_id)
+
+    def redo(self):
+        if self.updated_object:
+            db_services.AvailDay.add_skill(self.updated_object.id, self.skill_id)
+
+class RemoveSkill(Command):
+    def __init__(self, avail_day_id: UUID, skill_id: UUID):
+        self.avail_day_id = avail_day_id
+        self.skill_id = skill_id
+        self.updated_object: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.updated_object = db_services.AvailDay.remove_skill(self.avail_day_id, self.skill_id)
+
+    def undo(self):
+        if self.updated_object:
+            db_services.AvailDay.add_skill(self.updated_object.id, self.skill_id)
+
+    def redo(self):
+        if self.updated_object:
+            db_services.AvailDay.remove_skill(self.updated_object.id, self.skill_id)

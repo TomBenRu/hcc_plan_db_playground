@@ -190,3 +190,41 @@ class UpdateFixedCast(Command):
 
     def redo(self):
         db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast)
+
+
+class AddSkillGroup(Command):
+    def __init__(self, location_of_work_id: UUID, skill_group_id: UUID):
+        self.location_of_work_id = location_of_work_id
+        self.skill_group_id = skill_group_id
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+
+    def execute(self):
+        self.location_of_work = db_services.LocationOfWork.add_skill_group(
+            self.location_of_work_id, self.skill_group_id)
+
+    def undo(self):
+        if self.location_of_work:
+            db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)
+
+    def redo(self):
+        if self.location_of_work:
+            db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
+
+
+class RemoveSkillGroup(Command):
+    def __init__(self, location_of_work_id: UUID, skill_group_id: UUID):
+        self.location_of_work_id = location_of_work_id
+        self.skill_group_id = skill_group_id
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+
+    def execute(self):
+        self.location_of_work = db_services.LocationOfWork.remove_skill_group(
+            self.location_of_work_id, self.skill_group_id)
+
+    def undo(self):
+        if self.location_of_work:
+            db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
+
+    def redo(self):
+        if self.location_of_work:
+            db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)

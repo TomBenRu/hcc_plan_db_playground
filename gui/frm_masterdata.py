@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QFormLayout, QHeaderView
 
-from commands.database_commands.frm_skill_groups import DlgSkillGroups
+from gui.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
@@ -769,7 +769,10 @@ class FrmLocationModify(FrmLocationData):
     def edit_skill_groups(self):
         dlg = DlgSkillGroups(self, self.location_of_work)
         if dlg.exec():
-            ...
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.location_of_work = self.get_location_of_work()
+        else:
+            dlg.controller.undo_all()
 
     def create_new_location_plan_periods(self, start_date: datetime.date, team_id: UUID, location_id: UUID):
         command = location_plan_period_commands.CreateLocationPlanPeriodsFromDate(start_date, location_id, team_id)

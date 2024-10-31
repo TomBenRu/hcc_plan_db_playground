@@ -132,3 +132,34 @@ class RemoveFlag(Command):
 
     def redo(self):
         db_services.Event.remove_flag(self.event_id, self.flag_id)
+
+
+class AddSkillGroup(Command):
+    def __init__(self, event_id: UUID, skill_group_id: UUID):
+        self.event_id = event_id
+        self.skill_group_id = skill_group_id
+        self.event: schemas.EventShow | None = None
+
+    def execute(self):
+        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+
+    def undo(self):
+        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)
+
+    def redo(self):
+        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+
+class RemoveSkillGroup(Command):
+    def __init__(self, event_id: UUID, skill_group_id: UUID):
+        self.event_id = event_id
+        self.skill_group_id = skill_group_id
+        self.event: schemas.EventShow | None = None
+
+    def execute(self):
+        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)
+
+    def undo(self):
+        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+
+    def redo(self):
+        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)

@@ -652,6 +652,24 @@ class LocationOfWork:
         location_db.prep_delete = datetime.datetime.utcnow()
         return schemas.LocationOfWork.model_validate(location_db)
 
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def add_skill_group(cls, location_id: UUID, skill_group_id: UUID) -> schemas.LocationOfWorkShow:
+        log_function_info(cls)
+        location_db = models.LocationOfWork.get_for_update(id=location_id)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        location_db.skill_groups.add(skill_group_db)
+        return schemas.LocationOfWorkShow.model_validate(location_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_skill_group(cls, location_id: UUID, skill_group_id: UUID) -> schemas.LocationOfWorkShow:
+        log_function_info(cls)
+        location_db = models.LocationOfWork.get_for_update(id=location_id)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        location_db.skill_groups.remove(skill_group_db)
+        return schemas.LocationOfWorkShow.model_validate(location_db)
+
 
 class TeamActorAssign:
     @classmethod
@@ -1668,6 +1686,24 @@ class Event:
         event_db.flags.remove(flag_db)
         return schemas.EventShow.model_validate(event_db)
 
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def add_skill_group(cls, event_id: UUID, skill_group_id: UUID) -> schemas.EventShow:
+        log_function_info(cls)
+        event_db = models.Event.get_for_update(id=event_id)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        event_db.skill_groups.add(skill_group_db)
+        return schemas.EventShow.model_validate(event_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def remove_skill_group(cls, event_id: UUID, skill_group_id: UUID) -> schemas.EventShow:
+        log_function_info(cls)
+        event_db = models.Event.get_for_update(id=event_id)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        event_db.skill_groups.remove(skill_group_db)
+        return schemas.EventShow.model_validate(event_db)
+
 
 class ActorPlanPeriod:
     @classmethod
@@ -2358,6 +2394,46 @@ class Skill:
         if skill_db.persons.is_empty() and skill_db.avail_days.is_empty() and skill_db.skill_groups.is_empty():
             return False
         return True
+
+
+class SkillGroup:
+    @classmethod
+    @db_session
+    def get(cls, skill_group_id: UUID) -> schemas.SkillGroupShow:
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        return schemas.SkillGroupShow.model_validate(skill_group_db)
+
+    @classmethod
+    @db_session
+    def get_all_from__location_of_work(cls, location_of_work_id: UUID) -> list[schemas.SkillGroupShow]:
+        location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
+        skill_groups_db = location_of_work_db.skill_groups
+        return [schemas.SkillGroupShow.model_validate(sg) for sg in skill_groups_db]
+
+    @classmethod
+    @db_session
+    def get_all_from__event(cls, event_id: UUID) -> list[schemas.SkillGroupShow]:
+        event_db = models.Event.get_for_update(id=event_id)
+        skill_groups_db = event_db.skill_groups
+        return [schemas.SkillGroupShow.model_validate(sg) for sg in skill_groups_db]
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def create(cls, skill_group: schemas.SkillGroupCreate, skill_group_id: UUID = None) -> schemas.SkillGroupShow:
+        log_function_info(cls)
+        skill_db = models.Skill.get_for_update(id=skill_group.skill_id)
+        if skill_group_id:
+            skill_group_db = models.SkillGroup(id=skill_group_id, skill=skill_db, nr_actors=skill_group.nr_persons)
+        else:
+            skill_group_db = models.SkillGroup(skill=skill_db, nr_actors=skill_group.nr_persons)
+        return schemas.SkillGroupShow.model_validate(skill_group_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def delete(cls, skill_group_id: UUID):
+        log_function_info(cls)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
+        skill_group_db.delete()
 
 
 class Plan:

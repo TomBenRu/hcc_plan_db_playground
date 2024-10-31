@@ -724,19 +724,21 @@ class SkillShow(Skill):
 
 class SkillGroupCreate(BaseModel):
     """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
-    skill: Skill
+    skill_id: UUID
+    nr_persons: int
 
 
-class SkillGroup(SkillGroupCreate):
+class SkillGroup(BaseModel):
     """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    skill: Skill
     nr_actors: Optional[int] = None
     location_of_work: Optional[LocationOfWork]
     created_at: datetime.datetime
-    last_modified: datetime.datetime
-    prep_delete: datetime.datetime
+    last_modified: Optional[datetime.datetime]
+    prep_delete: Optional[datetime.datetime]
 
 
 class SkillGroupShow(SkillGroup):

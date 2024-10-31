@@ -289,11 +289,19 @@ class DlgSelectSkills(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(
-            f"<h3>Skills</h3>"
-            f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
-            f"die {self.object_with_skills.full_name if isinstance(self.object_with_skills, schemas.PersonShow) 
-                   else 'diese Verfügbarkeit'} für seine Arbeit verwendet.</p>")
+        if isinstance(self.object_with_skills, schemas.PersonShow):
+            text_description = (f"<h3>Skills</h3>"
+                                f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
+                                f"die {self.object_with_skills.full_name} für seine Arbeit verwendet.</p>")
+        elif isinstance(self.object_with_skills, schemas.AvailDayShow):
+            text_description = (f"<h3>Skills</h3>"
+                                f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
+                                f"die {self.object_with_skills.actor_plan_period.person.full_name} "
+                                f"am {self.object_with_skills.date:%d.%m.%Y} "
+                                f"({self.object_with_skills.time_of_day.name}) einsetzen kann.</p>")
+        else:
+            raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')
+        self.lb_description = QLabel(text_description)
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
         self._put_skills_in_table()

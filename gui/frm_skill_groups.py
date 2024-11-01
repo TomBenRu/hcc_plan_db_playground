@@ -222,9 +222,60 @@ class DlgSkillGroups(QDialog):
         self._reload_object_with_skill_groups()
 
     def edit_skill_group(self):
-        pass
+        if isinstance(self.object_with_skill_groups, schemas.LocationOfWorkShow):
+            project_id = self.object_with_skill_groups.project.id
+        elif isinstance(self.object_with_skill_groups, schemas.EventShow):
+            project_id = self.object_with_skill_groups.location_plan_period.location_of_work.project.id
+        else:
+            raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
+        current_row = self.table_skill_groups.currentRow()
+        if current_row < 0:
+            QMessageBox.warning(self, "Fehler", "Keine Fertigkeitsgruppe ausgewählt.")
+            return
+        curr_skill_group_id = self.table_skill_groups.item(current_row, 0).data(Qt.ItemDataRole.UserRole)
+        curr_skill_group = db_services.SkillGroup.get(curr_skill_group_id)
+        already_used_skill_ids = {sg.skill.id for sg in self.object_with_skill_groups.skill_groups}
+        dlg = DlgSkillGroup(self, project_id, already_used_skill_ids,
+                            curr_skill_group)
+        if dlg.exec():
+            if isinstance(self.object_with_skill_groups, schemas.EventShow):
+                command_remove = event_commands.RemoveSkillGroup(self.object_with_skill_groups.id, curr_skill_group_id)
+                self.controller.execute(command_remove)
+                command_create = skill_group_commands.Create(
+                    schemas.SkillGroupCreate(skill_id=dlg.skill_id, nr_persons=dlg.nr_actors))
+                self.controller.execute(command_create)
+                command_add = event_commands.AddSkillGroup(self.object_with_skill_groups.id, command_create.created_skill_group.id)
+                self.controller.execute(command_add)
+                self.table_skill_groups.item(current_row, 0).setText(command_create.created_skill_group.skill.name)
+                self.table_skill_groups.item(current_row, 0).setData(Qt.ItemDataRole.UserRole, command_create.created_skill_group.id)
+                self.table_skill_groups.item(current_row, 1).setText(command_create.created_skill_group.skill.notes)
+                self.table_skill_groups.item(current_row, 2).setText(str(command_create.created_skill_group.nr_actors))
+                self._reload_object_with_skill_groups()
+            elif isinstance(self.object_with_skill_groups, schemas.LocationOfWorkShow):
+                command_update = skill_group_commands.Update(
+                    schemas.SkillGroupUpdate(id=curr_skill_group_id, skill_id=dlg.skill_id,
+                                             nr_persons=dlg.nr_actors))
+                self.controller.execute(command_update)
+                self.table_skill_groups.item(current_row, 0).setText(command_update.updated_skill_group.skill.name)
+                self.table_skill_groups.item(current_row, 1).setText(command_update.updated_skill_group.skill.notes)
+                self.table_skill_groups.item(current_row, 2).setText(str(command_update.updated_skill_group.nr_actors))
+                self._reload_object_with_skill_groups()
+            else:
+                raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
 
     def reset_skill_groups(self):
-        pass
+        if isinstance(self.object_with_skill_groups, schemas.EventShow):
+            skill_groups_of_location_of_work = db_services.SkillGroup.get_all_from__location_of_work(
+                self.object_with_skill_groups.location_plan_period.location_of_work.id)
+            for skill_group in self.object_with_skill_groups.skill_groups:
+                command_remove = event_commands.RemoveSkillGroup(self.object_with_skill_groups.id, skill_group.id)
+                self.controller.execute(command_remove)
+            for skill_group in skill_groups_of_location_of_work:
+                command_add = event_commands.AddSkillGroup(self.object_with_skill_groups.id, skill_group.id)
+                self.controller.execute(command_add)
+            self._reload_object_with_skill_groups()
+            self.table_skill_groups.setRowCount(0)
+            self._setup_data()
+
 
 

@@ -1,6 +1,7 @@
 import datetime
 import functools
 import os
+from argparse import Action
 from typing import Callable, Literal
 from uuid import UUID
 
@@ -16,6 +17,7 @@ from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
 from gui.custom_widgets import side_menu
 from gui.frm_notes import DlgEventNotes
+from gui.frm_skill_groups import DlgSkillGroups
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
@@ -150,7 +152,17 @@ class ButtonEvent(QPushButton):
         signal_handling.handler_location_plan_period.reload_location_pp_on__frm_location_plan_period()
 
     def edit_skills(self):
-        print('edit_skills')
+        if not (event := self.get_curr_event()):
+            QMessageBox.critical(self, 'Skills',
+                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Skills bearbeiten können.')
+            return
+        dlg = DlgSkillGroups(self, event)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.reload_location_plan_period()
+            signal_handling.handler_location_plan_period.reset_styling_skills_configs(
+                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
+            )
 
     def edit_fixed_cast(self):
         if not self.isChecked():
@@ -421,16 +433,125 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
 
 
 
-class ButtonFlags(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
+class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
         super().__init__(parent=parent)
 
-        self.setObjectName(f'flags: {date}')
+        self.setObjectName(f'skill_groups: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
+
+        signal_handling.handler_location_plan_period.signal_reset_styling_skills_configs.connect(
+            self.reset_stylesheet_and_tooltip)
+
+        self.clicked.connect(self.edit_skill_groups_of_day)
+
+        self.date = date
+        self.location_plan_period = location_plan_period
+        self.controller = command_base_classes.ContrExecUndoRedo()
+        self.set_stylesheet_and_tooltip()
+
+    def set_stylesheet_and_tooltip(self):
+        self._set_events_at_day()
+        self._set_stylesheet()
+        self._set_tooltip()
+
+    @Slot(object)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
+        if data.plan_period_id == self.location_plan_period.plan_period.id and data.date == self.date:
+            self.set_stylesheet_and_tooltip()
+
+    def _set_events_at_day(self):
+        self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
+
+    def _check_skill_groups_all_equal(self) -> bool | None:
+        if not self.events_at_day:
+            return
+        if len({len(e.skill_groups) for e in self.events_at_day}) > 1:
+            return False
+        return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
+                   == sorted(self.events_at_day[0].skill_groups, key=lambda x: x.skill.id)
+                   for e in self.events_at_day)
+
+    def _check_skill_groups_all_equal_to_location_skill_groups(self) -> bool | None:
+        if not self.events_at_day:
+            return
+        if len({len(e.skill_groups) for e in self.events_at_day}) > 1:
+            return False
+        location_skill_groups = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id).skill_groups
+        return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
+                   == sorted(location_skill_groups, key=lambda x: x.skill.id)
+                   for e in self.events_at_day)
+
+    def _set_stylesheet(self):
+        if (all_equal := self._check_skill_groups_all_equal()) is None:
+            self.setStyleSheet(
+                f"ButtonSkillGroups {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonSkillGroups::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
+        elif all_equal and self._check_skill_groups_all_equal_to_location_skill_groups():
+            self.setStyleSheet(
+                f"ButtonSkillGroups {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonSkillGroups::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
+        else:
+            self.setStyleSheet(
+                f"ButtonSkillGroups {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonSkillGroups::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
+
+    def _set_tooltip(self):
+        if not self.events_at_day:
+            additional_txt = ''
+        elif self._check_skill_groups_all_equal():
+            if not self.events_at_day[0].skill_groups:
+                additional_txt = (
+                    '\nKeine Fertigkeiten gewählt.\n'
+                    'Dies ist die Standardeinstellung für diese Einrichtung.'
+                    if self._check_skill_groups_all_equal_to_location_skill_groups()
+                    else '\nKeine Fertigkeiten gewählt.\n'
+                    'Dies ist unterschiedlich zu den Fertigkeiten der Einrichtung.'
+                )
+            elif self._check_skill_groups_all_equal_to_location_skill_groups():
+                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
+                                  'sind identisch mit den Fertigkeiten der Einrichtung.')
+            else:
+                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
+                                  'sind gleich aber unterschiedlich zu den Fertigkeiten der Einrichtung.')
+        else:
+            additional_txt = '\nFertigkeiten der Events an diesem Tag sind unterschiedlich.'
+        self.setToolTip(f'Hier können die Fertigkeiten der Events am Tag {self.date:%d.%m.} bearbeitet werden.'
+                        f'{additional_txt}')
+
+    def edit_skill_groups_of_day(self):
+        if not self.events_at_day:
+            QMessageBox.information(self, 'Fertigkeiten der Events',
+                                    f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            return
+        event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
+        dlg = DlgSkillGroups(self, event)
+        if dlg.exec():
+            for event in self.events_at_day:
+                for skill_group in event.skill_groups:
+                    command_remove = event_commands.RemoveSkillGroup(event.id, skill_group.id)
+                    self.controller.execute(command_remove)
+                for skill_group in dlg.object_with_skill_groups.skill_groups:
+                    command_add = event_commands.AddSkillGroup(event.id, skill_group.id)
+                    self.controller.execute(command_add)
+                signal_handling.handler_plan_tabs.event_changed(event.id)
+            self.set_stylesheet_and_tooltip()
+            QMessageBox.information(self, 'Fertigkeiten der Events',
+                                    f'Fertigkeiten der Events am Tag {self.date:%d.%m.} wurden geändert.')
+
+
+
+
 
 
 class FrmTabLocationPlanPeriods(QWidget):
@@ -717,8 +838,30 @@ class FrmLocationPlanPeriod(QWidget):
         self.layout.addWidget(bt_fixed_cast_reset, row + 2, 0)
         lb_notes = QLabel('Notizen')  # todo: zu Button verändern; Notizen aller Events im Zeitraum
         self.layout.addWidget(lb_notes, row + 3, 0)
-        lb_flags = QLabel('Besondere Eigensch.')
-        self.layout.addWidget(lb_flags, row + 4, 0)
+        bt_skills = QPushButton('Fertigkeiten')
+        bt_skills.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
+        self.menu_bt_skills = QMenu()
+        bt_skills.setMenu(self.menu_bt_skills)
+        actions_menu_bt_skills = [
+            MenuToolbarAction(self,
+                              os.path.join(os.path.dirname(__file__),
+                                           'resources', 'toolbar_icons', 'icons', 'screwdriver--minus.png'),
+                              'Fertigkeit entfernen',
+                              'Alle Fertigkeiten von den Events in diesem Zeitraum entfernen.',
+                              self.remove_skills_from_every_event,
+                              ),
+            MenuToolbarAction(self,
+                              os.path.join(os.path.dirname(__file__),
+                                           'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
+                              'Fertigkeit zurücksetzen',
+                              'Alle Fertigkeiten von den Events in diesem Zeitraum '
+                              'auf die Standartwerte der Einrichtung zurücksetzen.',
+                              self.reset_skills_of_every_event,
+                              )
+        ]
+        for action in actions_menu_bt_skills:
+            self.menu_bt_skills.addAction(action)
+        self.layout.addWidget(bt_skills, row + 4, 0)
 
         # Tages-Config_Buttons:
         for col, d in enumerate(self.days, start=1):
@@ -753,7 +896,7 @@ class FrmLocationPlanPeriod(QWidget):
             bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller)
             bt_notes.setDisabled(disable_buttons)
             self.layout.addWidget(bt_notes, row + 3, col)
-            bt_flags = ButtonFlags(self, d, 24, self.location_plan_period)
+            bt_flags = ButtonSkillGroups(self, d, 24, self.location_plan_period)
             bt_flags.setDisabled(disable_buttons)
             self.layout.addWidget(bt_flags, row + 4, col)
 
@@ -856,6 +999,48 @@ class FrmLocationPlanPeriod(QWidget):
 
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         self.reset_chk_field()
+
+    def remove_skills_from_every_event(self):
+        reply = QMessageBox.question(self, 'Fertigkeiten entfernen',
+                                     f'Möchten Sie wirklich alle Fertigkeiten aller Events in diesem '
+                                     f'Planungszeitraum von '
+                                     f'{self.location_plan_period.location_of_work.name_an_city} entfernen?')
+        if reply == QMessageBox.StandardButton.No:
+            return
+        for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
+            if not event.prep_delete:
+                for skill_group in event.skill_groups:
+                    command = event_commands.RemoveSkillGroup(event.id, skill_group.id)
+                    self.controller.execute(command)
+                    signal_handling.handler_location_plan_period.reset_styling_skills_configs(
+                        signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
+                    )
+        QMessageBox.information(self, 'Fertigkeiten entfernen',
+                                'Alle Fertigkeiten aller Events wurden erfolgreich entfernt.')
+
+    def reset_skills_of_every_event(self):
+        reply = QMessageBox.question(self, 'Fertigkeiten zurücksetzen',
+                                     f'Möchten Sie wirklich alle Fertigkeiten '
+                                     f'aller Events in diesem Planungszeitraum '
+                                     f'von {self.location_plan_period.location_of_work.name_an_city} '
+                                     f'auf die Standartwerte der Einrichtung '
+                                     f'zurücksetzen?')
+        if reply == QMessageBox.StandardButton.No:
+            return
+        for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
+            if not event.prep_delete:
+                for skill_group in event.skill_groups:
+                    command_remove = event_commands.RemoveSkillGroup(event.id, skill_group.id)
+                    self.controller.execute(command_remove)
+                location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
+                for skill_group in location_of_work.skill_groups:
+                    command_add = event_commands.AddSkillGroup(event.id, skill_group.id)
+                    self.controller.execute(command_add)
+                signal_handling.handler_location_plan_period.reset_styling_skills_configs(
+                    signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
+                )
+        QMessageBox.information(self, 'Fertigkeiten zurücksetzen',
+                                'Alle Fertigkeiten aller Events wurden erfolgreich zurückgesetzt.')
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()

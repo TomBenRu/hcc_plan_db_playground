@@ -1577,13 +1577,13 @@ class Event:
     @classmethod
     @db_session
     def get_from__location_pp_date_tod(cls, location_plan_period_id: UUID, date: datetime.date,
-                                       time_of_day_id) -> schemas.EventShow:
+                                       time_of_day_id) -> schemas.EventShow | None:
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         event_db = models.Event.get_for_update(
             lambda e: e.location_plan_period == location_plan_period_db and e.date == date and
                       e.time_of_day == models.TimeOfDay.get_for_update(id=time_of_day_id) and not e.prep_delete)
 
-        return schemas.EventShow.model_validate(event_db)
+        return schemas.EventShow.model_validate(event_db) if event_db else None
 
     @classmethod
     @db_session
@@ -2434,6 +2434,16 @@ class SkillGroup:
         log_function_info(cls)
         skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
         skill_group_db.delete()
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update(cls, skill_group: schemas.SkillGroupUpdate) -> schemas.SkillGroupShow:
+        log_function_info(cls)
+        skill_group_db = models.SkillGroup.get_for_update(id=skill_group.id)
+        skill_db = models.Skill.get_for_update(id=skill_group.skill_id)
+        skill_group_db.skill = skill_db
+        skill_group_db.nr_actors = skill_group.nr_persons
+        return schemas.SkillGroupShow.model_validate(skill_group_db)
 
 
 class Plan:

@@ -66,6 +66,7 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reload_location_pp__event_configs = Signal(object)
     signal_reset_styling_fixed_cast_configs = Signal(object)
     signal_reset_styling_notes_configs = Signal(object)
+    signal_reset_styling_skills_configs = Signal(object)
     signal_reload_location_pp__events = Signal(object)
     signal_reload_cast_groups__cast_configs = Signal(object)
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
@@ -79,6 +80,9 @@ class HandlerLocationPlanPeriod(QObject):
 
     def reset_styling_notes_configs(self, data: DataDate):
         self.signal_reset_styling_notes_configs.emit(data)
+
+    def reset_styling_skills_configs(self, data: DataDate):
+        self.signal_reset_styling_skills_configs.emit(data)
 
     def reload_location_pp__events(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__events.emit(data)

@@ -728,6 +728,12 @@ class SkillGroupCreate(BaseModel):
     nr_persons: int
 
 
+class SkillGroupUpdate(BaseModel):
+    id: UUID
+    skill_id: UUID
+    nr_persons: int
+
+
 class SkillGroup(BaseModel):
     """Legt fest, wie viele der eingesetzten Personen den Skill beherrschen müssen."""
     model_config = ConfigDict(from_attributes=True)
@@ -739,6 +745,10 @@ class SkillGroup(BaseModel):
     created_at: datetime.datetime
     last_modified: Optional[datetime.datetime]
     prep_delete: Optional[datetime.datetime]
+
+    def __eq__(self, other: 'SkillGroup'):
+        return (self.skill.id == other.skill.id
+                and self.nr_actors == other.nr_actors)
 
 
 class SkillGroupShow(SkillGroup):

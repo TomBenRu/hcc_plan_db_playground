@@ -1149,12 +1149,14 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
                                        constraints_location_prefs: list[IntVar],
                                        constraints_partner_loc_prefs: list[IntVar],
                                        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
+                                       skill_conflict_vars: list[IntVar],
                                        max_shift_of_app: IntVar
                                        ):
     # Mit den Constraints für location_prefs und partner_loc_prefs werden falsche max_shifts_per_app berechnet.
     model.Add(sum(constraints_location_prefs) == sum_location_prefs)
     # model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
+    model.Add(sum(skill_conflict_vars) == 0)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)
     model.Maximize(max_shift_of_app * 100)
 
@@ -1319,7 +1321,7 @@ def call_solver_with_unadjusted_requested_assignments(
 
     success, problems = print_solver_status(model, solver_status)
     if not success:
-        return 0, 0, 0, 0, {}, 0, False
+        return 0, 0, 0, 0, {}, {}, 0, False
     print_statistics(solver, None, unassigned_shifts_per_event,
                      sum_assigned_shifts, sum_squared_deviations,
                      constraints_partner_loc_prefs, constraints_location_prefs,
@@ -1372,6 +1374,7 @@ def call_solver_to_get_max_shifts_per_app(
             constraints_location_prefs,
             constraints_partner_loc_prefs,
             constraints_fixed_cast_conflicts,
+            skill_conflict_vars,
             max_shifts_of_app
         )
 
@@ -1420,7 +1423,7 @@ def call_solver_with_adjusted_requested_assignments(
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts, constraints_cast_rule)
+                              constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     success, problems = print_solver_status(model, solver_status)

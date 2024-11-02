@@ -1406,19 +1406,21 @@ class FrmActorPlanPeriod(QWidget):
         reply = QMessageBox.question(
             self, 'Fertigkeiten entfernen',
             'Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode entfernt werden?')
-        if reply != QMessageBox.StandardButton.No:
+        if reply == QMessageBox.StandardButton.No:
             return
+        avail_day: schemas.AvailDayShow | None = None
         for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
             if not avail_day.prep_delete:
                 for skill in avail_day.skills:
                     command = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
                     self.controller.execute(command)
-                    signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                        signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
-                    )
-        QMessageBox.information(
-            self, 'Fertigkeiten entfernen',
-            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich entfernt.')
+        if avail_day:
+            signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+            )
+            QMessageBox.information(
+                self, 'Fertigkeiten entfernen',
+                'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich entfernt.')
 
     def reset_skills_of_every_avail_day(self):
         reply = QMessageBox.question(
@@ -1427,6 +1429,7 @@ class FrmActorPlanPeriod(QWidget):
             'auf die Standardwerte des Mitarbeiters zurückgesetzt werden?')
         if reply == QMessageBox.StandardButton.No:
             return
+        avail_day: schemas.AvailDayShow | None = None
         for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
             if not avail_day.prep_delete:
                 for skill in avail_day.skills:
@@ -1436,12 +1439,13 @@ class FrmActorPlanPeriod(QWidget):
                 for skill in person.skills:
                     command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
                     self.controller.execute(command_add)
-                signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                    signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
-                )
-        QMessageBox.information(
-            self, 'Fertigkeiten zurücksetzen',
-            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
+        if avail_day:
+            signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+            )
+            QMessageBox.information(
+                self, 'Fertigkeiten zurücksetzen',
+                'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
 
 if __name__ == '__main__':
     app = QApplication()

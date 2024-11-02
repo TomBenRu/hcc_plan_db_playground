@@ -1005,18 +1005,18 @@ class FrmLocationPlanPeriod(QWidget):
                                      f'{self.location_plan_period.location_of_work.name_an_city} entfernen?')
         if reply == QMessageBox.StandardButton.No:
             return
-        event: schemas.EventShow | None = None
+
         for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
             if not event.prep_delete:
                 for skill_group in event.skill_groups:
                     command = event_commands.RemoveSkillGroup(event.id, skill_group.id)
                     self.controller.execute(command)
-        if event:
+
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
             )
-            QMessageBox.information(self, 'Fertigkeiten entfernen',
-                                'Alle Fertigkeiten aller Events wurden erfolgreich entfernt.')
+        QMessageBox.information(self, 'Fertigkeiten entfernen',
+                            'Alle Fertigkeiten aller Events wurden erfolgreich entfernt.')
 
     def reset_skills_of_every_event(self):
         reply = QMessageBox.question(self, 'Fertigkeiten zurücksetzen',
@@ -1027,7 +1027,7 @@ class FrmLocationPlanPeriod(QWidget):
                                      f'zurücksetzen?')
         if reply == QMessageBox.StandardButton.No:
             return
-        event: schemas.EventShow | None = None
+
         for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
             if not event.prep_delete:
                 for skill_group in event.skill_groups:
@@ -1037,12 +1037,12 @@ class FrmLocationPlanPeriod(QWidget):
                 for skill_group in location_of_work.skill_groups:
                     command_add = event_commands.AddSkillGroup(event.id, skill_group.id)
                     self.controller.execute(command_add)
-        if event:
+
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
             )
-            QMessageBox.information(self, 'Fertigkeiten zurücksetzen',
-                                'Alle Fertigkeiten aller Events wurden erfolgreich zurückgesetzt.')
+        QMessageBox.information(self, 'Fertigkeiten zurücksetzen',
+                            'Alle Fertigkeiten aller Events wurden erfolgreich zurückgesetzt.')
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()

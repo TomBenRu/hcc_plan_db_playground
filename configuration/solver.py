@@ -19,6 +19,7 @@ class MinimizationWeights(BaseModel):
     constraints_partner_loc_prefs: float = 0.1
     constraints_fixed_casts_conflicts: float = 1_000_000_000
     constraints_cast_rule: float = 1000
+    constraints_skills_match: float = 1000
 
 
 class ConstraintsMultipliers(BaseModel):

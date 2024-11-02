@@ -40,7 +40,7 @@ class DlgAskNrPlansToSave(QDialog):
 
 
 class SolverThread(QThread):
-    finished = Signal(object, object, object, object)  # Signal emitted when the solver finishes
+    finished = Signal(object, object, object, object, object)  # Signal emitted when the solver finishes
 
     def __init__(self, parent: QObject, plan_period_id: UUID, num_plans: int,
                  time_calc_max_shifts: int, time_calc_fair_distribution: int, time_calc_plan: int):
@@ -53,13 +53,14 @@ class SolverThread(QThread):
 
     def run(self):
         # Call the solver function here
-        (schedule_versions, fixed_cast_conflicts,
+        (schedule_versions, fixed_cast_conflicts, skill_conflicts,
          max_shifts_per_app, fair_shifts_per_app) = sat_solver.solver_main.solve(self.plan_period_id,
                                                                                  self.num_plans,
                                                                                  self.time_calc_max_shifts,
                                                                                  self.time_calc_fair_distribution,
                                                                                  self.time_calc_plan)
-        self.finished.emit(schedule_versions, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app)
+        self.finished.emit(schedule_versions, fixed_cast_conflicts, skill_conflicts,
+                           max_shifts_per_app, fair_shifts_per_app)
 
 
 class SaveThread(QThread):
@@ -229,9 +230,10 @@ class DlgCalculate(QDialog):
         self.spin_time_calculate_fair_distribution.setSingleStep(self.num_actor_plan_periods)
         self.spin_time_calculate_fair_distribution.setValue(self.num_actor_plan_periods * 50)
 
-    @Slot(object, object, object, object)
+    @Slot(object, object, object, object, object)
     def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
                         fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None,
+                        skill_conflicts: dict[str, int] | None,
                         max_shifts_per_app: dict[UUID, int] | None,
                         fair_shifts_per_app: dict[UUID, float]):
         if schedule_versions is None and fixed_cast_conflicts is None:
@@ -250,6 +252,13 @@ class DlgCalculate(QDialog):
                                          for e in events])
             QMessageBox.critical(self, 'Fehler',
                                  f'Es wurden {sum(fixed_cast_conflicts.values())} Fixcast-Konflikte gefunden.\n'
+                                 f'{conflict_string}')
+            self.reject()
+            return
+        if sum(skill_conflicts.values()) > 0:
+            conflict_string = '\n'.join([f'  - {skill}: {v}' for skill, v in skill_conflicts.items() if v > 0])
+            QMessageBox.critical(self, 'Fehler',
+                                 f'Es wurden {sum(skill_conflicts.values())} Skill-Konflikte gefunden.\n'
                                  f'{conflict_string}')
             self.reject()
             return

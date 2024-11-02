@@ -845,6 +845,41 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
     return fixed_cast_vars
 
 
+def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = False) -> list[IntVar]:
+    skill_conflict_vars = []
+
+    for eg_id, event_group in entities.event_groups_with_event.items():
+        if not event_group.event.skill_groups:
+            continue
+
+        for skill_group in event_group.event.skill_groups:
+            skill = skill_group.skill
+            num_employees_with_skill = skill_group.nr_actors
+            #  Summe aller zugewiesenen avail_day_groups mit dem skill muss >= Anzahl der Mitarbeiter mit Skill
+            skill_conflict_vars.append(
+                model.NewIntVar(
+                    -10, 10,
+                    f'{event_group.event.location_plan_period.location_of_work.name_an_city} - '
+                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}): {skill.name}')
+            )
+            num_fulfilled_cond = (sum(entities.shift_vars[(adg_id, eg_id)]
+                                       for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                                       if skill in adg.avail_day.skills))
+
+
+            if not skills_required:
+                # Differenz der Anzahl der Mitarbeiter mit Skill und der geforderten Anzahl
+                # wird der Variablen zugewiesen:
+                model.AddMaxEquality(skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond])
+            else:
+                # Anzahl der Mitarbeiter mit Skill muss größer oder gleich der geforderten Anzahl sein:
+                model.Add(sum(entities.shift_vars[(adg_id, eg_id)]
+                              for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                              if skill in adg.avail_day.skills) >= num_employees_with_skill)
+
+    return skill_conflict_vars
+
+
 def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
     unassigned_shifts_per_event = {
         event_group_id: model.NewIntVar(
@@ -1020,7 +1055,8 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
 
 def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
-                                                         dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar]]:
+                                                         dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar],
+                                                         list[IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -1051,6 +1087,9 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
     # Add constraints for cast_rules:
     constraints_cast_rule = add_constraints_cast_rules(model)
 
+    # Add constraints for skills:
+    skill_conflict_vars = add_constraints_skills(model)
+
     # Add constraints for fixed_cast:
     constraints_fixed_cast_conflicts = add_constraints_fixed_cast(model)
 
@@ -1062,7 +1101,7 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
             constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups, constraints_location_prefs,
-            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, constraints_cast_rule)
+            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule)
 
 
 def create_constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID) -> IntVar:
@@ -1075,6 +1114,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_location_prefs: list[IntVar],
                               constraints_partner_loc_prefs: list[IntVar],
                               constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
+                              skill_conflict_vars: list[IntVar],
                               constraints_cast_rule: list[IntVar]) -> None:
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
@@ -1088,6 +1128,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     weight_constraints_location_prefs = weights.constraints_location_prefs
     weight_constraints_fixed_cast_conflicts = weights.constraints_fixed_casts_conflicts
     weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
+    weight_constraints_skills = weights.constraints_skills_match
     weight_constraints_cast_rule = weights.constraints_cast_rule
 
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
@@ -1097,6 +1138,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                    + weight_constraints_location_prefs * sum(constraints_location_prefs)
                    + weight_constraints_partner_loc_prefs * sum(constraints_partner_loc_prefs)
                    + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values())
+                   + weight_constraints_skills * sum(skill_conflict_vars)
                    + weight_constraints_cast_rule * sum(constraints_cast_rule))
 
 
@@ -1257,19 +1299,20 @@ def print_solver_status(model: cp_model.CpModel, status: CpSolverStatus) -> tupl
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, max_search_time: int,
         log_search_process: bool) -> tuple[int, int, int, int,
-                                           dict[tuple[datetime.date, str, UUID], int], int, bool]:
+                                           dict[tuple[datetime.date, str, UUID], int], dict[str, int], int, bool]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups,
                               constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
                               constraints_fixed_cast_conflicts,
+                              skill_conflict_vars,
                               constraints_cast_rule)
     print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
@@ -1290,6 +1333,7 @@ def call_solver_with_unadjusted_requested_assignments(
             solver.Value(sum(constraints_location_prefs)),
             solver.Value(sum(constraints_partner_loc_prefs)),
             {key: solver.Value(int_var) for key, int_var in constraints_fixed_cast_conflicts.items()},
+            {skill_var.name: solver.Value(skill_var) for skill_var in skill_conflict_vars},
             solver.Value(sum(constraints_cast_rule)),
             success)
 
@@ -1313,7 +1357,7 @@ def call_solver_to_get_max_shifts_per_app(
         (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
          constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
          constraints_location_prefs, constraints_partner_loc_prefs,
-         constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+         constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
 
         max_shifts_of_app = create_constraint_max_shift_of_app(model, app_id)
 
@@ -1372,7 +1416,7 @@ def call_solver_with_adjusted_requested_assignments(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1444,7 +1488,7 @@ def call_solver_with__fixed_constraint_results(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
     define_objective__fixed_constraint_results(
         model, list(unassigned_shifts_per_event.values()), sum_squared_deviations,
         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
@@ -1473,7 +1517,8 @@ def call_solver_with__fixed_constraint_results(
 
 
 def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
-                              constraints_fixed_cast_conflicts:  dict[tuple[datetime.date, str, UUID], IntVar]):
+                              constraints_fixed_cast_conflicts:  dict[tuple[datetime.date, str, UUID], IntVar],
+                              skill_conflict_vars: list[IntVar]):
     indexes_shift_vars = set(entities.shift_vars.keys())
     for appointment in plan.appointments:
         event_group_id = db_services.Event.get(appointment.event.id).event_group.id
@@ -1492,6 +1537,10 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
         a = model.NewBoolVar(f'Feste Besetzung von {int_var.name}')
         model.Add(int_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
+    for skill_var in skill_conflict_vars:
+        a = model.NewBoolVar(f'Fertigkeitskonflikt: {skill_var.name}')
+        model.Add(skill_var == 0).OnlyEnforceIf(a)
+        model.AddAssumption(a)
 
 
 def call_solver_to_test_plan(plan: schemas.PlanShow,
@@ -1502,8 +1551,9 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, constraints_cast_rule) = create_constraints(model)
-    set_test_plan_constraints(model, plan, constraints_fixed_cast_conflicts)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+    set_test_plan_constraints(model, plan,
+                              constraints_fixed_cast_conflicts, skill_conflict_vars)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
     success, problems = print_solver_status(model, solver_status)
@@ -1513,7 +1563,7 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
 def _get_max_fair_shifts_and_max_shifts_to_assign(
         plan_period_id: UUID, time_calc_max_shifts: int, time_calc_fair_distribution: int,
         log_search_process=False) -> tuple[EventGroupTree, AvailDayGroupTree, dict[tuple[date, str, UUID], int],
-                                           dict[UUID, int], dict[UUID, float]] | None:
+                                           dict[str, int], dict[UUID, int], dict[UUID, float]] | None:
     signal_handling.handler_solver.progress('Vorberechnungen...')
     global entities
     entities = Entities()
@@ -1524,12 +1574,13 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
     create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_id)
 
     (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, fixed_cast_conflicts,
-     sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(event_group_tree,
-                                                                                  avail_day_group_tree,
-                                                                                  time_calc_max_shifts,
-                                                                                  log_search_process)
-    if sum(fixed_cast_conflicts.values()):
-        return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, {}, {}
+     skill_conflicts, sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(
+        event_group_tree,
+        avail_day_group_tree,
+        time_calc_max_shifts,
+        log_search_process)
+    if sum(fixed_cast_conflicts.values()) or sum(skill_conflicts.values()):
+        return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts, {}, {}
     if not success:
         return
 
@@ -1554,13 +1605,14 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
     time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
 
-    return ((event_group_tree, avail_day_group_tree, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app)
-            if success else None)
+    return ((event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts,
+             max_shifts_per_app, fair_shifts_per_app) if success else None)
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
           time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
+                                                                  dict[str, int] | None,
                                                                   dict[UUID, int] | None,
                                                                   dict[UUID, float] | None]:
 
@@ -1571,13 +1623,15 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
     success = True
     if result_shifts is None:
         success = False
-    (event_group_tree, avail_day_group_tree,
-     fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app) = result_shifts
 
     if not success:
-        return None, None, None, None
-    if sum(fixed_cast_conflicts.values()):
-        return [], fixed_cast_conflicts, None, None
+        return None, None, None, None, None
+
+    (event_group_tree, avail_day_group_tree,
+     fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app) = result_shifts
+
+    if sum(fixed_cast_conflicts.values()) or skill_conflicts:
+        return [], fixed_cast_conflicts, skill_conflicts, None, None
 
     plan_datas = []
     for n in range(1, num_plans + 1):
@@ -1590,12 +1644,12 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
                                                                     time_calc_plan,
                                                                     log_search_process)
         if not success:
-            return None, None, None, None
+            return None, None, None, None, None
         plan_datas.append(appointments)
 
     signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
 
-    return plan_datas, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app
+    return plan_datas, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app
 
 
 def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int, time_calc_fair_distribution: int,
@@ -1607,7 +1661,7 @@ def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int,
 
     if result_shifts is None:
         return False
-    _, _, fixed_cast_conflicts, max_shifts_per_app, fair_shifts_per_app = result_shifts
+    _, _, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app = result_shifts
 
     return max_shifts_per_app, fair_shifts_per_app
 

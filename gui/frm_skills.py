@@ -363,8 +363,8 @@ class DlgSelectSkills(QDialog):
             command = avail_day_commands.RemoveSkill(self.object_with_skills.id, skill_id)
         else:
             raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')
-        self.object_with_skills = command.updated_object
         self.controller.execute(command)
+        self.object_with_skills = command.updated_object
         self.table_skills.removeRow(self.table_skills.currentRow())
 
 

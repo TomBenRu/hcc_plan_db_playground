@@ -47,6 +47,7 @@ class HandlerActorPlanPeriod(QObject):
     signal_reload_actor_pp__avail_days = Signal(object)
     signal_reload_actor_pp__frm_actor_plan_period = Signal(object)
     signal_change_actor_plan_period_group_mode = Signal(object)
+    signal_reset_styling_skills_configs = Signal(object)
 
     def reload_actor_pp__avail_configs(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_configs.emit(data)
@@ -59,6 +60,9 @@ class HandlerActorPlanPeriod(QObject):
 
     def change_actor_plan_period_group_mode(self, group_mode: DataGroupMode):
         self.signal_change_actor_plan_period_group_mode.emit(group_mode)
+
+    def reset_styling_skills_configs(self, data: DataDate):
+        self.signal_reset_styling_skills_configs.emit(data)
 
 
 class HandlerLocationPlanPeriod(QObject):

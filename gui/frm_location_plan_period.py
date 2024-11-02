@@ -432,7 +432,6 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
                                     f'Anmerkungen der Events am Tag {self.date:%d.%m.} wurden geändert.')
 
 
-
 class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow):
@@ -537,6 +536,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
         event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
         dlg = DlgSkillGroups(self, event)
         if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             for event in self.events_at_day:
                 for skill_group in event.skill_groups:
                     command_remove = event_commands.RemoveSkillGroup(event.id, skill_group.id)
@@ -548,10 +548,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             self.set_stylesheet_and_tooltip()
             QMessageBox.information(self, 'Fertigkeiten der Events',
                                     f'Fertigkeiten der Events am Tag {self.date:%d.%m.} wurden geändert.')
-
-
-
-
+        else:
+            dlg.controller.undo_all()
 
 
 class FrmTabLocationPlanPeriods(QWidget):
@@ -838,10 +836,10 @@ class FrmLocationPlanPeriod(QWidget):
         self.layout.addWidget(bt_fixed_cast_reset, row + 2, 0)
         lb_notes = QLabel('Notizen')  # todo: zu Button verändern; Notizen aller Events im Zeitraum
         self.layout.addWidget(lb_notes, row + 3, 0)
-        bt_skills = QPushButton('Fertigkeiten')
-        bt_skills.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
-        self.menu_bt_skills = QMenu()
-        bt_skills.setMenu(self.menu_bt_skills)
+        bt_skills_reset_all = QPushButton('Fertigkeiten')
+        bt_skills_reset_all.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
+        self.menu_bt_skills_reset_all = QMenu()
+        bt_skills_reset_all.setMenu(self.menu_bt_skills_reset_all)
         actions_menu_bt_skills = [
             MenuToolbarAction(self,
                               os.path.join(os.path.dirname(__file__),
@@ -860,8 +858,8 @@ class FrmLocationPlanPeriod(QWidget):
                               )
         ]
         for action in actions_menu_bt_skills:
-            self.menu_bt_skills.addAction(action)
-        self.layout.addWidget(bt_skills, row + 4, 0)
+            self.menu_bt_skills_reset_all.addAction(action)
+        self.layout.addWidget(bt_skills_reset_all, row + 4, 0)
 
         # Tages-Config_Buttons:
         for col, d in enumerate(self.days, start=1):
@@ -896,9 +894,9 @@ class FrmLocationPlanPeriod(QWidget):
             bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller)
             bt_notes.setDisabled(disable_buttons)
             self.layout.addWidget(bt_notes, row + 3, col)
-            bt_flags = ButtonSkillGroups(self, d, 24, self.location_plan_period)
-            bt_flags.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_flags, row + 4, col)
+            bt_skills = ButtonSkillGroups(self, d, 24, self.location_plan_period)
+            bt_skills.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_skills, row + 4, col)
 
     def reset_chk_field(self):
         self.parent.data_setup(location_id=self.location_plan_period.location_of_work.id)

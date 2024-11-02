@@ -320,11 +320,11 @@ class AddSkill(Command):
 
     def undo(self):
         if self.updated_object:
-            db_services.Person.remove_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = db_services.Person.remove_skill(self.updated_object.id, self.skill_id)
 
     def redo(self):
         if self.updated_object:
-            db_services.Person.add_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = db_services.Person.add_skill(self.updated_object.id, self.skill_id)
 
 class RemoveSkill(Command):
     def __init__(self, person_id: UUID, skill_id: UUID):
@@ -337,8 +337,8 @@ class RemoveSkill(Command):
 
     def undo(self):
         if self.updated_object:
-            db_services.Person.add_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = db_services.Person.add_skill(self.updated_object.id, self.skill_id)
 
     def redo(self):
         if self.updated_object:
-            db_services.Person.remove_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = db_services.Person.remove_skill(self.updated_object.id, self.skill_id)

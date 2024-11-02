@@ -1973,6 +1973,14 @@ class AvailDay:
 
     @classmethod
     @db_session
+    def get_from__actor_pp_date(cls, actor_plan_period_id: UUID, date: datetime.date) -> list[schemas.AvailDayShow]:
+        avail_days_db = (models.AvailDay.select()
+                     .filter(lambda a: a.actor_plan_period.id == actor_plan_period_id)
+                     .filter(lambda a: a.date == date))
+        return [schemas.AvailDayShow.model_validate(ad) for ad in avail_days_db]
+
+    @classmethod
+    @db_session
     def get_all_from__plan_period(cls, plan_period_id: UUID) -> list[schemas.AvailDayShow]:
         plan_period_db = models.PlanPeriod.get(id=plan_period_id)
         avail_days_db = models.AvailDay.select(lambda avd: avd.plan_period == plan_period_db)

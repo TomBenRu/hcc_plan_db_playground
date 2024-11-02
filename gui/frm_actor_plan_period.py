@@ -21,6 +21,7 @@ from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_locatio
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
 from gui.custom_widgets import side_menu
 from gui.frm_remote_access_plan_api import plan_api_handler
+from gui.frm_skill_groups import DlgSkillGroups
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
@@ -596,6 +597,125 @@ class ButtonActorPartnerLocationPref(QPushButton):
                 self.set_stylesheet()
 
 
+class ButtonSkills(QPushButton):
+    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
+                 actor_plan_period: schemas.ActorPlanPeriodShow):
+        super().__init__(parent=parent)
+
+        self.setObjectName(f'skill_groups: {date}')
+        self.setMaximumWidth(width_height)
+        self.setMinimumWidth(width_height)
+        self.setMaximumHeight(width_height)
+        self.setMinimumHeight(width_height)
+
+        signal_handling.handler_actor_plan_period.signal_reset_styling_skills_configs.connect(
+            self.reset_stylesheet_and_tooltip)
+
+        self.clicked.connect(self.edit_skills_of_day)
+
+        self.date = date
+        self.actor_plan_period = actor_plan_period
+        self.controller = command_base_classes.ContrExecUndoRedo()
+        self.set_stylesheet_and_tooltip()
+
+    def set_stylesheet_and_tooltip(self):
+        self._set_avail_days_at_day()
+        self._set_stylesheet()
+        self._set_tooltip()
+
+    @Slot(object)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
+        if data.plan_period_id == self.actor_plan_period.plan_period.id and data.date == self.date:
+            self.set_stylesheet_and_tooltip()
+
+    def _set_avail_days_at_day(self):
+        self.avail_days_at_day = db_services.AvailDay.get_from__actor_pp_date(self.actor_plan_period.id, self.date)
+
+    def _check_skills_all_equal(self) -> bool | None:
+        if not self.avail_days_at_day:
+            return
+        if len({len(ad.skills) for ad in self.avail_days_at_day}) > 1:
+            return False
+        return all(sorted(ad.skills, key=lambda x: x.id)
+                   == sorted(self.avail_days_at_day[0].skills, key=lambda x: x.id)
+                   for ad in self.avail_days_at_day)
+
+    def _check_skills_all_equal_to_person_skills(self) -> bool | None:
+        if not self.avail_days_at_day:
+            return
+        if len({len(ad.skills) for ad in self.avail_days_at_day}) > 1:
+            return False
+        person_skills = db_services.Person.get(self.actor_plan_period.person.id).skills
+        return all(sorted(ad.skills, key=lambda x: x.id)
+                   == sorted(person_skills, key=lambda x: x.id)
+                   for ad in self.avail_days_at_day)
+
+    def _set_stylesheet(self):
+        if (all_equal := self._check_skills_all_equal()) is None:
+            self.setStyleSheet(
+                f"ButtonSkills {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
+                f"ButtonSkills::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
+        elif all_equal and self._check_skills_all_equal_to_person_skills():
+            self.setStyleSheet(
+                f"ButtonSkills {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
+                f"ButtonSkills::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
+        else:
+            self.setStyleSheet(
+                f"ButtonSkills {{background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
+                f"ButtonSkills::disabled {{ background-color: "
+                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
+
+    def _set_tooltip(self):
+        if not self.avail_days_at_day:
+            additional_txt = ''
+        elif self._check_skills_all_equal():
+            if not self.avail_days_at_day[0].skills:
+                additional_txt = (
+                    '\nKeine Fertigkeiten gewählt.\n'
+                    'Dies ist die Standardeinstellung für diesen Mitarbeiter.'
+                    if self._check_skills_all_equal_to_person_skills()
+                    else '\nKeine Fertigkeiten gewählt.\n'
+                    'Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.'
+                )
+            elif self._check_skills_all_equal_to_person_skills():
+                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
+                                  'sind identisch mit den Fertigkeiten des Mitarbeiters.')
+            else:
+                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
+                                  'sind gleich aber unterschiedlich zu den Fertigkeiten des Mitarbeiters.')
+        else:
+            additional_txt = '\nFertigkeiten der Events an diesem Tag sind unterschiedlich.'
+        self.setToolTip(f'Hier können die Fertigkeiten der Verfügbarkeiten am Tag {self.date:%d.%m.} bearbeitet werden.'
+                        f'{additional_txt}')
+
+    def edit_skills_of_day(self):
+        if not self.avail_days_at_day:
+            QMessageBox.information(self, 'Fertigkeiten der Verfügbarkeiten',
+                                    f'Am {self.date:%d.%m.} sind keine Verfügbarkeiten vorhanden.')
+            return
+        avail_day = next((ad for ad in self.avail_days_at_day if ad.skills), self.avail_days_at_day[0])
+        dlg = frm_skills.DlgSelectSkills(self, avail_day)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            for avail_day in self.avail_days_at_day:
+                for skill in avail_day.skills:
+                    command_remove = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
+                    self.controller.execute(command_remove)
+                for skill in dlg.object_with_skills.skills:
+                    command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
+                    self.controller.execute(command_add)
+            self.set_stylesheet_and_tooltip()
+            QMessageBox.information(self, 'Fertigkeiten der Verfügbarkeiten',
+                                    f'Fertigkeiten der Verfügbarkeiten am Tag {self.date:%d.%m.} wurden geändert.')
+        else:
+            dlg.controller.undo_all()
+
+
 class FrmTabActorPlanPeriods(QWidget):
     resize_signal = Signal()
 
@@ -780,6 +900,7 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu = side_menu
         self.setup_side_menu()
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
@@ -868,6 +989,30 @@ class FrmActorPlanPeriod(QWidget):
             'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum  '
             'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
         self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
+        bt_skills_reset_all = QPushButton('Fertigkeiten')
+        bt_skills_reset_all.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
+        self.menu_bt_skills_reset_all = QMenu()
+        bt_skills_reset_all.setMenu(self.menu_bt_skills_reset_all)
+        actions_menu_bt_skills = [
+            MenuToolbarAction(self,
+                              os.path.join(os.path.dirname(__file__),
+                                           'resources', 'toolbar_icons', 'icons', 'screwdriver--minus.png'),
+                              'Fertigkeit entfernen',
+                              'Alle Fertigkeiten von den Events in diesem Zeitraum entfernen.',
+                              self.remove_skills_from_every_avail_day,
+                              ),
+            MenuToolbarAction(self,
+                              os.path.join(os.path.dirname(__file__),
+                                           'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
+                              'Fertigkeit zurücksetzen',
+                              'Alle Fertigkeiten von den Events in diesem Zeitraum '
+                              'auf die Standartwerte der Einrichtung zurücksetzen.',
+                              self.reset_skills_of_every_avail_day,
+                              )
+        ]
+        for action in actions_menu_bt_skills:
+            self.menu_bt_skills_reset_all.addAction(action)
+        self.layout.addWidget(bt_skills_reset_all, row + 5, 0)
 
         for col, d in enumerate(self.days, start=1):
             assignment_of_person = get_curr_assignment_of_person(person, d)
@@ -901,6 +1046,9 @@ class FrmActorPlanPeriod(QWidget):
             bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period, team)
             bt_partner_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_partner_loc_prefs, row+4, col)
+            bt_skills = ButtonSkills(self, d, 24, self.actor_plan_period)
+            bt_skills.setDisabled(disable_buttons)
+            self.layout.addWidget(bt_skills, row + 5, col)
 
     def reset_chk_field(self):
         self.parent.data_setup(person_id=self.actor_plan_period.person.id)
@@ -1030,7 +1178,7 @@ class FrmActorPlanPeriod(QWidget):
                 avail_day_commands.UpdateTimeOfDays(avail_day.id, self.actor_plan_period.time_of_days))
             time_of_day = next(t_o_d for t_o_d in self.actor_plan_period.time_of_day_standards
                                if t_o_d.time_of_day_enum.time_index == avail_day.time_of_day.time_of_day_enum.time_index)
-            print(time_of_day.start)
+
             self.controller_avail_days.execute(
                 avail_day_commands.UpdateTimeOfDay(
                     avail_day,
@@ -1254,6 +1402,46 @@ class FrmActorPlanPeriod(QWidget):
 
         QMessageBox.information(self, 'Verfügbare Tage', f'Die verfügbaren Tage wurden erfolgreich heruntergeladen.')
 
+    def remove_skills_from_every_avail_day(self):
+        reply = QMessageBox.question(
+            self, 'Fertigkeiten entfernen',
+            'Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode entfernt werden?')
+        if reply != QMessageBox.StandardButton.No:
+            return
+        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
+            if not avail_day.prep_delete:
+                for skill in avail_day.skills:
+                    command = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
+                    self.controller.execute(command)
+                    signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                        signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+                    )
+        QMessageBox.information(
+            self, 'Fertigkeiten entfernen',
+            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich entfernt.')
+
+    def reset_skills_of_every_avail_day(self):
+        reply = QMessageBox.question(
+            self, 'Fertigkeiten zurücksetzen',
+            'Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode '
+            'auf die Standardwerte des Mitarbeiters zurückgesetzt werden?')
+        if reply == QMessageBox.StandardButton.No:
+            return
+        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
+            if not avail_day.prep_delete:
+                for skill in avail_day.skills:
+                    command_remove = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
+                    self.controller.execute(command_remove)
+                person = db_services.Person.get(self.actor_plan_period.person.id)
+                for skill in person.skills:
+                    command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
+                    self.controller.execute(command_add)
+                signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                    signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+                )
+        QMessageBox.information(
+            self, 'Fertigkeiten zurücksetzen',
+            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
 
 if __name__ == '__main__':
     app = QApplication()

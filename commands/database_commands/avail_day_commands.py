@@ -185,7 +185,7 @@ class RemoveSkill(Command):
     def __init__(self, avail_day_id: UUID, skill_id: UUID):
         self.avail_day_id = avail_day_id
         self.skill_id = skill_id
-        self.updated_object: schemas.PersonShow | None = None
+        self.updated_object: schemas.AvailDayShow | None = None
 
     def execute(self):
         self.updated_object = db_services.AvailDay.remove_skill(self.avail_day_id, self.skill_id)

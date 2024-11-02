@@ -707,6 +707,9 @@ class Skill(BaseModel):
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
 
+    def __eq__(self, other: 'Skill'):
+        return self.id == other.id
+
 
 class SkillShow(Skill):
     id: UUID

@@ -156,6 +156,8 @@ class ButtonAvailDay(QPushButton):
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                signal_handling.DataDate(self.actor_plan_period.plan_period.id, self.date))
         else:
             dlg.controller.undo_all()
 

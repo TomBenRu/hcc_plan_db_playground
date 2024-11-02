@@ -360,7 +360,7 @@ class DlgSelectSkills(QDialog):
             self.table_skills.setItem(len(self.object_with_skills.skills) - 1, 1, QTableWidgetItem(dlg.selected_skill.notes))
 
     def _remove_skill(self):
-        if not self.table_skills.currentRow():
+        if self.table_skills.currentRow() is None:
             return
         skill_id = self.table_skills.item(self.table_skills.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
         if isinstance(self.object_with_skills, schemas.PersonShow):

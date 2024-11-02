@@ -315,6 +315,10 @@ class DlgSelectSkills(QDialog):
         self.button_box.rejected.connect(self.reject)
         self.button_box.addButton(self.btn_add_skill, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.btn_delete_skill, QDialogButtonBox.ButtonRole.ActionRole)
+        if isinstance(self.object_with_skills, schemas.AvailDayShow):
+            self.btn_reset_skills = QPushButton("Reset Skills")
+            self.btn_reset_skills.clicked.connect(self._reset_skills)
+            self.button_box.addButton(self.btn_reset_skills, QDialogButtonBox.ButtonRole.ActionRole)
         self.layout_foot.addWidget(self.button_box)
 
     def _setup_table(self) -> QTableWidget:
@@ -356,6 +360,8 @@ class DlgSelectSkills(QDialog):
             self.table_skills.setItem(len(self.object_with_skills.skills) - 1, 1, QTableWidgetItem(dlg.selected_skill.notes))
 
     def _remove_skill(self):
+        if not self.table_skills.currentRow():
+            return
         skill_id = self.table_skills.item(self.table_skills.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
         if isinstance(self.object_with_skills, schemas.PersonShow):
             command = person_commands.RemoveSkill(self.object_with_skills.id, skill_id)
@@ -366,6 +372,22 @@ class DlgSelectSkills(QDialog):
         self.controller.execute(command)
         self.object_with_skills = command.updated_object
         self.table_skills.removeRow(self.table_skills.currentRow())
+
+    def _reset_skills(self):
+        if not isinstance(self.object_with_skills, schemas.AvailDayShow):
+            return
+        command = None
+        for skill in self.object_with_skills.skills:
+            command = avail_day_commands.RemoveSkill(self.object_with_skills.id, skill.id)
+            self.controller.execute(command)
+        person = db_services.Person.get(self.object_with_skills.actor_plan_period.person.id)
+        for skill in person.skills:
+            command = avail_day_commands.AddSkill(self.object_with_skills.id, skill.id)
+            self.controller.execute(command)
+        if command:
+            self.object_with_skills = command.updated_object
+            self.table_skills.setRowCount(0)
+            self._put_skills_in_table()
 
 
 if __name__ == '__main__':

@@ -685,7 +685,7 @@ class ButtonSkills(QPushButton):
                     'Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.'
                 )
             elif self._check_skills_all_equal_to_person_skills():
-                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
+                additional_txt = ('\nFertigkeiten der Verfügbarkeiten an diesem Tag\n'
                                   'sind identisch mit den Fertigkeiten des Mitarbeiters.')
             else:
                 additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'

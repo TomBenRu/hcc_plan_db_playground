@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
                                QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
-                               QGridLayout)
+                               QGridLayout, QScrollArea)
 
 from database import schemas, db_services
 from commands import command_base_classes
@@ -365,7 +365,12 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.group_nr_childs)
         self.layout_group_nr_childs = QGridLayout(self.group_nr_childs)
         self.group_child_variation_weights = QGroupBox('Priorisierung der untergeordneten Gruppen/Termine')
-        self.layout_body.addWidget(self.group_child_variation_weights)
+
+        # Eine Scroll-Area zu self.group_child_variation_weights hinzufügen.
+        self.scroll_area_group_child_variation_weights = QScrollArea()
+        self.scroll_area_group_child_variation_weights.setWidget(self.group_child_variation_weights)
+        self.scroll_area_group_child_variation_weights.setWidgetResizable(True)
+        self.layout_body.addWidget(self.scroll_area_group_child_variation_weights)
         self.layout_group_child_variation_weights = QGridLayout(self.group_child_variation_weights)
 
         self.lb_nr_childs = QLabel('Anzahl:')
@@ -677,7 +682,7 @@ class DlgGroupMode(QDialog):
             print(f'{data_group=}')
         else:
             if self.builder.mandatory_nr_group_field:
-                dlg = DlgGroupPropertiesAvailDay(self, item, self.builder)
+                dlg = DlgGroupPropertiesAvailDay(self, item, self.builder) #
             else:
                 dlg = DlgGroupProperties(self, item, self.builder)
             if not dlg.exec():

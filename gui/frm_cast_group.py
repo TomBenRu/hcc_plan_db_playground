@@ -175,7 +175,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
-        group = db_services.CastGroup.get(group.id)
+        group: schemas.CastGroupShow = db_services.CastGroup.get(group.id)
         fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast)
         if event:
             self.setText(TREE_HEAD_COLUMN__TITEL, 'gesetzt')
@@ -204,7 +204,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
     def calculate_earliest_date_object(self, item: 'TreeWidgetItem') -> tuple[datetime.date, int]:
-        cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        cast_group: schemas.CastGroupShow = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         if not ((event := cast_group.event) or item.childCount()):
             return datetime.date(2000, 1, 1), 0
         if event:
@@ -214,17 +214,10 @@ class TreeWidgetItem(QTreeWidgetItem):
                 if visible_childs else (datetime.date(2000, 1, 1), 0))
 
     def __lt__(self, other: 'TreeWidgetItem'):
-        column = self.treeWidget().sortColumn()
-
-        if column != 1:
+        if self.treeWidget().sortColumn() != 1:
             return False
 
-        # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__DATE_OBJECT
-        my_earliest_event = self.calculate_earliest_date_object(self)
-        other_earliest_event = self.calculate_earliest_date_object(other)
-        if my_earliest_event[0] == other_earliest_event[0]:
-            return my_earliest_event[1] < other_earliest_event[1]
-        return my_earliest_event[0] < other_earliest_event[0]
+        return self.calculate_earliest_date_object(self) < self.calculate_earliest_date_object(other)
 
 
 class TreeWidget(QTreeWidget):

@@ -21,6 +21,7 @@ from gui.observer import signal_handling
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
 from tools.screen import Screen
 
+
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
 TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR = 1
 TREE_ITEM_DATA_COLUMN__GROUP = 4
@@ -55,7 +56,7 @@ class DlgGroupModeBuilderABC(ABC):
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
-        self.get_date_object_from_group_id: Callable[[UUID], date_object_type] | None = None
+        self.get_date_object_from_group: Callable[[group_type], date_object_type] | None = None
         self.signal_handler_change__object_with_groups__group_mode: Callable[[signal_handling.DataGroupMode], None] = None
         self.text_date_object: str = ''
         self.mandatory_nr_group_field: bool = False
@@ -103,7 +104,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.get_group_from_id = db_services.AvailDayGroup.get
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
-        self.get_date_object_from_group_id = db_services.AvailDay.get_from__avail_day_group
+        self.get_date_object_from_group = lambda group: getattr(group, 'avail_day')
         self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
         self.text_date_object = 'verfügbar'
@@ -153,7 +154,7 @@ class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
         self.get_group_from_id = db_services.EventGroup.get
         self.set_new_parent_group_command = event_group_commands.SetNewParent
         self.get_nr_groups_from_group = lambda group: group.nr_event_groups
-        self.get_date_object_from_group_id = db_services.Event.get_from__event_group
+        self.get_date_object_from_group = lambda group: getattr(group, 'event')
         self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = (
             signal_handling.handler_location_plan_period.change_location_plan_period_group_mode)
@@ -197,8 +198,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
 
     def calculate_earliest_date_object(self, group: group_type) -> tuple[datetime.date, int]:
-        group = self.builder.get_group_from_id(group_id_type(group.id))
-        date_object = self.builder.get_date_object_from_group_id(group.id)
+        date_object = self.builder.get_date_object_from_group(group)
         child_groups = self.builder.get_child_groups_from__parent_group_id(group.id)
         if not (date_object or child_groups):
             return datetime.date(2000, 1, 1), 0
@@ -206,19 +206,13 @@ class TreeWidgetItem(QTreeWidgetItem):
             return date_object.date, date_object.time_of_day.time_of_day_enum.time_index
         return min(self.calculate_earliest_date_object(cg) for cg in child_groups)
 
-    def __lt__(self, other):
-        column = self.treeWidget().sortColumn()
-        my_group = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        other_group = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-
-        if column != 1:
+    def __lt__(self, other: 'TreeWidgetItem'):
+        if self.treeWidget().sortColumn() != 1:
             return False
-        # Sortiere nach benutzerdefinierten Daten in Spalte TREE_ITEM_DATA_COLUMN__DATE_OBJECT
-        my_earliest_event = self.calculate_earliest_date_object(my_group)
-        other_earliest_event = self.calculate_earliest_date_object(other_group)
-        if my_earliest_event[0] == other_earliest_event[0]:
-            return my_earliest_event[1] < other_earliest_event[1]
-        return my_earliest_event[0] < other_earliest_event[0]
+        my_group: group_type = self.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        other_group: group_type = other.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+
+        return self.calculate_earliest_date_object(my_group) < self.calculate_earliest_date_object(other_group)
 
 
 class TreeWidget(QTreeWidget):
@@ -285,7 +279,7 @@ class TreeWidget(QTreeWidget):
             children = self.builder.get_child_groups_from__parent_group_id(parent_group.id)
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
-                if date_object := self.builder.get_date_object_from_group_id(child.id):
+                if date_object := self.builder.get_date_object_from_group(child):
                     item = TreeWidgetItem(self.builder, parent, True)
                     item.configure(child, date_object, None, parent_group_nr)
                     self.builder.signal_handler_change__object_with_groups__group_mode(
@@ -301,7 +295,7 @@ class TreeWidget(QTreeWidget):
                     add_children(item, child)
 
         for child in self.builder.get_child_groups_from__parent_group_id(self.builder.master_group.id):
-            if date_object := self.builder.get_date_object_from_group_id(child.id):
+            if date_object := self.builder.get_date_object_from_group(child):
                 item = TreeWidgetItem(self.builder, self, True)
                 item.configure(child, date_object, None, 0)
                 self.builder.signal_handler_change__object_with_groups__group_mode(

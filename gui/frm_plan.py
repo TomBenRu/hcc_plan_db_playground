@@ -9,7 +9,6 @@ from PySide6.QtGui import QContextMenuEvent, QColor
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
                                QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget)
-from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
@@ -1015,7 +1014,6 @@ class FrmTabPlan(QWidget):
 
 
 class TblPlanStatistics(QTableWidget):
-    @profile
     def __init__(self, parent: QWidget, frm_plan: FrmTabPlan, plan_id: UUID):
         super().__init__(parent)
 
@@ -1119,7 +1117,6 @@ class TblPlanStatistics(QTableWidget):
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
-    @profile
     def _fill_in_table_cells(self):
         max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_all_from__plan_period_minimal(
             self.frm_plan.plan.plan_period.id)
@@ -1160,7 +1157,6 @@ class TblPlanStatistics(QTableWidget):
             item.setToolTip(f'Klick:\nAktuelle Einsätze von {full_name}\nim Plan markieren.')
             self.cells_with_action.add((self.row_kind_of_dates['current'], column))
 
-    @profile
     def _setup_data(self):
         self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.frm_plan.plan)
         self.cell_backgrounds = cell_backgrounds_statistics
@@ -1171,7 +1167,6 @@ class TblPlanStatistics(QTableWidget):
         self.item_statistics_selected: defaultdict[tuple[int, int], bool] = defaultdict(lambda: False)
         self.cells_with_action = set()
 
-    @profile
     @Slot(UUID)
     def refresh_statistics(self, plan_period_id: UUID | None):
         if self.frm_plan.plan.plan_period.id == plan_period_id or plan_period_id is None:

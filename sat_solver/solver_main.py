@@ -1542,7 +1542,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
     for idx in indexes_shift_vars:
         model.Add(entities.shift_vars[idx] == False)
     for int_var in constraints_fixed_cast_conflicts.values():
-        a = model.NewBoolVar(f'Feste Besetzung von {int_var.name}')
+        a = model.NewBoolVar(f'Feste Besetzung:\n{int_var.name}')
         model.Add(int_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
     for skill_var in skill_conflict_vars:

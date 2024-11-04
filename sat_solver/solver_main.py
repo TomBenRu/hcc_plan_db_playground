@@ -861,7 +861,7 @@ def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = Fals
                     -10, 10,
                     f'Datum: {event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name})\n'
                     f'Ort: {event_group.event.location_plan_period.location_of_work.name_an_city}\n'
-                    f'benötigt: {num_employees_with_skill} Mitarbeiter mit Fertigkeit {skill.name}')
+                    f'benötigt: {num_employees_with_skill} Mitarbeiter mit Fertigkeit "{skill.name}"')
             )
             num_fulfilled_cond = (sum(entities.shift_vars[(adg_id, eg_id)]
                                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()

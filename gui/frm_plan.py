@@ -712,9 +712,11 @@ class FrmTabPlan(QWidget):
                                     'Es wurden keine Fehler in diesem Plan festgestellt.')
         else:
             problems_txt = "\n        +\n    ".join(problems)
-            QMessageBox.critical(self, 'Besetzungsänderung',
-                                 f'Es wurden Konflikte in diesem Plan festgestellt.\n\n'
-                                 f'Unvereinbarkeiten:\n    {problems_txt}\n\n')
+            QMessageBox.critical(
+                self, 'Besetzungsänderung',
+                f'Es wurden Konflikte in diesem Plan festgestellt.<br>'
+                f'Unvereinbarkeiten:'
+                f'<div style="margin-left: 10px; margin-top: 5px; white-space: pre-wrap;">{problems_txt}</div>')
 
     def _update_statistics(self):
         num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)

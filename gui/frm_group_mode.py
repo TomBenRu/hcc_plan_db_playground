@@ -328,6 +328,8 @@ class DlgGroupProperties(QDialog):
     def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
         super().__init__(parent=parent)
 
+        self.setFixedWidth(400)
+
         self.item = item
         self.builder = builder
 

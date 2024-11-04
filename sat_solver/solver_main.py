@@ -854,13 +854,15 @@ def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = Fals
 
         for skill_group in event_group.event.skill_groups:
             skill = skill_group.skill
-            num_employees_with_skill = skill_group.nr_actors
-            #  Summe aller zugewiesenen avail_day_groups mit dem skill muss >= Anzahl der Mitarbeiter mit Skill
+            #  Summe aller zugewiesenen avail_day_groups mit dem skill muss
+            #  >= min(geforderten Anzahl der Mitarbeiter mit Skill, Besetzungsstärke)
+            num_employees_with_skill = min(skill_group.nr_actors, event_group.event.cast_group.nr_actors)
             skill_conflict_vars.append(
                 model.NewIntVar(
                     -10, 10,
                     f'{event_group.event.location_plan_period.location_of_work.name_an_city} - '
-                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}): {skill.name}')
+                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}) benötigt\n'
+                    f'{num_employees_with_skill} Mitarbeiter mit Fertigkeit {skill.name}')
             )
             num_fulfilled_cond = (sum(entities.shift_vars[(adg_id, eg_id)]
                                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
@@ -870,12 +872,16 @@ def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = Fals
             if not skills_required:
                 # Differenz der Anzahl der Mitarbeiter mit Skill und der geforderten Anzahl
                 # wird der Variablen zugewiesen:
-                model.AddMaxEquality(skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond])
+                model.AddMaxEquality(
+                    skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond]
+                )
             else:
                 # Anzahl der Mitarbeiter mit Skill muss größer oder gleich der geforderten Anzahl sein:
-                model.Add(sum(entities.shift_vars[(adg_id, eg_id)]
-                              for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
-                              if skill in adg.avail_day.skills) >= num_employees_with_skill)
+                model.Add(
+                    sum(entities.shift_vars[(adg_id, eg_id)]
+                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                        if skill in adg.avail_day.skills) >= num_employees_with_skill
+                )
 
     return skill_conflict_vars
 
@@ -1541,7 +1547,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
         model.Add(int_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
     for skill_var in skill_conflict_vars:
-        a = model.NewBoolVar(f'Fertigkeitskonflikt: {skill_var.name}')
+        a = model.NewBoolVar(f'Fertigkeitskonflikt:\n{skill_var.name}')
         model.Add(skill_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
 

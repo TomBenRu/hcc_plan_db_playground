@@ -830,10 +830,9 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
                                   .replace('in team', ''))
 
         text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast)
-        text_fixed_cast_var = (f'{text_fixed_cast_persons}\n'
-                               f'    am: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
-                               f'    Ort: {cast_group.event.location_plan_period.location_of_work.name} '
-                               f'{cast_group.event.location_plan_period.location_of_work.address.city}')
+        text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
+                               f'Ort: {cast_group.event.location_plan_period.location_of_work.name_an_city}\n'
+                               f'Besetzung: {text_fixed_cast_persons}')
 
         fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)] = (
             model.NewBoolVar(text_fixed_cast_var)
@@ -860,9 +859,9 @@ def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = Fals
             skill_conflict_vars.append(
                 model.NewIntVar(
                     -10, 10,
-                    f'{event_group.event.location_plan_period.location_of_work.name_an_city} - '
-                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}) benötigt\n'
-                    f'{num_employees_with_skill} Mitarbeiter mit Fertigkeit {skill.name}')
+                    f'Datum: {event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name})\n'
+                    f'Ort: {event_group.event.location_plan_period.location_of_work.name_an_city}\n'
+                    f'benötigt: {num_employees_with_skill} Mitarbeiter mit Fertigkeit {skill.name}')
             )
             num_fulfilled_cond = (sum(entities.shift_vars[(adg_id, eg_id)]
                                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()

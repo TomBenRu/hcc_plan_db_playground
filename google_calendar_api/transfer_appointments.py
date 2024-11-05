@@ -16,9 +16,6 @@ from google_calendar_api.del_calendar_events import delete_events_in_range
 from gui.observer import signal_handling
 
 
-# todo: implement batch requests for better performance
-
-
 def callback(request_id, response, exception):
     if exception is not None:
         print(f"Request {request_id} failed: {exception}")
@@ -136,7 +133,10 @@ def create_google_event(appointment: schemas.Appointment):
     names_of_employees = [avd.actor_plan_period.person.full_name for avd in appointment.avail_days] + appointment.guests
     event_obj = GoogleCalendarEvent(
         summary=appointment.event.location_plan_period.location_of_work.name_an_city,
-        location=appointment.event.location_plan_period.location_of_work.name_an_city,
+        location=f'{appointment.event.location_plan_period.location_of_work.name}, '
+                 f'{appointment.event.location_plan_period.location_of_work.address.street}, '
+                 f'{appointment.event.location_plan_period.location_of_work.address.postal_code} '
+                 f'{appointment.event.location_plan_period.location_of_work.address.city}',
         description=', '.join(names_of_employees) + (f'\nInfo: {appointment.notes}' if appointment.notes else ''),
         start_time=datetime.datetime(appointment.event.date.year, appointment.event.date.month,
                                      appointment.event.date.day, appointment.event.time_of_day.start.hour,

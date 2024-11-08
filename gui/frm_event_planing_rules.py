@@ -6,9 +6,24 @@ from uuid import UUID
 
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayout, QComboBox, QCalendarWidget, QSpinBox,
                                QDialogButtonBox, QPushButton, QCheckBox, QMessageBox)
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate
+from pydantic import BaseModel
 
 from database import db_services, schemas
+
+
+class  RulesData(BaseModel):
+    first_day: datetime.date | None = None
+    time_of_day: schemas.TimeOfDay | None = None
+    interval: int | None = None
+    repeat: int | None = None
+    num_events: int | None = None
+
+
+class Rules(BaseModel):
+    rules_data: list[RulesData] = []
+    same_cast_at_same_day: bool = False
+    same_partial_days_for_all_rules: bool = False
 
 
 class DlgFirstDay(QDialog):
@@ -60,7 +75,7 @@ class DlgEventPlaningRules(QDialog):
         self.layout.addLayout(self.layout_check_boxes)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("Hier können Sie festlegen, wie Sie die Veranstaltung planen möchten.")
+        self.lb_description = QLabel("Hier können Sie festlegen, wie Sie die Events planen möchten.")
         self.layout_head.addWidget(self.lb_description)
 
 
@@ -96,6 +111,7 @@ class DlgEventPlaningRules(QDialog):
         self.widgets_for_rules: defaultdict[int, dict[str, QComboBox | QSpinBox | QPushButton]] = defaultdict(dict)
         self.rules_widgets = [self._button_first_day, self._combobox_time_of_day, self._spinbox_interval,
                               self._spinbox_repeat, self._spinbox_num_events]
+        self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self.rules_data: defaultdict[int, defaultdict[str, datetime.date | schemas.TimeOfDay | int]] = defaultdict(lambda: defaultdict())
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period_id)
         self.plan_period = self.location_plan_period.plan_period
@@ -116,12 +132,14 @@ class DlgEventPlaningRules(QDialog):
             combobox.addItem(time_of_day.name, time_of_day)
         combobox.currentIndexChanged.connect(partial(self._combobox_time_of_day_changed,rule_index))
         self.rules_data[rule_index]['time_of_day'] = times_of_day[0]
+        self._rules_data[rule_index].time_of_day = times_of_day[0]
         return combobox
 
     def _button_first_day(self, rule_index: int):
         button = QPushButton(self.plan_period.start.strftime('%d.%m.%Y'))
         button.clicked.connect(partial(self._show_calendar, rule_index))
         self.rules_data[rule_index]['first_day'] = self.plan_period.start
+        self._rules_data[rule_index].first_day = self.plan_period.start
         return button
 
     def _spinbox_interval(self, rule_index: int):
@@ -129,6 +147,7 @@ class DlgEventPlaningRules(QDialog):
         spinbox.setMinimum(1)
         spinbox.valueChanged.connect(partial(self._spinbox_interval_changed, rule_index))
         self.rules_data[rule_index]['interval'] = 1
+        self._rules_data[rule_index].interval = 1
         return spinbox
 
     def _spinbox_repeat(self, rule_index: int):
@@ -136,6 +155,7 @@ class DlgEventPlaningRules(QDialog):
         spinbox.setMinimum(0)
         spinbox.valueChanged.connect(lambda: self._spinbox_repeat_changed(rule_index))
         self.rules_data[rule_index]['repeat'] = 0
+        self._rules_data[rule_index].repeat = 0
         return spinbox
 
     def _spinbox_num_events(self, rule_index: int):
@@ -143,6 +163,7 @@ class DlgEventPlaningRules(QDialog):
         spinbox.setMinimum(1)
         spinbox.valueChanged.connect(lambda: self._spinbox_num_events_changed(rule_index))
         self.rules_data[rule_index]['num_events'] = 1
+        self._rules_data[rule_index].num_events = 1
         return spinbox
 
     def _spinbox_repeat_changed(self, rule_index: int, *args):
@@ -156,6 +177,7 @@ class DlgEventPlaningRules(QDialog):
             widget_repeat.setValue(widget_repeat.value() - 1)
         self._spinbox_num_events_changed(rule_index)
         self.rules_data[rule_index]['repeat'] = widget_repeat.value()
+        self._rules_data[rule_index].repeat = widget_repeat.value()
         self._enable_same_partial_days_checkbox()
 
     def _spinbox_num_events_changed(self, rule_index: int, *args):
@@ -164,22 +186,32 @@ class DlgEventPlaningRules(QDialog):
         if widget_num_events.value() > repeats + 1:
             widget_num_events.setValue(repeats + 1)
         self.rules_data[rule_index]['num_events'] = widget_num_events.value()
+        self._rules_data[rule_index].num_events = widget_num_events.value()
         self._enable_same_partial_days_checkbox()
 
     def _combobox_time_of_day_changed(self, rule_index: int, *args):
         combobox = self.widgets_for_rules[rule_index]['Tageszeit']
         self.rules_data[rule_index]['time_of_day'] = combobox.currentData()
+        self._rules_data[rule_index].time_of_day = combobox.currentData()
 
     def _spinbox_interval_changed(self, rule_index: int, value: int):
         self.rules_data[rule_index]['interval'] = value
+        self._rules_data[rule_index].interval = value
         self._enable_same_partial_days_checkbox()
 
     def _enable_same_partial_days_checkbox(self):
-        if (all(r['first_day'] == self.rules_data[1]['first_day']
-               and r['num_events'] == self.rules_data[1]['num_events']
-               and r['interval'] == self.rules_data[1]['interval']
-               for r in self.rules_data.values())
-            and all(r['repeat'] + 1 != r['num_events'] for r in self.rules_data.values())):
+        if len(self._rules_data) == 1:
+            if self.chk_same_partial_days_for_all_rules.isEnabled():
+                self.chk_same_partial_days_for_all_rules.setChecked(False)
+                self.chk_same_partial_days_for_all_rules.setDisabled(True)
+            else:
+                return
+
+        if (all(r.first_day == self._rules_data[1].first_day
+               and r.num_events == self._rules_data[1].num_events
+               and r.interval == self._rules_data[1].interval
+               for r in self._rules_data.values())
+            and all(r.repeat + 1 != r.num_events for r in self._rules_data.values())):
             self.chk_same_partial_days_for_all_rules.setEnabled(True)
         else:
             self.chk_same_partial_days_for_all_rules.setChecked(False)
@@ -188,6 +220,9 @@ class DlgEventPlaningRules(QDialog):
 
     @property
     def rules(self) -> tuple[defaultdict[int, defaultdict[str, datetime.date | schemas.TimeOfDay | int]], bool, bool]:
+        # return Rules(rules_data=list(self._rules_data.values()),
+        #              same_cast_at_same_day=self.chk_same_cast_at_same_day.isChecked(),
+        #              same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked())
         return (self.rules_data,
                 self.chk_same_cast_at_same_day.isChecked(),
                 self.chk_same_partial_days_for_all_rules.isChecked())

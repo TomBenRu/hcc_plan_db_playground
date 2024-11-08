@@ -75,6 +75,7 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reload_cast_groups__cast_configs = Signal(object)
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
     signal_change_location_plan_period_group_mode = Signal(object)
+    signal_reset_check_field = Signal(UUID)
 
     def reload_location_pp__event_configs(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__event_configs.emit(data)
@@ -99,6 +100,9 @@ class HandlerLocationPlanPeriod(QObject):
 
     def reload_cast_groups__cast_configs(self, data: DataDate):
         self.signal_reload_cast_groups__cast_configs.emit(data)
+
+    def reset_check_field(self, location_plan_period_id: UUID):
+        self.signal_reset_check_field.emit(location_plan_period_id)
 
 
 class HandlerPlanTabs(QObject):

@@ -749,8 +749,7 @@ class FrmLocationPlanPeriod(QWidget):
         signal_handling.handler_location_plan_period.signal_reload_location_pp__frm_location_plan_period.connect(
             self.reload_location_plan_period)
         signal_handling.handler_show_dialog.signal_show_dlg_event_group.connect(self._change_mode__event_group)
-
-        self.data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period)
+        signal_handling.handler_location_plan_period.signal_reset_check_field.connect(self._reset_chk_field)
 
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
@@ -760,6 +759,7 @@ class FrmLocationPlanPeriod(QWidget):
         self.setup_side_menu()
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+        self.data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period, self.controller)
         self.location_plan_period = location_plan_period
         self.t_o_d_standards: list[schemas.TimeOfDay] = []
         self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
@@ -781,7 +781,8 @@ class FrmLocationPlanPeriod(QWidget):
         self.side_menu.delete_all_buttons()
         bt_nr_actors = QPushButton('Besetzungsstärke', clicked=self.set_nr_actors)
         self.side_menu.add_button(bt_nr_actors)
-        bt_event_planing_rules = QPushButton('Ereignis-Regeln', clicked=self.set_event_planing_rules)
+        bt_event_planing_rules = QPushButton('Events nach Regeln festlegen',
+                                             clicked=self.make_events_from_planing_rules)
         self.side_menu.add_button(bt_event_planing_rules)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
@@ -901,6 +902,11 @@ class FrmLocationPlanPeriod(QWidget):
     def reset_chk_field(self):
         self.parent.data_setup(location_id=self.location_plan_period.location_of_work.id)
 
+    @Slot(UUID)
+    def _reset_chk_field(self, location_plan_period_id: UUID):
+        if location_plan_period_id == self.location_plan_period.id:
+            self.reset_chk_field()
+
     def create_event_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonEvent:
         # sourcery skip: inline-immediately-returned-variable
         button = ButtonEvent(self, date, time_of_day, 24, self.location_plan_period,
@@ -969,11 +975,13 @@ class FrmLocationPlanPeriod(QWidget):
     def set_nr_actors(self):  # todo: noch implementieren
         ...
 
-    def set_event_planing_rules(self):
+    def make_events_from_planing_rules(self):
         master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
             self.location_plan_period.id)
         dlg = frm_event_planing_rules.DlgEventPlaningRules(self, self.location_plan_period.id)
         if dlg.exec():
+            self.data_processor.make_events_from_planning_rules(dlg)
+            return
             events: list[dict[datetime.date, schemas.EventShow]] = []
             for rule in dlg.rules[0].values():
                 events.append({})

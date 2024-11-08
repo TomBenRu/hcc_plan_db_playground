@@ -7,19 +7,21 @@ from PySide6.QtWidgets import QWidget, QMessageBox
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
-from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands
+from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands, \
+    event_group_commands
 from database import schemas, db_services
-from gui import concurrency
+from gui import concurrency, frm_event_planing_rules
 from gui.concurrency import general_worker
 from gui.custom_widgets.progress_bars import DlgProgressInfinite
 from gui.observer import signal_handling
 
 
 class LocationPlanPeriodData:
-    def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):
+    def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow,
+                 controller: command_base_classes.ContrExecUndoRedo):
         self.parent = parent
         self.location_plan_period = location_plan_period
-        self.controller = command_base_classes.ContrExecUndoRedo()
+        self.controller = controller
         self.thread_pool = QThreadPool()
         self.worker_save_event = None
         self.progress_bar_save_event = DlgProgressInfinite(
@@ -31,6 +33,9 @@ class LocationPlanPeriodData:
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         (signal_handling.handler_location_plan_period
          .reload_location_pp_on__frm_location_plan_period(self.location_plan_period))
+
+    def reset_check_field(self):
+        signal_handling.handler_location_plan_period.reset_check_field(self.location_plan_period.id)
 
     def save_event(self, date: datetime.date, time_of_day: schemas.TimeOfDay, mode: Literal['added', 'deleted']):
         if mode == 'added':
@@ -159,3 +164,97 @@ class LocationPlanPeriodData:
 
     def _reset_plan_location_columns(self, plan_id: UUID):
         self.controller.execute(plan_commands.UpdateLocationColumns(plan_id, {}))
+
+    def make_events_from_planning_rules(self, dlg: frm_event_planing_rules.DlgEventPlaningRules):
+        master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
+            self.location_plan_period.id)
+
+        events = self._create_events_from_rules(dlg.rules[0], dlg.rules[2], master_event_group.id)
+
+        if dlg.rules[2]:
+            event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.rules[0])
+
+        if dlg.rules[1] and len(events) > 1:
+            self._create_cast_groups_for_same_day_events(events)
+
+        self.reload_location_plan_period()
+        self.reset_check_field()
+
+    def _create_events_from_rules(self, rules, same_partial_days_for_all_rules: bool, master_event_group_id: UUID):
+        """Erstellt Ereignisse basierend auf den gegebenen Regeln."""
+        events = []
+        for rule in rules.values():
+            events.append({})
+            for n in range(rule['repeat'] + 1):
+                event = schemas.EventCreate(
+                    location_plan_period=self.location_plan_period,
+                    date=rule['first_day'] + datetime.timedelta(n * rule['interval']),
+                    time_of_day=rule['time_of_day'], flags=[]
+                )
+                command = event_commands.Create(event)
+                self.controller.execute(command)
+                events[-1][command.created_event.date] = command.created_event
+
+            if rule['num_events'] < rule['repeat'] + 1 and not same_partial_days_for_all_rules:
+                new_event_group = self._create_event_group(master_event_group_id, rule['num_events'])
+                self._assign_events_to_group(events[-1], new_event_group)
+        return events
+
+    def _group_events_by_day(self, events, master_event_group, rules):
+        """Gruppiert Ereignisse nach Tagen und erstellt neue Eventgruppen."""
+        event_groups_same_day = []
+        for date in events[-1]:
+            events_same_day = [e[date] for e in events]
+            new_group = self._create_event_group(master_event_group.id)
+            event_groups_same_day.append(new_group)
+            for e in events_same_day:
+                command = event_group_commands.SetNewParent(e.event_group.id, new_group.id)
+                self.controller.execute(command)
+
+        rule_0 = list(rules.values())[0]
+        if rule_0['num_events'] < rule_0['repeat'] + 1:
+            new_event_group = self._create_event_group(master_event_group.id)
+            for eg in event_groups_same_day:
+                command = event_group_commands.SetNewParent(eg.id, new_event_group.id)
+                self.controller.execute(command)
+            self.controller.execute(
+                event_group_commands.UpdateNrEventGroups(new_event_group.id, rule_0['num_events'])
+            )
+        return event_groups_same_day
+
+    def _create_cast_groups_for_same_day_events(self, events):
+        """Erstellt und verbindet Cast-Gruppen für Ereignisse am gleichen Tag."""
+        for date, event in events[0].items():
+            if same_day_events := [e[date] for e in events[1:] if date in e]:
+                command = cast_group_commands.Create(self.location_plan_period.plan_period.id)
+                self.controller.execute(command)
+                new_cast_group = command.created_cast_group
+
+                same_day_events.append(event)
+                for e in same_day_events:
+                    command = cast_group_commands.SetNewParent(e.cast_group.id, new_cast_group.id)
+                    self.controller.execute(command)
+                self.controller.execute(
+                    cast_group_commands.UpdateCustomRule(new_cast_group.id, '~')
+                )
+                self.controller.execute(
+                    cast_group_commands.UpdateNrActors(new_cast_group.id, self.location_plan_period.nr_actors)
+                )
+
+    def _create_event_group(self, master_group_id, num_events=None):
+        """Erstellt eine neue Ereignisgruppe und aktualisiert, falls erforderlich, die Anzahl der Events."""
+        command = event_group_commands.Create(event_avail_day_group_id=master_group_id)
+        self.controller.execute(command)
+        new_event_group = command.created_group
+        if num_events is not None:
+            self.controller.execute(
+                event_group_commands.UpdateNrEventGroups(new_event_group.id, num_events)
+            )
+        return new_event_group
+
+    def _assign_events_to_group(self, events, event_group):
+        """Weist Ereignisse einer Gruppe zu."""
+        for event in events.values():
+            command = event_group_commands.SetNewParent(event.event_group.id, event_group.id)
+            self.controller.execute(command)
+

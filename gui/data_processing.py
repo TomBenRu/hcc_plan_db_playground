@@ -169,38 +169,41 @@ class LocationPlanPeriodData:
         master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
             self.location_plan_period.id)
 
-        events = self._create_events_from_rules(dlg.rules[0], dlg.rules[2], master_event_group.id)
+        events = self._create_events_from_rules(dlg.rules.rules_data,
+                                                dlg.rules.same_partial_days_for_all_rules,
+                                                master_event_group.id)
 
-        if dlg.rules[2]:
-            event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.rules[0])
+        if dlg.rules.same_partial_days_for_all_rules:
+            event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.rules.rules_data)
 
-        if dlg.rules[1] and len(events) > 1:
+        if dlg.rules.same_cast_at_same_day and len(events) > 1:
             self._create_cast_groups_for_same_day_events(events)
 
         self.reload_location_plan_period()
         self.reset_check_field()
 
-    def _create_events_from_rules(self, rules, same_partial_days_for_all_rules: bool, master_event_group_id: UUID):
+    def _create_events_from_rules(self, rules: list[frm_event_planing_rules.RulesData],
+                                  same_partial_days_for_all_rules: bool, master_event_group_id: UUID):
         """Erstellt Ereignisse basierend auf den gegebenen Regeln."""
         events = []
-        for rule in rules.values():
+        for rule in rules:
             events.append({})
-            for n in range(rule['repeat'] + 1):
+            for n in range(rule.repeat + 1):
                 event = schemas.EventCreate(
                     location_plan_period=self.location_plan_period,
-                    date=rule['first_day'] + datetime.timedelta(n * rule['interval']),
-                    time_of_day=rule['time_of_day'], flags=[]
+                    date=rule.first_day + datetime.timedelta(n * rule.interval),
+                    time_of_day=rule.time_of_day, flags=[]
                 )
                 command = event_commands.Create(event)
                 self.controller.execute(command)
                 events[-1][command.created_event.date] = command.created_event
 
-            if rule['num_events'] < rule['repeat'] + 1 and not same_partial_days_for_all_rules:
-                new_event_group = self._create_event_group(master_event_group_id, rule['num_events'])
+            if rule.num_events < rule.repeat + 1 and not same_partial_days_for_all_rules:
+                new_event_group = self._create_event_group(master_event_group_id, rule.num_events)
                 self._assign_events_to_group(events[-1], new_event_group)
         return events
 
-    def _group_events_by_day(self, events, master_event_group, rules):
+    def _group_events_by_day(self, events, master_event_group, rules: list[frm_event_planing_rules.RulesData]):
         """Gruppiert Ereignisse nach Tagen und erstellt neue Eventgruppen."""
         event_groups_same_day = []
         for date in events[-1]:
@@ -211,14 +214,14 @@ class LocationPlanPeriodData:
                 command = event_group_commands.SetNewParent(e.event_group.id, new_group.id)
                 self.controller.execute(command)
 
-        rule_0 = list(rules.values())[0]
-        if rule_0['num_events'] < rule_0['repeat'] + 1:
+        rule_0 = rules[0]
+        if rule_0.num_events < rule_0.repeat + 1:
             new_event_group = self._create_event_group(master_event_group.id)
             for eg in event_groups_same_day:
                 command = event_group_commands.SetNewParent(eg.id, new_event_group.id)
                 self.controller.execute(command)
             self.controller.execute(
-                event_group_commands.UpdateNrEventGroups(new_event_group.id, rule_0['num_events'])
+                event_group_commands.UpdateNrEventGroups(new_event_group.id, rule_0.num_events)
             )
         return event_groups_same_day
 

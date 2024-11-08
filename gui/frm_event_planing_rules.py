@@ -84,7 +84,8 @@ class DlgEventPlaningRules(QDialog):
 
         for column, text in enumerate(self.header_text):
             lb_text = QLabel(text)
-            lb_text.setStyleSheet("font-weight: bold; background-color: #00123a;")
+            lb_text.setStyleSheet("font-weight: bold; background-color: #00123a; "
+                                  "padding-left: 5px; padding-right: 5px; padding-top: 10px; padding-bottom: 10px;")
             self.layout_body.addWidget(lb_text, 0, column)
         self._add_rule()
 

@@ -844,7 +844,7 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
     return fixed_cast_vars
 
 
-def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = False) -> list[IntVar]:
+def add_constraints_skills(model: cp_model.CpModel) -> list[IntVar]:
     skill_conflict_vars = []
 
     for eg_id, event_group in entities.event_groups_with_event.items():
@@ -867,20 +867,11 @@ def add_constraints_skills(model: cp_model.CpModel, skills_required: bool = Fals
                                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
                                        if skill in adg.avail_day.skills))
 
-
-            if not skills_required:
-                # Differenz der Anzahl der Mitarbeiter mit Skill und der geforderten Anzahl
-                # wird der Variablen zugewiesen:
-                model.AddMaxEquality(
-                    skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond]
-                )
-            else:
-                # Anzahl der Mitarbeiter mit Skill muss größer oder gleich der geforderten Anzahl sein:
-                model.Add(
-                    sum(entities.shift_vars[(adg_id, eg_id)]
-                        for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
-                        if skill in adg.avail_day.skills) >= num_employees_with_skill
-                )
+            # Differenz der Anzahl der Mitarbeiter mit Skill und der geforderten Anzahl
+            # wird der Variablen zugewiesen:
+            model.AddMaxEquality(
+                skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond]
+            )
 
     return skill_conflict_vars
 
@@ -1048,6 +1039,9 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
 
 
 def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
+    """
+    Wird verwendet um die maximal möglichen Shifts eines Mitarbeiters zu bestimmen.
+    """
     max_shifts_of_app = model.NewIntVar(0, 1000, 'max_sifts')
     model.Add(
         max_shifts_of_app == sum(

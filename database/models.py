@@ -261,6 +261,8 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     # actor_partner_location_prefs, die nicht im Set vorkommen werden mit Score=1 gewertet.
     actor_location_prefs_defaults = Set('ActorLocationPref')
 
+    composite_key(actor_plan_period, date, time_of_day)
+
     @property
     def project(self):
         return self.actor_plan_period.project
@@ -485,12 +487,6 @@ class EventGroup(db.Entity):
                               'oder genau einer Location PlanPeriod zugeordnet sein.')
 
 
-# todo fixme: CastGroup für location_plan_period-übergreifende Einstellungen hinzufügen
-#             location_plan_period kommt weg - team kommt dazu -
-#             aus cast_groups wird child_groups - aus cast_group wird parent_group.
-#             Besetzungsgruppen werden in einem Dialog bearbeitet, der unabhängig von Planungsperiode und Location ist.
-#             Filterfunktionen des Dialogs sind:
-#             - Zeitraum (evtl. Planungsperiode), Location
 class CastGroup(db.Entity):
     """child_groups können mehr als 1 parent_group haben. Ein Grund dafür könnte z.B. sein:
     Die Besetzungen von 2 aufeinanderfolgenden Tage haben jeweils Regeln (1. Tag: gleiche Besetzung von Spät-

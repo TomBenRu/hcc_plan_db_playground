@@ -14,14 +14,15 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
-from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing
+from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
+    frm_event_planing_rules
 from gui.custom_widgets import side_menu
 from gui.frm_notes import DlgEventNotes
 from gui.frm_skill_groups import DlgSkillGroups
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import event_commands, cast_group_commands
+from commands.database_commands import event_commands, cast_group_commands, event_group_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 from line_profiler_pycharm import profile
@@ -224,9 +225,6 @@ class ButtonEvent(QPushButton):
     @Slot()
     def button_clicked(self):
         self.slot__event_toggled(self)
-        signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-            signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
-        )
 
 
 class ButtonFixedCast(QPushButton):
@@ -783,6 +781,8 @@ class FrmLocationPlanPeriod(QWidget):
         self.side_menu.delete_all_buttons()
         bt_nr_actors = QPushButton('Besetzungsstärke', clicked=self.set_nr_actors)
         self.side_menu.add_button(bt_nr_actors)
+        bt_event_planing_rules = QPushButton('Ereignis-Regeln', clicked=self.set_event_planing_rules)
+        self.side_menu.add_button(bt_event_planing_rules)
         bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
         bt_reset_all_event_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_event_t_o_ds)
@@ -968,6 +968,78 @@ class FrmLocationPlanPeriod(QWidget):
 
     def set_nr_actors(self):  # todo: noch implementieren
         ...
+
+    def set_event_planing_rules(self):
+        master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
+            self.location_plan_period.id)
+        dlg = frm_event_planing_rules.DlgEventPlaningRules(self, self.location_plan_period.id)
+        if dlg.exec():
+            events: list[dict[datetime.date, schemas.EventShow]] = []
+            for rule in dlg.rules[0].values():
+                events.append({})
+                for n in range(rule['repeat'] + 1):
+                    event = schemas.EventCreate(
+                        location_plan_period=self.location_plan_period,
+                        date=rule['first_day'] + datetime.timedelta(n * rule['interval']),
+                        time_of_day=rule['time_of_day'], flags=[]
+                    )
+                    command = event_commands.Create(event)
+                    self.controller.execute(command)
+                    events[-1][command.created_event.date] = command.created_event
+                if rule['num_events'] < rule['repeat'] + 1 and not dlg.rules[2]:
+                    command = event_group_commands.Create(event_avail_day_group_id=master_event_group.id)
+                    self.controller.execute(command)
+                    new_event_group = command.created_group
+                    self.controller.execute(
+                        event_group_commands.UpdateNrEventGroups(new_event_group.id, rule['num_events'])
+                    )
+                    for event in events[-1].values():
+                        command = event_group_commands.SetNewParent(event.event_group.id, new_event_group.id)
+                        self.controller.execute(command)
+            if dlg.rules[2]:
+                event_groups_same_day: list[schemas.EventGroupShow] = []
+                for date in events[-1]:
+                    events_same_day = [e[date] for e in events]
+                    command = event_group_commands.Create(event_avail_day_group_id=master_event_group.id)
+                    self.controller.execute(command)
+                    event_groups_same_day.append(command.created_group)
+                    for e in events_same_day:
+                        command = event_group_commands.SetNewParent(e.event_group.id, event_groups_same_day[-1].id)
+                        self.controller.execute(command)
+                rule_0 = list(dlg.rules[0].values())[0]
+                if rule_0['num_events'] < rule_0['repeat'] + 1:
+                    command = event_group_commands.Create(event_avail_day_group_id=master_event_group.id)
+                    self.controller.execute(command)
+                    new_event_group = command.created_group
+                    for eg in event_groups_same_day:
+                        command = event_group_commands.SetNewParent(eg.id, new_event_group.id)
+                        self.controller.execute(command)
+                    self.controller.execute(
+                        event_group_commands.UpdateNrEventGroups(new_event_group.id, rule['num_events'])
+                    )
+            if dlg.rules[1] and len(events) > 1:
+                for (date, event) in events[0].items():
+                    same_day_events = []
+                    for e in events[1:]:
+                        if e.get(date):
+                            same_day_events.append(e[date])
+                    if same_day_events:
+                        command = cast_group_commands.Create(self.location_plan_period.plan_period.id)
+                        self.controller.execute(command)
+                        new_cast_group = command.created_cast_group
+                        same_day_events.append(event)
+                        for e in same_day_events:
+                            command = cast_group_commands.SetNewParent(e.cast_group.id, new_cast_group.id)
+                            self.controller.execute(command)
+                        self.controller.execute(
+                            cast_group_commands.UpdateCustomRule(new_cast_group.id, '~')
+                        )
+                        self.controller.execute(
+                            cast_group_commands.UpdateNrActors(new_cast_group.id, self.location_plan_period.nr_actors)
+                        )
+
+            self.reload_location_plan_period()
+            self.reset_chk_field()
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()

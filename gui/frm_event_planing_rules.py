@@ -195,12 +195,11 @@ class DlgEventPlaningRules(QDialog):
 
     def _enable_same_partial_days_checkbox(self):
         if len(self._rules_data) == 1:
-            if self.chk_same_partial_days_for_all_rules.isEnabled():
-                self.chk_same_partial_days_for_all_rules.setChecked(False)
-                self.chk_same_partial_days_for_all_rules.setDisabled(True)
-            else:
+            if not self.chk_same_partial_days_for_all_rules.isEnabled():
                 return
 
+            self.chk_same_partial_days_for_all_rules.setChecked(False)
+            self.chk_same_partial_days_for_all_rules.setDisabled(True)
         if (all(r.first_day == self._rules_data[1].first_day
                and r.num_events == self._rules_data[1].num_events
                and r.interval == self._rules_data[1].interval

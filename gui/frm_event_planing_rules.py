@@ -90,6 +90,7 @@ class DlgEventPlaningRules(QDialog):
         self._add_rule()
 
         self.chk_same_cast_at_same_day = QCheckBox('Gleiche Besetzung am selben Tag')
+        self.chk_same_cast_at_same_day.setDisabled(True)
         self.layout_check_boxes.addWidget(self.chk_same_cast_at_same_day)
         self.chk_same_partial_days_for_all_rules = QCheckBox('Gleiche Tageswahl für alle Regeln')
         self.chk_same_partial_days_for_all_rules.setDisabled(True)
@@ -128,6 +129,7 @@ class DlgEventPlaningRules(QDialog):
             self.widgets_for_rules[rule_index][text] = curr_widget
         if len(self.widgets_for_rules) > 1:
             self._enable_same_partial_days_checkbox()
+            self._enable_same_cast_at_same_day_checkbox()
 
     def _combobox_time_of_day(self, rule_index: int):
         combobox = QComboBox()
@@ -194,6 +196,13 @@ class DlgEventPlaningRules(QDialog):
         self._rules_data[rule_index].interval = value
         self._enable_same_partial_days_checkbox()
 
+    def _enable_same_cast_at_same_day_checkbox(self):
+        if len(self._rules_data) > 1:
+            self.chk_same_cast_at_same_day.setEnabled(True)
+        else:
+            self.chk_same_cast_at_same_day.setChecked(False)
+            self.chk_same_cast_at_same_day.setDisabled(True)
+
     def _enable_same_partial_days_checkbox(self):
         if len(self._rules_data) == 1:
             if not self.chk_same_partial_days_for_all_rules.isEnabled():
@@ -219,12 +228,15 @@ class DlgEventPlaningRules(QDialog):
                      same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked())
 
     def validate_rules(self) -> bool:
-        dict_date_time_indexes: defaultdict[datetime.date, set[int]] = defaultdict(set)
+        dict_date_time_indexes: defaultdict[datetime.date, list[int]] = defaultdict(list)
         if len(self._rules_data) > 1:
             for rule_index, rules in self._rules_data.items():
-                dict_date_time_indexes[rules.first_day].add(rules.time_of_day.time_of_day_enum.time_index)
+                for i in range(rules.num_events):
+                    date = rules.first_day + datetime.timedelta(days=i * rules.interval)
+                    dict_date_time_indexes[date].append(rules.time_of_day.time_of_day_enum.time_index)
+            print(dict_date_time_indexes)
             for time_indexes in dict_date_time_indexes.values():
-                if len(time_indexes) == 1:
+                if len(time_indexes) != len(set(time_indexes)):
                     return False
         return True
 

@@ -234,7 +234,6 @@ class DlgEventPlaningRules(QDialog):
                 for i in range(rules.num_events):
                     date = rules.first_day + datetime.timedelta(days=i * rules.interval)
                     dict_date_time_indexes[date].append(rules.time_of_day.time_of_day_enum.time_index)
-            print(dict_date_time_indexes)
             for time_indexes in dict_date_time_indexes.values():
                 if len(time_indexes) != len(set(time_indexes)):
                     return False
@@ -243,7 +242,8 @@ class DlgEventPlaningRules(QDialog):
     def accept(self):
         if not self.validate_rules():
             QMessageBox.critical(self, 'Planungsregeln',
-                                 'Am selben Tag können nicht 2 Mal die gleichen Tageszeiten gewählt werden.')
+                                 'Am selben Tag können nicht 2 Mal die Events '
+                                 'mit den gleichen Tageszeiten erstellt werden.')
             return
 
         super().accept()

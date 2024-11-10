@@ -450,7 +450,7 @@ class DlgGroupProperties(QDialog):
         self.set_fixed_cast_warning()
         self.setup_combo_cast_rules()
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
-        self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*~-'))
+        self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*~-', False))
         self.le_custom_rule.textChanged.connect(self.custom_rule_changed)
         self.set_cast_rule_warning()
         self.spin_nr_actors.setValue(self.group.nr_actors)

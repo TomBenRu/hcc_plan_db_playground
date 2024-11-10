@@ -59,7 +59,7 @@ class DlgCastRule(QDialog):
 
         self.le_name = QLineEdit()
         self.le_cast_rule = LineEditWithCustomFont(parent=None, font=None, bold=True, letter_spacing=4)
-        self.le_cast_rule.setValidator(LettersAndSymbolsValidator('*~-'))
+        self.le_cast_rule.setValidator(LettersAndSymbolsValidator('*~-', False))
         self.le_cast_rule.textChanged.connect(self.le_cast_rule_changed)
 
         self.layout_body.addRow('Name', self.le_name)

@@ -91,6 +91,7 @@ class DlgEventPlaningRules(QDialog):
 
         self.chk_same_cast_at_same_day = QCheckBox('Gleiche Besetzung am selben Tag')
         self.chk_same_cast_at_same_day.setDisabled(True)
+        # todo: verschiedene Besetzungsregeln für gleiche Tage (siehe frm_cast_group und frm_cast_rule)
         self.layout_check_boxes.addWidget(self.chk_same_cast_at_same_day)
         self.chk_same_partial_days_for_all_rules = QCheckBox('Gleiche Tageswahl für alle Regeln')
         self.chk_same_partial_days_for_all_rules.setDisabled(True)

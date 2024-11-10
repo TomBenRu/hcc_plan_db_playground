@@ -256,7 +256,7 @@ class DlgEventPlaningRules(QDialog):
         if self._events_already_exist():
             reply = QMessageBox.question(
                 self, 'Planungsregeln',
-                'Es existieren bereits Events für diesem Planungszeitraum.\n'
+                'Es existieren bereits Events in diesem Planungszeitraum.\n'
                 'Falls Sie fortfahren, werden alle bisherigen Events gelöscht und neue Events erstellt.\n'
                 'Möchten Sie fortfahren?')
             if reply == QMessageBox.StandardButton.No:

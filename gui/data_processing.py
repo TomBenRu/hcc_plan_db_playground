@@ -168,6 +168,10 @@ class LocationPlanPeriodData:
     def make_events_from_planning_rules(self, dlg: frm_event_planing_rules.DlgEventPlaningRules):
         master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
             self.location_plan_period.id)
+        if existing_events := db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
+            for event in existing_events:
+                command = event_commands.Delete(event.id)
+                self.controller.execute(command)
 
         events = self._create_events_from_rules(dlg.rules.rules_data,
                                                 dlg.rules.same_partial_days_for_all_rules,

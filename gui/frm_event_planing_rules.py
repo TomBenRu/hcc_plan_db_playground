@@ -237,9 +237,14 @@ class DlgEventPlaningRules(QDialog):
                     date = rules.first_day + datetime.timedelta(days=i * rules.interval)
                     dict_date_time_indexes[date].append(rules.time_of_day.time_of_day_enum.time_index)
             for time_indexes in dict_date_time_indexes.values():
-                if len(set(time_indexes)) < len(self._rules_data):
+                if len(set(time_indexes)) < len(time_indexes):
                     return False
         return True
+
+    def _events_already_exist(self) -> bool:
+        events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period_id)
+        return len(events) > 0
+
 
     def accept(self):
         if not self.validate_rules():
@@ -247,5 +252,14 @@ class DlgEventPlaningRules(QDialog):
                                  'Am selben Tag können nicht 2 Mal die Events '
                                  'mit den gleichen Tageszeiten erstellt werden.')
             return
+
+        if self._events_already_exist():
+            reply = QMessageBox.question(
+                self, 'Planungsregeln',
+                'Es existieren bereits Events für diesem Planungszeitraum.\n'
+                'Falls Sie fortfahren, werden alle bisherigen Events gelöscht und neue Events erstellt.\n'
+                'Möchten Sie fortfahren?')
+            if reply == QMessageBox.StandardButton.No:
+                return
 
         super().accept()

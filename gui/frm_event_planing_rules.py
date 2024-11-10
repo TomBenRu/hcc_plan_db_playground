@@ -104,12 +104,13 @@ class DlgEventPlaningRules(QDialog):
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
 
-    def _show_calendar(self, row: int):
+    def _show_calendar(self, rule_index: int):
         dlg = DlgFirstDay(self, self.plan_period.start, self.plan_period.end,
-                          current_date=self._rules_data[row].first_day)
+                          current_date=self._rules_data[rule_index].first_day)
         if dlg.exec():
-            self.widgets_for_rules[row]['1. Tag'].setText(dlg.first_day.strftime('%d.%m.%Y'))
-            self._rules_data[row].first_day = dlg.first_day
+            self.widgets_for_rules[rule_index]['1. Tag'].setText(dlg.first_day.strftime('%d.%m.%Y'))
+            self._rules_data[rule_index].first_day = dlg.first_day
+            self._spinbox_repeat_changed(rule_index)
             self._enable_same_partial_days_checkbox()
 
     def _setup_data(self):
@@ -168,8 +169,8 @@ class DlgEventPlaningRules(QDialog):
         return spinbox
 
     def _spinbox_repeat_changed(self, rule_index: int, *args):
-        first_day = datetime.datetime.strptime(self.widgets_for_rules[rule_index]['1. Tag'].text(), '%d.%m.%Y').date()
-        interval = self.widgets_for_rules[rule_index]['Abstand'].value()
+        first_day = self._rules_data[rule_index].first_day
+        interval = self._rules_data[rule_index].interval
         widget_repeat = self.widgets_for_rules[rule_index]['Wiederholungen']
         widget_num_events = self.widgets_for_rules[rule_index]['mögl. Anzahl']
         if widget_num_events.value() == widget_repeat.value():
@@ -194,6 +195,7 @@ class DlgEventPlaningRules(QDialog):
 
     def _spinbox_interval_changed(self, rule_index: int, value: int):
         self._rules_data[rule_index].interval = value
+        self._spinbox_repeat_changed(rule_index)
         self._enable_same_partial_days_checkbox()
 
     def _enable_same_cast_at_same_day_checkbox(self):
@@ -235,7 +237,7 @@ class DlgEventPlaningRules(QDialog):
                     date = rules.first_day + datetime.timedelta(days=i * rules.interval)
                     dict_date_time_indexes[date].append(rules.time_of_day.time_of_day_enum.time_index)
             for time_indexes in dict_date_time_indexes.values():
-                if len(time_indexes) != len(set(time_indexes)):
+                if len(set(time_indexes)) < len(self._rules_data):
                     return False
         return True
 

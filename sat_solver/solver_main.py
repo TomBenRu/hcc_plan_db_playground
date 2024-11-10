@@ -205,7 +205,8 @@ class Entities:
     cast_groups: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
     cast_groups_with_event: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
     shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
-    shifts_exclusive: dict = dataclasses.field(default_factory=dict)
+    shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
+    # wenn value==0, kann shift mit key (adg_id, eg_id) nicht gesetzt werden
 
 
 entities: Entities | None = None
@@ -317,7 +318,7 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
     """
 
     multiplier_level = (curr_config_handler.get_solver_config()
-                        .constraints_multipliers.sliders_levels_weights_event_groups)
+                        .constraints_multipliers.group_depth_weights_event_groups)
 
     def calculate_weight_vars_of_children_recursive(event_group: EventGroup, depth: int) -> list[IntVar]:
         weight_vars: list[IntVar] = []
@@ -384,8 +385,10 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
 
 
 def add_constraints_weights_in_avail_day_groups_new(model: cp_model.CpModel) -> list[IntVar]:
-    multiplier_constraints = curr_config_handler.get_solver_config().constraints_multipliers.sliders_weights_avail_day_groups
-    multiplier_level = curr_config_handler.get_solver_config().constraints_multipliers.sliders_levels_weights_av_day_groups
+    multiplier_constraints = (curr_config_handler.get_solver_config()
+                              .constraints_multipliers.sliders_weights_avail_day_groups)
+    multiplier_level = (curr_config_handler.get_solver_config()
+                        .constraints_multipliers.group_depth_weights_av_day_groups)
 
     # Vorberechnung
     shifts_exclusive_cache = {
@@ -460,7 +463,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
     multiplier_constraints = (curr_config_handler.get_solver_config()
                               .constraints_multipliers.sliders_weights_avail_day_groups)
     multiplier_level = (curr_config_handler.get_solver_config()
-                        .constraints_multipliers.sliders_levels_weights_av_day_groups)
+                        .constraints_multipliers.group_depth_weights_av_day_groups)
     shift_vars_of_adg_ids: defaultdict[UUID, list] = defaultdict(list)
 
     def calculate_weight_vars_of_children_recursive(group: AvailDayGroup,

@@ -246,6 +246,9 @@ class DlgEventPlaningRules(QDialog):
         events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period_id)
         return len(events) > 0
 
+    def plan_exists(self) -> bool:
+        return bool(db_services.Plan.get_all_from__plan_period_minimal(self.plan_period.id))
+
 
     def accept(self):
         if not self.validate_rules():
@@ -262,5 +265,10 @@ class DlgEventPlaningRules(QDialog):
                 'Möchten Sie fortfahren?')
             if reply == QMessageBox.StandardButton.No:
                 return
+
+        if self.plan_exists():
+            QMessageBox.information(
+                self, 'Planungsregeln',
+                'Die neu erstellten Events werden nicht zu den bereits existierenden Plänen übernommen.')
 
         super().accept()

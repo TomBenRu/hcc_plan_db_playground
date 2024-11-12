@@ -249,7 +249,6 @@ class DlgEventPlaningRules(QDialog):
     def plan_exists(self) -> bool:
         return bool(db_services.Plan.get_all_from__plan_period_minimal(self.plan_period.id))
 
-
     def accept(self):
         if not self.validate_rules():
             QMessageBox.critical(self, 'Planungsregeln',
@@ -269,6 +268,7 @@ class DlgEventPlaningRules(QDialog):
         if self.plan_exists():
             QMessageBox.information(
                 self, 'Planungsregeln',
-                'Die neu erstellten Events werden nicht zu den bereits existierenden Plänen übernommen.')
+                f'Die neu erstellten Events werden nicht zu den bereits existierenden Plänen des Planungszeitraums '
+                f'von {self.plan_period.start:%d.%m.%y}-{self.plan_period.end:%d.%m.%y} übernommen.')
 
         super().accept()

@@ -1,15 +1,20 @@
 import datetime
+import os
 from calendar import calendar
 from collections import defaultdict
 from functools import partial
 from uuid import UUID
 
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayout, QComboBox, QCalendarWidget, QSpinBox,
-                               QDialogButtonBox, QPushButton, QCheckBox, QMessageBox)
+                               QDialogButtonBox, QPushButton, QCheckBox, QMessageBox, QHBoxLayout)
+from PySide6.QtGui import QIcon
 from PySide6.QtCore import QDate
 from pydantic import BaseModel
 
+from commands import command_base_classes
+from commands.database_commands import cast_group_commands
 from database import db_services, schemas
+from gui import frm_cast_rule
 
 
 class  RulesData(BaseModel):
@@ -22,7 +27,7 @@ class  RulesData(BaseModel):
 
 class Rules(BaseModel):
     rules_data: list[RulesData] = []
-    same_cast_at_same_day: bool = False
+    cast_rule_at_same_day: schemas.CastRuleShow | None = None
     same_partial_days_for_all_rules: bool = False
 
 
@@ -60,6 +65,7 @@ class DlgEventPlaningRules(QDialog):
         self.setWindowTitle("Event Planing Rules")
 
         self.location_plan_period_id = location_plan_period_id
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self._setup_data()
         self._setup_ui()
@@ -70,12 +76,12 @@ class DlgEventPlaningRules(QDialog):
         self.layout_head = QVBoxLayout()
         self.layout_body = QGridLayout()
         self.layout_body.setSpacing(0)
-        self.layout_check_boxes = QVBoxLayout()
+        self.layout_special_rules = QVBoxLayout()
         self.layout_foot = QVBoxLayout()
 
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
-        self.layout.addLayout(self.layout_check_boxes)
+        self.layout.addLayout(self.layout_special_rules)
         self.layout.addLayout(self.layout_foot)
 
         self.lb_description = QLabel("Hier können Sie festlegen, wie Sie die Events planen möchten.")
@@ -89,13 +95,21 @@ class DlgEventPlaningRules(QDialog):
             self.layout_body.addWidget(lb_text, 0, column)
         self._add_rule()
 
-        self.chk_same_cast_at_same_day = QCheckBox('Gleiche Besetzung am selben Tag')
-        self.chk_same_cast_at_same_day.setDisabled(True)
-        # todo: verschiedene Besetzungsregeln für gleiche Tage (siehe frm_cast_group und frm_cast_rule)
-        self.layout_check_boxes.addWidget(self.chk_same_cast_at_same_day)
+        self.layout_rule_same_day = QHBoxLayout()
+        self.layout_special_rules.addLayout(self.layout_rule_same_day)
+        self.lb_rule_same_day = QLabel('Regel für Events am gleichen Tag:')
+        self.combo_rule_same_day = QComboBox()
+        self._combo_rule_same_day_add_items()
+        self.combo_rule_same_day.setDisabled(True)
+        self.bt_rule_same_day = QPushButton('Neue Tagesregel')
+        self.bt_rule_same_day.clicked.connect(self._add_rule_same_day)
+        self.bt_rule_same_day.setDisabled(True)
+        self.layout_rule_same_day.addWidget(self.lb_rule_same_day)
+        self.layout_rule_same_day.addWidget(self.combo_rule_same_day)
+        self.layout_rule_same_day.addWidget(self.bt_rule_same_day)
         self.chk_same_partial_days_for_all_rules = QCheckBox('Gleiche Tageswahl für alle Regeln')
         self.chk_same_partial_days_for_all_rules.setDisabled(True)
-        self.layout_check_boxes.addWidget(self.chk_same_partial_days_for_all_rules)
+        self.layout_special_rules.addWidget(self.chk_same_partial_days_for_all_rules)
 
         self.bt_add_rule = QPushButton('Neue Regel')
         self.bt_add_rule.clicked.connect(self._add_rule)
@@ -131,7 +145,7 @@ class DlgEventPlaningRules(QDialog):
             self.widgets_for_rules[rule_index][text] = curr_widget
         if len(self.widgets_for_rules) > 1:
             self._enable_same_partial_days_checkbox()
-            self._enable_same_cast_at_same_day_checkbox()
+            self._enable_rule_at_same_day_checkbox()
 
     def _combobox_time_of_day(self, rule_index: int):
         combobox = QComboBox()
@@ -199,12 +213,24 @@ class DlgEventPlaningRules(QDialog):
         self._spinbox_repeat_changed(rule_index)
         self._enable_same_partial_days_checkbox()
 
-    def _enable_same_cast_at_same_day_checkbox(self):
+    def _combo_rule_same_day_add_items(self):
+        self.combo_rule_same_day.clear()
+        self.combo_rule_same_day.addItem('Keine Regel', None)
+        rules = sorted(db_services.CastRule.get_all_from__project(self.plan_period.team.project.id),
+                       key=lambda x: x.name)
+        for i, rule in enumerate(rules, start=1):
+            self.combo_rule_same_day.addItem(QIcon(os.path.join(os.path.dirname(__file__),
+                                                             'resources/toolbar_icons/icons/foaf.png')),
+                                          rule.name, rule)
+
+    def _enable_rule_at_same_day_checkbox(self):
         if len(self._rules_data) > 1:
-            self.chk_same_cast_at_same_day.setEnabled(True)
+            self.combo_rule_same_day.setEnabled(True)
+            self.bt_rule_same_day.setEnabled(True)
         else:
-            self.chk_same_cast_at_same_day.setChecked(False)
-            self.chk_same_cast_at_same_day.setDisabled(True)
+            self.combo_rule_same_day.setCurrentIndex(0)
+            self.combo_rule_same_day.setDisabled(True)
+            self.bt_rule_same_day.setDisabled(True)
 
     def _enable_same_partial_days_checkbox(self):
         if len(self._rules_data) == 1:
@@ -223,11 +249,19 @@ class DlgEventPlaningRules(QDialog):
             self.chk_same_partial_days_for_all_rules.setChecked(False)
             self.chk_same_partial_days_for_all_rules.setDisabled(True)
 
+    def _add_rule_same_day(self):
+        dlg = frm_cast_rule.DlgCastRule(self, self.plan_period.team.project.id)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self._combo_rule_same_day_add_items()
+        else:
+            dlg.controller.undo_all()
+
 
     @property
     def rules(self) -> Rules:
         return Rules(rules_data=list(self._rules_data.values()),
-                     same_cast_at_same_day=self.chk_same_cast_at_same_day.isChecked(),
+                     cast_rule_at_same_day=self.combo_rule_same_day.currentData(),
                      same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked())
 
     def validate_rules(self) -> bool:

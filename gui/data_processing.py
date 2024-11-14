@@ -180,8 +180,8 @@ class LocationPlanPeriodData:
         if dlg.rules.same_partial_days_for_all_rules:
             event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.rules.rules_data)
 
-        if dlg.rules.same_cast_at_same_day and len(events) > 1:
-            self._create_cast_groups_for_same_day_events(events)
+        if (rule := dlg.rules.cast_rule_at_same_day) is not None and len(events) > 1:
+            self._create_cast_groups_for_same_day_events(events, rule)
 
         self.reload_location_plan_period()
         self.reset_check_field()
@@ -229,7 +229,7 @@ class LocationPlanPeriodData:
             )
         return event_groups_same_day
 
-    def _create_cast_groups_for_same_day_events(self, events):
+    def _create_cast_groups_for_same_day_events(self, events, rule: schemas.CastRuleShow):
         """Erstellt und verbindet Cast-Gruppen für Ereignisse am gleichen Tag."""
         for date, event in events[0].items():
             if same_day_events := [e[date] for e in events[1:] if date in e]:
@@ -242,7 +242,7 @@ class LocationPlanPeriodData:
                     command = cast_group_commands.SetNewParent(e.cast_group.id, new_cast_group.id)
                     self.controller.execute(command)
                 self.controller.execute(
-                    cast_group_commands.UpdateCustomRule(new_cast_group.id, '~')
+                    cast_group_commands.UpdateCastRule(new_cast_group.id, rule.id)
                 )
                 self.controller.execute(
                     cast_group_commands.UpdateNrActors(new_cast_group.id, self.location_plan_period.nr_actors)

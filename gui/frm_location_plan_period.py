@@ -976,12 +976,14 @@ class FrmLocationPlanPeriod(QWidget):
         ...
 
     def make_events_from_planing_rules(self):
-        master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
-            self.location_plan_period.id)
-        dlg = frm_event_planing_rules.DlgEventPlaningRules(self, self.location_plan_period.id)
+        dlg = frm_event_planing_rules.DlgEventPlaningRules(
+            self, self.location_plan_period.id)
         if dlg.exec():
             self.data_processor.make_events_from_planning_rules(dlg)
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             return
+        else:
+            dlg.controller.undo_all()
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()

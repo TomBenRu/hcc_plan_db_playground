@@ -192,7 +192,7 @@ class DlgPlanPeriodCreate(QDialog):
                                     f'<p>Deadline: {created_plan_period.deadline:%d.%m.%y}</p>'
                                     f'<p>Remainder: {"erstellt" 
                                     if created_plan_period.remainder else "nicht erstellt"}</p>'
-                                    f'<p>Hinweise im Online-Portal:<br>{created_plan_period.notes}</p>')
+                                    f'<p>Hinweise im Online-Portal:<br>{created_plan_period.notes_for_employees}</p>')
         except Exception as e:
             QMessageBox.critical(self, 'Neue Planungsperiode auf Server',
                                  f'Die Planungsperiode Konnte nicht auf dem Server erstellt werden,\n'

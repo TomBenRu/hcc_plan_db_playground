@@ -543,7 +543,7 @@ class DlgGroupProperties(QDialog):
             print('aboard')
 
     def new_rule(self):
-        dlg = frm_cast_rule.DlgCastRule(self, self.group.plan_period.team.project.id)
+        dlg = frm_cast_rule.DlgCreateCastRule(self, self.group.plan_period.team.project.id)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.controller.execute(cast_group_commands.UpdateCastRule(self.group.id, dlg.created_cast_rule.id))

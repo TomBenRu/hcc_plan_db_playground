@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
                                QGroupBox, QPushButton, QMessageBox)
 
 from database import db_services
-from . import frm_time_of_day
+from . import frm_time_of_day, frm_cast_rule
 from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
 from .frm_team import FrmTeam
@@ -43,6 +43,7 @@ class DlgSettingsProject(QDialog):
         self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
         self.cb_time_of_day_enums = QComboBox()
         self.lb_skills = QLabel('Fähigkeiten')
+        self.lb_cast_rules = QLabel('Besetzungsregeln')
         self.lb_excel_export_settings = QLabel('Excel-Settings')
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
@@ -54,6 +55,7 @@ class DlgSettingsProject(QDialog):
         self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
         self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
         self.bt_skills = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_skills)
+        self.bt_cast_rules = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_cast_rules)
 
         self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
 
@@ -74,9 +76,11 @@ class DlgSettingsProject(QDialog):
         self.layout_group_project_data.addWidget(self.bt_time_of_day_enums, 4, 2)
         self.layout_group_project_data.addWidget(self.lb_skills, 5, 0)
         self.layout_group_project_data.addWidget(self.bt_skills, 5, 2)
-        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 6, 0)
-        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 6, 1)
-        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 6, 2)
+        self.layout_group_project_data.addWidget(self.lb_cast_rules, 6, 0)
+        self.layout_group_project_data.addWidget(self.bt_cast_rules, 6, 2)
+        self.layout_group_project_data.addWidget(self.lb_excel_export_settings, 7, 0)
+        self.layout_group_project_data.addLayout(self.layout_excel_export_settings, 7, 1)
+        self.layout_group_project_data.addWidget(self.bt_excel_export_settings, 7, 2)
         for widget in self.color_widgets:
             self.layout_excel_export_settings.addWidget(widget)
 
@@ -172,6 +176,13 @@ class DlgSettingsProject(QDialog):
         else:
             dlg.controller.undo_all()
             QMessageBox.information(self, 'Skills', 'Skills wurden nicht geändert')
+
+    def edit_cast_rules(self):
+        dlg = frm_cast_rule.DlgCastRules(self, self.project_id)
+        if dlg.exec():
+            ...
+        else:
+            dlg.controller.undo_all()
 
     def edit_excel_export_settings(self):
         dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)

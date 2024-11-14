@@ -216,7 +216,8 @@ class DlgEventPlaningRules(QDialog):
     def _combo_rule_same_day_add_items(self):
         self.combo_rule_same_day.clear()
         self.combo_rule_same_day.addItem('Keine Regel', None)
-        rules = sorted(db_services.CastRule.get_all_from__project(self.plan_period.team.project.id),
+        rules = sorted((cr for cr in db_services.CastRule.get_all_from__project(self.plan_period.team.project.id)
+                        if not cr.prep_delete),
                        key=lambda x: x.name)
         for i, rule in enumerate(rules, start=1):
             self.combo_rule_same_day.addItem(QIcon(os.path.join(os.path.dirname(__file__),
@@ -250,7 +251,7 @@ class DlgEventPlaningRules(QDialog):
             self.chk_same_partial_days_for_all_rules.setDisabled(True)
 
     def _add_rule_same_day(self):
-        dlg = frm_cast_rule.DlgCastRule(self, self.plan_period.team.project.id)
+        dlg = frm_cast_rule.DlgCreateCastRule(self, self.plan_period.team.project.id)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self._combo_rule_same_day_add_items()

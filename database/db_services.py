@@ -1530,6 +1530,31 @@ class CastRule:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
+    def update(cls, cast_rule_id: UUID, name: str, rule: str) -> schemas.CastRuleShow:
+        log_function_info(cls)
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
+        cast_rule_db.name = name
+        cast_rule_db.rule = rule
+        return schemas.CastRuleShow.model_validate(cast_rule_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def set_prep_delete(cls, cast_rule_id: UUID) -> schemas.CastRuleShow:
+        log_function_info(cls)
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
+        cast_rule_db.prep_delete = datetime.datetime.now(datetime.UTC)
+        return schemas.CastRuleShow.model_validate(cast_rule_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def undelete(cls, cast_rule_id: UUID) -> schemas.CastRuleShow:
+        log_function_info(cls)
+        cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
+        cast_rule_db.prep_delete = None
+        return schemas.CastRuleShow.model_validate(cast_rule_db)
+
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
     def delete(cls, cast_rule_id: UUID):
         log_function_info(cls)
         cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)

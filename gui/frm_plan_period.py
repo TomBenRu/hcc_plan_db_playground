@@ -185,10 +185,14 @@ class DlgPlanPeriodCreate(QDialog):
             created_plan_period = plan_api_handler.create_plan_period(team_id, start, end, deadline, remainder,
                                                                       notes, plan_period_id)
             QMessageBox.information(self, 'Neue Planungsperiode auf Server',
-                                    f'Eine neue Planungsperiode wurde auf dem Server erstellt:\n'
-                                    f'Team: {created_plan_period.team.name}\n'
-                                    f'Zeitraum: {created_plan_period.start:%d.%m.%y} '
-                                    f'- {created_plan_period.end:%d.%m.%y}')
+                                    f'<h3>Eine neue Planungsperiode wurde auf dem Server erstellt</h3>'
+                                    f'<p>Team: {created_plan_period.team.name}</p>'
+                                    f'<p>Zeitraum: {created_plan_period.start:%d.%m.%y} '
+                                    f'- {created_plan_period.end:%d.%m.%y}</p>'
+                                    f'<p>Deadline: {created_plan_period.deadline:%d.%m.%y}</p>'
+                                    f'<p>Remainder: {"erstellt" 
+                                    if created_plan_period.remainder else "nicht erstellt"}</p>'
+                                    f'<p>Hinweise im Online-Portal:<br>{created_plan_period.notes}</p>')
         except Exception as e:
             QMessageBox.critical(self, 'Neue Planungsperiode auf Server',
                                  f'Die Planungsperiode Konnte nicht auf dem Server erstellt werden,\n'
@@ -206,7 +210,7 @@ class DlgPlanPeriodCreate(QDialog):
 
 
 class DlgPlanPeriodEdit(QDialog):
-    # todo: Änderungen abspeichern
+    # todo: Änderungen auch online abspeichern
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
 

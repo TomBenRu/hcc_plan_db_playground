@@ -149,7 +149,8 @@ class DlgEventPlaningRules(QDialog):
 
     def _combobox_time_of_day(self, rule_index: int):
         combobox = QComboBox()
-        times_of_day = sorted(self.location_plan_period.time_of_days, key=lambda x: x.time_of_day_enum.time_index)
+        times_of_day = sorted(self.location_plan_period.time_of_days,
+                              key=lambda x: (x.time_of_day_enum.time_index, x.start))
         for time_of_day in times_of_day:
             combobox.addItem(time_of_day.name, time_of_day)
         combobox.currentIndexChanged.connect(partial(self._combobox_time_of_day_changed,rule_index))

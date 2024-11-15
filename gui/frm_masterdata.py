@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel
     QFormLayout, QHeaderView
 
 from gui.frm_skill_groups import DlgSkillGroups
-from database import db_services, schemas
+from database import db_services, schemas, schemas_plan_api
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
@@ -62,6 +62,8 @@ class WidgetPerson(QWidget):
 
         self.project_id = project_id
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
         self.persons = self.get_persons()
 
         self.table_persons = TablePersons(self.persons, self.project_id)
@@ -97,9 +99,23 @@ class WidgetPerson(QWidget):
         self.table_persons.put_data_to_table()
 
     def create_person(self):
-        dlg = FrmPersonCreate(self, self.project_id)
-        dlg.exec()
-        self.refresh_table()
+        dlg = DlgPersonCreate(self, self.project_id)
+        if dlg.exec():
+            self.refresh_table()
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+        person = schemas_plan_api.PersonCreate(
+            id=dlg.created_person.id,
+            f_name=dlg.created_person.f_name,
+            l_name=dlg.created_person.l_name,
+            email=dlg.created_person.email,
+            username=dlg.created_person.username,
+            password=dlg.password
+        )
+        self.create_person_on_api(person)
+
+    def create_person_on_api(self, person: schemas_plan_api.PersonCreate):
+        # TODO: Implement API call to create person on server
+        ...
 
     def edit_person(self):
         row = self.table_persons.currentRow()
@@ -108,7 +124,7 @@ class WidgetPerson(QWidget):
                                                         'Klicken Sie dafür in die entsprechende Zeile.')
             return
         person = db_services.Person.get(UUID(self.table_persons.item(row, 9).text()))
-        dlg = FrmPersonModify(self, self.project_id, person)
+        dlg = DlgPersonModify(self, self.project_id, person)
         if dlg.exec():
             self.refresh_table()
 
@@ -229,7 +245,7 @@ class TablePersons(QTableWidget):
         sender.blockSignals(False)
 
 
-class FrmPersonData(QDialog):
+class DlgPersonData(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
@@ -284,8 +300,10 @@ class FrmPersonData(QDialog):
         self.button_box.rejected.connect(self.reject)
 
 
-class FrmPersonCreate(FrmPersonData):
+class DlgPersonCreate(DlgPersonData):
     def __init__(self, parent: QWidget, project_id: UUID):
+        self.created_person: schemas.PersonShow | None = None
+        self.controller = command_base_classes.ContrExecUndoRedo()
         super().__init__(parent, project_id)
 
         self.layout.addWidget(self.button_box)
@@ -298,12 +316,20 @@ class FrmPersonCreate(FrmPersonData):
                                       phone_nr=self.le_phone_nr.text(), username=self.le_username.text(),
                                       password=self.le_password.text(), address=address)
 
-        created = db_services.Person.create(person, self.project_id)
-        QMessageBox.information(self, 'Person angelegt', f'{created}')
+        create_command = person_commands.Create(person, self.project_id)
+        self.controller.execute(create_command)
+        self.created_person = create_command.created_person
+        QMessageBox.information(self, 'Person angelegt:\n',
+                                f'{self.created_person.full_name}\n'
+                                f'im Projekt{self.created_person.project.name}')
         super().accept()
 
+    @property
+    def password(self):
+        return self.le_password.text()
 
-class FrmPersonModify(FrmPersonData):
+
+class DlgPersonModify(DlgPersonData):
     def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
         self.project_id = project_id
         self.person = person

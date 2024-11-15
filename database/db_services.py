@@ -327,13 +327,22 @@ class Person:
 
     @classmethod
     @db_session(sql_debug=True, show_values=True)
-    def create(cls, person: schemas.PersonCreate, project_id: UUID) -> schemas.Person:
+    def create(cls, person: schemas.PersonCreate, project_id: UUID, person_id: UUID = None) -> schemas.Person:
         log_function_info(cls)
         project_in_db = models.Project.get_for_update(id=project_id)
         address_in_db = models.Address(**person.address.model_dump(), project=project_in_db)
         hashed_password = hash_psw(person.password)
         person.password = hashed_password
-        person_db = models.Person(**person.model_dump(exclude={'address'}), address=address_in_db, project=project_in_db)
+        if person_id:
+            person_db = models.Person(**person.model_dump(exclude={'address'}),
+                                      address=address_in_db,
+                                      project=project_in_db,
+                                      id=person_id)
+        else:
+            person_db = models.Person(**person.model_dump(exclude={'address'}),
+                                      address=address_in_db,
+                                      project=project_in_db)
+
         return schemas.Person.model_validate(person_db)
 
     @classmethod

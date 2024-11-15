@@ -7,10 +7,21 @@ from commands.command_base_classes import Command, ContrExecUndoRedo
 
 
 class Create(Command):
-    def __init__(self, person: schemas.PersonCreate):
+    def __init__(self, person: schemas.PersonCreate, project_id: UUID):
         self.person = person
-        # todo: implementieren
-        ...
+        self.project_id = project_id
+        self.created_person: schemas.PersonShow | None = None
+
+    def execute(self):
+        self.created_person = db_services.Person.create(self.person, self.project_id)
+
+    def undo(self):
+        if self.created_person:
+            db_services.Person.delete(self.created_person.id)
+
+    def redo(self):
+        if self.created_person:
+            db_services.Person.create(self.person, self.project_id, self.created_person.id)
 
 
 

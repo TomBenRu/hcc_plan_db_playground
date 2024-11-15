@@ -26,6 +26,7 @@ class ProjectShow(Project):
 class PersonCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: Optional[UUID] = None
     f_name: str
     l_name: str
     artist_name: Optional[str] = None

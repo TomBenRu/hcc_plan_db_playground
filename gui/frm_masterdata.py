@@ -103,15 +103,15 @@ class WidgetPerson(QWidget):
         if dlg.exec():
             self.refresh_table()
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-        person = schemas_plan_api.PersonCreate(
-            id=dlg.created_person.id,
-            f_name=dlg.created_person.f_name,
-            l_name=dlg.created_person.l_name,
-            email=dlg.created_person.email,
-            username=dlg.created_person.username,
-            password=dlg.password
-        )
-        self.create_person_on_api(person)
+            person = schemas_plan_api.PersonCreate(
+                id=dlg.created_person.id,
+                f_name=dlg.created_person.f_name,
+                l_name=dlg.created_person.l_name,
+                email=dlg.created_person.email,
+                username=dlg.created_person.username,
+                password=dlg.password
+            )
+            self.create_person_on_api(person)
 
     def create_person_on_api(self, person: schemas_plan_api.PersonCreate):
         # TODO: Implement API call to create person on server

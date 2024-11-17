@@ -231,7 +231,6 @@ class DlgEventPlaningRules(QDialog):
         self._text_description = self._text_description_default
         self._event_planing_rules = self.rules_handler.get_event_planing_rules(
             self.location_plan_period.location_of_work.id)
-        # print(f'{self._event_planing_rules=}')
         self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self._rules_data_from_config: defaultdict[int, RulesData] = defaultdict(RulesData)
         if self._event_planing_rules:
@@ -239,7 +238,6 @@ class DlgEventPlaningRules(QDialog):
                                       '<br>Es wurden Regeln aus einer zuvor gespeicherten Konfiguration geladen.')
             for i, rules_data in enumerate(self._event_planing_rules.planing_rules, start=1):
                 time_of_day = db_services.TimeOfDay.get(rules_data.time_of_day_id, True)
-                print(f'{total_size(time_of_day)=}')
                 self._rules_data_from_config[i] = RulesData(
                     first_day=n_th_weekday_of_period(self.plan_period.start,
                                                      self.plan_period.end,
@@ -275,6 +273,21 @@ class DlgEventPlaningRules(QDialog):
                 elif column == 1:
                     if (idx := widget.findData(rule_data.time_of_day)) != -1:
                         widget.setCurrentIndex(idx)
+                    else:
+                        time_index = rule_data.time_of_day.time_of_day_enum.time_index
+                        for time_of_day in [t for t in [widget.itemData(i) for i in range(widget.count())]]:
+                            if time_of_day.time_of_day_enum.time_index == time_index:
+                                widget.setCurrentIndex(widget.findData(time_of_day))
+                                QMessageBox.warning(self, 'Fehler',
+                                                    f'Die in den Regeln gespeicherte Tageszeit '
+                                                    f'"{rule_data.time_of_day.name}" ist nicht verfügbar.\n'
+                                                    f'Sie wurde durch die Tageszeit "{time_of_day.name}" ersetzt')
+                                break
+                        else:
+                            QMessageBox.warning(self, 'Fehler',
+                                                f'Die in den Regeln gespeicherte Tageszeit '
+                                                f'"{rule_data.time_of_day.name}" ist nicht verfügbar.\n'
+                                                f'Sie wurde durch die Tageszeit "{widget.currentData().name}" ersetzt')
                 elif column == 2:
                     widget.setValue(rule_data.interval)
                 elif column == 3:

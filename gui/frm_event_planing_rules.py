@@ -422,6 +422,9 @@ class DlgEventPlaningRules(QDialog):
             same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked()
         )
         self.rules_handler.set_event_planing_rules(self._event_planing_rules)
+        QMessageBox.information(self, 'Planungsregeln',
+                                f'Planungsregeln für "{self.location_plan_period.location_of_work.name_an_city}" '
+                                f'wurden für spätere Verwendung gespeichert.')
 
 
     def validate_rules(self) -> bool:

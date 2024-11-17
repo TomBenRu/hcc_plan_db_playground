@@ -432,9 +432,10 @@ class DlgEventPlaningRules(QDialog):
 
             self.chk_same_partial_days_for_all_rules.setChecked(False)
             self.chk_same_partial_days_for_all_rules.setDisabled(True)
-        if (all(r.first_day == self._rules_data[1].first_day
-               and r.num_events == self._rules_data[1].num_events
-               and r.interval == self._rules_data[1].interval
+        min_rule_index = min(self._rules_data.keys())
+        if (all(r.first_day == self._rules_data[min_rule_index].first_day
+               and r.num_events == self._rules_data[min_rule_index].num_events
+               and r.interval == self._rules_data[min_rule_index].interval
                for r in self._rules_data.values())
             and all(r.repeat + 1 != r.num_events for r in self._rules_data.values())):
             self.chk_same_partial_days_for_all_rules.setEnabled(True)

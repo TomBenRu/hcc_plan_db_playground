@@ -156,7 +156,7 @@ class DlgEventPlaningRules(QDialog):
         self.layout.addLayout(self.layout_special_rules)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("Hier können Sie festlegen, wie Sie die Events planen möchten.")
+        self.lb_description = QLabel(self._text_description)
         self.layout_head.addWidget(self.lb_description)
 
 
@@ -221,11 +221,20 @@ class DlgEventPlaningRules(QDialog):
         self.rules_widgets = [
             self._widget_first_day_from_weekday if self.first_day_from_weekday else self._button_first_day,
             self._combobox_time_of_day, self._spinbox_interval, self._spinbox_repeat, self._spinbox_num_events]
+        self._text_description_default = (
+            f'Hier können Sie festlegen, wie Sie die Events von "'
+            f'<b>{self.location_plan_period.location_of_work.name_an_city}</b>"<br>'
+            f'im Zeitraum '
+            f'<b>{self.plan_period.start.strftime('%d.%m.%Y')}-{self.plan_period.end.strftime('%d.%m.%Y')}</b> '
+            f'planen möchten.')
+        self._text_description = self._text_description_default
         self._event_planing_rules = self.rules_handler.get_event_planing_rules(
             self.location_plan_period.location_of_work.id)
         self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self._rules_data_from_config: defaultdict[int, RulesData] = defaultdict(RulesData)
         if self._event_planing_rules:
+            self._text_description = (self._text_description_default +
+                                      '<br>Es wurden Regeln aus einer zuvor gespeicherten Konfiguration geladen.')
             for i, rules_data in enumerate(self._event_planing_rules.planing_rules, start=1):
                 self._rules_data_from_config[i] = RulesData(
                     first_day=n_th_weekday_of_period(self.plan_period.start,
@@ -281,6 +290,7 @@ class DlgEventPlaningRules(QDialog):
         self.widgets_for_rules.clear()
         self._rules_data.clear()
         self._add_rule()
+        self.lb_description.setText(self._text_description_default)
 
 
     def _combobox_time_of_day(self, rule_index: int):

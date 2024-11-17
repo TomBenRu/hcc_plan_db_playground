@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayou
                                QDialogButtonBox, QPushButton, QCheckBox, QMessageBox, QHBoxLayout)
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QDate
+from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from configuration.event_planing_rules import current_event_planing_rules_handler, EventPlaningRules, PlaningRules
@@ -269,7 +270,7 @@ class DlgEventPlaningRules(QDialog):
                     widget.setValue(rule_data.num_events)
         self.chk_same_partial_days_for_all_rules.setChecked(
             self._event_planing_rules.same_partial_days_for_all_rules)
-        if (idx := self.combo_rule_same_day.findData(
+        if self._event_planing_rules.cast_rule_at_same_day_id and (idx := self.combo_rule_same_day.findData(
                 db_services.CastRule.get(self._event_planing_rules.cast_rule_at_same_day_id))) != -1:
             self.combo_rule_same_day.setCurrentIndex(idx)
 
@@ -418,7 +419,8 @@ class DlgEventPlaningRules(QDialog):
             location_of_work_id=self.location_plan_period.location_of_work.id,
             planing_rules=[PlaningRules(first_day=r.first_day, time_of_day_id=r.time_of_day.id, interval=r.interval,
                                         repeat=r.repeat, num_events=r.num_events) for r in self._rules_data.values()],
-            cast_rule_at_same_day_id=self.combo_rule_same_day.currentData().id,
+            cast_rule_at_same_day_id=(self.combo_rule_same_day.currentData().id
+                                      if self.combo_rule_same_day.currentIndex() > 0 else None),
             same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked()
         )
         self.rules_handler.set_event_planing_rules(self._event_planing_rules)

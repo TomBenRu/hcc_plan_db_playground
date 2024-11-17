@@ -19,6 +19,7 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.schemas import RulesData, Rules
 from tools import helper_functions
 from tools.helper_functions import n_th_weekday_of_period
+from tools.size_of_objects import total_size
 
 
 class FirstDayFromWeekday(QWidget):
@@ -230,18 +231,21 @@ class DlgEventPlaningRules(QDialog):
         self._text_description = self._text_description_default
         self._event_planing_rules = self.rules_handler.get_event_planing_rules(
             self.location_plan_period.location_of_work.id)
+        # print(f'{self._event_planing_rules=}')
         self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self._rules_data_from_config: defaultdict[int, RulesData] = defaultdict(RulesData)
         if self._event_planing_rules:
             self._text_description = (self._text_description_default +
                                       '<br>Es wurden Regeln aus einer zuvor gespeicherten Konfiguration geladen.')
             for i, rules_data in enumerate(self._event_planing_rules.planing_rules, start=1):
+                time_of_day = db_services.TimeOfDay.get(rules_data.time_of_day_id, True)
+                print(f'{total_size(time_of_day)=}')
                 self._rules_data_from_config[i] = RulesData(
                     first_day=n_th_weekday_of_period(self.plan_period.start,
                                                      self.plan_period.end,
                                                      rules_data.first_day.weekday(),
                                                      1),
-                    time_of_day=db_services.TimeOfDay.get(rules_data.time_of_day_id),
+                    time_of_day=time_of_day,
                     interval=rules_data.interval,
                     repeat=rules_data.repeat,
                     num_events=rules_data.num_events)

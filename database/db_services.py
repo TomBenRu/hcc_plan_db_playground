@@ -870,9 +870,10 @@ class TeamLocationAssign:
 class TimeOfDay:
     @classmethod
     @db_session
-    def get(cls, time_of_day_id: UUID):
+    def get(cls, time_of_day_id: UUID, reduced: bool = False) -> schemas.TimeOfDayShow | schemas.TimeOfDay:
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
-        return schemas.TimeOfDayShow.model_validate(time_of_day_db)
+        return (schemas.TimeOfDay.model_validate(time_of_day_db) if reduced
+                else schemas.TimeOfDayShow.model_validate(time_of_day_db))
 
     @classmethod
     @db_session

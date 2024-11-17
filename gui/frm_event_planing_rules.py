@@ -387,6 +387,7 @@ class DlgEventPlaningRules(QDialog):
         repeats = self.widgets_for_rules[rule_index]['Wiederholungen'].value()
         if widget_num_events.value() > repeats + 1:
             widget_num_events.setValue(repeats + 1)
+        self.lb_description.setText(self._text_description_default)
         self._rules_data[rule_index].num_events = widget_num_events.value()
         self._enable_same_partial_days_checkbox()
 

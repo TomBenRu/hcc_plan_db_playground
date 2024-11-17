@@ -173,6 +173,7 @@ class DlgEventPlaningRules(QDialog):
         self.combo_rule_same_day = QComboBoxToFindData()
         self._combo_rule_same_day_add_items()
         self.combo_rule_same_day.setDisabled(True)
+        self.combo_rule_same_day.currentIndexChanged.connect(self._set_text_description_to_default)
         self.bt_rule_same_day = QPushButton('Neue Tagesregel')
         self.bt_rule_same_day.clicked.connect(self._add_rule_same_day)
         self.bt_rule_same_day.setDisabled(True)
@@ -181,6 +182,7 @@ class DlgEventPlaningRules(QDialog):
         self.layout_rule_same_day.addWidget(self.bt_rule_same_day)
         self.chk_same_partial_days_for_all_rules = QCheckBox('Gleiche Tageswahl für alle Regeln')
         self.chk_same_partial_days_for_all_rules.setDisabled(True)
+        self.chk_same_partial_days_for_all_rules.toggled.connect(self._set_text_description_to_default)
         self.layout_special_rules.addWidget(self.chk_same_partial_days_for_all_rules)
 
         self.bt_add_rule = QPushButton('Neue Regel')
@@ -318,7 +320,7 @@ class DlgEventPlaningRules(QDialog):
         self.widgets_for_rules.clear()
         self._rules_data.clear()
         self._add_rule()
-        self.lb_description.setText(self._text_description_default)
+        self._set_text_description_to_default()
 
 
     def _combobox_time_of_day(self, rule_index: int):
@@ -389,14 +391,14 @@ class DlgEventPlaningRules(QDialog):
         repeats = self.widgets_for_rules[rule_index]['Wiederholungen'].value()
         if widget_num_events.value() > repeats + 1:
             widget_num_events.setValue(repeats + 1)
-        self.lb_description.setText(self._text_description_default)
+        self._set_text_description_to_default()
         self._rules_data[rule_index].num_events = widget_num_events.value()
         self._enable_same_partial_days_checkbox()
 
     def _combobox_time_of_day_changed(self, rule_index: int, *args):
         combobox = self.widgets_for_rules[rule_index]['Tageszeit']
         self._rules_data[rule_index].time_of_day = combobox.currentData()
-        self.lb_description.setText(self._text_description_default)
+        self._set_text_description_to_default()
 
     def _spinbox_interval_changed(self, rule_index: int, value: int):
         self._rules_data[rule_index].interval = value
@@ -407,6 +409,7 @@ class DlgEventPlaningRules(QDialog):
         self._rules_data[rule_index].first_day = date
         self._spinbox_repeat_changed(rule_index)
         self._enable_same_partial_days_checkbox()
+        self._set_text_description_to_default()
 
     def _combo_rule_same_day_add_items(self):
         self.combo_rule_same_day.clear()
@@ -459,6 +462,10 @@ class DlgEventPlaningRules(QDialog):
         return Rules(rules_data=list(self._rules_data.values()),
                      cast_rule_at_same_day=self.combo_rule_same_day.currentData(),
                      same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked())
+
+    def _set_text_description_to_default(self):
+        if self._event_planing_rules:
+            self.lb_description.setText(self._text_description_default)
 
     def _save_rules(self):
         self._rules_data: defaultdict[int, RulesData]

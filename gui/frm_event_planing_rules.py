@@ -222,8 +222,8 @@ class DlgEventPlaningRules(QDialog):
             self._widget_first_day_from_weekday if self.first_day_from_weekday else self._button_first_day,
             self._combobox_time_of_day, self._spinbox_interval, self._spinbox_repeat, self._spinbox_num_events]
         self._text_description_default = (
-            f'Hier können Sie festlegen, wie Sie die Events von "'
-            f'<b>{self.location_plan_period.location_of_work.name_an_city}</b>"<br>'
+            f'Hier können Sie festlegen, wie Sie die Events von<br>'
+            f'<b>"{self.location_plan_period.location_of_work.name_an_city}"</b>'
             f'im Zeitraum '
             f'<b>{self.plan_period.start.strftime('%d.%m.%Y')}-{self.plan_period.end.strftime('%d.%m.%Y')}</b> '
             f'planen möchten.')

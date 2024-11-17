@@ -8,7 +8,7 @@ from PySide6 import QtCore
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayout, QComboBox, QCalendarWidget, QSpinBox,
                                QDialogButtonBox, QPushButton, QCheckBox, QMessageBox, QHBoxLayout)
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QSize
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
@@ -217,11 +217,12 @@ class DlgEventPlaningRules(QDialog):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period_id)
         self.plan_period = self.location_plan_period.plan_period
         self.header_text = ['Start: Wochentag, wievielter' if self.first_day_from_weekday else '1. Tag',
-                            'Tageszeit', 'Abstand', 'Wiederholungen', 'mögl. Anzahl']
+                            'Tageszeit', 'Abstand', 'Wiederholungen', 'mögl. Anzahl', '']
         self.widgets_for_rules: defaultdict[int, dict[str, QComboBox | QSpinBox | QPushButton]] = defaultdict(dict)
         self.rules_widgets = [
             self._widget_first_day_from_weekday if self.first_day_from_weekday else self._button_first_day,
-            self._combobox_time_of_day, self._spinbox_interval, self._spinbox_repeat, self._spinbox_num_events]
+            self._combobox_time_of_day, self._spinbox_interval, self._spinbox_repeat, self._spinbox_num_events,
+            self._bt_remove_rule]
         self._text_description_default = (
             f'Hier können Sie festlegen, wie Sie die Events von<br>'
             f'<b>"{self.location_plan_period.location_of_work.name_an_city}"</b>'
@@ -257,6 +258,14 @@ class DlgEventPlaningRules(QDialog):
         if len(self.widgets_for_rules) > 1:
             self._enable_same_partial_days_checkbox()
             self._enable_rule_at_same_day_checkbox()
+
+    def _remove_rule(self, rule_index: int):
+        for widget in self.widgets_for_rules[rule_index].values():
+            widget.deleteLater()
+        del self.widgets_for_rules[rule_index]
+        del self._rules_data[rule_index]
+        self._enable_same_partial_days_checkbox()
+        self._enable_rule_at_same_day_checkbox()
 
     def _setup_rules_from_data(self):
         for _ in self._rules_data_from_config:
@@ -353,6 +362,13 @@ class DlgEventPlaningRules(QDialog):
         self._rules_data[rule_index].num_events = 1
         return spinbox
 
+    def _bt_remove_rule(self, rule_index: int):
+        button = QPushButton(icon=QIcon(os.path.join(os.path.dirname(__file__),
+                                                     'resources/toolbar_icons/icons/cross.png')))
+        button.setToolTip('Regel löschen')
+        button.clicked.connect(partial(self._remove_rule, rule_index))
+        return button
+
     def _spinbox_repeat_changed(self, rule_index: int, *args):
         first_day = self._rules_data[rule_index].first_day
         interval = self._rules_data[rule_index].interval
@@ -432,7 +448,6 @@ class DlgEventPlaningRules(QDialog):
             self._combo_rule_same_day_add_items()
         else:
             dlg.controller.undo_all()
-
 
     @property
     def rules(self) -> Rules:

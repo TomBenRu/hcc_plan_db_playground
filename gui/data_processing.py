@@ -6,6 +6,7 @@ from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QWidget, QMessageBox
 from line_profiler_pycharm import profile
 
+import gui.schemas
 from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands, \
     event_group_commands
@@ -186,7 +187,7 @@ class LocationPlanPeriodData:
         self.reload_location_plan_period()
         self.reset_check_field()
 
-    def _create_events_from_rules(self, rules: list[frm_event_planing_rules.RulesData],
+    def _create_events_from_rules(self, rules: list[gui.schemas.RulesData],
                                   same_partial_days_for_all_rules: bool, master_event_group_id: UUID):
         """Erstellt Ereignisse basierend auf den gegebenen Regeln."""
         events = []
@@ -207,7 +208,7 @@ class LocationPlanPeriodData:
                 self._assign_events_to_group(events[-1], new_event_group)
         return events
 
-    def _group_events_by_day(self, events, master_event_group, rules: list[frm_event_planing_rules.RulesData]):
+    def _group_events_by_day(self, events, master_event_group, rules: list[gui.schemas.RulesData]):
         """Gruppiert Ereignisse nach Tagen und erstellt neue Eventgruppen."""
         event_groups_same_day = []
         for date in events[-1]:

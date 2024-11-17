@@ -977,7 +977,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def make_events_from_planing_rules(self):
         dlg = frm_event_planing_rules.DlgEventPlaningRules(
-            self, self.location_plan_period.id)
+            self, self.location_plan_period.id, True)
         if dlg.exec():
             self.data_processor.make_events_from_planning_rules(dlg)
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())

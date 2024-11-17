@@ -1,3 +1,4 @@
+import datetime
 from collections import defaultdict
 from uuid import UUID
 
@@ -85,3 +86,25 @@ def get_appointments_of_all_actors_from_plan(
         appointments.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
 
     return {name: result[name] for name in sorted(result.keys())}
+
+
+
+def n_th_weekday_of_period(start: datetime.date, end: datetime.date, weekday: int, n: int) -> datetime.date | None:
+    """
+    Bestimm den n-ten Wochentag in einem Zeitraum.
+    weekdays: (0 = Montag, ..., 6 = Sonntag)
+    """
+    if n < 1:
+        return None
+    # Berechnung des ersten Wochentags
+    delta_days = (weekday - start.weekday()) % 7
+    date_of_first_weekday = start + datetime.timedelta(days=delta_days)
+    # Berechnung des n-ten Wochentags
+    if (date_of_n_th_weekday := (date_of_first_weekday + datetime.timedelta(days=7 * (n - 1)))) > end:
+        return None
+    return date_of_n_th_weekday
+
+if __name__ == '__main__':
+    print(n_th_weekday_of_period(datetime.date(2024, 11, 1),
+                                   datetime.date(2024, 11, 30), 4, 1))
+

@@ -23,7 +23,7 @@ class CalendarsHandlerToml:
     def __init__(self):
         self.toml_dir = os.path.join(curr_user_path_handler.get_config().config_file_path, 'google_calendars')
         self._calender_file_path = os.path.join(self.toml_dir, 'google_calendars.toml')
-        self._calenders: list[GoogleCalendar] | None = None
+        self._calenders: dict[str, GoogleCalendar] | None = None
         self._check_toml_dir()
 
     def _check_toml_dir(self):

@@ -335,6 +335,9 @@ class TimeOfDay(TimeOfDayCreate):
     project: Project
     project_standard: Optional[Project]
 
+    def __eq__(self, other: 'TimeOfDay'):
+        return self.id == other.id
+
 
 class TimeOfDayShow(TimeOfDay):
 
@@ -562,6 +565,9 @@ class CastRule(CastRuleCreate):
     created_at: datetime.datetime
     last_modified: datetime.datetime
     prep_delete: Optional[datetime.datetime]
+
+    def __eq__(self, other: 'CastRule'):
+        return self.id == other.id
 
 
 class CastRuleShow(CastRule):

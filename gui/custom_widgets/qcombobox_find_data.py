@@ -7,7 +7,7 @@ class QComboBoxToFindData(QComboBox):
             (
                 index
                 for index in range(self.count())
-                if self.itemData(index) == data
+                if self.itemData(index) is not None and self.itemData(index) == data
             ),
             -1,
         )

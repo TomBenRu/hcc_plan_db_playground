@@ -157,7 +157,7 @@ class DlgEventPlaningRules(QDialog):
         self.layout.addLayout(self.layout_special_rules)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(self._text_description)
+        self.lb_description = QLabel()
         self.layout_head.addWidget(self.lb_description)
 
 
@@ -203,6 +203,8 @@ class DlgEventPlaningRules(QDialog):
             self._setup_rules_from_data()
         else:
             self._add_rule()
+
+        self.lb_description.setText(self._text_description)
 
     def _show_calendar(self, rule_index: int):
         dlg = DlgFirstDay(self, self.plan_period.start, self.plan_period.end,
@@ -394,6 +396,7 @@ class DlgEventPlaningRules(QDialog):
     def _combobox_time_of_day_changed(self, rule_index: int, *args):
         combobox = self.widgets_for_rules[rule_index]['Tageszeit']
         self._rules_data[rule_index].time_of_day = combobox.currentData()
+        self.lb_description.setText(self._text_description_default)
 
     def _spinbox_interval_changed(self, rule_index: int, value: int):
         self._rules_data[rule_index].interval = value

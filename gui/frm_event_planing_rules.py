@@ -12,7 +12,7 @@ from PySide6.QtCore import QDate, QSize
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
-from configuration.event_planing_rules import current_event_planing_rules_handler, EventPlaningRules, PlaningRules
+from configuration.event_planing_rules import current_event_planning_rules_handler, EventPlanningRules, PlanningRules
 from database import db_services
 from gui import frm_cast_rule
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -130,15 +130,15 @@ class DlgFirstDay(QDialog):
         return self.calendar.selectedDate().toPython()
 
 
-class DlgEventPlaningRules(QDialog):
+class DlgEventPlanningRules(QDialog):
     def __init__(self, parent: QWidget, location_plan_period_id: UUID, first_day_from_weekday: bool):
         super().__init__(parent)
-        self.setWindowTitle("Event Planing Rules")
+        self.setWindowTitle("Event Planning Rules")
 
         self.location_plan_period_id = location_plan_period_id
         self.first_day_from_weekday = first_day_from_weekday
         self.controller = command_base_classes.ContrExecUndoRedo()
-        self.rules_handler = current_event_planing_rules_handler
+        self.rules_handler = current_event_planning_rules_handler
 
         self._setup_data()
         self._setup_ui()
@@ -234,14 +234,14 @@ class DlgEventPlaningRules(QDialog):
             f'<b>{self.plan_period.start.strftime('%d.%m.%Y')}-{self.plan_period.end.strftime('%d.%m.%Y')}</b> '
             f'planen möchten.')
         self._text_description = self._text_description_default
-        self._event_planing_rules = self.rules_handler.get_event_planing_rules(
+        self._event_planing_rules = self.rules_handler.get_event_planning_rules(
             self.location_plan_period.location_of_work.id)
         self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self._rules_data_from_config: defaultdict[int, RulesData] = defaultdict(RulesData)
         if self._event_planing_rules:
             self._text_description = (self._text_description_default +
                                       '<br>Es wurden Regeln aus einer zuvor gespeicherten Konfiguration geladen.')
-            for i, rules_data in enumerate(self._event_planing_rules.planing_rules, start=1):
+            for i, rules_data in enumerate(self._event_planing_rules.planning_rules, start=1):
                 time_of_day = db_services.TimeOfDay.get(rules_data.time_of_day_id, True)
                 self._rules_data_from_config[i] = RulesData(
                     first_day=n_th_weekday_of_period(self.plan_period.start,
@@ -469,15 +469,15 @@ class DlgEventPlaningRules(QDialog):
 
     def _save_rules(self):
         self._rules_data: defaultdict[int, RulesData]
-        self._event_planing_rules = EventPlaningRules(
+        self._event_planing_rules = EventPlanningRules(
             location_of_work_id=self.location_plan_period.location_of_work.id,
-            planing_rules=[PlaningRules(first_day=r.first_day, time_of_day_id=r.time_of_day.id, interval=r.interval,
-                                        repeat=r.repeat, num_events=r.num_events) for r in self._rules_data.values()],
+            planning_rules=[PlanningRules(first_day=r.first_day, time_of_day_id=r.time_of_day.id, interval=r.interval,
+                                          repeat=r.repeat, num_events=r.num_events) for r in self._rules_data.values()],
             cast_rule_at_same_day_id=(self.combo_rule_same_day.currentData().id
                                       if self.combo_rule_same_day.currentIndex() > 0 else None),
             same_partial_days_for_all_rules=self.chk_same_partial_days_for_all_rules.isChecked()
         )
-        self.rules_handler.set_event_planing_rules(self._event_planing_rules)
+        self.rules_handler.set_event_planning_rules(self._event_planing_rules)
         QMessageBox.information(self, 'Planungsregeln',
                                 f'Planungsregeln für "{self.location_plan_period.location_of_work.name_an_city}" '
                                 f'wurden für spätere Verwendung gespeichert.')

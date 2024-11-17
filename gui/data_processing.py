@@ -166,7 +166,7 @@ class LocationPlanPeriodData:
     def _reset_plan_location_columns(self, plan_id: UUID):
         self.controller.execute(plan_commands.UpdateLocationColumns(plan_id, {}))
 
-    def make_events_from_planning_rules(self, dlg: frm_event_planing_rules.DlgEventPlaningRules):
+    def make_events_from_planning_rules(self, dlg: frm_event_planing_rules.DlgEventPlanningRules):
         master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
             self.location_plan_period.id)
         if existing_events := db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):

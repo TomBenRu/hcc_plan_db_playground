@@ -1,6 +1,6 @@
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from database import schemas
 
@@ -17,6 +17,6 @@ class  RulesData(BaseModel):
 
 
 class Rules(BaseModel):
-    rules_data: list[RulesData] = []
+    rules_data: list[RulesData] = Field(default_factory=list)
     cast_rule_at_same_day: schemas.CastRuleShow | None = None
     same_partial_days_for_all_rules: bool = False

@@ -256,7 +256,7 @@ class TreeWidget(QTreeWidget):
                 signal_handling.DataGroupMode(True,
                                               date_object.date,
                                               date_object.time_of_day.time_of_day_enum.time_index,
-                                              parent_group_nr)
+                                              parent_group_nr, date_object.location_plan_period.id)
             )
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -292,7 +292,8 @@ class TreeWidget(QTreeWidget):
                         signal_handling.DataGroupMode(True,
                                                       date_object.date,
                                                       date_object.time_of_day.time_of_day_enum.time_index,
-                                                      parent_group_nr)
+                                                      parent_group_nr,
+                                                      date_object.location_plan_period.id)
                     )
                 else:
                     self.nr_main_groups += 1
@@ -312,7 +313,8 @@ class TreeWidget(QTreeWidget):
                     signal_handling.DataGroupMode(True,
                                                   event.date,
                                                   event.time_of_day.time_of_day_enum.time_index,
-                                                  0)
+                                                  0,
+                                                  event.location_plan_period.id)
                 )
             else:
                 item = TreeWidgetItem(self)

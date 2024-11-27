@@ -100,7 +100,8 @@ class ButtonEvent(QPushButton):
         if self.isChecked():
             if self.group_mode:
                 if group_mode.date and (group_mode.date == self.date
-                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
+                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index
+                                        and group_mode.location_pp__actor_pp_id == self.location_plan_period.id):
                     self.setText(f'{group_mode.group_nr:02}' if group_mode.group_nr else None)
             else:
                 self.setText(None)

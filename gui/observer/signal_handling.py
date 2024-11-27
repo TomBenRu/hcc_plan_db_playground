@@ -33,6 +33,7 @@ class DataGroupMode:
     date: datetime.date | None = None
     time_index: int | None = None
     group_nr: int | None = None
+    location_pp__actor_pp_id: UUID | None = None  # location_plan_period_id or actor_plan_period_id
 
 
 @dataclass

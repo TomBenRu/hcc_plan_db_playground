@@ -83,7 +83,8 @@ class ButtonAvailDay(QPushButton):
         if self.isChecked():
             if self.group_mode:
                 if group_mode.date and (group_mode.date == self.date
-                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index):
+                                        and group_mode.time_index == self.time_of_day.time_of_day_enum.time_index
+                                        and group_mode.location_pp__actor_pp_id == self.actor_plan_period.id):
                     self.setText(f'{group_mode.group_nr:02}' if group_mode.group_nr else None)
             else:
                 self.setText(None)
@@ -348,7 +349,7 @@ class ButtonActorLocationPref(QPushButton):
                     self.reset_prefs_of_day(avail_days_at_date)
                     QMessageBox.critical(self, 'Einrichtungspräferenzen',
                                          f'Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die '
-                                         f'Standardwerdte des Planungszeitraums von '
+                                         f'Standardwerte des Planungszeitraums von '
                                          f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
                                          f'zurückgesetzt.')
                     return True
@@ -1136,7 +1137,8 @@ class FrmActorPlanPeriod(QWidget):
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 
-        signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(signal_handling.DataGroupMode(False))
+        signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
+            signal_handling.DataGroupMode(False))
 
     def set_button_avail_day_to_checked_and_configure(
             self, date: datetime.date, time_of_day: schemas.TimeOfDay, uncheck=False) -> ButtonAvailDay | None:

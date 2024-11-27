@@ -48,7 +48,6 @@ class ButtonAvailDay(QPushButton):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.group_mode = False
-        '#999999'
         self.actor_plan_period = actor_plan_period
         self.slot__avail_day_toggled = slot__avail_day_toggled
         self.date = date

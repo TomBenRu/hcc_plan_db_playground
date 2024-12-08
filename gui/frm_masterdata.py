@@ -115,7 +115,8 @@ class WidgetPerson(QWidget):
 
     def create_person_on_api(self, person: schemas_plan_api.PersonCreate):
         # TODO: Implement API call to create person on server
-        ...
+        QMessageBox.information(self, 'Mitarbeiter auf Server',
+                                'Der Mitarbeiter wird auf dem Server angelegt.\nNoch nicht implementiert')
 
     def edit_person(self):
         row = self.table_persons.currentRow()

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemV
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
 from line_profiler_pycharm import profile
+from pydantic_core._pydantic_core import ValidationError
 
 from database import schemas, db_services, schemas_plan_api
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, \
@@ -843,7 +844,12 @@ class FrmTabActorPlanPeriods(QWidget):
             self.person_id = person_id
         self.te_notes_actor.setEnabled(True)
         self.te_notes_pp.setEnabled(True)
-        self.person = db_services.Person.get(self.person_id)
+        try:
+            self.person = db_services.Person.get(self.person_id)
+        except ValidationError as e:
+            QMessageBox.critical(self, 'Planungsmaske',
+                                 f'Planungsmaske der Person konnte nicht geladen werden.\n\n{e}')
+            return
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
         actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
         self.lb_title_name.setText(

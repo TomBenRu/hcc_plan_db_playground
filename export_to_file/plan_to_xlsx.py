@@ -244,9 +244,9 @@ class ExportToXlsx:
             for _ in range(cast_group.nr_actors - len(appointment.avail_days) - len(appointment.guests)):
                 text += '\n unbesetzt'
             if self.note_in_empty_fields and cast_group.nr_actors == 0:
-                text = f'\n{appointment.notes}'
+                text = f'\n{appointment.notes}' if appointment.notes else ''
             if self.note_in_employee_fields and cast_group.nr_actors:
-                text += f'\n({appointment.notes})'
+                text += f'\n({appointment.notes})' if appointment.notes else ''
             return text
 
         rows_cols: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)

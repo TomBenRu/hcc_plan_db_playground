@@ -1001,6 +1001,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
             relative_shift_deviations[app.id],
             sum_assigned_shifts[app.id] * 100_000 - int(app.requested_assignments * 100_000),
             int(app.requested_assignments * 100) if app.requested_assignments else 1)
+        # fixme: Wenn requested_assignments == 0 und der Mitarbeiter keine Shifts hat, gibt es wohl einen Überlauf?
 
     # Calculate the average of the relative shift deviations.
     average_relative_shift_deviation = model.NewIntVar(lb=-100_000_000, ub=100_000_000,

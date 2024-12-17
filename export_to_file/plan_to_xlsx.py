@@ -29,6 +29,10 @@ class ExportToXlsx:
         self.offset_y = 3
         self.offset_x_dates_scheduling_overview = 0
         self.offset_y_dates_scheduling_overview = 4
+
+        self.nbsp = '\u00A0'
+        self.nb_minus = "\u2212"
+
         self._create_workbook()
         self._define_formats()
         self._create_worksheets()
@@ -302,7 +306,9 @@ class ExportToXlsx:
                 sorted([n for n, apps in self.location_appointment_notes.items() if any(a.notes for a in apps)])):
             text_notes = ', '.join(
                 [
-                    f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name}) - {appointment.notes}'
+                    f'{appointment.event.date:%d.%m.%y} ({appointment.event.time_of_day.name}) - '
+                    f'{appointment.notes.replace("\n", " ")}'
+                    .replace(' ', self.nbsp).replace('-', self.nb_minus)
                     for appointment in
                     sorted(self.location_appointment_notes[location_name],
                            key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
@@ -321,9 +327,6 @@ class ExportToXlsx:
             self.offset_x_dates_scheduling_overview + 1, self.offset_x_dates_scheduling_overview + 1,
             self.col_width_dates_scheduling_overview
         )
-
-        nbsp = '\u00A0'
-        nb_minus = "\u2212"
 
         formats_names = (self.format_names_scheduling_overview_even,
                          self.format_names_scheduling_overview_odd)
@@ -352,10 +355,11 @@ class ExportToXlsx:
                 f'{name}:', formats_names[row % 2]
             )
             text_dates = (
-                    f'●{nbsp}' +
-                    f' ●{nbsp}'.join(
-                        [f'{a.event.date:%d.%m.%y}{nbsp}({a.event.time_of_day.start:%H:%M}){nbsp}-{nbsp}'
-                         f'{a.event.location_plan_period.location_of_work.name_an_city.replace(" ", nbsp).replace("-", nb_minus)}'
+                    f'●{self.nbsp}' +
+                    f' ●{self.nbsp}'.join(
+                        [f'{a.event.date:%d.%m.%y}{self.nbsp}({a.event.time_of_day.start:%H:%M}){self.nbsp}-{self.nbsp}'
+                         f'{a.event.location_plan_period.location_of_work.name_an_city
+                         .replace(" ", self.nbsp).replace("-", self.nb_minus)}'
                          for a in appointment])
             )
             self.worksheet_scheduling_overview.write(

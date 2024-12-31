@@ -215,15 +215,15 @@ class DlgCalculate(QDialog):
         for plan_period in plan_periods:
             self.combo_plan_periods.addItem(f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}',
                                             plan_period.id)
-        self.combo_plan_periods.currentIndexChanged.connect(self.combo_index_changed)
-        self.combo_index_changed()
+        self.combo_plan_periods.currentIndexChanged.connect(self.combo_plan_periods_index_changed)
+        self.combo_plan_periods_index_changed()
         self.spin_num_plans.setMinimum(1)
         self.spin_time_calculate_max_shifts.setMinimum(5)
         self.spin_time_calculate_plan.setMinimum(5)
-        self.spin_time_calculate_max_shifts.setValue(20)
-        self.spin_time_calculate_plan.setValue(10)
+        self.spin_time_calculate_max_shifts.setValue(20)  # Vorberechnungen
+        self.spin_time_calculate_plan.setValue(60)
 
-    def combo_index_changed(self):
+    def combo_plan_periods_index_changed(self):
         self.curr_plan_period_id = self.combo_plan_periods.currentData()
         self.num_actor_plan_periods = len(db_services.PlanPeriod.get(self.curr_plan_period_id).actor_plan_periods)
         self.spin_time_calculate_fair_distribution.setMinimum(self.num_actor_plan_periods * 5)

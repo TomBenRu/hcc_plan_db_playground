@@ -462,8 +462,6 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
 
     multiplier_constraints = (curr_config_handler.get_solver_config()
                               .constraints_multipliers.sliders_weights_avail_day_groups)
-    multiplier_level = (curr_config_handler.get_solver_config()
-                        .constraints_multipliers.group_depth_weights_av_day_groups)
     shift_vars_of_adg_ids: defaultdict[UUID, list] = defaultdict(list)
 
     def calculate_weight_vars_of_children_recursive(group: AvailDayGroup,
@@ -471,28 +469,27 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
         weight_vars: list[IntVar] = []
         for c in group.children:
             if c.avail_day:
-                # Es wird kein InVar erstellt, wenn kein Einsatz dieses AvalDays möglich ist:
+                # Es wird kein IntVar erstellt, wenn kein Einsatz dieses AvalDays möglich ist:
                 if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
                            if adg_id == c.avail_day_group_id
                            and check_time_span_avail_day_fits_event(
                                entities.event_groups_with_event[evg_id].event,
                                entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
                     continue
-                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level.get(group.depth, 1)
+                # für die fehlenden Level wird jew. die Gewichtung 1 (default: 0) gesetzt:
+                adjusted_weight = (max_depth - c.depth) * multiplier_constraints[1] + multiplier_constraints[c.weight]
                 weight_vars.append(
-                    model.NewIntVar(-1000000, 100000000,
+                    model.NewIntVar(-100, 100000,
                                     f'Depth {group.depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
                                     f'{c.avail_day.time_of_day.name}, '
                                     f'{c.avail_day.actor_plan_period.person.f_name}')
                 )
                 # stelle fest, ob ein zugehöriges Event stattfindet:
-                shift_with_this_avd = model.NewBoolVar('')
-                # model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
-                #                                      if avg_id == c.avail_day_group_id))
-                model.Add(shift_with_this_avd == sum(shift_vars_of_adg_ids[c.avail_day_group_id]))
-                model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight) * shift_with_this_avd))
+                adg_has_shifts = model.NewBoolVar('')
+                model.Add(adg_has_shifts == sum(shift_vars_of_adg_ids[c.avail_day_group_id]))
+                model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight) * adg_has_shifts))
             else:
-                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[max_depth - 1]
+                adjusted_weight = multiplier_constraints[c.weight]
                 weight_vars.extend(
                     calculate_weight_vars_of_children_recursive(c,
                                                                 cumulative_adjusted_weight + adjusted_weight))
@@ -997,18 +994,21 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
         model.AddAbsEquality(
             sum_assigned_shifts[app.id], assigned_shifts_of_app
         )
+        abs_shift_deviation = model.new_int_var(0, 1000, f'abs_shirt_deviation_{app.person.f_name}')
+        model.AddAbsEquality(abs_shift_deviation, assigned_shifts_of_app - int(app.requested_assignments))
+
         model.AddDivisionEquality(
             relative_shift_deviations[app.id],
-            sum_assigned_shifts[app.id] * 100_000 - int(app.requested_assignments * 100_000),
-            int(app.requested_assignments * 100) if app.requested_assignments else 1)
+            abs_shift_deviation * 1_000,
+            int(app.requested_assignments * 10) if app.requested_assignments else 1)
         # fixme: Wenn requested_assignments == 0 und der Mitarbeiter avail_days aber keine Shifts hat,
         #  gibt es wohl einen Überlauf?
 
     # Calculate the average of the relative shift deviations.
-    average_relative_shift_deviation = model.NewIntVar(lb=-100_000_000, ub=100_000_000,
+    average_relative_shift_deviation = model.NewIntVar(lb=0, ub=1_000_000,
                                                        name='average_relative_shift_deviation')
-    sum_relative_shift_deviations = model.NewIntVar(lb=-len(entities.event_groups_with_event) * 100_000_000,
-                                                    ub=len(entities.event_groups_with_event) * 100_000_000,
+    sum_relative_shift_deviations = model.NewIntVar(lb=0,
+                                                    ub=len(entities.event_groups_with_event) * 1_000_000,
                                                     name='sum_relative_shift_deviations')
     model.AddAbsEquality(sum_relative_shift_deviations, sum(relative_shift_deviations.values()))
     model.AddDivisionEquality(average_relative_shift_deviation,
@@ -1018,7 +1018,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
     # Create a list to represent the squared deviations from the average for each actor_plan_period.
     squared_deviations = {
         app.id: model.NewIntVar(lb=0,
-                                ub=(len(entities.event_groups_with_event) * 10_000_000) ** 2,
+                                ub=(len(entities.event_groups_with_event) * 1_000_000) ** 2,
                                 name=f'squared_deviation_{app.person.f_name}')
         for app in entities.actor_plan_periods.values()
     }
@@ -1028,7 +1028,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
     dif_average__relative_shift_deviations = {}
     for app in entities.actor_plan_periods.values():
         dif_average__relative_shift_deviations[app.id] = model.NewIntVar(
-            lb=-100_000_000, ub=100_000_000, name=f'dif_average__relative_shift_deviation {app.id}')
+            lb=0, ub=1_000_000, name=f'dif_average__relative_shift_deviation {app.id}')
         model.AddAbsEquality(dif_average__relative_shift_deviations[app.id],
                              relative_shift_deviations[app.id] - average_relative_shift_deviation)
 
@@ -1037,7 +1037,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
             [dif_average__relative_shift_deviations[app.id], dif_average__relative_shift_deviations[app.id]])
 
     # Add a constraint that the sum_squared_deviations is equal to the sum(squared_deviations).
-    sum_squared_deviations = model.NewIntVar(lb=0, ub=10 ** 16, name='sum_squared_deviations')
+    sum_squared_deviations = model.NewIntVar(lb=0, ub=10 ** 14, name='sum_squared_deviations')
     model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations.values()))
 
     return sum_assigned_shifts, sum_squared_deviations
@@ -1235,6 +1235,7 @@ def solve_model_to_optimum(model: cp_model.CpModel, max_search_time: int,
     # Solve the model.
     global solver
     solver = cp_model.CpSolver()
+    solver.parameters.mip_max_activity_exponent = 62
     solver.parameters.log_search_progress = log_search_process
     solver.parameters.linearization_level = 0
     solver.parameters.enumerate_all_solutions = False

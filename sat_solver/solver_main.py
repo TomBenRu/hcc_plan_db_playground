@@ -973,8 +973,8 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
     }
     relative_shift_deviations = {
         app.id: model.NewIntVar(
-            lb=-len(entities.event_groups_with_event) * 100_000_000,
-            ub=len(entities.event_groups_with_event) * 100_000_000,
+            lb=-len(entities.event_groups_with_event) * 1_000_000,
+            ub=len(entities.event_groups_with_event) * 1_000_000,
             name=f'relative_shift_deviation_{app.person.f_name}'
         )
         for app in entities.actor_plan_periods.values()
@@ -994,26 +994,30 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
         model.AddAbsEquality(
             sum_assigned_shifts[app.id], assigned_shifts_of_app
         )
-        abs_shift_deviation = model.new_int_var(0, 1000, f'abs_shirt_deviation_{app.person.f_name}')
-        model.AddAbsEquality(abs_shift_deviation, assigned_shifts_of_app - int(app.requested_assignments))
+        shift_deviation = model.new_int_var(-1000, 1000, f'abs_shirt_deviation_{app.person.f_name}')
+        model.Add(shift_deviation == assigned_shifts_of_app - int(app.requested_assignments))
 
         model.AddDivisionEquality(
             relative_shift_deviations[app.id],
-            abs_shift_deviation * 1_000,
+            shift_deviation * 1_000,
             int(app.requested_assignments * 10) if app.requested_assignments else 1)
-        # fixme: Wenn requested_assignments == 0 und der Mitarbeiter avail_days aber keine Shifts hat,
-        #  gibt es wohl einen Überlauf?
 
-    # Calculate the average of the relative shift deviations.
-    average_relative_shift_deviation = model.NewIntVar(lb=0, ub=1_000_000,
-                                                       name='average_relative_shift_deviation')
-    sum_relative_shift_deviations = model.NewIntVar(lb=0,
-                                                    ub=len(entities.event_groups_with_event) * 1_000_000,
-                                                    name='sum_relative_shift_deviations')
-    model.AddAbsEquality(sum_relative_shift_deviations, sum(relative_shift_deviations.values()))
-    model.AddDivisionEquality(average_relative_shift_deviation,
-                              sum_relative_shift_deviations,
-                              len(entities.actor_plan_periods))
+    sum_requested_assignments = sum(app.requested_assignments for app in entities.actor_plan_periods.values()) or 0.1
+    # Calculate the sum of all assigned shifts
+    sum_assigned_shifts_sum = model.NewIntVar(0, 10000, "sum_assigned_shifts_sum")
+    model.Add(sum_assigned_shifts_sum == sum(sum_assigned_shifts.values()))
+
+    # Compute the difference term
+    diff = model.NewIntVar(-10000, 10000, "difference_term")
+    model.Add(diff == sum_assigned_shifts_sum - sum_requested_assignments)
+
+    # Scale the difference by 1000
+    scaled_diff = model.NewIntVar(-10_000_000, 10_000_000, "scaled_difference")
+    model.AddMultiplicationEquality(scaled_diff, [diff, 1000])
+
+    # Define the division term
+    average_relative_shift_deviation = model.NewIntVar(-10_000_000, 10_000_000, "average_relative_shift_deviation")
+    model.AddDivisionEquality(average_relative_shift_deviation, scaled_diff, sum_requested_assignments * 10)
 
     # Create a list to represent the squared deviations from the average for each actor_plan_period.
     squared_deviations = {
@@ -1037,7 +1041,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
             [dif_average__relative_shift_deviations[app.id], dif_average__relative_shift_deviations[app.id]])
 
     # Add a constraint that the sum_squared_deviations is equal to the sum(squared_deviations).
-    sum_squared_deviations = model.NewIntVar(lb=0, ub=10 ** 14, name='sum_squared_deviations')
+    sum_squared_deviations = model.NewIntVar(lb=0, ub=1_000_000_000, name='sum_squared_deviations')
     model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations.values()))
 
     return sum_assigned_shifts, sum_squared_deviations
@@ -1618,7 +1622,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+          time_calc_plan: int, log_search_process=True) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
                                                                   dict[str, int] | None,
                                                                   dict[UUID, int] | None,

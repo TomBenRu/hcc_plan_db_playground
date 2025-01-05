@@ -523,7 +523,9 @@ class WidgetLocationsOfWork(QWidget):
         self.locations = self.get_locations()
         self.table_locations.locations = self.locations
         self.table_locations.clearContents()
+        self.table_locations.setSortingEnabled(False)
         self.table_locations.put_data_to_table()
+        self.table_locations.setSortingEnabled(True)
 
     def create_location(self):
         dlg = FrmLocationCreate(self, self.project_id)

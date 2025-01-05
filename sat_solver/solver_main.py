@@ -1622,7 +1622,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=True) -> tuple[list[list[AppointmentCreate]] | None,
+          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
                                                                   dict[str, int] | None,
                                                                   dict[UUID, int] | None,

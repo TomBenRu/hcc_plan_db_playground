@@ -96,7 +96,9 @@ class WidgetPerson(QWidget):
         self.persons = self.get_persons()
         self.table_persons.persons = self.persons
         self.table_persons.clearContents()
+        self.table_persons.setSortingEnabled(False)
         self.table_persons.put_data_to_table()
+        self.table_persons.setSortingEnabled(True)
 
     def create_person(self):
         dlg = DlgPersonCreate(self, self.project_id)

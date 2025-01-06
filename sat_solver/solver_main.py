@@ -607,12 +607,16 @@ def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntV
             shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
             all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
 
-            # todo: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
-            #  sollte aber mit der tatsächlichen Besetzungsstärke ermittelt werden...
+            # not_sure: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
+            #  sollte aber vielleicht mit der tatsächlichen Besetzungsstärke ermittelt werden...
+            #  Nachteil davon: Mitarbeiter werden nicht besetzt, wenn bei einem Mitarbeiter die Partner-Location-Pref 0
+            #  ist und die aktuelle Besetzungsstärke 2 ist, obwohl durch nachträgliche Bearbeitung des Plans die
+            #  Besetzungsstärke größer als 2 sein könnte.
             model.Add(plp_weight_var == round(
                 (plp_constr_multipliers[score_0] + plp_constr_multipliers[score_1]) /
                 (event_group.event.cast_group.nr_actors - 1))
                       )
+
             model.AddMultiplicationEquality(shift_active_var,
                                             [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
                                              entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
@@ -1622,7 +1626,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+          time_calc_plan: int, log_search_process=True) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
                                                                   dict[str, int] | None,
                                                                   dict[UUID, int] | None,

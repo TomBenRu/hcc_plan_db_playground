@@ -479,7 +479,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             return
         if len({len(e.skill_groups) for e in self.events_at_day}) > 1:
             return False
-        location_skill_groups = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id).skill_groups
+        location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
+            self.location_plan_period.location_of_work.id)
         return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
                    == sorted(location_skill_groups, key=lambda x: x.skill.id)
                    for e in self.events_at_day)

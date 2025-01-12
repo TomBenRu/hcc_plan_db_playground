@@ -2387,6 +2387,13 @@ class Skill:
 
     @classmethod
     @db_session
+    def get_all_from__person(cls, person_id: UUID) -> list[schemas.SkillShow]:
+        person_db = models.Person.get_for_update(id=person_id)
+        skills_db = person_db.skills
+        return [schemas.SkillShow.model_validate(s) for s in skills_db]
+
+    @classmethod
+    @db_session
     def get_all_from__project(cls, project_id: UUID) -> list[schemas.SkillShow]:
         project_db = models.Project.get_for_update(id=project_id)
         skills_db = project_db.skills

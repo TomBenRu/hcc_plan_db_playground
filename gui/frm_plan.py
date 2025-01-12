@@ -314,7 +314,6 @@ class LabelDayNr(QLabel):
 
 
 class DayField(QWidget):
-    @profile
     def __init__(self, day: datetime.date, location_ids_order: list[UUID],
                  location_ids_appointments: dict[UUID, list[schemas.Appointment]] | None,
                  plan_period: schemas.PlanPeriod, appointment_widget_width: int, plan_widget: 'FrmTabPlan'):
@@ -348,8 +347,6 @@ class DayField(QWidget):
     def display_appointment_containers(self):
         for pos, container in self.containers_appointments.items():
             self.layout_container_locations.addWidget(container, 0, pos)
-
-    @profile
     def display_appointments(self):
         if not self.location_ids_appointments:
             return
@@ -411,7 +408,6 @@ class ContainerAppointments(QWidget):
         self.layout.setSpacing(1)
         self.appointment_fields: list['AppointmentField'] = []
 
-    @profile
     def add_appointment_field(self, appointment_field: 'AppointmentField'):
         self.appointment_fields.append(appointment_field)
         self.appointment_fields.sort(key=lambda x: x.appointment.event.time_of_day.time_of_day_enum.time_index)
@@ -422,7 +418,6 @@ class ContainerAppointments(QWidget):
                                    if a.appointment.id != appointment_field.appointment.id]
         self.display_appointments_fields()
 
-    @profile
     def display_appointments_fields(self):
         for i in range(self.layout.count()):
             self.layout.itemAt(i).widget().setParent(None)
@@ -611,7 +606,6 @@ class AppointmentField(QWidget):
 
 class FrmTabPlan(QWidget):
     resize_signal = Signal()
-    @profile
     def __init__(self, parent: QWidget, plan: schemas.PlanShow,
                  update_progress_manager: GlobalUpdatePlanTabsProgressManager):
         super().__init__(parent=parent)
@@ -676,7 +670,6 @@ class FrmTabPlan(QWidget):
         self.bt_refresh.clicked.connect(self.reload_and_refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
 
-    @profile
     def _setup_bottom_menu(self):
         self.bottom_menu = side_menu.SlideInMenu(self, 210, 10, 'bottom', (20, 10, 20, 10))
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
@@ -905,7 +898,6 @@ class FrmTabPlan(QWidget):
                 curr_column += 1
         return column_assignments
 
-    @profile
     def _show_table_plan(self):
         self.table_plan = QTableWidget()
         self.layout.addWidget(self.table_plan)
@@ -979,7 +971,6 @@ class FrmTabPlan(QWidget):
             day_location_id_appointments[date][location_id].append(appointment)
         return day_location_id_appointments
 
-    @profile
     def display_days(self):
         for day in self.all_days_of_month:
             row = self.week_num_rows[day.isocalendar()[1]]
@@ -1024,7 +1015,6 @@ class FrmTabPlan(QWidget):
 
 
 class TblPlanStatistics(QTableWidget):
-    @profile
     def __init__(self, parent: QWidget, frm_plan: FrmTabPlan, plan_id: UUID):
         super().__init__(parent)
 
@@ -1128,7 +1118,6 @@ class TblPlanStatistics(QTableWidget):
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
-    @profile
     def _fill_in_table_cells(self):
         max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_all_from__plan_period_minimal(
             self.frm_plan.plan.plan_period.id)
@@ -1169,7 +1158,6 @@ class TblPlanStatistics(QTableWidget):
             item.setToolTip(f'Klick:\nAktuelle Einsätze von {full_name}\nim Plan markieren.')
             self.cells_with_action.add((self.row_kind_of_dates['current'], column))
 
-    @profile
     def _setup_data(self):
         self.appointments_of_employees = get_appointments_of_all_actors_from_plan(self.frm_plan.plan)
         self.cell_backgrounds = cell_backgrounds_statistics

@@ -22,7 +22,6 @@ from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_locatio
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
 from gui.custom_widgets import side_menu
 from gui.frm_remote_access_plan_api import plan_api_handler
-from gui.frm_skill_groups import DlgSkillGroups
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
@@ -621,6 +620,7 @@ class ButtonSkills(QPushButton):
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.set_stylesheet_and_tooltip()
 
+
     def set_stylesheet_and_tooltip(self):
         self._set_avail_days_at_day()
         self._set_stylesheet()
@@ -648,7 +648,7 @@ class ButtonSkills(QPushButton):
             return
         if len({len(ad.skills) for ad in self.avail_days_at_day}) > 1:
             return False
-        person_skills = db_services.Person.get(self.actor_plan_period.person.id).skills
+        person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
         return all(sorted(ad.skills, key=lambda x: x.id)
                    == sorted(person_skills, key=lambda x: x.id)
                    for ad in self.avail_days_at_day)

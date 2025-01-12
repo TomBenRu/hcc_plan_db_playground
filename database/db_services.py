@@ -1748,6 +1748,12 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
+    @db_session
+    def get_all_from__plan_period(cls, plan_period_id: UUID) -> list[schemas.ActorPlanPeriod]:
+        actor_plan_periods_db = models.ActorPlanPeriod.select(lambda a: a.plan_period.id == plan_period_id)
+        return [schemas.ActorPlanPeriod.model_validate(a) for a in actor_plan_periods_db]
+
+    @classmethod
     @db_session(sql_debug=True, show_values=True)
     def create(cls, plan_period_id: UUID, person_id: UUID,
                actor_plan_period_id: UUID = None) -> schemas.ActorPlanPeriodShow:

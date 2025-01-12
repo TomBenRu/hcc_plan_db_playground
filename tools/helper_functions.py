@@ -2,6 +2,8 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
+from line_profiler_pycharm import profile
+
 from database import db_services, schemas
 
 
@@ -69,11 +71,12 @@ def get_appointments_of_actors_from_plan(plan: schemas.PlanShow) -> dict[str, li
 
 def get_appointments_of_all_actors_from_plan(
         plan: schemas.PlanShow) -> dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]]:
-    plan_period = db_services.PlanPeriod.get(plan.plan_period.id)
+    actor_plan_periods = db_services.ActorPlanPeriod.get_all_from__plan_period(plan.plan_period.id)
+    actor_ids_between_dates = db_services.TeamActorAssign.get_all_actor_ids_between_dates(
+        plan.plan_period.team.id, plan.plan_period.start, plan.plan_period.end)
     result: dict[str, tuple[schemas.ActorPlanPeriod | None, list[schemas.Appointment]]] = {
-        app.person.full_name: (app, []) for app in plan_period.actor_plan_periods
-        if db_services.TeamActorAssign.get_all_between_dates(app.person.id, plan_period.team.id,
-                                                             plan_period.start, plan_period.end)
+        app.person.full_name: (app, []) for app in actor_plan_periods
+        if app.person.id in actor_ids_between_dates
     }
     for appointment in plan.appointments:
         for avail_day in appointment.avail_days:

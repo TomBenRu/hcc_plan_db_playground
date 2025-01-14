@@ -1013,7 +1013,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
 
     # Compute the difference term
     diff = model.NewIntVar(-10000, 10000, "difference_term")
-    model.Add(diff == sum_assigned_shifts_sum - sum_requested_assignments)
+    model.Add(diff == sum_assigned_shifts_sum - int(sum_requested_assignments))
 
     # Scale the difference by 1000
     scaled_diff = model.NewIntVar(-10_000_000, 10_000_000, "scaled_difference")
@@ -1021,7 +1021,7 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
 
     # Define the division term
     average_relative_shift_deviation = model.NewIntVar(-10_000_000, 10_000_000, "average_relative_shift_deviation")
-    model.AddDivisionEquality(average_relative_shift_deviation, scaled_diff, sum_requested_assignments * 10)
+    model.AddDivisionEquality(average_relative_shift_deviation, scaled_diff, int(sum_requested_assignments) * 10)
 
     # Create a list to represent the squared deviations from the average for each actor_plan_period.
     squared_deviations = {
@@ -1626,7 +1626,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=True) -> tuple[list[list[AppointmentCreate]] | None,
+          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
                                                                   dict[str, int] | None,
                                                                   dict[UUID, int] | None,

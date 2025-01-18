@@ -321,6 +321,8 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     multiplier_level = (curr_config_handler.get_solver_config()
                         .constraints_multipliers.group_depth_weights_event_groups)
+    multiplier_weights = (curr_config_handler.get_solver_config()
+                          .constraints_multipliers.sliders_weights_event_groups)
 
     def calculate_weight_vars_of_children_recursive(event_group: EventGroup, depth: int) -> list[IntVar]:
         weight_vars: list[IntVar] = []
@@ -329,17 +331,18 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
                 children: list[EventGroup]
                 for c in children:
                     # Das angepasste weight der Child-Event-Group wird berechnet:
-                    adjusted_weight = 1 - c.weight
+                    adjusted_weight = multiplier_weights[c.weight]
 
                     event_group_var = entities.event_group_vars[c.event_group_id]
                     weight_vars.append(
-                        model.NewIntVar(-1000, 1000,
+                        model.NewIntVar(min(multiplier_weights.values()) * max(multiplier_level.values()),
+                                        max(multiplier_weights.values()) * max(multiplier_level.values()),
                                         f'Depth {depth}, no Event' if c.event is None
                                         else f'Depth {depth}, Event: {c.event.date:%d.%m.%y}, '
                                              f'{c.event.time_of_day.name}, '
                                              f'{c.event.location_plan_period.location_of_work.name}')
                     )
-                    model.Add(weight_vars[-1] == (event_group_var * adjusted_weight * multiplier_level[depth]))
+                    model.Add(weight_vars[-1] == (event_group_var * adjusted_weight * multiplier_level.get(depth, 1)))
         for c in event_group.children:
             weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
 

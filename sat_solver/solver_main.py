@@ -312,9 +312,11 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
     """
     Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
     bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
-    Bei tiefer geschachtelten Event-Groups kann werden die Parent-Groups bevorzugt deren ausgewählte Children
+    Bei tiefer geschachtelten Event-Groups werden die Parent-Groups bevorzugt deren ausgewählte Children
     ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
-    todo: Überlegenswert ist eine alternative Implementierung wie bei 'add_constraints_weights_in_avail_day_groups'.
+    not_sure: Überlegenswert ist eine alternative Implementierung wie bei 'add_constraints_weights_in_avail_day_groups'.
+      Dies entspräche allerdings nicht der Nutzerlogik. Der Nutzer geht vermutlich davon aus, dass übergeordnete Gruppen
+      eine höhere Relevanz haben.
     """
 
     multiplier_level = (curr_config_handler.get_solver_config()
@@ -347,6 +349,54 @@ def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[Int
 
     return calculate_weight_vars_of_children_recursive(
         root_event_group, 1 if root_event_group.root_is_location_plan_period_master_group else 0)
+
+
+def add_constraints_weights_in_event_groups_alternative_implementation(model: cp_model.CpModel) -> list[IntVar]:
+    multiplier_weights = (curr_config_handler.get_solver_config()
+                          .constraints_multipliers.sliders_weights_event_groups)
+
+    def calculate_weight_vars_of_children_recursive(group: EventGroup,
+                                                    cumulative_adjusted_weight: int = 0) -> list[IntVar]:
+        weight_vars: list[IntVar] = []
+        for c in group.children:
+            c: EventGroup
+            if c.event:
+                # Es wird kein IntVar erstellt, wenn kein Einsatz dieses Events möglich ist:
+                if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
+                           if evg_id == c.event_group_id
+                              and check_time_span_avail_day_fits_event(
+                    entities.event_groups_with_event[evg_id].event,
+                    entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
+                    continue
+                # für die fehlenden Level wird jew. die Gewichtung 1 (default: 0) gesetzt:
+                adjusted_weight = (max_depth - c.depth) * multiplier_weights[1] + multiplier_weights[c.weight]
+                weight_vars.append(
+                    model.NewIntVar(-100, 100000,
+                                    f'Depth {group.depth}, Event: {c.event.date:%d.%m.%y}, '
+                                    f'{c.event.time_of_day.name}, '
+                                    f'{c.event.location_plan_period.location_of_work.name_an_city}')
+                )
+                # stelle fest, ob doe zugehörige Event-Group aktiv ist:
+                model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight)
+                                              * entities.event_group_vars[c.event_group_id]))
+            else:
+                adjusted_weight = multiplier_weights[c.weight]
+                weight_vars.extend(
+                    calculate_weight_vars_of_children_recursive(c,
+                                                                cumulative_adjusted_weight + adjusted_weight))
+        return weight_vars
+
+    root_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
+    max_depth = (max(node.depth for node in entities.event_groups.values())
+                 - (1 if root_group.root_is_location_plan_period_master_group else 0))
+
+    if root_group.root_is_location_plan_period_master_group:
+        all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
+    else:
+        all_weight_vars = sum((calculate_weight_vars_of_children_recursive(lpp_master_group)
+                               for lpp_master_group in root_group.children), [])
+
+    return all_weight_vars
 
 
 def add_constraints_avail_day_groups_activity(model: cp_model):
@@ -384,83 +434,24 @@ def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
         model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
 
 
-def add_constraints_weights_in_avail_day_groups_new(model: cp_model.CpModel) -> list[IntVar]:
-    multiplier_constraints = (curr_config_handler.get_solver_config()
-                              .constraints_multipliers.sliders_weights_avail_day_groups)
-    multiplier_level = (curr_config_handler.get_solver_config()
-                        .constraints_multipliers.group_depth_weights_av_day_groups)
-
-    # Vorberechnung
-    shifts_exclusive_cache = {
-        adg_id: sum(val for (adg, evg), val in entities.shifts_exclusive.items() if adg == adg_id)
-        for adg_id in entities.avail_day_groups_with_avail_day
-    }
-
-    event_data = {
-        evg_id: (event.event.date, event.event.time_of_day.time_of_day_enum.time_index)
-        for evg_id, event in entities.event_groups_with_event.items()
-    }
-
-    avail_day_data = {
-        adg_id: (ad.date, ad.time_of_day.time_of_day_enum.time_index, ad.actor_plan_period.person.f_name)
-        for adg_id, ad in
-        ((adg.avail_day_group_id, adg.avail_day) for adg in entities.avail_day_groups_with_avail_day.values())
-    }
-
-    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup, cumulative_adjusted_weight: int = 0) -> list[
-        IntVar]:
-        weight_vars = []
-        for c in group.children:
-            if c.avail_day:
-                if not shifts_exclusive_cache.get(c.avail_day_group_id, 0):
-                    continue
-
-                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[group.depth]
-                ad_date, ad_time, person_name = avail_day_data[c.avail_day_group_id]
-
-                weight_var = model.NewIntVar(-1000000, 100000000,
-                                             f'Depth {group.depth}, AvailDay: {ad_date:%d.%m.%y}, '
-                                             f'{c.avail_day.time_of_day.name}, {person_name}')
-                weight_vars.append(weight_var)
-
-                shift_with_this_avd = model.NewBoolVar('')
-                model.Add(shift_with_this_avd == sum(var for (avg_id, _), var in entities.shift_vars.items()
-                                                     if avg_id == c.avail_day_group_id))
-                model.Add(weight_var == ((cumulative_adjusted_weight + adjusted_weight) * shift_with_this_avd))
-            else:
-                adjusted_weight = multiplier_constraints[c.weight] * multiplier_level[max_depth - 1]
-                weight_vars.extend(
-                    calculate_weight_vars_of_children_recursive(c, cumulative_adjusted_weight + adjusted_weight))
-        return weight_vars
-
-    root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
-    max_depth = (max(node.depth for node in entities.avail_day_groups.values())
-                 - (1 if root_group.group_is_actor_plan_period_master_group else 0))
-
-    if root_group.group_is_actor_plan_period_master_group:
-        all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
-    else:
-        all_weight_vars = sum((calculate_weight_vars_of_children_recursive(app_master_group)
-                               for app_master_group in root_group.children), [])
-
-    return all_weight_vars
-
-
 def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
     """
         Fügt Constraints hinzu, um sicherzustellen, dass Child-Avail-Day-Groups mit höherer Gewichtung bevorzugt werden.
         Die justierten Gewichtungen werden jeweils zu den nächsten Child-Groups durchgereicht, wo sie zu den
         Gewichtungen dieser Child-Groups addiert werden. Falls eine Child-Avail-Day-Group ein Avail-Day besitzt, wird
         diese kumulierte Gewichtung als Constraint hinzugefügt.
-        Die multiplier_level können benutzt werden, um den weights der Groups je nach Tiefe eine zusätzliche
-        Verstärkung zu geben. Um Verfälschungen durch Level-Verstärkungen zu vermeiden, wenn die Zweige des Gruppenbaums
+        Um Verfälschungen durch Level-Verstärkungen zu vermeiden, wenn die Zweige des Gruppenbaums
         unterschiedliche Tiefen haben, werden die Constraints stets so berechnet, als befänden sich die
         Avail-Day-Groups mit Avail-Days auf der untersten Stufe.
         Falls nr_of_active_children < len(children), wird ebenso die kumulierte Gewichtung der Avail-Day-Group mit
         Avail-Day gesetzt, falls der dazugehörige Event stattfindet.
+        not_sure: Überlegen, ob es sinnvoll ist, eine alternative Implementierung wie bei
+          'add_constraints_weights_in_event_groups' zu verwenden. Dies entspräche unter Umständen eher der Nutzerlogik.
+          Der Nutzer geht vermutlich davon aus, dass übergeordnete Gruppen
+          eine höhere Relevanz haben.
     """
 
-    multiplier_constraints = (curr_config_handler.get_solver_config()
+    multiplier_weights = (curr_config_handler.get_solver_config()
                               .constraints_multipliers.sliders_weights_avail_day_groups)
     shift_vars_of_adg_ids: defaultdict[UUID, list] = defaultdict(list)
 
@@ -477,7 +468,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                                entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
                     continue
                 # für die fehlenden Level wird jew. die Gewichtung 1 (default: 0) gesetzt:
-                adjusted_weight = (max_depth - c.depth) * multiplier_constraints[1] + multiplier_constraints[c.weight]
+                adjusted_weight = (max_depth - c.depth) * multiplier_weights[1] + multiplier_weights[c.weight]
                 weight_vars.append(
                     model.NewIntVar(-100, 100000,
                                     f'Depth {group.depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
@@ -489,7 +480,7 @@ def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list
                 model.Add(adg_has_shifts == sum(shift_vars_of_adg_ids[c.avail_day_group_id]))
                 model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight) * adg_has_shifts))
             else:
-                adjusted_weight = multiplier_constraints[c.weight]
+                adjusted_weight = multiplier_weights[c.weight]
                 weight_vars.extend(
                     calculate_weight_vars_of_children_recursive(c,
                                                                 cumulative_adjusted_weight + adjusted_weight))

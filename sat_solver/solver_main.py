@@ -2,6 +2,7 @@ import collections
 import dataclasses
 import itertools
 import time
+from ast import literal_eval
 from collections import defaultdict
 import datetime
 from datetime import date
@@ -801,9 +802,9 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         model.Add(var == sum(var_list))
         return var
 
-    def proof_recursive(fixed_cast_list: tuple | UUID, cast_group: CastGroup) -> IntVar:
-        if isinstance(fixed_cast_list, UUID):
-            return check_pers_id_in_shift_vars(fixed_cast_list, cast_group)
+    def proof_recursive(fixed_cast_list: tuple | str, cast_group: CastGroup) -> IntVar:
+        if isinstance(fixed_cast_list, str):
+            return check_pers_id_in_shift_vars(UUID(fixed_cast_list), cast_group)
         pers_ids = [v for i, v in enumerate(fixed_cast_list) if not i % 2]
         operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]
         if any(o != operators[0] for o in operators):
@@ -822,10 +823,11 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
             continue
 
         # String wird zu Python-Objekt umgewandelt:
-        fixed_cast_as_list = eval(cast_group.fixed_cast
+        fixed_cast_as_list = literal_eval(cast_group.fixed_cast
                                   .replace('and', ',"and",')
                                   .replace('or', ',"or",')
-                                  .replace('in team', ''))
+                                  .replace('in team', '')
+                                  .replace('UUID', ''))
 
         text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast)
         text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'

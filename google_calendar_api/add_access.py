@@ -5,7 +5,8 @@ from google_calendar_api.authenticate import authenticate_google
 
 def add_or_update_access_to_calendar(calendar_id: str, email: str, role: str = 'reader'):
     """
-    Diese Funktion fügt einem Nutzer Zugriffsrechte hinzu oder aktualisiert die bestehenden Rechte, wenn sie bereits vorhanden sind.
+    Diese Funktion fügt einem Nutzer Zugriffsrechte hinzu
+    oder aktualisiert die bestehenden Rechte, wenn sie bereits vorhanden sind.
 
     :param calendar_id: Die Kalender-ID des Kalenders.
     :param email: Die E-Mail-Adresse des Nutzers.

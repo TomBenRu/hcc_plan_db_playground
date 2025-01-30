@@ -657,7 +657,7 @@ class DlgCastGroups(QDialog):
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
         if len(self.visible_location_plan_period_ids) == 1:
-            location_plan_period = db_services.LocationPlanPeriod.get(self.visible_location_plan_period_ids.pop())
+            location_plan_period = db_services.LocationPlanPeriod.get(list(self.visible_location_plan_period_ids)[0])
             self.controller.execute(cast_group_commands.UpdateFixedCast(
                 create_command.created_cast_group.id, location_plan_period.fixed_cast))
             self.controller.execute(cast_group_commands.UpdateNrActors(

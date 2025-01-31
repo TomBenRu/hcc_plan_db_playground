@@ -232,3 +232,25 @@ class UpdateFixedCast(Command):
 
     def redo(self):
         db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast)
+
+
+class UpdateNumActors(Command):
+    def __init__(self, location_plan_period_id: UUID, num_actors: int):
+        self.location_plan_period_id = location_plan_period_id
+        self.num_actors = num_actors
+        self.num_actors_old = None
+        self.updated_location_plan_period: schemas.LocationPlanPeriodShow | None = None
+
+    def execute(self):
+        self.num_actors_old = db_services.LocationPlanPeriod.get(self.location_plan_period_id).nr_actors
+        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+            self.location_plan_period_id, self.num_actors)
+
+    def undo(self):
+        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+            self.location_plan_period_id, self.num_actors_old)
+
+    def redo(self):
+        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+            self.location_plan_period_id, self.num_actors)
+

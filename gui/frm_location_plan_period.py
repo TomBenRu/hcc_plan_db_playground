@@ -15,14 +15,15 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
-    frm_event_planing_rules
+    frm_event_planing_rules, frm_num_actors_app
 from gui.custom_widgets import side_menu
 from gui.frm_notes import DlgEventNotes
 from gui.frm_skill_groups import DlgSkillGroups
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import event_commands, cast_group_commands, event_group_commands
+from commands.database_commands import event_commands, cast_group_commands, event_group_commands, \
+    location_plan_period_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 from line_profiler_pycharm import profile
@@ -793,7 +794,7 @@ class FrmLocationPlanPeriod(QWidget):
         bt_fixed_cast = QPushButton('Feste Besetzung', clicked=self.edit_fixed_cast)
         self.side_menu.add_button(bt_fixed_cast)
 
-    def reload_location_plan_period(self, event=None):
+    def reload_location_plan_period(self):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         self.set_instance_variables()
 
@@ -804,6 +805,7 @@ class FrmLocationPlanPeriod(QWidget):
         self.days = [
             self.location_plan_period.plan_period.start + datetime.timedelta(delta) for delta in
             range((self.location_plan_period.plan_period.end - self.location_plan_period.plan_period.start).days + 1)]
+        self.data_processor.location_plan_period = self.location_plan_period
 
     def set_headers_months(self):
         month_year = [(d.month, d.year) for d in self.days]
@@ -974,8 +976,15 @@ class FrmLocationPlanPeriod(QWidget):
             button.reset_menu_times_of_day(self.location_plan_period)
             button.set_tooltip()
 
-    def set_nr_actors(self):  # todo: noch implementieren
-        ...
+    def set_nr_actors(self):
+        dlg = frm_num_actors_app.DlgNumActorsApp(self, self.location_plan_period.id)
+        if dlg.exec():
+            self.reload_location_plan_period()
+            command = location_plan_period_commands.UpdateNumActors(self.location_plan_period.id, dlg.num_actors)
+            self.controller.execute(command)
+            self.reload_location_plan_period()
+            signal_handling.handler_location_plan_period.reload_location_pp__events(
+                signal_handling.DataLocationPPWithDate(self.location_plan_period))
 
     def make_events_from_planing_rules(self):
         dlg = frm_event_planing_rules.DlgEventPlanningRules(

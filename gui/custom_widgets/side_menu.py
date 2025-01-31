@@ -132,9 +132,9 @@ Examples:
         self.container_fields.setMinimumHeight(len(self.container_fields.children()) * 30 + 30)
 
     def delete_all_buttons(self):
-        buttons: Iterable[QPushButton] = self.findChildren(QPushButton)
-        for button in buttons:
-            button.deleteLater()
+        widgets: Iterable[QPushButton] = self.container_fields.findChildren(QWidget)
+        for widget in widgets:
+            widget.deleteLater()
 
 
 class SlideInMenu(QWidget):

@@ -1313,6 +1313,15 @@ class LocationPlanPeriod:
 
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
+    @classmethod
+    @db_session(sql_debug=True, show_values=True)
+    def update_num_actors(cls, location_plan_period_id: UUID, num_actors: int) -> schemas.LocationPlanPeriodShow:
+        log_function_info(cls)
+        location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
+        location_plan_period_db.nr_actors = num_actors
+
+        return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
+
 
 class EventGroup:
     @classmethod

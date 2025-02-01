@@ -536,15 +536,15 @@ class LocationOfWork:
         Ausgabe: Dictionary Location-Name: Location_id
         """
         locations_db = {lpp.location_of_work.name: lpp.location_of_work.id
-                        for lpp in models.PlanPeriod.get(id=plan_period_id).location_plan_periods}
+                        for lpp in models.PlanPeriod.get(id=plan_period_id).location_plan_periods if not lpp.location_of_work.prep_delete}
         return locations_db
 
     @classmethod
     @db_session
     def get_all_possible_from__plan_period_minimal(cls, plan_period_id: UUID) -> dict['str', UUID]:
         """
-        gibt in der Zeitspanne der Planperiode verfügbaren Mitarbeiter zurück, welche nicht zum Löschen markiert sind.
-        Ausgabe: Dictionary Mitarbeitername: Mitarbeiter_id
+        gibt in der Zeitspanne der Planperiode verfügbaren Locations zurück, welche nicht zum Löschen markiert sind.
+        Ausgabe: Dictionary LocationOfWork.name_and_city: LocationOfWork_id
         """
         plan_period_db = models.PlanPeriod.get(id=plan_period_id)
         start, end, team = plan_period_db.start, plan_period_db.end, plan_period_db.team
@@ -552,17 +552,15 @@ class LocationOfWork:
                                  .filter(lambda t: t.team == team)
                                  .filter(lambda t: (t.end > end) if t.end else True)
                                  .filter(lambda t: t.start < end))
-        print([(tla.location_of_work.name, tla.location_of_work.address.city) for tla in team_location_assigns])
-        return {tla.location_of_work.name_and_city: tla.location_of_work.id for tla in team_location_assigns}
+        return {tla.location_of_work.name_and_city: tla.location_of_work.id for tla in team_location_assigns
+                if not tla.location_of_work.prep_delete}
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
-        print(f'{location.address.model_dump()=}')
         address_db = models.Address(**location.address.model_dump(), project=project_db)
-        print(f'{address_db.to_dict()=}')
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
         return schemas.LocationOfWork.model_validate(location_db)
 
@@ -699,9 +697,9 @@ class TeamActorAssign:
                 else:
                     assignment_db = None
             else:
-                for assignm in all_assignments_db:
-                    if assignm.start <= date and (assignm.end is None or assignm.end > date or assignm.end):
-                        assignment_db = assignm
+                for assignment in all_assignments_db:
+                    if assignment.start <= date and (assignment.end is None or assignment.end > date or assignment.end):
+                        assignment_db = assignment
                         break
                 else:
                     assignment_db = None
@@ -796,14 +794,14 @@ class TeamLocationAssign:
                 else:
                     assignment_db = None
             else:
-                for assignm in all_assignments_db:
-                    if assignm.start <= date and (assignm.end > date or assignm.end is None):
-                        assignment_db = assignm
+                for assignment in all_assignments_db:
+                    if assignment.start <= date and (assignment.end > date or assignment.end is None):
+                        assignment_db = assignment
                         break
                 else:
                     assignment_db = None
 
-        return None if not assignment_db else schemas.TeamLocationAssignShow.model_validate(assignment_db)
+        return schemas.TeamLocationAssignShow.model_validate(assignment_db) if assignment_db else None
 
     @classmethod
     @db_session
@@ -894,8 +892,8 @@ class TimeOfDay:
                                           project=project_db,
                                           start=time_of_day.start,
                                           end=time_of_day.end)
-        # PonyOrm hat offenbar Probleme erzeugte Entities mit Optional-Values gleich im Anschluss zu validieren.
-        # Daher dieser Umweg:
+        # not_sure: PonyOrm hat offenbar Probleme erzeugte Entities mit Optional-Values gleich im Anschluss zu validieren.
+        #  Daher dieser Umweg:
         time_of_day_partial = time_of_day_db.to_dict(exclude=['prep_delete', 'project_standard', 'project_defaults'],
                                                      related_objects=True)
 

@@ -2,9 +2,7 @@ import datetime
 import inspect
 import json
 import logging
-import time
-from functools import wraps
-from typing import Optional, Callable
+from typing import Optional
 from uuid import UUID
 
 from pony.orm import db_session, commit, select, desc
@@ -320,7 +318,6 @@ class Person:
                               .filter(lambda t: t.team == team)
                               .filter(lambda t: (t.end > end) if t.end else True)
                               .filter(lambda t: t.start < end))
-        print([(taa.person.full_name, taa.team.name, taa.start, taa.end) for taa in team_actor_assigns])
         return {taa.person.full_name: taa.person.id for taa in team_actor_assigns}
 
     @classmethod

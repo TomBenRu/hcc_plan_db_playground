@@ -1,4 +1,5 @@
 import functools
+import logging
 import os.path
 import platform
 import subprocess
@@ -49,9 +50,14 @@ from gui.custom_widgets.toolbars import MainToolBar
 from line_profiler_pycharm import profile
 
 
+logger = logging.getLogger(__name__)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, app, screen_width: int, screen_height: int):
         super().__init__()
+        logger.info(f'{"="*50}\nStarting hcc-plan')
+
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, screen_width-100, screen_height-100))
 

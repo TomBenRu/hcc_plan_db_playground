@@ -15,17 +15,13 @@ from . import models
 from .enums import Gender
 
 
+LOGGING_ENABLED = False
+
 def log_function_info(cls):
+    if not LOGGING_ENABLED:
+        return
     logging.info(f'function: {cls.__module__}.{cls.__name__}.{inspect.currentframe().f_back.f_code.co_name}\n'
                  f'args: {inspect.currentframe().f_back.f_locals}')
-
-
-def logger(func: Callable) -> Callable:
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        print(f'Calling {func.__name__} with args {args} and kwargs {kwargs}')
-        return func(*args, **kwargs)
-    return wrapper
 
 
 class EntitiesApiToDB:
@@ -104,14 +100,14 @@ class Project:
         return [schemas.ProjectShow.model_validate(p) for p in models.Project.select()]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, name: str) -> schemas.ProjectShow:
         log_function_info(cls)
         project_db = models.Project(name=name)
         return schemas.ProjectShow.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_name(cls, name: str, project_id) -> schemas.Project:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -119,7 +115,7 @@ class Project:
         return schemas.Project.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, project: schemas.ProjectShow) -> schemas.ProjectShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project.id)
@@ -130,7 +126,7 @@ class Project:
         return schemas.ProjectShow.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_time_of_day(cls, project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -140,7 +136,7 @@ class Project:
         return schemas.ProjectShow.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_in_time_of_day(cls, project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -150,7 +146,7 @@ class Project:
         return schemas.ProjectShow.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_standard(cls, project_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ProjectShow, UUID | None]:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -165,7 +161,7 @@ class Project:
         return schemas.ProjectShow.model_validate(project_db), old_time_of_day_standard_id
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_standard(cls, project_id: UUID, time_of_day_id: UUID) -> schemas.ProjectShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -174,7 +170,7 @@ class Project:
         return schemas.ProjectShow.model_validate(project_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_enum_standard(cls, time_of_day_enum_id: UUID) -> schemas.ProjectShow:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get(id=time_of_day_enum_id)
@@ -183,7 +179,7 @@ class Project:
         return schemas.ProjectShow.model_validate(time_of_day_enum_db.project)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_enum_standard(cls, time_of_day_enum_id: UUID) -> schemas.ProjectShow:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get(id=time_of_day_enum_id)
@@ -208,7 +204,7 @@ class Team:
             return []
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, team_name: str, project_id: UUID, dispatcher_id: UUID = None):
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -217,7 +213,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, team: schemas.Team) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team.id)
@@ -227,7 +223,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, team_id: UUID, notes: str) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -235,7 +231,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_comb_loc_possible(cls, team_id: UUID, comb_loc_possible_id: UUID) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -244,7 +240,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_excel_settings(cls, team_id: UUID, excel_settings_id: UUID) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -253,7 +249,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_comb_loc_possible(cls, team_id: UUID, comb_loc_possible_id: UUID) -> schemas.TeamShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -262,7 +258,7 @@ class Team:
         return schemas.TeamShow.model_validate(team_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, team_id: UUID) -> schemas.Team:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -326,7 +322,7 @@ class Person:
         return {taa.person.full_name: taa.person.id for taa in team_actor_assigns}
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, person: schemas.PersonCreate, project_id: UUID, person_id: UUID = None) -> schemas.Person:
         log_function_info(cls)
         project_in_db = models.Project.get_for_update(id=project_id)
@@ -346,7 +342,7 @@ class Person:
         return schemas.Person.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, person: schemas.PersonShow) -> schemas.Person:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person.id)
@@ -367,7 +363,7 @@ class Person:
         return schemas.Person.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_project_of_admin(cls, person_id: UUID, project_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -376,7 +372,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_time_of_day(cls, person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -386,7 +382,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_in_time_of_day(cls, person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -396,7 +392,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_standard(cls, person_id: UUID, time_of_day_id: UUID) -> tuple[schemas.PersonShow, UUID | None]:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -412,7 +408,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db), old_time_of_day_standard_id
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_standard(cls, person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -421,7 +417,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, person_id: UUID) -> schemas.Person:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -429,7 +425,7 @@ class Person:
         return schemas.Person.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_comb_loc_possible(cls, person_id: UUID, comb_loc_possible_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -438,7 +434,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_comb_loc_possible(cls, person_id: UUID, comb_loc_possible_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -447,7 +443,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_location_pref(cls, person_id: UUID, actor_loc_pref_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -456,7 +452,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_location_pref(cls, person_id: UUID, actor_loc_pref_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -465,7 +461,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_partner_location_pref(cls, person_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -474,7 +470,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_partner_location_pref(cls, person_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -483,7 +479,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill(cls, person_id: UUID, skill_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -492,7 +488,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_skill(cls, person_id: UUID, skill_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -501,7 +497,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_flag(cls, person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -510,7 +506,7 @@ class Person:
         return schemas.PersonShow.model_validate(person_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_flag(cls, person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
@@ -561,7 +557,7 @@ class LocationOfWork:
         return {tla.location_of_work.name_and_city: tla.location_of_work.id for tla in team_location_assigns}
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -572,7 +568,7 @@ class LocationOfWork:
         return schemas.LocationOfWork.model_validate(location_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, location_of_work: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_of_work.id)
@@ -599,7 +595,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_time_of_day(cls, location_of_work_id: UUID, time_of_day_id: UUID) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
@@ -609,7 +605,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_in_time_of_day(cls, location_of_work_id: UUID, time_of_day_id: UUID) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
@@ -619,7 +615,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_standard(cls, location_of_work_id: UUID, time_of_day_id: UUID) -> tuple[schemas.LocationOfWorkShow, UUID | None]:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
@@ -635,7 +631,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_db), old_time_of_day_standard_id
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_standard(cls, location_of_work_id: UUID, time_of_day_id: UUID) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
@@ -645,7 +641,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_fixed_cast(cls, location_of_work_id: UUID, fixed_cast: str) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
@@ -654,7 +650,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, location_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
@@ -662,7 +658,7 @@ class LocationOfWork:
         return schemas.LocationOfWork.model_validate(location_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill_group(cls, location_id: UUID, skill_group_id: UUID) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
@@ -671,7 +667,7 @@ class LocationOfWork:
         return schemas.LocationOfWorkShow.model_validate(location_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_skill_group(cls, location_id: UUID, skill_group_id: UUID) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
@@ -743,7 +739,7 @@ class TeamActorAssign:
         return [schemas.TeamActorAssignShow.model_validate(tla) for tla in all_actor_location_assigns]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, team_actor_assign: schemas.TeamActorAssignCreate,
                assign_id: UUID | None = None) -> schemas.TeamActorAssignShow:
         log_function_info(cls)
@@ -763,14 +759,14 @@ class TeamActorAssign:
         return schemas.TeamActorAssignShow.model_validate(new_team_aa)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_end_date(cls, team_actor_assign_id: UUID, end_date: datetime.date | None = None):
         log_function_info(cls)
         team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
         team_actor_assign_db.end = end_date
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, team_actor_assign_id: UUID):
         log_function_info(cls)
         team_actor_assign_db = models.TeamActorAssign.get_for_update(id=team_actor_assign_id)
@@ -830,7 +826,7 @@ class TeamLocationAssign:
         return [schemas.TeamLocationAssignShow.model_validate(tla) for tla in all_team_location_assigns]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, team_location_assign: schemas.TeamLocationAssignCreate,
                assign_id: UUID | None = None) -> schemas.TeamLocationAssignShow:
         """Wenn eine assign_id angegeben ist, wird der neu erstellten team_location_assign diese UUID als
@@ -853,14 +849,14 @@ class TeamLocationAssign:
         return schemas.TeamLocationAssignShow.model_validate(new_team_la)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_end_date(cls, team_location_assign_id: UUID, end_date: datetime.date | None = None):
         log_function_info(cls)
         team_location_assign_db = models.TeamLocationAssign.get_for_update(id=team_location_assign_id)
         team_location_assign_db.end = end_date
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, team_loc_assign_id: UUID):
         log_function_info(cls)
         team_loc_assign_db = models.TeamLocationAssign.get_for_update(id=team_loc_assign_id)
@@ -888,7 +884,7 @@ class TimeOfDay:
         return [schemas.TimeOfDay.model_validate(t_o_d) for t_o_d in time_of_days_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -908,7 +904,7 @@ class TimeOfDay:
 
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, time_of_day: schemas.TimeOfDay):
         log_function_info(cls)
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day.id)
@@ -919,7 +915,7 @@ class TimeOfDay:
         return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_to_model(cls, time_of_day: schemas.TimeOfDay,
                      pydantic_model: schemas.ModelWithTimeOfDays, db_model):
         log_function_info(cls)
@@ -931,7 +927,7 @@ class TimeOfDay:
         return type(pydantic_model).model_validate(instance_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, time_of_day_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
@@ -939,7 +935,7 @@ class TimeOfDay:
         return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undo_delete(cls, time_of_day_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
@@ -947,7 +943,7 @@ class TimeOfDay:
         return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_unused(cls, project_id: UUID) -> None:
         log_function_info(cls)
         t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == project_id)
@@ -961,7 +957,7 @@ class TimeOfDay:
                 t_o_d.prep_delete = datetime.datetime.utcnow()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes(cls, project_id: UUID) -> None:
         log_function_info(cls)
         t_o_ds_from__project = models.TimeOfDay.select(lambda t: t.project.id == project_id)
@@ -984,7 +980,7 @@ class TimeOfDayEnum:
         return [schemas.TimeOfDayEnumShow.model_validate(t_o_d_enum) for t_o_d_enum in project_db.time_of_day_enums]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, time_of_day_enum: schemas.TimeOfDayEnumCreate,
                time_of_day_enum_id: UUID = None) -> schemas.TimeOfDayEnumShow:
         log_function_info(cls)
@@ -1005,7 +1001,7 @@ class TimeOfDayEnum:
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, time_of_day_enum: schemas.TimeOfDayEnum) -> schemas.TimeOfDayEnumShow:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum.id)
@@ -1014,7 +1010,7 @@ class TimeOfDayEnum:
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def prep_delete(cls, time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
@@ -1024,7 +1020,7 @@ class TimeOfDayEnum:
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undo_prep_delete(cls, time_of_day_enum_id: UUID) -> schemas.TimeOfDayEnumShow:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
@@ -1034,7 +1030,7 @@ class TimeOfDayEnum:
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, time_of_day_enum_id: UUID):
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
@@ -1042,7 +1038,7 @@ class TimeOfDayEnum:
         time_of_day_enum_db.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def consolidate_indexes(cls, project_id: UUID):
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -1061,14 +1057,14 @@ class ExcelExportSettings:
         return schemas.ExcelExportSettingsShow.model_validate(excel_export_settings_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, excel_settings: schemas.ExcelExportSettingsCreate) -> schemas.ExcelExportSettingsShow:
         log_function_info(cls)
         excel_settings_db = models.ExcelExportSettings(**excel_settings.model_dump())
         return schemas.ExcelExportSettingsShow.model_validate(excel_settings_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, excel_export_settings: schemas.ExcelExportSettings) -> schemas.ExcelExportSettings:
         log_function_info(cls)
         excel_export_settings_db = models.ExcelExportSettings.get_for_update(lambda e: e.id == excel_export_settings.id)
@@ -1079,14 +1075,14 @@ class ExcelExportSettings:
 
 class Address:
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, address: schemas.AddressCreate) -> schemas.Address:
         log_function_info(cls)
         address_db = models.Address(street=address.street, postal_code=address.postal_code, city=address.city)
         return schemas.Address.model_validate(address_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, address: schemas.Address) -> schemas.Address:
         log_function_info(cls)
         address_db = models.Address.get_for_update(lambda a: a.id == address.id)
@@ -1114,7 +1110,7 @@ class MaxFairShiftsOfApp:
         return {mfs.actor_plan_period.id: (mfs.max_shifts, mfs.fair_shifts) for mfs in max_fair_shifts}
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, max_fair_shifts_per_app: schemas.MaxFairShiftsOfAppCreate) -> schemas.MaxFairShiftsOfAppShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=max_fair_shifts_per_app.actor_plan_period_id)
@@ -1134,7 +1130,7 @@ class MaxFairShiftsOfApp:
         return schemas.MaxFairShiftsOfAppShow.model_validate(max_fair_shifts_per_app_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, max_fair_shifts_per_app_id: UUID):
         log_function_info(cls)
         max_fair_shifts_per_app_db = models.MaxFairShiftsOfApp.get_for_update(id=max_fair_shifts_per_app_id)
@@ -1159,7 +1155,7 @@ class PlanPeriod:
         return [schemas.PlanPeriodShow.model_validate(p) for p in plan_periods_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=plan_period.team.id)
@@ -1169,7 +1165,7 @@ class PlanPeriod:
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period.id)
@@ -1188,7 +1184,7 @@ class PlanPeriod:
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, plan_period_id: UUID, notes: str) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -1197,7 +1193,7 @@ class PlanPeriod:
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, plan_period_id: UUID) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -1206,7 +1202,7 @@ class PlanPeriod:
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, plan_period_id: UUID):
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -1215,7 +1211,7 @@ class PlanPeriod:
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes(cls, team_id: UUID):
         pp_with_prep_deletes_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id and pp.prep_delete)
         for plan_period in pp_with_prep_deletes_db:
@@ -1231,7 +1227,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, plan_period_id: UUID, location_id: UUID, location_plan_period_id: UUID = None) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -1245,13 +1241,13 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, location_plan_period_id: UUID):
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         location_plan_period_db.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, location_plan_period_id: UUID, notes: str) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1259,7 +1255,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_time_of_day(cls, location_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1269,7 +1265,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_in_time_of_day(cls, location_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1279,7 +1275,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_standard(cls, location_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1289,7 +1285,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_standard(cls, location_plan_period_id: UUID, time_of_day_id: UUID) -> tuple[schemas.LocationPlanPeriodShow, UUID | None]:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1305,7 +1301,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db), old_time_of_day_standard_id
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_fixed_cast(cls, location_plan_period_id: UUID, fixed_cast: str) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1314,7 +1310,7 @@ class LocationPlanPeriod:
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_num_actors(cls, location_plan_period_id: UUID, num_actors: int) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
@@ -1345,7 +1341,7 @@ class EventGroup:
         return [schemas.EventGroupShow.model_validate(e) for e in event_group_db.event_groups]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, *, location_plan_period_id: Optional[UUID] = None,
                event_group_id: Optional[UUID] = None, undo_group_id: UUID = None) -> schemas.EventGroupShow:
         log_function_info(cls)
@@ -1363,7 +1359,7 @@ class EventGroup:
         return schemas.EventGroupShow.model_validate(new_event_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_nr_event_groups(cls, event_group_id: UUID, nr_event_groups: int | None) -> schemas.EventGroupShow:
         log_function_info(cls)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
@@ -1372,7 +1368,7 @@ class EventGroup:
         return schemas.EventGroupShow.model_validate(event_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_variation_weight(cls, event_group_id: UUID, variation_weight: int) -> schemas.EventGroupShow:
         log_function_info(cls)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
@@ -1381,7 +1377,7 @@ class EventGroup:
         return schemas.EventGroupShow.model_validate(event_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_new_parent(cls, event_group_id: UUID, new_parent_id: UUID) -> schemas.EventGroupShow:
         log_function_info(cls)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
@@ -1391,7 +1387,7 @@ class EventGroup:
         return schemas.EventGroupShow.model_validate(event_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, event_group_id: UUID):
         log_function_info(cls)
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
@@ -1429,7 +1425,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, *, plan_period_id: UUID, restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -1449,7 +1445,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_new_parent(cls, cast_group_id: UUID, new_parent_id: UUID | None) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1459,7 +1455,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_from_parent(cls, cast_group_id: UUID, parent_group_id: UUID | None) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1469,7 +1465,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_fixed_cast(cls, cast_group_id: UUID, fixed_cast: str) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1478,7 +1474,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_nr_actors(cls, cast_group_id: UUID, nr_actors: int) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1487,7 +1483,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_strict_cast_pref(cls, cast_group_id: UUID, strict_cast_pref: int) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1496,7 +1492,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_custom_rule(cls, cast_group_id: UUID, custom_rule: str) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1505,7 +1501,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_cast_rule(cls, cast_group_id: UUID, cast_rule_id: UUID | None) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1515,7 +1511,7 @@ class CastGroup:
         return schemas.CastGroupShow.model_validate(cast_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, cast_group_id: UUID):
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
@@ -1536,7 +1532,7 @@ class CastRule:
         return [schemas.CastRuleShow.model_validate(cl) for cl in project_db.cast_rules]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, project_id: UUID, name: str, rule: str, restore_id: UUID | None = None) -> schemas.CastRuleShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -1548,7 +1544,7 @@ class CastRule:
         return schemas.CastRuleShow.model_validate(cast_rule_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, cast_rule_id: UUID, name: str, rule: str) -> schemas.CastRuleShow:
         log_function_info(cls)
         cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
@@ -1557,7 +1553,7 @@ class CastRule:
         return schemas.CastRuleShow.model_validate(cast_rule_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_prep_delete(cls, cast_rule_id: UUID) -> schemas.CastRuleShow:
         log_function_info(cls)
         cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
@@ -1565,7 +1561,7 @@ class CastRule:
         return schemas.CastRuleShow.model_validate(cast_rule_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, cast_rule_id: UUID) -> schemas.CastRuleShow:
         log_function_info(cls)
         cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
@@ -1573,7 +1569,7 @@ class CastRule:
         return schemas.CastRuleShow.model_validate(cast_rule_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, cast_rule_id: UUID):
         log_function_info(cls)
         cast_rule_db = models.CastRule.get_for_update(id=cast_rule_id)
@@ -1649,7 +1645,7 @@ class Event:
         return [schemas.EventShow.model_validate(e) for e in events_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, event: schemas.EventCreate) -> schemas.EventShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=event.location_plan_period.id)
@@ -1668,7 +1664,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_time_of_day_and_date(cls, event_id: UUID, new_time_of_day_id: UUID,
                                     new_date: datetime.date = None) -> schemas.EventShow:
         log_function_info(cls)
@@ -1681,7 +1677,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_time_of_days(cls, event_id: UUID, time_of_days: list[schemas.TimeOfDay]) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1691,7 +1687,7 @@ class Event:
 
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, event_id: UUID, notes: str) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1699,7 +1695,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, event_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1713,7 +1709,7 @@ class Event:
         return deleted
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_flag(cls, event_id: UUID, flag_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1722,7 +1718,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_flag(cls, event_id: UUID, flag_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1731,7 +1727,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill_group(cls, event_id: UUID, skill_group_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1740,7 +1736,7 @@ class Event:
         return schemas.EventShow.model_validate(event_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_skill_group(cls, event_id: UUID, skill_group_id: UUID) -> schemas.EventShow:
         log_function_info(cls)
         event_db = models.Event.get_for_update(id=event_id)
@@ -1763,7 +1759,7 @@ class ActorPlanPeriod:
         return [schemas.ActorPlanPeriod.model_validate(a) for a in actor_plan_periods_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, plan_period_id: UUID, person_id: UUID,
                actor_plan_period_id: UUID = None) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
@@ -1778,14 +1774,14 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, actor_plan_period_id: UUID):
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
         actor_plan_period_db.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, actor_plan_period: schemas.ActorPlanPeriodShow) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
@@ -1802,7 +1798,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, actor_plan_period: schemas.ActorPlanPeriodUpdate) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
@@ -1810,7 +1806,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_requested_assignments(cls, actor_plan_period_id: UUID,
                                      requested_assignments: int) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
@@ -1819,7 +1815,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_time_of_day(cls, actor_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1829,7 +1825,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_in_time_of_day(cls, actor_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1839,7 +1835,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_time_of_day_standard(cls, actor_plan_period_id: UUID, time_of_day_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1849,7 +1845,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def new_time_of_day_standard(cls, actor_plan_period_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ActorPlanPeriodShow, UUID | None]:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1865,7 +1861,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db), old_time_of_day_standard_id
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_comb_loc_possible(cls, actor_plan_period_id: UUID, comb_loc_possible_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1874,7 +1870,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_comb_loc_possible(cls, actor_plan_period_id: UUID, comb_loc_possible_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1883,7 +1879,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_location_pref(cls, actor_plan_period_id: UUID, actor_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1892,7 +1888,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_location_pref(cls, actor_plan_period_id: UUID, actor_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1901,7 +1897,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_partner_location_pref(cls, actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1910,7 +1906,7 @@ class ActorPlanPeriod:
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_partner_location_pref(cls, actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
@@ -1941,7 +1937,7 @@ class AvailDayGroup:
 
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, *, actor_plan_period_id: Optional[UUID] = None,
                avail_day_group_id: Optional[UUID] = None, undo_id: UUID = None) -> schemas.AvailDayGroupShow:
         log_function_info(cls)
@@ -1958,7 +1954,7 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.model_validate(new_avail_day_group)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_nr_avail_day_groups(cls, avail_day_group_id: UUID,
                                    nr_avail_day_groups: int | None) -> schemas.AvailDayGroupShow:
         log_function_info(cls)
@@ -1968,7 +1964,7 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_variation_weight(cls, avail_day_group_id: UUID, variation_weight: int) -> schemas.AvailDayGroupShow:
         log_function_info(cls)
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
@@ -1977,7 +1973,7 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_mandatory_nr_avail_day_groups(
             cls, avail_day_group_id: UUID, mandatory_nr_avail_day_groups: int | None) -> schemas.AvailDayGroupShow:
         log_function_info(cls)
@@ -1987,7 +1983,7 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def set_new_parent(cls, avail_day_group_id: UUID, new_parent_id: UUID) -> schemas.AvailDayGroupShow:
         log_function_info(cls)
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
@@ -1997,7 +1993,7 @@ class AvailDayGroup:
         return schemas.AvailDayGroupShow.model_validate(avail_day_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, avail_day_group_id: UUID):
         log_function_info(cls)
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
@@ -2086,7 +2082,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db) if avail_day_db else None
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, avail_day: schemas.AvailDayCreate) -> schemas.AvailDayShow:
         """Es wird eine AvailDay-AvailDayGroup für den avail_day angelegt, welche der Master-AvailDayGroup der
         ActorPlanPeriod zugeordnet ist. Der AvailDay-AvailDayGroup wird der avail_day zugeordnet."""
@@ -2101,7 +2097,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_time_of_day(cls, avail_day_id: UUID, new_time_of_day_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2111,7 +2107,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_time_of_days(cls, avail_day_id: UUID, time_of_days: list[schemas.TimeOfDay]) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2121,7 +2117,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2132,7 +2128,7 @@ class AvailDay:
         return deleted
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_comb_loc_possible(cls, avail_day_id: UUID, comb_loc_possible_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2141,7 +2137,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_comb_loc_possible(cls, avail_day_id: UUID, comb_loc_possible_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2150,7 +2146,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_location_pref(cls, avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2159,7 +2155,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_location_pref(cls, avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2168,7 +2164,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_partner_location_pref(cls, avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2177,7 +2173,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_partner_location_pref(cls, avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2186,7 +2182,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2195,7 +2191,7 @@ class AvailDay:
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2206,7 +2202,7 @@ class AvailDay:
 
 class CombinationLocationsPossible:
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, comb_loc_poss: schemas.CombinationLocationsPossibleCreate) -> schemas.CombinationLocationsPossibleShow:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=comb_loc_poss.project.id)
@@ -2218,7 +2214,7 @@ class CombinationLocationsPossible:
         return schemas.CombinationLocationsPossibleShow.model_validate(new_comb_loc_poss)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow:
         log_function_info(cls)
         comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
@@ -2227,7 +2223,7 @@ class CombinationLocationsPossible:
         return schemas.CombinationLocationsPossibleShow.model_validate(comb_loc_poss_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow:
         log_function_info(cls)
         comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
@@ -2238,7 +2234,7 @@ class CombinationLocationsPossible:
 
 class ActorLocationPref:
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, actor_loc_pref: schemas.ActorLocationPrefCreate) -> schemas.ActorLocationPrefShow:
         log_function_info(cls)
 
@@ -2250,7 +2246,7 @@ class ActorLocationPref:
         return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
         log_function_info(cls)
         actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
@@ -2259,7 +2255,7 @@ class ActorLocationPref:
         return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
         log_function_info(cls)
         actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
@@ -2268,7 +2264,7 @@ class ActorLocationPref:
         return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_unused(cls, project_id: UUID) -> list[UUID]:
         log_function_info(cls)
         a_l_prefs_from__project = models.ActorLocationPref.select(lambda a: a.project.id == project_id)
@@ -2284,7 +2280,7 @@ class ActorLocationPref:
         return deleted_a_l_pref_ids
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes(cls, project_id: UUID) -> None:
         log_function_info(cls)
         a_l_prefs_form__project = models.ActorLocationPref.select(lambda a: a.project.id == project_id)
@@ -2301,7 +2297,7 @@ class ActorPartnerLocationPref:
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, actor_partner_loc_pref: schemas.ActorPartnerLocationPrefCreate) -> schemas.ActorPartnerLocationPrefShow:
         log_function_info(cls)
 
@@ -2314,7 +2310,7 @@ class ActorPartnerLocationPref:
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def modify(cls, actor_partner_loc_pref: schemas.ActorPartnerLocationPrefShow) -> schemas.ActorPartnerLocationPrefShow:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref.id)
         if actor_partner_loc_pref.person_default:
@@ -2334,7 +2330,7 @@ class ActorPartnerLocationPref:
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
         log_function_info(cls)
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
@@ -2343,7 +2339,7 @@ class ActorPartnerLocationPref:
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
         log_function_info(cls)
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
@@ -2352,7 +2348,7 @@ class ActorPartnerLocationPref:
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_unused(cls, person_id: UUID) -> list[UUID]:
         log_function_info(cls)
         apl_prefs_from__person = models.ActorPartnerLocationPref.select(lambda a: a.person.id == person_id)
@@ -2368,7 +2364,7 @@ class ActorPartnerLocationPref:
         return deleted_apl_pref_ids
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes(cls, person_id: UUID) -> None:
         log_function_info(cls)
         apl_prefs_form__person = models.ActorPartnerLocationPref.select(lambda a: a.person.id == person_id)
@@ -2378,7 +2374,7 @@ class ActorPartnerLocationPref:
 
 class Skill:
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, skill: schemas.SkillCreate, skill_id: UUID = None) -> schemas.Skill:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=skill.project_id)
@@ -2409,7 +2405,7 @@ class Skill:
         return [schemas.SkillShow.model_validate(s) for s in skills_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, skill: schemas.SkillUpdate) -> schemas.Skill:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill.id)
@@ -2419,7 +2415,7 @@ class Skill:
         return schemas.Skill.model_validate(skill_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def prep_delete(cls, skill_id: UUID, prep_delete: datetime.datetime = None) -> schemas.Skill:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
@@ -2428,7 +2424,7 @@ class Skill:
         return schemas.Skill.model_validate(skill_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, skill_id: UUID) -> schemas.Skill:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
@@ -2437,7 +2433,7 @@ class Skill:
         return schemas.Skill.model_validate(skill_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes_from__project(cls, project_id: UUID) -> None:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
@@ -2446,7 +2442,7 @@ class Skill:
             skill.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, skill_id: UUID):
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
@@ -2483,7 +2479,7 @@ class SkillGroup:
         return [schemas.SkillGroupShow.model_validate(sg) for sg in skill_groups_db]
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, skill_group: schemas.SkillGroupCreate, skill_group_id: UUID = None) -> schemas.SkillGroupShow:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_group.skill_id)
@@ -2494,14 +2490,14 @@ class SkillGroup:
         return schemas.SkillGroupShow.model_validate(skill_group_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, skill_group_id: UUID):
         log_function_info(cls)
         skill_group_db = models.SkillGroup.get_for_update(id=skill_group_id)
         skill_group_db.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update(cls, skill_group: schemas.SkillGroupUpdate) -> schemas.SkillGroupShow:
         log_function_info(cls)
         skill_group_db = models.SkillGroup.get_for_update(id=skill_group.id)
@@ -2513,7 +2509,7 @@ class SkillGroup:
 
 class Plan:
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, plan_period_id: UUID, name: str, notes: str = '') -> schemas.PlanShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
@@ -2522,7 +2518,7 @@ class Plan:
         return schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, plan_id: UUID, notes: str) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2531,7 +2527,7 @@ class Plan:
         return schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, plan_id: UUID) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2540,7 +2536,7 @@ class Plan:
         return schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, plan_id: UUID) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2617,7 +2613,7 @@ class Plan:
 
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deleted(cls, plan_id):
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2626,7 +2622,7 @@ class Plan:
         plan_db.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete_prep_deletes_from__team(cls, team_id: UUID):
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
@@ -2635,7 +2631,7 @@ class Plan:
             plan.delete()
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_name(cls, plan_id: UUID, new_name: str) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2644,7 +2640,7 @@ class Plan:
         return schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_location_columns(cls, plan_id: UUID, location_columns: str) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2653,7 +2649,7 @@ class Plan:
         return schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def put_in_excel_settings(cls, plan_id: UUID, excel_settings_id: UUID) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2670,7 +2666,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
@@ -2682,7 +2678,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_avail_days(cls, appointment_id: UUID, avail_day_ids: list[UUID]) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
@@ -2692,7 +2688,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_notes(cls, appointment_id: UUID, notes: str) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
@@ -2700,7 +2696,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_guests(cls, appointment_id: UUID, guests: list[str]) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
@@ -2708,7 +2704,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_event(cls, appointment_id: UUID, event_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
@@ -2717,7 +2713,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def delete(cls, appointment_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
@@ -2726,7 +2722,7 @@ class Appointment:
         return schemas.AppointmentShow.model_validate(appointment_db)
 
     @classmethod
-    @db_session(sql_debug=True, show_values=True)
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def undelete(cls, appointment_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)

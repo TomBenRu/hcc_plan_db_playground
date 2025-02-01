@@ -51,7 +51,6 @@ class DlgTimeOfDayEnumEdit(QDialog):
                            if e.time_index != self.curr_enum.time_index]
         else:
             all_indexes = [e.time_index for e in self.project.time_of_day_enums]
-            print(f'{all_indexes=}')
             self.chk_new_mode.setChecked(True)
         self.sp_time_index.setDisallowedValues(all_indexes)
         self.chk_default.setChecked(self.standard)

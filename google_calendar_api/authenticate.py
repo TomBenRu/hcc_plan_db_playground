@@ -1,4 +1,5 @@
 import json
+import logging
 
 import keyring
 from google.auth.transport.requests import Request
@@ -7,6 +8,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.exceptions import RefreshError
 
 from exceptions.google_api import CredentialsNotAvailableError
+
+
+logger = logging.getLogger(__name__)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 SERVICE_NAME_CREDENTIALS = 'calendar_api_credentials'
@@ -30,7 +34,7 @@ def authenticate_google():
                 creds.refresh(Request())
                 save_token_data(creds.to_json())
             except RefreshError:
-                print("Refresh token invalid. Forcing re-authentication.")
+                logger.warning("Refresh token invalid. Forcing re-authentication.")
                 keyring.delete_password(SERVICE_NAME_TOKEN_DATA, USER_NAME)
                 return authenticate_google()  # Rekursiver Aufruf für Neuanmeldung
         else:

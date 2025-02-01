@@ -73,11 +73,6 @@ class DlgFlags(QDialog):
         super().__init__(parent=parent)
 
         self.builder = builder
-        print(f'{self.builder.title_text=}')
-        print(f'{self.builder.info_text=}')
-        print(f'{self.builder.object_with_flags=}')
-        print(f'{self.builder.category=}')
-        print(f'{self.builder.remove_command=}')
 
         self.setWindowTitle(self.builder.title_text)
 

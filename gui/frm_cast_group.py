@@ -541,8 +541,6 @@ class DlgGroupProperties(QDialog):
             self.group = db_services.CastGroup.get(self.group.id)
             self.set_fixed_cast_warning()
             self.set_cast_rule_warning()
-        else:
-            print('aboard')
 
     def new_rule(self):
         dlg = frm_cast_rule.DlgCreateCastRule(self, self.group.plan_period.team.project.id)

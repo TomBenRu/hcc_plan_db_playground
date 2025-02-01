@@ -15,12 +15,14 @@ from . import models
 from .enums import Gender
 
 
+logger = logging.getLogger(__name__)
+
 LOGGING_ENABLED = False
 
 def log_function_info(cls):
     if not LOGGING_ENABLED:
         return
-    logging.info(f'function: {cls.__module__}.{cls.__name__}.{inspect.currentframe().f_back.f_code.co_name}\n'
+    logger.info(f'function: {cls.__name__}.{inspect.currentframe().f_back.f_code.co_name}\n'
                  f'args: {inspect.currentframe().f_back.f_locals}')
 
 

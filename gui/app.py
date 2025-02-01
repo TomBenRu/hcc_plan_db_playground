@@ -86,7 +86,7 @@ if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_p
 log_file_path = os.path.join(log_path, 'hcc-dispo.log')
 
 logging.basicConfig(filename=log_file_path, level=logging.INFO,
-                    format='%(asctime)s\n%(message)s\n')
+                    format='%(asctime)s - %(name)s - %(levelname)s\n%(message)s\n')
 logging.Formatter.converter = time.gmtime
 
 app.setStyle('Fusion')

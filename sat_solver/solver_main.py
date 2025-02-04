@@ -32,6 +32,7 @@ handler = logging.FileHandler(os.path.join(curr_user_path_handler.get_config().l
 custom_format = logging.Formatter('')
 handler.setFormatter(custom_format)
 cp_sat_logger.addHandler(handler)
+cp_sat_logger.propagate = False
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):
     # fixme: unkorrekt mit avail_day_group Einschränkungen

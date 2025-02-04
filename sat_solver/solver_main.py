@@ -1,6 +1,8 @@
 import collections
 import dataclasses
 import itertools
+import logging
+import os
 import time
 from ast import literal_eval
 from collections import defaultdict
@@ -14,6 +16,7 @@ from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
+from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas
 from configuration.solver import curr_config_handler
 from database.schemas import AppointmentCreate
@@ -23,6 +26,12 @@ from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastG
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
 from tools.helper_functions import generate_fixed_cast_clear_text
 
+
+cp_sat_logger = logging.getLogger(__name__)
+handler = logging.FileHandler(os.path.join(curr_user_path_handler.get_config().log_file_path, 'cp-sat-solver.log'))
+custom_format = logging.Formatter('')
+handler.setFormatter(custom_format)
+cp_sat_logger.addHandler(handler)
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):
     # fixme: unkorrekt mit avail_day_group Einschränkungen
@@ -1241,6 +1250,9 @@ def solve_model_to_optimum(model: cp_model.CpModel, max_search_time: int,
     solver = cp_model.CpSolver()
     solver.parameters.mip_max_activity_exponent = 62
     solver.parameters.log_search_progress = log_search_process
+    solver.log_callback = cp_sat_logger.info
+    # If using a custom log function, you can disable logging to stdout
+    solver.parameters.log_to_stdout = False
     solver.parameters.linearization_level = 0
     solver.parameters.enumerate_all_solutions = False
     solver.parameters.max_time_in_seconds = max_search_time

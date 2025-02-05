@@ -2389,10 +2389,10 @@ class Skill:
 
     @classmethod
     @db_session
-    def get_all_from__person(cls, person_id: UUID) -> list[schemas.SkillShow]:
+    def get_all_from__person(cls, person_id: UUID) -> list[schemas.Skill]:
         person_db = models.Person.get_for_update(id=person_id)
         skills_db = person_db.skills
-        return [schemas.SkillShow.model_validate(s) for s in skills_db]
+        return [schemas.Skill.model_validate(s) for s in skills_db]
 
     @classmethod
     @db_session

@@ -38,7 +38,8 @@ class DlgSkillsOfProject(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         self.lb_description = QLabel("<h3>Skills des Projektes</h3>"
-                                     "<p>Hier sind alle Fähigkeiten und Kenntnisse für dein Projekt aufgelistet.</p>")
+                                     "<p>Hier sind alle zusätzlichen Fähigkeiten und Kenntnisse,<br>"
+                                     "welche in deinem Projekt angelegt sind, aufgelistet.</p>")
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
         self._put_skills_in_table()
@@ -61,7 +62,7 @@ class DlgSkillsOfProject(QDialog):
 
     def _put_skills_in_table(self):
         self.table_skills.setRowCount(len(self.skills))
-        for row, skill in enumerate(self.skills):
+        for row, skill in enumerate(sorted(self.skills, key=lambda x: x.name)):
             item_name = QTableWidgetItem(skill.name)
             item_name.setData(Qt.ItemDataRole.UserRole, skill)
             self.table_skills.setItem(row, 0, item_name)
@@ -335,7 +336,7 @@ class DlgSelectSkills(QDialog):
     def _put_skills_in_table(self):
         skills = self.object_with_skills.skills
         self.table_skills.setRowCount(len(skills))
-        for row, skill in enumerate(skills):
+        for row, skill in enumerate(sorted(skills, key=lambda x: x.name)):
             item_name = QTableWidgetItem(skill.name)
             item_name.setData(Qt.ItemDataRole.UserRole, skill.id)
             self.table_skills.setItem(row, 0, item_name)

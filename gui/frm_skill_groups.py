@@ -49,11 +49,11 @@ class DlgSkillGroup(QDialog):
 
     def _setup_combo_skill(self) -> QComboBoxToFindData:
         combo_skill = QComboBoxToFindData()
+        if self.skill_group:
+            combo_skill.addItem(
+                f'{self.skill_group.skill.name} ({self.skill_group.skill.notes})', self.skill_group.skill.id)
         for skill in [s for s in self.skills_of_project if s.id not in self.exclude_skill_ids]:
             combo_skill.addItem(f'{skill.name} ({skill.notes})', skill.id)
-            if self.skill_group:
-                combo_skill.addItem(
-                    f'{self.skill_group.skill.name} ({self.skill_group.skill.notes})', self.skill_group.skill.id)
         return combo_skill
 
     def _setup_spin_person_count(self) -> QSpinBox:

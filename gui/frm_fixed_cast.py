@@ -424,6 +424,7 @@ class DlgFixedCast(QDialog):
             '''combo operator betw. rows wird erzeugt'''
             combo_op_between_rows = self.create_combo_operator('between')
             combo_op_between_rows.currentIndexChanged.connect(self.save_plot)
+            combo_op_between_rows.setCurrentIndex(1)
             self.layout_grid.addWidget(combo_op_between_rows, r, self.col_operator_between_rows)
             r += 1
 

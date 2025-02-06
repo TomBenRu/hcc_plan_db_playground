@@ -921,7 +921,6 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.setHorizontalSpacing(2)
 
         self.side_menu = side_menu
-        self.setup_side_menu()
 
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
@@ -941,23 +940,26 @@ class FrmActorPlanPeriod(QWidget):
         self.bt_toggle__avd_group_mode: QPushButton | None = None
         self.setup_controllers()
         self.get_avail_days()
+        self._setup_side_menu()
 
-    def setup_side_menu(self):
+    def _setup_side_menu(self):
         self.side_menu.delete_all_buttons()
-        bt_requested_assignments = QPushButton('Anz. gewünschter Einsätze', clicked=self.set_requested_assignments)
-        self.side_menu.add_button(bt_requested_assignments)
-        bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
-        self.side_menu.add_button(bt_time_of_days)
-        bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
-        self.side_menu.add_button(bt_reset_all_avail_t_o_ds)
-        bt_comb_loc_possibles = QPushButton('Einrichtungskombinationen', clicked=self.edit_comb_loc_possibles)
-        self.side_menu.add_button(bt_comb_loc_possibles)
-        bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
-        self.side_menu.add_button(bt_actor_loc_prefs)
-        bt_actor_partner_loc_prefs = QPushButton('Mitsp.- / Einr.-Präf.', clicked=self.edit_partner_loc_prefs)
-        self.side_menu.add_button(bt_actor_partner_loc_prefs)
-        bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
-        self.side_menu.add_button(bt_fetch_avail_days_from_api)
+        num_requested_assignments = self.actor_plan_period.requested_assignments
+        self.bt_requested_assignments = QPushButton(f'gewünschte Einsätze (aktuell: {num_requested_assignments})',
+                                               clicked=self.set_requested_assignments)
+        self.side_menu.add_button(self.bt_requested_assignments)
+        self.bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
+        self.side_menu.add_button(self.bt_time_of_days)
+        self.bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
+        self.side_menu.add_button(self.bt_reset_all_avail_t_o_ds)
+        self.bt_comb_loc_possibles = QPushButton('Einrichtungskombinationen', clicked=self.edit_comb_loc_possibles)
+        self.side_menu.add_button(self.bt_comb_loc_possibles)
+        self.bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
+        self.side_menu.add_button(self.bt_actor_loc_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton('Mitsp.- / Einr.-Präf.', clicked=self.edit_partner_loc_prefs)
+        self.side_menu.add_button(self.bt_actor_partner_loc_prefs)
+        self.bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
+        self.side_menu.add_button(self.bt_fetch_avail_days_from_api)
 
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -1186,6 +1188,8 @@ class FrmActorPlanPeriod(QWidget):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
         if dlg.exec():
             self.reload_actor_plan_period()
+            self.bt_requested_assignments.setText(
+                f'gewünschte Einsätze (aktuell: {self.actor_plan_period.requested_assignments})')
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()

@@ -436,8 +436,12 @@ def add_constraints_weights_in_event_groups_alternative_implementation(model: cp
 def add_constraints_avail_day_groups_activity(model: cp_model):
     """
     Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
-    wie in der Parent-Event-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    wie in der Parent-Avail-Day-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    Falls die Parent-Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine
+    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups
+    geplant werden oder gar keine Schichten geplant werden.
     """
+
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
         if not avail_day_group.children:
             continue
@@ -452,6 +456,21 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
         # In diesem Fall sollen keine aktiven existieren.
         else:
             model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
+
+        if avail_day_group.mandatory_nr_avail_day_groups and all(c.avail_day for c in avail_day_group.children):
+            # Erstelle die Binärvariable y über NewBoolVar.
+            y = model.NewBoolVar("y")
+
+            # Definiere die Summe der Schichtvariablen.
+            shift_sum = sum(
+                shift_var
+                for (adg_id, evg_id), shift_var in entities.shift_vars.items()
+                if adg_id in [a.avail_day_group_id for a in avail_day_group.children]
+            )
+
+            # Füge eine Nebenbedingung hinzu, die sicherstellt, dass shift_sum entweder 0 oder mandatory ist.
+            # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = mandatory.
+            model.Add(shift_sum == avail_day_group.mandatory_nr_avail_day_groups * y)
 
 
 def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):

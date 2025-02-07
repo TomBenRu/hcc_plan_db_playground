@@ -337,10 +337,10 @@ class TreeWidget(QTreeWidget):
 
 
 class DlgGroupProperties(QDialog):
-    def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
+    def __init__(self, parent: QWidget, item: TreeWidgetItem, builder: DlgGroupModeBuilderABC):
         super().__init__(parent=parent)
 
-        self.setFixedWidth(400)
+        self.setFixedWidth(600)
 
         self.item = item
         self.builder = builder
@@ -352,7 +352,7 @@ class DlgGroupProperties(QDialog):
 
         self.group = self.builder.get_group_from_id(
             self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-        self.child_items = [self.item.child(i) for i in range(self.item.childCount())]
+        self.child_items: [TreeWidgetItem] = [self.item.child(i) for i in range(self.item.childCount())]
         self.child_groups = [
             self.builder.get_group_from_id(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             for item in self.child_items]
@@ -471,15 +471,16 @@ class DlgGroupProperties(QDialog):
 
 
 class DlgGroupPropertiesAvailDay(DlgGroupProperties):
-    def __init__(self, parent: QWidget, item: QTreeWidgetItem, builder: DlgGroupModeBuilderABC):
+    def __init__(self, parent: QWidget, item: TreeWidgetItem, builder: DlgGroupModeBuilderABC):
 
         self.mandatory_widgets_are_available = False
         self.chk_mandatory_nr_avail_day_groups_is_locked = False
 
         super().__init__(parent, item, builder)
 
-        self.setup_mandatory_widgets()
-        self.setup_mandatory_widget_values()
+        if self.group.mandatory_nr_avail_day_groups and all(child.date_object for child in self.child_items):
+            self._setup_mandatory_widgets()
+            self.setup_mandatory_widget_values()
 
         self.mandatory_widgets_are_available = True
 
@@ -491,7 +492,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         super().chk_none_toggled(checked, clicked)
         self.update_mandatory_widget_values()
 
-    def setup_mandatory_widgets(self):
+    def _setup_mandatory_widgets(self):
         self.lb_mandatory_nr_avail_day_groups = QLabel('Bedingung Anzahl Einsätze')
         self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)
@@ -502,6 +503,10 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.lb_without_mandatory.setStyleSheet('color: green')
         self.lb_mandatory_nr_avail_day_groups_value = QLabel()
         self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
+        self.chk_mandatory_nr_avail_day_groups.setToolTip(
+            f'Wenn aktiviert:\n'
+            f'Die Anzahl der Einsätze in dieser Gruppe muss der bedingten Anzahl entsprechen.\n'
+            f'Falls dies nicht möglich ist, werden keine Einsätze in dieser Gruppe erstellt.')
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
         self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)

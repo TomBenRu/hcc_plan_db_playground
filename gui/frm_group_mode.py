@@ -476,9 +476,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.mandatory_widgets_are_available = False
         self.chk_mandatory_nr_avail_day_groups_is_locked = False
 
-        super().__init__(parent, item, builder)
-
-        if self.group.mandatory_nr_avail_day_groups and all(child.date_object for child in self.child_items):
+        if all(child.date_object for child in self.child_items):
             self._setup_mandatory_widgets()
             self.setup_mandatory_widget_values()
 

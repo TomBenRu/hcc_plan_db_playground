@@ -80,8 +80,11 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
 
     avail_assignments: int = assigned_shifts
 
-    requested_assignments_new = adjust_requested_assignments(required_assignments, avail_assignments)
-    avail_assignments -= sum(requested_assignments_new.values())
+    if required_assignments:
+        requested_assignments_new = adjust_requested_assignments(required_assignments, avail_assignments)
+        avail_assignments -= sum(requested_assignments_new.values())
+    else:
+        requested_assignments_new = {}
     requested_assignments_new |= adjust_requested_assignments(requested_assignments, avail_assignments)
 
     for app in entities.actor_plan_periods.values():

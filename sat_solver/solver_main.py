@@ -36,47 +36,56 @@ cp_sat_logger.propagate = False
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):
     # fixme: unkorrekt mit avail_day_group Einschränkungen
+
+    def adjust_requested_assignments(requested_assignments: dict[UUID, int],
+                                     avail_assignments: float) -> dict[UUID, float]:
+        requested_assignments_new: dict[UUID, float] = {}
+        while True:
+            mean_nr_assignments: float = avail_assignments / len(requested_assignments)
+            requested_greater_than_mean: dict[UUID, int] = {}
+            requested_smaller_than_mean: dict[UUID, int] = {}
+            for app_id, requested in requested_assignments.items():
+                if requested >= mean_nr_assignments:
+                    requested_greater_than_mean[app_id] = requested
+                else:
+                    requested_smaller_than_mean[app_id] = requested
+
+            if not requested_smaller_than_mean:
+                requested_assignments_new.update({i: avail_assignments / len(requested_greater_than_mean)
+                                                  for i in requested_greater_than_mean})
+                break
+            else:
+                requested_assignments_new |= requested_smaller_than_mean
+                avail_assignments -= sum(requested_smaller_than_mean.values())
+                requested_assignments = requested_greater_than_mean.copy()
+                if not requested_assignments:
+                    break
+        return requested_assignments_new
+
     print('----------------------------------------possible_assignments---- ------------------------------------------')
     print({entities.actor_plan_periods[app_id].person.f_name: max_assign
            for app_id, max_assign in possible_assignments.items()})
     print('-----------------------------------------------------------------------------------------------------------')
-    requested_assignments_adjusted: dict[UUID, int] = {
+    requested_assignments: dict[UUID, int] = {
         app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
         for app_id, assignments in possible_assignments.items()
         if not entities.actor_plan_periods[app_id].required_assignments
     }
 
-    requested_assignments_new: dict[UUID, float] = {}
+    required_assignments: dict[UUID, int] = {
+        app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
+        for app_id, assignments in possible_assignments.items()
+        if entities.actor_plan_periods[app_id].required_assignments
+    }
+
     avail_assignments: int = assigned_shifts
 
-    for app_id, app in entities.actor_plan_periods.items():
-        if app.required_assignments:
-            requested_assignments_new[app_id] = min(app.requested_assignments, possible_assignments[app_id])
-            avail_assignments -= requested_assignments_new[app_id]
+    requested_assignments_new = adjust_requested_assignments(required_assignments, avail_assignments)
+    avail_assignments -= sum(requested_assignments_new.values())
+    requested_assignments_new |= adjust_requested_assignments(requested_assignments, avail_assignments)
 
-    while True:
-        mean_nr_assignments: float = avail_assignments / len(requested_assignments_adjusted)
-        requested_greater_than_mean: dict[UUID, int] = {}
-        requested_smaller_than_mean: dict[UUID, int] = {}
-        for app_id, requested in requested_assignments_adjusted.items():
-            if requested >= mean_nr_assignments:
-                requested_greater_than_mean[app_id] = requested
-            else:
-                requested_smaller_than_mean[app_id] = requested
-
-        if not requested_smaller_than_mean:
-            requested_assignments_new.update({i: avail_assignments / len(requested_greater_than_mean)
-                                              for i in requested_greater_than_mean})
-            break
-        else:
-            requested_assignments_new |= requested_smaller_than_mean
-            avail_assignments -= sum(requested_smaller_than_mean.values())
-            requested_assignments_adjusted = requested_greater_than_mean.copy()
-            if not requested_assignments_adjusted:
-                break
     for app in entities.actor_plan_periods.values():
         app.requested_assignments = requested_assignments_new[app.id]
-    input(f'{[(app.requested_assignments, app.person.f_name) for app in entities.actor_plan_periods.values()]}')
 
     return requested_assignments_new
 

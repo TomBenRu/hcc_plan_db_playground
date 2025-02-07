@@ -43,10 +43,17 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
     requested_assignments_adjusted: dict[UUID, int] = {
         app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
         for app_id, assignments in possible_assignments.items()
+        if not entities.actor_plan_periods[app_id].required_assignments
     }
 
     requested_assignments_new: dict[UUID, float] = {}
     avail_assignments: int = assigned_shifts
+
+    for app_id, app in entities.actor_plan_periods.items():
+        if app.required_assignments:
+            requested_assignments_new[app_id] = min(app.requested_assignments, possible_assignments[app_id])
+            avail_assignments -= requested_assignments_new[app_id]
+
     while True:
         mean_nr_assignments: float = avail_assignments / len(requested_assignments_adjusted)
         requested_greater_than_mean: dict[UUID, int] = {}
@@ -69,6 +76,7 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
                 break
     for app in entities.actor_plan_periods.values():
         app.requested_assignments = requested_assignments_new[app.id]
+    input(f'{[(app.requested_assignments, app.person.f_name) for app in entities.actor_plan_periods.values()]}')
 
     return requested_assignments_new
 

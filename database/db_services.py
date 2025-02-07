@@ -1805,10 +1805,10 @@ class ActorPlanPeriod:
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_requested_assignments(cls, actor_plan_period_id: UUID,
-                                     requested_assignments: int) -> schemas.ActorPlanPeriodShow:
+                                     requested_assignments: int, required_assignments: bool) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
-        actor_plan_period_db.set(requested_assignments=requested_assignments)
+        actor_plan_period_db.set(requested_assignments=requested_assignments, required_assignments=required_assignments)
         return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
 
     @classmethod

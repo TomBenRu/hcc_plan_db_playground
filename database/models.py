@@ -35,7 +35,6 @@ class Person(db.Entity):
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     prep_delete = Optional(datetime.datetime)
     project = Required('Project', reverse='persons')
-    # team_of_actor = Optional('Team', reverse='persons')  # wird entfernt
     team_actor_assigns = Set('TeamActorAssign')
     project_of_admin = Optional('Project', reverse='admin')
     teams_of_dispatcher = Set('Team', reverse='dispatcher', cascade_delete=False)
@@ -183,7 +182,7 @@ class ActorPlanPeriod(db.Entity):
     avail_day_group = Optional('AvailDayGroup')
     time_of_days = Set('TimeOfDay')
     requested_assignments = Required(int, size=16, default=8, unsigned=True)
-    # todo: claimed_assignments = Optional(bool, default=False) implementieren
+    required_assignments = Required(bool, default=False)
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
     actor_location_prefs_defaults = Set('ActorLocationPref')

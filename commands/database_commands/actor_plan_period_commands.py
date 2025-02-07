@@ -202,17 +202,22 @@ class RemoveActorPartnerLocationPref(Command):
 
 
 class UpdateRequestedAssignments(Command):
-    def __init__(self, actor_plan_period_id: UUID, requested_assignments: int):
+    def __init__(self, actor_plan_period_id: UUID, requested_assignments: int, required_assignments: bool):
         self.actor_plan_period_id = actor_plan_period_id
         self.requested_assignments = requested_assignments
-        self.requested_assignments_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).requested_assignments
+        self.required_assignments = required_assignments
+        self.actor_plan_period_old: schemas.ActorPlanPeriodShow = db_services.ActorPlanPeriod.get(actor_plan_period_id)
+        self.requested_assignments_old = self.actor_plan_period_old.requested_assignments
+        self.required_assignments_old = self.actor_plan_period_old.required_assignments
 
     def execute(self):
-        db_services.ActorPlanPeriod.update_requested_assignments(self.actor_plan_period_id, self.requested_assignments)
+        db_services.ActorPlanPeriod.update_requested_assignments(
+            self.actor_plan_period_id, self.requested_assignments, self.required_assignments)
 
     def undo(self):
         db_services.ActorPlanPeriod.update_requested_assignments(
-            self.actor_plan_period_id, self.requested_assignments_old)
+            self.actor_plan_period_id, self.requested_assignments_old, self.required_assignments_old)
 
     def redo(self):
-        db_services.ActorPlanPeriod.update_requested_assignments(self.actor_plan_period_id, self.requested_assignments)
+        db_services.ActorPlanPeriod.update_requested_assignments(
+            self.actor_plan_period_id, self.requested_assignments, self.required_assignments)

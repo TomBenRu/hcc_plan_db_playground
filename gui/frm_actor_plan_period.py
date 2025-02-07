@@ -945,7 +945,8 @@ class FrmActorPlanPeriod(QWidget):
     def _setup_side_menu(self):
         self.side_menu.delete_all_buttons()
         num_requested_assignments = self.actor_plan_period.requested_assignments
-        self.bt_requested_assignments = QPushButton(f'gewünschte Einsätze (aktuell: {num_requested_assignments})',
+        self.bt_requested_assignments = QPushButton(f'gew. Einsätze (aktuell: {num_requested_assignments}'
+                                                    f'{", gefordert" if self.actor_plan_period.required_assignments else ""})',
                                                clicked=self.set_requested_assignments)
         self.side_menu.add_button(self.bt_requested_assignments)
         self.bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
@@ -1189,7 +1190,8 @@ class FrmActorPlanPeriod(QWidget):
         if dlg.exec():
             self.reload_actor_plan_period()
             self.bt_requested_assignments.setText(
-                f'gewünschte Einsätze (aktuell: {self.actor_plan_period.requested_assignments})')
+                f'gew. Einsätze (aktuell: {self.actor_plan_period.requested_assignments}'
+                f'{", gefordert" if self.actor_plan_period.required_assignments else ""})')
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()

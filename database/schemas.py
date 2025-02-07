@@ -227,6 +227,7 @@ class ActorPlanPeriod(ActorPlanPeriodCreate):
     id: UUID
     prep_delete: Optional[datetime.datetime] = None
     requested_assignments: int
+    required_assignments: bool
 
 
 class ActorPlanPeriodShow(ActorPlanPeriod):

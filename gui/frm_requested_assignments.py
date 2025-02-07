@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QSpinBox, QDialogButtonBox, \
-    QPushButton
+    QPushButton, QCheckBox
 
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands
@@ -33,6 +33,8 @@ class DlgRequestedAssignments(QDialog):
 
         self.spin_requested_assignments = QSpinBox()
         self.layout_body.addRow('Anzahl gewünschter Termine', self.spin_requested_assignments)
+        self.chk_required_assignments = QCheckBox()
+        self.layout_body.addRow('als absolut setzen', self.chk_required_assignments)
 
         self.bt_reset = QPushButton('Reset', clicked=self.reset)
         self.button_box = QDialogButtonBox(
@@ -51,15 +53,23 @@ class DlgRequestedAssignments(QDialog):
     def setup_widgets(self):
         self.lb_info.setText(f'Die Anzahl gewünschter Einsätze bezieht sich auf den gesamten Planungszeitraum\n'
                              f'von {self.actor_plan_period.plan_period.start: %d.%m.%Y} '
-                             f'bis {self.actor_plan_period.plan_period.end:%d.%m.%Y}')
+                             f'bis {self.actor_plan_period.plan_period.end:%d.%m.%Y}\n'
+                             f'Wenn "als absolut setzen" ausgewählt ist, wird versucht, die Anzahl der Einsätze\n'
+                             f'so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.')
         self.spin_requested_assignments.setFixedWidth(40)
         self.spin_requested_assignments.setRange(0, 500)
         self.spin_requested_assignments.setValue(self.actor_plan_period.requested_assignments)
-        self.spin_requested_assignments.valueChanged.connect(self.spin_requested_assignments_value_changed)
+        self.spin_requested_assignments.valueChanged.connect(self.requested_assignments_value_changed)
+        self.chk_required_assignments.setChecked(self.actor_plan_period.required_assignments)
+        self.chk_required_assignments.stateChanged.connect(self.requested_assignments_value_changed)
 
-    def spin_requested_assignments_value_changed(self):
+    def requested_assignments_value_changed(self):
         self.controller.execute(actor_plan_period_commands.UpdateRequestedAssignments(
-            self.actor_plan_period_id, self.spin_requested_assignments.value()))
+            self.actor_plan_period_id,
+            self.spin_requested_assignments.value(),
+            self.chk_required_assignments.isChecked())
+        )
 
     def reset(self):
         self.spin_requested_assignments.setValue(self.actor_plan_period.person.requested_assignments)
+        self.chk_required_assignments.setChecked(False)

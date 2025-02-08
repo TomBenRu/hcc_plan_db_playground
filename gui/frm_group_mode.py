@@ -493,19 +493,21 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.update_mandatory_widget_values()
 
     def _setup_mandatory_widgets(self):
-        self.lb_mandatory_nr_avail_day_groups = QLabel('Bedingung Anzahl Einsätze')
+        text_tooltip = (f'Wenn aktiviert:\n'
+                        f'Mitarbeiter wird in dieser Gruppe nur eingesetzt,\n'
+                        f'wenn die Anzahl der Einsätze angegebene Mindestanzahl erreichen.')
+        self.lb_mandatory_nr_avail_day_groups = QLabel('Mindestanzahl Einsätze:')
         self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)
         self.slider_mandatory_nr_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.slider_mandatory_nr_avail_day_groups.setMinimum(1)
+        self.slider_mandatory_nr_avail_day_groups.setToolTip(text_tooltip)
 
         self.lb_without_mandatory = QLabel('...Ohne Bedingung')
         self.lb_without_mandatory.setStyleSheet('color: green')
         self.lb_mandatory_nr_avail_day_groups_value = QLabel()
         self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
-        self.chk_mandatory_nr_avail_day_groups.setToolTip(
-            f'Wenn aktiviert:\n'
-            f'Mitarbeiter wird nur eingesetzt,\nwenn er die angegebene Mindestanzahl der Einsätze erreicht.')
+        self.chk_mandatory_nr_avail_day_groups.setToolTip(text_tooltip)
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
         self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)

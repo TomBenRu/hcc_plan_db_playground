@@ -238,6 +238,7 @@ class Entities:
     shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
     shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
     # wenn value==0, kann shift mit key (adg_id, eg_id) nicht gesetzt werden
+    mandatory_failure_vars: list[IntVar] = dataclasses.field(default_factory=list)
 
 
 entities: Entities | None = None
@@ -437,9 +438,6 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
     """
     Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
     wie in der Parent-Avail-Day-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
-    Falls die Parent-Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine
-    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups
-    geplant werden oder gar keine Schichten geplant werden.
     """
 
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
@@ -457,6 +455,17 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
         else:
             model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
 
+
+def add_constraints_mandatory_nr_avail_days_in_groups(model: cp_model):
+    """
+    Falls die Parent-Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine
+    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups
+    geplant werden oder gar keine Schichten geplant werden.
+    """
+    # Falls die Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine zusätzliche
+    # Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups geplant
+    # werden oder gar keine Schichten geplant werden.
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
         if avail_day_group.mandatory_nr_avail_day_groups and all(c.avail_day for c in avail_day_group.children):
             # Erstelle die Binärvariable y über NewBoolVar.
             y = model.NewBoolVar("y")
@@ -1110,7 +1119,8 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     return max_shifts_of_app
 
 
-def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dict[UUID, IntVar], IntVar, list[IntVar],
+def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool = False) -> tuple[dict[UUID, IntVar],
+                                                         dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar],
                                                          list[IntVar]]:
@@ -1122,6 +1132,10 @@ def create_constraints(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], dic
 
     # Add constraints for activity of avail_day groups:
     add_constraints_avail_day_groups_activity(model)
+
+    # Add constraints for mandatory_nr_avail_days_in_groups:
+    if not creating_test_constraints:
+        add_constraints_mandatory_nr_avail_days_in_groups(model)
 
     # Add constraints for shifts in inactive avail_day_groups:
     add_constraints_num_shifts_in_avail_day_groups(model)
@@ -1587,7 +1601,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
     for appointment in plan.appointments:
         event_group_id = db_services.Event.get(appointment.event.id).event_group.id
         for avd in appointment.avail_days:
-            a = model.NewBoolVar(f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}, '
+            a = model.NewBoolVar(f'{avd.actor_plan_period.person.full_name}, '
                                  f'{appointment.event.date: %d.%m.%y}, '
                                  f'{appointment.event.time_of_day.name}, '
                                  f'{appointment.event.location_plan_period.location_of_work.name} '
@@ -1598,13 +1612,36 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
     for idx in indexes_shift_vars:
         model.Add(entities.shift_vars[idx] == False)
     for int_var in constraints_fixed_cast_conflicts.values():
-        a = model.NewBoolVar(f'Feste Besetzung:\n{int_var.name}')
+        a = model.NewBoolVar(f'Feste Besetzung:<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;{int_var.name}')
         model.Add(int_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
     for skill_var in skill_conflict_vars:
-        a = model.NewBoolVar(f'Fertigkeitskonflikt:\n{skill_var.name}')
+        a = model.NewBoolVar(f'Fertigkeitskonflikt:<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;{skill_var.name}')
         model.Add(skill_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
+
+    avail_day_groups_with_mandatory_shifts = [
+        adg for adg in entities.avail_day_groups.values()
+        if adg.mandatory_nr_avail_day_groups and all(c.avail_day for c in adg.children)
+    ]
+    for adg in avail_day_groups_with_mandatory_shifts:
+        name_employee = adg.children[0].avail_day.actor_plan_period.person.full_name
+        shift_dates = ', '.join(sorted(f'{c.avail_day.date: %d.%m}' for c in adg.children))
+        a = model.NewBoolVar(f'Mindesteinsätze:<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;Einsätze von {name_employee} an den Tagen:<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;{shift_dates}<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;müssen {adg.mandatory_nr_avail_day_groups} oder 0 sein.')
+        y = model.NewBoolVar('Y')
+        shift_sum = sum(
+            shift_var
+            for (adg_id, evg_id), shift_var in entities.shift_vars.items()
+            if adg_id in [a.avail_day_group_id for a in adg.children]
+        )
+        model.Add(shift_sum == adg.mandatory_nr_avail_day_groups * y).OnlyEnforceIf(a)
+        model.AddAssumption(a)
+
 
 
 def call_solver_to_test_plan(plan: schemas.PlanShow,
@@ -1615,7 +1652,7 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model, True)
     set_test_plan_constraints(model, plan,
                               constraints_fixed_cast_conflicts, skill_conflict_vars)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)

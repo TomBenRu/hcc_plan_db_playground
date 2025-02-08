@@ -508,11 +508,16 @@ class AppointmentField(QWidget):
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
             self.execution_timer_post_cast_change.start_timer()
         else:
-            problems_txt = "\n        +\n    ".join(problems)
+            problems_txt = "<br>+<br>".join(problems)
+            msg_text = (
+                "<h3>Die Änderung der Besetzung ist nicht ohne Konflikt machbar.</h3>"
+                "<h4>Unvereinbarkeiten:</h4>"
+                f"<p>{problems_txt}</p>"
+                "<p>Sollen die Änderungen zurückgenommen werden?</p>"
+            )
+
             reply = QMessageBox.critical(self, 'Besetzungsänderung',
-                                         f'Die Änderung der Besetzung ist nicht ohne Konflikt machbar.\n\n'
-                                         f'Unvereinbarkeiten:\n    {problems_txt}\n\n'
-                                         f'Sollen die Änderungen zurückgenommen werden',
+                                         msg_text,
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
                 self.plan_widget.controller.undo()
@@ -771,7 +776,11 @@ class FrmTabPlan(QWidget):
 
     def _highlight_undo_redo_appointment_field(self, appointment_field: AppointmentField):
         def reset_field():
-            appointment_field.setStyleSheet(self._original_undo_redo_highlight_style_sheet)
+            try:
+                appointment_field.setStyleSheet(self._original_undo_redo_highlight_style_sheet)
+            except RuntimeError:
+                # Da das AppointmentField schon gelöscht wurde, ignorieren wir den Fehler.
+                pass
 
         # Verhindert, dass auch bei mehrfach schnellem Auslösen der Action immer auf das originale Stylesheet
         # zurückgesetzt wird:

@@ -476,6 +476,8 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.mandatory_widgets_are_available = False
         self.chk_mandatory_nr_avail_day_groups_is_locked = False
 
+        super().__init__(parent, item, builder)
+
         if all(child.date_object for child in self.child_items):
             self._setup_mandatory_widgets()
             self.setup_mandatory_widget_values()
@@ -503,8 +505,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
         self.chk_mandatory_nr_avail_day_groups.setToolTip(
             f'Wenn aktiviert:\n'
-            f'Die Anzahl der Einsätze in dieser Gruppe muss der bedingten Anzahl entsprechen.\n'
-            f'Falls dies nicht möglich ist, werden keine Einsätze in dieser Gruppe erstellt.')
+            f'Mitarbeiter wird nur eingesetzt,\nwenn er die angegebene Mindestanzahl der Einsätze erreicht.')
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
         self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
         self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)

@@ -495,7 +495,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
     def _setup_mandatory_widgets(self):
         text_tooltip = (f'Wenn aktiviert:\n'
                         f'Mitarbeiter wird in dieser Gruppe nur eingesetzt,\n'
-                        f'wenn die Anzahl der Einsätze angegebene Mindestanzahl erreichen.')
+                        f'wenn er die angegebene Mindestanzahl an Einsätzen erreicht.')
         self.lb_mandatory_nr_avail_day_groups = QLabel('Mindestanzahl Einsätze:')
         self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)

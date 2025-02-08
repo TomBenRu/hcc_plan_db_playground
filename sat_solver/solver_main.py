@@ -1628,10 +1628,11 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
     ]
     for adg in avail_day_groups_with_mandatory_shifts:
         name_employee = adg.children[0].avail_day.actor_plan_period.person.full_name
-        shift_dates = ', '.join(sorted(f'{c.avail_day.date: %d.%m}' for c in adg.children))
+        shift_dates = set(c.avail_day.date for c in adg.children)
+        shift_dates_text = ', '.join(f'{d:%d.%m}' for d in sorted(shift_dates))
         a = model.NewBoolVar(f'Mindesteinsätze:<br>'
                              f'&nbsp;&nbsp;&nbsp;&nbsp;Einsätze von {name_employee} an den Tagen:<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;{shift_dates}<br>'
+                             f'&nbsp;&nbsp;&nbsp;&nbsp;{shift_dates_text}<br>'
                              f'&nbsp;&nbsp;&nbsp;&nbsp;müssen {adg.mandatory_nr_avail_day_groups} oder 0 sein.')
         y = model.NewBoolVar('Y')
         shift_sum = sum(

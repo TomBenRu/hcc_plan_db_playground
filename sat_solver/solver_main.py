@@ -1601,24 +1601,26 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
     for appointment in plan.appointments:
         event_group_id = db_services.Event.get(appointment.event.id).event_group.id
         for avd in appointment.avail_days:
-            a = model.NewBoolVar(f'{avd.actor_plan_period.person.full_name}, '
+            a = model.NewBoolVar(f'<p style="margin-bottom: 4px; margin-top: 8px;">Termin:</p>'
+                                 f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">'
+                                 f'{avd.actor_plan_period.person.full_name}, '
                                  f'{appointment.event.date: %d.%m.%y}, '
                                  f'{appointment.event.time_of_day.name}, '
                                  f'{appointment.event.location_plan_period.location_of_work.name} '
-                                 f'{appointment.event.location_plan_period.location_of_work.address.city}')
+                                 f'{appointment.event.location_plan_period.location_of_work.address.city}</p>')
             model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True).OnlyEnforceIf(a)
             model.AddAssumption(a)
             indexes_shift_vars.remove((avd.avail_day_group.id, event_group_id))
     for idx in indexes_shift_vars:
         model.Add(entities.shift_vars[idx] == False)
     for int_var in constraints_fixed_cast_conflicts.values():
-        a = model.NewBoolVar(f'Feste Besetzung:<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;{int_var.name}')
+        a = model.NewBoolVar(f'<p style="margin-bottom: 4px; margin-top: 8px;">Feste Besetzung:</p>'
+                             f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">{int_var.name}</p>')
         model.Add(int_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
     for skill_var in skill_conflict_vars:
-        a = model.NewBoolVar(f'Fertigkeitskonflikt:<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;{skill_var.name}')
+        a = model.NewBoolVar(f'<p style="margin-bottom: 4px; margin-top: 8px;">Fertigkeitskonflikt:</p>'
+                             f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">{skill_var.name}</p>')
         model.Add(skill_var == 0).OnlyEnforceIf(a)
         model.AddAssumption(a)
 
@@ -1630,10 +1632,10 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
         name_employee = adg.children[0].avail_day.actor_plan_period.person.full_name
         shift_dates = set(c.avail_day.date for c in adg.children)
         shift_dates_text = ', '.join(f'{d:%d.%m}' for d in sorted(shift_dates))
-        a = model.NewBoolVar(f'Mindesteinsätze:<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;Einsätze von {name_employee} an den Tagen:<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;{shift_dates_text}<br>'
-                             f'&nbsp;&nbsp;&nbsp;&nbsp;müssen {adg.mandatory_nr_avail_day_groups} oder 0 sein.')
+        a = model.NewBoolVar(f'<p style="margin-bottom: 4px; margin-top: 8px;">Mindesteinsätze:</p>'
+                             f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">Einsätze von {name_employee} an den Tagen:<br>'
+                             f'{shift_dates_text}<br>'
+                             f'müssen {adg.mandatory_nr_avail_day_groups} oder 0 sein.</p>')
         y = model.NewBoolVar('Y')
         shift_sum = sum(
             shift_var

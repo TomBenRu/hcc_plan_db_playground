@@ -508,11 +508,11 @@ class AppointmentField(QWidget):
                                     'Die Änderung der Besetzung wurde erfolgreich vorgenommen.')
             self.execution_timer_post_cast_change.start_timer()
         else:
-            problems_txt = "<br>+<br>".join(problems)
+            problems_txt ="".join(problems)
             msg_text = (
                 "<h3>Die Änderung der Besetzung ist nicht ohne Konflikt machbar.</h3>"
                 "<h4>Unvereinbarkeiten:</h4>"
-                f"<p>{problems_txt}</p>"
+                f"{problems_txt}"
                 "<p>Sollen die Änderungen zurückgenommen werden?</p>"
             )
 
@@ -715,12 +715,15 @@ class FrmTabPlan(QWidget):
             QMessageBox.information(self, 'Plan Überprüfung',
                                     'Es wurden keine Fehler in diesem Plan festgestellt.')
         else:
-            problems_txt = "\n        +\n    ".join(problems)
+            problems_txt = "".join(problems)
+            msg_text = (
+                "<h3>Es wurden Konflikte in diesem Plan festgestellt.</h3>"
+                "<h4>Unvereinbarkeiten:</h4>"
+                f"{problems_txt}"
+            )
             QMessageBox.critical(
-                self, 'Besetzungsänderung',
-                f'Es wurden Konflikte in diesem Plan festgestellt.<br>'
-                f'Unvereinbarkeiten:'
-                f'<div style="margin-left: 10px; margin-top: 5px; white-space: pre-wrap;">{problems_txt}</div>')
+                self, 'Plan Überprüfung',
+                msg_text)
 
     def _update_statistics(self):
         num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)

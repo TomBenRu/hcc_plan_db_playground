@@ -55,6 +55,7 @@ class DlgGroupModeBuilderABC(ABC):
         self.get_group_from_id: Callable[[group_id_type], group_type] | None = None
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
+        self.get_mandatory_nr_avail_day_groups_from_group: Callable[[group_type], int] | None = None
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
         self.get_date_object_from_group: Callable[[group_type], date_object_type] | None = None
         self.signal_handler_change__object_with_groups__group_mode: Callable[[signal_handling.DataGroupMode], None] = None
@@ -104,6 +105,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.get_group_from_id = db_services.AvailDayGroup.get
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
+        self.get_mandatory_nr_avail_day_groups_from_group = lambda group: group.mandatory_nr_avail_day_groups
         self.get_date_object_from_group = lambda group: getattr(group, 'avail_day')
         self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
@@ -186,7 +188,9 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
             nr_groups = self.builder.get_nr_groups_from_group(group)
-            text_nr_avail_day_groups = (str(nr_groups) if nr_groups else 'alle')
+            num_mandatory_groups = (f' (mind. {self.builder.get_mandatory_nr_avail_day_groups_from_group(group)})'
+                                    if self.builder.get_mandatory_nr_avail_day_groups_from_group(group) else '' or'')
+            text_nr_avail_day_groups = f"{nr_groups or 'alle'}{num_mandatory_groups}"
             self.setText(0, f'Gruppe_{group_nr:02}')
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
@@ -711,7 +715,10 @@ class DlgGroupMode(QDialog):
         new_group_data = self.builder.get_group_from_id(
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         nr_groups = self.builder.get_nr_groups_from_group(new_group_data)
-        text_nr_groups = str(nr_groups) if nr_groups else 'alle'
+        num_mandatory_groups = (f' (mind. {self.builder.get_mandatory_nr_avail_day_groups_from_group(new_group_data)})'
+                                if self.builder.get_mandatory_nr_avail_day_groups_from_group(new_group_data)
+                                else '' or '')
+        text_nr_groups = (str(nr_groups) if nr_groups else 'alle') + num_mandatory_groups
         if item == self.tree_groups.invisibleRootItem():
             self.bt_edit_main_group.setText(f'Hauptgruppe bearbeiten (mögl. Anzahl: {text_nr_groups})')
         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)

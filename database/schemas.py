@@ -271,7 +271,6 @@ class AvailDayGroup(AvailDayGroupCreate):
     created_at: datetime.datetime
     last_modified: datetime.datetime
     nr_avail_day_groups: Optional[int]
-    mandatory_nr_avail_day_groups: Optional[int]
 
 
 class AvailDayGroupShow(AvailDayGroup):
@@ -282,6 +281,28 @@ class AvailDayGroupShow(AvailDayGroup):
     @field_validator('avail_day_groups')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
+
+
+class RequiredAvailDayGroupsCreate(BaseModel):
+    num_avail_day_groups: Optional[int]
+    avail_day_group: AvailDayGroup
+    locations_of_work: list['LocationOfWork']
+    created_at: datetime.datetime
+    last_modified: datetime.datetime
+
+
+class RequiredAvailDayGroups(RequiredAvailDayGroupsCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+
+    @field_validator('locations_of_work')
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [t for t in values]
+
+
+class RequiredAvailDayGroupsShow(RequiredAvailDayGroups):
+    pass
 
 
 class AvailDayCreate(BaseModel):

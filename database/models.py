@@ -221,9 +221,6 @@ class AvailDayGroup(db.Entity):
     # Falls alle AvailDayGroups innerhalb der AvailDayGroup stattfinden können, entspricht der Wert genau dieser Anzahl
     # (alternativ: None).
     # Optional kann der Wert von nr_avail_day_groups auch geringer sein.
-    mandatory_nr_avail_day_groups = Optional(int, size=8, unsigned=True)
-    # Mindestanzahl der Termine, die stattfinden müssen, damit die Termine vom Mitarbeiter wahrgenommen werden.
-    # todo: als Constraints implementieren
     avail_day_group = Optional('AvailDayGroup', reverse='avail_day_groups')
     avail_day_groups = Set('AvailDayGroup', reverse='avail_day_group')
     avail_day = Optional('AvailDay')
@@ -232,6 +229,7 @@ class AvailDayGroup(db.Entity):
     # durch variation_weight unterschiedliche Gewichtungen verliehen werden.
     created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
     last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    required_avail_day_groups = Optional('RequiredAvailDayGroups', cascade_delete=True)
 
     @property
     def actor_plan_period_getter(self):
@@ -239,6 +237,16 @@ class AvailDayGroup(db.Entity):
 
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
+
+
+class RequiredAvailDayGroups(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    num_avail_day_groups = Optional(int, size=8, unsigned=True)
+    avail_day_group = Required('AvailDayGroup')
+    locations_of_work = Set('LocationOfWork')
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+
 
 
 class AvailDay(db.Entity):
@@ -361,6 +369,7 @@ class LocationOfWork(db.Entity):
     actor_partner_location_prefs = Set('ActorPartnerLocationPref')
     actor_location_prefs = Set('ActorLocationPref')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+    required_avail_day_groups = Set('RequiredAvailDayGroups')
 
     composite_key(project, name)
 

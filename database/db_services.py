@@ -556,6 +556,25 @@ class LocationOfWork:
                 if not tla.location_of_work.prep_delete}
 
     @classmethod
+    @db_session
+    def get_all_locations_at_dates(
+            cls, team_id: UUID, dates: list[datetime.date]) -> list[schemas.LocationOfWork]:
+        """
+        gibt alle Locations zurück, welche an den übergebenen Tagen dem Team zugewiesen sind.
+        Ausgabe: Liste von LocationOfWork
+        """
+        locations_of_work_db: dict[UUID, models.LocationOfWork] = {}
+        for date in dates:
+            team_location_assign = (models.TeamLocationAssign.select()
+                                    .filter(lambda t: t.team == models.Team.get(id=team_id))
+                                    .filter(lambda t: t.start <= date)
+                                    .filter(lambda t: t.end is None or t.end > date)
+                                    )
+
+            locations_of_work_db.update({tla.location_of_work.id: tla.location_of_work for tla in team_location_assign})
+        return [schemas.LocationOfWork.model_validate(loc) for loc in locations_of_work_db.values()]
+
+    @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
@@ -1995,6 +2014,64 @@ class AvailDayGroup:
         log_function_info(cls)
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         avail_day_group_db.delete()
+
+
+class RequiredAvailDayGroups:
+    @classmethod
+    @db_session
+    def get(cls, required_avail_day_groups_id: UUID):
+        required_avail_day_groups_db = models.RequiredAvailDayGroups.get_for_update(id=required_avail_day_groups_id)
+        return (schemas.RequiredAvailDayGroups.model_validate(required_avail_day_groups_db)
+                if required_avail_day_groups_db else None)
+
+    @classmethod
+    @db_session
+    def get_from__avail_day_group(cls, avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:
+        required_avail_day_group_db = models.RequiredAvailDayGroups.get_for_update(
+            lambda r: r.avail_day_group.id == avail_day_group_id)
+        return (schemas.RequiredAvailDayGroups.model_validate(required_avail_day_group_db)
+                if required_avail_day_group_db else None)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def create(cls, num_avail_day_groups: int,
+               avail_day_group_id: UUID,
+               location_of_work_ids: list[UUID], undo_id: UUID = None) -> schemas.RequiredAvailDayGroups:
+        """
+        Wenn location_of_work_ids leer ist, werden alle LocationOfWork-Objekte verwendet.
+        Wenn undo_id gesetzt ist, wird ein neues RequiredAvailDayGroups-Objekt mit der ID undo_id erstellt.
+        """
+        log_function_info(cls)
+        avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
+        location_of_work_dbs = [models.LocationOfWork.get_for_update(id=loc_id) for loc_id in location_of_work_ids]
+        if undo_id:
+            new_required_avail_day_groups = models.RequiredAvailDayGroups(id=undo_id, avail_day_group=avail_day_group_db,
+                                                                           num_avail_day_groups=num_avail_day_groups,
+                                                                           locations_of_work=location_of_work_dbs)
+        else:
+            new_required_avail_day_groups = models.RequiredAvailDayGroups(avail_day_group=avail_day_group_db,
+                                                                           num_avail_day_groups=num_avail_day_groups,
+                                                                           locations_of_work=location_of_work_dbs)
+
+        return schemas.RequiredAvailDayGroups.model_validate(new_required_avail_day_groups)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def update(cls, required_avail_day_groups_id: UUID, num_avail_day_groups: int, location_of_work_ids: list[UUID]):
+        log_function_info(cls)
+        required_avail_day_groups_db = models.RequiredAvailDayGroups.get_for_update(id=required_avail_day_groups_id)
+        locations_of_work_db = [models.LocationOfWork.get_for_update(id=loc_id) for loc_id in location_of_work_ids]
+        required_avail_day_groups_db.num_avail_day_groups = num_avail_day_groups
+        required_avail_day_groups_db.locations_of_work = locations_of_work_db
+
+        return schemas.RequiredAvailDayGroups.model_validate(required_avail_day_groups_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def delete(cls, required_avail_day_groups_id: UUID):
+        log_function_info(cls)
+        required_avail_day_groups_db = models.RequiredAvailDayGroups.get_for_update(id=required_avail_day_groups_id)
+        required_avail_day_groups_db.delete()
 
 
 class AvailDay:

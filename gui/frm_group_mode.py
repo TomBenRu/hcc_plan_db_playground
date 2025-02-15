@@ -9,11 +9,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
                                QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
-                               QGridLayout, QScrollArea)
+                               QGridLayout, QScrollArea, QApplication)
 
 from database import schemas, db_services
 from commands import command_base_classes
-from commands.database_commands import event_group_commands
+from commands.database_commands import event_group_commands, required_avail_day_groups_commands
 from commands.database_commands import avail_day_group_commands
 from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
@@ -55,12 +55,11 @@ class DlgGroupModeBuilderABC(ABC):
         self.get_group_from_id: Callable[[group_id_type], group_type] | None = None
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
-        self.get_mandatory_nr_avail_day_groups_from_group: Callable[[group_type], int] | None = None
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
         self.get_date_object_from_group: Callable[[group_type], date_object_type] | None = None
         self.signal_handler_change__object_with_groups__group_mode: Callable[[signal_handling.DataGroupMode], None] = None
         self.text_date_object: str = ''
-        self.mandatory_nr_group_field: bool = False
+        self.num_required_group_field: bool = False
 
         self._generate_field_values()
 
@@ -72,17 +71,20 @@ class DlgGroupModeBuilderABC(ABC):
     def reload_object_with_groups(self):
         ...
 
-    def update_mandatory_nr_avail_day_groups_to_db(self, avail_day_group_id: UUID, mandatory_nr_avail_day_groups: int,
-                                                   controller: command_base_classes.ContrExecUndoRedo):
+    def get_required_avail_day_groups(self, avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:
+        ...
+
+    def update_required_avail_day_groups_to_db(self, avail_day_group_id: UUID, required_num_groups: int,
+                                               controller: command_base_classes.ContrExecUndoRedo):
         ...
 
     def all_child_groups_have_avail_day(self, avail_day_group: schemas.AvailDayGroup) -> bool:
         ...
 
-    def get_max_value_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
+    def get_max_value_num_required_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
         ...
 
-    def adjust_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroupShow,
+    def adjust_num_required_avail_day_groups(self, avail_day_group: schemas.AvailDayGroupShow,
                                              controller: command_base_classes.ContrExecUndoRedo):
         ...
 
@@ -105,40 +107,52 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.get_group_from_id = db_services.AvailDayGroup.get
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
-        self.get_mandatory_nr_avail_day_groups_from_group = lambda group: group.mandatory_nr_avail_day_groups
         self.get_date_object_from_group = lambda group: getattr(group, 'avail_day')
         self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
         self.text_date_object = 'verfügbar'
-        self.mandatory_nr_group_field = True
+        self.num_required_group_field = True
 
     def reload_object_with_groups(self):
         self.object_with_groups = db_services.ActorPlanPeriod.get(self.object_with_groups.id)
 
-    def update_mandatory_nr_avail_day_groups_to_db(self, avail_day_group_id: UUID, mandatory_nr_avail_day_groups: int,
-                                                   controller: command_base_classes.ContrExecUndoRedo):
-        controller.execute(avail_day_group_commands.UpdateMandatoryNrAvailDayGroups(
-            avail_day_group_id, mandatory_nr_avail_day_groups))
+    def get_required_avail_day_groups(self, avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:
+        return db_services.RequiredAvailDayGroups.get_from__avail_day_group(avail_day_group_id)
+
+    def update_required_avail_day_groups_to_db(self, required_avail_day_groups_id: UUID, required_num_groups: int,
+                                               controller: command_base_classes.ContrExecUndoRedo):
+        if required_num_groups is None:
+            controller.execute(required_avail_day_groups_commands.Delete(required_avail_day_groups_id))
+        else:
+            controller.execute(required_avail_day_groups_commands.Update(
+                required_avail_day_groups_id, required_num_groups, None))
 
     def all_child_groups_have_avail_day(self, avail_day_group: schemas.AvailDayGroup,
                                         child_groups: list[schemas.AvailDayGroupShow] = None) -> bool:
         child_groups = child_groups or db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
         return all(db_services.AvailDay.get_from__avail_day_group(child_group.id) for child_group in child_groups)
 
-    def get_max_value_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
+    def get_max_value_num_required_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
+        """
+        Gibt den geringeren Wert von Child-Groups und der max. Anzahl der gewünschten Tage zurück,
+        wenn alle Child-Groups verfügbare Tage haben.
+        """
         child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
         if not self.all_child_groups_have_avail_day(avail_day_group, child_groups):
             return 1
         return min([len(child_groups), avail_day_group.nr_avail_day_groups or 1000])
 
-    def adjust_mandatory_nr_avail_day_groups(self, avail_day_group: schemas.AvailDayGroupShow,
+    def adjust_num_required_avail_day_groups(self, avail_day_group: schemas.AvailDayGroupShow,
                                              controller: command_base_classes.ContrExecUndoRedo):
-        mandatory_max = self.get_max_value_mandatory_nr_avail_day_groups(avail_day_group)
-        mandatory_nr = min(mandatory_max,
-                           db_services.AvailDayGroup.get(avail_day_group.id).mandatory_nr_avail_day_groups or 1)
-        mandatory_nr = None if mandatory_nr == 1 else mandatory_nr
-        self.update_mandatory_nr_avail_day_groups_to_db(avail_day_group.id, mandatory_nr,
-                                                        controller)
+        required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(avail_day_group.id)
+        if required_avail_day_groups is None:
+            return
+        required_max = self.get_max_value_num_required_avail_day_groups(avail_day_group)
+        required_num = min(required_max,
+                           required_avail_day_groups.num_avail_day_groups if required_avail_day_groups else 1)
+        required_num = None if required_num == 1 else required_num
+        self.update_required_avail_day_groups_to_db(required_avail_day_groups.id, required_num,
+                                                    controller)
 
 
 class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
@@ -188,9 +202,14 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
             nr_groups = self.builder.get_nr_groups_from_group(group)
-            num_mandatory_groups = (f' (mind. {self.builder.get_mandatory_nr_avail_day_groups_from_group(group)})'
-                                    if self.builder.get_mandatory_nr_avail_day_groups_from_group(group) else '' or'')
-            text_nr_avail_day_groups = f"{nr_groups or 'alle'}{num_mandatory_groups}"
+            if isinstance(group, schemas.AvailDayGroup):
+                required = self.builder.get_required_avail_day_groups(group.id)
+                num_required_groups = (f' (mind. {required.num_avail_day_groups} - '
+                                       f'{"einige Einr." if required.locations_of_work else "alle Einr."})'
+                                        if required else '' or'')
+            else:
+                num_required_groups = ''
+            text_nr_avail_day_groups = f"{nr_groups or 'alle'}{num_required_groups}"
             self.setText(0, f'Gruppe_{group_nr:02}')
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
@@ -344,7 +363,7 @@ class DlgGroupProperties(QDialog):
     def __init__(self, parent: QWidget, item: TreeWidgetItem, builder: DlgGroupModeBuilderABC):
         super().__init__(parent=parent)
 
-        self.setFixedWidth(600)
+        self.setFixedWidth(800)
 
         self.item = item
         self.builder = builder
@@ -477,107 +496,175 @@ class DlgGroupProperties(QDialog):
 class DlgGroupPropertiesAvailDay(DlgGroupProperties):
     def __init__(self, parent: QWidget, item: TreeWidgetItem, builder: DlgGroupModeBuilderABC):
 
-        self.mandatory_widgets_are_available = False
-        self.chk_mandatory_nr_avail_day_groups_is_locked = False
+        self.required_avail_day_widgets_are_available = False
+        self.chk_required_avail_day_groups_is_locked = False
 
         super().__init__(parent, item, builder)
 
+        self.required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(self.group.id)
+
+        self.widget_required_avail_day_groups_locations = QWidget(self)
+        self.layout_required_avail_day_groups_locations = QVBoxLayout(self.widget_required_avail_day_groups_locations)
+
         if all(child.date_object for child in self.child_items):
-            self._setup_mandatory_widgets()
-            self.setup_mandatory_widget_values()
+            self._setup_required_avail_day_groups_widgets()
+            self.setup_required_avail_day_groups_widget_values()
 
-        self.mandatory_widgets_are_available = True
-
-    def nr_childs_changed(self, value: int):
-        super().nr_childs_changed(value)
-        self.update_mandatory_widget_values()
+        self.required_avail_day_widgets_are_available = True
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         super().chk_none_toggled(checked, clicked)
-        self.update_mandatory_widget_values()
+        self.update_required_avail_day_groups_widget_values()
 
-    def _setup_mandatory_widgets(self):
+    def _setup_required_avail_day_groups_widgets(self):
+        self.locations_of_work = self._locations_of_work()
+        self.checkboxes_locations_of_work: dict[UUID, QCheckBox] = {}
         text_tooltip = (f'Wenn aktiviert:\n'
                         f'Mitarbeiter wird in dieser Gruppe nur eingesetzt,\n'
                         f'wenn er die angegebene Mindestanzahl an Einsätzen erreicht.')
-        self.lb_mandatory_nr_avail_day_groups = QLabel('Mindestanzahl Einsätze:')
-        self.slider_mandatory_nr_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
-        self.slider_mandatory_nr_avail_day_groups.setTickInterval(1)
-        self.slider_mandatory_nr_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.slider_mandatory_nr_avail_day_groups.setMinimum(1)
-        self.slider_mandatory_nr_avail_day_groups.setToolTip(text_tooltip)
+        self.lb_num_required_avail_day_groups = QLabel('Mindestanzahl Einsätze:')
+        self.slider_num_required_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
+        self.slider_num_required_avail_day_groups.setTickInterval(1)
+        self.slider_num_required_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.slider_num_required_avail_day_groups.setRange(1, self.builder.get_max_value_num_required_avail_day_groups(self.group))
+        self.slider_num_required_avail_day_groups.setToolTip(text_tooltip)
 
-        self.lb_without_mandatory = QLabel('...Ohne Bedingung')
-        self.lb_without_mandatory.setStyleSheet('color: green')
-        self.lb_mandatory_nr_avail_day_groups_value = QLabel()
-        self.chk_mandatory_nr_avail_day_groups = QCheckBox('Bedingung aktivieren?')
-        self.chk_mandatory_nr_avail_day_groups.setToolTip(text_tooltip)
-        self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups, 1, 0)
-        self.layout_group_nr_childs.addWidget(self.lb_mandatory_nr_avail_day_groups_value, 1, 2)
-        self.layout_group_nr_childs.addWidget(self.chk_mandatory_nr_avail_day_groups, 1, 3)
+        self.lb_without_required_avail_day_groups = QLabel('...Ohne Bedingung')
+        self.lb_without_required_avail_day_groups.setStyleSheet('color: green')
+        self.lb_num_avail_day_groups_value = QLabel()
+        self.chk_num_required_avail_day_groups = QCheckBox('Bedingung aktivieren?')
+        self.chk_num_required_avail_day_groups.setToolTip(text_tooltip)
+        self.chk_required_avail_day_groups_locations = QCheckBox('Nur in bestimmten Einrichtungen')
+        self.chk_required_avail_day_groups_locations.setToolTip('Nur für bestimmte Einrichtungen aktivieren')
+        self.layout_group_nr_childs.addWidget(self.lb_num_required_avail_day_groups, 1, 0)
+        self.layout_group_nr_childs.addWidget(self.lb_num_avail_day_groups_value, 1, 2)
+        self.layout_group_nr_childs.addWidget(self.chk_num_required_avail_day_groups, 1, 3)
+        self.layout_group_nr_childs.addWidget(self.chk_required_avail_day_groups_locations, 1, 4)
+        self._setup_locations_of_work_checkboxes()
 
-    def setup_mandatory_widget_values(self):
-        self.slider_mandatory_nr_avail_day_groups.valueChanged.connect(self.slider_mandatory_value_changed)
-        # self.update_mandatory_widget_values()
+    def _setup_locations_of_work_checkboxes(self):
+        for location in self.locations_of_work:
+            chk = QCheckBox(location.name_an_city)
+            self.checkboxes_locations_of_work[location.id] = chk
+            self.layout_required_avail_day_groups_locations.addWidget(chk)
 
-        if (value_mandatory_nr := self.group.mandatory_nr_avail_day_groups) is None:
-            self.chk_mandatory_nr_avail_day_groups.setChecked(False)
-            self.lb_mandatory_nr_avail_day_groups_value.setText('1')
-            self.layout_group_nr_childs.addWidget(self.lb_without_mandatory, 1, 1)
+    def setup_required_avail_day_groups_widget_values(self):
+        # if not self.builder.all_child_groups_have_avail_day(self.group):
+        #     self.chk_required_avail_day_groups_is_locked = True
+        #     return
+        # self.update_required_widget_values()
+        required_avail_day_groups = self.required_avail_day_groups
+        self.slider_nr_childs.valueChanged.connect(
+            lambda: self.slider_num_required_avail_day_groups.setMaximum(
+                self.builder.get_max_value_num_required_avail_day_groups(self.group)))
+        if required_avail_day_groups:
+            self.slider_num_required_avail_day_groups.setValue(required_avail_day_groups.num_avail_day_groups)
+            self.layout_group_nr_childs.addWidget(self.slider_num_required_avail_day_groups, 1, 1)
+            self.chk_num_required_avail_day_groups.setChecked(True)
+            self.lb_num_avail_day_groups_value.setText(f'{required_avail_day_groups.num_avail_day_groups}')
+            if required_avail_day_groups.locations_of_work:
+                self.layout_group_nr_childs.addWidget(self.widget_required_avail_day_groups_locations, 2, 0, 1, 4)
+                self.chk_required_avail_day_groups_locations.setChecked(True)
+                for location in required_avail_day_groups.locations_of_work:
+                    self.checkboxes_locations_of_work[location.id].setChecked(True)
+            else:
+                self.chk_required_avail_day_groups_locations.setChecked(False)
+                for chk in self.checkboxes_locations_of_work.values():
+                    chk.setChecked(True)
         else:
-            self.chk_mandatory_nr_avail_day_groups.setChecked(True)
-            self.slider_mandatory_nr_avail_day_groups.setValue(value_mandatory_nr)
-            self.lb_mandatory_nr_avail_day_groups_value.setText(str(value_mandatory_nr))
-            self.layout_group_nr_childs.addWidget(self.slider_mandatory_nr_avail_day_groups, 1, 1)
+            self.chk_required_avail_day_groups_locations.setEnabled(False)
+            self.lb_num_avail_day_groups_value.setText('1')
+            self.layout_group_nr_childs.addWidget(self.lb_without_required_avail_day_groups, 1, 1)
 
-        max_value_mandatory_nr_avail_day_groups = self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group)
-        self.slider_mandatory_nr_avail_day_groups.setMaximum(max_value_mandatory_nr_avail_day_groups)
+        self.chk_num_required_avail_day_groups.toggled.connect(self.chk_num_required_avail_day_groups_toggled)
+        self.chk_required_avail_day_groups_locations.toggled.connect(self.chk_required_avail_day_groups_locations_toggled)
+        self.slider_num_required_avail_day_groups.valueChanged.connect(
+            self._update_required_avail_day_groups)
+        for l_id, chk in self.checkboxes_locations_of_work.items():
+            chk.toggled.connect(self._update_required_avail_day_groups)
 
-        if max_value_mandatory_nr_avail_day_groups == 1:
-            self.chk_mandatory_nr_avail_day_groups.setChecked(False)
-            self.chk_mandatory_nr_avail_day_groups.setDisabled(True)
-
-        if not self.builder.all_child_groups_have_avail_day(self.group):
-            self.chk_mandatory_nr_avail_day_groups_is_locked = True
-
-        self.chk_mandatory_nr_avail_day_groups.toggled.connect(self.chk_mandatory_nr_toggled)
-
-    def update_mandatory_widget_values(self):
-        if not self.mandatory_widgets_are_available:
+    def update_required_avail_day_groups_widget_values(self):
+        if not self.required_avail_day_widgets_are_available:
             return
-        max_value_mandatory_nr = self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group)
-        if max_value_mandatory_nr < 2:
-            self.chk_mandatory_nr_avail_day_groups.setChecked(False)
-            self.chk_mandatory_nr_avail_day_groups.setDisabled(True)
+        max_required = self.builder.get_max_value_num_required_avail_day_groups(self.group)
+        if max_required < 2:
+            self.chk_num_required_avail_day_groups.setChecked(False)
+            self.chk_num_required_avail_day_groups.setDisabled(True)
         else:
-            if not self.chk_mandatory_nr_avail_day_groups_is_locked:
-                self.chk_mandatory_nr_avail_day_groups.setEnabled(True)
-            if self.chk_mandatory_nr_avail_day_groups.isChecked():
-                new_value = min([max_value_mandatory_nr, self.slider_mandatory_nr_avail_day_groups.value()])
-                self.slider_mandatory_nr_avail_day_groups.setValue(new_value)
-                self.lb_mandatory_nr_avail_day_groups_value.setText(str(new_value))
-        self.slider_mandatory_nr_avail_day_groups.setRange(1, max_value_mandatory_nr)
+            if not self.chk_required_avail_day_groups_is_locked:
+                self.chk_num_required_avail_day_groups.setEnabled(True)
+            if self.chk_num_required_avail_day_groups.isChecked():
+                new_value = min([max_required, self.slider_num_required_avail_day_groups.value()])
+                self.slider_num_required_avail_day_groups.setValue(new_value)
+                self.lb_num_avail_day_groups_value.setText(str(new_value))
+        self.slider_num_required_avail_day_groups.setRange(1, max_required)
 
-    def chk_mandatory_nr_toggled(self):
-        if self.chk_mandatory_nr_avail_day_groups.isChecked():
-            self.layout_group_nr_childs.addWidget(self.slider_mandatory_nr_avail_day_groups, 1, 1)
-            max_value_mandatory_nr = self.builder.get_max_value_mandatory_nr_avail_day_groups(self.group)
-            self.slider_mandatory_nr_avail_day_groups.setValue(max_value_mandatory_nr)
-            self.lb_mandatory_nr_avail_day_groups_value.setText(str(max_value_mandatory_nr))
-            self.lb_without_mandatory.setParent(None)
+    def chk_num_required_avail_day_groups_toggled(self):
+        if self.chk_num_required_avail_day_groups.isChecked():
+            max_value = self.builder.get_max_value_num_required_avail_day_groups(self.group)
+            self.lb_without_required_avail_day_groups.setParent(None)
+            self.layout_group_nr_childs.addWidget(self.slider_num_required_avail_day_groups, 1, 1)
+            self.slider_num_required_avail_day_groups.setValue(max_value)
+            self.lb_num_avail_day_groups_value.setText(str(max_value))
+            self.chk_required_avail_day_groups_locations.setEnabled(True)
         else:
-            self.builder.update_mandatory_nr_avail_day_groups_to_db(self.group.id, None, self.controller)
-            self.layout_group_nr_childs.addWidget(self.lb_without_mandatory, 1, 1)
-            self.slider_mandatory_nr_avail_day_groups.setParent(None)
-            self.lb_mandatory_nr_avail_day_groups_value.setText('1')
+            self.slider_num_required_avail_day_groups.setParent(None)
+            self.slider_num_required_avail_day_groups.setValue(1)
+            self.layout_group_nr_childs.addWidget(self.lb_without_required_avail_day_groups, 1, 1)
+            self.lb_num_avail_day_groups_value.setText('1')
+            self.chk_required_avail_day_groups_locations.toggled.disconnect()
+            self.chk_required_avail_day_groups_locations.setChecked(False)
+            self.chk_required_avail_day_groups_locations.toggled.connect(self._update_required_avail_day_groups)
+            self.chk_required_avail_day_groups_locations.setEnabled(False)
 
-    def slider_mandatory_value_changed(self):
-        new_value = self.slider_mandatory_nr_avail_day_groups.value()
-        if new_value < 2:
-            new_value = None
-            self.chk_mandatory_nr_avail_day_groups.setChecked(False)
-        self.builder.update_mandatory_nr_avail_day_groups_to_db(self.group.id, new_value, self.controller)
-        self.lb_mandatory_nr_avail_day_groups_value.setText(str(new_value or 1))
+    def chk_required_avail_day_groups_locations_toggled(self):
+        if self.chk_required_avail_day_groups_locations.isChecked():
+            self.layout_group_nr_childs.addWidget(self.widget_required_avail_day_groups_locations, 2, 0, 1, 4)
+        else:
+            self.widget_required_avail_day_groups_locations.setParent(None)
+            self._adjust_widget_height()
+        for chk in self.checkboxes_locations_of_work.values():
+            chk.setChecked(True)
+
+
+    def _locations_of_work(self) -> list[schemas.LocationOfWork]:
+        dates = [child_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole).date
+                 for child_item in self.child_items]
+        return sorted(db_services.LocationOfWork.get_all_locations_at_dates(
+            self.builder.object_with_groups.team.id, dates), key=lambda l: l.name_an_city)
+
+
+    def _update_required_avail_day_groups(self):
+        new_value_nums = self.slider_num_required_avail_day_groups.value()
+        location_ids = [location_id for location_id, chk in self.checkboxes_locations_of_work.items() if chk.isChecked()]
+        if new_value_nums < 2:
+            new_value_nums = None
+            command = required_avail_day_groups_commands.Delete(
+                self.required_avail_day_groups.id)
+            self.controller.execute(command)
+            self.chk_num_required_avail_day_groups.setChecked(False)
+            self.required_avail_day_groups = None
+        else:
+            if not self.required_avail_day_groups:
+                command = required_avail_day_groups_commands.Create(self.group.id, new_value_nums, [])
+                self.controller.execute(command)
+                self.required_avail_day_groups = command.created_required_avail_day_groups
+            else:
+                if not location_ids and self.chk_required_avail_day_groups_locations.isChecked():
+                    self.chk_required_avail_day_groups_locations.setChecked(False)
+                    self.chk_num_required_avail_day_groups.setChecked(False)
+                    return
+                elif len(location_ids) == len(self.checkboxes_locations_of_work):
+                    location_ids = []
+                command = required_avail_day_groups_commands.Update(self.required_avail_day_groups.id,
+                                                                    new_value_nums, location_ids)
+                self.controller.execute(command)
+                self.required_avail_day_groups = command.updated_required_avail_day_groups
+        self.lb_num_avail_day_groups_value.setText(str(new_value_nums or 1))
+
+    def _adjust_widget_height(self):
+        total_height = self.sizeHint().height()
+        self.setFixedHeight(min(total_height, Screen.screen_height - 40))
 
 
 class DlgGroupMode(QDialog):
@@ -602,7 +689,7 @@ class DlgGroupMode(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        num_groups = (builder.master_group.nr_avail_day_groups if builder.mandatory_nr_group_field
+        num_groups = (builder.master_group.nr_avail_day_groups if builder.num_required_group_field
                       else builder.master_group.nr_event_groups)
         text_master_group = f'Hauptgruppe bearbeiten (mögl. Anzahl: {"alle" if num_groups is None else num_groups})'
         self.bt_edit_main_group = QPushButton(text_master_group,
@@ -680,9 +767,9 @@ class DlgGroupMode(QDialog):
         else:
             parent_group = previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
-        if self.builder.mandatory_nr_group_field:
-            self.builder.adjust_mandatory_nr_avail_day_groups(obj_to_move_to, self.controller)
-            self.builder.adjust_mandatory_nr_avail_day_groups(parent_group, self.controller)
+        if self.builder.num_required_group_field:
+            self.builder.adjust_num_required_avail_day_groups(obj_to_move_to, self.controller)
+            self.builder.adjust_num_required_avail_day_groups(parent_group, self.controller)
 
         # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:
         if not previous_parent:
@@ -700,7 +787,7 @@ class DlgGroupMode(QDialog):
             print(item.text(0), data_date_object.date, data_date_object.time_of_day.name, f'Gr. {data_parent_group_nr}')
             print(f'{data_group=}')
         else:
-            if self.builder.mandatory_nr_group_field:
+            if self.builder.num_required_group_field:
                 dlg = DlgGroupPropertiesAvailDay(self, item, self.builder) #
             else:
                 dlg = DlgGroupProperties(self, item, self.builder)
@@ -715,10 +802,11 @@ class DlgGroupMode(QDialog):
         new_group_data = self.builder.get_group_from_id(
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         nr_groups = self.builder.get_nr_groups_from_group(new_group_data)
-        num_mandatory_groups = (f' (mind. {self.builder.get_mandatory_nr_avail_day_groups_from_group(new_group_data)})'
-                                if self.builder.get_mandatory_nr_avail_day_groups_from_group(new_group_data)
-                                else '' or '')
-        text_nr_groups = (str(nr_groups) if nr_groups else 'alle') + num_mandatory_groups
+        required = self.builder.get_required_avail_day_groups(new_group_data.id)
+        num_required_groups = (f' (mind. {required.num_avail_day_groups} - '
+                               f'{"einige Einr." if required.locations_of_work else "alle Einr."})'
+                               if required else '' or'')
+        text_nr_groups = (str(nr_groups) if nr_groups else 'alle') + num_required_groups
         if item == self.tree_groups.invisibleRootItem():
             self.bt_edit_main_group.setText(f'Hauptgruppe bearbeiten (mögl. Anzahl: {text_nr_groups})')
         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)

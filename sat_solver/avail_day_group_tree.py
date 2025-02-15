@@ -22,8 +22,7 @@ class AvailDayGroup(NodeMixin):
         self.children: list['AvailDayGroup'] = children if children is not None else []
         self.weight = avail_day_group_db.variation_weight if avail_day_group_db else None
         self.nr_of_active_children = avail_day_group_db.nr_avail_day_groups if avail_day_group_db else None
-        self.mandatory_nr_avail_day_groups = avail_day_group_db.mandatory_nr_avail_day_groups if avail_day_group_db else None
-        self._required_nr_avail_day_groups: schemas.RequiredAvailDayGroups | None = None
+        self._required_avail_day_groups: schemas.RequiredAvailDayGroups | None = None
 
     def _post_detach(self, parent):
         self.weight = None
@@ -35,13 +34,13 @@ class AvailDayGroup(NodeMixin):
         return self._avail_day
 
     @property
-    def required_nr_avail_day_groups(self) -> schemas.RequiredAvailDayGroups | None:
+    def required_avail_day_groups(self) -> schemas.RequiredAvailDayGroups | None:
         if not self.avail_day_group_db:
             return None
-        if self._required_nr_avail_day_groups is None:
-            self._required_nr_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(
+        if self._required_avail_day_groups is None:
+            self._required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(
                 self.avail_day_group_id)
-        return self._required_nr_avail_day_groups
+        return self._required_avail_day_groups
 
     def _get_avail_day_from_db(self):
         return (db_services.AvailDay.get(self.avail_day_group_db.avail_day.id)

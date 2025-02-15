@@ -238,7 +238,6 @@ class Entities:
     shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
     shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
     # wenn value==0, kann shift mit key (adg_id, eg_id) nicht gesetzt werden
-    mandatory_failure_vars: list[IntVar] = dataclasses.field(default_factory=list)
 
 
 entities: Entities | None = None
@@ -456,15 +455,15 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
             model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
 
 
-def add_constraints_mandatory_nr_avail_days_in_groups(model: cp_model):
+def add_constraints_required_avail_day_groups(model: cp_model):
     """
-    Falls die Parent-Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine
-    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups
+    Falls die Parent-Avail-Day-Group eine Required-Avail-Day-Group hat, wird eine
+    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in required_avail_day_groups
     geplant werden oder gar keine Schichten geplant werden.
     """
-    cp_sat_logger.info(f'add_constraints_mandatory_nr_avail_days_in_groups')
+
     for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
-        if required := avail_day_group.required_nr_avail_day_groups:
+        if required := avail_day_group.required_avail_day_groups:
             # Erstelle die Binärvariable y über NewBoolVar.
             y = model.NewBoolVar("y")
 
@@ -477,35 +476,10 @@ def add_constraints_mandatory_nr_avail_days_in_groups(model: cp_model):
                 in {l.id for l in required.locations_of_work} if required.locations_of_work else True)
             )
 
-            cp_sat_logger.info(f'shift_vars:\n'
-                               f'{[shift_var for (adg_id, evg_id), shift_var in entities.shift_vars.items() 
-                                   if adg_id in [a.avail_day_group_id for a in avail_day_group.children]
-                                   and (entities.event_groups_with_event[evg_id].event.location_plan_period.location_of_work.id 
-                                        in {l.id for l in required.locations_of_work} if required.locations_of_work else True)]}')
-
-            # Füge eine Nebenbedingung hinzu, die sicherstellt, dass shift_sum entweder 0 oder mandatory ist.
-            # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = mandatory.
+            # Füge eine Nebenbedingung hinzu, die sicherstellt,
+            # dass shift_sum entweder 0 oder required.num_avail_day_groups ist.
+            # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = required.
             model.Add(shift_sum == required.num_avail_day_groups * y)
-    return
-
-    # Falls die Avail-Day-Group einen Wert für mandatory_nr_avail_day_groups hat, wird eine zusätzliche
-    # Bedingung hinzugefügt, dass mindestens so viele Schichten wie in mandatory_nr_avail_day_groups geplant
-    # werden oder gar keine Schichten geplant werden.
-    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
-        if avail_day_group.mandatory_nr_avail_day_groups and all(c.avail_day for c in avail_day_group.children):
-            # Erstelle die Binärvariable y über NewBoolVar.
-            y = model.NewBoolVar("y")
-
-            # Definiere die Summe der Schichtvariablen.
-            shift_sum = sum(
-                shift_var
-                for (adg_id, evg_id), shift_var in entities.shift_vars.items()
-                if adg_id in [a.avail_day_group_id for a in avail_day_group.children]
-            )
-
-            # Füge eine Nebenbedingung hinzu, die sicherstellt, dass shift_sum entweder 0 oder mandatory ist.
-            # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = mandatory.
-            model.Add(shift_sum == avail_day_group.mandatory_nr_avail_day_groups * y)
 
 
 def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
@@ -1159,9 +1133,9 @@ def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool 
     # Add constraints for activity of avail_day groups:
     add_constraints_avail_day_groups_activity(model)
 
-    # Add constraints for mandatory_nr_avail_days_in_groups:
+    # Add constraints for required_avail_day_groups:
     if not creating_test_constraints:
-        add_constraints_mandatory_nr_avail_days_in_groups(model)
+        add_constraints_required_avail_day_groups(model)
 
     # Add constraints for shifts in inactive avail_day_groups:
     add_constraints_num_shifts_in_avail_day_groups(model)
@@ -1652,10 +1626,10 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
 
     avail_day_groups_with_required_shifts = [
         adg for adg in entities.avail_day_groups.values()
-        if adg.required_nr_avail_day_groups
+        if adg.required_avail_day_groups
     ]
     for adg in avail_day_groups_with_required_shifts:
-        required = adg.required_nr_avail_day_groups
+        required = adg.required_avail_day_groups
         name_employee = adg.children[0].avail_day.actor_plan_period.person.full_name
         shift_dates = set(c.avail_day.date for c in adg.children)
         shift_dates_text = ', '.join(f'{d:%d.%m}' for d in sorted(shift_dates))
@@ -1665,7 +1639,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
         a = model.NewBoolVar(f'<p style="margin-bottom: 4px; margin-top: 8px;">Mindesteinsätze:</p>'
                              f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">Einsätze von {name_employee} an den Tagen:<br>'
                              f'{shift_dates_text}<br>{shift_locations_text}'
-                             f'müssen {adg.mandatory_nr_avail_day_groups} oder 0 sein.</p>')
+                             f'müssen {adg.required_avail_day_groups.num_avail_day_groups} oder 0 sein.</p>')
         y = model.NewBoolVar('Y')
         shift_sum = sum(
             shift_var
@@ -1674,7 +1648,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
             and (entities.event_groups_with_event[evg_id].event.location_plan_period.location_of_work.id
                  in {l.id for l in required.locations_of_work} if required.locations_of_work else True)
         )
-        model.Add(shift_sum == adg.mandatory_nr_avail_day_groups * y).OnlyEnforceIf(a)
+        model.Add(shift_sum == adg.required_avail_day_groups.num_avail_day_groups * y).OnlyEnforceIf(a)
         model.AddAssumption(a)
 
 

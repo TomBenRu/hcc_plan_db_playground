@@ -18,6 +18,7 @@ from database import schemas, db_services, schemas_plan_api
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, \
     get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
     get_persons_of_team_at_date_2, get_next_assignment_of_person
+from export_to_file import avail_days_to_xlsx
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
 from gui.custom_widgets import side_menu
@@ -961,6 +962,8 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(self.bt_actor_partner_loc_prefs)
         self.bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
         self.side_menu.add_button(self.bt_fetch_avail_days_from_api)
+        self.bt_avail_days_to_excel = QPushButton('Verfügb. Tage Excel', clicked=self.export_avail_days_to_excel)
+        self.side_menu.add_button(self.bt_avail_days_to_excel)
 
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -1476,6 +1479,10 @@ class FrmActorPlanPeriod(QWidget):
         QMessageBox.information(
             self, 'Fertigkeiten zurücksetzen',
             'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
+
+    def export_avail_days_to_excel(self):
+        exporter = avail_days_to_xlsx.ExportToXlsx(self, self.actor_plan_period.plan_period.id, "avail_days.xlsx")
+        exporter.execute()
 
 if __name__ == '__main__':
     app = QApplication()

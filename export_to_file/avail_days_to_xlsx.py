@@ -72,25 +72,35 @@ class ExportToXlsx:
     def _define_formats(self):
         self.format_header_months = self.workbook.add_format(
             {'bold': True, 'font_size': 18, 'valign': 'vcenter', 'bg_color': '#5ecaff', 'border': 1})
-        self.format_header_days = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#93ff8b', 'border': 2}
+        self.format_header_days_default = self.workbook.add_format(
+            format_header_days_default := {
+                'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#93ff8b',
+                'bottom': 2, 'right': 1, 'top': 1, 'left': 1
+            }
         )
         self.format_header_days_saturday = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#ffb766', 'border': 2}
+            format_header_days_default.copy() | {'bg_color': '#ffb766'}
         )
         self.format_header_days_sunday = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#ff6c64', 'border': 2}
+            format_header_days_default.copy() | {'bg_color': '#ff6c64'}
         )
         self.format_header_employees_even = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'right', 'valign': 'vcenter', 'bg_color': '#7cc2db', 'border': 2})
+            format_header_employees_even := {
+                'bold': True, 'font_size': 12, 'align': 'right', 'valign': 'vcenter', 'bg_color': '#b5e2e4',
+             'bottom': 1, 'right': 2, 'top': 1, 'left': 1
+            }
+        )
         self.format_header_employees_odd = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'right', 'valign': 'vcenter', 'bg_color': '#addbee', 'border': 2}
+            format_header_employees_even.copy() | {'bg_color': '#cffdff'}
         )
         self.format_availabilities_even = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#f2f2f2', 'border': 1}
+            format_availabilities_even := {
+                'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#f2f2f2',
+                'border': 1
+            }
         )
         self.format_availabilities_odd = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#ffffff', 'border': 1}
+            format_availabilities_even.copy() | {'bg_color': '#ffffff'}
         )
         self.format_title = self.workbook.add_format(
             {'bold': True, 'font_size': 24, 'valign': 'vcenter'}
@@ -117,7 +127,7 @@ class ExportToXlsx:
                 date = datetime.date(year, month, day)
                 day_format = (self.format_header_days_saturday if date.weekday() == 5
                               else self.format_header_days_sunday if date.weekday() == 6
-                              else self.format_header_days)
+                              else self.format_header_days_default)
                 weekday = self.weekday_short_names[date.weekday()]
                 self.worksheet.write(offset_y, i + offset_x, f'{weekday}, {day:02d}.', day_format)
                 self.dates_columns[datetime.date(year, month, day)] = i + offset_x

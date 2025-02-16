@@ -11,13 +11,14 @@ from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
 from httplib2 import ServerNotFoundError
 from pydantic_core import ValidationError
+from xlsxwriter.exceptions import FileCreateError
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
-from export_to_file import plan_to_xlsx
+from export_to_file import plan_to_xlsx, avail_days_to_xlsx
 from google_calendar_api.add_access import add_or_update_access_to_calendar
 from google_calendar_api.authenticate import save_credentials
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
@@ -109,8 +110,8 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 'Plan Excel-Export...',
                               'Exportiert den aktiven Plan in einer Excel-Datei', self.plan_export_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
-                              'Anzeigen der Pläne im Explorer...',
-                              'Pläne der aktuellen Planung werden im Explorer angezeigt.',
+                              'Öffnen des Excel-Export-Ordners',
+                              'Pläne der aktuellen Planungen und Verfügbarkeiten werden im Explorer angezeigt.',
                               self.lookup_for_excel_plan_folder),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 'Programm beenden',
                               None, self.exit,
@@ -120,9 +121,9 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, 'Pläne anzeigen', None, self.show_plans),
             MenuToolbarAction(self, None, 'Masken anzeigen', None, self.show_masks),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'),
-                              'Übersicht Verfügbarkeiten',
+                              'Übersicht Verfügbarkeiten Excel-Export',
                               'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.',
-                              self.overview_avail_days),
+                              self.export_avail_days_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'chart.png'),
                               'Übersicht Einsätze der Mitarbeiter',
                               'Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.', self.statistics),
@@ -183,13 +184,14 @@ class MainWindow(QMainWindow):
             '&Teams': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
                           None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
-                         self.actions['overview_avail_days'], self.actions['statistics']],
+                         self.actions['export_avail_days_to_excel'], self.actions['lookup_for_excel_plan_folder'],
+                         self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
                            self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'],
                            self.actions['determine_excel_output_folder'], None,
                            self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
-                           self.actions['plan_export_to_excel'], self.actions['lookup_for_excel_plan_folder'], None,
+                           self.actions['plan_export_to_excel'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
             '&Emails': [self.actions['send_email']],
@@ -514,38 +516,47 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             widget.reload_plan()
 
-            excel_output_path = os.path.join(self._get_excel_folder_output_path(widget), f'{widget.plan.name}.xlsx')
+            excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period), f'{widget.plan.name}.xlsx')
             create_dir_if_not_exist(excel_output_path)
             export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path,
                                                        dlg.note_in_empty_fields, dlg.note_in_employee_fields)
             export_to_file.execute()
 
     def lookup_for_excel_plan_folder(self):
-        widget: FrmTabPlan = self.tabs_plans.currentWidget()
-        if not widget:
-            QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
-            return
-        excel_output_path = self._get_excel_folder_output_path(widget)
+        if self.tabs_left.currentWidget().objectName() == 'plans':
+            curr_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+            if not curr_widget:
+                QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
+                return
+            plan_period = curr_widget.plan.plan_period
+        if self.tabs_left.currentWidget().objectName() == 'masks':
+            curr_widget: PlanPeriodTabWidget = self.tabs_planungsmasken.currentWidget()
+            if not curr_widget:
+                QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst eine Planungsperiode öffnen.')
+                return
+            plan_period = db_services.PlanPeriod.get(curr_widget.plan_period_id)
+
+        excel_output_path = self._get_excel_folder_output_path(plan_period)
         try:
             open_file_or_folder.open_file_or_folder(excel_output_path)
         except Exception as e:
             if isinstance(e, FileNotFoundError):
                 QMessageBox.critical(self, 'Excel-Ordner',
                                      f'Es wurde noch keine Excel-Datei für den Zeitraum '
-                                     f'{widget.plan.plan_period.start:%d.%m.%y}-{widget.plan.plan_period.end:%d.%m.%y} '
-                                     f'des Teams {widget.plan.plan_period.team.name} erstellt.')
+                                     f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y} '
+                                     f'des Teams {plan_period.team.name} erstellt.')
             else:
                 QMessageBox.critical(self, 'Fehler beim Öffnen',
                                      f'Beim Öffnen der Excel-Datei ist ein Fehler aufgetreten:\n{e}')
 
-    def _get_excel_folder_output_path(self, plan_tab: FrmTabPlan) -> str:
+    def _get_excel_folder_output_path(self, plan_period: schemas.PlanPeriod) -> str:
         path_handler = project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):
             output_folder = 'excel_output'
         excel_output_path = os.path.join(
-                output_folder, plan_tab.plan.plan_period.team.name,
-                f"{plan_tab.plan.plan_period.start.strftime('%d.%m.%y')}-"
-                f"{plan_tab.plan.plan_period.end.strftime('%d.%m.%y')}")
+                output_folder, plan_period.team.name,
+                f"{plan_period.start.strftime('%d.%m.%y')}-"
+                f"{plan_period.end.strftime('%d.%m.%y')}")
         return excel_output_path
 
     def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
@@ -630,8 +641,38 @@ class MainWindow(QMainWindow):
             if self.tabs_left.widget(i).objectName() == 'masks':
                 self.tabs_left.setCurrentIndex(i)
 
-    def overview_avail_days(self):
-        ...
+    def export_avail_days_to_excel(self):
+        def create_dir_if_not_exist(path: str):
+            dir_path = path.rsplit(os.sep, 1)[0]
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+        if self.tabs_left.currentWidget().objectName() == 'plans':
+            curr_plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+            if not curr_plan_widget:
+                QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst einen Plan öffnen.')
+                return
+            plan_period = curr_plan_widget.plan.plan_period
+        if self.tabs_left.currentWidget().objectName() == 'masks':
+            curr_plan_widget: PlanPeriodTabWidget = self.tabs_planungsmasken.currentWidget()
+            if not curr_plan_widget:
+                QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst eine Planungsperiode öffnen.')
+                return
+            plan_period = db_services.PlanPeriod.get(curr_plan_widget.plan_period_id)
+        excel_output_path = os.path.join(
+            self._get_excel_folder_output_path(plan_period),
+            f'Verfügbarkeiten {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
+        )
+        create_dir_if_not_exist(excel_output_path)
+        exporter =avail_days_to_xlsx.ExportToXlsx(self, plan_period.id, excel_output_path)
+        try:
+            exporter.execute()
+        except FileCreateError as e:
+            QMessageBox.critical(self, 'Verfügbarkeiten exportieren',
+                                 f'Fehler beim Erstellen der Excel-Datei:\n{e}')
+        QMessageBox.information(self,
+                                'Verfügbarkeiten exportieren',
+                                f'Verfügbarkeiten wurden unter\n{excel_output_path}\nexportiert.')
 
     def statistics(self):
         ...

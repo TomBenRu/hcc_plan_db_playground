@@ -2,10 +2,12 @@ import datetime
 from collections import defaultdict
 from uuid import UUID
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QMessageBox
 import xlsxwriter
+from xlsxwriter.exceptions import FileCreateError
 
 from database import schemas, db_services
+from gui.observer import signal_handling
 
 
 class ExportToXlsx:

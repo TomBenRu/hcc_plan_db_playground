@@ -72,8 +72,15 @@ class ExportToXlsx:
         self.worksheet.repeat_columns(0, 0)
 
     def _define_formats(self):
-        self.format_header_months = self.workbook.add_format(
-            {'bold': True, 'font_size': 18, 'valign': 'vcenter', 'bg_color': '#5ecaff', 'border': 1})
+        self.format_header_months_even = self.workbook.add_format(
+            format_header_months_even:= {
+                'bold': True, 'font_size': 18, 'valign': 'vcenter', 'indent': 1,
+                'bg_color': '#5ecaff', 'border': 1
+            }
+        )
+        self.format_header_months_odd = self.workbook.add_format(
+            format_header_months_even.copy() | {'bg_color': '#99deff'}
+        )
         self.format_header_days_default = self.workbook.add_format(
             format_header_days_default := {
                 'bold': True, 'font_size': 12, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#93ff8b',
@@ -115,10 +122,11 @@ class ExportToXlsx:
         """Write the header row with the month names."""
         offset_x = 1
         offset_y = 2
+        format_header_months = [self.format_header_months_even, self.format_header_months_odd]
         for i, ((year, month), days) in enumerate(self.days_in_plan_period.items()):
             self.worksheet.merge_range(offset_y, i + offset_x, offset_y, i + offset_x + len(days) - 1,
                                        f'{self.month_names[month - 1]} {year}',
-                                       self.format_header_months)
+                                       format_header_months [i % 2])
 
     def _write_header_days(self):
         """Write the header row with the day names."""
@@ -142,7 +150,7 @@ class ExportToXlsx:
         formats_employees = [self.format_header_employees_odd, self.format_header_employees_even]
         for row, actor_plan_period in self.rows_actor_plan_periods.items():
             self.worksheet.write(
-                row + offset_y, offset_x, actor_plan_period.person.full_name, formats_employees[row % 2])
+                row + offset_y, offset_x, f'{actor_plan_period.person.full_name} ', formats_employees[row % 2])
         self.worksheet.set_column(0, 0, 20)
 
 

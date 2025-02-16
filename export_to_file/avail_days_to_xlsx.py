@@ -67,7 +67,9 @@ class ExportToXlsx:
         self.worksheet.set_landscape()
         self.worksheet.set_paper(9)
         self.worksheet.set_margins(0.4, 0.4, 0.4, 0.4)
-        self.worksheet.fit_to_pages(1, 1)
+        # self.worksheet.fit_to_pages(1, 1)
+        self.worksheet.repeat_rows(2, 3)
+        self.worksheet.repeat_columns(0, 0)
 
     def _define_formats(self):
         self.format_header_months = self.workbook.add_format(
@@ -103,7 +105,7 @@ class ExportToXlsx:
             format_availabilities_even.copy() | {'bg_color': '#ffffff'}
         )
         self.format_title = self.workbook.add_format(
-            {'bold': True, 'font_size': 24, 'valign': 'vcenter'}
+            {'bold': True, 'font_size': 22, 'valign': 'vcenter'}
         )
         self.format_explanation = self.workbook.add_format(
             {'font_size': 12, 'valign': 'vcenter'}
@@ -167,7 +169,7 @@ class ExportToXlsx:
 
     def _write_titel(self):
         """Write the title of the worksheet."""
-        self.worksheet.write(0, 0, f'Verfügbarkeiten für Team {self.plan_period.team.name} '
+        self.worksheet.write(0, 1, f'Verfügbarkeiten für Team {self.plan_period.team.name} '
                                    f'{self.plan_period.start:%d.%m.%y} - {self.plan_period.end:%d.%m.%y}',
                              self.format_title)
 

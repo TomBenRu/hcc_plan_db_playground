@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, 'Masken anzeigen', None, self.show_masks),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'),
                               'Übersicht Verfügbarkeiten Excel-Export',
-                              'Ansicht aller Verfügbarkeiten der Mitarbeiter in dieser Planung.',
+                              'Exportiert eine Übersicht der Verfügbarkeiten der Mitarbeiter in dieser Planung.',
                               self.export_avail_days_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'chart.png'),
                               'Übersicht Einsätze der Mitarbeiter',
@@ -173,7 +173,9 @@ class MainWindow(QMainWindow):
         self.toolbar_actions: list[QAction | None] = [
             self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'],
             self.actions['plan_save'], None,
-            self.actions['sheets_for_availables'], self.actions['plan_export_to_excel'],
+            self.actions['sheets_for_availables'], None,
+            self.actions['plan_export_to_excel'],
+            self.actions['export_avail_days_to_excel'], None,
             self.actions['lookup_for_excel_plan_folder'], None, self.actions['exit']
         ]
         self.menu_actions = {
@@ -184,7 +186,7 @@ class MainWindow(QMainWindow):
             '&Teams': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
                           None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
-                         self.actions['export_avail_days_to_excel'], self.actions['lookup_for_excel_plan_folder'],
+                         self.actions['lookup_for_excel_plan_folder'],
                          self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
                            self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'],
@@ -199,7 +201,9 @@ class MainWindow(QMainWindow):
                                  None, self.actions['create_google_calendar'],
                                  self.actions['synchronize_google_calenders'],
                                  None, self.actions['import_google_api_credentials']],
-            'E&xtras': [self.actions['upgrade_hcc_plan'], None, self.actions['general_setting']],
+            'E&xtras': [self.actions['export_avail_days_to_excel'], None,
+                        self.actions['upgrade_hcc_plan'], None,
+                        self.actions['general_setting']],
             '&Hilfe': [self.actions['open_help'], None, self.actions['check_for_updates'], None,
                        self.actions['about_hcc_plan']]
         }

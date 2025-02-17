@@ -67,7 +67,7 @@ class ExportToXlsx:
         self.worksheet.set_landscape()
         self.worksheet.set_paper(9)
         self.worksheet.set_margins(0.4, 0.4, 0.4, 0.4)
-        # self.worksheet.fit_to_pages(1, 1)
+        self.worksheet.fit_to_pages(2, 1)
         self.worksheet.repeat_rows(2, 3)
         self.worksheet.repeat_columns(0, 0)
 

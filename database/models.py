@@ -75,9 +75,9 @@ class Person(db.Entity):
         self.time_of_days.add(self.project.time_of_days)
         self.time_of_day_standards.add(self.project.time_of_day_standards)
         if self.team_actor_assigns:
-            latest_team = max(self.team_actor_assigns, key=lambda x: x.start)
-            if not latest_team.end:
-                self.combination_locations_possibles.add(latest_team.combination_locations_possibles)
+            latest_taa = max(self.team_actor_assigns, key=lambda x: x.start)
+            if not latest_taa.end:
+                self.combination_locations_possibles.add(latest_taa.team.combination_locations_possibles)
 
 
 class Project(db.Entity):

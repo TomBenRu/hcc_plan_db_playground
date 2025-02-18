@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QFormLayout, QHeaderView
+    QFormLayout, QHeaderView, QFileDialog
 
 from gui.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas, schemas_plan_api
@@ -75,6 +75,11 @@ class WidgetPerson(QWidget):
         self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--plus.png')), ' Person anlegen')
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_person)
+        self.bt_new_from_xlsx = QPushButton(QIcon(os.path.join(self.path_to_icons, 'file--plus.png')), ' Personen aus XLSX importieren')
+        self.bt_new_from_xlsx.setFixedWidth(200)
+        self.bt_new_from_xlsx.clicked.connect(self.create_persons_from_xlsx)
+        self.bt_new_from_xlsx.setToolTip('Importiert Mitarbeiter aus einer XLSX-Datei.\n'
+                                         'Spalten: Vorname, Nachname, username')
         self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), 'Person bearbeiten')
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_person)
@@ -83,6 +88,7 @@ class WidgetPerson(QWidget):
         self.bt_delete.clicked.connect(self.delete_person)
 
         self.layout_buttons.addWidget(self.bt_new)
+        self.layout_buttons.addWidget(self.bt_new_from_xlsx)
         self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
@@ -119,6 +125,22 @@ class WidgetPerson(QWidget):
         # TODO: Implement API call to create person on server
         QMessageBox.information(self, 'Mitarbeiter auf Server',
                                 'Der Mitarbeiter wird auf dem Server angelegt.\nNoch nicht implementiert')
+
+    def create_persons_from_xlsx(self):
+        """
+        Importiert Mitarbeiter aus einer XLSX-Datei.
+        Spalten: Vorname, Nachname, username
+        Fake-E-Mail und Fake-Passwort werden generiert.
+        """
+        file_name, _ = QFileDialog.getOpenFileName(self, 'XLSX-Datei öffnen', '', 'XLSX-Dateien (*.xlsx)')
+        if file_name:
+            try:
+                persons = db_services.Person.create_persons_from_xlsx(file_name, self.project_id)
+                self.persons = persons
+                self.table_persons.persons = persons
+                self.refresh_table()
+            except Exception as e:
+                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
 
     def edit_person(self):
         row = self.table_persons.currentRow()
@@ -184,9 +206,9 @@ class TablePersons(QTableWidget):
             self.setItem(row, 2, QTableWidgetItem(p.email))
             self.setItem(row, 3, QTableWidgetItem(self.gender_visible_strings[p.gender.value]))
             self.setItem(row, 4, QTableWidgetItem(p.phone_nr))
-            self.setItem(row, 5, QTableWidgetItem(p.address.street))
-            self.setItem(row, 6, QTableWidgetItem(p.address.postal_code))
-            self.setItem(row, 7, QTableWidgetItem(p.address.city))
+            self.setItem(row, 5, QTableWidgetItem(p.address.street if p.address else ''))
+            self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
+            self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
             cb_team_of_actor = QComboBoxToFindData()
             cb_team_of_actor.addItem('', None)
             for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):

@@ -95,4 +95,6 @@ Screen.set_screen_size()
 window = MainWindow(app, Screen.screen_width, Screen.screen_height)
 
 window.show()
+window.restore_tabs()
+
 splash.finish(window)

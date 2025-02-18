@@ -8,7 +8,8 @@ from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog
+from PySide6.QtWidgets import (QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog,
+                               QApplication)
 from httplib2 import ServerNotFoundError
 from pydantic_core import ValidationError
 from xlsxwriter.exceptions import FileCreateError
@@ -236,8 +237,6 @@ class MainWindow(QMainWindow):
         self.tabs_left.addTab(self.tabs_plans, 'Einsatzpläne')
 
         self.frm_master_data = None
-
-        self.restore_tabs()
 
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()

@@ -82,10 +82,10 @@ class PersonCreate(BaseModel):
     l_name: str
     email: EmailStr
     gender: Gender = Gender.divers
-    phone_nr: str | None
+    phone_nr: str | None = None
     username: str
     password: str
-    address: Optional['AddressCreate']
+    address: Optional['AddressCreate'] = None
 
 
 class Person(PersonCreate):

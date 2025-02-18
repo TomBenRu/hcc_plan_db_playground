@@ -7,7 +7,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import Qt, QResizeEvent
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QHBoxLayout, QGroupBox, QMenu, QDateEdit, \
-    QApplication
+    QApplication, QScrollArea, QWidget, QAbstractScrollArea
 
 from database import schemas, db_services
 from database.special_schema_requests import (get_locations_of_team_at_date, get_persons_of_team_at_date,
@@ -299,35 +299,6 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.screen_geometry = QApplication.primaryScreen().geometry()
 
-        self.layout = QVBoxLayout(self)
-        self.layout_head = QHBoxLayout()
-        self.layout.addLayout(self.layout_head)
-        self.group_date = QGroupBox('Datum')
-        self.layout.addWidget(self.group_date)
-        self.layout_body = QHBoxLayout()
-        self.layout.addLayout(self.layout_body)
-        self.group_locations = QGroupBox('Einrichtungen')
-        self.group_partners = QGroupBox('Mitarbeiter')
-        self.layout_body.addWidget(self.group_locations)
-        self.layout_body.addWidget(self.group_partners)
-        self.layout_date = QHBoxLayout(self.group_date)
-        self.layout_options_locs = QGridLayout(self.group_locations)
-        self.layout_options_locs.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.layout_options_partners = QGridLayout(self.group_partners)
-        self.layout_options_partners.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.layout_foot = QVBoxLayout()
-        self.layout.addLayout(self.layout_foot)
-
-        self.lb_info = QLabel()
-        self.layout_head.addWidget(self.lb_info)
-
-        self.lb_date = QLabel('zu einem späteren Datum kann sich die Auswahl an Mitarbeitern und Einrichtungen ändern.')
-        self.de_date = QDateEdit()
-        self.de_date.dateChanged.connect(self.on_date_change)
-        self.layout_date.addWidget(self.de_date)
-        self.de_date.setFixedWidth(100)
-        self.layout_date.addWidget(self.lb_date)
-
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.person = person
@@ -347,6 +318,75 @@ class DlgPartnerLocationPrefs(QDialog):
         self.dict_partner_id__bt_slider_lb:  dict[UUID, dict[Literal['button', 'slider', 'label_partner', 'label_val'],
                                                   QPushButton | SliderWithPressEvent | QLabel]] = {}
 
+        # QTimer wird verwendet, damit bei schnellem Datumsdurchlauf nicht für jeden Tag das Layout neu aufgebaut wird.
+        self.timer = QTimer(self)
+        self.timer.setInterval(200)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.date_changed)
+
+        self._setup_ui()
+
+        self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
+
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout_head = QHBoxLayout()
+        self.layout.addLayout(self.layout_head)
+        self.layout_body = QHBoxLayout()
+        self.layout.addLayout(self.layout_body)
+        self.layout_foot = QVBoxLayout()
+        self.layout.addLayout(self.layout_foot)
+
+        self.group_date = QGroupBox('Datum')
+        self.layout_head.addWidget(self.group_date)
+        self.layout_date = QHBoxLayout(self.group_date)
+
+        # Layout für die Mitarbeiter-Gruppe
+        self.group_partners = QGroupBox('Mitarbeiter')
+        self.layout_body.addWidget(self.group_partners)
+        # Erstelle zunächst einen QScrollArea und mach ihn anpassbar
+        self.scroll_area_partners = QScrollArea(self.group_partners)
+        self.scroll_area_partners.setWidgetResizable(True)
+        # Setze die horizontale Scrollbar-Policy auf "immer aus" und die vertikale auf "bei Bedarf"
+        self.scroll_area_partners.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area_partners.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        # Erstelle ein Container-Widget, das in der Scroll-Area angezeigt wird
+        self.scroll_widget_partners = QWidget()
+        self.scroll_area_partners.setWidget(self.scroll_widget_partners)
+        self.layout_options_partners = QGridLayout(self.scroll_widget_partners)
+        self.layout_options_partners.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Hier erstellen wir ein neues Layout für self.group_partners und fügen die Scroll-Area hinzu:
+        self.group_partners_layout = QVBoxLayout(self.group_partners)
+        self.group_partners_layout.addWidget(self.scroll_area_partners)
+
+        # Layout für die Einrichtungs-Gruppe
+        self.group_locations = QGroupBox('Einrichtungen')
+        self.layout_body.addWidget(self.group_locations)
+        # Erstelle zunächst einen QScrollArea und mach ihn anpassbar
+        self.scroll_area_locations = QScrollArea(self.group_locations)
+        self.scroll_area_locations.setWidgetResizable(True)
+        # Setze die horizontale Scrollbar-Policy auf "immer aus" und die vertikale auf "bei Bedarf"
+        self.scroll_area_locations.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area_locations.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        # Erstelle ein Container-Widget, das in der Scroll-Area angezeigt wird
+        self.scroll_widget_locations = QWidget()
+        self.scroll_area_locations.setWidget(self.scroll_widget_locations)
+        self.layout_options_locations = QGridLayout(self.scroll_widget_locations)
+        self.layout_options_locations.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Hier erstellen wir ein neues Layout für self.group_locations und fügen die Scroll-Area hinzu:
+        self.group_locations_layout = QVBoxLayout(self.group_locations)
+        self.group_locations_layout.addWidget(self.scroll_area_locations)
+
+        self.lb_info = QLabel()
+        self.layout_head.addWidget(self.lb_info)
+
+        self.lb_date = QLabel('zu einem späteren Datum kann sich die Auswahl an Mitarbeitern und Einrichtungen ändern.')
+        self.de_date = QDateEdit()
+        self.de_date.dateChanged.connect(self.on_date_change)
+        self.layout_date.addWidget(self.de_date)
+        self.de_date.setFixedWidth(100)
+        self.layout_date.addWidget(self.lb_date)
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
         self.bt_reset = QPushButton('reset')
@@ -356,14 +396,6 @@ class DlgPartnerLocationPrefs(QDialog):
         self.layout_foot.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-
-        # QTimer wird verwendet, damit bei schnellem Datumsdurchlauf nicht für jeden Tag das Layout neu aufgebaut wird.
-        self.timer = QTimer(self)
-        self.timer.setInterval(200)
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self.date_changed)
-
-        self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         point_bottom_right = self.mapToGlobal(self.rect().bottomRight())
@@ -517,12 +549,12 @@ class DlgPartnerLocationPrefs(QDialog):
         '''setup locations group:'''
         for row, loc in enumerate(self.locations):
             lb_location = QLabel(f'In {loc.name} ({loc.address.city}):')
-            self.layout_options_locs.addWidget(lb_location, row, 0)
+            self.layout_options_locations.addWidget(lb_location, row, 0)
             bt_partners = QPushButton('Mitarbeiter', clicked=partial(self.choice_partners, loc.id))
-            self.layout_options_locs.addWidget(bt_partners, row, 1)
+            self.layout_options_locations.addWidget(bt_partners, row, 1)
 
             lb_loc_val = QLabel('Error')
-            self.layout_options_locs.addWidget(lb_loc_val, row, 3)
+            self.layout_options_locations.addWidget(lb_loc_val, row, 3)
 
             slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal, self)
             slider_location.setMinimum(0)
@@ -531,7 +563,7 @@ class DlgPartnerLocationPrefs(QDialog):
             slider_location.setTickPosition(QSlider.TickPosition.TicksBelow)
 
             slider_location.valueChanged.connect(partial(self.save_pref_loc, loc))
-            self.layout_options_locs.addWidget(slider_location, row, 2)
+            self.layout_options_locations.addWidget(slider_location, row, 2)
 
             self.dict_location_id__bt_slider_lb[loc.id] = {
                 'button': bt_partners,
@@ -609,6 +641,19 @@ class DlgPartnerLocationPrefs(QDialog):
             self.show_slider_text(self.dict_partner_id__bt_slider_lb[partner.id]['label_val'], slider_value)
             self.dict_partner_id__bt_slider_lb[partner.id]['slider'].setValue(slider_value)
 
+    def update_scroll_areas_geometry(self):
+        # Nachdem alle Elemente zum Layout hinzugefügt wurden:
+        QApplication.processEvents()
+        min_width_partners = self.scroll_widget_partners.sizeHint().width()
+        self.scroll_area_partners.setMinimumWidth(min_width_partners + 10)
+        min_height_partners = self.scroll_widget_partners.sizeHint().height()
+        self.scroll_area_partners.setMinimumHeight(min(self.screen_geometry.height() - 250, min_height_partners + 10))
+
+        min_width_locations = self.scroll_widget_locations.sizeHint().width()
+        self.scroll_area_locations.setMinimumWidth(min_width_locations + 10)
+        min_height_locations = self.scroll_widget_locations.sizeHint().height()
+        self.scroll_area_locations.setMinimumHeight(min(self.screen_geometry.height() - 200, min_height_locations + 10))
+
     def setup_values(self):
         """Regler und Buttons bekommen die korrekten Einstellungen."""
 
@@ -621,6 +666,8 @@ class DlgPartnerLocationPrefs(QDialog):
             self.setup_values_partners()
         except Exception:
             self.clear_option_field()
+
+        self.update_scroll_areas_geometry()
 
     def reload_curr_model(self):
         self.curr_model = factory_for_reload_curr_model(self.curr_model)(self.curr_model.id)

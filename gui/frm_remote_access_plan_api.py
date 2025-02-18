@@ -254,8 +254,6 @@ class PlanApiHandler:
         response = self.session.post(f'{self.config_remote.host}/{self.config_remote.endpoints.auth}',
                                      data={'username': self.config_remote.authentication.username,
                                            'password': self.config_remote.authentication.password})
-        # payload = jwt.decode(response.json()['access_token'], options={"verify_signature": False})
-        # QMessageBox.information(parent, 'Login', f'Eingeloggt als: {", ".join(payload["roles"])}')
         self.session.headers.update({'Authorization': f'Bearer {response.json()["access_token"]}'})
 
 

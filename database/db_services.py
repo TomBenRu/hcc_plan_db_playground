@@ -6,6 +6,8 @@ from typing import Optional
 from uuid import UUID
 
 from pony.orm import db_session, commit, select, desc
+from pydantic import EmailStr
+import pandas as pd
 
 from . import schemas, schemas_plan_api
 from .authentication import hash_psw
@@ -325,7 +327,10 @@ class Person:
     def create(cls, person: schemas.PersonCreate, project_id: UUID, person_id: UUID = None) -> schemas.Person:
         log_function_info(cls)
         project_in_db = models.Project.get_for_update(id=project_id)
-        address_in_db = models.Address(**person.address.model_dump(), project=project_in_db)
+        if person.address:
+            address_in_db = models.Address(**person.address.model_dump(), project=project_in_db)
+        else:
+            address_in_db = None
         hashed_password = hash_psw(person.password)
         person.password = hashed_password
         if person_id:
@@ -339,6 +344,37 @@ class Person:
                                       project=project_in_db)
 
         return schemas.Person.model_validate(person_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def create_persons_from_xlsx(cls, file_name: str, project_id: UUID) -> list[schemas.Person]:
+        log_function_info(cls)
+        team_in_db = models.Team.select(lambda t: t.project.id == project_id).first()
+        try:
+            df = pd.read_excel(file_name)
+        except Exception as e:
+            raise ValueError(f'Error while reading xlsx file: {e}')
+        persons_list: list[schemas.Person] = []
+        for _, row in df.iterrows():
+            new_person = schemas.PersonCreate(
+                f_name=row['Vorname'],
+                l_name=row['Nachname'],
+                email='fake@email.com',
+                gender=Gender.divers,
+                phone_nr=None,
+                username=row['username'],
+                password='password',
+                address=None)
+            created_person = cls.create(new_person, project_id)
+            person_db = models.Person.get_for_update(id=created_person.id)
+            team_actor_assign = TeamActorAssign.create(
+                schemas.TeamActorAssignCreate(start=datetime.date.today(), end=None,
+                                              person=created_person, team=schemas.Team.model_validate(team_in_db))
+            )
+            print(team_actor_assign)
+            persons_list.append(schemas.Person.model_validate(person_db))
+            print(persons_list)
+        return persons_list
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

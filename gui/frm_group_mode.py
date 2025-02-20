@@ -42,6 +42,19 @@ set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.Se
 group_id_type = NewType('group_id', UUID)
 
 
+def text_num_avail_groups(group: group_type, builder: 'DlgGroupModeBuilderABC') -> str:
+    nr_groups = builder.get_nr_groups_from_group(group)
+    if isinstance(group, schemas.AvailDayGroup):
+        required = builder.get_required_avail_day_groups(group.id)
+        num_required_groups = (f' (mind. {required.num_avail_day_groups} für '
+                               f'{f"{len(required.locations_of_work)} Einr."
+                               if required.locations_of_work else "alle Einr."})'
+                               if required else '' or '')
+    else:
+        num_required_groups = ''
+    return f"{nr_groups or 'alle'}{num_required_groups}"
+
+
 class DlgGroupModeBuilderABC(ABC):
     def __init__(self, parent: QWidget, object_with_groups: object_with_group_type):
 
@@ -201,15 +214,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setForeground(2, QColor(*widget_styles.tree_widgets.time_of_day_fg_color_rgba))
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
-            nr_groups = self.builder.get_nr_groups_from_group(group)
-            if isinstance(group, schemas.AvailDayGroup):
-                required = self.builder.get_required_avail_day_groups(group.id)
-                num_required_groups = (f' (mind. {required.num_avail_day_groups} - '
-                                       f'{"einige Einr." if required.locations_of_work else "alle Einr."})'
-                                        if required else '' or'')
-            else:
-                num_required_groups = ''
-            text_nr_avail_day_groups = f"{nr_groups or 'alle'}{num_required_groups}"
+            text_nr_avail_day_groups = text_num_avail_groups(group, self.builder)
             self.setText(0, f'Gruppe_{group_nr:02}')
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
@@ -822,12 +827,7 @@ class DlgGroupMode(QDialog):
     def update_items_after_edit(self, item: TreeWidgetItem):
         new_group_data = self.builder.get_group_from_id(
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-        nr_groups = self.builder.get_nr_groups_from_group(new_group_data)
-        required = self.builder.get_required_avail_day_groups(new_group_data.id)
-        num_required_groups = (f' (mind. {required.num_avail_day_groups} - '
-                               f'{"einige Einr." if required.locations_of_work else "alle Einr."})'
-                               if required else '' or'')
-        text_nr_groups = (str(nr_groups) if nr_groups else 'alle') + num_required_groups
+        text_nr_groups = text_num_avail_groups(new_group_data, self.builder)
         if item == self.tree_groups.invisibleRootItem():
             self.bt_edit_main_group.setText(f'Hauptgruppe bearbeiten (mögl. Anzahl: {text_nr_groups})')
         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)

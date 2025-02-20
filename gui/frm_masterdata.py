@@ -67,6 +67,7 @@ class WidgetPerson(QWidget):
         self.persons = self.get_persons()
 
         self.table_persons = TablePersons(self.persons, self.project_id)
+        self.table_persons.cellDoubleClicked.connect(self.edit_person)
 
         self.layout.addWidget(self.table_persons)
 
@@ -185,7 +186,6 @@ class TablePersons(QTableWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.horizontalHeader().setHighlightSections(False)
-        self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
         self.headers = ['Vorname', 'Nachname', 'Email', 'Geschlecht', 'Telefon', 'Straße', 'PLZ', 'Ort', 'Team', 'id']
@@ -219,11 +219,6 @@ class TablePersons(QTableWidget):
             self.setCellWidget(row, 8, cb_team_of_actor)
 
             self.setItem(row, 9, QTableWidgetItem(str(p.id)))
-
-    def text_to_clipboard(self, r, c):
-        text = self.item(r, c).text()
-        QGuiApplication.clipboard().setText(text)
-        QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
 
     def change_team(self, e):
         person_id = UUID(self.item(self.currentRow(), 9).text())
@@ -520,6 +515,7 @@ class WidgetLocationsOfWork(QWidget):
         self.locations = self.get_locations()
 
         self.table_locations = TableLocationsOfWork(self.locations)
+        self.table_locations.cellDoubleClicked.connect(self.edit_location)
         self.layout.addWidget(self.table_locations)
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
@@ -593,7 +589,6 @@ class TableLocationsOfWork(QTableWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.horizontalHeader().setHighlightSections(False)
-        self.cellDoubleClicked.connect(self.text_to_clipboard)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
         self.headers = ['Name', 'Straße', 'PLZ', 'Ort', 'Team', 'Besetung', 'id']
@@ -629,12 +624,6 @@ class TableLocationsOfWork(QTableWidget):
                 return (f'{next_assignment.team.name if next_assignment else "Kein Team"} '
                         f'ab dem {date.strftime("%d.%m.%y")}')
         return ''
-
-
-    def text_to_clipboard(self, r, c):
-        text = self.item(r, c).text()
-        QGuiApplication.clipboard().setText(text)
-        QMessageBox.information(self, 'Clipboard', f'{text}\nwurde kopiert.')
 
 
 class FrmLocationData(QDialog):

@@ -80,9 +80,10 @@ splash.show()
 splash.simulate_loading()
 
 
-from gui.main_window import MainWindow
 if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
     os.makedirs(log_path)
+
+from gui.main_window import MainWindow
 log_file_path = os.path.join(log_path, 'hcc-dispo.log')
 
 logging.basicConfig(filename=log_file_path, level=logging.INFO,
@@ -94,7 +95,8 @@ app.setStyle('Fusion')
 Screen.set_screen_size()
 window = MainWindow(app, Screen.screen_width, Screen.screen_height)
 
-window.show()
 window.restore_tabs()
+
+window.show()
 
 splash.finish(window)

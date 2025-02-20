@@ -26,3 +26,5 @@ google-api-python-client
 httplib2~=0.22.0
 urllib3~=2.2
 keyring~=25.5
+pandas~=2.2
+openpyxl~=3.0

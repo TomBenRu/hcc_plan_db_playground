@@ -6,6 +6,6 @@ from gui import app
 '''Alle Pfadangaben müssen für die Verarbeitung mit Pyinstaller besonders definiert werden:
    os.path.join(os.path.dirname(__file__), 'resources')'''
 
-r_path = os.path.dirname(__file__)
-project_paths.paths.root_path = r_path
+# r_path = os.path.dirname(__file__)
+# project_paths.paths.root_path = r_path
 app.app.exec()

@@ -1,8 +1,6 @@
 import functools
 import logging
 import os.path
-import platform
-import subprocess
 import sys
 from uuid import UUID
 
@@ -56,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, app, screen_width: int, screen_height: int):
+    def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
         logger.info(f'{"="*50}\nStarting hcc-plan')
 

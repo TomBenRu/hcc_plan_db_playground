@@ -526,7 +526,8 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.slider_num_required_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.slider_num_required_avail_day_groups.setTickInterval(1)
         self.slider_num_required_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.slider_num_required_avail_day_groups.setRange(1, self.builder.get_max_value_num_required_avail_day_groups(self.group))
+        self.slider_num_required_avail_day_groups.setRange(
+            1, self.builder.get_max_value_num_required_avail_day_groups(self.group))
         self.slider_num_required_avail_day_groups.setToolTip(text_tooltip)
 
         self.lb_without_required_avail_day_groups = QLabel('...Ohne Bedingung')
@@ -534,8 +535,9 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.lb_num_avail_day_groups_value = QLabel()
         self.chk_num_required_avail_day_groups = QCheckBox('Bedingung aktivieren?')
         self.chk_num_required_avail_day_groups.setToolTip(text_tooltip)
-        self.chk_required_avail_day_groups_locations = QCheckBox('Nur in bestimmten Einrichtungen')
-        self.chk_required_avail_day_groups_locations.setToolTip('Nur für bestimmte Einrichtungen aktivieren')
+        self.chk_required_avail_day_groups_locations = QCheckBox('Nur für bestimmte Einrichtungen aktivieren')
+        self.chk_required_avail_day_groups_locations.setToolTip(
+            'Bedingung soll nur für ausgewählte Einrichtungen gelten')
         self.layout_group_nr_childs.addWidget(self.lb_num_required_avail_day_groups, 1, 0)
         self.layout_group_nr_childs.addWidget(self.lb_num_avail_day_groups_value, 1, 2)
         self.layout_group_nr_childs.addWidget(self.chk_num_required_avail_day_groups, 1, 3)
@@ -546,6 +548,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         for location in self.locations_of_work:
             chk = QCheckBox(location.name_an_city)
             self.checkboxes_locations_of_work[location.id] = chk
+            chk.setToolTip(f'Rechtsklick: Nur {location.name_an_city} auswählen')
             self.layout_required_avail_day_groups_locations.addWidget(chk)
 
     def setup_required_avail_day_groups_widget_values(self):
@@ -582,6 +585,22 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self._update_required_avail_day_groups)
         for l_id, chk in self.checkboxes_locations_of_work.items():
             chk.toggled.connect(self._update_required_avail_day_groups)
+            # Rechtsklick-Kontextmenü für die Checkboxes
+            chk.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            chk.customContextMenuRequested.connect(lambda pos, loc_id=l_id: self._right_click_chk_location_of_work(loc_id, pos))
+
+    def _right_click_chk_location_of_work(self, l_id, pos):
+        """
+        Slot, der bei einem Rechtsklick (Kontextmenü) ausgeführt wird.
+        Setzt die angeklickte Checkbox auf True und alle anderen auf False.
+        """
+        # Setze die angeklickte Checkbox
+        self.checkboxes_locations_of_work[l_id].setChecked(True)
+
+        # Iteriere über alle Checkboxes und deaktiviere die, die nicht angeklickt wurden
+        for other_id, other_chk in self.checkboxes_locations_of_work.items():
+            if other_id != l_id:
+                other_chk.setChecked(False)
 
     def update_required_avail_day_groups_widget_values(self):
         if not self.required_avail_day_widgets_are_available:
@@ -600,6 +619,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.slider_num_required_avail_day_groups.setRange(1, max_required)
 
     def chk_num_required_avail_day_groups_toggled(self):
+        self.widget_required_avail_day_groups_locations.setParent(None)
         if self.chk_num_required_avail_day_groups.isChecked():
             max_value = self.builder.get_max_value_num_required_avail_day_groups(self.group)
             self.lb_without_required_avail_day_groups.setParent(None)
@@ -614,7 +634,8 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self.lb_num_avail_day_groups_value.setText('1')
             self.chk_required_avail_day_groups_locations.toggled.disconnect()
             self.chk_required_avail_day_groups_locations.setChecked(False)
-            self.chk_required_avail_day_groups_locations.toggled.connect(self._update_required_avail_day_groups)
+            self.chk_required_avail_day_groups_locations.toggled.connect(
+                self.chk_required_avail_day_groups_locations_toggled)
             self.chk_required_avail_day_groups_locations.setEnabled(False)
 
     def chk_required_avail_day_groups_locations_toggled(self):

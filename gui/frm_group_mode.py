@@ -699,8 +699,6 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         height_group_required_avail_day_groups_locations = (
             self.group_required_avail_day_groups_locations.sizeHint().height() + 37
             if self.chk_required_avail_day_groups_locations.isChecked() else 0)
-        print(f'height_group_child_variation_weights: {height_group_child_variation_weights}\n'
-              f'height_group_required_avail_day_groups_locations: {height_group_required_avail_day_groups_locations}')
         self.resize(
             self.width(),
             min(height_group_required_avail_day_groups_locations

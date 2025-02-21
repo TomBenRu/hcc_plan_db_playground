@@ -140,6 +140,7 @@ class DlgEditSkills(QDialog):
                                      "hinzufügen und bearbeiten.</p>")
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
+        self.table_skills.cellDoubleClicked.connect(self._edit_skill)
         self.chk_show_deleted = QCheckBox("Gelöschte Fähigkeiten anzeigen")
         self.chk_show_deleted.setChecked(False)
         self.chk_show_deleted.stateChanged.connect(self._update_table)

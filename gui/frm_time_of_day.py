@@ -334,6 +334,7 @@ class DlgTimeOfDaysEditList(QDialog):
         if self.table_time_of_days:
             self.table_time_of_days.deleteLater()
         self.table_time_of_days = QTableWidget()
+        self.table_time_of_days.cellDoubleClicked.connect(self.edit_time_of_day)
         self.layout.addWidget(self.table_time_of_days, 0, 0, 1, 3)
         time_of_days = sorted((t_o_d for t_o_d in self.builder.object_with_time_of_days.time_of_days
                                if not t_o_d.prep_delete),  key=lambda x: x.time_of_day_enum.time_index)
@@ -391,7 +392,7 @@ class DlgTimeOfDaysEditList(QDialog):
             QMessageBox.critical(self, 'Tageszeiten', 'Sie müssen zuerst eine Tageszeit zur Bearbeitung auswählen.')
             return
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
-        curr_t_o_d = db_services.TimeOfDay.get(curr_t_o_d_id)
+        curr_t_o_d = db_services.TimeOfDay.get(curr_t_o_d_id, True)
 
         project = db_services.Project.get(self.builder.project_id)
         standard = curr_t_o_d_id in [t.id for t in self.builder.object_with_time_of_days.time_of_day_standards

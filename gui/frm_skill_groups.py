@@ -114,6 +114,7 @@ class DlgSkillGroups(QDialog):
         self.layout_head.addWidget(self.lb_description)
 
         self.table_skill_groups = self._setup_table_skill_groups()
+        self.table_skill_groups.cellDoubleClicked.connect(self.edit_skill_group)
         self.layout_body.addWidget(self.table_skill_groups)
 
         self.btn_add_skill_group = QPushButton("Neue Fertigkeitsgruppe")

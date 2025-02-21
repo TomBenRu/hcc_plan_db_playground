@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session, commit, select, desc
+from pony.orm import db_session, commit, select, desc, show
 from pydantic import EmailStr
 import pandas as pd
 
@@ -919,7 +919,10 @@ class TimeOfDay:
     @classmethod
     @db_session
     def get(cls, time_of_day_id: UUID, reduced: bool = False) -> schemas.TimeOfDayShow | schemas.TimeOfDay:
-        time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
+        time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
+        # time_of_day_data = time_of_day_db.to_dict(related_objects=True, with_collections=True)
+        # print(time_of_day_data)
+
         return (schemas.TimeOfDay.model_validate(time_of_day_db) if reduced
                 else schemas.TimeOfDayShow.model_validate(time_of_day_db))
 
@@ -2496,9 +2499,9 @@ class Skill:
 
     @classmethod
     @db_session
-    def get(cls, skill_id: UUID) -> schemas.SkillShow:
+    def get(cls, skill_id: UUID) -> schemas.Skill:
         skill_db = models.Skill.get_for_update(id=skill_id)
-        return schemas.SkillShow.model_validate(skill_db)
+        return schemas.Skill.model_validate(skill_db)
 
     @classmethod
     @db_session
@@ -2509,10 +2512,10 @@ class Skill:
 
     @classmethod
     @db_session
-    def get_all_from__project(cls, project_id: UUID) -> list[schemas.SkillShow]:
+    def get_all_from__project(cls, project_id: UUID) -> list[schemas.Skill]:
         project_db = models.Project.get_for_update(id=project_id)
         skills_db = project_db.skills
-        return [schemas.SkillShow.model_validate(s) for s in skills_db]
+        return [schemas.Skill.model_validate(s) for s in skills_db]
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

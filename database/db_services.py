@@ -920,9 +920,6 @@ class TimeOfDay:
     @db_session
     def get(cls, time_of_day_id: UUID, reduced: bool = False) -> schemas.TimeOfDayShow | schemas.TimeOfDay:
         time_of_day_db = models.TimeOfDay.get_for_update(id=time_of_day_id)
-        # time_of_day_data = time_of_day_db.to_dict(related_objects=True, with_collections=True)
-        # print(time_of_day_data)
-
         return (schemas.TimeOfDay.model_validate(time_of_day_db) if reduced
                 else schemas.TimeOfDayShow.model_validate(time_of_day_db))
 

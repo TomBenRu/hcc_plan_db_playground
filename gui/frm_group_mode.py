@@ -508,8 +508,13 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
 
         self.required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(self.group.id)
 
-        self.widget_required_avail_day_groups_locations = QWidget(self)
-        self.layout_required_avail_day_groups_locations = QVBoxLayout(self.widget_required_avail_day_groups_locations)
+        self.scroll_required_avail_day_groups_locations = QScrollArea()
+        self.scroll_required_avail_day_groups_locations.setWidgetResizable(True)
+        self.group_required_avail_day_groups_locations = QGroupBox(
+            'Einsatzorte, für die die Mindestanzahl Einsätze gefordert ist')
+        self.scroll_required_avail_day_groups_locations.setWidget(self.group_required_avail_day_groups_locations)
+
+        self.layout_required_avail_day_groups_locations = QVBoxLayout(self.group_required_avail_day_groups_locations)
 
         if all(child.date_object for child in self.child_items):
             self._setup_required_avail_day_groups_widgets()
@@ -571,7 +576,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self.chk_num_required_avail_day_groups.setChecked(True)
             self.lb_num_avail_day_groups_value.setText(f'{required_avail_day_groups.num_avail_day_groups}')
             if required_avail_day_groups.locations_of_work:
-                self.layout_group_nr_childs.addWidget(self.widget_required_avail_day_groups_locations, 2, 0, 1, 4)
+                self.layout_group_nr_childs.addWidget(self.scroll_required_avail_day_groups_locations, 2, 0, 1, 5)
                 self.chk_required_avail_day_groups_locations.setChecked(True)
                 for location in required_avail_day_groups.locations_of_work:
                     self.checkboxes_locations_of_work[location.id].setChecked(True)
@@ -624,7 +629,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.slider_num_required_avail_day_groups.setRange(1, max_required)
 
     def chk_num_required_avail_day_groups_toggled(self):
-        self.widget_required_avail_day_groups_locations.setParent(None)
+        self.scroll_required_avail_day_groups_locations.setParent(None)
         if self.chk_num_required_avail_day_groups.isChecked():
             max_value = self.builder.get_max_value_num_required_avail_day_groups(self.group)
             self.lb_without_required_avail_day_groups.setParent(None)
@@ -645,12 +650,12 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
 
     def chk_required_avail_day_groups_locations_toggled(self):
         if self.chk_required_avail_day_groups_locations.isChecked():
-            self.layout_group_nr_childs.addWidget(self.widget_required_avail_day_groups_locations, 2, 0, 1, 4)
+            self.layout_group_nr_childs.addWidget(self.scroll_required_avail_day_groups_locations, 2, 0, 1, 5)
         else:
-            self.widget_required_avail_day_groups_locations.setParent(None)
-            self._adjust_widget_height()
+            self.scroll_required_avail_day_groups_locations.setParent(None)
         for chk in self.checkboxes_locations_of_work.values():
             chk.setChecked(True)
+        self._adjust_widget_height()
 
 
     def _locations_of_work(self) -> list[schemas.LocationOfWork]:
@@ -689,8 +694,19 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.lb_num_avail_day_groups_value.setText(str(new_value_nums or 1))
 
     def _adjust_widget_height(self):
-        total_height = self.sizeHint().height()
-        self.setFixedHeight(min(total_height, Screen.screen_height - 40))
+        QApplication.processEvents()
+        height_group_child_variation_weights = self.group_child_variation_weights.sizeHint().height() + 37
+        height_group_required_avail_day_groups_locations = (
+            self.group_required_avail_day_groups_locations.sizeHint().height() + 37
+            if self.chk_required_avail_day_groups_locations.isChecked() else 0)
+        print(f'height_group_child_variation_weights: {height_group_child_variation_weights}\n'
+              f'height_group_required_avail_day_groups_locations: {height_group_required_avail_day_groups_locations}')
+        self.resize(
+            self.width(),
+            min(height_group_required_avail_day_groups_locations
+                + height_group_child_variation_weights + 90,
+                Screen.screen_height - 40)
+        )
 
 
 class DlgGroupMode(QDialog):

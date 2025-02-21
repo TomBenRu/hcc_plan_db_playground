@@ -32,7 +32,7 @@ class Update(Command):
         self.required_avail_day_group = db_services.RequiredAvailDayGroups.get(required_avail_day_group_id)
         self.num_avail_day_groups = num_avail_day_groups
         self.location_of_work_ids = (location_of_work_ids if location_of_work_ids is not None
-                                     else self.required_avail_day_group.locations_of_work)
+                                     else [l.id for l in self.required_avail_day_group.locations_of_work])
         self.updated_required_avail_day_groups: schemas.RequiredAvailDayGroups | None = None
 
     def execute(self):

@@ -734,7 +734,7 @@ class Plan(db.Entity):
     prep_delete = Optional(datetime.datetime)
     appointments = Set(Appointment)
     plan_period = Required(PlanPeriod)
-    location_columns = Required(Json, default="{}")  # type -> dict[int, list[int]] ({weekday_nr: [Institution.id]})
+    location_columns = Required(Json, default="{}")  # type -> dict[int, list[UUID]] ({weekday_nr: [Institution.id]})
     excel_export_settings = Optional('ExcelExportSettings')
 
     composite_key(name, plan_period)

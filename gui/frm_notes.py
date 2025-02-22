@@ -133,6 +133,7 @@ class DlgAppointmentNotes(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.setStyleSheet("background-color: none")
         self.layout = QVBoxLayout(self)
         self.layout_head = QVBoxLayout()
         self.layout_body = QVBoxLayout()

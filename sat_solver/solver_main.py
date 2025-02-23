@@ -1307,28 +1307,6 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                      constraints_weights_in_event_groups: list[IntVar],
                      constraints_weights_in_av_day_groups: list[IntVar], constraints_cast_rule: list[IntVar]):
-    print('=' * 100)
-    print('Applied Shifts:')
-    applied_shifts = [([solver.Value(s) for s in s1], [solver.Value(s) for s in s2])
-                      for s1, s2 in zip(solver_variables.cast_rules.applied_shifts_1,
-                                        solver_variables.cast_rules.applied_shifts_2)]
-    print(f'{applied_shifts=}')
-    is_equal_1 = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal_1]
-    is_equal_2 = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal_2]
-    is_equal_values = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal]
-    is_unequal_values = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_unequal]
-    print('Summe der Einsätze in beiden Events:')
-    print([f'{a.name}: {solver.Value(a)}' for a in solver_variables.cast_rules.sum_of_applied_shifts])
-    print('Summe der Einsätze in beiden Events = 0 (is_equal_1):')
-    print('\n'.join(is_equal_1))
-    print('Summe der Einsätze in beiden Events = 2 (is_equal_2):')
-    print('\n'.join(is_equal_2))
-    print('In beiden Events Einsätze oder in beiden Events keinen Einsatz (is_equal):')
-    print('\n'.join(is_equal_values))
-    print('Summe der Einsätze in beiden Events = 1 (is_unequal):')
-    print('\n'.join(is_unequal_values))
-    print('=' * 100)
-
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")

@@ -21,6 +21,7 @@ from database import db_services, schemas
 from configuration.solver import curr_config_handler
 from database.schemas import AppointmentCreate
 from gui.observer import signal_handling
+from sat_solver import solver_variables
 from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
@@ -303,7 +304,8 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
             if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
                 entities.shifts_exclusive[adg_id, event_group_id] = 0
             #########################################################################################################
-            entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(f'shift ({adg_id}, {event_group_id})')
+            entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(
+                f'shift ({adg.avail_day.actor_plan_period.person.f_name},{adg.avail_day.date:%d.%m.%y}, {event_group_id})')
     # print(f'{len(entities.shift_vars)=}')
     # print(f'{sum(entities.shifts_exclusive.values())=}')
 
@@ -737,75 +739,56 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
         return broken_rules_vars
 
     def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup, strict_rule_pref: int):
-        """Alle Actors des Events mit der kleineren Besetzung müssen auch im Event mit der größeren Besetzung
-        vorkommen. Die überschüssige Position des Events mit der größeren Besetzung kann beliebig besetzt sein."""
+        """
+        Die Events müssen mit den gleichen Mitarbeitern besetzt sein.
+        Falls die Events unterschiedliche Anzahl an Mitarbeitern haben, müssen alle Mitarbeiter des Events mit der
+        kleineren Besetzung auch im Event mit der größeren Besetzung vorkommen.
+        """
 
         broken_rules_vars: list[IntVar] = []
 
         event_group_1_id = cast_group_1.event.event_group.id
         event_group_2_id = cast_group_2.event.event_group.id
-        applied_shifts_1: list[IntVar] = [model.NewIntVar(0, 2, '')
-                                          for _ in entities.actor_plan_periods]
-        applied_shifts_2: list[IntVar] = [model.NewIntVar(0, 2, '')
-                                          for _ in entities.actor_plan_periods]
-        for i, app_id in enumerate(entities.actor_plan_periods):
-            shift_vars_1 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+        applied_shifts_1: list[IntVar] = [model.NewBoolVar(f'{event_group_1.event.date:%d.%m.}: {app.person.f_name}')
+                                          for app in entities.actor_plan_periods.values()]
+        applied_shifts_2: list[IntVar] = [model.NewBoolVar(f'{event_group_2.event.date:%d.%m.}: {app.person.f_name}')
+                                          for app in entities.actor_plan_periods.values()]
+        solver_variables.cast_rules.applied_shifts_1.append(applied_shifts_1)
+        solver_variables.cast_rules.applied_shifts_2.append(applied_shifts_2)
+        for i, (app_id, app) in enumerate(entities.actor_plan_periods.items()):
+            shift_var_1 = next((v for (adg_id, eg_id), v in entities.shift_vars.items()
                             if eg_id == event_group_1_id
                             and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
-                            and entities.shifts_exclusive[(adg_id, eg_id)]}
-            shift_vars_2 = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                            and entities.shifts_exclusive[(adg_id, eg_id)]), 0)
+            shift_var_2 = next((v for (adg_id, eg_id), v in entities.shift_vars.items()
                             if eg_id == event_group_2_id
                             and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
-                            and entities.shifts_exclusive[(adg_id, eg_id)]}
-            model.Add(applied_shifts_1[i] == sum(shift_vars_1.values()))
-            model.Add(applied_shifts_2[i] == sum(shift_vars_2.values()))
+                            and entities.shifts_exclusive[(adg_id, eg_id)]), 0)
+            model.Add(applied_shifts_1[i] == shift_var_1)
+            model.Add(applied_shifts_2[i] == shift_var_2)
 
-        # works probably also with different nr_actors
-        ################################################################################################################
+        curr_is_unequal: list[IntVar] = []
 
-        # equal Nones, equal Trues, equal Nones and Trues, unequal Nones and Trues:
-        is_equal_1, is_equal_2, is_equal, is_unequal = [], [], [], []
-
-        for i in range(len(entities.actor_plan_periods)):
-            is_equal_1.append(model.NewBoolVar(''))
-            is_equal_2.append(model.NewBoolVar(''))
-            is_equal.append(model.NewBoolVar(''))
-            is_unequal.append(model.NewBoolVar(''))
-
-            # In beiden Events kommt der Mitarbeiter nicht vor:
-            model.AddMultiplicationEquality(is_equal_1[-1], [applied_shifts_1[i] - 1, applied_shifts_2[i] - 1])
-            # In beiden Events kommt der Mitarbeiter vor:
-            model.AddMultiplicationEquality(is_equal_2[-1], [applied_shifts_1[i], applied_shifts_2[i]])
-            # In beiden Events kommt der Mitarbeiter nicht vor oder vor:
-            model.Add(is_equal[-1] == is_equal_1[-1] + is_equal_2[-1])
-            # In einem der Events kommt der Mitarbeiter vor, während er im anderen Event nicht vorkommt:
-            model.AddAbsEquality(is_unequal[-1], is_equal[-1].Not())
+        for i, app in enumerate(entities.actor_plan_periods.values()):
+            curr_is_unequal.append(model.NewBoolVar(f'{event_group_1.event.date:%d.%m.}: {app.person.f_name}'))
+            factor = model.NewIntVar(0, 1, '')
+            model.Add(applied_shifts_1[i] + applied_shifts_2[i] == curr_is_unequal[-1] + 2 * factor)
+        solver_variables.cast_rules.is_unequal.extend(curr_is_unequal)
 
         if strict_rule_pref == 2:
-            (model.Add(sum(is_unequal) == abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
-             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
+            model.Add(sum(curr_is_unequal) <= abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
             return broken_rules_vars
         elif strict_rule_pref == 1:
-            broken_rules_var = model.NewIntVar(0, 1000,
+            max_diff = cast_group_1.nr_actors + cast_group_2.nr_actors
+            broken_rules_var = model.NewIntVar(0, max_diff,
                                                f'{event_group_1.event.date:%d.%m.} + '
                                                f'{event_group_2.event.date:%d.%m.}, '
                                                f'{event_group_1.event.location_plan_period.location_of_work.name}')
             intermediate = model.NewIntVar(0, 1000, '')
-            model.Add(intermediate == (sum(is_unequal) - abs(cast_group_1.nr_actors - cast_group_2.nr_actors)))
+            model.Add(intermediate == (sum(curr_is_unequal) - abs(cast_group_1.nr_actors - cast_group_2.nr_actors)))
             model.AddDivisionEquality(broken_rules_var, intermediate, 2)
             broken_rules_vars.append(broken_rules_var)
             return broken_rules_vars
-
-        ################################################################################################################
-
-        # works only with same nr_actors
-        ################################################################################################################
-        # for var_1, var_2 in zip(applied_shifts_1, applied_shifts_2):
-        #     (model.Add(var_1 == var_2)
-        #      .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
-        #      .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
-        ################################################################################################################
 
     constraints_cast_rule: list[IntVar] = []
 
@@ -1210,7 +1193,8 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                    + weight_constraints_partner_loc_prefs * sum(constraints_partner_loc_prefs)
                    + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values())
                    + weight_constraints_skills * sum(skill_conflict_vars)
-                   + weight_constraints_cast_rule * sum(constraints_cast_rule))
+                   + weight_constraints_cast_rule * sum(constraints_cast_rule)
+                   )
 
 
 def define_objective__max_shift_of_app(model: cp_model.CpModel,
@@ -1323,6 +1307,28 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                      constraints_weights_in_event_groups: list[IntVar],
                      constraints_weights_in_av_day_groups: list[IntVar], constraints_cast_rule: list[IntVar]):
+    print('=' * 100)
+    print('Applied Shifts:')
+    applied_shifts = [([solver.Value(s) for s in s1], [solver.Value(s) for s in s2])
+                      for s1, s2 in zip(solver_variables.cast_rules.applied_shifts_1,
+                                        solver_variables.cast_rules.applied_shifts_2)]
+    print(f'{applied_shifts=}')
+    is_equal_1 = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal_1]
+    is_equal_2 = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal_2]
+    is_equal_values = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_equal]
+    is_unequal_values = [f'{(u.name, solver.Value(u))}' for u in solver_variables.cast_rules.is_unequal]
+    print('Summe der Einsätze in beiden Events:')
+    print([f'{a.name}: {solver.Value(a)}' for a in solver_variables.cast_rules.sum_of_applied_shifts])
+    print('Summe der Einsätze in beiden Events = 0 (is_equal_1):')
+    print('\n'.join(is_equal_1))
+    print('Summe der Einsätze in beiden Events = 2 (is_equal_2):')
+    print('\n'.join(is_equal_2))
+    print('In beiden Events Einsätze oder in beiden Events keinen Einsatz (is_equal):')
+    print('\n'.join(is_equal_values))
+    print('Summe der Einsätze in beiden Events = 1 (is_unequal):')
+    print('\n'.join(is_unequal_values))
+    print('=' * 100)
+
     # Statistics.
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
@@ -1380,6 +1386,7 @@ def call_solver_with_unadjusted_requested_assignments(
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
+    solver_variables.cast_rules.reset_fields()
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1431,6 +1438,7 @@ def call_solver_to_get_max_shifts_per_app(
     for app_id in entities.actor_plan_periods.keys():
         model = cp_model.CpModel()
         create_vars(model, event_group_tree, avail_day_group_tree)
+        solver_variables.cast_rules.reset_fields()
         (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
          constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
          constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1491,6 +1499,7 @@ def call_solver_with_adjusted_requested_assignments(
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
+    solver_variables.cast_rules.reset_fields()
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1563,6 +1572,7 @@ def call_solver_with__fixed_constraint_results(
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree)
+    solver_variables.cast_rules.reset_fields()
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
@@ -1689,6 +1699,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
         avail_day_group_tree,
         time_calc_max_shifts,
         log_search_process)
+
     if sum(fixed_cast_conflicts.values()) or sum(skill_conflicts.values()):
         return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts, {}, {}
     if not success:
@@ -1720,7 +1731,7 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
-          time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+          time_calc_plan: int, log_search_process=True) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
                                                                   dict[str, int] | None,
                                                                   dict[UUID, int] | None,

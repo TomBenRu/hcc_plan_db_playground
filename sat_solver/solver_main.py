@@ -776,7 +776,9 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
         solver_variables.cast_rules.is_unequal.extend(curr_is_unequal)
 
         if strict_rule_pref == 2:
-            model.Add(sum(curr_is_unequal) <= abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+            (model.Add(sum(curr_is_unequal) <= abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+             .OnlyEnforceIf(entities.event_group_vars[event_group_1_id])
+             .OnlyEnforceIf(entities.event_group_vars[event_group_2_id]))
             return broken_rules_vars
         elif strict_rule_pref == 1:
             max_diff = cast_group_1.nr_actors + cast_group_2.nr_actors

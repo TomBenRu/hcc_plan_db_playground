@@ -1,0 +1,179 @@
+﻿
+[Header]
+ProjectFileVersion = 1.1
+[General]
+Program name = hcc_plan
+Program version = 0.1
+Windows XP = 0
+Windows Server 2003 = 0
+Windows Vista = 0
+Windows Server 2008 = 0
+Windows 7 = 0
+Windows 8 = 0
+Windows 10 = 1
+Windows Server 2016 = 0
+Windows Server 2019 = 0
+Windows Server 2022 = 0
+Windows 11 = 1
+DoNotCheckOS = 0
+Company name = happy code company
+Website = https://
+SFA = 1
+DFA = 1
+Comp = 1
+[Graphics]
+Wizard image = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\gui\resources\hcc-dispo_klein.png
+Header image = <main>
+Show Label = 1
+VisualStylesEnabled = 1
+[Files]
+Installation path = <ProgramFiles>\<Company>\<AppName>\
+Autcip = 0
+[Uninstall]
+Vwau = 0
+Website = https://
+Include uninstaller = 1
+Uninstaller filename = Uninstall_hcc_plan
+UseCustomDisplayIcon = 0
+CustomDisplayIcon = <InstallPath>\
+[Licence]
+Licence dialog = 1
+[Finish]
+Sart program = 0
+Reboot computer = 0
+Program = <InstallPath>\
+ProgramArguments = 
+[Shortcuts]
+Allowtc = 1
+Shortcut path = <Company>\<AppName>\
+[Serialoptions]
+Allows = 0
+Number = 1000
+Mask = #####-#####-#####-#####
+[SplashScreen]
+Image = 
+Sound = 
+Time = 2
+PlaySound = 0
+Allow = 0
+[Build]
+File = C:\Users\tombe\OneDrive\Desktop\hcc_plan_installer.exe
+SetupIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
+UninstallIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
+CompressionMethod = 0
+CompressionLevel = 2
+[Updater]
+Allow = 0
+1 = <AppName>
+2 = <AppVersion>
+3 = http://
+4 = http://
+5 = http://
+6 = Update
+Language = 0
+RunProg = 
+RunProgs = 0
+Execdlls = 0
+[Languages]
+1
+2
+[Files/Dirs]
+C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal
+N/A
+[Folder]
+C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\hcc_plan.exe
+20.4 MB
+exe
+[Licence_Begin]
+7541
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deftab709{\fonttbl{\f0\fswiss\fprq2\fcharset0 Liberation Serif;}{\f1\froman\fprq2\fcharset0 Liberation Serif;}{\f2\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red128\green128\blue128;}
+{\stylesheet{ Normal;}{\s1 heading 1;}{\s2 heading 2;}{\s3 heading 3;}}
+{\*\generator Riched20 10.0.22621}\viewkind4\uc1 
+\pard\keepn\hyphpar0\widctlpar\s1\sb240\sa120\kerning1\b\f0\fs36\lang1031 Endbenutzer-Lizenzvereinbarung (EULA)\fs48\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\fs24 1. Einleitung\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Diese Endbenutzer-Lizenzvereinbarung ("EULA") ist eine rechtliche Vereinbarung zwischen Ihnen (dem "Nutzer") und der \b happy code company\b0  ("Lizenzgeber") bez\'fcglich der Nutzung des Programms \b hcc-plan\b0  ("Software"). Mit der Installation, dem Zugriff auf oder der Nutzung der Software erkl\'e4ren Sie sich mit den Bedingungen dieser EULA einverstanden.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 2. Lizenzgew\'e4hrung\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  gew\'e4hrt dem Nutzer das nicht exklusive, nicht \'fcbertragbare und zeitlich begrenzte Recht, die Software f\'fcr den \b Probezeitraum von 6 Wochen\b0  zu testen. Nach Ablauf des Probezeitraums ist die weitere Nutzung der Software nur nach Erwerb einer \b j\'e4hrlichen Lizenz\b0  gestattet.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 3. Probezeit und Lizenzgeb\'fchr\fs28\par
+
+\pard\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\kerning0\b0\f1\fs24  1.\tab\kerning1\b\fs20 Probezeit\b0 : Die Software wird dem Nutzer f\'fcr eine Probezeit von 6 Wochen als \b Try-Out-Version\b0  zur Verf\'fcgung gestellt.\fs24\par
+\kerning0  2.\tab\kerning1\b\fs20 Lizenz nach der Probezeit\b0 : Nach Ablauf der Probezeit muss der Nutzer eine \b j\'e4hrliche Lizenz\b0  erwerben, um die Software weiterhin nutzen zu k\'f6nnen. Der Kauf einer j\'e4hrlichen Lizenz gew\'e4hrt auch Zugang zu einem zugeh\'f6rigen \b Online-Dienst\b0 .\fs24\par
+
+\pard\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\kerning0  3.\tab\kerning1\b\fs20 Lizenzgeb\'fchren\b0 : Die Lizenzgeb\'fchren sind auf der Webseite des Lizenzgebers oder \'fcber autorisierte Vertriebskan\'e4le ver\'f6ffentlicht.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 4. Funktionsweise des Online-Dienstes\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Mit der Software \b hcc-plan\b0  erh\'e4lt der Nutzer Zugang zu einem Online-Dienst, der die \b Planung von Einsatzzeiten\b0  freier Mitarbeiter unterst\'fctzt. Freie Mitarbeiter k\'f6nnen \'fcber diesen Dienst angeben, an welchen Tagen und zu welchen Zeiten sie f\'fcr Eins\'e4tze verf\'fcgbar sind. Die Software \b hcc-plan\b0  ist direkt mit diesem Dienst verbunden, um die Planungen zu erleichtern.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 5. Nutzungseinschr\'e4nkungen\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Der Nutzer erkl\'e4rt sich bereit, die Software nur f\'fcr den vorgesehenen Zweck zu verwenden und stimmt den folgenden Einschr\'e4nkungen zu:\fs24\par
+
+\pard{\pntext\f2\'B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\'B7}}\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\fs20 Die Software darf nicht \b vervielf\'e4ltigt\b0 , \b ver\'e4ndert\b0 , \b ver\'f6ffentlicht\b0  oder \b verbreitet\b0  werden, es sei denn, es wurde ausdr\'fccklich vom Lizenzgeber erlaubt.\fs24\par
+{\pntext\f2\'B7\tab}\fs20 Die Nutzung der Software f\'fcr \b illegale\b0  oder \b missbr\'e4uchliche Zwecke\b0  ist untersagt.\fs24\par
+
+\pard{\pntext\f2\'B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\'B7}}\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\fs20 Reverse Engineering, Dekompilierung oder das Ableiten des Quellcodes der Software ist streng untersagt.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 6. Online-Dienste\fs28\par
+
+\pard\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\kerning0\b0\f1\fs24  1.\tab\kerning1\b\fs20 Zugriff auf den Online-Dienst\b0 : Der Zugang zum Online-Dienst ist nur w\'e4hrend der G\'fcltigkeit der j\'e4hrlichen Lizenz m\'f6glich.\fs24\par
+\kerning0  2.\tab\kerning1\b\fs20 Verf\'fcgbarkeit\b0 : Der Lizenzgeber bem\'fcht sich, den Online-Dienst ohne Unterbrechungen zur Verf\'fcgung zu stellen, \'fcbernimmt jedoch keine Garantie f\'fcr die st\'e4ndige Verf\'fcgbarkeit.\fs24\par
+
+\pard\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\kerning0  3.\tab\kerning1\b\fs20 Datenverarbeitung\b0 : Der Nutzer erkennt an, dass im Rahmen der Nutzung des Online-Dienstes Daten der freien Mitarbeiter verarbeitet und gespeichert werden. Der Lizenzgeber verpflichtet sich, alle Daten gem\'e4\'df den geltenden Datenschutzbestimmungen zu sch\'fctzen.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 7. Eigentum\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  beh\'e4lt alle Eigentumsrechte und geistigen Eigentumsrechte an der Software. Diese EULA \'fcbertr\'e4gt dem Nutzer keine Eigentumsrechte an der Software oder an den Online-Diensten.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 8. Haftungsausschluss\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die Software wird "wie besehen" ohne M\'e4ngelgew\'e4hr zur Verf\'fcgung gestellt. Die \b happy code company\b0  \'fcbernimmt keine Gew\'e4hr f\'fcr die Fehlerfreiheit oder f\'fcr die Eignung der Software f\'fcr bestimmte Zwecke.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 9. Haftungsbegrenzung\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 In keinem Fall haftet die \b happy code company\b0  f\'fcr direkte oder indirekte Sch\'e4den, einschlie\'dflich entgangenen Gewinns, Datenverlust, Gesch\'e4ftsunterbrechungen oder anderer wirtschaftlicher Verluste, die aus der Nutzung oder der Unf\'e4higkeit zur Nutzung der Software oder des Online-Dienstes resultieren, es sei denn, dies ist gesetzlich vorgeschrieben.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 10. K\'fcndigung\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Der Lizenzgeber ist berechtigt, diese Lizenz mit sofortiger Wirkung zu k\'fcndigen, wenn der Nutzer gegen die Bedingungen dieser EULA verst\'f6\'dft. Bei K\'fcndigung ist der Nutzer verpflichtet, die Nutzung der Software sofort einzustellen und alle Kopien der Software zu l\'f6schen.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 11. \'c4nderungen der EULA\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  beh\'e4lt sich das Recht vor, diese EULA jederzeit zu \'e4ndern. Der Nutzer wird \'fcber wesentliche \'c4nderungen informiert und hat die M\'f6glichkeit, die Nutzung der Software zu beenden, falls er den ge\'e4nderten Bedingungen nicht zustimmt.\fs24\par
+
+\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 12. Geltendes Recht\fs28\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Diese EULA unterliegt den Gesetzen der Bundesrepublik Deutschland. Der Gerichtsstand ist der Sitz der \b happy code company\b0 .\fs24\par
+
+\pard\brdrb\brdrdb\brdrw15\brdrcf1 \hyphpar0\widctlpar\sa283\fs12\par
+
+\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b\fs20 Datum der letzten Aktualisierung\b0 : 01.10.2024\fs24\par
+
+\pard\hyphpar0\widctlpar\par
+}
+ [Licence_End]
+[Registry]
+[Variables]
+[SCs]
+Desktop
+hcc-plan
+<InstallPath>\hcc_plan.exe
+
+
+0
+Startmenu
+hcc-plan
+<InstallPath>\hcc_plan.exe
+
+
+0
+[IFP_End]
+[Serials]
+[Serials_End]
+[Commands]

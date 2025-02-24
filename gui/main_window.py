@@ -654,15 +654,18 @@ class MainWindow(QMainWindow):
                 QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst einen Plan öffnen.')
                 return
             plan_period = curr_plan_widget.plan.plan_period
-        if self.tabs_left.currentWidget().objectName() == 'masks':
+        elif self.tabs_left.currentWidget().objectName() == 'masks':
             curr_plan_widget: PlanPeriodTabWidget = self.tabs_planungsmasken.currentWidget()
             if not curr_plan_widget:
                 QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst eine Planungsperiode öffnen.')
                 return
             plan_period = db_services.PlanPeriod.get(curr_plan_widget.plan_period_id)
+        else:
+            QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Unbekannter Tab.')
+            return
         excel_output_path = os.path.join(
             self._get_excel_folder_output_path(plan_period),
-            f'Verfügbarkeiten {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
+            f'Verfügbarkeiten {plan_period.team.name} {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
         )
         create_dir_if_not_exist(excel_output_path)
         exporter =avail_days_to_xlsx.ExportToXlsx(self, plan_period.id, excel_output_path)

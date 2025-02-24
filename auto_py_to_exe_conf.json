@@ -15,7 +15,7 @@
   },
   {
    "optionDest": "console",
-   "value": true
+   "value": false
   },
   {
    "optionDest": "icon_file",
@@ -80,6 +80,34 @@
   {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/favicon.ico;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/abseil_dll.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/highs.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/libprotobuf.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/ortools.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/re2.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/utf8_validity.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/zlib1.dll;."
   }
  ],
  "nonPyinstallerOptions": {

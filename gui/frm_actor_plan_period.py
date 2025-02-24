@@ -962,8 +962,6 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(self.bt_actor_partner_loc_prefs)
         self.bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
         self.side_menu.add_button(self.bt_fetch_avail_days_from_api)
-        self.bt_avail_days_to_excel = QPushButton('Verfügb. Tage Excel', clicked=self.export_avail_days_to_excel)
-        self.side_menu.add_button(self.bt_avail_days_to_excel)
 
     def reload_actor_plan_period(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
@@ -1479,10 +1477,6 @@ class FrmActorPlanPeriod(QWidget):
         QMessageBox.information(
             self, 'Fertigkeiten zurücksetzen',
             'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
-
-    def export_avail_days_to_excel(self):
-        exporter = avail_days_to_xlsx.ExportToXlsx(self, self.actor_plan_period.plan_period.id, "avail_days.xlsx")
-        exporter.execute()
 
 if __name__ == '__main__':
     app = QApplication()

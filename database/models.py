@@ -31,8 +31,8 @@ class Person(db.Entity):
     password = Required(str)
     requested_assignments = Optional(int, size=16, default=8, unsigned=True)
     notes = Optional(str, nullable=True)  # Allgemeine Anmerkungen zum Mitarbeiter.
-    created_at = Optional(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Optional(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     project = Required('Project', reverse='persons')
     team_actor_assigns = Set('TeamActorAssign')
@@ -62,14 +62,14 @@ class Person(db.Entity):
     def before_update(self):
         """Wenn sich der Wert von team_of_actor geändert hat, werden die aktuellen availables-Eiträge
         der Person gelöscht. die verbundenen avail_day-Einträge werden dann automatisch gelöscht."""
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
         # old_val = self._dbvals_.get(Person.team_of_actor)
         # new_val = self.team_of_actor
         # if new_val != old_val:
         #     for actor_p_p in self.actor_plan_periods:
         #         if not actor_p_p.plan_period.closed:
         #             actor_p_p.delete()
-        # self.last_modified = datetime.datetime.utcnow()
+        # self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
@@ -84,8 +84,8 @@ class Project(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50, unique=True)
     active = Required(bool, default=False)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     teams = Set('Team')
     persons = Set(Person, reverse='project')
     admin = Optional(Person, reverse='project_of_admin')
@@ -116,15 +116,15 @@ class Project(db.Entity):
         self.excel_export_settings = ExcelExportSettings()
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Team(db.Entity):
     # not_sure: time_of_days, time_of_day_standards auch hier?
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     notes = Optional(str, nullable=True, default=None)
     project = Required(Project)
@@ -143,7 +143,7 @@ class Team(db.Entity):
         self.excel_export_settings = self.project.excel_export_settings
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class PlanPeriod(db.Entity):
@@ -151,8 +151,8 @@ class PlanPeriod(db.Entity):
     start = Required(datetime.date)
     end = Required(datetime.date)
     deadline = Required(datetime.date)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     notes = Optional(str, nullable=True)
     notes_for_employees = Optional(str, nullable=True, default=None)  # Anmerkungen und Mitteilungen des Dispatchers.
@@ -169,14 +169,14 @@ class PlanPeriod(db.Entity):
         return self.team.project
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class ActorPlanPeriod(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     notes = Optional(str, nullable=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     plan_period = Required(PlanPeriod)
     person = Required(Person)
     avail_day_group = Optional('AvailDayGroup')
@@ -208,7 +208,7 @@ class ActorPlanPeriod(db.Entity):
         self.actor_location_prefs_defaults.add(self.person.actor_location_prefs_defaults)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class AvailDayGroup(db.Entity):
@@ -227,8 +227,8 @@ class AvailDayGroup(db.Entity):
     variation_weight = Required(int, size=8, default=1, unsigned=True)
     # Falls mehr AvailDayGroups in einer AvailDayGroup als nr_avail_day_groups der AvailDayGroup, können den Groups
     # durch variation_weight unterschiedliche Gewichtungen verliehen werden.
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     required_avail_day_groups = Optional('RequiredAvailDayGroups', cascade_delete=True)
 
     @property
@@ -236,7 +236,7 @@ class AvailDayGroup(db.Entity):
         return self.actor_plan_period or self.avail_day_group.actor_plan_period_getter
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class RequiredAvailDayGroups(db.Entity):
@@ -244,8 +244,13 @@ class RequiredAvailDayGroups(db.Entity):
     num_avail_day_groups = Optional(int, size=8, unsigned=True)
     avail_day_group = Required('AvailDayGroup')
     locations_of_work = Set('LocationOfWork')
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    #not_sure: Boolean-Feld "separate_locations" hinzufügen, um zu steuern,
+    # ob für jede Location separat num_avail_day_groups gelten soll.
+
+    def before_update(self):
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 
@@ -254,8 +259,8 @@ class AvailDay(db.Entity):
 Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     id = PrimaryKey(UUID, auto=True)
     date = Required(datetime.date)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     actor_plan_period = Required(ActorPlanPeriod)
     avail_day_group = Required('AvailDayGroup')
@@ -290,7 +295,7 @@ Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
         self.skills.add(self.actor_plan_period.person.skills)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class TimeOfDay(db.Entity):
@@ -303,8 +308,8 @@ Für LocationOfWork... gilt das gleiche Schema."""
     start = Required(datetime.time)
     end = Required(datetime.time)
     time_of_day_enum = Required('TimeOfDayEnum')
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     project = Required(Project, reverse='time_of_days_all')
     avail_days = Set(AvailDay, reverse='time_of_day')
@@ -324,14 +329,14 @@ Für LocationOfWork... gilt das gleiche Schema."""
 
     def before_update(self):
         """Falls diese Instanz keine Verwendung mehr hat, wird sie zum Löschen markiert."""
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class TimeOfDayEnum(db.Entity):
     """Zeigt durch den Index die Position im Tagesablauf an."""
     id = PrimaryKey(UUID, auto=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     name = Required(str, 50)
     abbreviation = Required(str, 10)
@@ -353,8 +358,8 @@ class LocationOfWork(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
     notes = Optional(str)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     address = Optional('Address')
     project = Required(Project)
@@ -378,7 +383,7 @@ class LocationOfWork(db.Entity):
         return f'{self.name} {self.address.city}' if self.address.city else self.name
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
     def before_insert(self):
         self.time_of_days.add(self.project.time_of_days)
@@ -391,13 +396,13 @@ class TeamActorAssign(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     start = Required(datetime.date, default=lambda: datetime.date.today())
     end = Optional(datetime.date)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     person = Required(Person)
     team = Required(Team)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class TeamLocationAssign(db.Entity):
@@ -406,13 +411,13 @@ class TeamLocationAssign(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     start = Required(datetime.date, default=lambda: datetime.date.today())
     end = Optional(datetime.date)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     location_of_work = Required(LocationOfWork)
     team = Required(Team)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Address(db.Entity):
@@ -421,15 +426,15 @@ class Address(db.Entity):
     street = Required(str, 50)
     postal_code = Required(str, 20)
     city = Required(str, 40)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     project = Required(Project)
     prep_delete = Optional(datetime.datetime)
     persons = Set(Person)
     location_of_work = Optional(LocationOfWork)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Event(db.Entity):
@@ -438,8 +443,8 @@ class Event(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50)
     notes = Optional(str, nullable=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     date = Required(datetime.date)
     time_of_day = Required(TimeOfDay, reverse='events')
@@ -461,7 +466,7 @@ class Event(db.Entity):
                 self.time_of_days.add(t_o_d)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class EventGroup(db.Entity):
@@ -479,7 +484,7 @@ class EventGroup(db.Entity):
     variation_weight = Required(int, size=8, default=1, unsigned=True)
     # Falls mehr Eventgroups in einer Eventgroup als nr_events der Eventgroup können variation_weight
     # den Eventgroups unterschiedliche Gewichtungen verliehen werden.
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     last_modified = Optional(datetime.datetime)
 
     @property
@@ -487,7 +492,7 @@ class EventGroup(db.Entity):
         return self.location_plan_period or self.event_group.location_plan_period_getter
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
     def before_insert(self):
         if not (self.location_plan_period or self.event_group) or (self.location_plan_period and self.event_group):
@@ -521,8 +526,8 @@ class CastRule(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     project = Required(Project)
     name = Required(str, 50, unique=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     rule = Required(str)
     # Literale z.B. "ABAC": stehen für Besetzungen
@@ -539,8 +544,8 @@ class LocationPlanPeriod(db.Entity):
        Jede LocationPlanPeriod enthält genau 1 Eventgroup."""
     id = PrimaryKey(UUID, auto=True)
     notes = Optional(str, nullable=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     time_of_days = Set(TimeOfDay)
     time_of_day_standards = Set(TimeOfDay, reverse='location_plan_periods_standard')
     plan_period = Required(PlanPeriod)
@@ -565,14 +570,14 @@ class LocationPlanPeriod(db.Entity):
         self.fixed_cast = self.location_of_work.fixed_cast
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Appointment(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     notes = Optional(str, nullable=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     avail_days = Set(AvailDay)  # je nach Besetzung werden mehrere Inst. von AvailDay zugeordnet.
     guests = Required(Json, default="[]")  # Es können die Namen von temporären Gastmitarbeitern eingesetzt werden.
@@ -588,7 +593,7 @@ class Appointment(db.Entity):
         return self.event.location_of_work
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
     def before_insert(self):
         self.notes = self.event.notes
@@ -604,8 +609,8 @@ class ActorPartnerLocationPref(db.Entity):
     müssen in ActorLocationPref vorgenommen werden."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
 
     person = Required(Person, reverse='actor_partner_location_prefs')
@@ -617,7 +622,7 @@ class ActorPartnerLocationPref(db.Entity):
     avail_days_defaults = Set(AvailDay)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Flag(db.Entity):
@@ -625,8 +630,8 @@ class Flag(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     category = Optional(str, nullable=True)
     name = Required(str, 30)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     project = Required(Project)
     persons = Set(Person)
@@ -635,7 +640,7 @@ class Flag(db.Entity):
     composite_key(name, project)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Skill(db.Entity):
@@ -652,8 +657,8 @@ class Skill(db.Entity):
     # # 0: nicht, 1: etwas, 2: gut, 3: sehr gut, 4: hervorragend
     persons = Set(Person)
     avail_days = Set(AvailDay)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     project = Required(Project)
     skill_groups = Set('SkillGroup')
@@ -661,7 +666,7 @@ class Skill(db.Entity):
     composite_key(name, project)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class SkillGroup(db.Entity):
@@ -671,12 +676,12 @@ class SkillGroup(db.Entity):
     nr_actors = Optional(int, size=16)  # Anzahl der Personen die den Skill beherrschen müssen. None: alle
     location_of_work = Optional(LocationOfWork)
     events = Set(Event)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class CombinationLocationsPossible(db.Entity):
@@ -687,8 +692,8 @@ class CombinationLocationsPossible(db.Entity):
     eine neue Instanz von AvailDay übernimmt die Combinations von ActorPlanPeriod."""
     id = PrimaryKey(UUID, auto=True)
     project = Required(Project)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
 
     # todo: Wenn sich Zusammensetzung vom Team ändert, sollten bei Bedarf Personen aus persons entfernt werden
@@ -702,7 +707,7 @@ class CombinationLocationsPossible(db.Entity):
     avail_days = Set(AvailDay)
 
     def before_update(self):  # sourcery skip: aware-datetime-for-utc
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class ActorLocationPref(db.Entity):
@@ -711,8 +716,8 @@ class ActorLocationPref(db.Entity):
     Score 2: bevorzugt in dieser Einrichtung."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     project = Required(Project)
     person = Required(Person)
@@ -722,15 +727,15 @@ class ActorLocationPref(db.Entity):
     avail_days_defaults = Set(AvailDay)
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class Plan(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     name = Required(str, 50)
     notes = Optional(str, nullable=True)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     prep_delete = Optional(datetime.datetime)
     appointments = Set(Appointment)
     plan_period = Required(PlanPeriod)
@@ -748,15 +753,15 @@ class Plan(db.Entity):
         self.notes = self.plan_period.notes
 
     def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 
 class MaxFairShiftsOfApp(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     max_shifts = Required(int, size=16, default=0, unsigned=True)
     fair_shifts = Required(float, default=0)
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     actor_plan_period = Required(ActorPlanPeriod)
 
 
@@ -770,8 +775,8 @@ class ExcelExportSettings(db.Entity):
     color_day_nrs_2 = Optional(str, 15, default="#FFFFFF")
     color_column_kw_1 = Optional(str, 15, default="#FFFFFF")
     color_column_kw_2 = Optional(str, 15, default="#FFFFFF")
-    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
-    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.utcnow())
+    created_at = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_modified = Required(datetime.datetime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     project = Optional(Project)
     teams = Set(Team)
     plans = Set(Plan)

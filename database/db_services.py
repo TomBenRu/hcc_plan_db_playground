@@ -264,7 +264,7 @@ class Team:
     def delete(cls, team_id: UUID) -> schemas.Team:
         log_function_info(cls)
         team_db = models.Team.get_for_update(id=team_id)
-        team_db.prep_delete = datetime.datetime.utcnow()
+        team_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
         return schemas.Team.model_validate(team_db)
 
 
@@ -456,7 +456,7 @@ class Person:
     def delete(cls, person_id: UUID) -> schemas.Person:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person_id)
-        person_db.prep_delete = datetime.datetime.utcnow()
+        person_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
         return schemas.Person.model_validate(person_db)
 
     @classmethod
@@ -706,7 +706,7 @@ class LocationOfWork:
     def delete(cls, location_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
         location_db = models.LocationOfWork.get_for_update(id=location_id)
-        location_db.prep_delete = datetime.datetime.utcnow()
+        location_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
         return schemas.LocationOfWork.model_validate(location_db)
 
     @classmethod
@@ -983,7 +983,7 @@ class TimeOfDay:
     def delete(cls, time_of_day_id: UUID) -> schemas.TimeOfDay:
         log_function_info(cls)
         time_of_day_db = models.TimeOfDay.get_for_update(lambda t: t.id == time_of_day_id)
-        time_of_day_db.prep_delete = datetime.datetime.utcnow()
+        time_of_day_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
         return schemas.TimeOfDay.model_validate(time_of_day_db)
 
     @classmethod
@@ -1006,7 +1006,7 @@ class TimeOfDay:
                            t_o_d.avail_days_defaults, t_o_d.avail_days, t_o_d.locations_of_work_defaults,
                            t_o_d.location_plan_periods_defaults, t_o_d.events_defaults, t_o_d.events]
             if all([not t_o_d.project_defaults, all(default.is_empty() for default in empty_check)]):
-                t_o_d.prep_delete = datetime.datetime.utcnow()
+                t_o_d.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
@@ -1067,7 +1067,7 @@ class TimeOfDayEnum:
         log_function_info(cls)
         time_of_day_enum_db = models.TimeOfDayEnum.get_for_update(id=time_of_day_enum_id)
         project_id = time_of_day_enum_db.project.id
-        time_of_day_enum_db.prep_delete = datetime.datetime.utcnow()
+        time_of_day_enum_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.TimeOfDayEnumShow.model_validate(time_of_day_enum_db)
 
@@ -1227,11 +1227,11 @@ class PlanPeriod:
         for actor_plan_period in plan_period_db.actor_plan_periods:
             for avail_day in actor_plan_period.avail_days:
                 if not (plan_period.start <= avail_day.date <= plan_period.end) and not avail_day.prep_delete:
-                    avail_day.prep_delete = datetime.datetime.utcnow()
+                    avail_day.prep_delete = datetime.datetime.now(datetime.timezone.utc)
         for location_plan_period in plan_period_db.location_plan_periods:
             for event in location_plan_period.events:
                 if not (plan_period.start <= event.date <= plan_period.end) and not event.prep_delete:
-                    event.prep_delete = datetime.datetime.utcnow()
+                    event.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
@@ -1249,7 +1249,7 @@ class PlanPeriod:
     def delete(cls, plan_period_id: UUID) -> schemas.PlanPeriodShow:
         log_function_info(cls)
         plan_period_db = models.PlanPeriod.get_for_update(id=plan_period_id)
-        plan_period_db.prep_delete = datetime.datetime.utcnow()
+        plan_period_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.PlanPeriodShow.model_validate(plan_period_db)
 
@@ -2328,7 +2328,7 @@ class CombinationLocationsPossible:
     def delete(cls, comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow:
         log_function_info(cls)
         comb_loc_poss_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_poss_id)
-        comb_loc_poss_db.prep_delete = datetime.datetime.utcnow()
+        comb_loc_poss_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.CombinationLocationsPossibleShow.model_validate(comb_loc_poss_db)
 
@@ -2360,7 +2360,7 @@ class ActorLocationPref:
     def delete(cls, actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
         log_function_info(cls)
         actor_loc_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
-        actor_loc_pref_db.prep_delete = datetime.datetime.utcnow()
+        actor_loc_pref_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.ActorLocationPrefShow.model_validate(actor_loc_pref_db)
 
@@ -2385,7 +2385,7 @@ class ActorLocationPref:
                 continue
             empty_check = [a_l_pref.actor_plan_periods_defaults, a_l_pref.avail_days_defaults]
             if all(default.is_empty() for default in empty_check) and not a_l_pref.person_default:
-                a_l_pref.prep_delete = datetime.datetime.utcnow()
+                a_l_pref.prep_delete = datetime.datetime.now(datetime.timezone.utc)
                 deleted_a_l_pref_ids.append(a_l_pref.id)
         return deleted_a_l_pref_ids
 
@@ -2444,7 +2444,7 @@ class ActorPartnerLocationPref:
     def delete(cls, actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
         log_function_info(cls)
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
-        actor_partner_loc_pref_db.prep_delete = datetime.datetime.utcnow()
+        actor_partner_loc_pref_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
 
@@ -2469,7 +2469,7 @@ class ActorPartnerLocationPref:
                 continue
             empty_check = [apl_pref.actor_plan_periods_defaults, apl_pref.avail_days_defaults]
             if all(default.is_empty() for default in empty_check) and not apl_pref.person_default:
-                apl_pref.prep_delete = datetime.datetime.utcnow()
+                apl_pref.prep_delete = datetime.datetime.now(datetime.timezone.utc)
                 deleted_apl_pref_ids.append(apl_pref.id)
         return deleted_apl_pref_ids
 
@@ -2529,7 +2529,7 @@ class Skill:
     def prep_delete(cls, skill_id: UUID, prep_delete: datetime.datetime = None) -> schemas.Skill:
         log_function_info(cls)
         skill_db = models.Skill.get_for_update(id=skill_id)
-        skill_db.prep_delete = prep_delete or datetime.datetime.utcnow()
+        skill_db.prep_delete = prep_delete or datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.Skill.model_validate(skill_db)
 
@@ -2641,7 +2641,7 @@ class Plan:
     def delete(cls, plan_id: UUID) -> schemas.PlanShow:
         log_function_info(cls)
         plan_db = models.Plan.get_for_update(id=plan_id)
-        plan_db.prep_delete = datetime.datetime.utcnow()
+        plan_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.PlanShow.model_validate(plan_db)
 
@@ -2827,7 +2827,7 @@ class Appointment:
     def delete(cls, appointment_id: UUID) -> schemas.AppointmentShow:
         log_function_info(cls)
         appointment_db = models.Appointment.get_for_update(id=appointment_id)
-        appointment_db.prep_delete = datetime.datetime.utcnow()
+        appointment_db.prep_delete = datetime.datetime.now(datetime.timezone.utc)
 
         return schemas.AppointmentShow.model_validate(appointment_db)
 

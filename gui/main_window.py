@@ -236,6 +236,12 @@ class MainWindow(QMainWindow):
 
         self.frm_master_data = None
 
+        self._activate_signals()
+
+    def _activate_signals(self):
+        signal_handling.handler_plan_period_tabs.signal_show_location_plan_period.connect(
+            self._show_location_plan_period_mask)
+
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
         if not db_services.Project.get_all():
@@ -587,6 +593,30 @@ class MainWindow(QMainWindow):
                                               functools.partial(self.edit_team_notes, team))]
                 for team in teams}
 
+    @Slot(UUID, UUID)
+    def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):
+        self.show_masks()
+        if next((i for i in range(self.tabs_planungsmasken.count())
+                 if self.tabs_planungsmasken.widget(i).plan_period_id == plan_period_id), None) is None:
+            self.open_plan_period_tab(plan_period_id, 1, None, None)
+        self._activate_tab_by_plan_period_id(plan_period_id, location_id)
+
+    def _activate_tab_by_plan_period_id(self, plan_period_id: UUID, location_id: UUID):
+        for i in range(self.tabs_planungsmasken.count()):
+            if (pp_widget := self.tabs_planungsmasken.widget(i)).plan_period_id == plan_period_id:
+                self.tabs_planungsmasken.setCurrentIndex(i)
+                self.load_location_plan_period_mask(pp_widget, location_id)
+                break
+
+    def load_location_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, location_id: UUID):
+        tab_locations_employees = plan_period_tab_widget.findChild(TabBar, 'tab_bar_locations_employees')
+        for i in range(tab_locations_employees.count()):
+            if (tab_locations := tab_locations_employees.widget(i)).objectName() == 'tab_location_plan_periods':
+                tab_locations_employees.setCurrentIndex(i)
+                tab_locations: FrmTabLocationPlanPeriods
+                tab_locations.data_setup(location_id=location_id)
+                break
+
     def open_plan_period_masks(self, plan_period_id: UUID):
         if not self.curr_team:
             QMessageBox.critical(self, 'Planungsmasken', 'Sie müssen zuerst ein Team auswählen.')
@@ -601,7 +631,8 @@ class MainWindow(QMainWindow):
         plan_period = db_services.PlanPeriod.get(plan_period_id)
         widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
         self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
-        tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None, True, False)
+        tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None,
+                             True, False, None, 'tab_bar_locations_employees')
 
         tab_actor_plan_periods = FrmTabActorPlanPeriods(tabs_period, plan_period)
         if curr_person_id:
@@ -703,7 +734,7 @@ class MainWindow(QMainWindow):
 
         new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan, self.global_update_plan_tabs_progress_manager)
         self.tabs_plans.addTab(new_widget, plan.name)
-        self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'plan tooltip')
+        self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'Rechtsklick: weitere Aktionen')
         self.tabs_plans.setCurrentIndex(self.tabs_plans.indexOf(new_widget))
 
     def plan_infos(self):

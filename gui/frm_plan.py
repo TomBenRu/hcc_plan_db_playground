@@ -5,10 +5,10 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication
-from PySide6.QtGui import QContextMenuEvent, QColor
+from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
-                               QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget)
+                               QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame)
 from line_profiler_pycharm import profile
 
 from commands import command_base_classes
@@ -277,6 +277,26 @@ class DlgMoveAppointment(QDialog):
     def accept(self):
         super().accept()
 
+
+class LabelLocation(QLabel):
+    def __init__(self, parent: QWidget,
+                 plan_period_id: UUID,
+                 location_of_work: schemas.LocationOfWorkShow,
+                 contents_margins: tuple[int, ...], fixed_width: int, word_wrap: bool = True):
+        super().__init__(parent=parent)
+        self.plan_period_id = plan_period_id
+        self.location_of_work = location_of_work
+        self.setText(location_of_work.name_an_city)
+        self.setContentsMargins(*contents_margins)
+        self.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedWidth(fixed_width)
+        self.setToolTip(f'Klick: Planungsmaske für {location_of_work.name_an_city} öffnen.')
+        self.setWordWrap(word_wrap)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        signal_handling.handler_plan_period_tabs.show_location_plan_period(
+            self.plan_period_id, self.location_of_work.id)
 
 
 
@@ -918,11 +938,9 @@ class FrmTabPlan(QWidget):
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
         self.table_plan.setStyleSheet('background-color: #2d2d2d; color: white')
-        self.display_headers_week_day_names()
-        # self.table_plan.setHorizontalHeaderLabels(list(self.weekdays_names.values()))
 
+        self.display_headers_week_day_names()
         self.display_headers_calender_weeks()
-        # self.table_plan.setVerticalHeaderLabels([''] + [f'KW {wd}' for wd in self.week_num_row])
 
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.display_headers_locations()
@@ -1005,11 +1023,8 @@ class FrmTabPlan(QWidget):
             container_layout.setContentsMargins(0, 0, 0, 0)
             container_layout.setSpacing(0)
             for location in locations:
-                widget = QLabel(f'{location.name} {location.address.city}')
-                widget.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
-                widget.setContentsMargins(7, 7, 7, 7)
-                widget.setFixedWidth(self.appointment_widget_width)
-                widget.setWordWrap(True)
+                widget = LabelLocation(self, self.plan.plan_period.id, location,
+                                       (7, 7, 7, 7),self.appointment_widget_width, True)
                 container_layout.addWidget(widget)
             self.table_plan.setCellWidget(0, self.weekday_cols[weekday], container)
 

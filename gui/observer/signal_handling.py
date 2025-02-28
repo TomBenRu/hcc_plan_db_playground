@@ -106,6 +106,13 @@ class HandlerLocationPlanPeriod(QObject):
         self.signal_reset_check_field.emit(location_plan_period_id)
 
 
+class HandlerPlanPeriodTabs(QObject):
+    signal_show_location_plan_period = Signal(UUID, UUID)
+
+    def show_location_plan_period(self, plan_period_id: UUID, location_plan_period_id: UUID):
+        self.signal_show_location_plan_period.emit(plan_period_id, location_plan_period_id)
+
+
 class HandlerPlanTabs(QObject):
     signal_event_changed = Signal(UUID)
     signal_reload_plan_from_db = Signal(object)
@@ -188,3 +195,4 @@ handler_show_dialog = HandlerShowDialog()
 handler_excel_export = HandlerExcelExport()
 handler_solver = HandlerSolver()
 handler_google_cal_api = HandlerGoogleCalAPI()
+handler_plan_period_tabs = HandlerPlanPeriodTabs()

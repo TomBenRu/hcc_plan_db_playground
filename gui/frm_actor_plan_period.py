@@ -741,6 +741,8 @@ class FrmTabActorPlanPeriods(QWidget):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
 
+        self.setObjectName('tab_actor_plan_periods')
+
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.actor_plan_periods = self.plan_period.actor_plan_periods
         self.pers_id__actor_pp = {

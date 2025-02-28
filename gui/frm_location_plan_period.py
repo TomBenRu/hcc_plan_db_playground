@@ -559,6 +559,8 @@ class FrmTabLocationPlanPeriods(QWidget):
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriod):
         super().__init__(parent=parent)
 
+        self.setObjectName('tab_location_plan_periods')
+
         signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)

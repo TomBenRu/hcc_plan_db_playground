@@ -1041,6 +1041,26 @@ class FrmTabPlan(QWidget):
                         AppointmentField(appointment, self))
 
 
+
+class CustomHeaderView(QHeaderView):
+    def __init__(self, parent: 'TblPlanStatistics', orientation):
+        super().__init__(orientation, parent)
+        self.parent = parent
+        self.setMouseTracking(True)  # Damit mouseMoveEvent auch ohne Mausklick ausgelöst wird
+
+    def mouseMoveEvent(self, event):
+        # Bestimmt, über welcher Spalte sich der Mauszeiger befindet
+        index = self.logicalIndexAt(event.pos())
+        person_id: UUID | None = self.parent.horizontalHeaderItem(index).data(Qt.ItemDataRole.UserRole)
+        if index >= 0 and person_id:
+            self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        # Weitergabe an die Basisklasse
+        super().mouseMoveEvent(event)
+
+
+
 class TblPlanStatistics(QTableWidget):
     def __init__(self, parent: QWidget, frm_plan: FrmTabPlan, plan_id: UUID):
         super().__init__(parent)
@@ -1050,14 +1070,23 @@ class TblPlanStatistics(QTableWidget):
 
         self.frm_plan = frm_plan
         self.plan_id = plan_id
+        custom_header = CustomHeaderView(self,Qt.Orientation.Horizontal)
+        custom_header.setSectionsClickable(True)
+        self.setHorizontalHeader(custom_header)
+        self.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
         self._setup_data()
         self._setup_table()
         self._fill_in_table_cells()
 
-        self.cellClicked.connect(self.on_cell_clicked)
+        self.cellClicked.connect(self._on_cell_clicked)
         self.setMouseTracking(True)
 
-    def on_cell_clicked(self, row: int, column: int):
+    def _on_header_clicked(self, column: int):
+        if person_id := self.horizontalHeaderItem(column).data(Qt.ItemDataRole.UserRole):
+            signal_handling.handler_plan_period_tabs.show_actor_plan_period(
+                self.frm_plan.plan.plan_period.id, person_id)
+
+    def _on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
         data = item.data(Qt.ItemDataRole.UserRole)
         actor_plan_period: schemas.ActorPlanPeriod = data['app']
@@ -1135,7 +1164,12 @@ class TblPlanStatistics(QTableWidget):
     def _setup_table(self):
         self.setColumnCount(len(self.appointments_of_employees))
         self.setRowCount(4)
-        self.setHorizontalHeaderLabels(self.appointments_of_employees.keys())
+        for i, (full_name, (actor_plan_period, _)) in enumerate(self.appointments_of_employees.items()):
+            header_item = QTableWidgetItem(full_name)
+            if actor_plan_period:
+                header_item.setData(Qt.ItemDataRole.UserRole, actor_plan_period.person.id)
+                header_item.setToolTip(f'Klick:\nPlanungsmaske für {full_name} öffnen.')
+            self.setHorizontalHeaderItem(i, header_item)
         for i in range(self.columnCount()):
             self.setColumnWidth(i, 100)
         self.setVerticalHeaderLabels(('gewünscht', 'möglich', 'gerecht', 'zugeteilt'))

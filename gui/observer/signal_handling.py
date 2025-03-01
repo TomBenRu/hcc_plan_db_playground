@@ -108,9 +108,13 @@ class HandlerLocationPlanPeriod(QObject):
 
 class HandlerPlanPeriodTabs(QObject):
     signal_show_location_plan_period = Signal(UUID, UUID)
+    signal_show_actor_plan_period = Signal(UUID, UUID)
 
-    def show_location_plan_period(self, plan_period_id: UUID, location_plan_period_id: UUID):
-        self.signal_show_location_plan_period.emit(plan_period_id, location_plan_period_id)
+    def show_location_plan_period(self, plan_period_id: UUID, location_of_work_id: UUID):
+        self.signal_show_location_plan_period.emit(plan_period_id, location_of_work_id)
+
+    def show_actor_plan_period(self, plan_period_id: UUID, person_id: UUID):
+        self.signal_show_actor_plan_period.emit(plan_period_id, person_id)
 
 
 class HandlerPlanTabs(QObject):

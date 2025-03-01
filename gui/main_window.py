@@ -241,6 +241,8 @@ class MainWindow(QMainWindow):
     def _activate_signals(self):
         signal_handling.handler_plan_period_tabs.signal_show_location_plan_period.connect(
             self._show_location_plan_period_mask)
+        signal_handling.handler_plan_period_tabs.signal_show_actor_plan_period.connect(
+            self._show_actor_plan_period_mask)
 
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
@@ -596,19 +598,32 @@ class MainWindow(QMainWindow):
     @Slot(UUID, UUID)
     def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):
         self.show_masks()
+        self._load_plan_period_if_not_loaded(plan_period_id)
+        plan_period_tab_widget: PlanPeriodTabWidget = self._activate_tab_by_plan_period_id(plan_period_id)
+        self._load_location_plan_period_mask(plan_period_tab_widget, location_id)
+
+    @Slot(UUID, UUID)
+    def _show_actor_plan_period_mask(self, plan_period_id: UUID, person_id: UUID):
+        self.show_masks()
+        self._load_plan_period_if_not_loaded(plan_period_id)
+        plan_period_tab_widget: PlanPeriodTabWidget = self._activate_tab_by_plan_period_id(plan_period_id)
+        self._load_actor_plan_period_mask(plan_period_tab_widget, person_id)
+
+    def _load_plan_period_if_not_loaded(self, plan_period_id: UUID):
         if next((i for i in range(self.tabs_planungsmasken.count())
                  if self.tabs_planungsmasken.widget(i).plan_period_id == plan_period_id), None) is None:
             self.open_plan_period_tab(plan_period_id, 1, None, None)
-        self._activate_tab_by_plan_period_id(plan_period_id, location_id)
 
-    def _activate_tab_by_plan_period_id(self, plan_period_id: UUID, location_id: UUID):
+    def _activate_tab_by_plan_period_id(self, plan_period_id: UUID) -> PlanPeriodTabWidget:
         for i in range(self.tabs_planungsmasken.count()):
             if (pp_widget := self.tabs_planungsmasken.widget(i)).plan_period_id == plan_period_id:
                 self.tabs_planungsmasken.setCurrentIndex(i)
-                self.load_location_plan_period_mask(pp_widget, location_id)
-                break
+                return pp_widget
 
-    def load_location_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, location_id: UUID):
+    def _load_location_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, location_id: UUID):
+        """
+        Aktiviert den Tab "Einrichtungen" im PlanPeriodTabWidget und zeigt die Events-Maske der gewählte Einrichtung an.
+        """
         tab_locations_employees = plan_period_tab_widget.findChild(TabBar, 'tab_bar_locations_employees')
         for i in range(tab_locations_employees.count()):
             if (tab_locations := tab_locations_employees.widget(i)).objectName() == 'tab_location_plan_periods':
@@ -616,6 +631,17 @@ class MainWindow(QMainWindow):
                 tab_locations: FrmTabLocationPlanPeriods
                 tab_locations.data_setup(location_id=location_id)
                 break
+
+    def _load_actor_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, person_id: UUID):
+        """
+        Aktiviert den Tab "Mitarbeiter" im PlanPeriodTabWidget und zeigt AvailDays-Maske der gewählten Person an.
+        """
+        tab_locations_employees = plan_period_tab_widget.findChild(TabBar, 'tab_bar_locations_employees')
+        for i in range(tab_locations_employees.count()):
+            if (tab_persons := tab_locations_employees.widget(i)).objectName() == 'tab_actor_plan_periods':
+                tab_locations_employees.setCurrentIndex(i)
+                tab_persons: FrmTabActorPlanPeriods
+                tab_persons.data_setup(None, None, person_id)
 
     def open_plan_period_masks(self, plan_period_id: UUID):
         if not self.curr_team:

@@ -696,7 +696,7 @@ class FrmTabPlan(QWidget):
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
-        self.bottom_menu = side_menu.SlideInMenu(self, 230, 10, 'bottom', (20, 10, 20, 10))
+        self.bottom_menu = side_menu.SlideInMenu(self, 215, 10, 'bottom', (20, 10, 20, 5))
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
 

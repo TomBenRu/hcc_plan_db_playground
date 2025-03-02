@@ -696,7 +696,7 @@ class FrmTabPlan(QWidget):
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
-        self.bottom_menu = side_menu.SlideInMenu(self, 210, 10, 'bottom', (20, 10, 20, 10))
+        self.bottom_menu = side_menu.SlideInMenu(self, 230, 10, 'bottom', (20, 10, 20, 10))
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
 
@@ -1043,10 +1043,13 @@ class FrmTabPlan(QWidget):
 
 
 class CustomHeaderView(QHeaderView):
-    def __init__(self, parent: 'TblPlanStatistics', orientation):
+    def __init__(self, parent: 'TblPlanStatistics', orientation, height: int, section_width: int, set_clickable: bool):
         super().__init__(orientation, parent)
         self.parent = parent
         self.setMouseTracking(True)  # Damit mouseMoveEvent auch ohne Mausklick ausgelöst wird
+        self.setDefaultSectionSize(section_width)
+        self.setFixedHeight(height)
+        self.setSectionsClickable(set_clickable)
 
     def mouseMoveEvent(self, event):
         # Bestimmt, über welcher Spalte sich der Mauszeiger befindet
@@ -1060,7 +1063,6 @@ class CustomHeaderView(QHeaderView):
         super().mouseMoveEvent(event)
 
 
-
 class TblPlanStatistics(QTableWidget):
     def __init__(self, parent: QWidget, frm_plan: FrmTabPlan, plan_id: UUID):
         super().__init__(parent)
@@ -1070,8 +1072,7 @@ class TblPlanStatistics(QTableWidget):
 
         self.frm_plan = frm_plan
         self.plan_id = plan_id
-        custom_header = CustomHeaderView(self,Qt.Orientation.Horizontal)
-        custom_header.setSectionsClickable(True)
+        custom_header = CustomHeaderView(self,Qt.Orientation.Horizontal, 30, 100, True)
         self.setHorizontalHeader(custom_header)
         self.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
         self._setup_data()
@@ -1170,8 +1171,8 @@ class TblPlanStatistics(QTableWidget):
                 header_item.setData(Qt.ItemDataRole.UserRole, actor_plan_period.person.id)
                 header_item.setToolTip(f'Klick:\nPlanungsmaske für {full_name} öffnen.')
             self.setHorizontalHeaderItem(i, header_item)
-        for i in range(self.columnCount()):
-            self.setColumnWidth(i, 100)
+        # for i in range(self.columnCount()):
+        #     self.setColumnWidth(i, 100)
         self.setVerticalHeaderLabels(('gewünscht', 'möglich', 'gerecht', 'zugeteilt'))
         self.setShowGrid(True)
         self.setGridStyle(Qt.PenStyle.SolidLine)

@@ -1,6 +1,7 @@
 import functools
 import logging
 import os.path
+import pprint
 import sys
 from uuid import UUID
 
@@ -132,8 +133,9 @@ class MainWindow(QMainWindow):
                               self.calculate_plans),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'), 'Plan-Infos...',
                               'Erstellt oder ändert Infos zur Planung.', self.plan_infos),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'), 'Einstellungen (Erstellung)...',
-                              'Einstellungen für die Berechnung der Pläne.', self.plan_calculation_settings),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'),
+                              'Einstellungen für Plan-Erstellung...', 'Einstellungen für die Berechnung der Pläne.',
+                              self.plan_calculation_settings),
             MenuToolbarAction(self, None, 'Excel Output-Ordner...',
                               'Ordner für die Ausgabe von Excel-Files festlegen', self.determine_excel_output_folder),
             MenuToolbarAction(self, None, 'Pläne des aktuellen Teams endgültig löschen...',
@@ -159,8 +161,9 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, 'Google-API Credentials importieren...', 'Kalender-ID des Google-Kalenders dieses Teams',
                               self.import_google_api_credentials),
             MenuToolbarAction(self, None, 'Upgrade...', 'Zum Erweitern von "hcc-plan"', self.upgrade_hcc_plan),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'), 'Einstellungen',
-                              'Allgemeine Programmeinstellungen.', self.general_setting),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'),
+                              'Allg. Programm-Einstellungen', 'Allgemeine Programmeinstellungen.',
+                              self.general_setting),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 'Hilfe...',
                               'Öffnet die Hilfe im Browser.', self.open_help, 'F1'),
             MenuToolbarAction(self, None, 'Auf Updates überprüfen...',
@@ -180,19 +183,21 @@ class MainWindow(QMainWindow):
         self.menu_actions = {
             '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
                        self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
-                       self.actions['import_from_plan_api'], None, self.actions['exit'],
-                       self.actions['settings_project']],
+                       self.actions['import_from_plan_api'], None,
+                       {
+                           'Exportieren': [self.actions['plan_export_to_excel'],
+                                           self.actions['export_avail_days_to_excel']]
+                        },
+                       self.actions['lookup_for_excel_plan_folder'],
+                       None, self.actions['exit']],
             '&Teams': [{'Teams bearbeiten': [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
                           None, self.actions['master_data']],
             '&Ansicht': [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
-                         self.actions['lookup_for_excel_plan_folder'],
                          self.actions['statistics']],
             '&Spielplan': [self.actions['calculate_plans'], self.actions['plan_infos'],
-                           self.actions['plan_calculation_settings'], self.actions['plan_excel_configs'],
-                           self.actions['determine_excel_output_folder'], None,
+                           self.actions['plan_excel_configs'], None,
                            self.actions['open_plan'], self.actions['plan_save'],
                            self.actions['plans_of_team_delete_prep_deletes'], None,
-                           self.actions['plan_export_to_excel'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
             '&Emails': [self.actions['send_email']],
@@ -200,9 +205,11 @@ class MainWindow(QMainWindow):
                                  None, self.actions['create_google_calendar'],
                                  self.actions['synchronize_google_calenders'],
                                  None, self.actions['import_google_api_credentials']],
-            'E&xtras': [self.actions['export_avail_days_to_excel'], None,
-                        self.actions['upgrade_hcc_plan'], None,
-                        self.actions['general_setting']],
+            'E&xtras': [self.actions['upgrade_hcc_plan'], None,
+                        self.actions['general_setting'],
+                        self.actions['settings_project'],
+                        self.actions['plan_calculation_settings'], None,
+                        self.actions['determine_excel_output_folder']],
             '&Hilfe': [self.actions['open_help'], None, self.actions['check_for_updates'], None,
                        self.actions['about_hcc_plan']]
         }
@@ -220,7 +227,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.tabs_left = TabBar(self.central_widget, 'west', 16, 200)
-        self.tabs_left.currentChanged.connect(self.toggled_plan_events)
+        self.tabs_left.currentChanged.connect(self._tabs_left_toggled)
 
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
@@ -957,18 +964,49 @@ class MainWindow(QMainWindow):
     def about_hcc_plan(self):
         ...
 
-    def toggled_plan_events(self):
+    def _tabs_left_toggled(self):
         menu: QMenu = self.main_menu.findChild(QMenu, 'Spielplan')
         if self.tabs_left.currentWidget().objectName() == 'masks':
             menu.setDisabled(True)
             self.actions['show_masks'].setChecked(True)
             for action in menu.actions():
                 action.setDisabled(True)
+            self.actions['plan_export_to_excel'].setDisabled(True)
+            self._replace_action_in_menu(self.main_menu.findChild(QMenu, 'Datei'),
+                                         self.actions['open_plan'], self.actions['open_plan_period_masks'])
+            self._replace_action_in_toolbar(self.toolbar,
+                                            self.actions['open_plan'], self.actions['open_plan_period_masks'])
+            self._replace_action_in_toolbar(self.toolbar,
+                                            self.actions['calculate_plans'], self.actions['new_plan_period'])
         else:
             menu.setEnabled(True)
             self.actions['show_plans'].setChecked(True)
             for action in menu.actions():
                 action.setEnabled(True)
+            self.actions['plan_export_to_excel'].setEnabled(True)
+            self._replace_action_in_menu(self.main_menu.findChild(QMenu, 'Datei'),
+                                         self.actions['open_plan_period_masks'], self.actions['open_plan'])
+            self._replace_action_in_toolbar(self.toolbar,
+                                            self.actions['open_plan_period_masks'], self.actions['open_plan'])
+            self._replace_action_in_toolbar(self.toolbar,
+                                            self.actions['new_plan_period'], self.actions['calculate_plans'])
+
+
+    def _replace_action_in_menu(self, menu: QMenu, old_action: QAction, new_action: QAction):
+        if menu:
+            actions = menu.actions()
+            if old_action in actions:
+                index = actions.index(old_action)
+                menu.insertAction(actions[index] if index < len(actions) else None, new_action)
+                menu.removeAction(old_action)
+
+    def _replace_action_in_toolbar(self, toolbar: MainToolBar, old_action: QAction, new_action: QAction):
+        if toolbar:
+            actions = toolbar.actions()
+            if old_action in actions:
+                index = actions.index(old_action)
+                toolbar.insertAction(actions[index] if index < len(actions) else None, new_action)
+                toolbar.removeAction(old_action)
 
     def restore_tabs(self):
         curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id

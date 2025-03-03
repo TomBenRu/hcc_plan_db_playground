@@ -181,6 +181,11 @@ class DlgEventPlanningRules(QDialog):
         self.layout_rule_same_day.addWidget(self.combo_rule_same_day)
         self.layout_rule_same_day.addWidget(self.bt_rule_same_day)
         self.chk_same_partial_days_for_all_rules = QCheckBox('Gleiche Tageswahl für alle Regeln')
+        self.chk_same_partial_days_for_all_rules.setToolTip(
+            'Wenn diese Option aktiviert ist,\n'
+            'werden die durch die Regeln festgelegten Events so gruppiert,\n'
+            'dass sie an den jeweils gleichen Tagen erstellt werden.'
+        )
         self.chk_same_partial_days_for_all_rules.setDisabled(True)
         self.chk_same_partial_days_for_all_rules.toggled.connect(self._set_text_description_to_default)
         self.layout_special_rules.addWidget(self.chk_same_partial_days_for_all_rules)

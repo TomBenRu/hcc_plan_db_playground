@@ -1209,6 +1209,8 @@ class TblPlanStatistics(QTableWidget):
         color = QColor(self.cell_backgrounds[kind][column % 2])
         item.setBackground(color)
         self.set_tool_tip(item, kind, actor_plan_period, full_name, column)
+        # Deaktiviere die Editierbarkeit des Items
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.setItem(self.row_kind_of_dates[kind], column, item)
 
     def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str,

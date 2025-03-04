@@ -173,12 +173,14 @@ class MainWindow(QMainWindow):
         }
         self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
-            self.actions['new_plan_period'], self.actions['master_data'], self.actions['open_plan'],
+            self.actions['new_plan_period'],
+            self.actions['open_plan'],
             self.actions['plan_save'], None,
-            self.actions['sheets_for_availables'], None,
             self.actions['plan_export_to_excel'],
-            self.actions['export_avail_days_to_excel'], None,
-            self.actions['lookup_for_excel_plan_folder'], None, self.actions['exit']
+            self.actions['export_avail_days_to_excel'],
+            self.actions['lookup_for_excel_plan_folder'], None,
+            self.actions['master_data'], None,
+            self.actions['exit']
         ]
         self.menu_actions = {
             '&Datei': [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
@@ -965,32 +967,52 @@ class MainWindow(QMainWindow):
         ...
 
     def _tabs_left_toggled(self):
-        menu: QMenu = self.main_menu.findChild(QMenu, 'Spielplan')
-        if self.tabs_left.currentWidget().objectName() == 'masks':
-            menu.setDisabled(True)
-            self.actions['show_masks'].setChecked(True)
-            for action in menu.actions():
-                action.setDisabled(True)
-            self.actions['plan_export_to_excel'].setDisabled(True)
-            self._replace_action_in_menu(self.main_menu.findChild(QMenu, 'Datei'),
-                                         self.actions['open_plan'], self.actions['open_plan_period_masks'])
-            self._replace_action_in_toolbar(self.toolbar,
-                                            self.actions['open_plan'], self.actions['open_plan_period_masks'])
-            self._replace_action_in_toolbar(self.toolbar,
-                                            self.actions['calculate_plans'], self.actions['new_plan_period'])
-        else:
-            menu.setEnabled(True)
-            self.actions['show_plans'].setChecked(True)
-            for action in menu.actions():
-                action.setEnabled(True)
-            self.actions['plan_export_to_excel'].setEnabled(True)
-            self._replace_action_in_menu(self.main_menu.findChild(QMenu, 'Datei'),
-                                         self.actions['open_plan_period_masks'], self.actions['open_plan'])
-            self._replace_action_in_toolbar(self.toolbar,
-                                            self.actions['open_plan_period_masks'], self.actions['open_plan'])
-            self._replace_action_in_toolbar(self.toolbar,
-                                            self.actions['new_plan_period'], self.actions['calculate_plans'])
-
+        """
+        Ändert die Inhalte der Menüs und Toolbar, wenn der Tab "Pläne" oder "Planungsmasken" ausgewählt wird.
+        """
+        menu_plan: QMenu = self.main_menu.findChild(QMenu, 'Spielplan')
+        toggle_actions = {
+            'masks': [
+                functools.partial(menu_plan.setDisabled, True),
+                functools.partial(self.actions['show_masks'].setChecked, True),
+                *[functools.partial(action.setDisabled, True) for action in menu_plan.actions()],
+                functools.partial(self.actions['plan_export_to_excel'].setDisabled, True),
+                functools.partial(self.actions['new_plan_period'].setEnabled, True),
+                functools.partial(self._replace_action_in_menu,
+                                  self.main_menu.findChild(QMenu, 'Datei'),
+                                  self.actions['open_plan'],
+                                  self.actions['open_plan_period_masks']),
+                functools.partial(self._replace_action_in_toolbar,
+                                  self.toolbar,
+                                  self.actions['open_plan'],
+                                  self.actions['open_plan_period_masks']),
+                functools.partial(self._replace_action_in_toolbar,
+                                  self.toolbar,
+                                  self.actions['calculate_plans'],
+                                  self.actions['new_plan_period'])
+            ],
+            'plans': [
+                functools.partial(menu_plan.setEnabled, True),
+                functools.partial(self.actions['show_plans'].setChecked, True),
+                *[functools.partial(action.setEnabled, True) for action in menu_plan.actions()],
+                functools.partial(self.actions['plan_export_to_excel'].setEnabled, True),
+                functools.partial(self.actions['new_plan_period'].setDisabled, True),
+                functools.partial(self._replace_action_in_menu,
+                                  self.main_menu.findChild(QMenu, 'Datei'),
+                                  self.actions['open_plan_period_masks'],
+                                  self.actions['open_plan']),
+                functools.partial(self._replace_action_in_toolbar,
+                                  self.toolbar,
+                                  self.actions['open_plan_period_masks'],
+                                  self.actions['open_plan']),
+                functools.partial(self._replace_action_in_toolbar,
+                                  self.toolbar,
+                                  self.actions['new_plan_period'],
+                                  self.actions['calculate_plans'])
+            ]
+        }
+        for toggle_action in toggle_actions[self.tabs_left.currentWidget().objectName()]:
+            toggle_action()
 
     def _replace_action_in_menu(self, menu: QMenu, old_action: QAction, new_action: QAction):
         if menu:

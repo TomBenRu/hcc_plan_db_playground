@@ -312,6 +312,7 @@ class LabelDayNr(QLabel):
         self.set_font_and_style()
 
         self.setText(day.strftime('%d.%m.%y'))
+        self.setToolTip(f'Klick: Verfügbarkeiten für {day:%d.%m.%y} anzeigen.')
 
     def set_font_and_style(self):
         self.setContentsMargins(0, 0, 0, 0)
@@ -472,7 +473,8 @@ class AppointmentField(QWidget):
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.setToolTip(f'<b>{self.appointment.event.location_plan_period.location_of_work.name_an_city}:</b><br>'
+        self.setToolTip(f'<b>{self.appointment.event.location_plan_period.location_of_work.name_an_city} '
+                        f'am {self.appointment.event.date:%d.%m.%y}:</b><br>'
                         f'◦ Klick: Besetzungsänderungen.<br>'
                         f'◦ Rechtsklick: weitere Aktionen.<br>'
                         f'<i><b>Anmerkungen:</b><br>{self.appointment.notes or "keine"}</i>')

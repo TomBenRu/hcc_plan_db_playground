@@ -659,6 +659,11 @@ to another day and another time of day.</translation>
         <source>Spielplan</source>
         <translation>Schedule</translation>
     </message>
+    <message>
+        <location filename="../main_window.py" line="1007"/>
+        <source>Datei</source>
+        <translation>File</translation>
+    </message>
 </context>
 <context>
     <name>TblPlanStatistics</name>

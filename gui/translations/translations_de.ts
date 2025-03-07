@@ -656,6 +656,11 @@ auf einen anderen Tag und andere Tageszeit verschieben.</source>
         <source>Spielplan</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../main_window.py" line="1007"/>
+        <source>Datei</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>TblPlanStatistics</name>

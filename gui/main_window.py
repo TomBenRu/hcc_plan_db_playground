@@ -1003,6 +1003,7 @@ class MainWindow(QMainWindow):
         Ändert die Inhalte der Menüs und Toolbar, wenn der Tab "Pläne" oder "Planungsmasken" ausgewählt wird.
         """
         menu_plan: QMenu = self.main_menu.findChild(QMenu, self.tr('Spielplan'))
+        file_menu_name = self.tr('Datei')
         toggle_actions = {
             'masks': [
                 functools.partial(menu_plan.setDisabled, True),
@@ -1011,7 +1012,7 @@ class MainWindow(QMainWindow):
                 functools.partial(self.actions['plan_export_to_excel'].setDisabled, True),
                 functools.partial(self.actions['new_plan_period'].setEnabled, True),
                 functools.partial(self._replace_action_in_menu,
-                                  self.main_menu.findChild(QMenu, 'Datei'),
+                                  self.main_menu.findChild(QMenu, file_menu_name),
                                   self.actions['open_plan'],
                                   self.actions['open_plan_period_masks']),
                 functools.partial(self._replace_action_in_toolbar,
@@ -1030,7 +1031,7 @@ class MainWindow(QMainWindow):
                 functools.partial(self.actions['plan_export_to_excel'].setEnabled, True),
                 functools.partial(self.actions['new_plan_period'].setDisabled, True),
                 functools.partial(self._replace_action_in_menu,
-                                  self.main_menu.findChild(QMenu, 'Datei'),
+                                  self.main_menu.findChild(QMenu, file_menu_name),
                                   self.actions['open_plan_period_masks'],
                                   self.actions['open_plan']),
                 functools.partial(self._replace_action_in_toolbar,

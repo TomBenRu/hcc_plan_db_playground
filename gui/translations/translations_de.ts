@@ -4,13 +4,89 @@
 <context>
     <name>AppointmentField</name>
     <message>
-        <location filename="../frm_plan.py" line="498"/>
-        <source>&lt;b&gt;%s am %S:&lt;/b&gt;&lt;br&gt;◦ Klick: Besetzungsänderungen.&lt;br&gt;◦ Rechtsklick: weitere Aktionen.&lt;br&gt;&lt;i&gt;&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
+        <location filename="../frm_plan.py" line="501"/>
+        <source>&lt;b&gt;%s am %s:&lt;/b&gt;&lt;br&gt;◦ Klick: Besetzungsänderungen.&lt;br&gt;◦ Rechtsklick: weitere Aktionen.&lt;br&gt;&lt;i&gt;&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="542"/>
+        <source>Überprüfung</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="543"/>
+        <source>Besetzungsänderungen werden auf Fehler getestet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="543"/>
+        <source>Abbruch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="554"/>
+        <location filename="../frm_plan.py" line="566"/>
+        <source>Besetzungsänderung</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="555"/>
+        <source>Die Änderung der Besetzung wurde erfolgreich vorgenommen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="564"/>
+        <source>&lt;h3&gt;Die Änderung der Besetzung ist nicht ohne Konflikt machbar.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s&lt;p&gt;Sollen die Änderungen zurückgenommen werden?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="580"/>
+        <source>Bewege %s am %s (%s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="587"/>
+        <source>Anmerkungen für %s am %s (%s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="602"/>
+        <location filename="../frm_plan.py" line="612"/>
+        <source>Termin verschieben</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="603"/>
+        <source>Am %s (%s)
+ist schon ein Termin von %s vorhanden</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="615"/>
+        <source>Am %s (%s)
+ist bereits ein Terminvorschlag für %s vorhanden.
+Dieser wird für die Änderung übernommen.
+Eventuell müssen sie die Variante der Tageszeit anpassen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="634"/>
+        <source>Termin-Anmerkungen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="635"/>
+        <source>Die neuen Anmerkungen wurden übernommen.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>DlgAvailAtDay</name>
+    <message>
+        <location filename="../frm_plan.py" line="71"/>
+        <source>Verfügbar</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <location filename="../frm_plan.py" line="95"/>
         <source>Am %s, %s
@@ -27,11 +103,135 @@ sind folgende Mitarbeiter verfügbar.</source>
 Hier können Sie die Besetzung ändern.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../frm_plan.py" line="169"/>
+        <source>Mitarbeiter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="191"/>
+        <source>Mitarbeiter %02d</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="192"/>
+        <source>Unbesetzt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="198"/>
+        <source>Gast</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgGuest</name>
+    <message>
+        <location filename="../frm_plan.py" line="122"/>
+        <source>Gastbesetzung</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="134"/>
+        <source>Fügen Sie den Namen des Gastes ein.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="140"/>
+        <source>Gastbesetzung:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgMoveAppointment</name>
+    <message>
+        <location filename="../frm_plan.py" line="234"/>
+        <source>Termin verschieben</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="256"/>
+        <source>Hier können Sie den Termin
+%s, %s (%s)
+auf einen anderen Tag und andere Tageszeit verschieben.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>FrmTabPlan</name>
+    <message>
+        <location filename="../frm_plan.py" line="703"/>
+        <source>Überprüfung im Hintergrund</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="704"/>
+        <source>Fehlerüberprüfung bei jeder Besetzungsänderung.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="708"/>
+        <source>Plan überprüfen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="711"/>
+        <location filename="../frm_plan.py" line="776"/>
+        <source>Statistiken aktualisieren</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="720"/>
+        <source>Ansicht aktualisieren</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="748"/>
+        <source>Überprüfung</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="749"/>
+        <source>Plan wird auf Fehler getestet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="749"/>
+        <location filename="../frm_plan.py" line="779"/>
+        <source>Abbruch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="761"/>
+        <location filename="../frm_plan.py" line="771"/>
+        <source>Plan Überprüfung</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="762"/>
+        <source>Es wurden keine Fehler in diesem Plan festgestellt.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="769"/>
+        <source>&lt;h3&gt;Es wurden Konflikte in diesem Plan festgestellt.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="777"/>
+        <source>Die Besetzungsstatistiken werden aktualisiert.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="872"/>
+        <source>Keine verbleibende Aktion</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>LabelDayNr</name>
     <message>
-        <location filename="../frm_plan.py" line="328"/>
+        <location filename="../frm_plan.py" line="332"/>
         <source>Klick: Verfügbarkeiten für %s anzeigen.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -39,7 +239,7 @@ Hier können Sie die Besetzung ändern.</source>
 <context>
     <name>LabelLocation</name>
     <message>
-        <location filename="../frm_plan.py" line="307"/>
+        <location filename="../frm_plan.py" line="311"/>
         <source>Klick: Planungsmaske für %s öffnen.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -424,6 +624,49 @@ Hier können Sie die Besetzung ändern.</source>
     <message>
         <location filename="../main_window.py" line="1003"/>
         <source>Spielplan</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TblPlanStatistics</name>
+    <message>
+        <location filename="../frm_plan.py" line="1198"/>
+        <source>Klick:
+Planungsmaske für %s öffnen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1202"/>
+        <source>gewünscht</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1202"/>
+        <source>möglich</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1203"/>
+        <source>gerecht</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1203"/>
+        <source>zugeteilt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1246"/>
+        <source>Klick:
+Mögliche Einsätze von %s
+im Plan markieren.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="1249"/>
+        <source>Klick:
+Aktuelle Einsätze von %s
+im Plan markieren.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

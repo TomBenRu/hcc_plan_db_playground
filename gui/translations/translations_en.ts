@@ -625,7 +625,37 @@ to another day and another time of day.</translation>
         <translation>&amp;Help</translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1003"/>
+        <location filename="../main_window.py" line="628"/>
+        <source>Einrichtunskombis...</source>
+        <translation>Facility Combinations...</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="629"/>
+        <source>Mögliche Kombinationen von Einrichtungen bearbeiten.</source>
+        <translation>Edit possible combinations of facilities.</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="631"/>
+        <source>Excel-Settings...</source>
+        <translation>Excel Settings...</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="632"/>
+        <source>Settings für Excel-Export des Plans bearbeiten.</source>
+        <translation>Edit settings for Excel export of the schedule.</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="634"/>
+        <source>Bemerkungen...</source>
+        <translation>Notes...</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="635"/>
+        <source>Bemerkungen des Teams bearbeiten.</source>
+        <translation>Edit team notes.</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="1005"/>
         <source>Spielplan</source>
         <translation>Schedule</translation>
     </message>

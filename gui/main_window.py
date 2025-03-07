@@ -625,12 +625,14 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
             return
-        return {team.name: [MenuToolbarAction(self, None, 'Einrichtunskombis...',
-                                              'Mögliche Kombinationen von Einrichtungen bearbeiten.',
+        return {team.name: [MenuToolbarAction(self, None, self.tr('Einrichtunskombis...'),
+                                              self.tr('Mögliche Kombinationen von Einrichtungen bearbeiten.'),
                                               functools.partial(self.edit_comb_loc_poss, team)),
-                            MenuToolbarAction(self, None, 'Excel-Settings...', 'Settings für Excel-Export des Plans bearbeiten.',
+                            MenuToolbarAction(self, None, self.tr('Excel-Settings...'),
+                                              self.tr('Settings für Excel-Export des Plans bearbeiten.'),
                                               functools.partial(self.edit_team_excel_export_settings, team)),
-                            MenuToolbarAction(self, None, 'Bemerkungen...', 'Bemerkungen des Teams bearbeiten.',
+                            MenuToolbarAction(self, None, self.tr('Bemerkungen...'),
+                                              self.tr('Bemerkungen des Teams bearbeiten.'),
                                               functools.partial(self.edit_team_notes, team))]
                 for team in teams}
 

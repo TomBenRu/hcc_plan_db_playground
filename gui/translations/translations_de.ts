@@ -622,7 +622,37 @@ auf einen anderen Tag und andere Tageszeit verschieben.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1003"/>
+        <location filename="../main_window.py" line="628"/>
+        <source>Einrichtunskombis...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="629"/>
+        <source>Mögliche Kombinationen von Einrichtungen bearbeiten.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="631"/>
+        <source>Excel-Settings...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="632"/>
+        <source>Settings für Excel-Export des Plans bearbeiten.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="634"/>
+        <source>Bemerkungen...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="635"/>
+        <source>Bemerkungen des Teams bearbeiten.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="1005"/>
         <source>Spielplan</source>
         <translation type="unfinished"></translation>
     </message>

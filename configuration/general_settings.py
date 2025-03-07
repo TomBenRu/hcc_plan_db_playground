@@ -22,6 +22,7 @@ class GeneralSettings(BaseModel):
     General settings for the application.
     """
     plan_settings: PlanSettings = PlanSettings()
+    language: str = ''
 
 
 class GeneralSettingsHandler:

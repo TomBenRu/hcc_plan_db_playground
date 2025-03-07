@@ -31,6 +31,17 @@ from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan
 
 
+WEEKDAY_NAMES = [
+    QCoreApplication.translate("WeekDays", "Montag"),
+    QCoreApplication.translate("WeekDays", "Dienstag"),
+    QCoreApplication.translate("WeekDays", "Mittwoch"),
+    QCoreApplication.translate("WeekDays", "Donnerstag"),
+    QCoreApplication.translate("WeekDays", "Freitag"),
+    QCoreApplication.translate("WeekDays", "Samstag"),
+    QCoreApplication.translate("WeekDays", "Sonntag")
+]
+
+
 def fill_in_data(appointment_field: 'AppointmentField'):
     appointment_field.lb_time_of_day.setText(f'{appointment_field.appointment.event.time_of_day.name}: '
                                              f'{appointment_field.appointment.event.time_of_day.start:%H:%M}'
@@ -45,7 +56,7 @@ def fill_in_data(appointment_field: 'AppointmentField'):
 
     if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)
                    - len(appointment_field.appointment.guests)):
-        missing_txt = f'unbesetzt: {missing}'
+        missing_txt = appointment_field.tr('unbesetzt: %d') % missing
         appointment_field.lb_missing.setText(missing_txt)
         appointment_field.layout.addWidget(appointment_field.lb_missing)
     else:
@@ -81,8 +92,10 @@ class DlgAvailAtDay(QDialog):
         self.group_actors.setStyleSheet('background-color: #2b2b2b')
         self.layout_actors = QFormLayout(self.group_actors)
         self.layout_actors.setSpacing(10)
-        self.lb_description = QLabel(f'Am {self.weekday_names[self.date.weekday()]}, {self.date:%d.%m.%y}\n'
-                                     f'sind folgende Mitarbeiter verfügbar.')
+        description_text = self.tr('Am %s, %s\nsind folgende Mitarbeiter verfügbar.') % (
+            self.weekday_names[self.date.weekday()],
+            self.date.strftime('%d.%m.%y'))
+        self.lb_description = QLabel(description_text)
         self.layout_head.addWidget(self.lb_description)
 
         for name, tz in self.actor_time_of_day.items():
@@ -94,7 +107,7 @@ class DlgAvailAtDay(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def _generate_data(self):
-        self.weekday_names = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+        self.weekday_names = WEEKDAY_NAMES
         avail_days = sorted(db_services.AvailDay.get_all_from__plan_period_date(self.plan_period_id, self.date),
                             key=lambda x: (x.actor_plan_period.person.full_name,
                                            x.time_of_day.time_of_day_enum.time_index))
@@ -146,12 +159,12 @@ class DlgEditAppointment(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
-        self.lb_explanation = QLabel(f'Einsätze am:\n'
-                                     f'{self.appointment.event.date:%d.%m.%y}, '
-                                     f'{self.appointment.event.location_plan_period.location_of_work.name} - '
-                                     f'{self.appointment.event.location_plan_period.location_of_work.address.city}, '
-                                     f'{self.appointment.event.time_of_day.name}\n'
-                                     f'Hier können Sie die Besetzung ändern.')
+        explanation_text = self.tr('Einsätze am:\n%s, %s - %s, %s\nHier können Sie die Besetzung ändern.') % (
+            self.appointment.event.date.strftime('%d.%m.%y'),
+            self.appointment.event.location_plan_period.location_of_work.name,
+            self.appointment.event.location_plan_period.location_of_work.address.city,
+            self.appointment.event.time_of_day.name)
+        self.lb_explanation = QLabel(explanation_text)
         self.layout_head.addWidget(self.lb_explanation)
         self.group_employees = QGroupBox('Mitarbeiter')
         self.layout_body.addWidget(self.group_employees)
@@ -291,7 +304,7 @@ class LabelLocation(QLabel):
         self.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedWidth(fixed_width)
-        self.setToolTip(f'Klick: Planungsmaske für {location_of_work.name_an_city} öffnen.')
+        self.setToolTip(self.tr('Klick: Planungsmaske für %s öffnen.') % location_of_work.name_an_city)
         self.setWordWrap(word_wrap)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
@@ -312,7 +325,7 @@ class LabelDayNr(QLabel):
         self.set_font_and_style()
 
         self.setText(day.strftime('%d.%m.%y'))
-        self.setToolTip(f'Klick: Verfügbarkeiten für {day:%d.%m.%y} anzeigen.')
+        self.setToolTip(self.tr('Klick: Verfügbarkeiten für %s anzeigen.') % day.strftime('%d.%m.%y'))
 
     def set_font_and_style(self):
         self.setContentsMargins(0, 0, 0, 0)
@@ -473,11 +486,19 @@ class AppointmentField(QWidget):
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        self.setToolTip(f'<b>{self.appointment.event.location_plan_period.location_of_work.name_an_city} '
-                        f'am {self.appointment.event.date:%d.%m.%y}:</b><br>'
-                        f'◦ Klick: Besetzungsänderungen.<br>'
-                        f'◦ Rechtsklick: weitere Aktionen.<br>'
-                        f'<i><b>Anmerkungen:</b><br>{self.appointment.notes or "keine"}</i>')
+        self.setToolTip(self._tool_tip_text())
+
+    def _tool_tip_text(self):
+        return self.tr(
+            '<b>%s am %s:</b><br>'
+            '◦ Klick: Besetzungsänderungen.<br>'
+            '◦ Rechtsklick: weitere Aktionen.<br>'
+            '<i><b>Anmerkungen:</b><br>%s</i>'
+        ) % (
+            self.appointment.event.location_plan_period.location_of_work.name_an_city,
+            self.appointment.event.date.strftime('%d.%m.%y'),
+            self.appointment.notes or ""
+        )
 
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
@@ -602,9 +623,7 @@ class AppointmentField(QWidget):
 
     def _reload_appointment_and_tooltip(self):
         self.appointment = db_services.Appointment.get(self.appointment.id)
-        self.setToolTip(f'◦ Klick: Besetzungsänderungen.\n'
-                        f'◦ Rechtsklick: weitere Aktionen.\n'
-                        f'Anmerkungen:\n{self.appointment.notes or ""}')
+        self.setToolTip(self._tool_tip_text())
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)
@@ -651,15 +670,7 @@ class FrmTabPlan(QWidget):
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.permanent_plan_check = True
 
-        self.weekday_names = {
-            1: 'Montag',
-            2: 'Dienstag',
-            3: 'Mittwoch',
-            4: 'Donnerstag',
-            5: 'Freitag',
-            6: 'Samstag',
-            7: 'Sonntag',
-        }
+        self.weekday_names = {i: name for i, name in enumerate(WEEKDAY_NAMES, start=1)}
 
         self.layout = QVBoxLayout(self)
 

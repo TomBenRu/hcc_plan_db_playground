@@ -1,7 +1,10 @@
+import os
+
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGroupBox, QFormLayout, QSpinBox,
-                               QDialogButtonBox)
+                               QDialogButtonBox, QComboBox)
 
 from configuration.general_settings import general_settings_handler
+from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class DlgGeneralSettings(QDialog):
@@ -27,10 +30,15 @@ class DlgGeneralSettings(QDialog):
         self.group_plan = QGroupBox('Plan')
         self.layout_body.addWidget(self.group_plan)
         self.layout_group_plan = QFormLayout(self.group_plan)
+        self.group_language = QGroupBox('Sprache')
+        self.layout_body.addWidget(self.group_language)
+        self.layout_group_language = QFormLayout(self.group_language)
         self.spin_column_width = QSpinBox()
         self.spin_column_width.setMinimum(100)
         self.spin_column_width.setMaximum(500)
         self.layout_group_plan.addRow('Spaltenbreite:', self.spin_column_width)
+        self.combo_language = QComboBoxToFindData()
+        self.layout_group_language.addRow('Sprache:', self.combo_language)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -40,8 +48,18 @@ class DlgGeneralSettings(QDialog):
     def _setup_data(self):
         self.general_settings = general_settings_handler.get_general_settings()
         self.spin_column_width.setValue(self.general_settings.plan_settings.column_width)
+        folder_translations = os.path.join(os.path.dirname(__file__), 'translations')
+        for file in sorted(os.listdir(folder_translations)):
+            if file.endswith('.qm'):
+                string_language = file.split('_')[1].split('.')[0]
+                self.combo_language.addItem(string_language, string_language)
+        if self.general_settings.language:
+            self.combo_language.setCurrentIndex(self.combo_language.findData(self.general_settings.language))
+        else:
+            self.combo_language.setCurrentIndex(self.combo_language.findData('en'))
 
     def accept(self):
         self.general_settings.plan_settings.column_width = self.spin_column_width.value()
+        self.general_settings.language = self.combo_language.currentData()
         general_settings_handler.save_to_toml_file(self.general_settings)
         super().accept()

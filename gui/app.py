@@ -4,10 +4,11 @@ import platform
 import sys
 import time
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTranslator, QLocale
 from PySide6.QtGui import QIcon, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from configuration.general_settings import general_settings_handler
 from configuration.project_paths import curr_user_path_handler
 from gui.custom_widgets.splash_screen import SplashScreen
 from tools import proof_only_one_instance
@@ -30,8 +31,7 @@ def is_windows_dark_mode():
         # Falls der Registry-Schlüssel nicht gefunden wird, Lightmode als Standard
         return False
 
-
-def set_dark_mode(app):
+def set_dark_mode(app: QApplication):
     # Erstelle eine Darkmode-Farbpalette
     dark_palette = QPalette()
 
@@ -54,9 +54,18 @@ def set_dark_mode(app):
     # Setze die erstellte Darkmode-Palette
     app.setPalette(dark_palette)
 
+def set_translator(app: QApplication):
+    app.translator = QTranslator()
+    if general_settings_handler.get_general_settings().language:
+        locale = general_settings_handler.get_general_settings().language
+    else:
+        locale = QLocale.system().name()[:2]
+    if app.translator.load(f'translations_{locale}', os.path.join(os.path.dirname(__file__), 'translations')):
+        app.installTranslator(app.translator)
 
 app = QApplication(sys.argv)
 app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
+set_translator(app)
 
 system = platform.system()
 if system == "Windows":
@@ -68,6 +77,7 @@ else:
     # Setze Darkmode für die Anwendung, falls der Betriebssystem nicht Windows ist
     set_dark_mode(app)
 
+# Check if another instance of the program is already running
 if system == "Windows":
     # proof_only_one_instance:
     if not proof_only_one_instance.check():
@@ -75,6 +85,7 @@ if system == "Windows":
                                                 "Sie können nur eine Instanz des Programms öffnen.")
         sys.exit(0)
 
+# Starte den Splashscreen
 splash = SplashScreen()
 splash.show()
 splash.simulate_loading()

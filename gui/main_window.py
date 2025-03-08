@@ -270,8 +270,8 @@ class MainWindow(QMainWindow):
         self.tabs_plans = TabBar(self.widget_plans, None, 10, 25, None, True,
                                  True, lambda point, index: self.context_menu_tabs_plans(point, index))
         self.tabs_plans.setObjectName('plans')
-        self.tabs_left.addTab(self.tabs_planungsmasken, 'Planungsmasken')
-        self.tabs_left.addTab(self.tabs_plans, 'Einsatzpläne')
+        self.tabs_left.addTab(self.tabs_planungsmasken, self.tr('Planungsmasken'))
+        self.tabs_left.addTab(self.tabs_plans, self.tr('Einsatzpläne'))
 
         self.frm_master_data = None
 

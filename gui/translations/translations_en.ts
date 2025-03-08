@@ -625,6 +625,16 @@ to another day and another time of day.</translation>
         <translation>&amp;Help</translation>
     </message>
     <message>
+        <location filename="../main_window.py" line="273"/>
+        <source>Planungsmasken</source>
+        <translation>Planning masks</translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="274"/>
+        <source>Einsatzpläne</source>
+        <translation>Schedules</translation>
+    </message>
+    <message>
         <location filename="../main_window.py" line="628"/>
         <source>Einrichtunskombis...</source>
         <translation>Facility Combinations...</translation>

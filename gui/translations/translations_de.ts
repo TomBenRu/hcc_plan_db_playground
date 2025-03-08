@@ -622,6 +622,16 @@ auf einen anderen Tag und andere Tageszeit verschieben.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../main_window.py" line="273"/>
+        <source>Planungsmasken</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="274"/>
+        <source>Einsatzpläne</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../main_window.py" line="628"/>
         <source>Einrichtunskombis...</source>
         <translation type="unfinished"></translation>

@@ -108,6 +108,10 @@
   {
    "optionDest": "binaries",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/zlib1.dll;."
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/translations;gui/translations/"
   }
  ],
  "nonPyinstallerOptions": {

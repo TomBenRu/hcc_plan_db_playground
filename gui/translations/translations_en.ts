@@ -59,6 +59,11 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../frm_plan.py" line="59"/>
+        <source>unfilled: %d</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../frm_plan.py" line="587"/>
         <source>Notes for %s on %s (%s)</source>
         <translation type="unfinished"></translation>
@@ -747,14 +752,6 @@ in the plan.</source>
     <message>
         <location filename="../frm_plan.py" line="45"/>
         <source>Sunday</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>appointment_field</name>
-    <message>
-        <location filename="../frm_plan.py" line="59"/>
-        <source>unfilled: %d</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

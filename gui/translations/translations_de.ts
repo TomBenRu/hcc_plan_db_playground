@@ -63,6 +63,11 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
         <translation>Verschiebe %s am %s (%s)</translation>
     </message>
     <message>
+        <location filename="../frm_plan.py" line="59"/>
+        <source>unfilled: %d</source>
+        <translation>unbesetzt %d</translation>
+    </message>
+    <message>
         <location filename="../frm_plan.py" line="587"/>
         <source>Notes for %s on %s (%s)</source>
         <translation>Anmerkungen für %s am %s (%s)</translation>
@@ -772,9 +777,8 @@ im Plan markieren.</translation>
 <context>
     <name>appointment_field</name>
     <message>
-        <location filename="../frm_plan.py" line="59"/>
         <source>unfilled: %d</source>
-        <translation>unbesetzt %d</translation>
+        <translation type="vanished">unbesetzt %d</translation>
     </message>
 </context>
 </TS>

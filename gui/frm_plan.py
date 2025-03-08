@@ -56,7 +56,7 @@ def fill_in_data(appointment_field: 'AppointmentField'):
 
     if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)
                    - len(appointment_field.appointment.guests)):
-        missing_txt = appointment_field.tr('unfilled: %d') % missing
+        missing_txt = QCoreApplication.translate("AppointmentField", "unfilled: %d") % missing
         appointment_field.lb_missing.setText(missing_txt)
         appointment_field.layout.addWidget(appointment_field.lb_missing)
     else:

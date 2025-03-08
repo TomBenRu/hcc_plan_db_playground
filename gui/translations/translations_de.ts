@@ -1,764 +1,780 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="de">
+<TS version="2.1" language="de_DE" sourcelanguage="en_US">
 <context>
     <name>AppointmentField</name>
     <message>
         <location filename="../frm_plan.py" line="501"/>
-        <source>&lt;b&gt;%s am %s:&lt;/b&gt;&lt;br&gt;◦ Klick: Besetzungsänderungen.&lt;br&gt;◦ Rechtsklick: weitere Aktionen.&lt;br&gt;&lt;i&gt;&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
-        <translation type="unfinished"></translation>
+        <source>&lt;b&gt;%s on %s:&lt;/b&gt;&lt;br&gt;◦ Click: Change cast.&lt;br&gt;◦ Right-click: More actions.&lt;br&gt;&lt;i&gt;&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
+        <translation>&lt;b&gt;%s am %s:&lt;/b&gt;&lt;br&gt;◦ Klick: Besetzungsänderungen.&lt;br&gt;◦ Rechtsklick: Weitee Aktionen.&lt;br&gt;&lt;i&gt;&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="542"/>
-        <source>Überprüfung</source>
-        <translation type="unfinished"></translation>
+        <source>Verification</source>
+        <translation>Überprüfung</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="543"/>
-        <source>Besetzungsänderungen werden auf Fehler getestet.</source>
-        <translation type="unfinished"></translation>
+        <source>Cast changes are being tested for errors.</source>
+        <translation>Besetzungsänderungen werden auf Fehler geprüft.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="543"/>
-        <source>Abbruch</source>
-        <translation type="unfinished"></translation>
+        <source>Cancel</source>
+        <translation>Abbruch</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="554"/>
         <location filename="../frm_plan.py" line="566"/>
-        <source>Besetzungsänderung</source>
-        <translation type="unfinished"></translation>
+        <source>Cast Change</source>
+        <translation>Besetzungsänderung</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="555"/>
-        <source>Die Änderung der Besetzung wurde erfolgreich vorgenommen.</source>
-        <translation type="unfinished"></translation>
+        <source>The cast change was successfully made.</source>
+        <translation>Die Besetzungsändeung wurde erfolgreich durchgeführt.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="564"/>
-        <source>&lt;h3&gt;Die Änderung der Besetzung ist nicht ohne Konflikt machbar.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s&lt;p&gt;Sollen die Änderungen zurückgenommen werden?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <source>&lt;h3&gt;The cast change cannot be made without conflicts.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s&lt;p&gt;Should the changes be undone?&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Die Besetzungsänderung kann nicht ohne Konflikt durchgeführt werden.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s&lt;p&gt;Sollen die Änderungen zurückgenommen werden?&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="603"/>
+        <source>On %s (%s)
+an appointment for %s already exists</source>
+        <translation>Am %s (%s)
+ist schon ein Termin für %s vorhanden</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="615"/>
+        <source>On %s (%s)
+an appointment for %s already exists.
+This will be used for the change.
+You may need to adjust the time of day variant.</source>
+        <translation>Am %s (%s)
+ist schon ein optionales Event für %s vorhanden
+Dieses wird für die Änderungen benutzt.
+Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="580"/>
-        <source>Bewege %s am %s (%s)</source>
-        <translation type="unfinished"></translation>
+        <source>Move %s on %s (%s)</source>
+        <translation>Verschiebe %s am %s (%s)</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="587"/>
-        <source>Anmerkungen für %s am %s (%s)</source>
-        <translation type="unfinished"></translation>
+        <source>Notes for %s on %s (%s)</source>
+        <translation>Anmerkungen für %s am %s (%s)</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="602"/>
         <location filename="../frm_plan.py" line="612"/>
-        <source>Termin verschieben</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_plan.py" line="603"/>
-        <source>Am %s (%s)
-ist schon ein Termin von %s vorhanden</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_plan.py" line="615"/>
-        <source>Am %s (%s)
-ist bereits ein Terminvorschlag für %s vorhanden.
-Dieser wird für die Änderung übernommen.
-Eventuell müssen sie die Variante der Tageszeit anpassen.</source>
-        <translation type="unfinished"></translation>
+        <source>Move appointment</source>
+        <translation>Termin verschieben</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="634"/>
-        <source>Termin-Anmerkungen</source>
-        <translation type="unfinished"></translation>
+        <source>Appointment Notes</source>
+        <translation>Termin-Anmerkungen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="635"/>
-        <source>Die neuen Anmerkungen wurden übernommen.</source>
-        <translation type="unfinished"></translation>
+        <source>The new notes have been applied.</source>
+        <translation>Die Anmerkungen wurden aktualisiert.</translation>
     </message>
 </context>
 <context>
     <name>DlgAvailAtDay</name>
     <message>
         <location filename="../frm_plan.py" line="71"/>
-        <source>Verfügbar</source>
-        <translation type="unfinished"></translation>
+        <source>Available</source>
+        <translation>Verfüggbar</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="95"/>
-        <source>Am %s, %s
-sind folgende Mitarbeiter verfügbar.</source>
-        <translation type="unfinished"></translation>
+        <source>On %s, %s
+the following employees are available.</source>
+        <translation>Am %s, %s
+sind folgende Mitarbeiter verfügbar.</translation>
     </message>
 </context>
 <context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
-        <source>Einsätze am:
+        <source>Assignments on:
 %s, %s - %s, %s
-Hier können Sie die Besetzung ändern.</source>
-        <translation type="unfinished"></translation>
+Here you can change the cast.</source>
+        <translation>Einsätze am:
+%s, %s - %s, %s
+Hier können Sie die Besetzung ändern.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="169"/>
-        <source>Mitarbeiter</source>
-        <translation type="unfinished"></translation>
+        <source>Employees</source>
+        <translation>Mitarbeiter</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="191"/>
-        <source>Mitarbeiter %02d</source>
-        <translation type="unfinished"></translation>
+        <source>Employee %02d</source>
+        <translation>Mitarbeiter %02d</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="192"/>
-        <source>Unbesetzt</source>
-        <translation type="unfinished"></translation>
+        <source>Unassigned</source>
+        <translation>Unbesetzt</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="198"/>
-        <source>Gast</source>
-        <translation type="unfinished"></translation>
+        <source>Guest</source>
+        <translation>Gast</translation>
     </message>
 </context>
 <context>
     <name>DlgGuest</name>
     <message>
         <location filename="../frm_plan.py" line="122"/>
-        <source>Gastbesetzung</source>
-        <translation type="unfinished"></translation>
+        <location filename="../frm_plan.py" line="140"/>
+        <source>Guest cast</source>
+        <translation>Gastbesetzung</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="134"/>
-        <source>Fügen Sie den Namen des Gastes ein.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_plan.py" line="140"/>
-        <source>Gastbesetzung:</source>
-        <translation type="unfinished"></translation>
+        <source>Insert the name of the guest.</source>
+        <translation>Fügen Sie den Namen des Gastes ein.</translation>
     </message>
 </context>
 <context>
     <name>DlgMoveAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="234"/>
-        <source>Termin verschieben</source>
-        <translation type="unfinished"></translation>
+        <source>Move appointment</source>
+        <translation>Termin verschieben</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="256"/>
-        <source>Hier können Sie den Termin
+        <source>Here you can move the appointment
 %s, %s (%s)
-auf einen anderen Tag und andere Tageszeit verschieben.</source>
-        <translation type="unfinished"></translation>
+to a different day and time.</source>
+        <translation>HIer können Sie den Termin
+%s, %s (%s)
+auf einen anderen Tag und andere Tageszeit verschieben.</translation>
     </message>
 </context>
 <context>
     <name>FrmTabPlan</name>
     <message>
         <location filename="../frm_plan.py" line="703"/>
-        <source>Überprüfung im Hintergrund</source>
-        <translation type="unfinished"></translation>
+        <source>Background Verification</source>
+        <translation>Überprüfung im Hintergrund</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="704"/>
-        <source>Fehlerüberprüfung bei jeder Besetzungsänderung.</source>
-        <translation type="unfinished"></translation>
+        <source>Verification of errors for each cast change.</source>
+        <translation>Für jede Besetungsänderung wird eine automatische Überprüfung durchgeführt.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="708"/>
-        <source>Plan überprüfen</source>
-        <translation type="unfinished"></translation>
+        <source>Verify plan</source>
+        <translation>Plan auf Fehler prüfen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="711"/>
         <location filename="../frm_plan.py" line="776"/>
-        <source>Statistiken aktualisieren</source>
-        <translation type="unfinished"></translation>
+        <source>Update statistics</source>
+        <translation>Statistiken aktualisieren</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="720"/>
-        <source>Ansicht aktualisieren</source>
-        <translation type="unfinished"></translation>
+        <source>Refresh view</source>
+        <translation>Ansicht aktualisieren</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="748"/>
-        <source>Überprüfung</source>
-        <translation type="unfinished"></translation>
+        <source>Verification</source>
+        <translation>Überprüfung</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="749"/>
-        <source>Plan wird auf Fehler getestet.</source>
-        <translation type="unfinished"></translation>
+        <source>Plan is tested for errors.</source>
+        <translation>Der Plan wird auf Fehler überprüft.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="749"/>
         <location filename="../frm_plan.py" line="779"/>
-        <source>Abbruch</source>
-        <translation type="unfinished"></translation>
+        <source>Cancel</source>
+        <translation>Abbruch</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="761"/>
         <location filename="../frm_plan.py" line="771"/>
-        <source>Plan Überprüfung</source>
-        <translation type="unfinished"></translation>
+        <source>Verification of plan</source>
+        <translation>Überprüfung des Plans</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="762"/>
-        <source>Es wurden keine Fehler in diesem Plan festgestellt.</source>
-        <translation type="unfinished"></translation>
+        <source>No errors were found in this plan.</source>
+        <translation>Es wurden keine Fehler in diesem Plan gefunden.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="769"/>
-        <source>&lt;h3&gt;Es wurden Konflikte in diesem Plan festgestellt.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s</source>
-        <translation type="unfinished"></translation>
+        <source>&lt;h3&gt;Conflicts were found in this plan.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s</source>
+        <translation>&lt;h3&gt;Die Änderung der Besetzung ist nicht ohne Konflikt machbar.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="777"/>
-        <source>Die Besetzungsstatistiken werden aktualisiert.</source>
-        <translation type="unfinished"></translation>
+        <source>The cast statistics are being updated.</source>
+        <translation>Die Besetzungsstatistiken werden aktualisiert.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="872"/>
-        <source>Keine verbleibende Aktion</source>
-        <translation type="unfinished"></translation>
+        <source>No remaining action</source>
+        <translation>Keine verbleibende Aktion</translation>
     </message>
 </context>
 <context>
     <name>LabelDayNr</name>
     <message>
         <location filename="../frm_plan.py" line="332"/>
-        <source>Klick: Verfügbarkeiten für %s anzeigen.</source>
-        <translation type="unfinished"></translation>
+        <source>Click: Show availabilities for %s.</source>
+        <translation>KLick: Zeige Verfügbarkeiten für %s.</translation>
     </message>
 </context>
 <context>
     <name>LabelLocation</name>
     <message>
+        <source>Click: Open planning mask for %s</source>
+        <translation type="vanished">Wechsle zur Planungsmaske von %s</translation>
+    </message>
+    <message>
         <location filename="../frm_plan.py" line="311"/>
-        <source>Klick: Planungsmaske für %s öffnen.</source>
-        <translation type="unfinished"></translation>
+        <source>Click:
+Open planning mask for %s</source>
+        <translation>Klick:
+Planungsmaske für %s öffnen</translation>
     </message>
 </context>
 <context>
     <name>MainWindow</name>
     <message>
         <location filename="../main_window.py" line="85"/>
-        <source>Öffenen... (Planung)</source>
-        <translation type="unfinished"></translation>
+        <source>Open... (Planning)</source>
+        <translation>Öffnen... (Planung)</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="86"/>
-        <source>Öffnet Planungsdaten für Locations und Mitarbeiter einer bestimmten Planungsperiode</source>
-        <translation type="unfinished"></translation>
+        <source>Opens planning data for locations and employees of a specific planning period</source>
+        <translation>Öffnet die Planungsdaten für Einsatzorte und Mitarbeiter eines bestimmten Planungszeitraums</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="89"/>
-        <source>Neue Planung...</source>
-        <translation type="unfinished"></translation>
+        <source>New Planning...</source>
+        <translation>Neue Planung...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="90"/>
-        <source>Legt eine neue Planung an.</source>
-        <translation type="unfinished"></translation>
+        <source>Creates a new planning.</source>
+        <translation>Erstellt eine neue Planungsperiode.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="92"/>
-        <source>Planung ändern...</source>
-        <translation type="unfinished"></translation>
+        <source>Edit Planning...</source>
+        <translation>Planung ändern...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="93"/>
-        <source>Ändern oder Löschen einer vorhandenen Planung.</source>
-        <translation type="unfinished"></translation>
+        <source>Edit or delete an existing planning.</source>
+        <translation>Ändert oder löscht eine existierende Planung.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="95"/>
-        <source>Projekt-Einstellungen...</source>
-        <translation type="unfinished"></translation>
+        <source>Project Settings...</source>
+        <translation>Projekt-Einstellungen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="96"/>
-        <source>Bearbeiten der Grundeinstellungen des Projekts</source>
-        <translation type="unfinished"></translation>
+        <source>Edit basic project settings</source>
+        <translation>Bearbeiten der Grundeinstellungen des Projektes</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="98"/>
-        <source>Öffnen... (Pläne)</source>
-        <translation type="unfinished"></translation>
+        <source>Open... (Plans)</source>
+        <translation>Öffnen... (Pläne)</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="99"/>
-        <source>Öffnet einen bereits erstellten Plan.</source>
-        <translation type="unfinished"></translation>
+        <source>Opens an existing plan.</source>
+        <translation>Öffnet einen bereits erstellten Plan.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="101"/>
-        <source>Plan speichern...</source>
-        <translation type="unfinished"></translation>
+        <source>Save Plan...</source>
+        <translation>Plan speichern...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="102"/>
-        <source>Speichert den aktiven Plan</source>
-        <translation type="unfinished"></translation>
+        <source>Saves the active plan</source>
+        <translation>Speichert den aktiven Plan</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="105"/>
-        <source>Excel-Einstellungen</source>
-        <translation type="unfinished"></translation>
+        <source>Excel Settings</source>
+        <translation>Excel-Settings</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="106"/>
-        <source>Einstellungen der Farben in der exportierten Excel-Datei...</source>
-        <translation type="unfinished"></translation>
+        <source>Color settings for the exported Excel file...</source>
+        <translation>Farbeinstellungen für einen exportierten Plan bearbeiten...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="109"/>
-        <source>Listen für Sperrtermine erzeugen...</source>
-        <translation type="unfinished"></translation>
+        <source>Generate Blocked Dates Lists...</source>
+        <translation>Listen für Sperrtermine erzeugen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="110"/>
-        <source>Erstellt Listen, in welche Mitarbeiter ihre Sperrtermine eintragen können.</source>
-        <translation type="unfinished"></translation>
+        <source>Creates lists where employees can enter their blocked dates.</source>
+        <translation>Erstellt Listen, in welche Mitarbeiter ihre Sperrterminen eintragen können.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="113"/>
-        <source>Daten von Online-API importieren...</source>
-        <translation type="unfinished"></translation>
+        <source>Import Data from Online API...</source>
+        <translation>Daten von der Online-API importieren...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="114"/>
-        <source>Import von Daten aus der API</source>
-        <translation type="unfinished"></translation>
+        <source>Import data from API</source>
+        <translation>Importiert Daten von der API</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="117"/>
-        <source>Plan Excel-Export...</source>
-        <translation type="unfinished"></translation>
+        <source>Export Plan to Excel...</source>
+        <translation>Plan Exvel-Export...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="118"/>
-        <source>Exportiert den aktiven Plan in einer Excel-Datei</source>
-        <translation type="unfinished"></translation>
+        <source>Exports the active plan to an Excel file</source>
+        <translation>Exportiert den aktiven Plan zu einer Excel-Datei</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="121"/>
-        <source>Öffnen des Excel-Export-Ordners</source>
-        <translation type="unfinished"></translation>
+        <source>Open Excel Export Folder</source>
+        <translation>Öffnen des Excel-Export-Ordners</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="122"/>
-        <source>Pläne der aktuellen Planungen und Verfügbarkeiten werden im Explorer angezeigt.</source>
-        <translation type="unfinished"></translation>
+        <source>Shows current plans and availabilities in Explorer.</source>
+        <translation>Pläne und Verfügbarkeiten werden im Explorer angezeigt.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="125"/>
-        <source>Programm beenden</source>
-        <translation type="unfinished"></translation>
+        <source>Exit Program</source>
+        <translation>Programm beenden</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="129"/>
-        <source>Stammdaten...</source>
-        <translation type="unfinished"></translation>
+        <source>Master Data...</source>
+        <translation>Stammdaten...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="130"/>
-        <source>Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.</source>
-        <translation type="unfinished"></translation>
+        <source>Edit master data of employees and work locations.</source>
+        <translation>Stammdaten von Mitarbeitern und Einsatzorten bearbeiten.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="132"/>
-        <source>Pläne anzeigen</source>
-        <translation type="unfinished"></translation>
+        <source>Show Plans</source>
+        <translation>Pläne anzeigen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="133"/>
-        <source>Masken anzeigen</source>
-        <translation type="unfinished"></translation>
+        <source>Show Masks</source>
+        <translation>Maskein azeigen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="135"/>
-        <source>Übersicht Verfügbarkeiten Excel-Export</source>
-        <translation type="unfinished"></translation>
+        <source>Export Availability Overview to Excel</source>
+        <translation>Übersicht Verfügbarkeiten Excel-Export</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="136"/>
-        <source>Exportiert eine Übersicht der Verfügbarkeiten der Mitarbeiter in dieser Planung.</source>
-        <translation type="unfinished"></translation>
+        <source>Exports an overview of employee availabilities in this planning.</source>
+        <translation>Exportiert eine Übersicht der Verfügbarkeiten der Mitarbeiter in dieser Planung.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="139"/>
-        <source>Übersicht Einsätze der Mitarbeiter</source>
-        <translation type="unfinished"></translation>
+        <source>Employee Assignments Overview</source>
+        <translation>Übersicht Einsätze der Mitarbeiter</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="140"/>
-        <source>Zeigt eine Übersicht der Einsätze aller Mitarbeiter*innen an.</source>
-        <translation type="unfinished"></translation>
+        <source>Shows an overview of all employee assignments.</source>
+        <translation>Zeigt eine Übersicht der Einsätze aller Mitarbeiter an.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="143"/>
-        <source>Einsatzpläne erstellen...</source>
-        <translation type="unfinished"></translation>
+        <source>Create Assignment Plans...</source>
+        <translation>Einsatzpläne erstellen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="144"/>
-        <source>Einen oder mehrere Einsatzpläne einer bestimmten Periode erstellen.</source>
-        <translation type="unfinished"></translation>
+        <source>Create one or more assignment plans for a specific period.</source>
+        <translation>Eine oder mehrere Einsatzpläne einer bestimmten Periode erstellen.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="147"/>
-        <source>Plan-Infos...</source>
-        <translation type="unfinished"></translation>
+        <source>Plan Information...</source>
+        <translation>Plan-Infos...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="148"/>
-        <source>Erstellt oder ändert Infos zur Planung.</source>
-        <translation type="unfinished"></translation>
+        <source>Create or modify planning information.</source>
+        <translation>Erstellt oder ändert Infos zur Planung.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="151"/>
-        <source>Einstellungen für Plan-Erstellung...</source>
-        <translation type="unfinished"></translation>
+        <source>Settings for Plan Creation...</source>
+        <translation>Einstellungen für Planerstellung...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="152"/>
-        <source>Einstellungen für die Berechnung der Pläne.</source>
-        <translation type="unfinished"></translation>
+        <source>Settings for plan calculation.</source>
+        <translation>Einstellungen für die Berechnung der Pläne.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="154"/>
-        <source>Excel Output-Ordner...</source>
-        <translation type="unfinished"></translation>
+        <source>Excel Output Folder...</source>
+        <translation>Excel Output-Ordner...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="155"/>
-        <source>Ordner für die Ausgabe von Excel-Files festlegen</source>
-        <translation type="unfinished"></translation>
+        <source>Set folder for Excel file output</source>
+        <translation>Ordner für die Ausgabe von Excel-Dateien festlegen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="157"/>
-        <source>Pläne des aktuellen Teams endgültig löschen...</source>
-        <translation type="unfinished"></translation>
+        <source>Permanently Delete Current Team&apos;s Plans...</source>
+        <translation>Pläne des aktuellen Team entgültig löschen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="158"/>
-        <source>Die zum Löschen markierten Pläne des aktuellen Teams werden endgültig gelöscht</source>
-        <translation type="unfinished"></translation>
+        <source>The marked plans of the current team will be permanently deleted</source>
+        <translation>Die zum Löschen markierten Pläne des aktuellen Teams werden entgültig gelöscht</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="160"/>
-        <source>Events aus Plan zu Events-Maske...</source>
-        <translation type="unfinished"></translation>
+        <source>Events from Plan to Events Mask...</source>
+        <translation>Events aus Plan zu Events-Maske...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="161"/>
-        <source>Termine aus aktivem Plan in Planungsmaske Einrichtungen übernehmen.</source>
-        <translation type="unfinished"></translation>
+        <source>Transfer appointments from active plan to facilities planning mask.</source>
+        <translation>Termine aus aktuellem Plan in Planungsmasken der Einrichtungen übernehmen.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="164"/>
         <source>Emails...</source>
-        <translation type="unfinished"></translation>
+        <translation>Emails...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="165"/>
-        <source>Emails versenden.</source>
-        <translation type="unfinished"></translation>
+        <source>Send emails.</source>
+        <translation>Emails senden.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="168"/>
-        <source>Termine übertragen</source>
-        <translation type="unfinished"></translation>
+        <source>Transfer Appointments</source>
+        <translation>Termine übertragen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="169"/>
-        <source>Termine des aktiven Plans zum Google-Kalender übertragen</source>
-        <translation type="unfinished"></translation>
+        <source>Transfer appointments from active plan to Google Calendar</source>
+        <translation>Termine des aktiven Plans zum Google-Kalender übertragen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="172"/>
-        <source>Google-Kalender anlegen</source>
-        <translation type="unfinished"></translation>
+        <source>Create Google Calendar</source>
+        <translation>Google-Kalender anlegen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="173"/>
-        <source>Einen neuen Google-Kalender anlegen</source>
-        <translation type="unfinished"></translation>
+        <source>Create a new Google Calendar</source>
+        <translation>Einen neuen Google-Kalender anlegen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="175"/>
-        <source>Lokale Kalenderliste abgleichen</source>
-        <translation type="unfinished"></translation>
+        <source>Synchronize Local Calendar List</source>
+        <translation>Lokale Kalenderliste abgleichen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="176"/>
-        <source>Gleicht die lokale Kalenderliste mit den online verfügbarn Google-kalendern ab</source>
-        <translation type="unfinished"></translation>
+        <source>Synchronizes the local calendar list with available online Google calendars</source>
+        <translation>Gleicht die lokale Kalenderliste mit den online vefügbaren Kalendern ab</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="179"/>
-        <source>Google-Kalender öffnen...</source>
-        <translation type="unfinished"></translation>
+        <source>Open Google Calendar...</source>
+        <translation>Google-Kalender öffnen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="180"/>
-        <source>Öffnet den Google-Kalender im Browser</source>
-        <translation type="unfinished"></translation>
+        <source>Opens Google Calendar in browser</source>
+        <translation>Öffnet den Google-Kalender im Browser</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="182"/>
-        <source>Google-API Credentials importieren...</source>
-        <translation type="unfinished"></translation>
+        <source>Import Google API Credentials...</source>
+        <translation>Google-API Credentials importieren...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="183"/>
-        <source>Kalender-ID des Google-Kalenders dieses Teams</source>
-        <translation type="unfinished"></translation>
+        <source>Import Credentials of a Google Calendar for this team from JSON file.</source>
+        <translation>Credentials eines Google-Kalenders für dieses Team importiern.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="185"/>
         <source>Upgrade...</source>
-        <translation type="unfinished"></translation>
+        <translation>Upgrade...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="186"/>
-        <source>Zum Erweitern von &quot;hcc-plan&quot;</source>
-        <translation type="unfinished"></translation>
+        <source>To extend &quot;hcc-plan&quot;</source>
+        <translation>Funktionalität von &quot;hcc-plan&quot; erweitern</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="189"/>
-        <source>Allg. Programm-Einstellungen</source>
-        <translation type="unfinished"></translation>
+        <source>General Program Settings</source>
+        <translation>Allgemeine Programmeinstellungen</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="190"/>
-        <source>Allgemeine Programmeinstellungen.</source>
-        <translation type="unfinished"></translation>
+        <source>General program settings.</source>
+        <translation>Allgemeine Programmeinstellungen.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="193"/>
-        <source>Hilfe...</source>
-        <translation type="unfinished"></translation>
+        <source>Help...</source>
+        <translation>Hilfe...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="194"/>
-        <source>Öffnet die Hilfe im Browser.</source>
-        <translation type="unfinished"></translation>
+        <source>Opens help in browser.</source>
+        <translation>Öffnet die Hilfe im Browser.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="196"/>
-        <source>Auf Updates überprüfen...</source>
-        <translation type="unfinished"></translation>
+        <source>Check for Updates...</source>
+        <translation>Auf Updates überprüfen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="197"/>
-        <source>Überprüft, ob Updates zum Programm vorhanden sind.</source>
-        <translation type="unfinished"></translation>
+        <source>Checks if program updates are available.</source>
+        <translation>Überprüft, ob es Updates für dieses Progromm gibt.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="200"/>
-        <source>Über...</source>
-        <translation type="unfinished"></translation>
+        <source>About...</source>
+        <translation>Über...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="201"/>
-        <source>Info über das Programm</source>
-        <translation type="unfinished"></translation>
+        <source>Information about the program</source>
+        <translation>Informationen über dieses Programm</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="216"/>
-        <source>&amp;Datei</source>
-        <translation type="unfinished"></translation>
+        <source>&amp;File</source>
+        <translation>&amp;Datei</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="220"/>
-        <source>Exportieren</source>
-        <translation type="unfinished"></translation>
+        <source>Export</source>
+        <translation>Export</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="225"/>
         <source>&amp;Teams</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Teams</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="225"/>
-        <source>Teams bearbeiten</source>
-        <translation type="unfinished"></translation>
+        <source>Edit Teams</source>
+        <translation>Teams bearbeiten</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="227"/>
-        <source>&amp;Ansicht</source>
-        <translation type="unfinished"></translation>
+        <source>&amp;View</source>
+        <translation>&amp;Ansicht</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="229"/>
-        <source>&amp;Spielplan</source>
-        <translation type="unfinished"></translation>
+        <source>&amp;Schedule</source>
+        <translation>&amp;Spielplan</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="235"/>
         <source>&amp;Emails</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Emails</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="236"/>
-        <source>&amp;Google Kalender</source>
-        <translation type="unfinished"></translation>
+        <source>&amp;Google Calendar</source>
+        <translation>&amp;Google Kalender</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="240"/>
         <source>E&amp;xtras</source>
-        <translation type="unfinished"></translation>
+        <translation>E&amp;xtras</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="245"/>
-        <source>&amp;Hilfe</source>
-        <translation type="unfinished"></translation>
+        <source>&amp;Help</source>
+        <translation>&amp;Hilfe</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="273"/>
-        <source>Planungsmasken</source>
-        <translation type="unfinished"></translation>
+        <source>Planning masks</source>
+        <translation>Planungsmasken</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="274"/>
-        <source>Einsatzpläne</source>
-        <translation type="unfinished"></translation>
+        <source>Schedules</source>
+        <translation>Einsatzpläne</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="628"/>
-        <source>Einrichtunskombis...</source>
-        <translation type="unfinished"></translation>
+        <source>Facility Combinations...</source>
+        <translation>Einrichtungskombis...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="629"/>
-        <source>Mögliche Kombinationen von Einrichtungen bearbeiten.</source>
-        <translation type="unfinished"></translation>
+        <source>Edit possible combinations of facilities.</source>
+        <translation>Mögliche Kombinationen von Einrichtungen bearbeiten.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="631"/>
-        <source>Excel-Settings...</source>
-        <translation type="unfinished"></translation>
+        <source>Excel Settings...</source>
+        <translation>Excel-Settings...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="632"/>
-        <source>Settings für Excel-Export des Plans bearbeiten.</source>
-        <translation type="unfinished"></translation>
+        <source>Edit settings for Excel export of the schedule.</source>
+        <translation>Einstellungen für Excel-Export des Einsatzplans bearbeiten.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="634"/>
-        <source>Bemerkungen...</source>
-        <translation type="unfinished"></translation>
+        <source>Notes...</source>
+        <translation>Anmerkungen...</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="635"/>
-        <source>Bemerkungen des Teams bearbeiten.</source>
-        <translation type="unfinished"></translation>
+        <source>Edit team notes.</source>
+        <translation>Anmerkungen des Teams bearbeiten.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="1005"/>
-        <source>Spielplan</source>
-        <translation type="unfinished"></translation>
+        <source>Schedule</source>
+        <translation>Spielplan</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="1007"/>
-        <source>Datei</source>
-        <translation type="unfinished"></translation>
+        <source>File</source>
+        <translation>Datei</translation>
     </message>
 </context>
 <context>
     <name>TblPlanStatistics</name>
     <message>
         <location filename="../frm_plan.py" line="1198"/>
-        <source>Klick:
-Planungsmaske für %s öffnen.</source>
-        <translation type="unfinished"></translation>
+        <source>Click:
+Open planning mask for %s</source>
+        <translation>Klick:
+Planungsmaske für %s öffnen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1202"/>
-        <source>gewünscht</source>
-        <translation type="unfinished"></translation>
+        <source>desired</source>
+        <translation>gewünscht</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1202"/>
-        <source>möglich</source>
-        <translation type="unfinished"></translation>
+        <source>possible</source>
+        <translation>möglich</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1203"/>
-        <source>gerecht</source>
-        <translation type="unfinished"></translation>
+        <source>fair</source>
+        <translation>gerecht</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1203"/>
-        <source>zugeteilt</source>
-        <translation type="unfinished"></translation>
+        <source>assigned</source>
+        <translation>zugeteilt</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1246"/>
-        <source>Klick:
+        <source>Click:
+Mark possible assignments of %s
+in the plan.</source>
+        <translation>Click:
 Mögliche Einsätze von %s
-im Plan markieren.</source>
-        <translation type="unfinished"></translation>
+im Plan markieren.</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1249"/>
-        <source>Klick:
+        <source>Click:
+Mark current assignments of %s
+in the plan.</source>
+        <translation>Click:
 Aktuelle Einsätze von %s
-im Plan markieren.</source>
-        <translation type="unfinished"></translation>
+im Plan markieren.</translation>
     </message>
 </context>
 <context>
     <name>WeekDays</name>
     <message>
         <location filename="../frm_plan.py" line="35"/>
-        <source>Montag</source>
-        <translation type="unfinished"></translation>
+        <source>Monday</source>
+        <translation>Montag</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="36"/>
-        <source>Dienstag</source>
-        <translation type="unfinished"></translation>
+        <source>Tuesday</source>
+        <translation>Dienstag</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="37"/>
-        <source>Mittwoch</source>
-        <translation type="unfinished"></translation>
+        <source>Wednesday</source>
+        <translation>Mittwoch</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="38"/>
-        <source>Donnerstag</source>
-        <translation type="unfinished"></translation>
+        <source>Thursday</source>
+        <translation>Donnerstag</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="39"/>
-        <source>Freitag</source>
-        <translation type="unfinished"></translation>
+        <source>Friday</source>
+        <translation>Freitag</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="40"/>
-        <source>Samstag</source>
-        <translation type="unfinished"></translation>
+        <source>Saturday</source>
+        <translation>Samstag</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="45"/>
-        <source>Sonntag</source>
-        <translation type="unfinished"></translation>
+        <source>Sunday</source>
+        <translation>Sonntag</translation>
     </message>
 </context>
 <context>
     <name>appointment_field</name>
     <message>
         <location filename="../frm_plan.py" line="59"/>
-        <source>unbesetzt: %d</source>
-        <translation type="unfinished"></translation>
+        <source>unfilled: %d</source>
+        <translation>unbesetzt %d</translation>
     </message>
 </context>
 </TS>

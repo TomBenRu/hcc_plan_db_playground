@@ -52,7 +52,7 @@ class TranslationManager:
                     "-ts",
                     ts_file,
                     "-no-recursive",  # Verhindert Suche in Unterverzeichnissen
-                    "-no-obsolete",   # Entfernt nicht mehr verwendete Übersetzungen
+                    # "-no-obsolete",   # Entfernt nicht mehr verwendete Übersetzungen
                     "-locations", "absolute"  # Verwendet absolute Pfade für Locations
                 ]
                 print(f"\nExecuting command:\n{' '.join(cmd)}")

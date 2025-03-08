@@ -32,13 +32,13 @@ from tools.helper_functions import get_appointments_of_all_actors_from_plan
 
 
 WEEKDAY_NAMES = [
-    QCoreApplication.translate("WeekDays", "Montag"),
-    QCoreApplication.translate("WeekDays", "Dienstag"),
-    QCoreApplication.translate("WeekDays", "Mittwoch"),
-    QCoreApplication.translate("WeekDays", "Donnerstag"),
-    QCoreApplication.translate("WeekDays", "Freitag"),
-    QCoreApplication.translate("WeekDays", "Samstag"),
-    QCoreApplication.translate("WeekDays", "Sonntag")
+    QCoreApplication.translate("WeekDays", "Monday"),
+    QCoreApplication.translate("WeekDays", "Tuesday"),
+    QCoreApplication.translate("WeekDays", "Wednesday"),
+    QCoreApplication.translate("WeekDays", "Thursday"),
+    QCoreApplication.translate("WeekDays", "Friday"),
+    QCoreApplication.translate("WeekDays", "Saturday"),
+    QCoreApplication.translate("WeekDays", "Sunday")
 ]
 
 
@@ -56,7 +56,7 @@ def fill_in_data(appointment_field: 'AppointmentField'):
 
     if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)
                    - len(appointment_field.appointment.guests)):
-        missing_txt = appointment_field.tr('unbesetzt: %d') % missing
+        missing_txt = appointment_field.tr('unfilled: %d') % missing
         appointment_field.lb_missing.setText(missing_txt)
         appointment_field.layout.addWidget(appointment_field.lb_missing)
     else:
@@ -68,7 +68,7 @@ def fill_in_data(appointment_field: 'AppointmentField'):
 class DlgAvailAtDay(QDialog):
     def __init__(self, parent: QWidget, plan_period_id: UUID, date: datetime.date):
         super().__init__(parent)
-        self.setWindowTitle(self.tr('Verfügbar'))
+        self.setWindowTitle(self.tr('Available'))
 
         self.plan_period_id = plan_period_id
         self.date = date
@@ -92,7 +92,7 @@ class DlgAvailAtDay(QDialog):
         self.group_actors.setStyleSheet('background-color: #2b2b2b')
         self.layout_actors = QFormLayout(self.group_actors)
         self.layout_actors.setSpacing(10)
-        description_text = self.tr('Am %s, %s\nsind folgende Mitarbeiter verfügbar.') % (
+        description_text = self.tr('On %s, %s\nthe following employees are available.') % (
             self.weekday_names[self.date.weekday()],
             self.date.strftime('%d.%m.%y'))
         self.lb_description = QLabel(description_text)
@@ -119,7 +119,7 @@ class DlgAvailAtDay(QDialog):
 class DlgGuest(QDialog):
     def __init__(self, parent: QWidget):
         super().__init__(parent=parent)
-        self.setWindowTitle(self.tr('Gastbesetzung'))
+        self.setWindowTitle(self.tr('Guest cast'))
 
         self._setup_layout()
 
@@ -131,13 +131,13 @@ class DlgGuest(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
-        self.lb_explanation = QLabel(self.tr('Fügen Sie den Namen des Gastes ein.'))
+        self.lb_explanation = QLabel(self.tr('Insert the name of the guest.'))
         self.le_guest = QLineEdit()
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_head.addWidget(self.lb_explanation)
-        self.layout_body.addRow(self.tr('Gastbesetzung:'), self.le_guest)
+        self.layout_body.addRow(self.tr('Guest cast'), self.le_guest)
         self.layout_foot.addWidget(self.button_box)
 
 
@@ -159,14 +159,14 @@ class DlgEditAppointment(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
-        explanation_text = self.tr('Einsätze am:\n%s, %s - %s, %s\nHier können Sie die Besetzung ändern.') % (
+        explanation_text = self.tr('Assignments on:\n%s, %s - %s, %s\nHere you can change the cast.') % (
             self.appointment.event.date.strftime('%d.%m.%y'),
             self.appointment.event.location_plan_period.location_of_work.name,
             self.appointment.event.location_plan_period.location_of_work.address.city,
             self.appointment.event.time_of_day.name)
         self.lb_explanation = QLabel(explanation_text)
         self.layout_head.addWidget(self.lb_explanation)
-        self.group_employees = QGroupBox(self.tr('Mitarbeiter'))
+        self.group_employees = QGroupBox(self.tr('Employees'))
         self.layout_body.addWidget(self.group_employees)
         self.form_employees = QFormLayout(self.group_employees)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -188,14 +188,14 @@ class DlgEditAppointment(QDialog):
         self.combos_employees = []
         for i in range(1, self.cast_group.nr_actors + 1):
             self.combos_employees.append(QComboBoxToFindData())
-            self.form_employees.addRow(self.tr('Mitarbeiter %02d') % i, self.combos_employees[-1])
-            self.combos_employees[-1].addItem(self.tr('Unbesetzt'), None)
+            self.form_employees.addRow(self.tr('Employee %02d') % i, self.combos_employees[-1])
+            self.combos_employees[-1].addItem(self.tr('Unassigned'), None)
             for avd in self.possible_avail_days:
                 self.combos_employees[-1].addItem(
                     f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}',
                     avd.id
                 )
-            self.combos_employees[-1].addItem(self.tr('Gast'), UUID('00000000000000000000000000000000'))
+            self.combos_employees[-1].addItem(self.tr('Guest'), UUID('00000000000000000000000000000000'))
             self.combos_employees[-1].currentIndexChanged.connect(partial(self.combo_employees_index_changed, i - 1))
         for j, avd in enumerate(self.appointment.avail_days):
             self.combos_employees[j].setCurrentIndex(self.combos_employees[j].findData(avd.id))
@@ -231,7 +231,7 @@ class DlgEditAppointment(QDialog):
 class DlgMoveAppointment(QDialog):
     def __init__(self, parent: QWidget, appointment: schemas.Appointment, plan_period: schemas.PlanPeriod):
         super().__init__(parent)
-        self.setWindowTitle(self.tr('Termin verschieben'))
+        self.setWindowTitle(self.tr('Move appointment'))
         self.appointment = appointment
         self.plan_period = plan_period
 
@@ -250,9 +250,9 @@ class DlgMoveAppointment(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         self.lb_description = QLabel(self.tr(
-            'Hier können Sie den Termin\n'
+            'Here you can move the appointment\n'
             '%s, %s (%s)\n'
-            'auf einen anderen Tag und andere Tageszeit verschieben.'
+            'to a different day and time.'
         ) % (
             self.appointment.event.location_plan_period.location_of_work.name_an_city,
             self.appointment.event.date.strftime('%d.%m.%y'),
@@ -308,7 +308,7 @@ class LabelLocation(QLabel):
         self.setStyleSheet('border-left: 1px solid #4d4d4d; border-right: 1px solid black;')
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedWidth(fixed_width)
-        self.setToolTip(self.tr('Klick: Planungsmaske für %s öffnen.') % location_of_work.name_an_city)
+        self.setToolTip(self.tr('Click:\nOpen planning mask for %s') % location_of_work.name_an_city)
         self.setWordWrap(word_wrap)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
@@ -329,7 +329,7 @@ class LabelDayNr(QLabel):
         self.set_font_and_style()
 
         self.setText(day.strftime('%d.%m.%y'))
-        self.setToolTip(self.tr('Klick: Verfügbarkeiten für %s anzeigen.') % day.strftime('%d.%m.%y'))
+        self.setToolTip(self.tr('Click: Show availabilities for %s.') % day.strftime('%d.%m.%y'))
 
     def set_font_and_style(self):
         self.setContentsMargins(0, 0, 0, 0)
@@ -494,10 +494,10 @@ class AppointmentField(QWidget):
 
     def _tool_tip_text(self):
         return self.tr(
-            '<b>%s am %s:</b><br>'
-            '◦ Klick: Besetzungsänderungen.<br>'
-            '◦ Rechtsklick: weitere Aktionen.<br>'
-            '<i><b>Anmerkungen:</b><br>%s</i>'
+            '<b>%s on %s:</b><br>'
+            '◦ Click: Change cast.<br>'
+            '◦ Right-click: More actions.<br>'
+            '<i><b>Notes:</b><br>%s</i>'
         ) % (
             self.appointment.event.location_plan_period.location_of_work.name_an_city,
             self.appointment.event.date.strftime('%d.%m.%y'),
@@ -539,8 +539,8 @@ class AppointmentField(QWidget):
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan_widget.plan.id)
 
     def _start_plan_check(self):
-        self.progress_bar = DlgProgressInfinite(self, self.tr('Überprüfung'),
-                                                self.tr('Besetzungsänderungen werden auf Fehler getestet.'), self.tr('Abbruch'),
+        self.progress_bar = DlgProgressInfinite(self, self.tr('Verification'),
+                                                self.tr('Cast changes are being tested for errors.'), self.tr('Cancel'),
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
@@ -551,19 +551,19 @@ class AppointmentField(QWidget):
     def check_finished(self, success: bool, problems: list[str]):
         self.progress_bar.close()
         if success:
-            QMessageBox.information(self, self.tr('Besetzungsänderung'),
-                                    self.tr('Die Änderung der Besetzung wurde erfolgreich vorgenommen.'))
+            QMessageBox.information(self, self.tr('Cast Change'),
+                                    self.tr('The cast change was successfully made.'))
             self.execution_timer_post_cast_change.start_timer()
         else:
             problems_txt ="".join(problems)
             msg_text = self.tr(
-                "<h3>Die Änderung der Besetzung ist nicht ohne Konflikt machbar.</h3>"
-                "<h4>Unvereinbarkeiten:</h4>"
+                "<h3>The cast change cannot be made without conflicts.</h3>"
+                "<h4>Incompatibilities:</h4>"
                 "%s"
-                "<p>Sollen die Änderungen zurückgenommen werden?</p>"
+                "<p>Should the changes be undone?</p>"
             ) % problems_txt
 
-            reply = QMessageBox.critical(self, self.tr('Besetzungsänderung'),
+            reply = QMessageBox.critical(self, self.tr('Cast Change'),
                                          msg_text,
                                          QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
             if reply == QMessageBox.StandardButton.Yes:
@@ -577,14 +577,14 @@ class AppointmentField(QWidget):
         context_menu = QMenu(self)
         context_menu.setStyleSheet("background-color: none")
         context_menu.addAction(
-            self.tr('Bewege %s am %s (%s)') % (
+            self.tr('Move %s on %s (%s)') % (
                 self.appointment.event.location_plan_period.location_of_work.name_an_city,
                 self.appointment.event.date.strftime('%d.%m.%y'),
                 self.appointment.event.time_of_day.name
             ),
             self._move_appointment)
         context_menu.addAction(
-            self.tr('Anmerkungen für %s am %s (%s)') % (
+            self.tr('Notes for %s on %s (%s)') % (
                 self.appointment.event.location_plan_period.location_of_work.name_an_city,
                 self.appointment.event.date.strftime('%d.%m.%y'),
                 self.appointment.event.time_of_day.name
@@ -599,8 +599,8 @@ class AppointmentField(QWidget):
                 if a.event.date == dlg.new_date
                 and a.event.time_of_day.time_of_day_enum.time_index == dlg.new_time_of_day.time_of_day_enum.time_index
                     and a.event.location_plan_period.id == self.appointment.event.location_plan_period.id]:
-                QMessageBox.critical(self, self.tr('Termin verschieben'),
-                                     self.tr('Am %s (%s)\nist schon ein Termin von %s vorhanden') % (
+                QMessageBox.critical(self, self.tr('Move appointment'),
+                                     self.tr('On %s (%s)\nan appointment for %s already exists') % (
                                          dlg.new_date.strftime('%d.%m.%y'),
                                          dlg.new_time_of_day.name,
                                          self.appointment.event.location_plan_period.location_of_work.name_an_city))
@@ -609,10 +609,10 @@ class AppointmentField(QWidget):
                 self.appointment.event.location_plan_period.id, dlg.new_date,
                 dlg.new_time_of_day.time_of_day_enum.time_index)
             if existing_event:
-                QMessageBox.information(self, self.tr('Termin verschieben'),
-                                        self.tr('Am %s (%s)\nist bereits ein Terminvorschlag für %s vorhanden.\n'
-                                                'Dieser wird für die Änderung übernommen.\n'
-                                                'Eventuell müssen sie die Variante der Tageszeit anpassen.') % (
+                QMessageBox.information(self, self.tr('Move appointment'),
+                                        self.tr('On %s (%s)\nan appointment for %s already exists.\n'
+                                                'This will be used for the change.\n'
+                                                'You may need to adjust the time of day variant.') % (
                                             dlg.new_date.strftime('%d.%m.%y'),
                                             dlg.new_time_of_day.time_of_day_enum.name,
                                             self.appointment.event.location_plan_period.location_of_work.name_an_city))
@@ -631,8 +631,8 @@ class AppointmentField(QWidget):
         if dlg.exec():
             appointment_commands.UpdateNotes(self.appointment, dlg.notes).execute()
             self._reload_appointment_and_tooltip()
-            QMessageBox.information(self, self.tr('Termin-Anmerkungen'),
-                                    self.tr('Die neuen Anmerkungen wurden übernommen.'))
+            QMessageBox.information(self, self.tr('Appointment Notes'),
+                                    self.tr('The new notes have been applied.'))
 
     def _reload_appointment_and_tooltip(self):
         self.appointment = db_services.Appointment.get(self.appointment.id)
@@ -700,15 +700,15 @@ class FrmTabPlan(QWidget):
     
     def _setup_side_menu(self):
         self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
-        self.chk_permanent_plan_check = QCheckBox(self.tr('Überprüfung im Hintergrund'))
-        self.chk_permanent_plan_check.setToolTip(self.tr('Fehlerüberprüfung bei jeder Besetzungsänderung.'))
+        self.chk_permanent_plan_check = QCheckBox(self.tr('Background Verification'))
+        self.chk_permanent_plan_check.setToolTip(self.tr('Verification of errors for each cast change.'))
         self.chk_permanent_plan_check.setChecked(True)
         self.chk_permanent_plan_check.toggled.connect(self._chk_permanent_plan_check_toggled)
         self.side_menu.add_check_box(self.chk_permanent_plan_check)
-        self.bt_check_plan = QPushButton(self.tr('Plan überprüfen'))
+        self.bt_check_plan = QPushButton(self.tr('Verify plan'))
         self.bt_check_plan.clicked.connect(self._check_plan)
         self.side_menu.add_button(self.bt_check_plan)
-        self.bt_get_max_fair_shifts = QPushButton(self.tr('Statistiken aktualisieren'))
+        self.bt_get_max_fair_shifts = QPushButton(self.tr('Update statistics'))
         self.bt_get_max_fair_shifts.clicked.connect(self._update_statistics)
         self.side_menu.add_button(self.bt_get_max_fair_shifts)
         self.bt_undo = QPushButton('Undo')
@@ -717,7 +717,7 @@ class FrmTabPlan(QWidget):
         self.bt_redo = QPushButton('Redo')
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
-        self.bt_refresh = QPushButton(self.tr('Ansicht aktualisieren'))
+        self.bt_refresh = QPushButton(self.tr('Refresh view'))
         self.bt_refresh.clicked.connect(self.reload_and_refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
 
@@ -745,8 +745,8 @@ class FrmTabPlan(QWidget):
         self.permanent_plan_check = checked
 
     def _check_plan(self):
-        self.progress_bar = DlgProgressInfinite(self, self.tr('Überprüfung'),
-                                                self.tr('Plan wird auf Fehler getestet.'), self.tr('Abbruch'),
+        self.progress_bar = DlgProgressInfinite(self, self.tr('Verification'),
+                                                self.tr('Plan is tested for errors.'), self.tr('Cancel'),
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
@@ -758,25 +758,25 @@ class FrmTabPlan(QWidget):
     def _check_finished(self, success: bool, problems: list[str]):
         self.progress_bar.close()
         if success:
-            QMessageBox.information(self, self.tr('Plan Überprüfung'),
-                                    self.tr('Es wurden keine Fehler in diesem Plan festgestellt.'))
+            QMessageBox.information(self, self.tr('Verification of plan'),
+                                    self.tr('No errors were found in this plan.'))
         else:
             problems_txt = "".join(problems)
             msg_text = self.tr(
-                "<h3>Es wurden Konflikte in diesem Plan festgestellt.</h3>"
-                "<h4>Unvereinbarkeiten:</h4>"
+                "<h3>Conflicts were found in this plan.</h3>"
+                "<h4>Incompatibilities:</h4>"
                 "%s"
             ) % problems_txt
             QMessageBox.critical(
-                self, self.tr('Plan Überprüfung'),
+                self, self.tr('Verification of plan'),
                 msg_text)
 
     def _update_statistics(self):
         num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)
-        progress_bar = DlgProgressSteps(self, self.tr('Statistiken aktualisieren'),
-                                             self.tr('Die Besetzungsstatistiken werden aktualisiert.'),
+        progress_bar = DlgProgressSteps(self, self.tr('Update statistics'),
+                                             self.tr('The cast statistics are being updated.'),
                                              0, num_actor_plan_periods + 1,
-                                             self.tr('Abbruch'), signal_handling.handler_solver.cancel_solving)
+                                             self.tr('Cancel'), signal_handling.handler_solver.cancel_solving)
         worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
         progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished)
@@ -869,7 +869,7 @@ class FrmTabPlan(QWidget):
             if not hasattr(self, '_original_redo_bt_style_sheet'):
                 self._original_redo_bt_style_sheet = button.styleSheet()
         # Ändere den Button-Text und die Farbe
-        button.setText(self.tr("Keine verbleibende Aktion"))
+        button.setText(self.tr("No remaining action"))
         button.setStyleSheet("color: red")
         # Timer für 1 Sekunde starten
         QTimer.singleShot(1000, reset_button)
@@ -1195,12 +1195,12 @@ class TblPlanStatistics(QTableWidget):
             header_item = QTableWidgetItem(full_name)
             if actor_plan_period:
                 header_item.setData(Qt.ItemDataRole.UserRole, actor_plan_period.person.id)
-                header_item.setToolTip(self.tr('Klick:\nPlanungsmaske für %s öffnen.') % full_name)
+                header_item.setToolTip(self.tr('Click:\nOpen planning mask for %s') % full_name)
             self.setHorizontalHeaderItem(i, header_item)
         # for i in range(self.columnCount()):
         #     self.setColumnWidth(i, 100)
-        self.setVerticalHeaderLabels((self.tr('gewünscht'), self.tr('möglich'),
-                                      self.tr('gerecht'), self.tr('zugeteilt')))
+        self.setVerticalHeaderLabels((self.tr('desired'), self.tr('possible'),
+                                      self.tr('fair'), self.tr('assigned')))
         self.setShowGrid(True)
         self.setGridStyle(Qt.PenStyle.SolidLine)
         self.setStyleSheet("QTableView {gridline-color: black;}")
@@ -1243,10 +1243,10 @@ class TblPlanStatistics(QTableWidget):
     def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str,
                      column: int):
         if kind == 'able' and actor_plan_period:
-            item.setToolTip(self.tr('Klick:\nMögliche Einsätze von %s\nim Plan markieren.') % full_name)
+            item.setToolTip(self.tr('Click:\nMark possible assignments of %s\nin the plan.') % full_name)
             self.cells_with_action.add((self.row_kind_of_dates['able'], column))
         if kind == 'current':
-            item.setToolTip(self.tr('Klick:\nAktuelle Einsätze von %s\nim Plan markieren.') % full_name)
+            item.setToolTip(self.tr('Click:\nMark current assignments of %s\nin the plan.') % full_name)
             self.cells_with_action.add((self.row_kind_of_dates['current'], column))
 
     def _setup_data(self):

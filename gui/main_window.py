@@ -16,6 +16,7 @@ from xlsxwriter.exceptions import FileCreateError
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
+from configuration.general_settings import general_settings_handler
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx, avail_days_to_xlsx
@@ -25,6 +26,7 @@ from google_calendar_api.create_calendar import create_new_google_calendar, shar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
 from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
 from tools import open_file_or_folder
+from tools.helper_functions import date_to_string
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
@@ -697,7 +699,9 @@ class MainWindow(QMainWindow):
                              curr_person_id: UUID | None, curr_location_id: UUID | None):
         plan_period = db_services.PlanPeriod.get(plan_period_id)
         widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
-        self.tabs_planungsmasken.addTab(widget_pp_tab, f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}')
+        string_start = date_to_string(plan_period.start, general_settings_handler.get_general_settings().language)
+        string_end = date_to_string(plan_period.end, general_settings_handler.get_general_settings().language)
+        self.tabs_planungsmasken.addTab(widget_pp_tab, f'{string_start} - {string_end}')
         tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None,
                              True, False, None, 'tab_bar_locations_employees')
 

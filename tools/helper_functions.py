@@ -1,6 +1,9 @@
 import datetime
 from collections import defaultdict
+from typing import Literal
 from uuid import UUID
+
+from PySide6.QtCore import QDate
 
 from line_profiler_pycharm import profile
 
@@ -91,7 +94,6 @@ def get_appointments_of_all_actors_from_plan(
     return {name: result[name] for name in sorted(result.keys())}
 
 
-
 def n_th_weekday_of_period(start: datetime.date, end: datetime.date, weekday: int, n: int) -> datetime.date | None:
     """
     Bestimm den n-ten Wochentag in einem Zeitraum.
@@ -107,7 +109,17 @@ def n_th_weekday_of_period(start: datetime.date, end: datetime.date, weekday: in
         return None
     return date_of_n_th_weekday
 
+
+def datetime_date_to_qdate(date: datetime.date) -> QDate:
+    return QDate(date.year, date.month, date.day)
+
+
+def date_to_string(date: datetime.date, lang: str) -> str:
+    if lang == 'en':
+        return date.strftime('%y-%m-%d')
+    return date.strftime('%d.%m.%y')
+
+
 if __name__ == '__main__':
     print(n_th_weekday_of_period(datetime.date(2024, 11, 1),
                                    datetime.date(2024, 11, 30), 4, 1))
-

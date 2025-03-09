@@ -4,7 +4,7 @@ from functools import partial
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication
+from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication, QLocale
 from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
@@ -28,8 +28,7 @@ from gui.widget_styles.plan_table import horizontal_header_colors, vertical_head
     cell_backgrounds_statistics
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
-from tools.helper_functions import get_appointments_of_all_actors_from_plan
-
+from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string
 
 WEEKDAY_NAMES = [
     QCoreApplication.translate("WeekDays", "Monday"),
@@ -94,7 +93,7 @@ class DlgAvailAtDay(QDialog):
         self.layout_actors.setSpacing(10)
         description_text = self.tr('On %s, %s\nthe following employees are available.') % (
             self.weekday_names[self.date.weekday()],
-            self.date.strftime('%d.%m.%y'))
+            date_to_string(self.date, general_settings_handler.get_general_settings().language))
         self.lb_description = QLabel(description_text)
         self.layout_head.addWidget(self.lb_description)
 
@@ -160,7 +159,7 @@ class DlgEditAppointment(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
         explanation_text = self.tr('Assignments on:\n%s, %s - %s, %s\nHere you can change the cast.') % (
-            self.appointment.event.date.strftime('%d.%m.%y'),
+            date_to_string(self.appointment.event.date, general_settings_handler.get_general_settings().language),
             self.appointment.event.location_plan_period.location_of_work.name,
             self.appointment.event.location_plan_period.location_of_work.address.city,
             self.appointment.event.time_of_day.name)
@@ -255,16 +254,19 @@ class DlgMoveAppointment(QDialog):
             'to a different day and time.'
         ) % (
             self.appointment.event.location_plan_period.location_of_work.name_an_city,
-            self.appointment.event.date.strftime('%d.%m.%y'),
+            date_to_string(self.appointment.event.date, general_settings_handler.get_general_settings().language),
             self.appointment.event.time_of_day.name
         ))
         self.layout_head.addWidget(self.lb_description)
         self.calendar_select_date = QCalendarWidget()
-        self.calendar_select_date.setSelectedDate(QDate(self.appointment.event.date.year,
-                                                        self.appointment.event.date.month,
-                                                        self.appointment.event.date.day))
-        self.calendar_select_date.setMinimumDate(self.plan_period.start)
-        self.calendar_select_date.setMaximumDate(self.plan_period.end)
+        lang = general_settings_handler.get_general_settings().language
+        if lang := general_settings_handler.get_general_settings().language:
+            self.calendar_select_date.setLocale(QLocale(lang))  # lang ist 'en', 'de', etc.
+        else:
+            self.calendar_select_date.setLocale(QLocale.system())  # Fallback auf Systemsprache
+        self.calendar_select_date.setSelectedDate(datetime_date_to_qdate(self.appointment.event.date))
+        self.calendar_select_date.setMinimumDate(datetime_date_to_qdate(self.plan_period.start))
+        self.calendar_select_date.setMaximumDate(datetime_date_to_qdate(self.plan_period.end))
         self.layout_body.addWidget(self.calendar_select_date)
 
         self.combo_time_of_day = QComboBox()
@@ -328,8 +330,9 @@ class LabelDayNr(QLabel):
 
         self.set_font_and_style()
 
-        self.setText(day.strftime('%d.%m.%y'))
-        self.setToolTip(self.tr('Click: Show availabilities for %s.') % day.strftime('%d.%m.%y'))
+        self.setText(date_to_string(day, general_settings_handler.get_general_settings().language))
+        self.setToolTip(self.tr('Click: Show availabilities for %s.') % date_to_string(
+            day, general_settings_handler.get_general_settings().language))
 
     def set_font_and_style(self):
         self.setContentsMargins(0, 0, 0, 0)
@@ -500,7 +503,7 @@ class AppointmentField(QWidget):
             '<i><b>Notes:</b><br>%s</i>'
         ) % (
             self.appointment.event.location_plan_period.location_of_work.name_an_city,
-            self.appointment.event.date.strftime('%d.%m.%y'),
+            date_to_string(self.appointment.event.date, general_settings_handler.get_general_settings().language),
             self.appointment.notes or ""
         )
 
@@ -579,14 +582,14 @@ class AppointmentField(QWidget):
         context_menu.addAction(
             self.tr('Move %s on %s (%s)') % (
                 self.appointment.event.location_plan_period.location_of_work.name_an_city,
-                self.appointment.event.date.strftime('%d.%m.%y'),
+                date_to_string(self.appointment.event.date, general_settings_handler.get_general_settings().language),
                 self.appointment.event.time_of_day.name
             ),
             self._move_appointment)
         context_menu.addAction(
             self.tr('Notes for %s on %s (%s)') % (
                 self.appointment.event.location_plan_period.location_of_work.name_an_city,
-                self.appointment.event.date.strftime('%d.%m.%y'),
+                date_to_string(self.appointment.event.date, general_settings_handler.get_general_settings().language),
                 self.appointment.event.time_of_day.name
             ),
             self._edit_notes)
@@ -601,7 +604,7 @@ class AppointmentField(QWidget):
                     and a.event.location_plan_period.id == self.appointment.event.location_plan_period.id]:
                 QMessageBox.critical(self, self.tr('Move appointment'),
                                      self.tr('On %s (%s)\nan appointment for %s already exists') % (
-                                         dlg.new_date.strftime('%d.%m.%y'),
+                                         date_to_string(dlg.new_date, general_settings_handler.get_general_settings().language),
                                          dlg.new_time_of_day.name,
                                          self.appointment.event.location_plan_period.location_of_work.name_an_city))
                 return
@@ -613,7 +616,8 @@ class AppointmentField(QWidget):
                                         self.tr('On %s (%s)\nan appointment for %s already exists.\n'
                                                 'This will be used for the change.\n'
                                                 'You may need to adjust the time of day variant.') % (
-                                            dlg.new_date.strftime('%d.%m.%y'),
+                                            date_to_string(dlg.new_date,
+                                                           general_settings_handler.get_general_settings().language),
                                             dlg.new_time_of_day.time_of_day_enum.name,
                                             self.appointment.event.location_plan_period.location_of_work.name_an_city))
                 command1 = appointment_commands.UpdateEvent(self.appointment, existing_event.id)

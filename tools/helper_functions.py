@@ -1,9 +1,10 @@
 import datetime
 from collections import defaultdict
+from itertools import zip_longest
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QLocale
 
 from line_profiler_pycharm import profile
 
@@ -115,6 +116,10 @@ def datetime_date_to_qdate(date: datetime.date) -> QDate:
 
 
 def date_to_string(date: datetime.date, lang: str) -> str:
+    qdate = datetime_date_to_qdate(date)
+    locale = QLocale(language:=QLocale.Language.English, country:=QLocale.Country.UnitedStates)
+    print([f'{language.name}: {[QLocale().countriesForLanguage(QLocale.Language(language))]}' for language in QLocale().uiLanguages()])
+    print(locale.toString(qdate, QLocale.FormatType.ShortFormat))
     if lang == 'en':
         return date.strftime('%y-%m-%d')
     return date.strftime('%d.%m.%y')

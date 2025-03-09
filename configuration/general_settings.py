@@ -1,6 +1,7 @@
 import os
 
 import toml
+from PySide6.QtCore import QLocale
 from toml.decoder import TomlDecodeError
 
 from pydantic import BaseModel
@@ -17,12 +18,22 @@ class PlanSettings(BaseModel):
     column_width: int = 120
 
 
+class DateFormatSettings(BaseModel):
+    """
+    Date format settings for the application.
+    """
+    country: int = QLocale.Country.UnitedStates.value
+    language: int = QLocale.Language.English.value
+    format: int = QLocale.FormatType.ShortFormat.value
+
+
 class GeneralSettings(BaseModel):
     """
     General settings for the application.
     """
     plan_settings: PlanSettings = PlanSettings()
     language: str = ''
+    date_format_settings: DateFormatSettings = DateFormatSettings()
 
 
 class GeneralSettingsHandler:

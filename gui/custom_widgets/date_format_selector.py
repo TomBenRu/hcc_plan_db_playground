@@ -6,15 +6,18 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
 class LocaleSelector(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
         self.setWindowTitle("Locale Selector")
+        # Abstand zum Inhalt
+        self.setContentsMargins(0, 0, 0, 0)
 
         self.general_settings = general_settings_handler.get_general_settings()
         self.date_format_settings = self.general_settings.date_format_settings
 
         # Layout erstellen
         layout = QFormLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         # ComboBoxes erstellen
         self.combo_country = QComboBoxToFindData()
@@ -23,10 +26,10 @@ class LocaleSelector(QWidget):
         self.label_date = QLabel()
 
         # Widgets zum Layout hinzufügen
-        layout.addRow("Country:", self.combo_country)
-        layout.addRow("Language:", self.combo_language)
-        layout.addRow("Date Format:", self.combo_format)
-        layout.addRow("Current Date:", self.label_date)
+        layout.addRow(self.tr("Country:"), self.combo_country)
+        layout.addRow(self.tr("Language:"), self.combo_language)
+        layout.addRow(self.tr("Date Format:"), self.combo_format)
+        layout.addRow(self.tr("Current Date:"), self.label_date)
 
         # Länder zur Länder-ComboBox hinzufügen
         all_territories = {
@@ -122,8 +125,8 @@ class LocaleSelector(QWidget):
 
     def get_selected_locale(self) -> QLocale:
         """Gibt die aktuell ausgewählte Locale zurück"""
-        language = self.combo_language.currentData()
         country = self.combo_country.currentData()
+        language = self.combo_language.currentData()
 
         # Finde die entsprechende Locale
         if country and language:

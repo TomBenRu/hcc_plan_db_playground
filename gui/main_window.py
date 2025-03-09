@@ -699,8 +699,8 @@ class MainWindow(QMainWindow):
                              curr_person_id: UUID | None, curr_location_id: UUID | None):
         plan_period = db_services.PlanPeriod.get(plan_period_id)
         widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
-        string_start = date_to_string(plan_period.start, general_settings_handler.get_general_settings().language)
-        string_end = date_to_string(plan_period.end, general_settings_handler.get_general_settings().language)
+        string_start = date_to_string(plan_period.start)
+        string_end = date_to_string(plan_period.end)
         self.tabs_planungsmasken.addTab(widget_pp_tab, f'{string_start} - {string_end}')
         tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None,
                              True, False, None, 'tab_bar_locations_employees')

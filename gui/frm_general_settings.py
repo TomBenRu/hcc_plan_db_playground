@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGroupBox,
                                QDialogButtonBox, QComboBox)
 
 from configuration.general_settings import general_settings_handler
+from gui.custom_widgets import date_format_selector
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
@@ -33,12 +34,17 @@ class DlgGeneralSettings(QDialog):
         self.group_language = QGroupBox('Sprache')
         self.layout_body.addWidget(self.group_language)
         self.layout_group_language = QFormLayout(self.group_language)
+        self.group_date_format = QGroupBox('Datumsformat')
+        self.layout_body.addWidget(self.group_date_format)
+        self.layout_group_date_format = QVBoxLayout(self.group_date_format)
         self.spin_column_width = QSpinBox()
         self.spin_column_width.setMinimum(100)
         self.spin_column_width.setMaximum(500)
         self.layout_group_plan.addRow('Spaltenbreite:', self.spin_column_width)
         self.combo_language = QComboBoxToFindData()
         self.layout_group_language.addRow('Sprache:', self.combo_language)
+        self.date_format_selector = date_format_selector.LocaleSelector()
+        self.layout_group_date_format.addWidget(self.date_format_selector)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -61,5 +67,6 @@ class DlgGeneralSettings(QDialog):
     def accept(self):
         self.general_settings.plan_settings.column_width = self.spin_column_width.value()
         self.general_settings.language = self.combo_language.currentData()
+        self.date_format_selector.save_settings()
         general_settings_handler.save_to_toml_file(self.general_settings)
         super().accept()

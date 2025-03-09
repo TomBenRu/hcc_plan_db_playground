@@ -8,6 +8,7 @@ from PySide6.QtCore import QDate, QLocale
 
 from line_profiler_pycharm import profile
 
+from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 
 
@@ -115,14 +116,36 @@ def datetime_date_to_qdate(date: datetime.date) -> QDate:
     return QDate(date.year, date.month, date.day)
 
 
-def date_to_string(date: datetime.date, lang: str) -> str:
-    qdate = datetime_date_to_qdate(date)
-    locale = QLocale(language:=QLocale.Language.English, country:=QLocale.Country.UnitedStates)
-    print([f'{language.name}: {[QLocale().countriesForLanguage(QLocale.Language(language))]}' for language in QLocale().uiLanguages()])
-    print(locale.toString(qdate, QLocale.FormatType.ShortFormat))
-    if lang == 'en':
-        return date.strftime('%y-%m-%d')
-    return date.strftime('%d.%m.%y')
+def date_to_string(date: datetime.date) -> str:
+    q_date = datetime_date_to_qdate(date)
+    date_format_settings = general_settings_handler.get_general_settings().date_format_settings
+    curr_country, curr_language, curr_format = (QLocale.Country(date_format_settings.country),
+                                                QLocale.Language(date_format_settings.language),
+                                                QLocale.FormatType(date_format_settings.format))
+    if locales := QLocale.matchingLocales(curr_language, QLocale.Script.AnyScript, curr_country):
+        locale = locales[0]
+    else:
+        locale = QLocale()  # Fallback auf System-Locale
+
+    if curr_format == QLocale.FormatType.ShortFormat:
+        # Eventuelle 2-stellige Jahreszahl soll in 4-stellige Jahreszahl umgewandelt werden.
+        # Die länderspezifische Formatierung soll aber erhalten bleiben.
+
+        # Zuerst das Datum im Kurzformat holen
+        formatted_date = locale.toString(q_date, curr_format)
+
+        # Das Jahr im 4-stelligen Format bekommen
+        full_year = str(q_date.year())
+
+        if full_year not in formatted_date:
+            # Die letzten zwei Ziffern des Jahres finden und durch das vollständige Jahr ersetzen
+            short_year = str(q_date.year() % 100).zfill(2)
+            formatted_date = formatted_date.replace(short_year, full_year)
+    else:
+        # Normale Formatierung für andere Formate
+        formatted_date = locale.toString(q_date, curr_format)
+
+    return formatted_date
 
 
 if __name__ == '__main__':

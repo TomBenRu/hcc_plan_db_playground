@@ -61,7 +61,7 @@ class LocaleSelector(QWidget):
         # Initialer Zustand laden
         self.load_initial_state()
 
-    def closeEvent(self, event, /):
+    def closeEvent(self, event):
         self.save_settings()
         super().closeEvent(event)
 
@@ -122,17 +122,13 @@ class LocaleSelector(QWidget):
 
     def get_selected_locale(self) -> QLocale:
         """Gibt die aktuell ausgewählte Locale zurück"""
-        language = self.combo_language.currentText()
-        country = self.combo_country.currentText()
+        language = self.combo_language.currentData()
+        country = self.combo_country.currentData()
 
         # Finde die entsprechende Locale
-        for locale in QLocale.matchingLocales(QLocale.Language.AnyLanguage,
-                                              QLocale.Script.AnyScript,
-                                              QLocale.Country.AnyCountry):
-            if (QLocale.languageToString(locale.language()) == language and
-                    locale.territory().name == country):
-                return locale
-
+        if country and language:
+            if locales := QLocale.matchingLocales(language, QLocale.Script.AnyScript, country):
+                return locales[0]
         return QLocale()  # Fallback auf System-Locale
 
 

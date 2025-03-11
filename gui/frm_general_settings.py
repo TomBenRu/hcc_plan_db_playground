@@ -41,7 +41,7 @@ class DlgGeneralSettings(QDialog):
         self.spin_column_width.setMinimum(100)
         self.spin_column_width.setMaximum(500)
         self.layout_group_plan.addRow('Spaltenbreite:', self.spin_column_width)
-        self.combo_language = QComboBoxToFindData()
+        self.combo_language = QComboBox()
         self.layout_group_language.addRow('Sprache:', self.combo_language)
         self.date_format_selector = date_format_selector.LocaleSelector()
         self.layout_group_date_format.addWidget(self.date_format_selector)

@@ -20,9 +20,9 @@ class LocaleSelector(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # ComboBoxes erstellen
-        self.combo_country = QComboBoxToFindData()
-        self.combo_language = QComboBoxToFindData()
-        self.combo_format = QComboBoxToFindData()
+        self.combo_country = QComboBox()
+        self.combo_language = QComboBox()
+        self.combo_format = QComboBox()
         self.label_date = QLabel()
 
         # Widgets zum Layout hinzufügen

@@ -357,7 +357,9 @@ class TimeOfDay(TimeOfDayCreate):
     project: Project
     project_standard: Optional[Project]
 
-    def __eq__(self, other: 'TimeOfDay'):
+    def __eq__(self, other: 'TimeOfDay') -> bool:
+        if not isinstance(other, TimeOfDay):
+            return NotImplemented
         return self.id == other.id
 
 
@@ -588,7 +590,9 @@ class CastRule(CastRuleCreate):
     last_modified: datetime.datetime
     prep_delete: Optional[datetime.datetime]
 
-    def __eq__(self, other: 'CastRule'):
+    def __eq__(self, other: 'CastRule') -> bool:
+        if not isinstance(other, CastRule):
+            return NotImplemented
         return self.id == other.id
 
 
@@ -735,7 +739,9 @@ class Skill(BaseModel):
     def before_update(self):
         self.last_modified = datetime.datetime.utcnow()
 
-    def __eq__(self, other: 'Skill'):
+    def __eq__(self, other: 'Skill') -> bool:
+        if not isinstance(other, Skill):
+            return NotImplemented
         return self.id == other.id
 
 
@@ -777,7 +783,9 @@ class SkillGroup(BaseModel):
     last_modified: Optional[datetime.datetime]
     prep_delete: Optional[datetime.datetime]
 
-    def __eq__(self, other: 'SkillGroup'):
+    def __eq__(self, other: 'SkillGroup') -> bool:
+        if not isinstance(other, SkillGroup):
+            return NotImplemented
         return (self.skill.id == other.skill.id
                 and self.nr_actors == other.nr_actors)
 

@@ -27,8 +27,13 @@ dependencies = [
 ]
 
 [tool.uv]
-dev-dependencies = [
+dev-dependencies = ["pytest>=8.0",
     "line-profiler-pycharm>=1.2.0",
     "auto-py-to-exe>=2.5",
     "icecream>=2.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
 ]

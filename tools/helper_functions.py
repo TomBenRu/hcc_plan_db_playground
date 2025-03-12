@@ -148,7 +148,6 @@ def date_to_string(date: datetime.date, to_html: bool = False, curr_country: QLo
             
             if separator := next((char for char in ref_formatted if not char.isdigit()), None):
                 ref_parts = ref_formatted.split(separator)
-                print(f'{ref_parts=}')
                 stripped_ref_parts = ref_parts  # [p.strip() for p in ref_parts]
                 try:
                     month_pos, day_pos = stripped_ref_parts.index("12"), stripped_ref_parts.index("31")
@@ -177,7 +176,6 @@ def date_to_string(date: datetime.date, to_html: bool = False, curr_country: QLo
         curr_format = QLocale.FormatType(date_format_settings.format)
     
     locale = get_cached_locale(curr_country, curr_language)
-    print(f'{curr_format=}')
     position_separator = (get_cached_positions_and_separator(curr_format, locale)
                         if curr_format in [QLocale.FormatType.ShortFormat, QLocale.FormatType.NarrowFormat]
                         else None)

@@ -1,8 +1,11 @@
+import datetime
+
 from PySide6.QtCore import QLocale, QDate
 from PySide6.QtWidgets import QWidget, QComboBox, QFormLayout, QLabel, QApplication
 
 from configuration.general_settings import general_settings_handler
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools import helper_functions
 
 
 class LocaleSelector(QWidget):
@@ -99,40 +102,12 @@ class LocaleSelector(QWidget):
         self.update_date_format()
 
     def update_date_format(self):
-        locale = self.get_selected_locale()
-        current_date = QDate.currentDate()
-        format_type = self.combo_format.currentData()
-
-        if self.combo_format.currentData() == QLocale.FormatType.ShortFormat:
-            # Eventuelle 2-stellige Jahreszahl soll in 4-stellige Jahreszahl umgewandelt werden.
-            # Die länderspezifische Formatierung soll aber erhalten bleiben.
-
-            # Zuerst das Datum im Kurzformat holen
-            formatted_date = locale.toString(current_date, format_type)
-
-            # Das Jahr im 4-stelligen Format bekommen
-            full_year = str(current_date.year())
-
-            if full_year not in formatted_date:
-                # Die letzten zwei Ziffern des Jahres finden und durch das vollständige Jahr ersetzen
-                short_year = str(current_date.year() % 100).zfill(2)
-                formatted_date = formatted_date.replace(short_year, full_year)
-        else:
-            # Normale Formatierung für andere Formate
-            formatted_date = locale.toString(current_date, format_type)
+        formatted_date = helper_functions.date_to_string(datetime.date.today(), False,
+                                                         self.combo_country.currentData(),
+                                                         self.combo_language.currentData(),
+                                                         self.combo_format.currentData())
 
         self.label_date.setText(f"{formatted_date}")
-
-    def get_selected_locale(self) -> QLocale:
-        """Gibt die aktuell ausgewählte Locale zurück"""
-        country = self.combo_country.currentData()
-        language = self.combo_language.currentData()
-
-        # Finde die entsprechende Locale
-        if country and language:
-            if locales := QLocale.matchingLocales(language, QLocale.Script.AnyScript, country):
-                return locales[0]
-        return QLocale()  # Fallback auf System-Locale
 
 
 if __name__ == '__main__':

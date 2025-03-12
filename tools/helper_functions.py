@@ -121,8 +121,12 @@ def datetime_date_to_qdate(date: datetime.date) -> QDate:
     return QDate(date.year, date.month, date.day)
 
 
-def date_to_string(date: datetime.date, to_html: bool = False) -> str:
-    """Gibt das Datum in der von der Anwendung gewünschten Formatierung zurück."""
+def date_to_string(date: datetime.date, to_html: bool = False, curr_country: QLocale.Country | None = None,
+                   curr_language: QLocale.Language | None = None, curr_format: QLocale.FormatType | None = None) -> str:
+    """
+    Gibt das Datum in der von der Anwendung gewünschten Formatierung zurück.
+    Falls curr_country, curr_language oder curr_format nicht angegeben, werden die Werte aus den Einstellungen genommen.
+    """
     
     def get_cached_locale(country: QLocale.Country, language: QLocale.Language) -> QLocale:
         """Gibt die Locale für das angegebene Land und die angegebene Sprache zurück."""
@@ -144,9 +148,14 @@ def date_to_string(date: datetime.date, to_html: bool = False) -> str:
             
             if separator := next((char for char in ref_formatted if not char.isdigit()), None):
                 ref_parts = ref_formatted.split(separator)
-                month_pos, day_pos = ref_parts.index("12"), ref_parts.index("31")
-                year_pos = ({0, 1, 2} - {month_pos, day_pos}).pop()
-                _position_separator_cache[cache_key] = (year_pos, month_pos, day_pos, separator)
+                print(f'{ref_parts=}')
+                stripped_ref_parts = ref_parts  # [p.strip() for p in ref_parts]
+                try:
+                    month_pos, day_pos = stripped_ref_parts.index("12"), stripped_ref_parts.index("31")
+                    year_pos = ({0, 1, 2} - {month_pos, day_pos}).pop()
+                    _position_separator_cache[cache_key] = (year_pos, month_pos, day_pos, separator)
+                except ValueError:
+                    _position_separator_cache[cache_key] = None
             else:
                 _position_separator_cache[cache_key] = None
         return _position_separator_cache[cache_key]
@@ -161,14 +170,16 @@ def date_to_string(date: datetime.date, to_html: bool = False) -> str:
 
     # Hauptlogik
     q_date = datetime_date_to_qdate(date)
-    date_format_settings = general_settings_handler.get_general_settings().date_format_settings
-    curr_country = QLocale.Country(date_format_settings.country)
-    curr_language = QLocale.Language(date_format_settings.language)
-    curr_format = QLocale.FormatType(date_format_settings.format)
+    if not (curr_country and curr_language and curr_format):
+        date_format_settings = general_settings_handler.get_general_settings().date_format_settings
+        curr_country = QLocale.Country(date_format_settings.country)
+        curr_language = QLocale.Language(date_format_settings.language)
+        curr_format = QLocale.FormatType(date_format_settings.format)
     
     locale = get_cached_locale(curr_country, curr_language)
+    print(f'{curr_format=}')
     position_separator = (get_cached_positions_and_separator(curr_format, locale)
-                        if curr_format in [QLocale.FormatType.ShortFormat, QLocale.FormatType.NarrowFormat] 
+                        if curr_format in [QLocale.FormatType.ShortFormat, QLocale.FormatType.NarrowFormat]
                         else None)
 
     if curr_format == QLocale.FormatType.ShortFormat:

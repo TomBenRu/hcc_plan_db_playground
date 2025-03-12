@@ -28,7 +28,7 @@ class TranslationManager:
             print(f"Error: lrelease not found at {self.lrelease_path}")
             self.lrelease_path = None
 
-    def update_translations(self):
+    def update_translations(self, no_obsolete: bool):
         """Updates all .ts files with new translations from source code while preserving existing translations"""
         if not self.lupdate_path:
             print("Error: lupdate tool not found. Cannot update translations.")
@@ -36,7 +36,7 @@ class TranslationManager:
         
         os.makedirs(self.translations_dir, exist_ok=True)
         python_files = self._find_python_files()
-        
+
         print(f"Found {len(python_files)} Python files to process")
         print(f"Using lupdate from: {self.lupdate_path}")
 
@@ -52,7 +52,7 @@ class TranslationManager:
                     "-ts",
                     ts_file,
                     "-no-recursive",  # Verhindert Suche in Unterverzeichnissen
-                    # "-no-obsolete",   # Entfernt nicht mehr verwendete Übersetzungen
+                    "-no-obsolete" if no_obsolete else "",   # Entfernt nicht mehr verwendete Übersetzungen
                     "-locations", "absolute"  # Verwendet absolute Pfade für Locations
                 ]
                 print(f"\nExecuting command:\n{' '.join(cmd)}")
@@ -128,9 +128,13 @@ def main():
     manager = TranslationManager()
 
     if input("Update translations? (y/n): ").lower() == "y":
-        print("Updating translation files...")
-        manager.update_translations()
-        print("Translation files updated.")
+        if input("Remove obsolete translations? (y/n): ").lower() == "y":
+            no_obsolete = True
+        else:
+            no_obsolete = False
+        manager.update_translations(no_obsolete)
+        print("Translation files updated and obsolete translations removed." if no_obsolete
+              else "Translation files updated.")
     elif input("Compile translations? (y/n): ").lower() == "y":
         print("\nCompiling translation files...")
         manager.compile_translations()

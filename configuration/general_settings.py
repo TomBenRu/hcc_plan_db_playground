@@ -15,7 +15,8 @@ class PlanSettings(BaseModel):
     """
     Plan settings for the application.
     """
-    column_width: int = 120
+    column_width_plan: int = 120
+    column_width_statistics: int = 100
 
 
 class DateFormatSettings(BaseModel):

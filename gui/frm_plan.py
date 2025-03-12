@@ -729,7 +729,7 @@ class FrmTabPlan(QWidget):
         self.bottom_menu.add_widget(self.plan_statistics)
 
     def _generate_plan_data(self):
-        self.appointment_widget_width = self.general_settings.plan_settings.column_width
+        self.appointment_widget_width = self.general_settings.plan_settings.column_width_plan
         self.all_days_of_month = self.generate_all_days()
         self.all_week_nums_of_month = self.generate_all_week_nums_of_month()
         self.week_num_rows = self.generate_week_num_row()
@@ -1100,7 +1100,9 @@ class TblPlanStatistics(QTableWidget):
 
         self.frm_plan = frm_plan
         self.plan_id = plan_id
-        custom_header = CustomHeaderView(self,Qt.Orientation.Horizontal, 30, 100, True)
+        self.plan_settings = general_settings_handler.get_general_settings().plan_settings
+        custom_header = CustomHeaderView(self,Qt.Orientation.Horizontal,
+                                         30, self.plan_settings.column_width_statistics, True)
         self.setHorizontalHeader(custom_header)
         self.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
         self._setup_data()

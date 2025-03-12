@@ -137,6 +137,49 @@ Hier können Sie die Besetzung ändern.</translation>
     </message>
 </context>
 <context>
+    <name>DlgGeneralSettings</name>
+    <message>
+        <location filename="../frm_general_settings.py" line="14"/>
+        <source>General Settings</source>
+        <translation>Systemeinstellungen</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="29"/>
+        <source>&lt;h4&gt;System wide settings&lt;/h4&gt;&lt;p&gt;Changes only become effective after a restart.&lt;/p&gt;</source>
+        <translation>&lt;h4&gt;Systemweite Einstellungen&lt;/h4&gt;&lt;p&gt;Änderungen werden erst nach einem Neustart wirksam.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="31"/>
+        <source>Schedules</source>
+        <translation>Einsatzpläne</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="34"/>
+        <source>Interface Language</source>
+        <translation>Sprache Oberfläche</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="37"/>
+        <source>Date format</source>
+        <translation>Datumsformat</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="46"/>
+        <source>Column width schedules:</source>
+        <translation>Spaltenbreite Pläne:</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="47"/>
+        <source>Column width statistics:</source>
+        <translation>Splaltenbreite Statistiken:</translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="49"/>
+        <source>Language:</source>
+        <translation>Sprache:</translation>
+    </message>
+</context>
+<context>
     <name>DlgGuest</name>
     <message>
         <location filename="../frm_plan.py" line="121"/>
@@ -249,10 +292,6 @@ auf einen anderen Tag und andere Tageszeit verschieben.</translation>
 <context>
     <name>LabelLocation</name>
     <message>
-        <source>Click: Open planning mask for %s</source>
-        <translation type="vanished">Wechsle zur Planungsmaske von %s</translation>
-    </message>
-    <message>
         <location filename="../frm_plan.py" line="313"/>
         <source>Click:
 Open planning mask for %s</source>
@@ -263,39 +302,39 @@ Planungsmaske für %s öffnen</translation>
 <context>
     <name>LocaleSelector</name>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="29"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="32"/>
         <source>Country:</source>
         <translation>Land:</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="30"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="33"/>
         <source>Language:</source>
         <translation>Sprache:</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="31"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="34"/>
         <source>Date Format:</source>
-        <translation type="unfinished">Format:</translation>
+        <translation>Format:</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="32"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="35"/>
         <source>Current Date:</source>
         <translation>Aktuelles Datum:</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="45"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="48"/>
         <location filename="../../try_outs/qt_locale.py" line="41"/>
         <source>Full Date</source>
         <translation>Ausführlich</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="46"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="49"/>
         <location filename="../../try_outs/qt_locale.py" line="42"/>
         <source>Long Format</source>
         <translation>Lang</translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="47"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="50"/>
         <location filename="../../try_outs/qt_locale.py" line="43"/>
         <source>Narrow Format</source>
         <translation>Kurz</translation>
@@ -732,34 +771,34 @@ Planungsmaske für %s öffnen</translation>
 <context>
     <name>TblPlanStatistics</name>
     <message>
-        <location filename="../frm_plan.py" line="1200"/>
+        <location filename="../frm_plan.py" line="1202"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation>Klick:
 Planungsmaske für %s öffnen</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1204"/>
+        <location filename="../frm_plan.py" line="1206"/>
         <source>desired</source>
         <translation>gewünscht</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1204"/>
+        <location filename="../frm_plan.py" line="1206"/>
         <source>possible</source>
         <translation>möglich</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1205"/>
+        <location filename="../frm_plan.py" line="1207"/>
         <source>fair</source>
         <translation>gerecht</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1205"/>
+        <location filename="../frm_plan.py" line="1207"/>
         <source>assigned</source>
         <translation>zugeteilt</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1248"/>
+        <location filename="../frm_plan.py" line="1250"/>
         <source>Click:
 Mark possible assignments of %s
 in the plan.</source>
@@ -768,7 +807,7 @@ Mögliche Einsätze von %s
 im Plan markieren.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1251"/>
+        <location filename="../frm_plan.py" line="1253"/>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>
@@ -813,13 +852,6 @@ im Plan markieren.</translation>
         <location filename="../frm_plan.py" line="44"/>
         <source>Sunday</source>
         <translation>Sonntag</translation>
-    </message>
-</context>
-<context>
-    <name>appointment_field</name>
-    <message>
-        <source>unfilled: %d</source>
-        <translation type="vanished">unbesetzt %d</translation>
     </message>
 </context>
 </TS>

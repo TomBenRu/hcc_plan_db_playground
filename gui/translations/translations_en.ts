@@ -130,6 +130,49 @@ Here you can change the cast.</source>
     </message>
 </context>
 <context>
+    <name>DlgGeneralSettings</name>
+    <message>
+        <location filename="../frm_general_settings.py" line="14"/>
+        <source>General Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="29"/>
+        <source>&lt;h4&gt;System wide settings&lt;/h4&gt;&lt;p&gt;Changes only become effective after a restart.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="31"/>
+        <source>Schedules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="34"/>
+        <source>Interface Language</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="37"/>
+        <source>Date format</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="46"/>
+        <source>Column width schedules:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="47"/>
+        <source>Column width statistics:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_general_settings.py" line="49"/>
+        <source>Language:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgGuest</name>
     <message>
         <location filename="../frm_plan.py" line="121"/>
@@ -249,39 +292,39 @@ Open planning mask for %s</source>
 <context>
     <name>LocaleSelector</name>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="29"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="32"/>
         <source>Country:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="30"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="33"/>
         <source>Language:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="31"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="34"/>
         <source>Date Format:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="32"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="35"/>
         <source>Current Date:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="45"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="48"/>
         <location filename="../../try_outs/qt_locale.py" line="41"/>
         <source>Full Date</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="46"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="49"/>
         <location filename="../../try_outs/qt_locale.py" line="42"/>
         <source>Long Format</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../custom_widgets/date_format_selector.py" line="47"/>
+        <location filename="../custom_widgets/date_format_selector.py" line="50"/>
         <location filename="../../try_outs/qt_locale.py" line="43"/>
         <source>Narrow Format</source>
         <translation type="unfinished"></translation>
@@ -718,40 +761,40 @@ Open planning mask for %s</source>
 <context>
     <name>TblPlanStatistics</name>
     <message>
-        <location filename="../frm_plan.py" line="1200"/>
+        <location filename="../frm_plan.py" line="1202"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1204"/>
+        <location filename="../frm_plan.py" line="1206"/>
         <source>desired</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1204"/>
+        <location filename="../frm_plan.py" line="1206"/>
         <source>possible</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1205"/>
+        <location filename="../frm_plan.py" line="1207"/>
         <source>fair</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1205"/>
+        <location filename="../frm_plan.py" line="1207"/>
         <source>assigned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1248"/>
+        <location filename="../frm_plan.py" line="1250"/>
         <source>Click:
 Mark possible assignments of %s
 in the plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1251"/>
+        <location filename="../frm_plan.py" line="1253"/>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>

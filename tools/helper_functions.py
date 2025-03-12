@@ -116,7 +116,36 @@ def datetime_date_to_qdate(date: datetime.date) -> QDate:
     return QDate(date.year, date.month, date.day)
 
 
-def date_to_string(date: datetime.date) -> str:
+def date_to_string(date: datetime.date, to_html: bool = False) -> str:
+    """Gibt das Datum in der von der Anwendung gewünschten Formatierung zurück."""
+    def year_month_day_position_separator() -> tuple[int, int, int, str] | None:
+        """Ermittelt die Positionen der Jahreszahl, Monatszahl und Tagzahl im Format und den Separator."""
+        # Referenzdatum erstellen mit eindeutigen Werten für Tag/Monat/Jahr
+        ref_date = QDate(2099, 12, 31)  # Jahr 2099 kommt garantiert nicht im aktuellen Datum vor
+        ref_formatted = locale.toString(ref_date, curr_format)
+
+        # Position der Jahreszahl im Format ermitteln
+        separator = next((char for char in ref_formatted if not char.isdigit()), None)
+        if separator:
+            ref_parts = ref_formatted.split(separator)
+            month_pos, day_pos = ref_parts.index("12"), ref_parts.index("31")
+            year_pos = ({0, 1, 2} - {month_pos, day_pos}).pop()
+            return year_pos, month_pos, day_pos, separator
+        else:
+            return None  # Kein Separator gefunden, nehme Standardpositionen
+
+    def date_str_to_html(date_str: str) -> str:
+        """Formatiert das Datum in HTML, um das Tag fett zu machen."""
+        if curr_format not in [QLocale.FormatType.ShortFormat, QLocale.FormatType.NarrowFormat] or not position_seperator:
+            return date_str
+        try:
+            year_pos, month_pos, day_pos, separator = position_seperator
+            date_list = date_str.split(separator)
+            date_list[day_pos] = f'<span style="font-size: 11pt; font-weight: bold;">{date_list[day_pos]}</span>'
+            date_list[month_pos] = f'<span style="font-size: 11pt;">{date_list[month_pos]}</span>'
+            return separator.join(date_list)
+        except ValueError:
+            return date_str
     q_date = datetime_date_to_qdate(date)
     date_format_settings = general_settings_handler.get_general_settings().date_format_settings
     curr_country, curr_language, curr_format = (QLocale.Country(date_format_settings.country),
@@ -126,6 +155,11 @@ def date_to_string(date: datetime.date) -> str:
         locale = locales[0]
     else:
         locale = QLocale()  # Fallback auf System-Locale
+
+    if curr_format in [QLocale.FormatType.ShortFormat, QLocale.FormatType.NarrowFormat]:
+        position_seperator = year_month_day_position_separator()
+    else:
+        position_seperator = None
 
     if curr_format == QLocale.FormatType.ShortFormat:
         # Eventuelle 2-stellige Jahreszahl soll in 4-stellige Jahreszahl umgewandelt werden.
@@ -138,14 +172,17 @@ def date_to_string(date: datetime.date) -> str:
         full_year = str(q_date.year())
 
         if full_year not in formatted_date:
-            # Die letzten zwei Ziffern des Jahres finden und durch das vollständige Jahr ersetzen
-            short_year = str(q_date.year() % 100).zfill(2)
-            formatted_date = formatted_date.replace(short_year, full_year)
+            if position_seperator:
+                year_pos, * _, separator = position_seperator
+                # Jetzt das aktuelle Datum zerlegen und nur an der Jahr-Position ersetzen
+                parts = formatted_date.split(separator)
+                parts[year_pos] = full_year
+                formatted_date = separator.join(parts)
     else:
         # Normale Formatierung für andere Formate
         formatted_date = locale.toString(q_date, curr_format)
 
-    return formatted_date
+    return date_str_to_html(formatted_date) if to_html else formatted_date
 
 
 if __name__ == '__main__':

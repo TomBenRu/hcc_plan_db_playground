@@ -296,6 +296,25 @@ Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
     </message>
 </context>
 <context>
+    <name>DlgAssignDate</name>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="13"/>
+        <source>Team Change</source>
+        <translation>Team-Wechsel</translation>
+    </message>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="33"/>
+        <source>Start of change:</source>
+        <translation>Beginn der Änderung:</translation>
+    </message>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="48"/>
+        <source>Information about whether the change occurs during active planning periods will be added here.
+</source>
+        <translation>Hier kommt noch eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.\n</translation>
+    </message>
+</context>
+<context>
     <name>DlgAvailAtDay</name>
     <message>
         <location filename="../frm_plan.py" line="71"/>

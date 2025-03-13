@@ -280,6 +280,25 @@ Skills for events on this day are different.</source>
     </message>
 </context>
 <context>
+    <name>DlgAssignDate</name>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="13"/>
+        <source>Team Change</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="33"/>
+        <source>Start of change:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_assign_to_team.py" line="48"/>
+        <source>Information about whether the change occurs during active planning periods will be added here.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgAvailAtDay</name>
     <message>
         <location filename="../frm_plan.py" line="71"/>

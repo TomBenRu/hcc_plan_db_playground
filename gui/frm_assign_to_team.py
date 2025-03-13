@@ -10,7 +10,7 @@ class DlgAssignDate(QDialog):
     def __init__(self, parent: QWidget, curr_team_id: UUID | None, new_team_id: UUID | None):
         super().__init__(parent)
 
-        self.setWindowTitle('Team-Wechsel')
+        self.setWindowTitle(self.tr('Team Change'))
 
         self.curr_team_id = curr_team_id
         self.new_team_id = new_team_id
@@ -30,7 +30,7 @@ class DlgAssignDate(QDialog):
         self.layout_head.addWidget(self.lb_explanation)
 
         self.dt_change_team = QDateEdit()
-        self.layout_body.addRow('Beginn der Änderung:', self.dt_change_team)
+        self.layout_body.addRow(self.tr('Start of change:'), self.dt_change_team)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -43,7 +43,7 @@ class DlgAssignDate(QDialog):
         curr_team = db_services.Team.get(self.curr_team_id) if self.curr_team_id else None
         new_team = db_services.Team.get(self.new_team_id) if self.new_team_id else None
 
-        text_explanation = f'Hier kommt noc eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.\n'
+        text_explanation = self.tr('Information about whether the change occurs during active planning periods will be added here.\n')
 
         self.lb_explanation.setText(text_explanation)
 

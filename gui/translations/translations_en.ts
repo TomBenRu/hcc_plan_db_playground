@@ -313,6 +313,105 @@ the following employees are available.</source>
     </message>
 </context>
 <context>
+    <name>DlgCalculate</name>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="172"/>
+        <source>Period</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="173"/>
+        <source>Please select a period first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="177"/>
+        <source>Create Plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="180"/>
+        <source>No plans can be created for the period {period}.
+Please select assignments in the locations first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="185"/>
+        <source>Calculating Plan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="186"/>
+        <source>Calculating plans.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="189"/>
+        <location filename="../frm_calculate_plan.py" line="309"/>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="213"/>
+        <source>Schedule Creation {team_name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="217"/>
+        <source>You can automatically create schedules for team {team_name}
+for a selected planning period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="250"/>
+        <location filename="../frm_calculate_plan.py" line="271"/>
+        <location filename="../frm_calculate_plan.py" line="287"/>
+        <source>Error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="254"/>
+        <source>No solutions were found.
+This could be due to early termination,
+or the time limits for plan creation were too low,
+or the planning requirements were contradictory.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="262"/>
+        <source>  - {date} ({time_of_day}) {location}:
+      - Fixed cast: {fixed_cast}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="272"/>
+        <source>{count} fixed cast conflicts found.
+{conflicts}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="282"/>
+        <source>  - {skill}: {count}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="288"/>
+        <source>{count} skill conflicts found.
+{conflicts}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="307"/>
+        <source>Save Plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="308"/>
+        <source>In Progress...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>

@@ -12,7 +12,7 @@ from commands.database_commands import plan_commands, appointment_commands, max_
 from database import db_services, schemas
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
-from tools.helper_functions import generate_fixed_cast_clear_text
+from tools.helper_functions import generate_fixed_cast_clear_text, time_to_string, date_to_string
 
 
 class DlgAskNrPlansToSave(QDialog):
@@ -169,19 +169,26 @@ class DlgCalculate(QDialog):
 
     def _calculate_schedule_versions(self):
         if not self.curr_plan_period_id:
-            QMessageBox.critical(self, 'Zeitraum', 'Bitte wählen Sie zuerst einen Zeitraum.')
+            QMessageBox.critical(self, self.tr('Period'), 
+                               self.tr('Please select a period first.'))
             return
 
         if not db_services.Event.get_all_from__plan_period(self.curr_plan_period_id):
-            QMessageBox.critical(self, 'Pläne erstellen',
-                                 f'Es können keine Pläne für den Zeitraum {self.combo_plan_periods.currentText()} '
-                                 f'erstellt werden.\n'
-                                 f'Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.')
+            QMessageBox.critical(self, self.tr('Create Plans'),
+                               self.tr('No plans can be created for the period {period}.\n'
+                                     'Please select assignments in the locations first.')
+                               .format(period=self.combo_plan_periods.currentText()))
             return
 
-        self.progress_dialog_solver = DlgProgressSteps(self, 'Plan wird berechnet', 'Berechnung der Pläne.',
-                                                       0, self.spin_num_plans.value() + self.num_actor_plan_periods + 2,
-                                                       'Abbrechen', signal_handling.handler_solver.cancel_solving)
+        self.progress_dialog_solver = DlgProgressSteps(
+            self, 
+            self.tr('Calculating Plan'), 
+            self.tr('Calculating plans.'),
+            0, 
+            self.spin_num_plans.value() + self.num_actor_plan_periods + 2,
+            self.tr('Cancel'), 
+            signal_handling.handler_solver.cancel_solving
+        )
         self.progress_dialog_solver.show()
 
         # Create the solver thread
@@ -203,10 +210,11 @@ class DlgCalculate(QDialog):
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)
 
-        self.setWindowTitle(f'Einsatzplan-Erstellung {team.name}')
+        self.setWindowTitle(self.tr('Schedule Creation {team_name}').format(team_name=team.name))
 
-        self.lb_explanation.setText(f'Sie können automatisch für das Team {team.name}\n'
-                                    f'Spielpläne für einen gewählten Planungszeitraum erstellen.')
+        self.lb_explanation.setText(
+            self.tr('You can automatically create schedules for team {team_name}\n'
+                   'for a selected planning period.').format(team_name=team.name))
 
         self.spin_time_calculate_fair_distribution.setMaximum(10000)
 
@@ -237,29 +245,51 @@ class DlgCalculate(QDialog):
                         max_shifts_per_app: dict[UUID, int] | None,
                         fair_shifts_per_app: dict[UUID, float]):
         if schedule_versions is None and fixed_cast_conflicts is None:
-            QMessageBox.critical(self, 'Fehler',
-                                 'Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\n'
-                                 'oder die Zeitvorgaben für die Planerstellung waren zu gering,\n'
-                                 'oder die Vorgaben zur Planerstellung waren widersprüchlich.')
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('No solutions were found.\nThis could be due to early termination,\n'
+                       'or the time limits for plan creation were too low,\n'
+                       'or the planning requirements were contradictory.')
+            )
             self.reject()
             return
+
         if sum(fixed_cast_conflicts.values()) > 0:
             events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
-            conflict_string = '\n'.join([f'  - {e.date:%d.%m.%y} ({e.time_of_day.name}) '
-                                         f'{e.location_plan_period.location_of_work.name}:\n'
-                                         f'      - Feste Besetzung: '
-                                         f'{generate_fixed_cast_clear_text(e.cast_group.fixed_cast)}'
-                                         for e in events])
-            QMessageBox.critical(self, 'Fehler',
-                                 f'Es wurden {sum(fixed_cast_conflicts.values())} Fixcast-Konflikte gefunden.\n'
-                                 f'{conflict_string}')
+            conflict_string = '\n'.join([
+                self.tr('  - {date} ({time_of_day}) {location}:\n'
+                       '      - Fixed cast: {fixed_cast}').format(
+                    date=date_to_string(e.date),
+                    time_of_day=e.time_of_day.name,
+                    location=e.location_plan_period.location_of_work.name,
+                    fixed_cast=generate_fixed_cast_clear_text(e.cast_group.fixed_cast)
+                ) for e in events
+            ])
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('{count} fixed cast conflicts found.\n{conflicts}').format(
+                    count=sum(fixed_cast_conflicts.values()),
+                    conflicts=conflict_string
+                )
+            )
             self.reject()
             return
+
         if sum(skill_conflicts.values()) > 0:
-            conflict_string = '\n'.join([f'  - {skill}: {v}' for skill, v in skill_conflicts.items() if v > 0])
-            QMessageBox.critical(self, 'Fehler',
-                                 f'Es wurden {sum(skill_conflicts.values())} Skill-Konflikte gefunden.\n'
-                                 f'{conflict_string}')
+            conflict_string = '\n'.join([
+                self.tr('  - {skill}: {count}').format(skill=skill, count=v) 
+                for skill, v in skill_conflicts.items() if v > 0
+            ])
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('{count} skill conflicts found.\n{conflicts}').format(
+                    count=sum(skill_conflicts.values()),
+                    conflicts=conflict_string
+                )
+            )
             self.reject()
             return
 
@@ -272,12 +302,19 @@ class DlgCalculate(QDialog):
                 self.reject()
                 return
 
-        self.plans_save_progress_bar = DlgProgressInfinite(self, 'Pläne sichern', 'In Progress...', 'Abbruch',
-                                                           signal_handling.handler_solver.cancel_solving)
+        self.plans_save_progress_bar = DlgProgressInfinite(
+            self, 
+            self.tr('Save Plans'), 
+            self.tr('In Progress...'), 
+            self.tr('Cancel'),
+            signal_handling.handler_solver.cancel_solving
+        )
         self.plans_save_progress_bar.show()
-        save_thread = SaveThread(self, self.curr_plan_period_id, self.team_id,
-                                 schedule_versions, max_shifts_per_app, fair_shifts_per_app,
-                                 nr_versions_to_use, self.controller)
+        save_thread = SaveThread(
+            self, self.curr_plan_period_id, self.team_id,
+            schedule_versions, max_shifts_per_app, fair_shifts_per_app,
+            nr_versions_to_use, self.controller
+        )
         save_thread.finished.connect(self._collect_plan_ids)
         save_thread.start()
 

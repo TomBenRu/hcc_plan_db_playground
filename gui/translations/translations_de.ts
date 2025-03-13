@@ -330,6 +330,105 @@ sind folgende Mitarbeiter verfügbar.</translation>
     </message>
 </context>
 <context>
+    <name>DlgCalculate</name>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="172"/>
+        <source>Period</source>
+        <translation>Zeitraum</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="173"/>
+        <source>Please select a period first.</source>
+        <translation>Bitte wählen Sie zuerst einen Zeitraum.</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="177"/>
+        <source>Create Plans</source>
+        <translation>Pläne erstellen</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="180"/>
+        <source>No plans can be created for the period {period}.
+Please select assignments in the locations first.</source>
+        <translation>Es können keine Pläne für den Zeitraum {period} erstellt werden.\nBitte wählen Sie zuerst Einsätze in den Einrichtungen aus.</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="185"/>
+        <source>Calculating Plan</source>
+        <translation>Plan wird berechnet</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="186"/>
+        <source>Calculating plans.</source>
+        <translation>Berechnung der Pläne.</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="189"/>
+        <location filename="../frm_calculate_plan.py" line="309"/>
+        <source>Cancel</source>
+        <translation>Abbruch</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="213"/>
+        <source>Schedule Creation {team_name}</source>
+        <translation>Einsatzplan-Erstellung {team_name}</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="217"/>
+        <source>You can automatically create schedules for team {team_name}
+for a selected planning period.</source>
+        <translation>Sie können automatisch für das Team {team_name}\nSpielplänne für einen gewählten Planungszeitraum erstellen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="250"/>
+        <location filename="../frm_calculate_plan.py" line="271"/>
+        <location filename="../frm_calculate_plan.py" line="287"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="254"/>
+        <source>No solutions were found.
+This could be due to early termination,
+or the time limits for plan creation were too low,
+or the planning requirements were contradictory.</source>
+        <translation>Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\noder die Zeitvorgaben für die Planerstellung waren zu gering,\noder die Vorgaben zur Planerstellung waren widersprüchlich.</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="262"/>
+        <source>  - {date} ({time_of_day}) {location}:
+      - Fixed cast: {fixed_cast}</source>
+        <translation>  - {date} ({time_of_day}) {location}:\n      - Feste Besetzung: {fixed_cast}</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="272"/>
+        <source>{count} fixed cast conflicts found.
+{conflicts}</source>
+        <translation>{count} Fixcast-Konflikte gefunden.\n{conflicts}</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="282"/>
+        <source>  - {skill}: {count}</source>
+        <translation>  - {skill}: {count}</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="288"/>
+        <source>{count} skill conflicts found.
+{conflicts}</source>
+        <translation>{count} Skill-Konflikte gefunden.\n{conflicts}</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="307"/>
+        <source>Save Plans</source>
+        <translation>Pläne sichern</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="308"/>
+        <source>In Progress...</source>
+        <translation>In Bearbeitung...</translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>

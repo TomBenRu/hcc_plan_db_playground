@@ -1,12 +1,13 @@
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QDialogButtonBox
 
 from database import schemas
+from tools.helper_functions import date_to_string
 
 
 class DlgSendAppointmentsToGoogleCal(QDialog):
     def __init__(self, parent: QWidget, plan: schemas.PlanShow):
         super().__init__(parent)
-        self.setWindowTitle('Termine zu Google-Kalendern übertragen')
+        self.setWindowTitle(self.tr('Transfer Appointments to Google Calendar'))
         self.plan = plan
 
         self._setup_data()
@@ -22,12 +23,16 @@ class DlgSendAppointmentsToGoogleCal(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(f'<h4>Team: {self.plan.plan_period.team.name}<br>'
-                                     f'Zeitraum: {self.text_time_span}</h4>'
-                                     f'<p>Möchten Sie die Termine dieses Zeitraums<br>'
-                                     'in die entsprechenden Google-Kalender der Mitarbeiter eintragen?<br>'
-                                     'Bei diesem Vorgang werden vorhandene Termine dieses Zeitraums '
-                                     'aus den Kalendern entfernt.</p>')
+        self.lb_description = QLabel(
+            self.tr('<h4>Team: {team_name}<br>'
+                   'Period: {time_span}</h4>'
+                   '<p>Do you want to add the appointments of this period<br>'
+                   'to the corresponding Google Calendars of the employees?<br>'
+                   'During this process, existing appointments of this period '
+                   'will be removed from the calendars.</p>').format(
+                team_name=self.plan.plan_period.team.name,
+                time_span=self.text_time_span
+            ))
         self.layout_head.addWidget(self.lb_description)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No)
         self.layout_foot.addWidget(self.button_box)
@@ -35,4 +40,5 @@ class DlgSendAppointmentsToGoogleCal(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def _setup_data(self):
-        self.text_time_span = f'{self.plan.plan_period.start:%d.%m.%y} - {self.plan.plan_period.end:%d.%m.%y}'
+        self.text_time_span = (f'{date_to_string(self.plan.plan_period.start)} '
+                               f'- {date_to_string(self.plan.plan_period.end)}')

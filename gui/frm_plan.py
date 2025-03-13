@@ -28,7 +28,8 @@ from gui.widget_styles.plan_table import horizontal_header_colors, vertical_head
     cell_backgrounds_statistics
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
-from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string
+from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
+    time_to_string
 
 WEEKDAY_NAMES = [
     QCoreApplication.translate("WeekDays", "Monday"),
@@ -43,8 +44,8 @@ WEEKDAY_NAMES = [
 
 def fill_in_data(appointment_field: 'AppointmentField'):
     appointment_field.lb_time_of_day.setText(f'{appointment_field.appointment.event.time_of_day.name}: '
-                                             f'{appointment_field.appointment.event.time_of_day.start:%H:%M}'
-                                             f'-{appointment_field.appointment.event.time_of_day.end:%H:%M}')
+                                             f'{time_to_string(appointment_field.appointment.event.time_of_day.start)}'
+                                             f'-{time_to_string(appointment_field.appointment.event.time_of_day.end)}')
     employees = '\n'.join([f'{avd.actor_plan_period.person.f_name} {avd.actor_plan_period.person.l_name}'
                            for avd in sorted(appointment_field.appointment.avail_days,
                                              key=lambda x: (x.actor_plan_period.person.f_name,
@@ -259,7 +260,6 @@ class DlgMoveAppointment(QDialog):
         ))
         self.layout_head.addWidget(self.lb_description)
         self.calendar_select_date = QCalendarWidget()
-        lang = general_settings_handler.get_general_settings().language
         if lang := general_settings_handler.get_general_settings().language:
             self.calendar_select_date.setLocale(QLocale(lang))  # lang ist 'en', 'de', etc.
         else:

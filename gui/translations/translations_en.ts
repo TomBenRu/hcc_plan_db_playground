@@ -59,7 +59,7 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="58"/>
+        <location filename="../frm_plan.py" line="59"/>
         <source>unfilled: %d</source>
         <translation type="unfinished"></translation>
     </message>
@@ -282,12 +282,12 @@ Skills for events on this day are different.</source>
 <context>
     <name>DlgAvailAtDay</name>
     <message>
-        <location filename="../frm_plan.py" line="70"/>
+        <location filename="../frm_plan.py" line="71"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="94"/>
+        <location filename="../frm_plan.py" line="95"/>
         <source>On %s, %s
 the following employees are available.</source>
         <translation type="unfinished"></translation>
@@ -296,29 +296,29 @@ the following employees are available.</source>
 <context>
     <name>DlgEditAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="161"/>
+        <location filename="../frm_plan.py" line="162"/>
         <source>Assignments on:
 %s, %s - %s, %s
 Here you can change the cast.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="168"/>
+        <location filename="../frm_plan.py" line="169"/>
         <source>Employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="190"/>
+        <location filename="../frm_plan.py" line="191"/>
         <source>Employee %02d</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="191"/>
+        <location filename="../frm_plan.py" line="192"/>
         <source>Unassigned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="197"/>
+        <location filename="../frm_plan.py" line="198"/>
         <source>Guest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -369,13 +369,13 @@ Here you can change the cast.</source>
 <context>
     <name>DlgGuest</name>
     <message>
-        <location filename="../frm_plan.py" line="121"/>
-        <location filename="../frm_plan.py" line="139"/>
+        <location filename="../frm_plan.py" line="122"/>
+        <location filename="../frm_plan.py" line="140"/>
         <source>Guest cast</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="133"/>
+        <location filename="../frm_plan.py" line="134"/>
         <source>Insert the name of the guest.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -383,15 +383,28 @@ Here you can change the cast.</source>
 <context>
     <name>DlgMoveAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="233"/>
+        <location filename="../frm_plan.py" line="234"/>
         <source>Move appointment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="255"/>
+        <location filename="../frm_plan.py" line="256"/>
         <source>Here you can move the appointment
 %s, %s (%s)
 to a different day and time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgSendAppointmentsToGoogleCal</name>
+    <message>
+        <location filename="../frm_appointments_to_google_calendar.py" line="10"/>
+        <source>Transfer Appointments to Google Calendar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_appointments_to_google_calendar.py" line="32"/>
+        <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to add the appointments of this period&lt;br&gt;to the corresponding Google Calendars of the employees?&lt;br&gt;During this process, existing appointments of this period will be removed from the calendars.&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1353,37 +1366,37 @@ in the plan.</source>
 <context>
     <name>WeekDays</name>
     <message>
-        <location filename="../frm_plan.py" line="34"/>
+        <location filename="../frm_plan.py" line="35"/>
         <source>Monday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="35"/>
+        <location filename="../frm_plan.py" line="36"/>
         <source>Tuesday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="36"/>
+        <location filename="../frm_plan.py" line="37"/>
         <source>Wednesday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="37"/>
+        <location filename="../frm_plan.py" line="38"/>
         <source>Thursday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="38"/>
+        <location filename="../frm_plan.py" line="39"/>
         <source>Friday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="39"/>
+        <location filename="../frm_plan.py" line="40"/>
         <source>Saturday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="44"/>
+        <location filename="../frm_plan.py" line="45"/>
         <source>Sunday</source>
         <translation type="unfinished"></translation>
     </message>

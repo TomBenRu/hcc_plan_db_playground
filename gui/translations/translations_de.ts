@@ -63,7 +63,7 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
         <translation>Verschiebe %s am %s (%s)</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="58"/>
+        <location filename="../frm_plan.py" line="59"/>
         <source>unfilled: %d</source>
         <translation>unbesetzt %d</translation>
     </message>
@@ -298,12 +298,12 @@ Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
 <context>
     <name>DlgAvailAtDay</name>
     <message>
-        <location filename="../frm_plan.py" line="70"/>
+        <location filename="../frm_plan.py" line="71"/>
         <source>Available</source>
         <translation>Verfüggbar</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="94"/>
+        <location filename="../frm_plan.py" line="95"/>
         <source>On %s, %s
 the following employees are available.</source>
         <translation>Am %s, %s
@@ -313,7 +313,7 @@ sind folgende Mitarbeiter verfügbar.</translation>
 <context>
     <name>DlgEditAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="161"/>
+        <location filename="../frm_plan.py" line="162"/>
         <source>Assignments on:
 %s, %s - %s, %s
 Here you can change the cast.</source>
@@ -322,22 +322,22 @@ Here you can change the cast.</source>
 Hier können Sie die Besetzung ändern.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="168"/>
+        <location filename="../frm_plan.py" line="169"/>
         <source>Employees</source>
         <translation>Mitarbeiter</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="190"/>
+        <location filename="../frm_plan.py" line="191"/>
         <source>Employee %02d</source>
         <translation>Mitarbeiter %02d</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="191"/>
+        <location filename="../frm_plan.py" line="192"/>
         <source>Unassigned</source>
         <translation>Unbesetzt</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="197"/>
+        <location filename="../frm_plan.py" line="198"/>
         <source>Guest</source>
         <translation>Gast</translation>
     </message>
@@ -370,10 +370,6 @@ Hier können Sie die Besetzung ändern.</translation>
         <translation>Datums- und Zeitformat</translation>
     </message>
     <message>
-        <source>Date format</source>
-        <translation type="vanished">Datumsformat</translation>
-    </message>
-    <message>
         <location filename="../frm_general_settings.py" line="46"/>
         <source>Column width schedules:</source>
         <translation>Spaltenbreite Pläne:</translation>
@@ -392,13 +388,13 @@ Hier können Sie die Besetzung ändern.</translation>
 <context>
     <name>DlgGuest</name>
     <message>
-        <location filename="../frm_plan.py" line="121"/>
-        <location filename="../frm_plan.py" line="139"/>
+        <location filename="../frm_plan.py" line="122"/>
+        <location filename="../frm_plan.py" line="140"/>
         <source>Guest cast</source>
         <translation>Gastbesetzung</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="133"/>
+        <location filename="../frm_plan.py" line="134"/>
         <source>Insert the name of the guest.</source>
         <translation>Fügen Sie den Namen des Gastes ein.</translation>
     </message>
@@ -406,18 +402,31 @@ Hier können Sie die Besetzung ändern.</translation>
 <context>
     <name>DlgMoveAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="233"/>
+        <location filename="../frm_plan.py" line="234"/>
         <source>Move appointment</source>
         <translation>Termin verschieben</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="255"/>
+        <location filename="../frm_plan.py" line="256"/>
         <source>Here you can move the appointment
 %s, %s (%s)
 to a different day and time.</source>
         <translation>HIer können Sie den Termin
 %s, %s (%s)
 auf einen anderen Tag und andere Tageszeit verschieben.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgSendAppointmentsToGoogleCal</name>
+    <message>
+        <location filename="../frm_appointments_to_google_calendar.py" line="10"/>
+        <source>Transfer Appointments to Google Calendar</source>
+        <translation>Termine zu Google-Kalendern übertragen</translation>
+    </message>
+    <message>
+        <location filename="../frm_appointments_to_google_calendar.py" line="32"/>
+        <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to add the appointments of this period&lt;br&gt;to the corresponding Google Calendars of the employees?&lt;br&gt;During this process, existing appointments of this period will be removed from the calendars.&lt;/p&gt;</source>
+        <translation>&lt;h4&gt;Team: {team_name}&lt;br&gt;Zeitraum: {time_span}&lt;/h4&gt;&lt;p&gt;Möchten Sie die Termine dieses Zeitraums&lt;br&gt;in die entsprechenden Google-Kalender der Mitarbeiter eintragen?&lt;br&gt;Bei diesem Vorgang werden vorhandene Termine dieses Zeitraums aus den Kalendern entfernt.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -876,14 +885,6 @@ Planungsmaske für %s öffnen</translation>
         <location filename="../custom_widgets/date_format_selector.py" line="33"/>
         <source>Language:</source>
         <translation>Sprache:</translation>
-    </message>
-    <message>
-        <source>Date Format:</source>
-        <translation type="vanished">Format:</translation>
-    </message>
-    <message>
-        <source>Current Date:</source>
-        <translation type="vanished">Aktuelles Datum:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/date_format_selector.py" line="34"/>
@@ -1393,37 +1394,37 @@ im Plan markieren.</translation>
 <context>
     <name>WeekDays</name>
     <message>
-        <location filename="../frm_plan.py" line="34"/>
+        <location filename="../frm_plan.py" line="35"/>
         <source>Monday</source>
         <translation>Montag</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="35"/>
+        <location filename="../frm_plan.py" line="36"/>
         <source>Tuesday</source>
         <translation>Dienstag</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="36"/>
+        <location filename="../frm_plan.py" line="37"/>
         <source>Wednesday</source>
         <translation>Mittwoch</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="37"/>
+        <location filename="../frm_plan.py" line="38"/>
         <source>Thursday</source>
         <translation>Donnerstag</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="38"/>
+        <location filename="../frm_plan.py" line="39"/>
         <source>Friday</source>
         <translation>Freitag</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="39"/>
+        <location filename="../frm_plan.py" line="40"/>
         <source>Saturday</source>
         <translation>Samstag</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="44"/>
+        <location filename="../frm_plan.py" line="45"/>
         <source>Sunday</source>
         <translation>Sonntag</translation>
     </message>

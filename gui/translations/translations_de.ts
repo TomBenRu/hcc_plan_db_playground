@@ -296,6 +296,21 @@ Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
     </message>
 </context>
 <context>
+    <name>DlgAskNrPlansToSave</name>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="27"/>
+        <source>A total of {count} plans have been calculated.
+How many would you like to use?</source>
+        <translation>Es wurden insgesamt {count} Pläne berechnet.
+Wie viele davon möchten Sie verwenden?</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="37"/>
+        <source>Number of plans:</source>
+        <translation>Anzahl Pläne:</translation>
+    </message>
+</context>
+<context>
     <name>DlgAssignDate</name>
     <message>
         <location filename="../frm_assign_to_team.py" line="13"/>
@@ -311,7 +326,8 @@ Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
         <location filename="../frm_assign_to_team.py" line="48"/>
         <source>Information about whether the change occurs during active planning periods will be added here.
 </source>
-        <translation>Hier kommt noch eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.\n</translation>
+        <translation>Hier kommt noch eine Info rein, ob der Wechsel während laufenden Planperioden stattfindet.
+</translation>
     </message>
 </context>
 <context>
@@ -332,98 +348,141 @@ sind folgende Mitarbeiter verfügbar.</translation>
 <context>
     <name>DlgCalculate</name>
     <message>
-        <location filename="../frm_calculate_plan.py" line="172"/>
+        <location filename="../frm_calculate_plan.py" line="138"/>
+        <source>Period and Count</source>
+        <translation>Zeitraum und Anzahl</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="139"/>
+        <source>Calculation Times (sec)</source>
+        <translation>Berechnungszeiten (sec)</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="154"/>
+        <source>Planning Period</source>
+        <translation>Zeitraum für die Planung</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="155"/>
+        <source>Number of Planning Proposals</source>
+        <translation>Anzahl zu erstellender Planungsvorschläge</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="159"/>
+        <source>Max. Time for Preprocessing</source>
+        <translation>Max. Zeit für Vorberechnung</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="160"/>
+        <source>Max. Time for Fair Distribution Calculation</source>
+        <translation>Max. Zeit für Berechnung fairer Verteilung</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="162"/>
+        <source>Max. Time for Plan Calculation</source>
+        <translation>Max. Zeit für Planberechnung</translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="174"/>
         <source>Period</source>
         <translation>Zeitraum</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="173"/>
+        <location filename="../frm_calculate_plan.py" line="175"/>
         <source>Please select a period first.</source>
         <translation>Bitte wählen Sie zuerst einen Zeitraum.</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="177"/>
+        <location filename="../frm_calculate_plan.py" line="179"/>
         <source>Create Plans</source>
         <translation>Pläne erstellen</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="180"/>
+        <location filename="../frm_calculate_plan.py" line="182"/>
         <source>No plans can be created for the period {period}.
 Please select assignments in the locations first.</source>
-        <translation>Es können keine Pläne für den Zeitraum {period} erstellt werden.\nBitte wählen Sie zuerst Einsätze in den Einrichtungen aus.</translation>
+        <translation>Es können keine Pläne für den Zeitraum {period} erstellt werden.
+Bitte wählen Sie zuerst Einsätze in den Einrichtungen aus.</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="185"/>
+        <location filename="../frm_calculate_plan.py" line="187"/>
         <source>Calculating Plan</source>
         <translation>Plan wird berechnet</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="186"/>
+        <location filename="../frm_calculate_plan.py" line="188"/>
         <source>Calculating plans.</source>
         <translation>Berechnung der Pläne.</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="189"/>
-        <location filename="../frm_calculate_plan.py" line="309"/>
+        <location filename="../frm_calculate_plan.py" line="191"/>
+        <location filename="../frm_calculate_plan.py" line="311"/>
         <source>Cancel</source>
         <translation>Abbruch</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="213"/>
+        <location filename="../frm_calculate_plan.py" line="215"/>
         <source>Schedule Creation {team_name}</source>
         <translation>Einsatzplan-Erstellung {team_name}</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="217"/>
+        <location filename="../frm_calculate_plan.py" line="219"/>
         <source>You can automatically create schedules for team {team_name}
 for a selected planning period.</source>
-        <translation>Sie können automatisch für das Team {team_name}\nSpielplänne für einen gewählten Planungszeitraum erstellen.</translation>
+        <translation>Sie können automatisch für das Team {team_name}
+Spielplänne für einen gewählten Planungszeitraum erstellen.</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="250"/>
-        <location filename="../frm_calculate_plan.py" line="271"/>
-        <location filename="../frm_calculate_plan.py" line="287"/>
+        <location filename="../frm_calculate_plan.py" line="252"/>
+        <location filename="../frm_calculate_plan.py" line="273"/>
+        <location filename="../frm_calculate_plan.py" line="289"/>
         <source>Error</source>
         <translation>Fehler</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="254"/>
+        <location filename="../frm_calculate_plan.py" line="256"/>
         <source>No solutions were found.
 This could be due to early termination,
 or the time limits for plan creation were too low,
 or the planning requirements were contradictory.</source>
-        <translation>Es wurden keine Lösungen gefunden.\nUrsache könnte eine vorzeitiger Abbruch sein,\noder die Zeitvorgaben für die Planerstellung waren zu gering,\noder die Vorgaben zur Planerstellung waren widersprüchlich.</translation>
+        <translation>Es wurden keine Lösungen gefunden.
+Ursache könnte eine vorzeitiger Abbruch sein,
+oder die Zeitvorgaben für die Planerstellung waren zu gering,
+oder die Vorgaben zur Planerstellung waren widersprüchlich.</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="262"/>
+        <location filename="../frm_calculate_plan.py" line="264"/>
         <source>  - {date} ({time_of_day}) {location}:
       - Fixed cast: {fixed_cast}</source>
-        <translation>  - {date} ({time_of_day}) {location}:\n      - Feste Besetzung: {fixed_cast}</translation>
+        <translation>  - {date} ({time_of_day}) {location}:
+      - Feste Besetzung: {fixed_cast}</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="272"/>
+        <location filename="../frm_calculate_plan.py" line="274"/>
         <source>{count} fixed cast conflicts found.
 {conflicts}</source>
-        <translation>{count} Fixcast-Konflikte gefunden.\n{conflicts}</translation>
+        <translation>{count} Fixcast-Konflikte gefunden.
+{conflicts}</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="282"/>
+        <location filename="../frm_calculate_plan.py" line="284"/>
         <source>  - {skill}: {count}</source>
         <translation>  - {skill}: {count}</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="288"/>
+        <location filename="../frm_calculate_plan.py" line="290"/>
         <source>{count} skill conflicts found.
 {conflicts}</source>
-        <translation>{count} Skill-Konflikte gefunden.\n{conflicts}</translation>
+        <translation>{count} Skill-Konflikte gefunden.
+{conflicts}</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="307"/>
+        <location filename="../frm_calculate_plan.py" line="309"/>
         <source>Save Plans</source>
         <translation>Pläne sichern</translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="308"/>
+        <location filename="../frm_calculate_plan.py" line="310"/>
         <source>In Progress...</source>
         <translation>In Bearbeitung...</translation>
     </message>

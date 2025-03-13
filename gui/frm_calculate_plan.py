@@ -22,8 +22,10 @@ class DlgAskNrPlansToSave(QDialog):
         self.poss_nr_plans = poss_nr_plans
 
         self.layout = QFormLayout(self)
-        self.lb_question = QLabel(f'Es wurden insgesamt {poss_nr_plans} Pläne berechnet.\n'
-                                  f'Wie viele davon möchten Sie verwenden?')
+        self.lb_question = QLabel(
+            self.tr('A total of {count} plans have been calculated.\n'
+                   'How many would you like to use?').format(count=poss_nr_plans))
+
         self.spin_nr_plans = QSpinBox()
         self.spin_nr_plans.setRange(1, poss_nr_plans)
         self.spin_nr_plans.setValue(self.poss_nr_plans)
@@ -32,7 +34,7 @@ class DlgAskNrPlansToSave(QDialog):
         self.button_box.rejected.connect(self.reject)
 
         self.layout.addRow(self.lb_question)
-        self.layout.addRow('Anzahl Pläne:', self.spin_nr_plans)
+        self.layout.addRow(self.tr('Number of plans:'), self.spin_nr_plans)
         self.layout.addRow(self.button_box)
 
     def get_nr_versions_to_use(self):
@@ -133,8 +135,8 @@ class DlgCalculate(QDialog):
 
         self.layout_head = QVBoxLayout()
         self.layout_body = QHBoxLayout()
-        self.group_plan_select = QGroupBox('Zeitraum und Anzahl')
-        self.group_time_config = QGroupBox('Berechnungszeiten (sec)')
+        self.group_plan_select = QGroupBox(self.tr('Period and Count'))
+        self.group_time_config = QGroupBox(self.tr('Calculation Times (sec)'))
         self.layout_body.addWidget(self.group_plan_select)
         self.layout_body.addWidget(self.group_time_config)
         self.layout_plan_select = QFormLayout(self.group_plan_select)
@@ -149,15 +151,15 @@ class DlgCalculate(QDialog):
         self.layout_head.addWidget(self.lb_explanation)
         self.combo_plan_periods = QComboBox()
         self.spin_num_plans = QSpinBox()
-        self.layout_plan_select.addRow('Zeitraum für die Planung', self.combo_plan_periods)
-        self.layout_plan_select.addRow('Anzahl zu erstellender Planungsvorschläge', self.spin_num_plans)
+        self.layout_plan_select.addRow(self.tr('Planning Period'), self.combo_plan_periods)
+        self.layout_plan_select.addRow(self.tr('Number of Planning Proposals'), self.spin_num_plans)
         self.spin_time_calculate_max_shifts = QSpinBox()
         self.spin_time_calculate_fair_distribution = QSpinBox()
         self.spin_time_calculate_plan = QSpinBox()
-        self.layout_times_config.addRow('Max. Zeit für Vorberechnung', self.spin_time_calculate_max_shifts)
-        self.layout_times_config.addRow('Max. Zeit für Berechnung fairer Verteilung',
-                                        self.spin_time_calculate_fair_distribution)
-        self.layout_times_config.addRow('Max. Zeit für Planberechnung', self.spin_time_calculate_plan)
+        self.layout_times_config.addRow(self.tr('Max. Time for Preprocessing'), self.spin_time_calculate_max_shifts)
+        self.layout_times_config.addRow(self.tr('Max. Time for Fair Distribution Calculation'),
+                                      self.spin_time_calculate_fair_distribution)
+        self.layout_times_config.addRow(self.tr('Max. Time for Plan Calculation'), self.spin_time_calculate_plan)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
                                            | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
@@ -221,7 +223,7 @@ class DlgCalculate(QDialog):
         plan_periods = sorted([pp for pp in team.plan_periods if not pp.prep_delete],
                               key=lambda x: x.start, reverse=True)
         for plan_period in plan_periods:
-            self.combo_plan_periods.addItem(f'{plan_period.start:%d.%m.%y} - {plan_period.end:%d.%m.%y}',
+            self.combo_plan_periods.addItem(f'{date_to_string(plan_period.start)} - {date_to_string(plan_period.end)}',
                                             plan_period.id)
         self.combo_plan_periods.currentIndexChanged.connect(self.combo_plan_periods_index_changed)
         self.combo_plan_periods_index_changed()

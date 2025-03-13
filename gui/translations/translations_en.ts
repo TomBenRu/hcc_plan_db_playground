@@ -280,6 +280,20 @@ Skills for events on this day are different.</source>
     </message>
 </context>
 <context>
+    <name>DlgAskNrPlansToSave</name>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="27"/>
+        <source>A total of {count} plans have been calculated.
+How many would you like to use?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="37"/>
+        <source>Number of plans:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgAssignDate</name>
     <message>
         <location filename="../frm_assign_to_team.py" line="13"/>
@@ -315,62 +329,97 @@ the following employees are available.</source>
 <context>
     <name>DlgCalculate</name>
     <message>
-        <location filename="../frm_calculate_plan.py" line="172"/>
+        <location filename="../frm_calculate_plan.py" line="138"/>
+        <source>Period and Count</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="139"/>
+        <source>Calculation Times (sec)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="154"/>
+        <source>Planning Period</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="155"/>
+        <source>Number of Planning Proposals</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="159"/>
+        <source>Max. Time for Preprocessing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="160"/>
+        <source>Max. Time for Fair Distribution Calculation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="162"/>
+        <source>Max. Time for Plan Calculation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_calculate_plan.py" line="174"/>
         <source>Period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="173"/>
+        <location filename="../frm_calculate_plan.py" line="175"/>
         <source>Please select a period first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="177"/>
+        <location filename="../frm_calculate_plan.py" line="179"/>
         <source>Create Plans</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="180"/>
+        <location filename="../frm_calculate_plan.py" line="182"/>
         <source>No plans can be created for the period {period}.
 Please select assignments in the locations first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="185"/>
+        <location filename="../frm_calculate_plan.py" line="187"/>
         <source>Calculating Plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="186"/>
+        <location filename="../frm_calculate_plan.py" line="188"/>
         <source>Calculating plans.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="189"/>
-        <location filename="../frm_calculate_plan.py" line="309"/>
+        <location filename="../frm_calculate_plan.py" line="191"/>
+        <location filename="../frm_calculate_plan.py" line="311"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="213"/>
+        <location filename="../frm_calculate_plan.py" line="215"/>
         <source>Schedule Creation {team_name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="217"/>
+        <location filename="../frm_calculate_plan.py" line="219"/>
         <source>You can automatically create schedules for team {team_name}
 for a selected planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="250"/>
-        <location filename="../frm_calculate_plan.py" line="271"/>
-        <location filename="../frm_calculate_plan.py" line="287"/>
+        <location filename="../frm_calculate_plan.py" line="252"/>
+        <location filename="../frm_calculate_plan.py" line="273"/>
+        <location filename="../frm_calculate_plan.py" line="289"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="254"/>
+        <location filename="../frm_calculate_plan.py" line="256"/>
         <source>No solutions were found.
 This could be due to early termination,
 or the time limits for plan creation were too low,
@@ -378,35 +427,35 @@ or the planning requirements were contradictory.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="262"/>
+        <location filename="../frm_calculate_plan.py" line="264"/>
         <source>  - {date} ({time_of_day}) {location}:
       - Fixed cast: {fixed_cast}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="272"/>
+        <location filename="../frm_calculate_plan.py" line="274"/>
         <source>{count} fixed cast conflicts found.
 {conflicts}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="282"/>
+        <location filename="../frm_calculate_plan.py" line="284"/>
         <source>  - {skill}: {count}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="288"/>
+        <location filename="../frm_calculate_plan.py" line="290"/>
         <source>{count} skill conflicts found.
 {conflicts}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="307"/>
+        <location filename="../frm_calculate_plan.py" line="309"/>
         <source>Save Plans</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="308"/>
+        <location filename="../frm_calculate_plan.py" line="310"/>
         <source>In Progress...</source>
         <translation type="unfinished"></translation>
     </message>

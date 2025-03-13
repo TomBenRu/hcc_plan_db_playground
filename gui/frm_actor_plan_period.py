@@ -27,6 +27,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
+from tools.helper_functions import date_to_string, time_to_string
 
 
 class ButtonAvailDay(QPushButton):
@@ -63,15 +64,6 @@ class ButtonAvailDay(QPushButton):
         # self.create_actions()
         # self.context_menu.addActions(self.actions)
         self.set_tooltip()
-
-    # def deleteLater(self):
-    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
-    #     signal_handling.handler_actor_plan_period.signal_change_actor_plan_period_group_mode.disconnect(
-    #         self.set_group_mode)
-    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_days.disconnect(
-    #         self.reload_actor_plan_period
-    #     )
-    #     super().deleteLater()
 
     def set_stylesheet(self):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
@@ -111,7 +103,7 @@ class ButtonAvailDay(QPushButton):
                                                )
                               )
                               if t.name == self.time_of_day.name else None,
-                              f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                              f'{t.name}: {time_to_string(t.start)}-{time_to_string(t.end)}', None,
                               functools.partial(self.set_new_time_of_day, t))
             for t in self.t_o_d_for_selection
         ]
@@ -165,8 +157,8 @@ class ButtonAvailDay(QPushButton):
     def set_tooltip(self):
         self.setToolTip(
             self.tr('Right click:\nChange time period for time of day "%s" on %s.\nCurrent: %s (%s-%s)') % (
-                self.time_of_day.time_of_day_enum.name, self.date, self.time_of_day.name,
-                self.time_of_day.start.strftime("%H:%M"), self.time_of_day.end.strftime("%H:%M")))
+                self.time_of_day.time_of_day_enum.name, date_to_string(self.date), self.time_of_day.name,
+                time_to_string(self.time_of_day.start), time_to_string(self.time_of_day.end)))
 
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
@@ -194,7 +186,7 @@ class ButtonCombLocPossible(QPushButton):
         self.person: schemas.PersonShow | None = None
         self.date = date
 
-        self.setToolTip(self.tr('Location combinations on %s') % date.strftime("%d.%m.%Y"))
+        self.setToolTip(self.tr('Location combinations on %s') % date_to_string(self.date))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -318,7 +310,7 @@ class ButtonActorLocationPref(QPushButton):
         self.team = team
         self.date = date
 
-        self.setToolTip(self.tr('Location preferences on %s') % date.strftime("%d.%m.%Y"))
+        self.setToolTip(self.tr('Location preferences on %s') % date_to_string(date))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -475,7 +467,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
         self.team = team
         self.date = date
 
-        self.setToolTip('Employee / Location Preferences on %s' % date.strftime("%d.%m.%Y"))
+        self.setToolTip('Employee / Location Preferences on %s' % date_to_string(date))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -702,14 +694,14 @@ class ButtonSkills(QPushButton):
             additional_txt = self.tr('\nSkills for events on this day are different.')
         self.setToolTip(
             self.tr('Click here to edit the skills for availabilities on %s.%s') % (
-                self.date.strftime("%d.%m."), additional_txt)
+                date_to_string(self.date), additional_txt)
         )
 
     def edit_skills_of_day(self):
         if not self.avail_days_at_day:
             QMessageBox.information(
                 self, self.tr('Skills for the day'),
-                self.tr('No availabilities exist for %s') % self.date.strftime("%d.%m."))
+                self.tr('No availabilities exist for %s') % date_to_string(self.date))
             return
         avail_day = next((ad for ad in self.avail_days_at_day if ad.skills), self.avail_days_at_day[0])
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
@@ -725,7 +717,7 @@ class ButtonSkills(QPushButton):
             self.set_stylesheet_and_tooltip()
             QMessageBox.information(
                 self, self.tr('Skills for the day'),
-                self.tr('The skills for day %s have been modified.') % self.date.strftime("%d.%m."))
+                self.tr('The skills for day %s have been modified.') % date_to_string(self.date))
         else:
             dlg.controller.undo_all()
 
@@ -1180,7 +1172,7 @@ class FrmActorPlanPeriod(QWidget):
                         self.tr(
                             'Deleting this appointment left a group with only one date: {date}\n'
                             'Please correct this in the following dialog.').format(
-                            date=solo_avail_day.date.strftime("%d.%m.%y")
+                            date=date_to_string(solo_avail_day.date)
                         )
                     )
                     self.change_mode__avd_group()
@@ -1463,8 +1455,8 @@ class FrmActorPlanPeriod(QWidget):
                 self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
                        'Do you want to delete all available days from the planning mask?').format(
                     name=self.actor_plan_period.person.full_name,
-                    start=self.actor_plan_period.plan_period.start.strftime('%d.%m.%y'),
-                    end=self.actor_plan_period.plan_period.end.strftime('%d.%m.%y')
+                    start=date_to_string(self.actor_plan_period.plan_period.start),
+                    end=date_to_string(self.actor_plan_period.plan_period.end)
                 )
             )
             if reply == QMessageBox.StandardButton.Yes:
@@ -1482,8 +1474,8 @@ class FrmActorPlanPeriod(QWidget):
                 self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
                        'Do you want to delete these available days from the planning mask?').format(
                     name=self.actor_plan_period.person.full_name,
-                    start=self.actor_plan_period.plan_period.start.strftime('%d.%m.%y'),
-                    end=self.actor_plan_period.plan_period.end.strftime('%d.%m.%y')
+                    start=date_to_string(self.actor_plan_period.plan_period.start),
+                    end=date_to_string(self.actor_plan_period.plan_period.end)
                 )
             )
             if reply == QMessageBox.StandardButton.No:

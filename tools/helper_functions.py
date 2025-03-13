@@ -4,7 +4,7 @@ from itertools import zip_longest
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import QDate, QLocale
+from PySide6.QtCore import QDate, QLocale, QTime
 
 from line_profiler_pycharm import profile
 
@@ -14,6 +14,17 @@ from database import db_services, schemas
 # date_to_string cache:
 _locale_cache = {}
 _position_separator_cache = {}
+
+
+def get_cached_locale(country: QLocale.Country, language: QLocale.Language) -> QLocale:
+    """Gibt die Locale für das angegebene Land und die angegebene Sprache zurück."""
+    cache_key = (country, language)
+    if cache_key not in _locale_cache:
+        if locales := QLocale.matchingLocales(language, QLocale.Script.AnyScript, country):
+            _locale_cache[cache_key] = locales[0]
+        else:
+            _locale_cache[cache_key] = QLocale()
+    return _locale_cache[cache_key]
 
 
 def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
@@ -127,16 +138,6 @@ def date_to_string(date: datetime.date, to_html: bool = False, curr_country: QLo
     Gibt das Datum in der von der Anwendung gewünschten Formatierung zurück.
     Falls curr_country, curr_language oder curr_format nicht angegeben, werden die Werte aus den Einstellungen genommen.
     """
-    
-    def get_cached_locale(country: QLocale.Country, language: QLocale.Language) -> QLocale:
-        """Gibt die Locale für das angegebene Land und die angegebene Sprache zurück."""
-        cache_key = (country, language)
-        if cache_key not in _locale_cache:
-            if locales := QLocale.matchingLocales(language, QLocale.Script.AnyScript, country):
-                _locale_cache[cache_key] = locales[0]
-            else:
-                _locale_cache[cache_key] = QLocale()
-        return _locale_cache[cache_key]
 
     def get_cached_positions_and_separator(curr_format: QLocale.FormatType,
                                            locale: QLocale) -> tuple[int, int, int, str] | None:
@@ -198,6 +199,24 @@ def date_to_string(date: datetime.date, to_html: bool = False, curr_country: QLo
     return formatted_date
 
 
+def time_to_string(time: datetime.time, curr_country: QLocale.Country | None = None,
+                   curr_language: QLocale.Language | None = None, curr_format: QLocale.FormatType | None = None) -> str:
+    """
+    Gibt die Zeit in der von der Anwendung gewünschten Formatierung zurück.
+    Es werden die Werte von curr_country, curr_language und curr_format aus den Einstellungen genommen.
+    """
+    if not (curr_country and curr_language and curr_format):
+        date_format_settings = general_settings_handler.get_general_settings().date_format_settings
+        curr_country = QLocale.Country(date_format_settings.country)
+        curr_language = QLocale.Language(date_format_settings.language)
+        curr_format = QLocale.FormatType(date_format_settings.format)
+
+    locale = get_cached_locale(
+        QLocale.Country(curr_country),
+        QLocale.Language(curr_language)
+    )
+    return locale.toString(QTime(time.hour, time.minute), QLocale.FormatType(curr_format))
+
+
 if __name__ == '__main__':
-    print(n_th_weekday_of_period(datetime.date(2024, 11, 1),
-                                   datetime.date(2024, 11, 30), 4, 1))
+    print(time_to_string(datetime.datetime.now().time()))

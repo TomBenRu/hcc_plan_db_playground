@@ -34,7 +34,7 @@ class DlgGeneralSettings(QDialog):
         self.group_language = QGroupBox(self.tr('Interface Language'))
         self.layout_body.addWidget(self.group_language)
         self.layout_group_language = QFormLayout(self.group_language)
-        self.group_date_format = QGroupBox(self.tr('Date format'))
+        self.group_date_format = QGroupBox(self.tr('Date and time format'))
         self.layout_body.addWidget(self.group_date_format)
         self.layout_group_date_format = QVBoxLayout(self.group_date_format)
         self.spin_column_width = QSpinBox()

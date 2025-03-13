@@ -26,13 +26,13 @@ class LocaleSelector(QWidget):
         self.combo_country = QComboBox()
         self.combo_language = QComboBox()
         self.combo_format = QComboBox()
-        self.label_date = QLabel()
+        self.label_date_time = QLabel()
 
         # Widgets zum Layout hinzufügen
         layout.addRow(self.tr("Country:"), self.combo_country)
         layout.addRow(self.tr("Language:"), self.combo_language)
-        layout.addRow(self.tr("Date Format:"), self.combo_format)
-        layout.addRow(self.tr("Current Date:"), self.label_date)
+        layout.addRow(self.tr("Format:"), self.combo_format)
+        layout.addRow(self.tr("Current Date and Time:"), self.label_date_time)
 
         # Länder zur Länder-ComboBox hinzufügen
         all_territories = {
@@ -106,8 +106,12 @@ class LocaleSelector(QWidget):
                                                          self.combo_country.currentData(),
                                                          self.combo_language.currentData(),
                                                          self.combo_format.currentData())
+        formatted_time = helper_functions.time_to_string(datetime.datetime.now().time(),
+                                                         self.combo_country.currentData(),
+                                                         self.combo_language.currentData(),
+                                                         self.combo_format.currentData())
 
-        self.label_date.setText(f"{formatted_date}")
+        self.label_date_time.setText(f"{formatted_date}, {formatted_time}")
 
 
 if __name__ == '__main__':

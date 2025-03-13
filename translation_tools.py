@@ -46,15 +46,25 @@ class TranslationManager:
                 self._create_ts_file(ts_file, lang)
 
             try:
-                cmd = [
-                    self.lupdate_path,
-                    *python_files,
-                    "-ts",
-                    ts_file,
-                    "-no-recursive",  # Verhindert Suche in Unterverzeichnissen
-                    "-no-obsolete" if no_obsolete else "",   # Entfernt nicht mehr verwendete Übersetzungen
-                    "-locations", "absolute"  # Verwendet absolute Pfade für Locations
-                ]
+                if no_obsolete:
+                    cmd = [
+                        self.lupdate_path,
+                        *python_files,
+                        "-ts",
+                        ts_file,
+                        "-no-recursive",  # Verhindert Suche in Unterverzeichnissen
+                        "-no-obsolete",   # Entfernt nicht mehr verwendete Übersetzungen
+                        "-locations", "absolute"  # Verwendet absolute Pfade für Locations
+                    ]
+                else:
+                    cmd = [
+                        self.lupdate_path,
+                        *python_files,
+                        "-ts",
+                        ts_file,
+                        "-no-recursive",  # Verhindert Suche in Unterverzeichnissen
+                        "-locations", "absolute"  # Verwendet absolute Pfade für Locations
+                    ]
                 print(f"\nExecuting command:\n{' '.join(cmd)}")
                 
                 result = subprocess.run(

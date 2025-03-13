@@ -90,6 +90,360 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
     </message>
 </context>
 <context>
+    <name>ButtonActorLocationPref</name>
+    <message>
+        <source>Einrichtungspräferenzen am %s</source>
+        <translation type="vanished">Einrichtungspräferenzen am %s</translation>
+    </message>
+    <message>
+        <source>Einrichtungspräferenzen</source>
+        <translation type="vanished">Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <source>Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</source>
+        <translation type="vanished">Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+    </message>
+    <message>
+        <source>Es können keine Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</source>
+        <translation type="vanished">Es können keine Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="321"/>
+        <source>Location preferences on %s</source>
+        <translation>Einrichtungspräferenzen am %s</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="351"/>
+        <location filename="../frm_actor_plan_period.py" line="399"/>
+        <source>Location Preferences</source>
+        <translation>Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="354"/>
+        <source>The location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
+        <translation>Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="401"/>
+        <source>No location preferences can be set up, as no availability has been selected for this day.</source>
+        <translation>Es können keine Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+</context>
+<context>
+    <name>ButtonActorPartnerLocationPref</name>
+    <message>
+        <source>Partner- / Einrichtungspräferenzen</source>
+        <translation type="vanished">Partner- / Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <source>Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</source>
+        <translation type="vanished">Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+    </message>
+    <message>
+        <source>Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</source>
+        <translation type="vanished">Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="517"/>
+        <location filename="../frm_actor_plan_period.py" line="565"/>
+        <source>Employee / Location Preferences</source>
+        <translation>Partner- / Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="520"/>
+        <source>The employee / location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
+        <translation>Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="567"/>
+        <source>No employee / location preferences can be set up, as no availability has been selected for this day.</source>
+        <translation>Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+</context>
+<context>
+    <name>ButtonAvailDay</name>
+    <message>
+        <source>Tageszeiten</source>
+        <translation type="vanished">Tageszeiten</translation>
+    </message>
+    <message>
+        <source>Fähigkeiten</source>
+        <translation type="vanished">Fähigkeiten</translation>
+    </message>
+    <message>
+        <source>Es können keine Fähigkeiten gewählt werden,
+da hier noch keine Verfügbarkeit gewählt wurde.</source>
+        <translation type="vanished">Es können keine Fähigkeiten gewählt werden,
+da hier noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+    <message>
+        <source>Rechtsklick:
+Zeitspanne für die Tageszeit &quot;%s&quot; am %s wechseln.
+Aktuell: %s (%s-%s)</source>
+        <translation type="vanished">Rechtsklick:
+Zeitspanne für die Tageszeit &quot;%s&quot; am %s wechseln.
+Aktuell: %s (%s-%s)</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="104"/>
+        <source>Times of Day</source>
+        <translation>Tageszeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="123"/>
+        <location filename="../frm_actor_plan_period.py" line="153"/>
+        <source>Skills</source>
+        <translation>Fähigkeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="155"/>
+        <source>Skills cannot be selected,
+as no availability has been chosen yet.</source>
+        <translation>Es können keine Fähigkeiten gewählt werden,
+da hier noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="167"/>
+        <source>Right click:
+Change time period for time of day &quot;%s&quot; on %s.
+Current: %s (%s-%s)</source>
+        <translation>Rechtsklick:
+Zeitspanne für die Tageszeit &quot;%s&quot; am %s wechseln.
+Aktuell: %s (%s-%s)</translation>
+    </message>
+</context>
+<context>
+    <name>ButtonCombLocPossible</name>
+    <message>
+        <source>Einrichtungskombinationen am %s</source>
+        <translation type="vanished">Einrichtungskombinationen am %s</translation>
+    </message>
+    <message>
+        <source>Einrichtungskombinationen</source>
+        <translation type="vanished">Einrichtungskombinationen</translation>
+    </message>
+    <message>
+        <source>Es können keine Einrichtungskombinationen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</source>
+        <translation type="vanished">Es können keine Einrichtungskombinationen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="197"/>
+        <source>Location combinations on %s</source>
+        <translation>Einrichtungskombinationen am %s</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="264"/>
+        <source>Location Combinations</source>
+        <translation>Einrichtungskombinationen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="266"/>
+        <source>No location combinations can be set up, as no availability has been selected for this day.</source>
+        <translation>Es können keine Einrichtungskombinationen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+    </message>
+</context>
+<context>
+    <name>ButtonSkills</name>
+    <message>
+        <source>
+Keine Fertigkeiten gewählt.
+Dies ist die Standardeinstellung für diesen Mitarbeiter.</source>
+        <translation type="vanished">
+Keine Fertigkeiten gewählt.
+Dies ist die Standardeinstellung für diesen Mitarbeiter.</translation>
+    </message>
+    <message>
+        <source>
+Keine Fertigkeiten gewählt.
+Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.</source>
+        <translation type="vanished">
+Keine Fertigkeiten gewählt.
+Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <source>
+Fertigkeiten der Verfügbarkeiten an diesem Tag
+sind identisch mit den Fertigkeiten des Mitarbeiters.</source>
+        <translation type="vanished">
+Fertigkeiten der Verfügbarkeiten an diesem Tag
+sind identisch mit den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <source>
+Fertigkeiten der Events an diesem Tag
+sind gleich aber unterschiedlich zu den Fertigkeiten des Mitarbeiters.</source>
+        <translation type="vanished">
+Fertigkeiten der Events an diesem Tag
+sind gleich aber unterschiedlich zu den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <source>
+Fertigkeiten der Events an diesem Tag sind unterschiedlich.</source>
+        <translation type="vanished">
+Fertigkeiten der Events an diesem Tag sind unterschiedlich.</translation>
+    </message>
+    <message>
+        <source>Hier können die Fertigkeiten der Verfügbarkeiten am Tag %s bearbeitet werden.%s</source>
+        <translation type="vanished">Hier können die Fertigkeiten der Verfügbarkeiten am Tag %s bearbeitet werden.%s</translation>
+    </message>
+    <message>
+        <source>Fertigkeiten der Verfügbarkeiten</source>
+        <translation type="vanished">Fertigkeiten der Verfügbarkeiten</translation>
+    </message>
+    <message>
+        <source>Am %s sind keine Verfügbarkeiten vorhanden.</source>
+        <translation type="vanished">Am %s sind keine Verfügbarkeiten vorhanden.</translation>
+    </message>
+    <message>
+        <source>Fertigkeiten der Verfügbarkeiten am Tag %s wurden geändert.</source>
+        <translation type="vanished">Fertigkeiten der Verfügbarkeiten am Tag %s wurden geändert.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="691"/>
+        <source>
+No skills selected.
+This is the default setting for this employee.</source>
+        <translation>
+Keine Fertigkeiten gewählt.
+Dies ist die Standardeinstellung für diesen Mitarbeiter.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="694"/>
+        <source>
+No skills selected.
+This differs from the employee&apos;s skills.</source>
+        <translation>
+Keine Fertigkeiten gewählt.
+Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="698"/>
+        <source>
+Skills for availabilities on this day
+are identical to the employee&apos;s skills.</source>
+        <translation>
+Fertigkeiten der Verfügbarkeiten an diesem Tag
+sind identisch mit den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="701"/>
+        <source>
+Skills for events on this day
+are equal but different from the employee&apos;s skills.</source>
+        <translation>
+Fertigkeiten der Events an diesem Tag
+sind gleich aber unterschiedlich zu den Fertigkeiten des Mitarbeiters.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="703"/>
+        <source>
+Skills for events on this day are different.</source>
+        <translation>
+Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="704"/>
+        <source>Click here to edit the skills for availabilities on %s.%s</source>
+        <translation>Bearbeiten der Fertigkeitn aller Verfügbarkeiten am %s.%s</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="711"/>
+        <location filename="../frm_actor_plan_period.py" line="727"/>
+        <source>Skills for the day</source>
+        <translation>Fertigkeiten am Tag</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="712"/>
+        <source>No availabilities exist for %s</source>
+        <translation>Am %s sind keine Verfügbarkeiten vorhanden</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="728"/>
+        <source>The skills for day %s have been modified.</source>
+        <translation>Die Fertigkeiten für den Tag %s wurden geändert.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgActorLocPref</name>
+    <message>
+        <source>Einrichtungspräferenzen</source>
+        <translation type="vanished">Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <source>nicht einsetzen</source>
+        <translation type="vanished">nicht einsetzen</translation>
+    </message>
+    <message>
+        <source>notfalls einsetzen</source>
+        <translation type="vanished">notfalls einsetzen</translation>
+    </message>
+    <message>
+        <source>gerne einsetzen</source>
+        <translation type="vanished">gerne einsetzen</translation>
+    </message>
+    <message>
+        <source>bevorzugt einsetzen</source>
+        <translation type="vanished">bevorzugt einsetzen</translation>
+    </message>
+    <message>
+        <source>unbedingt einsetzen</source>
+        <translation type="vanished">unbedingt einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="22"/>
+        <source>Location Preferences</source>
+        <translation>Einrichtungspräferenzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>do not assign</source>
+        <translation>nicht einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>assign if necessary</source>
+        <translation>notfalls einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>assign gladly</source>
+        <translation>gerne einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="40"/>
+        <source>assign preferably</source>
+        <translation>bevorzugt einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="42"/>
+        <source>assign mandatory</source>
+        <translation>unbedingt einsetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="63"/>
+        <source>Reset</source>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="103"/>
+        <source>All locations belong to the team on all days of the period.</source>
+        <translation>An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="108"/>
+        <source>Not all locations belong to the team on all days of the period.</source>
+        <translation>Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+    <message>
+        <source>An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</source>
+        <translation type="vanished">An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+    <message>
+        <source>Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</source>
+        <translation type="vanished">Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+</context>
+<context>
     <name>DlgAvailAtDay</name>
     <message>
         <location filename="../frm_plan.py" line="70"/>
@@ -171,7 +525,7 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../frm_general_settings.py" line="47"/>
         <source>Column width statistics:</source>
-        <translation>Splaltenbreite Statistiken:</translation>
+        <translation>Spaltenbreite Statistiken:</translation>
     </message>
     <message>
         <location filename="../frm_general_settings.py" line="49"/>

@@ -19,7 +19,7 @@ class DlgActorLocPref(QDialog):
                  team_at_date_factory: Callable[[datetime.date], schemas.Team] | None):
         super().__init__(parent)
 
-        self.setWindowTitle('Einrichtungspräferenzen')
+        self.setWindowTitle(self.tr('Location Preferences'))
 
         self.curr_model: schemas.ModelWithActorLocPrefs = curr_model.model_copy(deep=True)
         self.parent_model = parent_model
@@ -31,13 +31,13 @@ class DlgActorLocPref(QDialog):
 
         self.locations_of_prefs__score = {}
 
-        '''Die folgenden 3 Dictionaries werden zur Auswehrtung benutzt.'''
+        '''Die folgenden 3 Dictionaries werden zur Auswertung benutzt.'''
         self.location_id__location = {}
         self.loc_id__prefs = {}
         self.loc_id__results = self.locations_of_team__defaults | self.locations_of_prefs__score
 
-        self.val2text = {0: 'nicht einsetzen', 1: 'notfalls einsetzen', 2: 'gerne einsetzen',
-                         3: 'bevorzugt einsetzen', 4: 'unbedingt einsetzen'}
+        self.val2text = {0: self.tr('do not assign'), 1: self.tr('assign if necessary'), 2: self.tr('assign gladly'),
+                         3: self.tr('assign preferably'), 4: self.tr('assign mandatory')}
 
         self.layout = QVBoxLayout(self)
         self.layout_date = QHBoxLayout()
@@ -60,7 +60,7 @@ class DlgActorLocPref(QDialog):
         self.de_date.setMinimumDate(datetime.date.today())
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.bt_reset = QPushButton('Reset', clicked=self.reset)
+        self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -100,12 +100,12 @@ class DlgActorLocPref(QDialog):
         curr_loc_of_work_ids = {loc.id for loc in
                                 get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
 
-        self.lb_info.setText('An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+        self.lb_info.setText(self.tr('All locations belong to the team on all days of the period.'))
         for date in valid_days_of_actor[1:]:
             location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
             if location_ids != curr_loc_of_work_ids:
                 self.lb_info.setText(
-                    'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+                    self.tr('Not all locations belong to the team on all days of the period.'))
 
             curr_loc_of_work_ids |= location_ids
 

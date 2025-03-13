@@ -86,6 +86,200 @@ You may need to adjust the time of day variant.</source>
     </message>
 </context>
 <context>
+    <name>ButtonActorLocationPref</name>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="321"/>
+        <source>Location preferences on %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="351"/>
+        <location filename="../frm_actor_plan_period.py" line="399"/>
+        <source>Location Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="354"/>
+        <source>The location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="401"/>
+        <source>No location preferences can be set up, as no availability has been selected for this day.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ButtonActorPartnerLocationPref</name>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="517"/>
+        <location filename="../frm_actor_plan_period.py" line="565"/>
+        <source>Employee / Location Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="520"/>
+        <source>The employee / location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="567"/>
+        <source>No employee / location preferences can be set up, as no availability has been selected for this day.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ButtonAvailDay</name>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="104"/>
+        <source>Times of Day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="123"/>
+        <location filename="../frm_actor_plan_period.py" line="153"/>
+        <source>Skills</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="155"/>
+        <source>Skills cannot be selected,
+as no availability has been chosen yet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="167"/>
+        <source>Right click:
+Change time period for time of day &quot;%s&quot; on %s.
+Current: %s (%s-%s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ButtonCombLocPossible</name>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="197"/>
+        <source>Location combinations on %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="264"/>
+        <source>Location Combinations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="266"/>
+        <source>No location combinations can be set up, as no availability has been selected for this day.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ButtonSkills</name>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="691"/>
+        <source>
+No skills selected.
+This is the default setting for this employee.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="694"/>
+        <source>
+No skills selected.
+This differs from the employee&apos;s skills.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="698"/>
+        <source>
+Skills for availabilities on this day
+are identical to the employee&apos;s skills.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="701"/>
+        <source>
+Skills for events on this day
+are equal but different from the employee&apos;s skills.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="703"/>
+        <source>
+Skills for events on this day are different.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="704"/>
+        <source>Click here to edit the skills for availabilities on %s.%s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="711"/>
+        <location filename="../frm_actor_plan_period.py" line="727"/>
+        <source>Skills for the day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="712"/>
+        <source>No availabilities exist for %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="728"/>
+        <source>The skills for day %s have been modified.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgActorLocPref</name>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="22"/>
+        <source>Location Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>do not assign</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>assign if necessary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="39"/>
+        <source>assign gladly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="40"/>
+        <source>assign preferably</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="42"/>
+        <source>assign mandatory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="63"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="103"/>
+        <source>All locations belong to the team on all days of the period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_loc_prefs.py" line="108"/>
+        <source>Not all locations belong to the team on all days of the period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgAvailAtDay</name>
     <message>
         <location filename="../frm_plan.py" line="70"/>

@@ -101,7 +101,7 @@ class ButtonAvailDay(QPushButton):
 
     def _setup_context_menu(self):
         self.context_menu = QMenu()
-        self.menu_times_of_day = QMenu('Tageszeiten')
+        self.menu_times_of_day = QMenu(self.tr('Times of Day'))
         self.context_menu.addMenu(self.menu_times_of_day)
         self.actions_times_of_day = [
             MenuToolbarAction(self,
@@ -120,7 +120,7 @@ class ButtonAvailDay(QPushButton):
         self.action_skills = MenuToolbarAction(
             self,
             os.path.join(os.path.dirname(__file__), 'resources/toolbar_icons/icons/screwdriver.png'),
-            'Fähigkeiten', None, self._set_skills
+            self.tr('Skills'), None, self._set_skills
         )
         self.context_menu.addAction(self.action_skills)
 
@@ -150,9 +150,9 @@ class ButtonAvailDay(QPushButton):
         avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(
             self.actor_plan_period.id, self.date, self.time_of_day.id)
         if not avail_day:
-            QMessageBox.critical(self, 'Fähigkeiten',
-                                 'Es können keine Fähigkeiten gewählt werden,\n'
-                                 'da hier noch keine Verfügbarkeit gewählt wurde.')
+            QMessageBox.critical(self, self.tr('Skills'),
+                                 self.tr('Skills cannot be selected,\n'
+                                         'as no availability has been chosen yet.'))
             return
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
         if dlg.exec():
@@ -163,10 +163,10 @@ class ButtonAvailDay(QPushButton):
             dlg.controller.undo_all()
 
     def set_tooltip(self):
-        self.setToolTip(f'Rechtsklick:\n'
-                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
-                        f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
-                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+        self.setToolTip(
+            self.tr('Right click:\nChange time period for time of day "%s" on %s.\nCurrent: %s (%s-%s)') % (
+                self.time_of_day.time_of_day_enum.name, self.date, self.time_of_day.name,
+                self.time_of_day.start.strftime("%H:%M"), self.time_of_day.end.strftime("%H:%M")))
 
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
@@ -194,7 +194,7 @@ class ButtonCombLocPossible(QPushButton):
         self.person: schemas.PersonShow | None = None
         self.date = date
 
-        self.setToolTip(f'Einrichtungskombinationen am {date.strftime("%d.%m.%Y")}')
+        self.setToolTip(self.tr('Location combinations on %s') % date.strftime("%d.%m.%Y"))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -261,9 +261,9 @@ class ButtonCombLocPossible(QPushButton):
     def mouseReleaseEvent(self, e) -> None:
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
-            QMessageBox.critical(self, 'Einrichtungskombinationen',
-                                 'Es können keine Einrichtungskombinationen eingerichtet werden, '
-                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            QMessageBox.critical(self, self.tr('Location Combinations'),
+                                 self.tr('No location combinations can be set up, '
+                                         'as no availability has been selected for this day.'))
             return
 
         parent_model_factory = lambda date: self.actor_plan_period
@@ -318,7 +318,7 @@ class ButtonActorLocationPref(QPushButton):
         self.team = team
         self.date = date
 
-        self.setToolTip(f'Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
+        self.setToolTip(self.tr('Location preferences on %s') % date.strftime("%d.%m.%Y"))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -347,11 +347,13 @@ class ButtonActorLocationPref(QPushButton):
                 }
                 if avd_prefs != pref_of_idx0:
                     self.reset_prefs_of_day(avail_days_at_date)
-                    QMessageBox.critical(self, 'Einrichtungspräferenzen',
-                                         f'Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die '
-                                         f'Standardwerte des Planungszeitraums von '
-                                         f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                         f'zurückgesetzt.')
+                    QMessageBox.critical(
+                        self, self.tr('Location Preferences'),
+                        self.tr('The location preferences of the availabilities for this day have been reset to '
+                                'the default values of the planning period of '
+                                '%s %s.') % (self.actor_plan_period.person.f_name,
+                                             self.actor_plan_period.person.l_name)
+                    )
                     return True
 
         return prefs_actor_plan_period == pref_of_idx0
@@ -394,9 +396,9 @@ class ButtonActorLocationPref(QPushButton):
     def mouseReleaseEvent(self, e) -> None:
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
-            QMessageBox.critical(self, 'Einrichtungspräferenzen',
-                                 'Es können keine Einrichtungspräferenzen eingerichtet werden, '
-                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            QMessageBox.critical(self, self.tr('Location Preferences'),
+                                 self.tr('No location preferences can be set up, '
+                                         'as no availability has been selected for this day.'))
             return
 
         team_at_date_factory = lambda date: self.actor_plan_period.team
@@ -473,7 +475,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
         self.team = team
         self.date = date
 
-        self.setToolTip(f'Mitarbeiter- / Einrichtungspräferenzen am {date.strftime("%d.%m.%Y")}')
+        self.setToolTip('Employee / Location Preferences on %s' % date.strftime("%d.%m.%Y"))
 
         self.set_stylesheet()  # sollte beschleunigt werden!
 
@@ -511,11 +513,13 @@ class ButtonActorPartnerLocationPref(QPushButton):
                              and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)}
                 if avd_prefs != pref_of_idx0:
                     self.reset_prefs_of_day(avail_days_at_date)
-                    QMessageBox.critical(self, 'Partner- / Einrichtungspräferenzen',
-                                         f'Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages '
-                                         f'wurden auf die Standardwerdte des Planungszeitraums von '
-                                         f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                         f'zurückgesetzt.')
+                    QMessageBox.critical(
+                        self, self.tr('Employee / Location Preferences'),
+                        self.tr('The employee / location preferences of the availabilities for this day '
+                                'have been reset to the default values of the planning period of '
+                                '%s %s.') % (
+                            self.actor_plan_period.person.f_name, self.actor_plan_period.person.l_name)
+                    )
                     return True
 
         return prefs_actor_plan_period == pref_of_idx0
@@ -558,9 +562,9 @@ class ButtonActorPartnerLocationPref(QPushButton):
     def mouseReleaseEvent(self, e) -> None:
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
-            QMessageBox.critical(self, 'Partner- / Einrichtungspräferenzen',
-                                 'Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, '
-                                 'da an diesen Tag noch keine Verfügbarkeit gewählt wurde.')
+            QMessageBox.critical(self, self.tr('Employee / Location Preferences'),
+                                 self.tr('No employee / location preferences can be set up, '
+                                         'as no availability has been selected for this day.'))
             return
 
         person = db_services.Person.get(self.actor_plan_period.person.id)
@@ -682,27 +686,30 @@ class ButtonSkills(QPushButton):
         elif self._check_skills_all_equal():
             if not self.avail_days_at_day[0].skills:
                 additional_txt = (
-                    '\nKeine Fertigkeiten gewählt.\n'
-                    'Dies ist die Standardeinstellung für diesen Mitarbeiter.'
+                    self.tr('\nNo skills selected.\n'
+                            'This is the default setting for this employee.')
                     if self._check_skills_all_equal_to_person_skills()
-                    else '\nKeine Fertigkeiten gewählt.\n'
-                    'Dies ist unterschiedlich zu den Fertigkeiten des Mitarbeiters.'
+                    else self.tr('\nNo skills selected.\n'
+                                'This differs from the employee\'s skills.')
                 )
             elif self._check_skills_all_equal_to_person_skills():
-                additional_txt = ('\nFertigkeiten der Verfügbarkeiten an diesem Tag\n'
-                                  'sind identisch mit den Fertigkeiten des Mitarbeiters.')
+                additional_txt = self.tr('\nSkills for availabilities on this day\n'
+                                       'are identical to the employee\'s skills.')
             else:
-                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
-                                  'sind gleich aber unterschiedlich zu den Fertigkeiten des Mitarbeiters.')
+                additional_txt = self.tr('\nSkills for events on this day\n'
+                                       'are equal but different from the employee\'s skills.')
         else:
-            additional_txt = '\nFertigkeiten der Events an diesem Tag sind unterschiedlich.'
-        self.setToolTip(f'Hier können die Fertigkeiten der Verfügbarkeiten am Tag {self.date:%d.%m.} bearbeitet werden.'
-                        f'{additional_txt}')
+            additional_txt = self.tr('\nSkills for events on this day are different.')
+        self.setToolTip(
+            self.tr('Click here to edit the skills for availabilities on %s.%s') % (
+                self.date.strftime("%d.%m."), additional_txt)
+        )
 
     def edit_skills_of_day(self):
         if not self.avail_days_at_day:
-            QMessageBox.information(self, 'Fertigkeiten der Verfügbarkeiten',
-                                    f'Am {self.date:%d.%m.} sind keine Verfügbarkeiten vorhanden.')
+            QMessageBox.information(
+                self, self.tr('Skills for the day'),
+                self.tr('No availabilities exist for %s') % self.date.strftime("%d.%m."))
             return
         avail_day = next((ad for ad in self.avail_days_at_day if ad.skills), self.avail_days_at_day[0])
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
@@ -716,8 +723,9 @@ class ButtonSkills(QPushButton):
                     command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
                     self.controller.execute(command_add)
             self.set_stylesheet_and_tooltip()
-            QMessageBox.information(self, 'Fertigkeiten der Verfügbarkeiten',
-                                    f'Fertigkeiten der Verfügbarkeiten am Tag {self.date:%d.%m.} wurden geändert.')
+            QMessageBox.information(
+                self, self.tr('Skills for the day'),
+                self.tr('The skills for day %s have been modified.') % self.date.strftime("%d.%m."))
         else:
             dlg.controller.undo_all()
 

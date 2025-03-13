@@ -1120,7 +1120,8 @@ class FrmActorPlanPeriod(QWidget):
         return button
 
     def setup_controllers(self):
-        self.bt_toggle__avd_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__avd_group)
+        self.bt_toggle__avd_group_mode = QPushButton(self.tr('Switch to Group Mode'),
+                                                     clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
     def save_avail_day(self, bt: ButtonAvailDay):
@@ -1173,10 +1174,15 @@ class FrmActorPlanPeriod(QWidget):
             if not (master_group := del_command.avail_day_to_delete.avail_day_group.avail_day_group).actor_plan_period:
                 if len(childs := db_services.AvailDayGroup.get_child_groups_from__parent_group(master_group.id)) < 2:
                     solo_avail_day = db_services.AvailDay.get_from__avail_day_group(childs[0].id)
-                    QMessageBox.critical(self, 'Verfügbarkeitsgruppen',
-                                         f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
-                                         f'Termin: {solo_avail_day.date.strftime("%d.%m.%y")}\n'
-                                         f'Bitte korrigieren Sie dies im folgenden Dialog.')
+                    QMessageBox.critical(
+                        self,
+                        self.tr('Availability Groups'),
+                        self.tr(
+                            'Deleting this appointment left a group with only one date: {date}\n'
+                            'Please correct this in the following dialog.').format(
+                            date=solo_avail_day.date.strftime("%d.%m.%y")
+                        )
+                    )
                     self.change_mode__avd_group()
 
         bt.reload_actor_plan_period()
@@ -1187,12 +1193,12 @@ class FrmActorPlanPeriod(QWidget):
     def change_mode__avd_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
-            QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             self.reload_actor_plan_period()
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_days(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
         else:
-            QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 
         signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
@@ -1201,10 +1207,13 @@ class FrmActorPlanPeriod(QWidget):
             self, date: datetime.date, time_of_day: schemas.TimeOfDay, uncheck=False) -> ButtonAvailDay | None:
         button: ButtonAvailDay = self.findChild(ButtonAvailDay, f'{date}-{time_of_day.time_of_day_enum.name}')
         if not button:
-            QMessageBox.critical(self, 'Fehlende Standards',
-                                 f'Fehler:\n'
-                                 f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
-                                 f'"{time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+            QMessageBox.critical(
+                self,
+                self.tr('Missing Standards'),
+                self.tr('Error:\nCannot display available times.\nYou may have subsequently deleted "{time_of_day_name}" from the standards.').format(
+                    time_of_day_name=time_of_day.time_of_day_enum.name
+                )
+            )
             return
         button.setChecked(not uncheck)
         button.time_of_day = time_of_day
@@ -1221,8 +1230,11 @@ class FrmActorPlanPeriod(QWidget):
 
     def set_text_bt_requested_assignments(self):
         self.bt_requested_assignments.setText(
-            f'gew. Einsätze (aktuell: {self.actor_plan_period.requested_assignments}'
-            f'{", gefordert" if self.actor_plan_period.required_assignments else ""})')
+            self.tr('Requested assignm. (curr.: {count}{required})').format(
+                count=self.actor_plan_period.requested_assignments,
+                required=self.tr(', required') if self.actor_plan_period.required_assignments else ''
+            )
+        )
 
     def set_requested_assignments(self):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
@@ -1279,19 +1291,25 @@ class FrmActorPlanPeriod(QWidget):
     def reset_all_avail_combs(self):
         """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
-        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungskombinationen',
-                                     'Sollen die Einrichtungskombinationen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Reset Location Combinations'),
+            self.tr('Do you want to reset all location combinations of availabilities '
+                    'to the default values of the planning period?')
+        )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
 
         if not all_avail_dates:
-            QMessageBox.critical(self, 'Einrichtungskombinationen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
+            QMessageBox.critical(
+                self,
+                self.tr('Location Combinations'),
+                self.tr('No availabilities exist in this planning period for {name}.').format(
+                    name=self.actor_plan_period.person.full_name
+                )
+            )
             return
 
         button_comb_loc_possibles: list[ButtonCombLocPossible] = self.findChildren(ButtonCombLocPossible)
@@ -1353,19 +1371,24 @@ class FrmActorPlanPeriod(QWidget):
     def reset_all_loc_prefs(self, e=None):
         """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
-        reply = QMessageBox.question(self, 'Zurücksetzten der Einrichtungspräferenzen',
-                                     'Sollen die Einrichtungspräferenzen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Reset Location Preferences'),
+            self.tr('Do you want to reset all location preferences of availabilities '
+                    'to the default values of the planning period?')
+        )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
         if not all_avail_dates:
-            QMessageBox.critical(self, 'Einrichtungspräferenzen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
+            QMessageBox.critical(
+                self,
+                self.tr('Location Preferences'),
+                self.tr('No availabilities exist in this planning period for {name}.').format(
+                    name=self.actor_plan_period.person.full_name
+                )
+            )
             return
 
         button_actor_location_prefs: list[ButtonActorLocationPref] = self.findChildren(ButtonActorLocationPref)
@@ -1393,18 +1416,24 @@ class FrmActorPlanPeriod(QWidget):
     def reset_all_partner_loc_prefs(self, e):
         """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
-        reply = QMessageBox.question(self, 'Zurücksetzten der Partnerpräferenzen',
-                                     'Sollen die Partnerpräferenzen aller Verfügbarkeiten auf die Standardwerte '
-                                     'der Planungsperiode zurückgesetzt werden?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Reset Partner Preferences'),
+            self.tr('Do you want to reset all partner preferences of availabilities '
+                    'to the default values of the planning period?')
+        )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
         if not all_avail_dates:
-            QMessageBox.critical(self, 'Partnerpräferenzen',
-                                 f'In dieser Planungsperiode von '
-                                 f'{self.actor_plan_period.person.f_name} {self.actor_plan_period.person.l_name} '
-                                 f'gibt es noch keine Verfügbarkeiten.')
+            QMessageBox.critical(
+                self,
+                self.tr('Partner Preferences'),
+                self.tr('No availabilities exist in this planning period for {name}.').format(
+                    name=self.actor_plan_period.person.full_name
+                )
+            )
             return
 
         button_partner_location_prefs: list[ButtonActorPartnerLocationPref] = self.findChildren(ButtonActorPartnerLocationPref)
@@ -1421,31 +1450,42 @@ class FrmActorPlanPeriod(QWidget):
             avail_days_on_server = plan_api_handler.fetch_avail_days(
                 self.actor_plan_period.plan_period.id, self.actor_plan_period.person.id)
         except Exception as e:
-            QMessageBox.critical(self, 'Verfügbare Tage',
-                                 f'Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n'
-                                 f'{e}')
+            QMessageBox.critical(
+                self,
+                self.tr('Available Days'),
+                self.tr('The following error occurred while downloading available days:\n{error}').format(error=e)
+            )
             return
         if not avail_days_on_server:
             reply = QMessageBox.question(
-                self, 'Verfügbare Tage',
-                f'Auf dem Server sind keine verfügbaren Tage von {self.actor_plan_period.person.full_name} '
-                f'im Zeitraum {self.actor_plan_period.plan_period.start:%d.%m.%y} - '
-                f'{self.actor_plan_period.plan_period.end:%d.%m.%y} vorhanden.\n'
-                f'Sollen alle verfügbaren Tage aus der Planungsmaske gelöscht werden?')
+                self,
+                self.tr('Available Days'),
+                self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
+                       'Do you want to delete all available days from the planning mask?').format(
+                    name=self.actor_plan_period.person.full_name,
+                    start=self.actor_plan_period.plan_period.start.strftime('%d.%m.%y'),
+                    end=self.actor_plan_period.plan_period.end.strftime('%d.%m.%y')
+                )
+            )
             if reply == QMessageBox.StandardButton.Yes:
                 for avail_day in self.actor_plan_period.avail_days:
                     db_services.AvailDay.delete(avail_day.id)
                     # todo: besser... send AvailDayButton Signal to uncheck:
                     self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
             return
+
         avail_days = [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete]
         if avail_days:
             reply = QMessageBox.question(
-                self, 'Verfügbare Tage',
-                f'Es sind bereits verfügbare Tage in der Planungsmaske von {self.actor_plan_period.person.full_name} '
-                f'im Zeitraum {self.actor_plan_period.plan_period.start:%d.%m.%y} - '
-                f'{self.actor_plan_period.plan_period.end:%d.%m.%y} vorhanden.\n'
-                f'Sollen diese verfügbaren Tage aus der Planungsmaske gelöscht werden?')
+                self,
+                self.tr('Available Days'),
+                self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
+                       'Do you want to delete these available days from the planning mask?').format(
+                    name=self.actor_plan_period.person.full_name,
+                    start=self.actor_plan_period.plan_period.start.strftime('%d.%m.%y'),
+                    end=self.actor_plan_period.plan_period.end.strftime('%d.%m.%y')
+                )
+            )
             if reply == QMessageBox.StandardButton.No:
                 return
 
@@ -1454,6 +1494,8 @@ class FrmActorPlanPeriod(QWidget):
             # todo: besser... send AvailDayButton Signal to uncheck:
             self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
 
+        # fixme: Dies ist ein Workaround.
+        #  Wenn die API auf die Tageszeiten dieses Projektes angepasst wird, kann dieser Workaround gelöscht werden
         abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
         for avail_day in avail_days_on_server:
             for abbreviation in abbreviation_dict[avail_day.time_of_day.value]:
@@ -1463,16 +1505,23 @@ class FrmActorPlanPeriod(QWidget):
                 button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
                 if button_avail_day:
                     self.save_avail_day(button_avail_day)
+
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-        QMessageBox.information(self, 'Verfügbare Tage', f'Die verfügbaren Tage wurden erfolgreich heruntergeladen.')
+        QMessageBox.information(
+            self,
+            self.tr('Available Days'),
+            self.tr('Available days were successfully downloaded.')
+        )
 
     def remove_skills_from_every_avail_day(self):
         reply = QMessageBox.question(
-            self, 'Fertigkeiten entfernen',
-            'Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode entfernt werden?')
+            self,
+            self.tr('Remove Skills'),
+            self.tr('Do you want to remove skills from all availabilities in this planning period?')
+        )
         if reply == QMessageBox.StandardButton.No:
             return
 
@@ -1486,14 +1535,18 @@ class FrmActorPlanPeriod(QWidget):
                 signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
             )
         QMessageBox.information(
-            self, 'Fertigkeiten entfernen',
-            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich entfernt.')
+            self,
+            self.tr('Remove Skills'),
+            self.tr('All skills have been successfully removed from all availabilities in this planning period.')
+        )
 
     def reset_skills_of_every_avail_day(self):
         reply = QMessageBox.question(
-            self, 'Fertigkeiten zurücksetzen',
-            'Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode '
-            'auf die Standardwerte des Mitarbeiters zurückgesetzt werden?')
+            self,
+            self.tr('Reset Skills'),
+            self.tr('Do you want to reset all skills of availabilities in this planning period '
+                    'to the employee\'s default values?')
+        )
         if reply == QMessageBox.StandardButton.No:
             return
 
@@ -1511,8 +1564,11 @@ class FrmActorPlanPeriod(QWidget):
                 signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
             )
         QMessageBox.information(
-            self, 'Fertigkeiten zurücksetzen',
-            'Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.')
+            self,
+            self.tr('Reset Skills'),
+            self.tr('All skills have been successfully reset to default values '
+                    'for all availabilities in this planning period.')
+        )
 
 if __name__ == '__main__':
     app = QApplication()

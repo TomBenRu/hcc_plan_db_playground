@@ -942,9 +942,25 @@ class FrmActorPlanPeriod(QWidget):
         self.days: list[datetime.date] = []
         self.set_instance_variables()
 
-        self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
-        self.months = {1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August',
-                       9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember'}
+        self.weekdays = {0: self.tr("Mon"),
+                         1: self.tr("Tue"),
+                         2: self.tr("Wed"),
+                         3: self.tr("Thu"),
+                         4: self.tr("Fri"),
+                         5: self.tr("Sat"),
+                         6: self.tr("Sun")}
+        self.months = {1: self.tr("January"),
+                       2: self.tr("February"),
+                       3: self.tr("March"),
+                       4: self.tr("April"),
+                       5: self.tr("May"),
+                       6: self.tr("June"),
+                       7: self.tr("July"),
+                       8: self.tr("August"),
+                       9: self.tr("September"),
+                       10: self.tr("October"),
+                       11: self.tr("November"),
+                       12: self.tr("December")}
 
         self.set_headers_months()
         self.set_chk_field()
@@ -955,22 +971,20 @@ class FrmActorPlanPeriod(QWidget):
 
     def _setup_side_menu(self):
         self.side_menu.delete_all_buttons()
-        num_requested_assignments = self.actor_plan_period.requested_assignments
-        self.bt_requested_assignments = QPushButton(f'gew. Einsätze (aktuell: {num_requested_assignments}'
-                                                    f'{", gefordert" if self.actor_plan_period.required_assignments else ""})',
-                                               clicked=self.set_requested_assignments)
+        self.bt_requested_assignments = QPushButton(clicked=self.set_requested_assignments)
+        self.set_text_bt_requested_assignments()
         self.side_menu.add_button(self.bt_requested_assignments)
-        self.bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
+        self.bt_time_of_days = QPushButton(self.tr('Times of Day...'), clicked=self.edit_time_of_days)
         self.side_menu.add_button(self.bt_time_of_days)
-        self.bt_reset_all_avail_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_avail_t_o_ds)
+        self.bt_reset_all_avail_t_o_ds = QPushButton(self.tr('Reset Time Input Field'), clicked=self.reset_all_avail_t_o_ds)
         self.side_menu.add_button(self.bt_reset_all_avail_t_o_ds)
-        self.bt_comb_loc_possibles = QPushButton('Einrichtungskombinationen', clicked=self.edit_comb_loc_possibles)
+        self.bt_comb_loc_possibles = QPushButton(self.tr('Location Combinations'), clicked=self.edit_comb_loc_possibles)
         self.side_menu.add_button(self.bt_comb_loc_possibles)
-        self.bt_actor_loc_prefs = QPushButton('Einrichtunspräferenzen', clicked=self.edit_location_prefs)
+        self.bt_actor_loc_prefs = QPushButton(self.tr('Location Preferences'), clicked=self.edit_location_prefs)
         self.side_menu.add_button(self.bt_actor_loc_prefs)
-        self.bt_actor_partner_loc_prefs = QPushButton('Mitsp.- / Einr.-Präf.', clicked=self.edit_partner_loc_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton(self.tr('Partner/Location Prefs'), clicked=self.edit_partner_loc_prefs)
         self.side_menu.add_button(self.bt_actor_partner_loc_prefs)
-        self.bt_fetch_avail_days_from_api = QPushButton('Verfügb. Tage abholen', clicked=self.fetch_avail_days_from_api)
+        self.bt_fetch_avail_days_from_api = QPushButton(self.tr('Fetch Availabilities from API'), clicked=self.fetch_avail_days_from_api)
         self.side_menu.add_button(self.bt_fetch_avail_days_from_api)
 
     def reload_actor_plan_period(self, event=None):
@@ -1010,42 +1024,46 @@ class FrmActorPlanPeriod(QWidget):
         team = db_services.Team.get(self.actor_plan_period.team.id)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
-        bt_comb_loc_poss_all_avail = QPushButton('Einricht.-Kombin. -> Reset', clicked=self.reset_all_avail_combs)
-        bt_comb_loc_poss_all_avail.setStatusTip('Einrichtungskombinationen für alle Verfügbarkeiten in diesem Zeitraum '
-                                                'auf die Standartwerte des Planungszeitraums zurücksetzen.')
 
+        bt_comb_loc_poss_all_avail = QPushButton(self.tr('Location Combinations -> Reset'),
+                                                 clicked=self.reset_all_avail_combs)
+        bt_comb_loc_poss_all_avail.setStatusTip(
+            self.tr('Reset location combinations for all availabilities in this period to the default values'))
         self.layout.addWidget(bt_comb_loc_poss_all_avail, row + 2, 0)
-        bt_actor_loc_prefs_all_avail = QPushButton('Einr.-Präf. -> Reset', clicked=self.reset_all_loc_prefs)
-        bt_actor_loc_prefs_all_avail.setStatusTip('Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum '
-                                                  'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
-        self.layout.addWidget(bt_actor_loc_prefs_all_avail, row+3, 0)
 
-        bt_actor_partner_loc_prefs_all_avail = QPushButton('Partn.-/Einr.-Präf. -> Reset',
-                                                           clicked=self.reset_all_partner_loc_prefs)
+        bt_actor_loc_prefs_all_avail = QPushButton(self.tr('Location Prefs -> Reset'), clicked=self.reset_all_loc_prefs)
+        bt_actor_loc_prefs_all_avail.setStatusTip(
+            self.tr('Reset location preferences for all availabilities in this period to the default values'))
+        self.layout.addWidget(bt_actor_loc_prefs_all_avail, row + 3, 0)
+
+        bt_actor_partner_loc_prefs_all_avail = QPushButton(
+            self.tr('Partner/Location Prefs -> Reset'),
+            clicked=self.reset_all_partner_loc_prefs)
         bt_actor_partner_loc_prefs_all_avail.setStatusTip(
-            'Mitarbeite- / Einrichtungspräferenzen für alle Verfügbarkeiten in diesem Zeitraum  '
-            'werden auf die Standartwerte des Planungszeitraums zurückgesetzt.')
-        self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row+4, 0)
-        bt_skills_reset_all = QPushButton('Fertigkeiten')
-        bt_skills_reset_all.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
+            self.tr('Reset partner/location preferences for all availabilities in this period to the default values'))
+        self.layout.addWidget(bt_actor_partner_loc_prefs_all_avail, row + 4, 0)
+
+        bt_skills_reset_all = QPushButton(self.tr('Skills'))
+        bt_skills_reset_all.setStatusTip(self.tr('Edit skills for all availabilities in this period'))
         self.menu_bt_skills_reset_all = QMenu()
         bt_skills_reset_all.setMenu(self.menu_bt_skills_reset_all)
+
         actions_menu_bt_skills = [
-            MenuToolbarAction(self,
-                              os.path.join(os.path.dirname(__file__),
-                                           'resources', 'toolbar_icons', 'icons', 'screwdriver--minus.png'),
-                              'Fertigkeit entfernen',
-                              'Alle Fertigkeiten von den Events in diesem Zeitraum entfernen.',
-                              self.remove_skills_from_every_avail_day,
-                              ),
-            MenuToolbarAction(self,
-                              os.path.join(os.path.dirname(__file__),
-                                           'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
-                              'Fertigkeit zurücksetzen',
-                              'Alle Fertigkeiten von den Events in diesem Zeitraum '
-                              'auf die Standartwerte der Einrichtung zurücksetzen.',
-                              self.reset_skills_of_every_avail_day,
-                              )
+            MenuToolbarAction(
+                self,
+                os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons',
+                             'screwdriver--minus.png'),
+                self.tr('Remove Skill'),
+                self.tr('Remove all skills from events in this period'),
+                self.remove_skills_from_every_avail_day,
+            ),
+            MenuToolbarAction(
+                self,
+                os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
+                self.tr('Reset Skills'),
+                self.tr('Reset all skills from events in this period to location defaults'),
+                self.reset_skills_of_every_avail_day,
+            )
         ]
         for action in actions_menu_bt_skills:
             self.menu_bt_skills_reset_all.addAction(action)
@@ -1059,10 +1077,15 @@ class FrmActorPlanPeriod(QWidget):
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
             if not self.t_o_d_standards:
-                QMessageBox.critical(self, 'Verfügbarkeiten',
-                                     f'Für diesen Planungszeitraum von {self.actor_plan_period.person.f_name} '
-                                     f'{self.actor_plan_period.person.l_name} sind noch keine '
-                                     f'Tageszeiten-Standartwerte definiert.')
+                QMessageBox.critical(
+                    self,
+                    self.tr('Availabilities'),
+                    self.tr(
+                        'No default time-of-day values are defined for this planning period of {first} {last}').format(
+                        first=self.actor_plan_period.person.f_name,
+                        last=self.actor_plan_period.person.l_name
+                    )
+                )
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 button_avail_day = self.create_time_of_day_button(d, time_of_day)
@@ -1073,16 +1096,16 @@ class FrmActorPlanPeriod(QWidget):
             if d.weekday() in (5, 6):
                 lb_weekday.setStyleSheet(
                     f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string};')
-            self.layout.addWidget(lb_weekday, row+1, col)
+            self.layout.addWidget(lb_weekday, row + 1, col)
             bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
             bt_comb_loc_poss.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_comb_loc_poss, row+2, col)
+            self.layout.addWidget(bt_comb_loc_poss, row + 2, col)
             bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period, team)
             bt_loc_prefs.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_loc_prefs, row+3, col)
+            self.layout.addWidget(bt_loc_prefs, row + 3, col)
             bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period, team)
             bt_partner_loc_prefs.setDisabled(disable_buttons)
-            self.layout.addWidget(bt_partner_loc_prefs, row+4, col)
+            self.layout.addWidget(bt_partner_loc_prefs, row + 4, col)
             bt_skills = ButtonSkills(self, d, 24, self.actor_plan_period)
             bt_skills.setDisabled(disable_buttons)
             self.layout.addWidget(bt_skills, row + 5, col)
@@ -1196,13 +1219,16 @@ class FrmActorPlanPeriod(QWidget):
         for ad in avail_days:
             self.set_button_avail_day_to_checked_and_configure(ad.date, ad.time_of_day)
 
+    def set_text_bt_requested_assignments(self):
+        self.bt_requested_assignments.setText(
+            f'gew. Einsätze (aktuell: {self.actor_plan_period.requested_assignments}'
+            f'{", gefordert" if self.actor_plan_period.required_assignments else ""})')
+
     def set_requested_assignments(self):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
         if dlg.exec():
             self.reload_actor_plan_period()
-            self.bt_requested_assignments.setText(
-                f'gew. Einsätze (aktuell: {self.actor_plan_period.requested_assignments}'
-                f'{", gefordert" if self.actor_plan_period.required_assignments else ""})')
+            self.set_text_bt_requested_assignments()
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()

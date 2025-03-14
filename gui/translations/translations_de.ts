@@ -488,6 +488,52 @@ oder die Vorgaben zur Planerstellung waren widersprüchlich.</translation>
     </message>
 </context>
 <context>
+    <name>DlgCastGroups</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="635"/>
+        <source>Cast Groups</source>
+        <translation>Besetzungsgruppen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="662"/>
+        <source>New Group</source>
+        <translation>Neue Gruppe</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="664"/>
+        <source>Remove Group</source>
+        <translation>Gruppe entfernen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="762"/>
+        <location filename="../frm_cast_group.py" line="774"/>
+        <location filename="../frm_cast_group.py" line="812"/>
+        <source>Group Mode</source>
+        <translation>Gruppierungsmodus</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="765"/>
+        <source>At least one group has only one event:
+Group {group_nr}, {date} ({time_of_day})
+Please correct this.</source>
+        <translation>Mindestens eine Gruppe hat nur einen Termin:
+Gruppe {group_nr}, {date} ({time_of_day})
+Bitte korrigieren Sie das.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="776"/>
+        <source>At least one group contains only one group
+Please correct this.</source>
+        <translation>Mindestens eine Gruppe beinhaltet nur eine Gruppe
+Bitte korrigieren Sie das.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="814"/>
+        <source>The group structure has been simplified by removing unnecessary groups.</source>
+        <translation>Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.</translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
@@ -560,6 +606,130 @@ Hier können Sie die Besetzung ändern.</translation>
         <location filename="../frm_general_settings.py" line="49"/>
         <source>Language:</source>
         <translation>Sprache:</translation>
+    </message>
+</context>
+<context>
+    <name>DlgGroupProperties</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="373"/>
+        <source>Event Properties</source>
+        <translation>Eigenschaften des Termins</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="374"/>
+        <source>Properties of Group {number:02}</source>
+        <translation>Eigenschaften von Gruppe {number:02}</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="393"/>
+        <source>Fixed Cast</source>
+        <translation>feste Besetzung</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="394"/>
+        <source>Edit...</source>
+        <translation>Bearbeiten...</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="398"/>
+        <source>Correct Fixed Cast of Child Elements</source>
+        <translation>Feste Besetzung untergeordneter Elemente korrigieren</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="401"/>
+        <source>Casting Rule</source>
+        <translation>Besetzungsregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="404"/>
+        <source>Create New Rule</source>
+        <translation>Neue Regel erstellen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="405"/>
+        <source>New...</source>
+        <translation>Neu...</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="408"/>
+        <source>Number of Staff</source>
+        <translation>Anzahl Mitarbeiter</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="413"/>
+        <source>Correct Staff Count of Child Elements</source>
+        <translation>Besetzungsgröße untergeordneter Elemente korrigieren</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="417"/>
+        <source>Strictly Follow Rules?</source>
+        <translation>Regeln strikt befolgen?</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="458"/>
+        <source>Here you can edit the properties of the event.</source>
+        <translation>Hier können Sie die Eigenschaften des Termins bearbeiten.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="469"/>
+        <source>Here you can edit the properties of the casting group.
+Properties of subordinate groups override the properties of the parent group.
+This applies to: fixed_cast, nr_actors.
+
+cast_rule:
+- If a casting rule is set and casting rule != ~, no fixed cast can be defined.
+- If subgroups have identical casts or contain events, a cast_rule can be defined.
+-- If subgroups contain fixed_cast or more complex casting rules, a more detailed consistency check is required.</source>
+        <translation>Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.
+Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der übergeordneten Gruppe.
+Das gilt für: fixed_cast, nr_actors.
+
+cast_rule:
+- Falls Besetzungsregel und Besetzungsregel != ~, darf kein fixed_cast festgelegt werden.
+- Falls Untergruppen gleiche Besetzungen haben oder Events beinhalten, kann eine cast_rule festgelegt werden.
+-- Falls Untergruppen fixed_cast beinhalten oder kompliziertere Besetzungsregeln, ist eine genauere Konsistenzprüfung erforderlich.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="495"/>
+        <source>Clear Subordinate Casts</source>
+        <translation>Untergeordnete Besetzungen löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="498"/>
+        <source>Align Subordinate Casts</source>
+        <translation>Untergeordnete Besetzungen angleichen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="504"/>
+        <source>Subordinate elements have a different staff count.</source>
+        <translation>Untergeordnete Elemente haben eine andere Besetzungsstärke.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="507"/>
+        <location filename="../frm_cast_group.py" line="515"/>
+        <location filename="../frm_cast_group.py" line="522"/>
+        <source>All is well.</source>
+        <translation>Alles in Ordnung.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="512"/>
+        <source>Subordinate elements have a different fixed cast.</source>
+        <translation>Untergeordnete Elemente haben eine andere feste Besetzung.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="527"/>
+        <source>No fixed cast can be defined.</source>
+        <translation>Es darf keine feste Besetzung festgelegt werden.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="532"/>
+        <source>Conflict with directly subordinate elements.</source>
+        <translation>Konflikt mit direkt untergeordneten Elementen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="542"/>
+        <source>Custom Rule</source>
+        <translation>Eigene Regel</translation>
     </message>
 </context>
 <context>

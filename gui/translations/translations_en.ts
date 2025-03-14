@@ -461,6 +461,49 @@ or the planning requirements were contradictory.</source>
     </message>
 </context>
 <context>
+    <name>DlgCastGroups</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="635"/>
+        <source>Cast Groups</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="662"/>
+        <source>New Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="664"/>
+        <source>Remove Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="762"/>
+        <location filename="../frm_cast_group.py" line="774"/>
+        <location filename="../frm_cast_group.py" line="812"/>
+        <source>Group Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="765"/>
+        <source>At least one group has only one event:
+Group {group_nr}, {date} ({time_of_day})
+Please correct this.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="776"/>
+        <source>At least one group contains only one group
+Please correct this.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="814"/>
+        <source>The group structure has been simplified by removing unnecessary groups.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
@@ -530,6 +573,123 @@ Here you can change the cast.</source>
     <message>
         <location filename="../frm_general_settings.py" line="49"/>
         <source>Language:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgGroupProperties</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="373"/>
+        <source>Event Properties</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="374"/>
+        <source>Properties of Group {number:02}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="393"/>
+        <source>Fixed Cast</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="394"/>
+        <source>Edit...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="398"/>
+        <source>Correct Fixed Cast of Child Elements</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="401"/>
+        <source>Casting Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="404"/>
+        <source>Create New Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="405"/>
+        <source>New...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="408"/>
+        <source>Number of Staff</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="413"/>
+        <source>Correct Staff Count of Child Elements</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="417"/>
+        <source>Strictly Follow Rules?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="458"/>
+        <source>Here you can edit the properties of the event.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="469"/>
+        <source>Here you can edit the properties of the casting group.
+Properties of subordinate groups override the properties of the parent group.
+This applies to: fixed_cast, nr_actors.
+
+cast_rule:
+- If a casting rule is set and casting rule != ~, no fixed cast can be defined.
+- If subgroups have identical casts or contain events, a cast_rule can be defined.
+-- If subgroups contain fixed_cast or more complex casting rules, a more detailed consistency check is required.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="495"/>
+        <source>Clear Subordinate Casts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="498"/>
+        <source>Align Subordinate Casts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="504"/>
+        <source>Subordinate elements have a different staff count.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="507"/>
+        <location filename="../frm_cast_group.py" line="515"/>
+        <location filename="../frm_cast_group.py" line="522"/>
+        <source>All is well.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="512"/>
+        <source>Subordinate elements have a different fixed cast.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="527"/>
+        <source>No fixed cast can be defined.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="532"/>
+        <source>Conflict with directly subordinate elements.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="542"/>
+        <source>Custom Rule</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

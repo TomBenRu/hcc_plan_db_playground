@@ -369,8 +369,10 @@ class DlgGroupProperties(QDialog):
         item_data: schemas.CastGroupShow = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         self.group = item_data.model_copy()
 
-        self.setWindowTitle('Eigenschaften des Termins' if self.group.event
-                            else f'Eigenschaften von Gruppe {self.group_nr:02}')
+        self.setWindowTitle(
+            self.tr("Event Properties") if self.group.event
+            else self.tr("Properties of Group {number:02}").format(number=self.group_nr)
+        )
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -388,29 +390,31 @@ class DlgGroupProperties(QDialog):
 
         self.lb_info = QLabel()
 
-        self.lb_fixed_cast = QLabel('Feste Besetzung')
-        self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
+        self.lb_fixed_cast = QLabel(self.tr('Fixed Cast'))
+        self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
         self.lb_fixed_cast_value = QLabel()
         self.lb_fixed_cast_warning = QLabel()
         self.lb_fixed_cast_warning.setObjectName('fixed_cast_warning')
-        self.bt_correct_childs_fixed_cast = QPushButton('Feste Besetzung untergeordneter Elemente korrigieren')
+        self.bt_correct_childs_fixed_cast = QPushButton(self.tr('Correct Fixed Cast of Child Elements'))
         self.menu_bt_correct_childs_fixed_cast = QMenu()
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
-        self.lb_rule = QLabel('Besetzungsregel')
+        self.lb_rule = QLabel(self.tr('Casting Rule'))
         self.combo_cast_rules = QComboBox()
         self.le_custom_rule = LineEditWithCustomFont(parent=None, font=None, bold=True, letter_spacing=4)
-        self.lb_new_rule = QLabel('Neue Regel erstellen')
-        self.bt_new_rule = QPushButton('Neu...', clicked=self.new_rule)
+        self.lb_new_rule = QLabel(self.tr('Create New Rule'))
+        self.bt_new_rule = QPushButton(self.tr('New...'), clicked=self.new_rule)
         self.lb_cast_rule_warning = QLabel()
         self.lb_cast_rule_warning.setObjectName('cast_rule_warning')
-        self.lb_nr_actors = QLabel('Anzahl Mitarbeiter')
+        self.lb_nr_actors = QLabel(self.tr('Number of Staff'))
         self.spin_nr_actors = QSpinBox()
         self.lb_nr_actors_warning = QLabel()
         self.lb_nr_actors_warning.setObjectName('nr_actors_warning')
-        self.bt_correct_childs_nr_actors = QPushButton('Besetzungsgröße untergeordneter Elemente korrigieren',
-                                                       clicked=self.correct_childs_nr_actors)
+        self.bt_correct_childs_nr_actors = QPushButton(
+            self.tr('Correct Staff Count of Child Elements'),
+            clicked=self.correct_childs_nr_actors
+        )
         self.bt_correct_childs_nr_actors.setFixedWidth(370)
-        self.lb_strict_cast_pref = QLabel('Regeln strikt befolgen?')
+        self.lb_strict_cast_pref = QLabel(self.tr('Strictly Follow Rules?'))
         self.slider_strict_cast_pref = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_strict_cast_pref_value_text = QLabel()
 
@@ -450,18 +454,19 @@ class DlgGroupProperties(QDialog):
         super().reject()
 
     def setup_widgets(self):
-        self.lb_info.setText('Hier können Sie die Eigenschaften des Termins bearbeiten.' if self.group.event
-                             else 'Hier können Sie die Eigenschaften der Besetzungsgruppe bearbeiten.\n'
-                                  'Eigenschaften untergeordneter Gruppen überstimmen die Eigenschaft der '
-                                  'übergeordneten Gruppe.\nDas gilt für: fixed_cast, nr_actors.\n\n'
-                                  'cast_rule:\n'
-                                  '- Falls Besetzungsregel und  Besetzungsregel != ~, darf kein fixed_cast festgelegt '
-                                  'werden.\n'
-                                  '- Falls Untergruppen gleiche Besetzungen haben oder Events beinhalten, kann eine '
-                                  'cast_rule festgelegt werden.\n'
-                                  '-- Falls Untergruppen fixed_cast beinhalten oder kompliziertere Besetzungsregeln, '
-                                  'ist eine genauere Konsistenzprüfung erforderlich.'
-                             )
+        self.lb_info.setText(
+            self.tr('Here you can edit the properties of the event.') if self.group.event
+            else self.tr(
+                'Here you can edit the properties of the casting group.\n'
+                'Properties of subordinate groups override the properties of the parent group.\n'
+                'This applies to: fixed_cast, nr_actors.\n\n'
+                'cast_rule:\n'
+                '- If a casting rule is set and casting rule != ~, no fixed cast can be defined.\n'
+                '- If subgroups have identical casts or contain events, a cast_rule can be defined.\n'
+                '-- If subgroups contain fixed_cast or more complex casting rules, '
+                'a more detailed consistency check is required.'
+            )
+        )
         self.bt_correct_childs_fixed_cast__menu_config()
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
         self.set_fixed_cast_warning()
@@ -487,43 +492,43 @@ class DlgGroupProperties(QDialog):
     def bt_correct_childs_fixed_cast__menu_config(self):
         self.bt_correct_childs_fixed_cast.setMenu(self.menu_bt_correct_childs_fixed_cast)
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            MenuToolbarAction(self, None, 'Untergeordnete Besetzungen löschen', None,
+            MenuToolbarAction(self, None, self.tr('Clear Subordinate Casts'), None,
                               lambda: self.correct_childs_fixed_cast('set_None')))
         self.menu_bt_correct_childs_fixed_cast.addAction(
-            MenuToolbarAction(self, None, 'Untergeordnete Besetzungen angleichen', None,
+            MenuToolbarAction(self, None, self.tr('Align Subordinate Casts'), None,
                               lambda: self.correct_childs_fixed_cast('set_fixed_cast')))
 
     def set_nr_actors_warning(self):
         if ConsistenceProof.check_childs_nr_actors_are_different(self.item):
             self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: orangered}')
-            self.lb_nr_actors_warning.setText('Untergeordnete Elemente haben eine andere Besetzungsstärke.')
+            self.lb_nr_actors_warning.setText(self.tr('Subordinate elements have a different staff count.'))
         else:
             self.lb_nr_actors_warning.setStyleSheet('QWidget#nr_actors_warning{color: green}')
-            self.lb_nr_actors_warning.setText('Alles in Ordnung.')
+            self.lb_nr_actors_warning.setText(self.tr('All is well.'))
 
     def set_fixed_cast_warning(self):
         if ConsistenceProof.check_childs_fixed_cast_are_different(self.item):
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: orangered}')
-            self.lb_fixed_cast_warning.setText('Untergeordnete Elemente haben eine andere feste Besetzung.')
+            self.lb_fixed_cast_warning.setText(self.tr('Subordinate elements have a different fixed cast.'))
         else:
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: green}')
-            self.lb_fixed_cast_warning.setText('Alles in Ordnung.')
+            self.lb_fixed_cast_warning.setText(self.tr('All is well.'))
 
     def set_cast_rule_warning(self):
         consistence_proof_result = ConsistenceProof.check_conflict_for_cast_rule(self.item)
 
         if consistence_proof_result.all_correct:
             self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: green}')
-            self.lb_cast_rule_warning.setText('Alles in Ordnung.')
+            self.lb_cast_rule_warning.setText(self.tr('All is well.'))
         else:
             self.lb_cast_rule_warning.setStyleSheet('QWidget#cast_rule_warning{color: orangered}')
             text_conflict_cast_rules = (
-                'Es darf keine feste Besetzung festgelegt werden.'
+                self.tr('No fixed cast can be defined.')
                 if consistence_proof_result.fixed_cast_conflict
                 else None
             )
             text_conflict_child_rules = (
-                'Konflikt mit direkt untergeordneten Elementen.'
+                self.tr('Conflict with directly subordinate elements.')
                 if consistence_proof_result.child_rule_conflict
                 else None
             )
@@ -534,7 +539,7 @@ class DlgGroupProperties(QDialog):
         self.combo_cast_rules.blockSignals(True)
         self.combo_cast_rules.clear()
         curr_combo_index = 0
-        self.combo_cast_rules.addItem('Eigene Regel')
+        self.combo_cast_rules.addItem(self.tr('Custom Rule'))
         rules = sorted(db_services.CastRule.get_all_from__project(self.group.plan_period.team.project.id), key=lambda x: x.name)
         for i, rule in enumerate(rules, start=1):
             self.combo_cast_rules.addItem(QIcon(os.path.join(os.path.dirname(__file__),
@@ -627,7 +632,7 @@ class DlgCastGroups(QDialog):
                  visible_location_plan_period_ids: set[UUID]):
         super().__init__(parent=parent)
 
-        self.setWindowTitle('Cast Groups')
+        self.setWindowTitle(self.tr('Cast Groups'))
         self.resize(800, 400)
 
         self.plan_period = plan_period
@@ -654,9 +659,9 @@ class DlgCastGroups(QDialog):
 
         self.layout_mod_buttons = QHBoxLayout()
         self.layout_foot.addLayout(self.layout_mod_buttons)
-        self.bt_add_group = QPushButton('Neue Gruppe', clicked=self.add_group)
+        self.bt_add_group = QPushButton(self.tr('New Group'), clicked=self.add_group)
         self.layout_mod_buttons.addWidget(self.bt_add_group)
-        self.bt_remove_group = QPushButton('Gruppe entfernen', clicked=self.remove_group)
+        self.bt_remove_group = QPushButton(self.tr('Remove Group'), clicked=self.remove_group)
         self.layout_mod_buttons.addWidget(self.bt_remove_group)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
@@ -754,16 +759,21 @@ class DlgCastGroups(QDialog):
     def show_message_solo_childs(self, item: TreeWidgetItem):
         if event := item.child(0).data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
             QMessageBox.critical(
-                self, 'Gruppenmodus',
-                f'Mindestens eine Gruppe hat nur einen Termin:\n'
-                f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
-                f'{event.date.strftime("%d.%m.%y")} ({event.time_of_day.name})\n'
-                f'Bitte korrigieren Sie das.'
+                self, self.tr('Group Mode'),
+                self.tr('At least one group has only one event:\n'
+                       'Group {group_nr}, {date} ({time_of_day})\n'
+                       'Please correct this.').format(
+                    group_nr=item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole),
+                    date=date_to_string(event.date),
+                    time_of_day=event.time_of_day.name
+                )
             )
         else:
-            QMessageBox.critical(self, 'Gruppenmodus',
-                                 f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
-                                 f'Bitte korrigieren Sie das.')
+            QMessageBox.critical(
+                self,
+                self.tr('Group Mode'),
+                self.tr('At least one group contains only one group\nPlease correct this.')
+            )
 
     def tree_is_consistent(self) -> bool:
         proof_result = ConsistenceProof.proof_for_unused_groups_and_solo_childs(
@@ -797,8 +807,11 @@ class DlgCastGroups(QDialog):
             self.replace_group_nrs_from_events()
             super().accept()
             if self.simplified:
-                QMessageBox.information(self, 'Gruppenmodus',
-                                        'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+                QMessageBox.information(
+                    self,
+                    self.tr('Group Mode'),
+                    self.tr('The group structure has been simplified by removing unnecessary groups.')
+                )
 
     def reject(self) -> None:
         self.controller.undo_all()

@@ -1521,6 +1521,24 @@ Planungsmaske für %s öffnen</translation>
     </message>
 </context>
 <context>
+    <name>StrictCastPref</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="43"/>
+        <source>Ignore casting rule</source>
+        <translation>Besetzungsregel nicht beachten</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="44"/>
+        <source>Try to follow casting rule</source>
+        <translation>möglichst nah an Besetzungsregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="49"/>
+        <source>Strictly follow casting rule</source>
+        <translation>unbedingt Besetzungsregel beachten</translation>
+    </message>
+</context>
+<context>
     <name>TblPlanStatistics</name>
     <message>
         <location filename="../frm_plan.py" line="1202"/>
@@ -1566,6 +1584,67 @@ in the plan.</source>
         <translation>Click:
 Aktuelle Einsätze von %s
 im Plan markieren.</translation>
+    </message>
+</context>
+<context>
+    <name>TreeWidget</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="245"/>
+        <source>Description</source>
+        <translation>Bezeichnung</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="246"/>
+        <source>Location</source>
+        <translation>Einsatzort</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="247"/>
+        <source>Date</source>
+        <translation>Datum</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="248"/>
+        <source>Time of Day</source>
+        <translation>Tageszeit</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="249"/>
+        <source>Nr. of Staff</source>
+        <translation>Anz. Mitarb.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="250"/>
+        <source>Fixed Cast</source>
+        <translation>feste Besetzung</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="251"/>
+        <source>Rule</source>
+        <translation>Regel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="253"/>
+        <source>Rule Compliance</source>
+        <translation>Regelbefolgung</translation>
+    </message>
+</context>
+<context>
+    <name>TreeWidgetItem</name>
+    <message>
+        <location filename="../frm_cast_group.py" line="188"/>
+        <source>assigned</source>
+        <translation>zugeteilt</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="202"/>
+        <source>Group_{number:02}</source>
+        <translation>Gruppe_{number:02}</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_group.py" line="212"/>
+        <source>Double-click to edit &quot;Group {number:02}&quot;</source>
+        <translation>Doppelklick, um &quot;Gruppe {number:02}&quot; zu bearbeiten</translation>
     </message>
 </context>
 <context>

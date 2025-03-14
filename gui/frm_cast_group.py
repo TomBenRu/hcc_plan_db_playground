@@ -5,7 +5,7 @@ from typing import Callable, Sequence, Literal
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
@@ -22,7 +22,7 @@ from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 from tools import custom_validators
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
-from tools.helper_functions import generate_fixed_cast_clear_text
+from tools.helper_functions import generate_fixed_cast_clear_text, date_to_string
 from tools.screen import Screen
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
@@ -37,6 +37,13 @@ TREE_HEAD_COLUMN__NR_ACTORS = 4
 TREE_HEAD_COLUMN__FIXED_CAST = 5
 TREE_HEAD_COLUMN__RULE = 6
 TREE_HEAD_COLUMN__STRICT_CAST_PREF = 7
+
+
+STRICT_CAST_PREF_TEXTS = {
+    0: QCoreApplication.translate("StrictCastPref", "Ignore casting rule"),
+    1: QCoreApplication.translate("StrictCastPref", "Try to follow casting rule"),
+    2: QCoreApplication.translate("StrictCastPref", "Strictly follow casting rule")
+}
 
 
 def get_all_child_items(item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
@@ -178,9 +185,9 @@ class TreeWidgetItem(QTreeWidgetItem):
         group: schemas.CastGroupShow = db_services.CastGroup.get(group.id)
         fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast)
         if event:
-            self.setText(TREE_HEAD_COLUMN__TITEL, 'gesetzt')
+            self.setText(TREE_HEAD_COLUMN__TITEL, QCoreApplication.translate("TreeWidgetItem", "assigned"))
             self.setText(TREE_HEAD_COLUMN__LOCATION, event.location_plan_period.location_of_work.name)
-            self.setText(TREE_HEAD_COLUMN__DATE, event.date.strftime('%d.%m.%y'))
+            self.setText(TREE_HEAD_COLUMN__DATE, date_to_string(event.date))
             self.setText(TREE_HEAD_COLUMN__TIME_OF_DAY, event.time_of_day.name)
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
@@ -191,14 +198,18 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setData(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole, event)
         else:
             rule_text = group.cast_rule.name if group.cast_rule else group.custom_rule
-            self.setText(TREE_HEAD_COLUMN__TITEL, f'Gruppe_{group_nr:02}')
-            self.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(group.strict_cast_pref))
+            self.setText(TREE_HEAD_COLUMN__TITEL,
+                        QCoreApplication.translate("TreeWidgetItem", "Group_{number:02}").format(number=group_nr))
+            self.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF,
+                         f'{STRICT_CAST_PREF_TEXTS[group.strict_cast_pref]} ({group.strict_cast_pref})')
             self.setText(TREE_HEAD_COLUMN__FIXED_CAST, fixed_cast_text)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setText(TREE_HEAD_COLUMN__NR_ACTORS, str(group.nr_actors))
             self.setText(TREE_HEAD_COLUMN__RULE, rule_text)
             self.setBackground(TREE_HEAD_COLUMN__TITEL, QColor(*widget_styles.tree_widgets.group_bg_color_rgba))
-            self.setToolTip(TREE_HEAD_COLUMN__TITEL, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
+            self.setToolTip(TREE_HEAD_COLUMN__TITEL,
+                           QCoreApplication.translate("TreeWidgetItem",
+                                                   'Double-click to edit "Group {number:02}"').format(number=group_nr))
 
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
@@ -230,8 +241,16 @@ class TreeWidget(QTreeWidget):
         self.visible_location_plan_period_ids = visible_location_plan_period_ids
 
         self.setColumnCount(8)
-        self.setHeaderLabels(["Bezeichnung", "Location", "Datum", "Tageszeit", 'Anz. Mitarb.', "fixed_cast", "Regel",
-                              "strict_cast_pref"])
+        self.setHeaderLabels([
+            self.tr("Description"),
+            self.tr("Location"),
+            self.tr("Date"),
+            self.tr("Time of Day"),
+            self.tr("Nr. of Staff"),
+            self.tr("Fixed Cast"),
+            self.tr("Rule"),
+            self.tr("Rule Compliance")
+        ])
         self.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
         self.setSortingEnabled(True)
 
@@ -353,10 +372,6 @@ class DlgGroupProperties(QDialog):
         self.setWindowTitle('Eigenschaften des Termins' if self.group.event
                             else f'Eigenschaften von Gruppe {self.group_nr:02}')
 
-        self.strict_cast_pref_texts = {0: 'Besetzungsregel nicht beachten',
-                                       1: 'möglichst nah an Besetzungsregel',
-                                       2: 'unbedingt Besetzungsregel beachten'}
-
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.changing_custom_rules = False
@@ -463,11 +478,11 @@ class DlgGroupProperties(QDialog):
         self.slider_strict_cast_pref.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.slider_strict_cast_pref.setFixedWidth(150)
         self.slider_strict_cast_pref.setValue(self.group.strict_cast_pref)
-        self.lb_strict_cast_pref_value_text.setText(self.strict_cast_pref_texts[self.group.strict_cast_pref])
+        self.lb_strict_cast_pref_value_text.setText(STRICT_CAST_PREF_TEXTS[self.group.strict_cast_pref])
         self.slider_strict_cast_pref.valueChanged.connect(self.strict_cast_pref_changed)
         self.slider_strict_cast_pref.valueChanged.connect(
             lambda: self.lb_strict_cast_pref_value_text.setText(
-                self.strict_cast_pref_texts[self.slider_strict_cast_pref.value()]))
+                STRICT_CAST_PREF_TEXTS[self.slider_strict_cast_pref.value()]))
 
     def bt_correct_childs_fixed_cast__menu_config(self):
         self.bt_correct_childs_fixed_cast.setMenu(self.menu_bt_correct_childs_fixed_cast)
@@ -723,11 +738,13 @@ class DlgCastGroups(QDialog):
         all_items = get_all_child_items(self.tree_groups.invisibleRootItem())
 
         for item in all_items:
+            item: TreeWidgetItem
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
             item.setText(TREE_HEAD_COLUMN__FIXED_CAST, generate_fixed_cast_clear_text(cast_group.fixed_cast))
             if not (event_object := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)):
-                item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF, str(cast_group.strict_cast_pref))
+                item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF,
+                             f'{STRICT_CAST_PREF_TEXTS[cast_group.strict_cast_pref]} ({cast_group.strict_cast_pref})')
                 rule_text = cast_group.cast_rule.name if cast_group.cast_rule else cast_group.custom_rule
                 item.setText(TREE_HEAD_COLUMN__RULE, rule_text)
             else:

@@ -627,18 +627,6 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
         <translation>Löschen...</translation>
     </message>
     <message>
-        <source>New Cast Rule</source>
-        <translation type="vanished">Neue Besetzungsregel</translation>
-    </message>
-    <message>
-        <source>Edit Cast Rule</source>
-        <translation type="vanished">Besetzungsregel bearbeiten</translation>
-    </message>
-    <message>
-        <source>Delete Cast Rule</source>
-        <translation type="vanished">Besetzungsregel löschen</translation>
-    </message>
-    <message>
         <location filename="../frm_cast_rule.py" line="244"/>
         <source>Name</source>
         <translation>Name</translation>
@@ -647,6 +635,66 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
         <location filename="../frm_cast_rule.py" line="244"/>
         <source>Cast Rule</source>
         <translation>Besetzungsregel</translation>
+    </message>
+</context>
+<context>
+    <name>DlgCombLocPossibleEditList</name>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="83"/>
+        <location filename="../frm_comb_loc_possible.py" line="202"/>
+        <location filename="../frm_comb_loc_possible.py" line="235"/>
+        <source>Facility Combinations</source>
+        <translation>Einrichtungskombinationen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="105"/>
+        <source>Date</source>
+        <translation>Datum</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="112"/>
+        <source>New...</source>
+        <translation>Neu...</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="113"/>
+        <source>Reset</source>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="114"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="133"/>
+        <source>Facility Combination</source>
+        <translation>Einrichtungskombinationen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="134"/>
+        <source>Time between assignments</source>
+        <translation>Zeit zwischen den Einsätzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="185"/>
+        <source>The team has the same facilities on all days of the period.</source>
+        <translation>An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="189"/>
+        <source>The team does not have the same facilities on all days of the period.</source>
+        <translation>Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="203"/>
+        <source>You must select at least 2 facilities.</source>
+        <translation>Sie müssen mindestens 2 Einrichtungen auswählen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="236"/>
+        <source>You must first select a row.</source>
+        <translation>Sie müssen zuerst eine Zeile auswählen.</translation>
     </message>
 </context>
 <context>
@@ -907,6 +955,29 @@ to a different day and time.</source>
         <translation>HIer können Sie den Termin
 %s, %s (%s)
 auf einen anderen Tag und andere Tageszeit verschieben.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgNewCombLocPossible</name>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="29"/>
+        <source>Facilities</source>
+        <translation>Einrichtungen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="33"/>
+        <source>Time span between</source>
+        <translation>Zeitspanne dazwischen</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="43"/>
+        <source>Hours</source>
+        <translation>Stunden</translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="44"/>
+        <source>Minutes</source>
+        <translation>Minuten</translation>
     </message>
 </context>
 <context>

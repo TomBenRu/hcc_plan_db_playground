@@ -601,6 +601,66 @@ It is saved under the name &quot;{name}&quot;.</source>
     </message>
 </context>
 <context>
+    <name>DlgCombLocPossibleEditList</name>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="83"/>
+        <location filename="../frm_comb_loc_possible.py" line="202"/>
+        <location filename="../frm_comb_loc_possible.py" line="235"/>
+        <source>Facility Combinations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="105"/>
+        <source>Date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="112"/>
+        <source>New...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="113"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="114"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="133"/>
+        <source>Facility Combination</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="134"/>
+        <source>Time between assignments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="185"/>
+        <source>The team has the same facilities on all days of the period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="189"/>
+        <source>The team does not have the same facilities on all days of the period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="203"/>
+        <source>You must select at least 2 facilities.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="236"/>
+        <source>You must first select a row.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgCreateCastRule</name>
     <message>
         <location filename="../frm_cast_rule.py" line="131"/>
@@ -844,6 +904,29 @@ cast_rule:
         <source>Here you can move the appointment
 %s, %s (%s)
 to a different day and time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgNewCombLocPossible</name>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="29"/>
+        <source>Facilities</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="33"/>
+        <source>Time span between</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="43"/>
+        <source>Hours</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_comb_loc_possible.py" line="44"/>
+        <source>Minutes</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

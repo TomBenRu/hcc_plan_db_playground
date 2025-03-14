@@ -261,8 +261,8 @@ class ButtonCombLocPossible(QPushButton):
         parent_model_factory = lambda date: self.actor_plan_period
         team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.get_person())
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, avail_days_at_date[0], parent_model_factory,
-                                                               team_at_date_factory)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(
+            self, avail_days_at_date[0], parent_model_factory, team_at_date_factory)
         dlg.de_date.setDate(self.date)
         dlg.de_date.setDisabled(True)
         if dlg.exec():

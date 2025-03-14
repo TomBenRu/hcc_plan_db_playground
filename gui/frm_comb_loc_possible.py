@@ -26,11 +26,11 @@ class DlgNewCombLocPossible(QDialog):
         self.time_span_between: datetime.timedelta | None = None
 
         self.layout = QVBoxLayout(self)
-        self.group_checks = QGroupBox('Einrichtungen')
+        self.group_checks = QGroupBox(self.tr('Facilities'))
         self.layout.addWidget(self.group_checks)
         self.layout_group_checks = QVBoxLayout(self.group_checks)
 
-        self.group_time_span_between = QGroupBox('Zeitspanne dazwischen')
+        self.group_time_span_between = QGroupBox(self.tr('Time span between'))
         self.layout.addWidget(self.group_time_span_between)
         self.layout_group_time_span_between = QFormLayout(self.group_time_span_between)
         self.spin_hours = QSpinBox()
@@ -40,8 +40,8 @@ class DlgNewCombLocPossible(QDialog):
         self.spin_minutes.setMaximum(55)
         self.spin_minutes.setMinimum(0)
         self.spin_minutes.setSingleStep(5)
-        self.layout_group_time_span_between.addRow('Stunden', self.spin_hours)
-        self.layout_group_time_span_between.addRow('Minuten', self.spin_minutes)
+        self.layout_group_time_span_between.addRow(self.tr('Hours'), self.spin_hours)
+        self.layout_group_time_span_between.addRow(self.tr('Minutes'), self.spin_minutes)
 
         self.checks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city})')
                                                           for l_o_w in self.locations_of_work}
@@ -80,7 +80,7 @@ class DlgCombLocPossibleEditList(QDialog):
         automatisch die Combinations erbt."""
         super().__init__(parent)
 
-        self.setWindowTitle('Einrichtungskombinationen')
+        self.setWindowTitle(self.tr('Facility Combinations'))
 
         self.curr_model = curr_model.model_copy(deep=True)
         self.parent_model_factory = parent_model_factory
@@ -102,16 +102,16 @@ class DlgCombLocPossibleEditList(QDialog):
         self.lb_info = QLabel()
         self.layout.addWidget(self.lb_info, 0, 0, 1, 3)
 
-        self.lb_date = QLabel('Datum')
+        self.lb_date = QLabel(self.tr('Date'))
         self.de_date = QDateEdit()
         self.de_date.dateChanged.connect(self.set_new__locations__parent_model)
         self.de_date.setMinimumDate(datetime.date.today())
         self.layout.addWidget(self.lb_date, 1, 0)
         self.layout.addWidget(self.de_date, 1, 1)
 
-        self.bt_create = QPushButton('Neu...', clicked=self.new)
-        self.bt_reset = QPushButton('Reset', clicked=self.reset)
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.bt_create = QPushButton(self.tr('New...'), clicked=self.new)
+        self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)
+        self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -130,7 +130,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.fill_table_combinations()
 
     def setup_table_combinations(self):
-        header_labels = ['ID', 'Einrichtungskombination', 'Zeit zw. d. Einsätzen']
+        header_labels = ['ID', self.tr('Facility Combination'), self.tr('Time between assignments')]
         self.table_combinations.setColumnCount(len(header_labels))
         self.table_combinations.setHorizontalHeaderLabels(header_labels)
         self.table_combinations.setSortingEnabled(True)
@@ -182,11 +182,11 @@ class DlgCombLocPossibleEditList(QDialog):
 
         curr_loc_of_work_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
 
-        self.lb_info.setText('An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+        self.lb_info.setText(self.tr('The team has the same facilities on all days of the period.'))
         for date in valid_days_of_actor[1:]:
             location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
             if location_ids != curr_loc_of_work_ids:
-                self.lb_info.setText('Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.')
+                self.lb_info.setText(self.tr('The team does not have the same facilities on all days of the period.'))
 
             curr_loc_of_work_ids |= location_ids
 
@@ -199,7 +199,8 @@ class DlgCombLocPossibleEditList(QDialog):
         if not dlg.exec():
             return
         if len(dlg.comb_location_ids) < 2:
-            QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen mindestens 2 Einrichtungen auswählen.')
+            QMessageBox.critical(self, self.tr('Facility Combinations'),
+                               self.tr('You must select at least 2 facilities.'))
             return
         if dlg.comb_location_ids not in curr_model_c_l_p_ids:
             locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
@@ -231,7 +232,8 @@ class DlgCombLocPossibleEditList(QDialog):
 
     def delete(self):
         if self.table_combinations.currentRow() == -1:
-            QMessageBox.critical(self, 'Einrichtungskombinationen', 'Sie müssen zuerst eine Zeile auswählen.')
+            QMessageBox.critical(self, self.tr('Facility Combinations'),
+                               self.tr('You must first select a row.'))
             return
         comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
         remove_command = self.factory_for_remove_combs(self.curr_model, comb_id_to_remove)
@@ -259,7 +261,7 @@ class DlgCombLocPossibleEditList(QDialog):
         try:
             return curr_model_name__put_in_command[curr_model_name](curr_model.id, comb_to_put_i_id)
         except KeyError as e:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.') from e
+            raise KeyError(f'No Put-In-Command defined for class {curr_model_name}.') from e
 
     def factory_for_remove_combs(self, curr_model: ModelWithCombLocPossible,
                                  comb_to_put_i_id: UUID) -> command_base_classes.Command:
@@ -273,7 +275,7 @@ class DlgCombLocPossibleEditList(QDialog):
             command_to_remove = curr_model_name__remove_command[curr_model_name]
             return command_to_remove(curr_model.id, comb_to_put_i_id)
         except KeyError as e:
-            raise KeyError(f'Für die Klasse {curr_model_name} ist noch kein Put-In-Command definiert.') from e
+            raise KeyError(f'No Remove-Command defined for class {curr_model_name}.') from e
 
     def disable_reset_bt(self):
         self.bt_reset.setDisabled(True)

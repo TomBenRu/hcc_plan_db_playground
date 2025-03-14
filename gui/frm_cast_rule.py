@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import cast_rule_commands
+from database.schemas import CastRuleShow
 from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
 from tools.custom_validators import LettersAndSymbolsValidator
 
@@ -56,8 +57,8 @@ class DlgCastRule(QDialog):
         self.le_cast_rule.setValidator(LettersAndSymbolsValidator('*~-', False))
         self.le_cast_rule.textChanged.connect(self.le_cast_rule_changed)
 
-        self.layout_body.addRow('Name', self.le_name)
-        self.layout_body.addRow('Besetzungsregel', self.le_cast_rule)
+        self.layout_body.addRow(self.tr('Name'), self.le_name)
+        self.layout_body.addRow(self.tr('Casting Rule'), self.le_cast_rule)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
@@ -67,60 +68,85 @@ class DlgCastRule(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def _setup_data(self):
-        ...
+        self.text_rule_chars = self.tr(
+            '        *: any cast\n'
+            '        ~: same cast\n'
+            '        -: different cast\n'
+            '...in relation to the chronologically preceding appointment.\n'
+            'The sequence is automatically repeated until the appointment series is filled.'
+        )
 
     def le_cast_rule_changed(self):
         self.le_cast_rule.blockSignals(True)
         self.le_cast_rule.setText(self.le_cast_rule.text().upper())
         self.le_cast_rule.blockSignals(False)
 
+    def _validate(self, cast_rule: str | None, project_cast_rules: list[CastRuleShow]) -> bool:
+        if not (self.le_name.text().strip() and self.le_cast_rule.text()):
+            QMessageBox.critical(self, self.tr('Cast Rule'),
+                               self.tr('Fields "Name" and "Cast Rule" must not be empty.'))
+            return False
+
+        if cast_rule != self.le_cast_rule.text():
+            QMessageBox.information(
+                self, self.tr('Cast Rule'),
+                self.tr('The cast rule has been simplified:\n'
+                       'original: {original}\n'
+                       'simplified: {simplified}').format(
+                    original=self.le_cast_rule.text(),
+                    simplified=cast_rule
+                ))
+            if not cast_rule:
+                QMessageBox.critical(
+                    self, self.tr('Cast Rule'),
+                    self.tr('After simplification, the cast rule is now None. '
+                           'Please choose a cast rule whose equivalent is not None.')
+                )
+                return False
+
+        if (name := self.le_name.text().strip()) in {cr.name for cr in project_cast_rules}:
+            QMessageBox.critical(
+                self, self.tr('Cast Rule'),
+                self.tr('The name "{name}" already exists in the project\'s cast rules.').format(name=name)
+            )
+            return False
+
+        if same_cast_rule := next((cr for cr in project_cast_rules if cr.rule == cast_rule), None):
+            QMessageBox.critical(
+                self, self.tr('Cast Rule'),
+                self.tr('The cast rule "{rule}" already exists in the project\'s cast rules.\n'
+                       'It is saved under the name "{name}".').format(
+                    rule=cast_rule,
+                    name=same_cast_rule.name
+                ))
+            return False
+
+        return True
+
 
 class DlgCreateCastRule(DlgCastRule):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent, project_id=project_id)
 
-        self.setWindowTitle('Neue Besetzungsregel')
+        self.setWindowTitle(self.tr('New Casting Rule'))
         self.created_cast_rule: schemas.CastRuleShow | None = None
 
     def _setup_ui(self):
         super()._setup_ui()
 
     def _setup_data(self):
-        self.lb_info.setText('Hier können Sie eine neue Besetzungsregel erstellen.\n'
-                              'Symbole:\n'
-                              '        *: beliebige Besetzung\n'
-                              '        ~: gleiche Besetzung\n'
-                              '        -: andere Besetzung\n'
-                              '...in Bezug auf den zeitlich vorangegangenen Termin.\n'
-                              'Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.')
+        super()._setup_data()
+        self.lb_info.setText(
+            self.tr('Here you can create a new casting rule.\n'
+                    '{text_rule_chars}').format(text_rule_chars=self.text_rule_chars)
+        )
 
     def accept(self) -> None:
         project_cast_rules = [cr for cr in db_services.CastRule.get_all_from__project(self.project_id)
                               if not cr.prep_delete]
 
-        if not (self.le_name.text().strip() and self.le_cast_rule.text()):
-            QMessageBox.critical(self, 'Besetzungsregel', 'Felder "Name" und "Besetzungsregel" dürfen nicht leer sein.')
-            return
         cast_rule = simplify_cast_rule(self.le_cast_rule.text())
-        if cast_rule != self.le_cast_rule.text():
-            QMessageBox.information(self, 'Besetzungsregel',
-                                    f'Die Besetzungsregel wurde vereinfacht:\n'
-                                    f'original: {self.le_cast_rule.text()}\nvereinfacht: {cast_rule}')
-            if not cast_rule:
-                QMessageBox.critical(self, 'Besetzungsregel',
-                                     'Durch Vereinfachung is die Besetzungsregel nun None. '
-                                     'Bitte wählen Sie eine Besetzungsregel deren Equivalent nicht None ist.')
-                return
-
-        if (name := self.le_name.text().strip()) in {cr.name for cr in project_cast_rules}:
-            QMessageBox.critical(self, 'Besetzungsregel',
-                                 f'Der Name "{name}" ist schon in den Besetzungsregeln des Projekts vorhanden.')
-            return
-
-        if same_cast_rule := next((cr for cr in project_cast_rules if cr.rule == cast_rule), None):
-            QMessageBox.critical(self, 'Besetzungsregel',
-                                 f'Die Besetzungsregel "{cast_rule}" ist schon in den Besetzungsregeln des Projekts '
-                                 f'vorhanden.\nSie ist unter dem Namen "{same_cast_rule.name}" gespeichert.')
+        if not self._validate(cast_rule, project_cast_rules):
             return
 
         create_command = cast_rule_commands.Create(
@@ -138,50 +164,25 @@ class DlgEditCastRule(DlgCastRule):
     def __init__(self, parent: QWidget, project_id: UUID, cast_rule_id: UUID):
         self.cast_rule_id = cast_rule_id
         super().__init__(parent=parent, project_id=project_id)
-        self.setWindowTitle('Besetzungsregel bearbeiten')
+        self.setWindowTitle(self.tr('Edit Cast Rule'))
         self.updated_cast_rule: schemas.CastRuleShow | None = None
 
     def _setup_data(self):
+        super()._setup_data()
         self.cast_rule = db_services.CastRule.get(self.cast_rule_id)
         self.le_name.setText(self.cast_rule.name)
         self.le_cast_rule.setText(self.cast_rule.rule)
         self.lb_info.setText(
-            'Hier können Sie die ausgewählte Besetzungsregel bearbeiten.\n'
-            'Symbole:\n'
-            '        *: beliebige Besetzung\n'
-            '        ~: gleiche Besetzung\n'
-            '        -: andere Besetzung\n'
-            '...in Bezug auf den zeitlich vorangegangenen Termin.\n'
-            'Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.'
+            self.tr('Here you can edit the casting rule.\n'
+                    '{text_rule_chars}').format(text_rule_chars=self.text_rule_chars)
         )
 
     def accept(self) -> None:
         project_cast_rules = [cr for cr in db_services.CastRule.get_all_from__project(self.project_id)
                               if not cr.prep_delete and cr.id != self.cast_rule_id]
 
-        if not (self.le_name.text().strip() and self.le_cast_rule.text()):
-            QMessageBox.critical(self, 'Besetzungsregel', 'Felder "Name" und "Besetzungsregel" dürfen nicht leer sein.')
-            return
         cast_rule = simplify_cast_rule(self.le_cast_rule.text())
-        if cast_rule != self.le_cast_rule.text():
-            QMessageBox.information(self, 'Besetzungsregel',
-                                    f'Die Besetzungsregel wurde vereinfacht:\n'
-                                    f'original: {self.le_cast_rule.text()}\nvereinfacht: {cast_rule}')
-            if not cast_rule:
-                QMessageBox.critical(self, 'Besetzungsregel',
-                                     'Durch Vereinfachung is die Besetzungsregel nun None. '
-                                     'Bitte wählen Sie eine Besetzungsregel deren Equivalent nicht None ist.')
-                return
-
-        if (name := self.le_name.text().strip()) in {cr.name for cr in project_cast_rules}:
-            QMessageBox.critical(self, 'Besetzungsregel',
-                                 f'Der Name "{name}" ist schon in den Besetzungsregeln des Projekts vorhanden.')
-            return
-
-        if same_cast_rule := next((cr for cr in project_cast_rules if cr.rule == cast_rule), None):
-            QMessageBox.critical(self, 'Besetzungsregel',
-                                 f'Die Besetzungsregel "{cast_rule}" ist schon in den Besetzungsregeln des Projekts '
-                                 f'vorhanden.\nSie ist unter dem Namen "{same_cast_rule.name}" gespeichert.')
+        if not self._validate(cast_rule, project_cast_rules):
             return
 
         update_command = cast_rule_commands.Update(
@@ -195,7 +196,7 @@ class DlgEditCastRule(DlgCastRule):
 class DlgCastRules(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
-        self.setWindowTitle('Besetzungsregeln')
+        self.setWindowTitle(self.tr('Cast Rules'))
         self.project_id = project_id
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -216,16 +217,16 @@ class DlgCastRules(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_info = QLabel('Hier können Sie die Besetzungsregeln des Projekts bearbeiten.')
+        self.lb_info = QLabel(self.tr('Here you can edit the project\'s cast rules.'))
         self.layout_head.addWidget(self.lb_info)
 
         self.table_widget = self._create_table()
         self._fill_in_table_widget()
         self.layout_body.addWidget(self.table_widget)
 
-        self.btn_create_cast_rule = QPushButton('Neue Besetzungsregel')
-        self.btn_edit_cast_rule = QPushButton('Besetzungsregel bearbeiten')
-        self.btn_delete_cast_rule = QPushButton('Besetzungsregel löschen')
+        self.btn_create_cast_rule = QPushButton(self.tr('New...'))
+        self.btn_edit_cast_rule = QPushButton(self.tr('Edit...'))
+        self.btn_delete_cast_rule = QPushButton(self.tr('Delete...'))
         self.btn_create_cast_rule.clicked.connect(self._create_cast_rule)
         self.btn_edit_cast_rule.clicked.connect(self._edit_cast_rule)
         self.btn_delete_cast_rule.clicked.connect(self._delete_cast_rule)
@@ -240,7 +241,7 @@ class DlgCastRules(QDialog):
     def _create_table(self) -> QTableWidget:
         table_widget = QTableWidget()
         table_widget.setColumnCount(2)
-        table_widget.setHorizontalHeaderLabels(['Name', 'Besetzungsregel'])
+        table_widget.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Cast Rule')])
         table_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         table_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         table_widget.cellDoubleClicked.connect(self._edit_cast_rule)

@@ -504,6 +504,117 @@ Please correct this.</source>
     </message>
 </context>
 <context>
+    <name>DlgCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="60"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="61"/>
+        <source>Casting Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="79"/>
+        <source>        *: any cast
+        ~: same cast
+        -: different cast
+...in relation to the chronologically preceding appointment.
+The sequence is automatically repeated until the appointment series is filled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="86"/>
+        <location filename="../frm_cast_rule.py" line="92"/>
+        <location filename="../frm_cast_rule.py" line="101"/>
+        <location filename="../frm_cast_rule.py" line="109"/>
+        <location filename="../frm_cast_rule.py" line="116"/>
+        <source>Cast Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="87"/>
+        <source>Fields &quot;Name&quot; and &quot;Cast Rule&quot; must not be empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="95"/>
+        <source>The cast rule has been simplified:
+original: {original}
+simplified: {simplified}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="104"/>
+        <source>After simplification, the cast rule is now None. Please choose a cast rule whose equivalent is not None.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="110"/>
+        <source>The name &quot;{name}&quot; already exists in the project&apos;s cast rules.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="118"/>
+        <source>The cast rule &quot;{rule}&quot; already exists in the project&apos;s cast rules.
+It is saved under the name &quot;{name}&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgCastRules</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="199"/>
+        <source>Cast Rules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="220"/>
+        <source>Here you can edit the project&apos;s cast rules.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="227"/>
+        <source>New...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="228"/>
+        <source>Edit...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="229"/>
+        <source>Delete...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="244"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="244"/>
+        <source>Cast Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgCreateCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="131"/>
+        <source>New Casting Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="141"/>
+        <source>Here you can create a new casting rule.
+{text_rule_chars}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
@@ -530,6 +641,20 @@ Here you can change the cast.</source>
     <message>
         <location filename="../frm_plan.py" line="198"/>
         <source>Guest</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgEditCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="167"/>
+        <source>Edit Cast Rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="177"/>
+        <source>Here you can edit the casting rule.
+{text_rule_chars}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

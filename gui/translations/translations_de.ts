@@ -534,6 +534,137 @@ Bitte korrigieren Sie das.</translation>
     </message>
 </context>
 <context>
+    <name>DlgCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="60"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="61"/>
+        <source>Casting Rule</source>
+        <translation>Besetzungsregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="79"/>
+        <source>        *: any cast
+        ~: same cast
+        -: different cast
+...in relation to the chronologically preceding appointment.
+The sequence is automatically repeated until the appointment series is filled.</source>
+        <translation>        *: beliebige Besetzung
+        ~: gleiche Besetzung
+        -: andere Besetzung
+...in Bezug auf den zeitlich vorangegangenen Termin.
+Die Sequenz wird automatisch so lange wiederholt, bis die Terminreihe gefüllt ist.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="86"/>
+        <location filename="../frm_cast_rule.py" line="92"/>
+        <location filename="../frm_cast_rule.py" line="101"/>
+        <location filename="../frm_cast_rule.py" line="109"/>
+        <location filename="../frm_cast_rule.py" line="116"/>
+        <source>Cast Rule</source>
+        <translation>Besetzungsregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="87"/>
+        <source>Fields &quot;Name&quot; and &quot;Cast Rule&quot; must not be empty.</source>
+        <translation>Felder &quot;Name&quot; und &quot;Besetzungsregel&quot; dürfen nicht leer sein.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="95"/>
+        <source>The cast rule has been simplified:
+original: {original}
+simplified: {simplified}</source>
+        <translation>Die Besetzungsregel wurde vereinfacht:
+original: {original}
+vereinfacht: {simplified}</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="104"/>
+        <source>After simplification, the cast rule is now None. Please choose a cast rule whose equivalent is not None.</source>
+        <translation>Durch Vereinfachung ist die Besetzungsregel nun None. Bitte wählen Sie eine Besetzungsregel, deren Equivalent nicht None ist.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="110"/>
+        <source>The name &quot;{name}&quot; already exists in the project&apos;s cast rules.</source>
+        <translation>Der Name &quot;{name}&quot; ist bereits in den Besetzungsregeln des Projekts vorhanden.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="118"/>
+        <source>The cast rule &quot;{rule}&quot; already exists in the project&apos;s cast rules.
+It is saved under the name &quot;{name}&quot;.</source>
+        <translation>Die Besetzungsregel &quot;{rule}&quot; ist bereits in den Besetzungsregeln des Projekts vorhanden.
+Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgCastRules</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="199"/>
+        <source>Cast Rules</source>
+        <translation>Besetzungsregeln</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="220"/>
+        <source>Here you can edit the project&apos;s cast rules.</source>
+        <translation>Hier kanst du die Besetzungsregeln des Projekts bearbeiten.</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="227"/>
+        <source>New...</source>
+        <translation>Neu...</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="228"/>
+        <source>Edit...</source>
+        <translation>Bearbeiten...</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="229"/>
+        <source>Delete...</source>
+        <translation>Löschen...</translation>
+    </message>
+    <message>
+        <source>New Cast Rule</source>
+        <translation type="vanished">Neue Besetzungsregel</translation>
+    </message>
+    <message>
+        <source>Edit Cast Rule</source>
+        <translation type="vanished">Besetzungsregel bearbeiten</translation>
+    </message>
+    <message>
+        <source>Delete Cast Rule</source>
+        <translation type="vanished">Besetzungsregel löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="244"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="244"/>
+        <source>Cast Rule</source>
+        <translation>Besetzungsregel</translation>
+    </message>
+</context>
+<context>
+    <name>DlgCreateCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="131"/>
+        <source>New Casting Rule</source>
+        <translation>Neue Besetzungsregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="141"/>
+        <source>Here you can create a new casting rule.
+{text_rule_chars}</source>
+        <translation>Hier können Sie eine neue Besetzungsregel erstellen.
+{text_rule_chars}</translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
@@ -563,6 +694,21 @@ Hier können Sie die Besetzung ändern.</translation>
         <location filename="../frm_plan.py" line="198"/>
         <source>Guest</source>
         <translation>Gast</translation>
+    </message>
+</context>
+<context>
+    <name>DlgEditCastRule</name>
+    <message>
+        <location filename="../frm_cast_rule.py" line="167"/>
+        <source>Edit Cast Rule</source>
+        <translation>Besetzungsregel bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_cast_rule.py" line="177"/>
+        <source>Here you can edit the casting rule.
+{text_rule_chars}</source>
+        <translation>Hier können Sie die ausgewählte Besetzungsregel bearbeiten.
+{text_rule_chars}</translation>
     </message>
 </context>
 <context>

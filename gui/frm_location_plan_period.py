@@ -567,8 +567,8 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location_plan_periods = self.plan_period.location_plan_periods
         self.location_id__location_pp = {
             str(loc_pp.location_of_work.id): loc_pp for loc_pp in self.plan_period.location_plan_periods
-            if db_services.TeamLocationAssign.get_all_between_dates(loc_pp.location_of_work.id, plan_period.team.id,
-                                                                    plan_period.start, plan_period.end)
+            if db_services.TeamLocationAssign.get_all_of_location_between_dates(
+                loc_pp.location_of_work.id, plan_period.team.id, plan_period.start, plan_period.end)
         }
         self.location_id: UUID | None = None
         self.location: schemas.LocationOfWorkShow | None = None
@@ -621,8 +621,10 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.scroll_area_events = QScrollArea()
 
-        self.bt_cast_groups_plan_period = QPushButton('Besetzungen der Planungsperiode bearbeiten...',
-                                                      clicked=self.edit_cast_groups_plan_period)
+        self.bt_cast_groups_plan_period = QPushButton(
+            'Besetzungen und Besetzungsgruppen der Planungsperiode bearbeiten...',
+            clicked=self.edit_cast_groups_plan_period
+        )
 
         self.layout_controllers = QHBoxLayout()
         self.layout_notes = QHBoxLayout()

@@ -144,13 +144,14 @@ class DlgCombLocPossibleEditList(QDialog):
         # self.table_combinations.resizeColumnsToContents()
 
     def fill_table_combinations(self):
-        while self.table_combinations.rowCount() < 0:
+        while self.table_combinations.rowCount() > 0:
             self.table_combinations.removeRow(0)
 
         if isinstance(self.curr_model, schemas.ActorPlanPeriod):
             self.union_locations_of_work()
 
         comb_loc_poss = self.valid_combs_at_date()
+        print(comb_loc_poss)
 
         self.table_combinations.setRowCount(len(comb_loc_poss))
         for row, c in enumerate(comb_loc_poss):
@@ -161,14 +162,14 @@ class DlgCombLocPossibleEditList(QDialog):
         table_width = self.table_combinations.horizontalHeader().length()
         self.resize(table_width + 40, 480)
 
-    def valid_combs_at_date(self) -> list[list[str, str]]:
+    def valid_combs_at_date(self) -> list[tuple[str, str, str]]:
         curr_location_ids = {l.id for l in self.locations_of_work}
         comb_loc_poss = [[str(c.id), [f'{l.name} ({l.address.city})'
                                       for l in c.locations_of_work if l.id in curr_location_ids],
                           str(c.time_span_between)]
                          for c in self.curr_model.combination_locations_possibles]
         comb_loc_poss = [c for c in comb_loc_poss if len(c[1]) > 1]
-        comb_loc_poss = [[c[0], ' + '.join(sorted(c[1])), c[2]] for c in comb_loc_poss]
+        comb_loc_poss = [(c[0], ' + '.join(sorted(c[1])), c[2]) for c in comb_loc_poss]
 
         return sorted(comb_loc_poss, key=lambda x: x[1]) if comb_loc_poss else []
 
@@ -180,7 +181,8 @@ class DlgCombLocPossibleEditList(QDialog):
         valid_days_of_actor = [date for date in days_of_plan_period
                                if get_curr_assignment_of_person(person, date).team.id == self.curr_team.id]
 
-        curr_loc_of_work_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+        curr_loc_of_work_ids = {loc.id
+                                for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
 
         self.lb_info.setText(self.tr('The team has the same facilities on all days of the period.'))
         for date in valid_days_of_actor[1:]:

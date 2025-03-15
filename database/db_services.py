@@ -860,12 +860,23 @@ class TeamLocationAssign:
 
     @classmethod
     @db_session
-    def get_all_between_dates(
+    def get_all_of_location_between_dates(
             cls, location_id: UUID, team_id: UUID,
             date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamLocationAssignShow]:
         assignments_db = (models.TeamLocationAssign.select()
                           .filter(lambda tla: tla.team.id == team_id)
                           .filter(lambda tla: tla.location_of_work.id == location_id)
+                          .filter(lambda tla: tla.start <= date_end)
+                          .filter(lambda tla: tla.end >= date_start or tla.end is None))
+        return [schemas.TeamLocationAssignShow.model_validate(tla) for tla in assignments_db]
+
+    @classmethod
+    @db_session
+    def get_all_between_dates(
+            cls, team_id: UUID,
+            date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamLocationAssignShow]:
+        assignments_db = (models.TeamLocationAssign.select()
+                          .filter(lambda tla: tla.team.id == team_id)
                           .filter(lambda tla: tla.start <= date_end)
                           .filter(lambda tla: tla.end >= date_start or tla.end is None))
         return [schemas.TeamLocationAssignShow.model_validate(tla) for tla in assignments_db]

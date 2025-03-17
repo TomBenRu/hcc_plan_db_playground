@@ -987,11 +987,30 @@ Möchen Sie fortfahren?</translation>
     </message>
 </context>
 <context>
-    <name>DlgFirstDay</name>
+    <name>DlgExcelExportSettings</name>
     <message>
-        <source>First Day of Event</source>
-        <translation type="vanished">Tag des ersten Events</translation>
+        <location filename="../frm_excel_settings.py" line="13"/>
+        <source>Excel Export Settings</source>
+        <translation>Excel-Export-Einstellungen</translation>
     </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="22"/>
+        <source>Headers</source>
+        <translation>Überschriften</translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="23"/>
+        <source>Calendar Weeks</source>
+        <translation>Kalenderwochen</translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="24"/>
+        <source>Day Dates</source>
+        <translation>Tagesdatum</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFirstDay</name>
     <message>
         <location filename="../frm_event_planing_rules.py" line="110"/>
         <source>Day of first Event</source>
@@ -1217,6 +1236,29 @@ auf einen anderen Tag und andere Tageszeit verschieben.</translation>
         <location filename="../frm_comb_loc_possible.py" line="44"/>
         <source>Minutes</source>
         <translation>Minuten</translation>
+    </message>
+</context>
+<context>
+    <name>DlgPlanToXLSX</name>
+    <message>
+        <location filename="../frm_excel_export.py" line="10"/>
+        <source>Export Plan to Excel</source>
+        <translation>Export Plan zu Excel</translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="33"/>
+        <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to export the plan for this period&lt;br&gt;as an Excel file?&lt;br&gt;You can choose whether appointment notes should be entered directly&lt;br&gt;into the fields of the respective appointments.&lt;/p&gt;</source>
+        <translation>&lt;h4&gt;Team: {team_name}&lt;br&gt;Zeitraum: {time_span}&lt;/h4&gt;&lt;p&gt;Möchten Sie den Plan dieses Zeitraums&lt;br&gt;als Excel-Datei exportieren?&lt;br&gt;Sie können auswählen, ob Terminanmerkungen direkt in die Felder&lt;br&gt;der betreffenden Termine eingetragen werden sollen.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="40"/>
+        <source>Enter notes in fields without assignments</source>
+        <translation>Anmerkungen in Felder ohne Besetzung eintragen</translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="44"/>
+        <source>Enter notes in fields with assignments</source>
+        <translation>Anmerkungen in Felder mit Besetzung eintragen</translation>
     </message>
 </context>
 <context>

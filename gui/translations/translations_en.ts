@@ -939,6 +939,29 @@ Do you want to continue?</source>
     </message>
 </context>
 <context>
+    <name>DlgExcelExportSettings</name>
+    <message>
+        <location filename="../frm_excel_settings.py" line="13"/>
+        <source>Excel Export Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="22"/>
+        <source>Headers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="23"/>
+        <source>Calendar Weeks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_settings.py" line="24"/>
+        <source>Day Dates</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgFirstDay</name>
     <message>
         <location filename="../frm_event_planing_rules.py" line="110"/>
@@ -1155,6 +1178,29 @@ to a different day and time.</source>
     <message>
         <location filename="../frm_comb_loc_possible.py" line="44"/>
         <source>Minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgPlanToXLSX</name>
+    <message>
+        <location filename="../frm_excel_export.py" line="10"/>
+        <source>Export Plan to Excel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="33"/>
+        <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to export the plan for this period&lt;br&gt;as an Excel file?&lt;br&gt;You can choose whether appointment notes should be entered directly&lt;br&gt;into the fields of the respective appointments.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="40"/>
+        <source>Enter notes in fields without assignments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_excel_export.py" line="44"/>
+        <source>Enter notes in fields with assignments</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -10,7 +10,8 @@ class DlgExcelExportSettings(QDialog):
     def __init__(self, parent: QWidget, excel_settings: schemas.ExcelExportSettings,
                  former_object_containing_settings: schemas.ModelWithExcelSettings = None):
         super().__init__(parent)
-        self.setWindowTitle('Excel-Export-Settings')
+        self.setWindowTitle(self.tr('Excel Export Settings'))
+        self.setMinimumWidth(350)
 
         self.former_object_containing_settings = former_object_containing_settings
         self.excel_settings = excel_settings.model_copy()
@@ -18,9 +19,9 @@ class DlgExcelExportSettings(QDialog):
 
         self.layout = QVBoxLayout(self)
 
-        self.group_top = QGroupBox('Überschriften')
-        self.group_side = QGroupBox('Kalenderwochen')
-        self.group_body = QGroupBox('Tagesdatum')
+        self.group_top = QGroupBox(self.tr('Headers'))
+        self.group_side = QGroupBox(self.tr('Calendar Weeks'))
+        self.group_body = QGroupBox(self.tr('Day Dates'))
 
         self.layout.addWidget(self.group_top)
         self.layout.addWidget(self.group_side)

@@ -14,8 +14,8 @@ def minutes_to_time(m): return time(hour=m // 60, minute=m % 60)
 employees = {
     'Anna': {'start': time(10, 0), 'end': time(12, 0)},
     'Bob': {'start': time(10, 0), 'end': time(12, 0)},
-    'Charlie': {'start': time(10, 0), 'end': time(12, 0)},
-    'David': {'start': time(10, 0), 'end': time(12, 0)}
+    'Charlie': {'start': time(10, 0), 'end': time(15, 0)},
+    'David': {'start': time(10, 0), 'end': time(15, 0)}
 }
 
 events = [

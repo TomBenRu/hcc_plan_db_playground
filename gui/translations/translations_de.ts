@@ -248,6 +248,66 @@ Fertigkeiten für Events an diesem Tag sind unterschiedlich.</translation>
     </message>
 </context>
 <context>
+    <name>CreateGoogleCalendar</name>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="15"/>
+        <source>Create Google Calendar</source>
+        <translation>Google-Kalender anlegen</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="36"/>
+        <source>Here you can create a Google Calendar in your Google Account.
+If you select an employee in the selection box, this calendar can automatically receive access rights via the email entered.</source>
+        <translation>Hier können Sie einen Google-Kalender auf ihrem Google-Account anlegen.
+Wenn Sie in der Auswahlbox einen Mitarbeiter auswählen, kann dieser Kalender automatisch Zugriffsrechte über die eingegebene Email erhalten.</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="46"/>
+        <source>User:</source>
+        <translation>Benutzer:</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="47"/>
+        <source>Email for user access:</source>
+        <translation>Email für Benutzerzugriff:</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="48"/>
+        <source>Calendar name:</source>
+        <translation>Kalendername:</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="49"/>
+        <source>Short description:</source>
+        <translation>Kurzbeschreibung:</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="67"/>
+        <source>no person</source>
+        <translation>keine Person</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="75"/>
+        <source>{project_name} - Appointments of {person_name}</source>
+        <translation>{project_name} - Termine von {person_name}</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="82"/>
+        <source>Appointments of {person_name}</source>
+        <translation>Termine von {person_name}</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="102"/>
+        <source>Team Calendar Access</source>
+        <translation>Zugriff auf Team-Kalender</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="104"/>
+        <source>Should the user also be granted access rights to the team calendar of team {team_name}?</source>
+        <translation>Soll dem Benutzer auch Zugriffsrechte auf den Teamkalender des Teams {team_name} eingeräumt werden?</translation>
+    </message>
+</context>
+<context>
     <name>DlgActorLocPref</name>
     <message>
         <location filename="../frm_actor_loc_prefs.py" line="22"/>
@@ -641,8 +701,8 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
     <name>DlgCombLocPossibleEditList</name>
     <message>
         <location filename="../frm_comb_loc_possible.py" line="83"/>
-        <location filename="../frm_comb_loc_possible.py" line="202"/>
-        <location filename="../frm_comb_loc_possible.py" line="235"/>
+        <location filename="../frm_comb_loc_possible.py" line="204"/>
+        <location filename="../frm_comb_loc_possible.py" line="237"/>
         <source>Facility Combinations</source>
         <translation>Einrichtungskombinationen</translation>
     </message>
@@ -677,22 +737,22 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
         <translation>Zeit zwischen den Einsätzen</translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="185"/>
+        <location filename="../frm_comb_loc_possible.py" line="187"/>
         <source>The team has the same facilities on all days of the period.</source>
         <translation>An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="189"/>
+        <location filename="../frm_comb_loc_possible.py" line="191"/>
         <source>The team does not have the same facilities on all days of the period.</source>
         <translation>Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.</translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="203"/>
+        <location filename="../frm_comb_loc_possible.py" line="205"/>
         <source>You must select at least 2 facilities.</source>
         <translation>Sie müssen mindestens 2 Einrichtungen auswählen.</translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="236"/>
+        <location filename="../frm_comb_loc_possible.py" line="238"/>
         <source>You must first select a row.</source>
         <translation>Sie müssen zuerst eine Zeile auswählen.</translation>
     </message>

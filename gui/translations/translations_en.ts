@@ -232,6 +232,65 @@ Skills for events on this day are different.</source>
     </message>
 </context>
 <context>
+    <name>CreateGoogleCalendar</name>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="15"/>
+        <source>Create Google Calendar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="36"/>
+        <source>Here you can create a Google Calendar in your Google Account.
+If you select an employee in the selection box, this calendar can automatically receive access rights via the email entered.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="46"/>
+        <source>User:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="47"/>
+        <source>Email for user access:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="48"/>
+        <source>Calendar name:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="49"/>
+        <source>Short description:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="67"/>
+        <source>no person</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="75"/>
+        <source>{project_name} - Appointments of {person_name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="82"/>
+        <source>Appointments of {person_name}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="102"/>
+        <source>Team Calendar Access</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_create_google_calendar.py" line="104"/>
+        <source>Should the user also be granted access rights to the team calendar of team {team_name}?</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgActorLocPref</name>
     <message>
         <location filename="../frm_actor_loc_prefs.py" line="22"/>
@@ -604,8 +663,8 @@ It is saved under the name &quot;{name}&quot;.</source>
     <name>DlgCombLocPossibleEditList</name>
     <message>
         <location filename="../frm_comb_loc_possible.py" line="83"/>
-        <location filename="../frm_comb_loc_possible.py" line="202"/>
-        <location filename="../frm_comb_loc_possible.py" line="235"/>
+        <location filename="../frm_comb_loc_possible.py" line="204"/>
+        <location filename="../frm_comb_loc_possible.py" line="237"/>
         <source>Facility Combinations</source>
         <translation type="unfinished"></translation>
     </message>
@@ -640,22 +699,22 @@ It is saved under the name &quot;{name}&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="185"/>
+        <location filename="../frm_comb_loc_possible.py" line="187"/>
         <source>The team has the same facilities on all days of the period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="189"/>
+        <location filename="../frm_comb_loc_possible.py" line="191"/>
         <source>The team does not have the same facilities on all days of the period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="203"/>
+        <location filename="../frm_comb_loc_possible.py" line="205"/>
         <source>You must select at least 2 facilities.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_comb_loc_possible.py" line="236"/>
+        <location filename="../frm_comb_loc_possible.py" line="238"/>
         <source>You must first select a row.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -1,8 +1,8 @@
 import datetime
 from uuid import UUID
 
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QComboBox, QLineEdit, \
-    QDialogButtonBox, QMessageBox
+from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QComboBox, QLineEdit,
+                              QDialogButtonBox, QMessageBox)
 
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services
@@ -10,10 +10,10 @@ from tools import custom_validators
 
 
 class CreateGoogleCalendar(QDialog):
-    def __init__(self, parent: QWidget, projekt_id: UUID):
+    def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
-        self.setWindowTitle('Google-kalender erstellen')
-        self.projekt_id = projekt_id
+        self.setWindowTitle(self.tr('Create Google Calendar'))
+        self.project_id = project_id
 
         self.add_email_to_team_calendar: str | None = None
 
@@ -29,9 +29,11 @@ class CreateGoogleCalendar(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel('Hier können Sie einen Google-Kalender auf ihrem Google-Account anlegen.\n'
-                                     'Wenn Sie in der Auswahlbox einen Mitarbeiter auswählen, kann dieser Kalender '
-                                     'automatisch Zugriffsrechte über die eingegebene Email erhalten.')
+        self.lb_description = QLabel(
+            self.tr('Here you can create a Google Calendar in your Google Account.\n'
+                   'If you select an employee in the selection box, this calendar can '
+                   'automatically receive access rights via the email entered.')
+        )
         self.layout_head.addWidget(self.lb_description)
 
         self.combo_persons = QComboBox()
@@ -41,10 +43,10 @@ class CreateGoogleCalendar(QDialog):
         self.combo_persons.currentIndexChanged.connect(self._combo_persons_index_changed)
         self.le_email = QLineEdit()
         self.le_email.setValidator(custom_validators.email_validator)
-        self.layout_body.addRow('Benutzer:', self.combo_persons)
-        self.layout_body.addRow('Email für Benutzerzugriff:', self.le_email)
-        self.layout_body.addRow('Kalendername:', self.le_summary)
-        self.layout_body.addRow('Kurzbeschreibung:', self.le_description)
+        self.layout_body.addRow(self.tr('User:'), self.combo_persons)
+        self.layout_body.addRow(self.tr('Email for user access:'), self.le_email)
+        self.layout_body.addRow(self.tr('Calendar name:'), self.le_summary)
+        self.layout_body.addRow(self.tr('Short description:'), self.le_description)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -52,25 +54,37 @@ class CreateGoogleCalendar(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def _setup_data(self):
-        self.project = db_services.Project.get(self.projekt_id)
-        self.persons_of_project = db_services.Person.get_all_from__project(self.projekt_id)
+        self.project = db_services.Project.get(self.project_id)
+        self.persons_of_project = db_services.Person.get_all_from__project(self.project_id)
         self.avail_google_calendars = curr_calendars_handler.get_calenders()
-        self.persons_for_new_calendar = sorted((p for p in self.persons_of_project
-                                                if p.id not in {c.person_id
-                                                                for c in self.avail_google_calendars.values()}),
-                                               key=lambda x: x.full_name)
+        self.persons_for_new_calendar = sorted(
+            (p for p in self.persons_of_project
+             if p.id not in {c.person_id for c in self.avail_google_calendars.values()}),
+            key=lambda x: x.full_name
+        )
 
     def _fill_combo_persons(self):
-        self.combo_persons.addItem('keine Person', None)
+        self.combo_persons.addItem(self.tr('no person'), None)
         for person in self.persons_for_new_calendar:
             self.combo_persons.addItem(person.full_name, person.id)
 
     def _combo_persons_index_changed(self):
         if self.combo_persons.currentData():
             self.le_description.setEnabled(True)
-            self.le_summary.setText(f'{self.project.name} - Termine von {self.combo_persons.currentText()}')
-            self.le_description.setText(f'{{"description": "Termine von {self.combo_persons.currentText()}", '
-                                        f'"person_id": "{self.combo_persons.currentData()}"}}')
+            self.le_summary.setText(
+                self.tr('{project_name} - Appointments of {person_name}').format(
+                    project_name=self.project.name,
+                    person_name=self.combo_persons.currentText()
+                )
+            )
+            self.le_description.setText(
+                '{{"description": "{desc}", "person_id": "{person_id}"}}'.format(
+                    desc=self.tr('Appointments of {person_name}').format(
+                        person_name=self.combo_persons.currentText()
+                    ),
+                    person_id=self.combo_persons.currentData()
+                )
+            )
             self.le_description.setDisabled(True)
         else:
             self.le_description.setEnabled(True)
@@ -83,9 +97,12 @@ class CreateGoogleCalendar(QDialog):
             team_calendar = next((c for c in curr_calendars_handler.get_calenders().values()
                                   if c.team_id == taa.team.id), None)
             if taa and team_calendar:
-                reply = QMessageBox.question(self, 'Zugriff auf Team-Kalender',
-                                             f'Soll dem Benutzer auch Zugriffsrechte auf den Teamkalender des Teams '
-                                             f'{taa.team.name} eingeräumt werden?')
+                reply = QMessageBox.question(
+                    self,
+                    self.tr('Team Calendar Access'),
+                    self.tr('Should the user also be granted access rights to the team calendar of team {team_name}?')
+                    .format(team_name=taa.team.name)
+                )
                 if reply == QMessageBox.StandardButton.Yes:
                     self.add_email_to_team_calendar = team_calendar.id
         super().accept()

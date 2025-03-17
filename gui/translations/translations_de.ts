@@ -773,6 +773,19 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
     </message>
 </context>
 <context>
+    <name>DlgCreateProject</name>
+    <message>
+        <location filename="../frm_create_project.py" line="10"/>
+        <source>Create New Project</source>
+        <translation>Erstelle neues Projekt</translation>
+    </message>
+    <message>
+        <location filename="../frm_create_project.py" line="24"/>
+        <source>Enter the name of the new project:</source>
+        <translation>Gib den Namen des zu erstellenden Projekts ein:</translation>
+    </message>
+</context>
+<context>
     <name>DlgEditAppointment</name>
     <message>
         <location filename="../frm_plan.py" line="162"/>
@@ -817,6 +830,172 @@ Hier können Sie die Besetzung ändern.</translation>
 {text_rule_chars}</source>
         <translation>Hier können Sie die ausgewählte Besetzungsregel bearbeiten.
 {text_rule_chars}</translation>
+    </message>
+</context>
+<context>
+    <name>DlgEventPlanningRules</name>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="137"/>
+        <source>Event Planning Rules</source>
+        <translation>Event-Planungsregeln</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="173"/>
+        <source>Rules for events on the same day:</source>
+        <translation>Regel für Events am gleichen Tag:</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="235"/>
+        <source>Start: Weekday, which one</source>
+        <translation>Start: Wochentag, welcher</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="228"/>
+        <source>First Day</source>
+        <translation>Erster Tag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="178"/>
+        <source>New Day Rule</source>
+        <translation>Neue Tagesregel</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="184"/>
+        <source>Same day selection for all rules</source>
+        <translation>Gleiche Tageswahl für alle Regeln</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="189"/>
+        <source>When this option is enabled,
+the events defined by the rules will be grouped
+so that they are created on the same days.</source>
+        <translation>Wenn diese Option aktiviert ist,
+werden die durch die Regeln festgelegten Events so gruppiert,
+dass sie an den jeweils gleichen Tagen erstellt werden.</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="194"/>
+        <source>New Rule</source>
+        <translation>Neue Regel</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="196"/>
+        <source>Reset Rules</source>
+        <translation>Regeln zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="198"/>
+        <source>Delete all rules and restore with default values</source>
+        <translation>Alle Regeln löschen und mit Standardwerten wiederherstellen</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="199"/>
+        <source>Save Rules</source>
+        <translation>Regeln speichern</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="201"/>
+        <source>Save rules for later use</source>
+        <translation>Regeln für spätere Verwendung speichern</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="229"/>
+        <source>Time of Day</source>
+        <translation>Tageszeit</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="230"/>
+        <source>Interval</source>
+        <translation>Abstand</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="231"/>
+        <source>Repetitions</source>
+        <translation>Wiederholungen</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="232"/>
+        <source>Possible Count</source>
+        <translation>mögl. Anzahl</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="249"/>
+        <source>Here you can define how to plan the events for&lt;br&gt;&lt;b&gt;&quot;{location}&quot;&lt;/b&gt; in the period &lt;b&gt;{start_date}-{end_date}&lt;/b&gt;.</source>
+        <translation>Hier können Sie festlegen, wie Sie die Events für&lt;br&gt;&lt;b&gt;&quot;{location}&quot;&lt;/b&gt; im Zeitraum &lt;b&gt;{start_date}-{end_date}&lt;/b&gt; planen möchten.</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="261"/>
+        <source>&lt;br&gt;Rules were loaded from a previously stored configuration.</source>
+        <translation>&lt;br&gt;Es wurden Regeln aus einer zuvor gespeicherten Konfiguration geladen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="314"/>
+        <location filename="../frm_event_planing_rules.py" line="324"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="316"/>
+        <location filename="../frm_event_planing_rules.py" line="326"/>
+        <source>The time of day &quot;{old_time}&quot; stored in the rules is not available.
+It has been replaced with the time of day &quot;{new_time}&quot;</source>
+        <translation>Die in den Regeln gespeicherte Tageszeit &quot;{old_time}&quot; ist nicht verfügbar.
+Sie wurde durch die Tageszeit &quot;{new_time}&quot; ersetzt</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="398"/>
+        <source>Remove rule</source>
+        <translation>Regel entfernen</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="442"/>
+        <source>No rule</source>
+        <translation>Keine Regel</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="507"/>
+        <location filename="../frm_event_planing_rules.py" line="533"/>
+        <location filename="../frm_event_planing_rules.py" line="539"/>
+        <location filename="../frm_event_planing_rules.py" line="548"/>
+        <source>Planning Rules</source>
+        <translation>Planugsregeln</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="508"/>
+        <source>Planning rules for &quot;{location}&quot; have been saved for later use.</source>
+        <translation>Planungsregeln für &quot;{location}&quot; wurden für spätere Verwendung gespeichert.</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="534"/>
+        <source>Events with the same time of day cannot be created twice on the same day.</source>
+        <translation>Am selben Tag können nicht 2 Mal die Veranstaltungen mit den gleichen Tageszeiten erstellt werden.</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="542"/>
+        <source>There are already events in this planning period.
+If you continue, all existing events will be deleted and new events will be created.
+Do you want to continue?</source>
+        <translation>Es existieren bereits Events in diesem Planungszeitraum.
+Falls Sie fortfahren, werden alle bisherigen Events gelöscht und neue Events erstellt.
+Möchen Sie fortfahren?</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="550"/>
+        <source>The newly created events will not be added to the existing plans of the planning period from {start_date} to {end_date}.</source>
+        <translatorcomment>Die neu erstellten Events werden nicht zu den bereits existierenden Plänen des Planungszeitraums von {start_date} bis {end_date} übernommen.</translatorcomment>
+        <translation>The newly created events will not be added to the existing plans of the planning period from {start_date} to {end_date}.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFirstDay</name>
+    <message>
+        <source>First Day of Event</source>
+        <translation type="vanished">Tag des ersten Events</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="110"/>
+        <source>Day of first Event</source>
+        <translation>Tag des ersten Events</translation>
     </message>
 </context>
 <context>
@@ -1051,6 +1230,44 @@ auf einen anderen Tag und andere Tageszeit verschieben.</translation>
         <location filename="../frm_appointments_to_google_calendar.py" line="32"/>
         <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to add the appointments of this period&lt;br&gt;to the corresponding Google Calendars of the employees?&lt;br&gt;During this process, existing appointments of this period will be removed from the calendars.&lt;/p&gt;</source>
         <translation>&lt;h4&gt;Team: {team_name}&lt;br&gt;Zeitraum: {time_span}&lt;/h4&gt;&lt;p&gt;Möchten Sie die Termine dieses Zeitraums&lt;br&gt;in die entsprechenden Google-Kalender der Mitarbeiter eintragen?&lt;br&gt;Bei diesem Vorgang werden vorhandene Termine dieses Zeitraums aus den Kalendern entfernt.&lt;/p&gt;</translation>
+    </message>
+</context>
+<context>
+    <name>FirstDayFromWeekday</name>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <source>Monday</source>
+        <translation>Montag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <source>Tuesday</source>
+        <translation>Dienstag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <source>Wednesday</source>
+        <translation>Mittwoch</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <source>Thursday</source>
+        <translation>Donnerstag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <source>Friday</source>
+        <translation>Freitag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <source>Saturday</source>
+        <translation>Samstag</translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="36"/>
+        <source>Sunday</source>
+        <translation>Sonntag</translation>
     </message>
 </context>
 <context>

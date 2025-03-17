@@ -7,7 +7,7 @@ class DlgCreateProject(QDialog):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self.setWindowTitle("Create New Project")
+        self.setWindowTitle(self.tr("Create New Project"))
 
         self._setup_ui()
 
@@ -21,7 +21,7 @@ class DlgCreateProject(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("Enter the name of the new project:")
+        self.lb_description = QLabel(self.tr("Enter the name of the new project:"))
         self.le_project_name = QLineEdit()
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)

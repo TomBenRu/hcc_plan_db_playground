@@ -735,7 +735,12 @@ class FrmTabLocationPlanPeriods(QWidget):
         visible_plan_period_ids = {location_pp.id for location_pp in self.plan_period.location_plan_periods}
         dlg = frm_cast_group.DlgCastGroups(self, self.plan_period, visible_plan_period_ids)
         if dlg.exec():
-            print('ausgeführt')
+            signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
+                signal_handling.DataDate(self.plan_period.id)
+            )
+            signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
+                signal_handling.DataDate(self.plan_period.id)
+            )
 
     @Slot(UUID)
     def _edit_cast_groups_plan_period(self, plan_period_id: UUID):
@@ -960,6 +965,12 @@ class FrmLocationPlanPeriod(QWidget):
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
+            signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
+                signal_handling.DataDate(self.location_plan_period.plan_period.id)
+            )
+            signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
+                signal_handling.DataDate(self.location_plan_period.plan_period.id)
+            )
         else:
             QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
 

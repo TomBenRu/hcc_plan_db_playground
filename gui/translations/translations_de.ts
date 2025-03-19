@@ -1141,6 +1141,73 @@ Die Auswahl des Datums ist dafür da, dass in sich in naher Zukunft ändernde Pe
     </message>
 </context>
 <context>
+    <name>DlgFlags</name>
+    <message>
+        <location filename="../frm_flag.py" line="91"/>
+        <source>Add</source>
+        <translation>Hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="92"/>
+        <source>Delete</source>
+        <translatorcomment>Löschen</translatorcomment>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="93"/>
+        <source>Clear</source>
+        <translatorcomment>Clear</translatorcomment>
+        <translation>Löschen</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFlagsBuilderEvent</name>
+    <message>
+        <location filename="../frm_flag.py" line="65"/>
+        <source>Event Flags</source>
+        <translation>Event Flags</translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="66"/>
+        <source>Here you can add or remove flags for the event on
+{} {}.</source>
+        <translation>Hier können Sie Flags des Events am
+{} {}
+hinzufügen oder löschen.</translation>
+    </message>
+    <message>
+        <source>Here you can add or remove flags for the event on
+{} {}</source>
+        <translation type="vanished">Hier können Sie Flags des Events am
+{} {}
+hinzufügen oder löschen.</translation>
+    </message>
+    <message>
+        <source>Here you can add or remove flags for the event on:
+{} {}
+</source>
+        <translation type="obsolete">Here you can add or remove flags for the event on:
+{} {}
+</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFlagsBuilderPerson</name>
+    <message>
+        <location filename="../frm_flag.py" line="48"/>
+        <source>Person Flags</source>
+        <translation>MItarbeiter Flags</translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="49"/>
+        <source>Here you can add or remove flags for
+{} {}.</source>
+        <translation>Hier können Sie Flags für
+{} {}
+hinzufügen oder löschen.</translation>
+    </message>
+</context>
+<context>
     <name>DlgGeneralSettings</name>
     <message>
         <location filename="../frm_general_settings.py" line="14"/>

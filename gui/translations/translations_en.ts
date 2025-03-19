@@ -1090,6 +1090,52 @@ The date selection allows consideration of upcoming personnel changes.</source>
     </message>
 </context>
 <context>
+    <name>DlgFlags</name>
+    <message>
+        <location filename="../frm_flag.py" line="91"/>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="92"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="93"/>
+        <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgFlagsBuilderEvent</name>
+    <message>
+        <location filename="../frm_flag.py" line="65"/>
+        <source>Event Flags</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="66"/>
+        <source>Here you can add or remove flags for the event on
+{} {}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgFlagsBuilderPerson</name>
+    <message>
+        <location filename="../frm_flag.py" line="48"/>
+        <source>Person Flags</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_flag.py" line="49"/>
+        <source>Here you can add or remove flags for
+{} {}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgGeneralSettings</name>
     <message>
         <location filename="../frm_general_settings.py" line="14"/>

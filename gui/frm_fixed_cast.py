@@ -22,7 +22,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
-from tools.helper_functions import backtranslate_eval_str
+from tools.helper_functions import backtranslate_eval_str, date_to_string
 
 object_with_fixed_cast_type: TypeAlias = (schemas.LocationOfWorkShow |
                                           schemas.LocationPlanPeriodShow |
@@ -147,7 +147,7 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                            else QCoreApplication.translate('DlgFixedCastBuilderCastGroup','Fixed Cast of a Cast Group'))
         self.parent_fixed_cast = self.location_plan_period.fixed_cast
         self.info_text = (QCoreApplication.translate('DlgFixedCastBuilderCastGroup','the event on "{date}"').format(
-            date=self.object_with_fixed_cast.event.date.strftime('%d.%m.%y'))
+            date=date_to_string(self.object_with_fixed_cast.event.date))
                           if self.object_with_fixed_cast.event
                           else QCoreApplication.translate('DlgFixedCastBuilderCastGroup', 'the cast group'))
         self.make_reset_menu = bool(self.location_plan_period)

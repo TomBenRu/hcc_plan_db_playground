@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Callable
 from uuid import UUID
 
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QDialog, QVBoxLayout, QLabel, QTableWidget, QDialogButtonBox, QHBoxLayout, \
     QPushButton
@@ -10,6 +11,7 @@ from PySide6.QtWidgets import QWidget, QDialog, QVBoxLayout, QLabel, QTableWidge
 from database import schemas, db_services, enums
 from commands import command_base_classes
 from commands.database_commands import person_commands, event_commands
+from tools.helper_functions import date_to_string
 
 
 class DlgFlagsBuilderABC(ABC):
@@ -42,10 +44,10 @@ class DlgFlagsBuilderPerson(DlgFlagsBuilderABC):
         self._generate_field_values()
 
     def _generate_field_values(self):
-        self.title_text = 'Flags von Person'
-        self.info_text = (f'Hier könne sie Flags von:\n'
-                          f'{self.object_with_flags.f_name} {self.object_with_flags.l_name}\n'
-                          f'hinzufügen oder löschen.')
+        self.title_text = QCoreApplication.translate('DlgFlagsBuilderPerson', 'Person Flags')
+        self.info_text = QCoreApplication.translate(
+            'DlgFlagsBuilderPerson','Here you can add or remove flags for\n{} {}.').format(
+            self.object_with_flags.f_name, self.object_with_flags.l_name)
         self.object_with_flags__refresh_func = db_services.Person.get(self.object_with_flags.id)
         self.put_in_command = person_commands.PutInFlag
         self.remove_command = person_commands.RemoveFlag
@@ -59,9 +61,11 @@ class DlgFlagsBuilderEvent(DlgFlagsBuilderABC):
         self._generate_field_values()
 
     def _generate_field_values(self):
-        self.title_text = 'Flags von Event'
-        self.info_text = (f'Hier können sie Flags des Events am:\n{self.object_with_flags.date.strftime("%d.%m.%y")} '
-                          f'{self.object_with_flags.time_of_day.name}\nhinzufügen oder löschen.')
+        self.title_text = QCoreApplication.translate('DlgFlagsBuilderEvent','Event Flags')
+        self.info_text = QCoreApplication.translate(
+            'DlgFlagsBuilderEvent','Here you can add or remove flags for the event on\n{} {}.').format(
+            date_to_string(self.object_with_flags.date),
+            self.object_with_flags.time_of_day.name)
         self.object_with_flags__refresh_func = db_services.Event.get(self.object_with_flags.id)
         self.put_in_command = event_commands.PutInFlag
         self.remove_command = event_commands.RemoveFlag
@@ -84,9 +88,9 @@ class DlgFlags(QDialog):
         self.table_flags = QTableWidget()
         self.layout_buttons = QHBoxLayout()
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
-        self.bt_add = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus.png')), 'Hinzufügen')
-        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'minus.png')), 'Löschen')
-        self.bt_clear = QPushButton(QIcon(os.path.join(self.path_to_icons, 'cross.png')), 'Clear')
+        self.bt_add = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus.png')), self.tr('Add'))
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'minus.png')), self.tr('Delete'))
+        self.bt_clear = QPushButton(QIcon(os.path.join(self.path_to_icons, 'cross.png')), self.tr('Clear'))
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
 
         self.layout.addWidget(self.lb_info)
@@ -97,7 +101,7 @@ class DlgFlags(QDialog):
         self.layout_buttons.addWidget(self.bt_clear)
         self.layout.addWidget(self.button_box)
 
-        self.config_bt_add()
+        self.bt_add.clicked.connect(self.add_flag)
         self.bt_delete.clicked.connect(self.delete_flag)
         self.bt_clear.clicked.connect(self.clear_flags)
         self.button_box.accepted.connect(self.accept)
@@ -110,7 +114,7 @@ class DlgFlags(QDialog):
         self.controller.undo_all()
         super().reject()
 
-    def config_bt_add(self):
+    def add_flag(self):
         ...
 
     def delete_flag(self):

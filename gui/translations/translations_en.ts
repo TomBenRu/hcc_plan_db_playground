@@ -970,6 +970,126 @@ Do you want to continue?</source>
     </message>
 </context>
 <context>
+    <name>DlgFixedCast</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="277"/>
+        <source>and</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="279"/>
+        <source>or</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="289"/>
+        <source>Here you can define which cast is generally required for {text}.
+To start, please click the plus symbol.
+The cast applies generally regardless of date.
+The date selection allows consideration of upcoming personnel changes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="313"/>
+        <source>Date:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="323"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="326"/>
+        <source>Undo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="328"/>
+        <source>Redo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="359"/>
+        <source>Fixed Cast</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="361"/>
+        <source>The required number of employees ({min_actors}) exceeds the planned staffing level ({actual_actors}).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="400"/>
+        <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="404"/>
+        <source>Reset from Parent Model</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderCastGroup</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="146"/>
+        <source>Fixed Cast of an Event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="147"/>
+        <source>Fixed Cast of a Cast Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="149"/>
+        <source>the event on &quot;{date}&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="152"/>
+        <source>the cast group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="193"/>
+        <source>Warning: Available staff varies across days!</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderLocationOfWork</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="82"/>
+        <source>Fixed Cast of a Location</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="84"/>
+        <source>the location &quot;{name}&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderLocationPlanPeriod</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="101"/>
+        <source>Fixed Cast of a Planning Period</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="106"/>
+        <source>the planning period &quot;{start}-{end}&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="135"/>
+        <source>Warning: Available staff varies across days!</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgGeneralSettings</name>
     <message>
         <location filename="../frm_general_settings.py" line="14"/>
@@ -2324,6 +2444,19 @@ in the plan.</source>
     <message>
         <location filename="../frm_plan.py" line="45"/>
         <source>Sunday</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>generate_fixed_cast_clear_text</name>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="55"/>
+        <source>and</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="58"/>
+        <source>or</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

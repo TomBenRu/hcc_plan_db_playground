@@ -8,7 +8,7 @@ from typing import Literal, Callable, TypeAlias
 from uuid import UUID
 
 import sympy
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QCoreApplication
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
                                QDialogButtonBox, QDateEdit, QMenu, QMessageBox)
@@ -78,9 +78,10 @@ class DlgFixedCastBuilderLocationOfWork(DlgFixedCastBuilderABC):
         super().__init__(parent=parent, object_with_fixed_cast=location_of_work)
 
     def _generate_field_values(self):
-        self.title_text = 'Feste Besetzung einer Einrichtung'
+        self.title_text = QCoreApplication.translate('DlgFixedCastBuilderLocationOfWork', 'Fixed Cast of a Location')
         self.location_of_work = self.object_with_fixed_cast.model_copy()
-        self.info_text = f'die Einrichtung "{self.object_with_fixed_cast.name}"'
+        self.info_text = (QCoreApplication.translate('DlgFixedCastBuilderLocationOfWork','the location "{name}"')
+                          .format(name=self.object_with_fixed_cast.name_an_city))
         self.update_command = partial(location_of_work_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
         self.object_with_fixed_cast__refresh_func = partial(db_services.LocationOfWork.get,
                                                             self.object_with_fixed_cast.id)
@@ -95,13 +96,17 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
         super().__init__(parent=parent, object_with_fixed_cast=location_plan_period)
 
     def _generate_field_values(self):
-        self.title_text = 'Feste Besetzung einer Planungsperiode'
+        self.title_text = QCoreApplication.translate('DlgFixedCastBuilderLocationPlanPeriod',
+                                                     'Fixed Cast of a Planning Period')
         self.location_of_work = db_services.LocationOfWork.get(
             self.object_with_fixed_cast.location_of_work.id
         )
         self.parent_fixed_cast = self.location_of_work.fixed_cast
-        self.info_text = (f'die Planungsperiode "{self.object_with_fixed_cast.plan_period.start}-'
-                          f'{self.object_with_fixed_cast.plan_period.end}"')
+        self.info_text = QCoreApplication.translate('DlgFixedCastBuilderLocationPlanPeriod',
+                                                    'the planning period "{start}-{end}"').format(
+            start=self.object_with_fixed_cast.plan_period.start,
+            end=self.object_with_fixed_cast.plan_period.end
+        )
         self.make_reset_menu = True
         self.fixed_date = self.object_with_fixed_cast.plan_period.start
         self.update_command = partial(location_plan_period_commands.UpdateFixedCast,
@@ -125,7 +130,8 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
                 same_person_over_period = False
             person_ids |= person_ids_at_day
         if not same_person_over_period:
-            self.warning_text = 'Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!'
+            self.warning_text = QCoreApplication.translate('DlgFixedCastBuilderLocationPlanPeriod',
+                                                           'Warning: Available staff varies across days!')
         return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
 
 
@@ -136,11 +142,14 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
         self.object_with_fixed_cast: schemas.CastGroupShow = cast_group.model_copy()
 
     def _generate_field_values(self):
-        self.title_text = ('Feste Besetzung eines Events' if self.object_with_fixed_cast.event
-                           else 'Feste Besetzung einer Besetzungsgruppe')
+        self.title_text = (QCoreApplication.translate('DlgFixedCastBuilderCastGroup','Fixed Cast of an Event')
+                           if self.object_with_fixed_cast.event
+                           else QCoreApplication.translate('DlgFixedCastBuilderCastGroup','Fixed Cast of a Cast Group'))
         self.parent_fixed_cast = self.location_plan_period.fixed_cast
-        self.info_text = (f'''das Event am "{self.object_with_fixed_cast.event.date.strftime('%d.%m.%y')}"'''
-                          if self.object_with_fixed_cast.event else 'die Besetzungsgruppe')
+        self.info_text = (QCoreApplication.translate('DlgFixedCastBuilderCastGroup','the event on "{date}"').format(
+            date=self.object_with_fixed_cast.event.date.strftime('%d.%m.%y'))
+                          if self.object_with_fixed_cast.event
+                          else QCoreApplication.translate('DlgFixedCastBuilderCastGroup', 'the cast group'))
         self.make_reset_menu = bool(self.location_plan_period)
         self.fixed_date = (self.object_with_fixed_cast.event.date if self.object_with_fixed_cast.event
                            else self.object_with_fixed_cast.plan_period.start)
@@ -179,7 +188,8 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                 same_person_over_period = False
             person_ids |= person_ids_at_day
         if not same_person_over_period:
-            self.warning_text = 'Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!'
+            self.warning_text = QCoreApplication.translate('DlgFixedCastBuilderCastGroup',
+                                                           'Warning: Available staff varies across days!')
         return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
 
 
@@ -264,7 +274,7 @@ class DlgFixedCast(QDialog):
         self.object_name_actors = 'actors'
         self.object_name_inner_operator = 'inner_operator'
         self.object_name_operator_between_rows = 'operator_between_rows'
-        self.data_text_operator = {'and': 'und', 'or': 'oder'}
+        self.data_text_operator = {'and': self.tr('and'), 'or': self.tr('or')}
 
         self.persons: list[schemas.Person] = []
 
@@ -273,14 +283,13 @@ class DlgFixedCast(QDialog):
 
         additional_text = self.builder.info_text
 
-        self.lb_title = QLabel(f'Hier können Sie definieren, welche Besetzung für {additional_text} '
-                               f'grundsätzlich erforderlich ist.\n'
-                               f'Zum starten bitte auf das Plus-Symbol klicken\n'
-                               f'Die Besetzung gilt allgemein datumsunabhängig, egal welches Datum ausgewählt ist.\n'
-                               f'Die Auswahl des Datums ist dafür da, dass in sich in naher Zukunft ändernde '
-                               f'Personalien berücksichtigt werden können.')
+        self.lb_title = QLabel(self.tr('Here you can define which cast is generally required for {text}.\n'
+                                       'To start, please click the plus symbol.\n'
+                                       'The cast applies generally regardless of date.\n'
+                                       'The date selection allows consideration of upcoming personnel changes.').format(
+            text=additional_text))
         self.lb_warning = QLabel()
-        self.lb_warning.setForegroundRole(QPalette.Highlight)
+        self.lb_warning.setForegroundRole(QPalette.ColorRole.Highlight)
         self.layout.addWidget(self.lb_title)
         self.layout.addWidget(self.lb_warning)
 
@@ -301,7 +310,7 @@ class DlgFixedCast(QDialog):
         self.bt_new_row.setFixedWidth(self.width_bt_new_row)
         self.layout_grid.addWidget(self.bt_new_row, 0, 0)
 
-        self.lb_date = QLabel('Datum:')
+        self.lb_date = QLabel(self.tr('Date:'))
         self.de_date = QDateEdit()
         self.de_date.setFixedWidth(120)
         self.de_date.dateChanged.connect(self.date_changed)
@@ -311,12 +320,12 @@ class DlgFixedCast(QDialog):
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        self.bt_reset = QPushButton('Reset')
+        self.bt_reset = QPushButton(self.tr('Reset'))
         self.reset_menu: QMenu | None = None
         self.bt_reset_make_menu()
-        self.bt_undo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return-180.png')), 'Undo')
+        self.bt_undo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return-180.png')), self.tr('Undo'))
         self.bt_undo.clicked.connect(self.undo)
-        self.bt_redo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return.png')), 'Redo')
+        self.bt_redo = QPushButton(QIcon(os.path.join(self.path_to_icons, 'arrow-return.png')), self.tr('Redo'))
         self.bt_redo.clicked.connect(self.redo)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_undo, QDialogButtonBox.ButtonRole.ActionRole)
@@ -347,9 +356,11 @@ class DlgFixedCast(QDialog):
 
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
                 # fixme: für cast_groups ohne event
-                QMessageBox.warning(self, 'Fixed Cast',
-                                    f'Die benötigte Anzahl der Mitarbeiter ({simplifier.min_nr_actors}) übersteigt die '
-                                    f'vorgesehene Besetzungsstärke ({self.object_with_fixed_cast.nr_actors}).')
+                QMessageBox.warning(self, self.tr('Fixed Cast'),
+                                    self.tr('The required number of employees ({min_actors}) exceeds the '
+                                            'planned staffing level ({actual_actors}).').format(
+                                        min_actors=simplifier.min_nr_actors,
+                                        actual_actors=self.object_with_fixed_cast.nr_actors))
         super().accept()
 
     def reject(self) -> None:
@@ -386,11 +397,11 @@ class DlgFixedCast(QDialog):
         if self.builder.make_reset_menu:
             self.reset_menu = QMenu()
             self.reset_menu.addAction(
-                MenuToolbarAction(self, os.path.join(self.path_to_icons, 'cross.png'), 'Clear', None,
+                MenuToolbarAction(self, os.path.join(self.path_to_icons, 'cross.png'), self.tr('Clear'), None,
                                   self.remove_fixed_cast))
             self.reset_menu.addAction(
                 MenuToolbarAction(self, os.path.join(self.path_to_icons, 'arrow-circle-315-left.png'),
-                                  'Reset von übergeordnetem Modell', None, self.reset_to_parent_value))
+                                  self.tr('Reset from Parent Model'), None, self.reset_to_parent_value))
             self.bt_reset.setMenu(self.reset_menu)
         else:
             self.bt_reset.setText('Clear')

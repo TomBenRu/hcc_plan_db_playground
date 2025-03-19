@@ -4,7 +4,7 @@ from itertools import zip_longest
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import QDate, QLocale, QTime
+from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
 
 from line_profiler_pycharm import profile
 
@@ -52,7 +52,8 @@ def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
 
 
 def generate_fixed_cast_clear_text(fixed_cast: str | None):
-    replace_map = {'and': 'und', 'or': 'oder'}
+    replace_map = {'and': QCoreApplication.translate('generate_fixed_cast_clear_text', 'and'),
+                   'or': QCoreApplication.translate('generate_fixed_cast_clear_text', 'or')}
 
     def generate_recursive(item_list: list):
         clear_list = []

@@ -1018,6 +1018,129 @@ Möchen Sie fortfahren?</translation>
     </message>
 </context>
 <context>
+    <name>DlgFixedCast</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="277"/>
+        <source>and</source>
+        <translation>und</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="279"/>
+        <source>or</source>
+        <translation>oder</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="289"/>
+        <source>Here you can define which cast is generally required for {text}.
+To start, please click the plus symbol.
+The cast applies generally regardless of date.
+The date selection allows consideration of upcoming personnel changes.</source>
+        <translation>Hier können Sie definieren, welche Besetzung für {text} grundsätzlich erforderlich ist.
+Zum starten bitte auf das Plus-Symbol klicken.
+Die Besetzung gilt allgemein datumsunabhängig.
+Die Auswahl des Datums ist dafür da, dass in sich in naher Zukunft ändernde Personalien berücksichtigt werden können.</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="313"/>
+        <source>Date:</source>
+        <translation>Datum:</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="323"/>
+        <source>Reset</source>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="326"/>
+        <source>Undo</source>
+        <translation>Rückgängig</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="328"/>
+        <source>Redo</source>
+        <translation>Wiederherstellen</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="359"/>
+        <source>Fixed Cast</source>
+        <translation>feste Besetzung</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="361"/>
+        <source>The required number of employees ({min_actors}) exceeds the planned staffing level ({actual_actors}).</source>
+        <translation>Die benötigte Anzahl der Mitarbeiter ({min_actors}) übersteigt die vorgesehene Besetzungsstärke ({actual_actors}).</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="400"/>
+        <source>Clear</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="404"/>
+        <source>Reset from Parent Model</source>
+        <translation>Reset von übergeordnetem Modell</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderCastGroup</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="146"/>
+        <source>Fixed Cast of an Event</source>
+        <translation>Feste Besetzung eines Events</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="147"/>
+        <source>Fixed Cast of a Cast Group</source>
+        <translation>Feste Besetzung einer Besetzungsgruppe</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="149"/>
+        <source>the event on &quot;{date}&quot;</source>
+        <translation>das Event am &quot;{date}&quot;</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="152"/>
+        <source>the cast group</source>
+        <translation>die Besetzungsgruppe</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="193"/>
+        <source>Warning: Available staff varies across days!</source>
+        <translation>Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderLocationOfWork</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="82"/>
+        <source>Fixed Cast of a Location</source>
+        <translation>Feste Besetzung einer Einrichtung</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="84"/>
+        <source>the location &quot;{name}&quot;</source>
+        <translation>die Einrichtung &quot;{name}&quot;</translation>
+    </message>
+</context>
+<context>
+    <name>DlgFixedCastBuilderLocationPlanPeriod</name>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="101"/>
+        <source>Fixed Cast of a Planning Period</source>
+        <translation>Feste Besetzung einer Planungsperiode</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="106"/>
+        <source>the planning period &quot;{start}-{end}&quot;</source>
+        <translation>die Planungsperiode &quot;{start}-{end}&quot;</translation>
+    </message>
+    <message>
+        <location filename="../frm_fixed_cast.py" line="135"/>
+        <source>Warning: Available staff varies across days!</source>
+        <translation>Achtung: Mögliche Besetzungen sind nicht an allen Tagen gleich!</translation>
+    </message>
+</context>
+<context>
     <name>DlgGeneralSettings</name>
     <message>
         <location filename="../frm_general_settings.py" line="14"/>
@@ -2389,6 +2512,19 @@ im Plan markieren.</translation>
         <location filename="../frm_plan.py" line="45"/>
         <source>Sunday</source>
         <translation>Sonntag</translation>
+    </message>
+</context>
+<context>
+    <name>generate_fixed_cast_clear_text</name>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="55"/>
+        <source>and</source>
+        <translation>und</translation>
+    </message>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="58"/>
+        <source>or</source>
+        <translation>oder</translation>
     </message>
 </context>
 </TS>

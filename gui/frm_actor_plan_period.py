@@ -276,7 +276,6 @@ class ButtonCombLocPossible(QPushButton):
                     db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
 
             self.reload_actor_plan_period()
-            # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
             signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
     @Slot(signal_handling.DataActorPPWithDate)
@@ -433,7 +432,6 @@ class ButtonActorLocationPref(QPushButton):
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
-        # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
     @Slot(signal_handling.DataActorPPWithDate)
@@ -581,7 +579,6 @@ class ButtonActorPartnerLocationPref(QPushButton):
                     db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
 
         self.reload_actor_plan_period()
-        # events.ReloadActorPlanPeriodInActorFrmPlanPeriod().fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
     @Slot(signal_handling.DataActorPPWithDate)
@@ -688,10 +685,10 @@ class ButtonSkills(QPushButton):
                 additional_txt = self.tr('\nSkills for availabilities on this day\n'
                                        'are identical to the employee\'s skills.')
             else:
-                additional_txt = self.tr('\nSkills for events on this day\n'
+                additional_txt = self.tr('\nSkills for availabilities on this day\n'
                                        'are equal but different from the employee\'s skills.')
         else:
-            additional_txt = self.tr('\nSkills for events on this day are different.')
+            additional_txt = self.tr('\nSkills for availabilities on this day are different.')
         self.setToolTip(
             self.tr('Click here to edit the skills for availabilities on %s.%s') % (
                 date_to_string(self.date), additional_txt)
@@ -1046,14 +1043,14 @@ class FrmActorPlanPeriod(QWidget):
                 os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons',
                              'screwdriver--minus.png'),
                 self.tr('Remove Skill'),
-                self.tr('Remove all skills from events in this period'),
+                self.tr('Remove all skills from availabilities in this period'),
                 self.remove_skills_from_every_avail_day,
             ),
             MenuToolbarAction(
                 self,
                 os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
                 self.tr('Reset Skills'),
-                self.tr('Reset all skills from events in this period to location defaults'),
+                self.tr('Reset all skills from availabilities in this period to person defaults'),
                 self.reset_skills_of_every_avail_day,
             )
         ]
@@ -1178,7 +1175,7 @@ class FrmActorPlanPeriod(QWidget):
                     self.change_mode__avd_group()
 
         bt.reload_actor_plan_period()
-        #events.ReloadActorPlanPeriod(self.actor_plan_period, date).fire()
+
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
 
@@ -1276,7 +1273,6 @@ class FrmActorPlanPeriod(QWidget):
 
         if dlg.exec():
             self.reload_actor_plan_period()
-            #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
@@ -1356,7 +1352,6 @@ class FrmActorPlanPeriod(QWidget):
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
         self.reload_actor_plan_period()
-        #events.ReloadActorPlanPeriod(self.actor_plan_period).fire()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 

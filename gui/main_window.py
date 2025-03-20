@@ -24,6 +24,7 @@ from google_calendar_api.add_access import add_or_update_access_to_calendar
 from google_calendar_api.authenticate import save_credentials
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
+from google_calendar_api.show_google_calendar import open_google_calendar_in_browser
 from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
 from tools import open_file_or_folder
 from tools.helper_functions import date_to_string
@@ -711,8 +712,8 @@ class MainWindow(QMainWindow):
         tab_location_plan_periods = FrmTabLocationPlanPeriods(tabs_period, plan_period)
         if curr_location_id:
             tab_location_plan_periods.data_setup(location_id=curr_location_id)
-        tabs_period.addTab(tab_actor_plan_periods, 'Mitarbeiter')
-        tabs_period.addTab(tab_location_plan_periods, 'Einrichtungen')
+        tabs_period.addTab(tab_actor_plan_periods, self.tr('Employees'))
+        tabs_period.addTab(tab_location_plan_periods, self.tr('Facilities'))
         tabs_period.setCurrentIndex(current_index_actors_locals_tabs)
 
     def goto_team(self, team_id: UUID):
@@ -872,7 +873,8 @@ class MainWindow(QMainWindow):
             self.thread_pool.start(self.worker_general)
 
     def open_google_calendar(self):
-        ...
+        """Öffnet den Google-Kalender des aktuellen Projekts im Browser."""
+        open_google_calendar_in_browser()
 
     def create_google_calendar(self):
         def create():

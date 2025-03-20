@@ -5,7 +5,7 @@ from typing import Callable, Sequence, TypeAlias, NewType
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QDropEvent, QColor, QResizeEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QDialogButtonBox, QTreeWidget, QTreeWidgetItem, QPushButton,
                                QHBoxLayout, QDialog, QMessageBox, QFormLayout, QCheckBox, QSlider, QLabel, QGroupBox,
@@ -19,6 +19,7 @@ from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.observer import signal_handling
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
+from tools.helper_functions import date_to_string
 from tools.screen import Screen
 
 
@@ -29,7 +30,11 @@ TREE_ITEM_DATA_COLUMN__DATE_OBJECT = 5
 TREE_HEAD_COLUMN__NR_GROUPS = 3
 TREE_HEAD_COLUMN__PRIORITY = 4
 
-VARIATION_WEIGHT_TEXT = {0: 'notfalls', 1: 'gerne', 2: 'bevorzugt'}
+VARIATION_WEIGHT_TEXT = {
+    0: QCoreApplication.translate("GroupMode", "if necessary"),
+    1: QCoreApplication.translate("GroupMode", "preferred"),
+    2: QCoreApplication.translate("GroupMode", "highly preferred")
+}
 
 
 object_with_group_type: TypeAlias = schemas.ActorPlanPeriodShow | schemas.LocationPlanPeriodShow
@@ -46,13 +51,27 @@ def text_num_avail_groups(group: group_type, builder: 'DlgGroupModeBuilderABC') 
     nr_groups = builder.get_nr_groups_from_group(group)
     if isinstance(group, schemas.AvailDayGroup):
         required = builder.get_required_avail_day_groups(group.id)
-        num_required_groups = (f' (mind. {required.num_avail_day_groups} für '
-                               f'{f"{len(required.locations_of_work)} Einr."
-                               if required.locations_of_work else "alle Einr."})'
-                               if required else '' or '')
+        if required:
+            num_locations = len(required.locations_of_work)
+            if required.locations_of_work:
+                locations_text = QCoreApplication.translate(
+                    "GroupMode",
+                    "{} facilities",
+                ).format(num_locations)
+            else:
+                locations_text = QCoreApplication.translate("GroupMode", "all facilities")
+
+            num_required_groups = QCoreApplication.translate(
+                "GroupMode",
+                " (min. {} for {})",
+            ).format(required.num_avail_day_groups, locations_text)
+        else:
+            num_required_groups = ''
     else:
         num_required_groups = ''
-    return f"{nr_groups or 'alle'}{num_required_groups}"
+
+    all_text = QCoreApplication.translate("GroupMode", "all")
+    return f"{nr_groups or all_text}{num_required_groups}"
 
 
 class DlgGroupModeBuilderABC(ABC):
@@ -123,7 +142,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.get_date_object_from_group = lambda group: getattr(group, 'avail_day')
         self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
-        self.text_date_object = 'verfügbar'
+        self.text_date_object = QCoreApplication.translate("DlgGroupModeBuilderActorPlanPeriod", "available")
         self.num_required_group_field = True
 
     def reload_object_with_groups(self):
@@ -187,7 +206,7 @@ class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
         self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
         self.signal_handler_change__object_with_groups__group_mode = (
             signal_handling.handler_location_plan_period.change_location_plan_period_group_mode)
-        self.text_date_object = 'gesetzt'
+        self.text_date_object = QCoreApplication.translate("DlgGroupModeBuilderLocationPlanPeriod", "assigned")
 
     def reload_object_with_groups(self):
         self.object_with_groups = db_services.LocationPlanPeriod.get(self.object_with_groups.id)
@@ -205,7 +224,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         text_variation_weight = VARIATION_WEIGHT_TEXT[group.variation_weight]
         if date_object:
             self.setText(0, self.builder.text_date_object)
-            self.setText(1, date_object.date.strftime('%d.%m.%y'))
+            self.setText(1, date_to_string(date_object.date))
             self.setText(2, date_object.time_of_day.name)
             self.setText(4, text_variation_weight)
 
@@ -215,12 +234,15 @@ class TreeWidgetItem(QTreeWidgetItem):
             self.setData(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole, date_object)
         else:
             text_nr_avail_day_groups = text_num_avail_groups(group, self.builder)
-            self.setText(0, f'Gruppe_{group_nr:02}')
+            self.setText(0, QCoreApplication.translate("TreeWidgetItem", "Group_{:02}").format(group_nr))
             self.setText(3, text_nr_avail_day_groups)
             self.setText(4, text_variation_weight)
             self.setData(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole, group_nr)
             self.setBackground(0, QColor(*widget_styles.tree_widgets.group_bg_color_rgba))
-            self.setToolTip(0, f'Doppelklick, um "Gruppe {group_nr:02}" zu bearbeiten.')
+            self.setToolTip(0, QCoreApplication.translate(
+                "TreeWidgetItem",
+                "Double-click to edit Group {:02}"
+            ).format(group_nr))
 
         self.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, group)
         self.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, parent_group_nr)
@@ -247,12 +269,17 @@ class TreeWidget(QTreeWidget):
     def __init__(self, builder: DlgGroupModeBuilderABC,
                  slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None]):
         super().__init__()
-
         self.builder = builder
 
         # self.setIndentation(30)
         self.setColumnCount(5)
-        self.setHeaderLabels(["Bezeichnung", "Datum", "Tageszeit", "mögl. Anzahl", "Priorität"])
+        self.setHeaderLabels([
+            self.tr("Description"),
+            self.tr("Date"),
+            self.tr("Time of Day"),
+            self.tr("Possible Count"),
+            self.tr("Priority")
+        ])
         self.setDragDropMode(QTreeWidget.InternalMove)
         self.setSortingEnabled(True)
         self.invisibleRootItem().setData(
@@ -375,8 +402,11 @@ class DlgGroupProperties(QDialog):
 
         self.group_nr = self.item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
 
-        self.setWindowTitle(f'Eigenschaften von Gruppe {self.group_nr:02}'
-                            if self.group_nr else 'Eigenschaften der Hauptgruppe')
+        self.setWindowTitle(
+            self.tr("Properties of Group {:02}").format(self.group_nr)
+            if self.group_nr
+            else self.tr("Properties of Main Group")
+        )
 
         self.group = self.builder.get_group_from_id(
             self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
@@ -389,7 +419,6 @@ class DlgGroupProperties(QDialog):
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout(self)
-
         self.layout_head = QVBoxLayout()
         self.layout_body = QFormLayout()
         self.layout_foot = QVBoxLayout()
@@ -397,10 +426,14 @@ class DlgGroupProperties(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.group_nr_childs = QGroupBox('Anzahl direkt untergeordneter Gruppen/Termine')
+        self.group_nr_childs = QGroupBox(
+            self.tr("Number of directly subordinate groups/appointments")
+        )
         self.layout_body.addWidget(self.group_nr_childs)
         self.layout_group_nr_childs = QGridLayout(self.group_nr_childs)
-        self.group_child_variation_weights = QGroupBox('Priorisierung der untergeordneten Gruppen/Termine')
+        self.group_child_variation_weights = QGroupBox(
+            self.tr("Prioritization of subordinate groups/appointments")
+        )
 
         # Eine Scroll-Area zu self.group_child_variation_weights hinzufügen.
         self.scroll_area_group_child_variation_weights = QScrollArea()
@@ -409,10 +442,12 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.scroll_area_group_child_variation_weights)
         self.layout_group_child_variation_weights = QGridLayout(self.group_child_variation_weights)
 
-        self.lb_nr_childs = QLabel('Anzahl:')
+        self.lb_nr_childs = QLabel(self.tr("Count:"))
         self.slider_nr_childs = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.lb_slider_nr_childs_value = QLabel()
-        self.chk_none = QCheckBox('Alle dir. untergeordneten Elemente')
+        self.chk_none = QCheckBox(
+            self.tr("All directly subordinate elements")
+        )
         self.layout_group_nr_childs.addWidget(self.lb_nr_childs, 0, 0)
         self.layout_group_nr_childs.addWidget(self.slider_nr_childs, 0, 1)
         self.layout_group_nr_childs.addWidget(self.lb_slider_nr_childs_value, 0, 2)
@@ -474,11 +509,11 @@ class DlgGroupProperties(QDialog):
             child_item: TreeWidgetItem
             child_group: group_type = child_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             if child_group_nr := child_item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole):
-                text_child_group = f'Gruppe {child_group_nr:02}'
+                text_child_group = self.tr('Group {:02}').format(child_group_nr)
             else:
                 date_object: date_object_type = child_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT,
                                                                 Qt.ItemDataRole.UserRole)
-                text_child_group = f'{date_object.date.strftime("%d.%m.%y")} ({date_object.time_of_day.name})'
+                text_child_group = f'{date_to_string(date_object.date)} ({date_object.time_of_day.name})'
             lb_slider = QLabel(text_child_group)
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider.setTickInterval(1)
@@ -500,7 +535,6 @@ class DlgGroupProperties(QDialog):
 
 class DlgGroupPropertiesAvailDay(DlgGroupProperties):
     def __init__(self, parent: QWidget, item: TreeWidgetItem, builder: DlgGroupModeBuilderABC):
-
         self.required_avail_day_widgets_are_available = False
         self.chk_required_avail_day_groups_is_locked = False
 
@@ -511,7 +545,8 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         self.scroll_required_avail_day_groups_locations = QScrollArea()
         self.scroll_required_avail_day_groups_locations.setWidgetResizable(True)
         self.group_required_avail_day_groups_locations = QGroupBox(
-            'Einsatzorte, für die die Mindestanzahl Einsätze gefordert ist')
+            self.tr("Locations requiring minimum number of assignments")
+        )
         self.scroll_required_avail_day_groups_locations.setWidget(self.group_required_avail_day_groups_locations)
 
         self.layout_required_avail_day_groups_locations = QVBoxLayout(self.group_required_avail_day_groups_locations)
@@ -519,20 +554,22 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         if all(child.date_object for child in self.child_items):
             self._setup_required_avail_day_groups_widgets()
             self.setup_required_avail_day_groups_widget_values()
-
-        self.required_avail_day_widgets_are_available = True
+            self.required_avail_day_widgets_are_available = True
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         super().chk_none_toggled(checked, clicked)
-        self.update_required_avail_day_groups_widget_values()
+        if self.required_avail_day_widgets_are_available:
+            self.update_required_avail_day_groups_widget_values()
 
     def _setup_required_avail_day_groups_widgets(self):
         self.locations_of_work = self._locations_of_work()
         self.checkboxes_locations_of_work: dict[UUID, QCheckBox] = {}
-        text_tooltip = (f'Wenn aktiviert:\n'
-                        f'Mitarbeiter wird in dieser Gruppe nur eingesetzt,\n'
-                        f'wenn er die angegebene Mindestanzahl an Einsätzen erreicht.')
-        self.lb_num_required_avail_day_groups = QLabel('Mindestanzahl Einsätze:')
+        text_tooltip = self.tr(
+            "When activated:\n"
+            "Staff will only be assigned in this group\n"
+            "if they reach the specified minimum number of assignments."
+        )
+        self.lb_num_required_avail_day_groups = QLabel(self.tr("Minimum number of assignments:"))
         self.slider_num_required_avail_day_groups = SliderWithPressEvent(Qt.Orientation.Horizontal)
         self.slider_num_required_avail_day_groups.setTickInterval(1)
         self.slider_num_required_avail_day_groups.setTickPosition(QSlider.TickPosition.TicksBelow)
@@ -540,14 +577,15 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             1, self.builder.get_max_value_num_required_avail_day_groups(self.group))
         self.slider_num_required_avail_day_groups.setToolTip(text_tooltip)
 
-        self.lb_without_required_avail_day_groups = QLabel('...Ohne Bedingung')
+        self.lb_without_required_avail_day_groups = QLabel(self.tr("...Without condition"))
         self.lb_without_required_avail_day_groups.setStyleSheet('color: green')
         self.lb_num_avail_day_groups_value = QLabel()
-        self.chk_num_required_avail_day_groups = QCheckBox('Bedingung aktivieren?')
+        self.chk_num_required_avail_day_groups = QCheckBox(self.tr("Activate condition?"))
         self.chk_num_required_avail_day_groups.setToolTip(text_tooltip)
-        self.chk_required_avail_day_groups_locations = QCheckBox('Nur für bestimmte Einrichtungen aktivieren')
+        self.chk_required_avail_day_groups_locations = QCheckBox(self.tr("Activate only for specific facilities"))
         self.chk_required_avail_day_groups_locations.setToolTip(
-            'Bedingung soll nur für ausgewählte Einrichtungen gelten')
+            self.tr("Condition should only apply to selected facilities")
+        )
         self.layout_group_nr_childs.addWidget(self.lb_num_required_avail_day_groups, 1, 0)
         self.layout_group_nr_childs.addWidget(self.lb_num_avail_day_groups_value, 1, 2)
         self.layout_group_nr_childs.addWidget(self.chk_num_required_avail_day_groups, 1, 3)
@@ -558,7 +596,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         for location in self.locations_of_work:
             chk = QCheckBox(location.name_an_city)
             self.checkboxes_locations_of_work[location.id] = chk
-            chk.setToolTip(f'Rechtsklick: Nur {location.name_an_city} auswählen')
+            chk.setToolTip(self.tr("Right-click: Select only {name}").format(name=location.name_an_city))
             self.layout_required_avail_day_groups_locations.addWidget(chk)
 
     def setup_required_avail_day_groups_widget_values(self):
@@ -616,6 +654,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         if not self.required_avail_day_widgets_are_available:
             return
         max_required = self.builder.get_max_value_num_required_avail_day_groups(self.group)
+        print(f'{max_required=}')
         if max_required < 2:
             self.chk_num_required_avail_day_groups.setChecked(False)
             self.chk_num_required_avail_day_groups.setDisabled(True)
@@ -711,17 +750,15 @@ class DlgGroupMode(QDialog):
     def __init__(self, parent: QWidget, builder: DlgGroupModeBuilderABC):
         super().__init__(parent)
 
-        self.setWindowTitle('Gruppenmodus')
+        self.setWindowTitle(self.tr('Group Mode'))
         self.resize(400, 400)
 
         self.builder = builder
-
         self.controller = command_base_classes.ContrExecUndoRedo()
-
         self.simplified = False
 
+        # Setup layouts
         self.layout = QVBoxLayout(self)
-
         self.layout_head = QVBoxLayout()
         self.layout_body = QVBoxLayout()
         self.layout_foot = QVBoxLayout()
@@ -729,23 +766,30 @@ class DlgGroupMode(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        num_groups = (builder.master_group.nr_avail_day_groups if builder.num_required_group_field
-                      else builder.master_group.nr_event_groups)
-        text_master_group = f'Hauptgruppe bearbeiten (mögl. Anzahl: {"alle" if num_groups is None else num_groups})'
+        # Setup main group button
+        self.text_template_master_group = self.tr('Edit Main Group (possible count: {count})')
+        text_master_group = self.text_template_master_group.format(
+            count=text_num_avail_groups(builder.master_group, builder)
+        )
         self.bt_edit_main_group = QPushButton(text_master_group,
                                               clicked=lambda: self.edit_item(self.tree_groups.invisibleRootItem()))
         self.layout_body.addWidget(self.bt_edit_main_group)
+
+        # Setup tree widget
         self.tree_groups = TreeWidget(self.builder, self.item_moved)
         self.tree_groups.itemDoubleClicked.connect(self.edit_item)
         self.tree_groups.setExpandsOnDoubleClick(False)
         self.layout_body.addWidget(self.tree_groups)
 
+        # Setup modification buttons
         self.layout_mod_buttons = QHBoxLayout()
         self.layout_foot.addLayout(self.layout_mod_buttons)
-        self.bt_add_group = QPushButton('Neue Gruppe', clicked=self.add_group)
+        self.bt_add_group = QPushButton(self.tr('New Group'), clicked=self.add_group)
         self.layout_mod_buttons.addWidget(self.bt_add_group)
-        self.bt_remove_group = QPushButton('Gruppe entfernen', clicked=self.remove_group)
+        self.bt_remove_group = QPushButton(self.tr('Remove Group'), clicked=self.remove_group)
         self.layout_mod_buttons.addWidget(self.bt_remove_group)
+
+        # Setup dialog buttons
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
 
@@ -843,7 +887,7 @@ class DlgGroupMode(QDialog):
             item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
         text_nr_groups = text_num_avail_groups(new_group_data, self.builder)
         if item == self.tree_groups.invisibleRootItem():
-            self.bt_edit_main_group.setText(f'Hauptgruppe bearbeiten (mögl. Anzahl: {text_nr_groups})')
+            self.bt_edit_main_group.setText(self.text_template_master_group.format(count=text_nr_groups))
         item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)
         item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
         child_items = (item.child(i) for i in range(item.childCount()))
@@ -875,16 +919,23 @@ class DlgGroupMode(QDialog):
             if item.childCount() == 1:
                 if date_object := item.child(0).data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole):
                     QMessageBox.critical(
-                        self, 'Gruppenmodus',
-                        f'Mindestens eine Gruppe hat nur einen Termin:\n'
-                        f'Gruppe {item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)}, '
-                        f'{date_object.date.strftime("%d.%m.%y")} ({date_object.time_of_day.name})\n'
-                        f'Bitte korrigieren Sie das.'
+                        self,
+                        self.tr('Group Mode'),
+                        self.tr('At least one group has only one appointment:\n'
+                               'Group {group_nr}, {date} ({time_of_day})\n'
+                               'Please correct this.').format(
+                                   group_nr=item.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole),
+                                   date=date_object.date.strftime("%d.%m.%y"),
+                                   time_of_day=date_object.time_of_day.name
+                               )
                     )
                 else:
-                    QMessageBox.critical(self, 'Gruppenmodus',
-                                         f'Mindestens eine Gruppe beinhaltet nur eine Gruppe\n'
-                                         f'Bitte korrigieren Sie das.')
+                    QMessageBox.critical(
+                        self,
+                        self.tr('Group Mode'),
+                        self.tr('At least one group contains only one group\n'
+                               'Please correct this.')
+                    )
                 return True
         return False
 
@@ -911,8 +962,11 @@ class DlgGroupMode(QDialog):
         if self.delete_unused_groups():
             return
         if self.simplified:
-            QMessageBox.information(self, 'Gruppenmodus',
-                                    'Die Gruppenstruktur wurde durch Entfernen unnötiger Gruppen vereinfacht.')
+            QMessageBox.information(
+                self,
+                self.tr('Group Mode'),
+                self.tr('The group structure was simplified by removing unnecessary groups.')
+            )
         super().accept()
 
     def reject(self) -> None:

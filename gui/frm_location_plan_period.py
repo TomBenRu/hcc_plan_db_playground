@@ -74,7 +74,7 @@ class ButtonEvent(QPushButton):
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         self.context_menu = QMenu()
-        self.menu_times_of_day = QMenu('Tageszeiten')
+        self.menu_times_of_day = QMenu(self.tr('Times of Day'))
         self.context_menu.addMenu(self.menu_times_of_day)
         self.create_actions__skills_fixed_flags_notes()
 
@@ -121,8 +121,13 @@ class ButtonEvent(QPushButton):
         self.context_menu.exec(pos.globalPos())
 
     def create_actions__skills_fixed_flags_notes(self):
-        for text, slot in (('Skills', self.edit_skills), ('Feste Beseztung', self.edit_fixed_cast),
-                           ('Flags', self.edit_flags), ('Notizen', self.edit_notes)):
+        actions = [
+            (self.tr('Skills'), self.edit_skills),
+            (self.tr('Fixed Cast'), self.edit_fixed_cast),
+            (self.tr('Flags'), self.edit_flags),
+            (self.tr('Notes'), self.edit_notes)
+        ]
+        for text, slot in actions:
             self.context_menu.addAction(MenuToolbarAction(self, None, text, None, slot))
 
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
@@ -156,8 +161,11 @@ class ButtonEvent(QPushButton):
 
     def edit_skills(self):
         if not (event := self.get_curr_event()):
-            QMessageBox.critical(self, 'Skills',
-                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Skills bearbeiten können.')
+            QMessageBox.critical(
+                self,
+                self.tr('Skills'),
+                self.tr('You must first set an appointment before you can edit the skills.')
+            )
             return
         dlg = DlgSkillGroups(self, event)
         if dlg.exec():
@@ -169,8 +177,11 @@ class ButtonEvent(QPushButton):
 
     def edit_fixed_cast(self):
         if not self.isChecked():
-            QMessageBox.critical(self, 'Flags',
-                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Besetzung bearbeiten können.')
+            QMessageBox.critical(
+                self,
+                self.tr('Flags'),
+                self.tr('You must first set an appointment before you can edit the cast.')
+            )
             return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
@@ -185,8 +196,11 @@ class ButtonEvent(QPushButton):
 
     def edit_flags(self):
         if not self.isChecked():
-            QMessageBox.critical(self, 'Flags',
-                                 'Sie müssen zuerst einen Termin setzen, bevor Sie die Flags bearbeiten können.')
+            QMessageBox.critical(
+                self,
+                self.tr('Flags'),
+                self.tr('You must first set an appointment before you can edit the flags.')
+            )
             return
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, self.date,
                                                                  self.time_of_day.id)
@@ -197,14 +211,21 @@ class ButtonEvent(QPushButton):
     def edit_notes(self):
         event = self.get_curr_event()
         if event is None:
-            QMessageBox.critical(self, 'Event-Notes',
-                                 'Es können keine Anmerkungen gesetzt werden, wenn kein Termin geplant ist.')
+            QMessageBox.critical(
+                self,
+                self.tr('Event Notes'),
+                self.tr('Notes cannot be set when no appointment is scheduled.')
+            )
             return
         dlg = DlgEventNotes(self, event)
         if dlg.exec():
             command = event_commands.UpdateNotes(event, dlg.notes)
             self.controller.execute(command)
-            QMessageBox.information(self, 'Event-Notes', 'Die neuen Anmerkungen wurden übernommen.')
+            QMessageBox.information(
+                self,
+                self.tr('Event Notes'),
+                self.tr('The new notes have been applied.')
+            )
             signal_handling.handler_plan_tabs.event_changed(event.id)
             signal_handling.handler_location_plan_period.reset_styling_notes_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
@@ -212,10 +233,17 @@ class ButtonEvent(QPushButton):
 
 
     def set_tooltip(self):
-        self.setToolTip(f'Rechtsklick:\n'
-                        f'Zeitspanne für die Tageszeit "{self.time_of_day.time_of_day_enum.name}" '
-                        f'am {self.date} wechseln.\nAktuell: {self.time_of_day.name} '
-                        f'({self.time_of_day.start.strftime("%H:%M")}-{self.time_of_day.end.strftime("%H:%M")})')
+        self.setToolTip(
+            self.tr('Right click:\n'
+                   'Change time span for time of day "{time_of_day}" on {date}.\n'
+                   'Currently: {name} ({start}-{end})').format(
+                time_of_day=self.time_of_day.time_of_day_enum.name,
+                date=self.date,
+                name=self.time_of_day.name,
+                start=self.time_of_day.start.strftime("%H:%M"),
+                end=self.time_of_day.end.strftime("%H:%M")
+            )
+        )
 
     @Slot(signal_handling.DataLocationPPWithDate)
     def reload_location_plan_period(self, data: signal_handling.DataLocationPPWithDate = None):
@@ -309,19 +337,25 @@ class ButtonFixedCast(QPushButton):
         if not self.cast_groups_at_day:
             additional_txt = ''
         elif len({cg.fixed_cast for cg in self.cast_groups_at_day}) > 1:
-            additional_txt = '\nBesetzung der Events an diesem Tag:\nUnterschiedliche Besetzungen.'
+            additional_txt = self.tr('\nCast of events on this day:\nDifferent casts.')
         else:
             cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(self.cast_groups_at_day[0].fixed_cast)
-            additional_txt = (f'\nBesetzung der Events an diesem Tag:\n'
-                              f'{cast_clear_txt or "Keine Festen Besetzungen."}')
+            additional_txt = self.tr('\nCast of events on this day:\n{cast}').format(
+                cast=cast_clear_txt or self.tr('No fixed cast.')
+            )
 
-        self.setToolTip(f'Hier können die Festen Besetzungen des Tages geändert werden.{additional_txt}')
+        self.setToolTip(self.tr('Click here to change the fixed cast for this day.{additional}').format(
+            additional=additional_txt
+        ))
 
     @Slot()
     def set_fixed_casts_of_day(self):
         if not self.cast_groups_at_day:
-            QMessageBox.information(self, 'Feste Besetzung am Tag',
-                                    f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            QMessageBox.information(
+                self,
+                self.tr('Fixed Cast for Day'),
+                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+            )
             return
 
         cast_group = next((cg for cg in self.cast_groups_at_day if cg.fixed_cast), self.cast_groups_at_day[0])
@@ -409,17 +443,26 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
         if not self.events_at_day:
             additional_txt = ''
         elif self._check_notes_all_equal():
-            additional_txt = (f'\nAnmerkungen der Events an diesem Tag:\n'
-                              f'{self.events_at_day[0].notes if self.events_at_day[0].notes else "keine"}.')
+            additional_txt = self.tr('\nNotes for events on this day:\n{notes}.').format(
+                notes=self.events_at_day[0].notes if self.events_at_day[0].notes else self.tr('none')
+            )
         else:
-            additional_txt = '\nAnmerkungen der Events an diesem Tag:\nUnterschiedliche Anmerkungen.'
-        self.setToolTip(f'Hier können die Anmerkungen der Events am Tag {self.date:%d.%m.} bearbeitet werden.'
-                        f'{additional_txt}')
+            additional_txt = self.tr('\nNotes for events on this day:\nDifferent notes.')
+
+        self.setToolTip(self.tr('Click here to edit notes for events on {date}{additional}').format(
+            date=self.date.strftime("%d.%m."),
+            additional=additional_txt
+        ))
 
     def edit_notes_of_day(self):
         if not self.events_at_day:
-            QMessageBox.information(self, 'Event-Notes', f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            QMessageBox.information(
+                self,
+                self.tr('Event Notes'),
+                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+            )
             return
+
         event = next((e for e in self.events_at_day if e.notes), self.events_at_day[0])
         dlg = DlgEventNotes(self, event, True)
         if dlg.exec():
@@ -428,8 +471,11 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
                 self.controller.execute(command)
                 signal_handling.handler_plan_tabs.event_changed(event.id)
             self.set_stylesheet_and_tooltip()
-            QMessageBox.information(self, 'Event-Notes',
-                                    f'Anmerkungen der Events am Tag {self.date:%d.%m.} wurden geändert.')
+            QMessageBox.information(
+                self,
+                self.tr('Event Notes'),
+                self.tr('Notes for events on {date} have been updated.').format(date=self.date.strftime("%d.%m."))
+            )
 
 
 class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
@@ -512,28 +558,31 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
         elif self._check_skill_groups_all_equal():
             if not self.events_at_day[0].skill_groups:
                 additional_txt = (
-                    '\nKeine Fertigkeiten gewählt.\n'
-                    'Dies ist die Standardeinstellung für diese Einrichtung.'
+                    self.tr('\nNo skills selected.\nThis is the default setting for this location.')
                     if self._check_skill_groups_all_equal_to_location_skill_groups()
-                    else '\nKeine Fertigkeiten gewählt.\n'
-                    'Dies ist unterschiedlich zu den Fertigkeiten der Einrichtung.'
+                    else self.tr('\nNo skills selected.\nThis differs from the location\'s skills.')
                 )
             elif self._check_skill_groups_all_equal_to_location_skill_groups():
-                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
-                                  'sind identisch mit den Fertigkeiten der Einrichtung.')
+                additional_txt = self.tr('\nSkills for events on this day\nare identical to the location\'s skills.')
             else:
-                additional_txt = ('\nFertigkeiten der Events an diesem Tag\n'
-                                  'sind gleich aber unterschiedlich zu den Fertigkeiten der Einrichtung.')
+                additional_txt = self.tr('\nSkills for events on this day\nare equal but different from the location\'s skills.')
         else:
-            additional_txt = '\nFertigkeiten der Events an diesem Tag sind unterschiedlich.'
-        self.setToolTip(f'Hier können die Fertigkeiten der Events am Tag {self.date:%d.%m.} bearbeitet werden.'
-                        f'{additional_txt}')
+            additional_txt = self.tr('\nSkills for events on this day are different.')
+
+        self.setToolTip(self.tr('Click here to edit skills for events on {date}{additional}').format(
+            date=self.date.strftime("%d.%m."),
+            additional=additional_txt
+        ))
 
     def edit_skill_groups_of_day(self):
         if not self.events_at_day:
-            QMessageBox.information(self, 'Fertigkeiten der Events',
-                                    f'Am {self.date:%d.%m.} sind keine Events vorhanden.')
+            QMessageBox.information(
+                self,
+                self.tr('Event Skills'),
+                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+            )
             return
+
         event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
         dlg = DlgSkillGroups(self, event)
         if dlg.exec():
@@ -547,8 +596,11 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
                     self.controller.execute(command_add)
                 signal_handling.handler_plan_tabs.event_changed(event.id)
             self.set_stylesheet_and_tooltip()
-            QMessageBox.information(self, 'Fertigkeiten der Events',
-                                    f'Fertigkeiten der Events am Tag {self.date:%d.%m.} wurden geändert.')
+            QMessageBox.information(
+                self,
+                self.tr('Event Skills'),
+                self.tr('Skills for events on {date} have been updated.').format(date=self.date.strftime("%d.%m."))
+            )
         else:
             dlg.controller.undo_all()
 
@@ -573,7 +625,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location_id: UUID | None = None
         self.location: schemas.LocationOfWorkShow | None = None
         self.frame_events: FrmLocationPlanPeriod | None = None
-        self.lb_notes_pp = QLabel('Infos zum Planungszeitraum der Einrichtung:')
+        self.lb_notes_pp = QLabel(self.tr('Planning Period Notes for Location:'))
         self.lb_notes_pp.setFixedHeight(20)
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)
@@ -583,7 +635,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.te_notes_pp.setFixedHeight(180)
         self.te_notes_pp.setDisabled(True)
 
-        self.lb_notes_location = QLabel('Infos zur Einrichtung:')
+        self.lb_notes_location = QLabel(self.tr('Location Notes:'))
         self.lb_notes_location.setFixedHeight(20)
         font_lb_notes = self.lb_notes_location.font()
         font_lb_notes.setBold(True)
@@ -597,7 +649,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.setLayout(self.layout)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.lb_title_name = QLabel('Einrichtungstermine')
+        self.lb_title_name = QLabel(self.tr('Location Events'))
         self.lb_title_name.setContentsMargins(10, 10, 10, 10)
 
         self.lb_title_name_font = self.lb_title_name.font()
@@ -622,7 +674,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.scroll_area_events = QScrollArea()
 
         self.bt_cast_groups_plan_period = QPushButton(
-            'Besetzungen und Besetzungsgruppen der Planungsperiode bearbeiten...',
+            self.tr('Edit Cast and Cast Groups for Planning Period...'),
             clicked=self.edit_cast_groups_plan_period
         )
 
@@ -661,7 +713,7 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.table_select_location.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
-        headers = ['id', 'Name', 'Ort']
+        headers = ['id', self.tr('Name'), self.tr('City')]
         self.table_select_location.setColumnCount(len(headers))
         self.table_select_location.setRowCount(len(self.location_id__location_pp))
         self.table_select_location.setHorizontalHeaderLabels(headers)
@@ -692,8 +744,12 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.location = db_services.LocationOfWork.get(self.location_id)
         location_plan_period = self.location_id__location_pp[str(self.location_id)]
         location_plan_period_show = db_services.LocationPlanPeriod.get(location_plan_period.id)
-        self.lb_title_name.setText(f'Termine: {location_plan_period_show.location_of_work.name} '
-                                   f'{location_plan_period_show.location_of_work.address.city}')
+        self.lb_title_name.setText(
+            self.tr('Events: {location_name} {location_city}').format(
+                location_name=location_plan_period_show.location_of_work.name,
+                location_city=location_plan_period_show.location_of_work.address.city
+            )
+        )
 
         if self.frame_events:
             self.delete_location_plan_period_widgets()
@@ -778,9 +834,12 @@ class FrmLocationPlanPeriod(QWidget):
         self.days: list[datetime.date] = []
         self.set_instance_variables()
 
-        self.weekdays = {0: 'Mo', 1: 'Di', 2: 'Mi', 3: 'Do', 4: 'Fr', 5: 'Sa', 6: 'So'}
-        self.months = {1: 'Januar', 2: 'Februar', 3: 'März', 4: 'April', 5: 'Mai', 6: 'Juni', 7: 'Juli', 8: 'August',
-                       9: 'September', 10: 'Oktober', 11: 'November', 12: 'Dezember'}
+        self.weekdays = {0: self.tr('Mon'), 1: self.tr('Tue'), 2: self.tr('Wed'), 3: self.tr('Thu'),
+                         4: self.tr('Fri'), 5: self.tr('Sat'), 6: self.tr('Sun')}
+        self.months = {1: self.tr('January'), 2: self.tr('February'), 3: self.tr('March'), 4: self.tr('April'),
+                       5: self.tr('May'), 6: self.tr('June'), 7: self.tr('July'), 8: self.tr('August'),
+                       9: self.tr('September'), 10: self.tr('October'), 11: self.tr('November'),
+                       12: self.tr('December')}
 
         self.set_headers_months()
         self.set_chk_field()
@@ -791,16 +850,21 @@ class FrmLocationPlanPeriod(QWidget):
 
     def setup_side_menu(self):
         self.side_menu.delete_all_buttons()
-        bt_nr_actors = QPushButton('Besetzungsstärke', clicked=self.set_nr_actors)
+        bt_nr_actors = QPushButton(self.tr('Cast Size'), clicked=self.set_nr_actors)
         self.side_menu.add_button(bt_nr_actors)
-        bt_event_planing_rules = QPushButton('Events nach Regeln festlegen',
-                                             clicked=self.make_events_from_planing_rules)
+        bt_event_planing_rules = QPushButton(
+            self.tr('Set Events According to Rules'),
+            clicked=self.make_events_from_planing_rules
+        )
         self.side_menu.add_button(bt_event_planing_rules)
-        bt_time_of_days = QPushButton('Tageszeiten...', clicked=self.edit_time_of_days)
+        bt_time_of_days = QPushButton(self.tr('Times of Day...'), clicked=self.edit_time_of_days)
         self.side_menu.add_button(bt_time_of_days)
-        bt_reset_all_event_t_o_ds = QPushButton('Eingabefeld Tagesz. Reset', clicked=self.reset_all_event_t_o_ds)
+        bt_reset_all_event_t_o_ds = QPushButton(
+            self.tr('Reset Time of Day Input Field'),
+            clicked=self.reset_all_event_t_o_ds
+        )
         self.side_menu.add_button(bt_reset_all_event_t_o_ds)
-        bt_fixed_cast = QPushButton('Feste Besetzung', clicked=self.edit_fixed_cast)
+        bt_fixed_cast = QPushButton(self.tr('Fixed Cast'), clicked=self.edit_fixed_cast)
         self.side_menu.add_button(bt_fixed_cast)
 
     def reload_location_plan_period(self):
@@ -839,43 +903,45 @@ class FrmLocationPlanPeriod(QWidget):
         cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(
             self.location_plan_period.plan_period.id)
 
-        # Tageszeiten Reihen-Bezeichner:
+        # Time of day row labels
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
 
-        # Tages-Configs Reihenbezeichner / Buttons:
-        bt_fixed_cast_reset = QPushButton('Besetzung -> Reset', clicked=self.reset_all_fixed_cast)
-        bt_fixed_cast_reset.setStatusTip('Festgelegte Besetzung für alle Verfügbarkeiten in diesem Zeitraum '
-                                   'auf die Standartwerte des Planungszeitraums zurücksetzen.')
+        # Day config row labels / buttons
+        bt_fixed_cast_reset = QPushButton(self.tr('Cast -> Reset'), clicked=self.reset_all_fixed_cast)
+        bt_fixed_cast_reset.setStatusTip(
+            self.tr('Reset fixed cast for all availabilities in this period to the standard values of the planning period.')
+        )
         self.layout.addWidget(bt_fixed_cast_reset, row + 2, 0)
-        lb_notes = QLabel('Notizen')  # todo: zu Button verändern; Notizen aller Events im Zeitraum
+
+        lb_notes = QLabel(self.tr('Notes'))
         self.layout.addWidget(lb_notes, row + 3, 0)
-        bt_skills_reset_all = QPushButton('Fertigkeiten')
-        bt_skills_reset_all.setStatusTip('Fertigkeiten für alle Verfügbarkeiten in diesem Zeitraum bearbeiten.')
+
+        bt_skills_reset_all = QPushButton(self.tr('Skills'))
+        bt_skills_reset_all.setStatusTip(self.tr('Edit skills for all availabilities in this period.'))
         self.menu_bt_skills_reset_all = QMenu()
         bt_skills_reset_all.setMenu(self.menu_bt_skills_reset_all)
         actions_menu_bt_skills = [
-            MenuToolbarAction(self,
-                              os.path.join(os.path.dirname(__file__),
-                                           'resources', 'toolbar_icons', 'icons', 'screwdriver--minus.png'),
-                              'Fertigkeit entfernen',
-                              'Alle Fertigkeiten von den Events in diesem Zeitraum entfernen.',
-                              self.remove_skills_from_every_event,
-                              ),
-            MenuToolbarAction(self,
-                              os.path.join(os.path.dirname(__file__),
-                                           'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
-                              'Fertigkeit zurücksetzen',
-                              'Alle Fertigkeiten von den Events in diesem Zeitraum '
-                              'auf die Standartwerte der Einrichtung zurücksetzen.',
-                              self.reset_skills_of_every_event,
-                              )
+            MenuToolbarAction(
+                self,
+                os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons', 'screwdriver--minus.png'),
+                self.tr('Remove Skills'),
+                self.tr('Remove all skills from events in this period.'),
+                self.remove_skills_from_every_event,
+            ),
+            MenuToolbarAction(
+                self,
+                os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons', 'screwdriver.png'),
+                self.tr('Reset Skills'),
+                self.tr('Reset all skills from events in this period to the standard values of the facility.'),
+                self.reset_skills_of_every_event,
+            )
         ]
         for action in actions_menu_bt_skills:
             self.menu_bt_skills_reset_all.addAction(action)
         self.layout.addWidget(bt_skills_reset_all, row + 4, 0)
 
-        # Tages-Config_Buttons:
+        # Day config buttons
         for col, d in enumerate(self.days, start=1):
             curr_assignment_of_location = get_curr_assignment_of_location(location_of_work, d)
             if curr_assignment_of_location is None:
@@ -886,11 +952,14 @@ class FrmLocationPlanPeriod(QWidget):
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
             if not self.t_o_d_standards:
-                QMessageBox.critical(self, 'Verfügbarkeiten',
-                                     f'Für diesen Planungszeitraum von '
-                                     f'{self.location_plan_period.location_of_work.name} '
-                                     f'{self.location_plan_period.location_of_work.address.city} '
-                                     f'sind noch keine Tageszeiten-Standartwerte definiert.')
+                QMessageBox.critical(
+                    self,
+                    self.tr('Availabilities'),
+                    self.tr('Error:\nNo time of day standards are defined for this planning period of {name} {city}').format(
+                        name=self.location_plan_period.location_of_work.name,
+                        city=self.location_plan_period.location_of_work.address.city
+                    )
+                )
                 return
             for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
                 button_event = self.create_event_button(d, time_of_day)
@@ -927,10 +996,16 @@ class FrmLocationPlanPeriod(QWidget):
         return button
 
     def setup_controllers(self):
-        """Buttons im Bereich self.layout_controllers"""
-        self.bt_event_group_mode = QPushButton('zum Gruppenmodus', clicked=self.change_mode__event_group)
+        """Buttons in self.layout_controllers area"""
+        self.bt_event_group_mode = QPushButton(
+            self.tr('Switch to Group Mode'),
+            clicked=self.change_mode__event_group
+        )
         self.layout_controllers.addWidget(self.bt_event_group_mode)
-        self.bt_cast_group_mode = QPushButton('zum Fixed Cast Gruppenmodus', clicked=self.change_mode__cast_group)
+        self.bt_cast_group_mode = QPushButton(
+            self.tr('Switch to Fixed Cast Group Mode'),
+            clicked=self.change_mode__cast_group
+        )
         self.layout_controllers.addWidget(self.bt_cast_group_mode)
 
     def save_event(self, bt: ButtonEvent):
@@ -942,12 +1017,12 @@ class FrmLocationPlanPeriod(QWidget):
     def change_mode__event_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
-            QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
         else:
-            QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 
         signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
             signal_handling.DataGroupMode(False))
@@ -961,7 +1036,7 @@ class FrmLocationPlanPeriod(QWidget):
         plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)
         dlg = frm_cast_group.DlgCastGroups(self, plan_period, {self.location_plan_period.id})
         if dlg.exec():
-            QMessageBox.information(self, 'Gruppenmodus', 'Alle Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
@@ -972,7 +1047,7 @@ class FrmLocationPlanPeriod(QWidget):
                 signal_handling.DataDate(self.location_plan_period.plan_period.id)
             )
         else:
-            QMessageBox.information(self, 'Gruppenmodus', 'Keine Änderungen wurden vorgenommen.')
+            QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 
     def get_events(self):
         events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
@@ -980,10 +1055,13 @@ class FrmLocationPlanPeriod(QWidget):
         for event in events:
             button: ButtonEvent = self.findChild(ButtonEvent, f'{event.date}-{event.time_of_day.time_of_day_enum.name}')
             if not button:
-                QMessageBox.critical(self, 'Fehlende Standards',
-                                     f'Fehler:\n'
-                                     f'Kann die verfügbaren Zeiten nicht anzeigen.\nEventuell haben Sie nachträglich '
-                                     f'"{event.time_of_day.time_of_day_enum.name}" aus den Standards gelöscht.')
+                QMessageBox.critical(
+                    self,
+                    self.tr('Missing Standards'),
+                    self.tr('Error:\nCannot display available times.\nYou may have subsequently deleted "{}" from the standards.').format(
+                        event.time_of_day.time_of_day_enum.name
+                    )
+                )
                 return
             button.setChecked(True)
             button.time_of_day = event.time_of_day
@@ -1041,10 +1119,13 @@ class FrmLocationPlanPeriod(QWidget):
         self.reset_chk_field()
 
     def remove_skills_from_every_event(self):
-        reply = QMessageBox.question(self, 'Fertigkeiten entfernen',
-                                     f'Möchten Sie wirklich alle Fertigkeiten aller Events in diesem '
-                                     f'Planungszeitraum von '
-                                     f'{self.location_plan_period.location_of_work.name_an_city} entfernen?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Remove Skills'),
+            self.tr('Do you really want to remove all skills from all events in this planning period of {}?').format(
+                self.location_plan_period.location_of_work.name_an_city
+            )
+        )
         if reply == QMessageBox.StandardButton.No:
             return
 
@@ -1057,16 +1138,20 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
             )
-        QMessageBox.information(self, 'Fertigkeiten entfernen',
-                            'Alle Fertigkeiten aller Events wurden erfolgreich entfernt.')
+        QMessageBox.information(
+            self,
+            self.tr('Remove Skills'),
+            self.tr('All skills have been successfully removed from all events.')
+        )
 
     def reset_skills_of_every_event(self):
-        reply = QMessageBox.question(self, 'Fertigkeiten zurücksetzen',
-                                     f'Möchten Sie wirklich alle Fertigkeiten '
-                                     f'aller Events in diesem Planungszeitraum '
-                                     f'von {self.location_plan_period.location_of_work.name_an_city} '
-                                     f'auf die Standartwerte der Einrichtung '
-                                     f'zurücksetzen?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Reset Skills'),
+            self.tr('Do you really want to reset all skills of all events in this planning period of {} to the facility\'s standard values?').format(
+                self.location_plan_period.location_of_work.name_an_city
+            )
+        )
         if reply == QMessageBox.StandardButton.No:
             return
 
@@ -1083,8 +1168,11 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
             )
-        QMessageBox.information(self, 'Fertigkeiten zurücksetzen',
-                            'Alle Fertigkeiten aller Events wurden erfolgreich zurückgesetzt.')
+        QMessageBox.information(
+            self,
+            self.tr('Reset Skills'),
+            self.tr('All skills have been successfully reset for all events.')
+        )
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
@@ -1099,12 +1187,14 @@ class FrmLocationPlanPeriod(QWidget):
             )
 
     def reset_all_fixed_cast(self):
-        # todo: noch implementieren
-        reply = QMessageBox.question(self, 'Besetzungen zurücksetzen',
-                                     f'Möchten Sie wirklich die Festen Besetzungen aller Events auf den '
-                                     f'Besetzungsstandard der dieser Planungsperiode von '
-                                     f'{self.location_plan_period.location_of_work.name} '
-                                     f'{self.location_plan_period.location_of_work.address.city} zurücksetzen?')
+        reply = QMessageBox.question(
+            self,
+            self.tr('Reset Cast'),
+            self.tr('Do you really want to reset the fixed cast of all events to the cast standard of this planning period of {} {}?').format(
+                self.location_plan_period.location_of_work.name,
+                self.location_plan_period.location_of_work.address.city
+            )
+        )
         if reply != QMessageBox.StandardButton.Yes:
             return
         cast_groups_of_plan_period = db_services.CastGroup.get_all_from__plan_period(
@@ -1120,8 +1210,11 @@ class FrmLocationPlanPeriod(QWidget):
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, c.event.date)
             )
 
-        QMessageBox.information(self, 'Besetzungen zurücksetzen',
-                                'Die Besetzungen aller Events wurden erfolgreich zurückgesetzt.')
+        QMessageBox.information(
+            self,
+            self.tr('Reset Cast'),
+            self.tr('The cast of all events has been successfully reset.')
+        )
 
 
 

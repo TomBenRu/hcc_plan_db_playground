@@ -189,6 +189,15 @@ class PlanPeriodCreate(BaseModel):
     team: Team
 
 
+class PlanPeriodMinimal(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    start: datetime.date
+    end: datetime.date
+    prep_delete: Optional[datetime.datetime] = None
+
+
 class PlanPeriod(PlanPeriodCreate):
     model_config = ConfigDict(from_attributes=True)
 

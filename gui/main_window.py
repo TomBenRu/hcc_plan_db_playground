@@ -41,7 +41,7 @@ from .frm_actor_plan_period import FrmTabActorPlanPeriods
 from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from tools.actions import MenuToolbarAction
-from .frm_open_panperiod_mask import DlgOpenPlanPeriodMask
+from .frm_open_plan_period_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_plan_period_tab_widget import PlanPeriodTabWidget

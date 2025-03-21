@@ -42,7 +42,7 @@ class DlgOpenPlanPeriodMask(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def fill_combo_plan_periods(self):
-        self.plan_periods = sorted((pp for pp in db_services.PlanPeriod.get_all_from__team(self.team_id)
+        self.plan_periods = sorted((pp for pp in db_services.PlanPeriod.get_all_from__team_minimal(self.team_id)
                                     if pp.id not in {self.tabs_planungsmasken.widget(i).plan_period_id
                                                      for i in range(self.tabs_planungsmasken.count())}
                                     and not pp.prep_delete),

@@ -1211,11 +1211,18 @@ class PlanPeriod:
     def get_all_from__project(cls, project_id: UUID) -> list[schemas.PlanPeriodShow]:
         plan_periods_db = models.PlanPeriod.select(lambda pp: pp.project.id == project_id)
         return [schemas.PlanPeriodShow.model_validate(p) for p in plan_periods_db]
+
     @classmethod
     @db_session
     def get_all_from__team(cls, team_id: UUID) -> list[schemas.PlanPeriodShow]:
         plan_periods_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id)
         return [schemas.PlanPeriodShow.model_validate(p) for p in plan_periods_db]
+
+    @classmethod
+    @db_session
+    def get_all_from__team_minimal(cls, team_id: UUID) -> list[schemas.PlanPeriodMinimal]:
+        plan_periods_db = models.PlanPeriod.select(lambda pp: pp.team.id == team_id)
+        return [schemas.PlanPeriodMinimal.model_validate(p) for p in plan_periods_db]
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

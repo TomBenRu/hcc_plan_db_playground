@@ -28,6 +28,8 @@ from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCa
 from gui.observer import signal_handling
 from line_profiler_pycharm import profile
 
+from tools.helper_functions import time_to_string, date_to_string
+
 
 # Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
 # ist diese Funktion nicht mehr notwendig
@@ -143,7 +145,7 @@ class ButtonEvent(QPushButton):
             MenuToolbarAction(self, QIcon(os.path.join(os.path.dirname(__file__),
                                             'resources/toolbar_icons/icons/clock-select.png'))
             if t.name == self.time_of_day.name else None,
-                   f'{t.name}: {t.start.strftime("%H:%M")}-{t.end.strftime("%H:%M")}', None,
+                   f'{t.name}: {time_to_string(t.start)}-{time_to_string(t.end)}', None,
                               functools.partial(self.set_new_time_of_day, t))
             for t in self.t_o_d_for_selection]
 
@@ -238,10 +240,10 @@ class ButtonEvent(QPushButton):
                    'Change time span for time of day "{time_of_day}" on {date}.\n'
                    'Currently: {name} ({start}-{end})').format(
                 time_of_day=self.time_of_day.time_of_day_enum.name,
-                date=self.date,
+                date=date_to_string(self.date),
                 name=self.time_of_day.name,
-                start=self.time_of_day.start.strftime("%H:%M"),
-                end=self.time_of_day.end.strftime("%H:%M")
+                start=time_to_string(self.time_of_day.start),
+                end=time_to_string(self.time_of_day.end)
             )
         )
 
@@ -354,7 +356,7 @@ class ButtonFixedCast(QPushButton):
             QMessageBox.information(
                 self,
                 self.tr('Fixed Cast for Day'),
-                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+                self.tr('There are no events on {date}.').format(date=date_to_string(self.date))
             )
             return
 
@@ -450,7 +452,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             additional_txt = self.tr('\nNotes for events on this day:\nDifferent notes.')
 
         self.setToolTip(self.tr('Click here to edit notes for events on {date}{additional}').format(
-            date=self.date.strftime("%d.%m."),
+            date=date_to_string(self.date),
             additional=additional_txt
         ))
 
@@ -459,7 +461,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             QMessageBox.information(
                 self,
                 self.tr('Event Notes'),
-                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+                self.tr('There are no events on {date}.').format(date=date_to_string(self.date))
             )
             return
 
@@ -474,7 +476,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             QMessageBox.information(
                 self,
                 self.tr('Event Notes'),
-                self.tr('Notes for events on {date} have been updated.').format(date=self.date.strftime("%d.%m."))
+                self.tr('Notes for events on {date} have been updated.').format(date=date_to_string(self.date))
             )
 
 
@@ -570,7 +572,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             additional_txt = self.tr('\nSkills for events on this day are different.')
 
         self.setToolTip(self.tr('Click here to edit skills for events on {date}{additional}').format(
-            date=self.date.strftime("%d.%m."),
+            date=date_to_string(self.date),
             additional=additional_txt
         ))
 
@@ -579,7 +581,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             QMessageBox.information(
                 self,
                 self.tr('Event Skills'),
-                self.tr('There are no events on {date}.').format(date=self.date.strftime("%d.%m."))
+                self.tr('There are no events on {date}.').format(date=date_to_string(self.date))
             )
             return
 
@@ -599,7 +601,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             QMessageBox.information(
                 self,
                 self.tr('Event Skills'),
-                self.tr('Skills for events on {date} have been updated.').format(date=self.date.strftime("%d.%m."))
+                self.tr('Skills for events on {date} have been updated.').format(date=date_to_string(self.date))
             )
         else:
             dlg.controller.undo_all()

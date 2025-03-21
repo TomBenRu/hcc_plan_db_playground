@@ -246,9 +246,9 @@ Aktuell: %s (%s-%s)</translation>
         <source>Right click:
 Change time span for time of day &quot;{time_of_day}&quot; on {date}.
 Currently: {name} ({start}-{end})</source>
-        <translation>Right click:
-Change time span for time of day &quot;{time_of_day}&quot; on {date}.
-Currently: {name} ({start}-{end})</translation>
+        <translation>Rechtsklick:
+Zeitspanne für die Tageszeit &quot;{time_of_day}&quot; am {date} wechseln.
+Aktuell: {name} ({start}-{end})</translation>
     </message>
 </context>
 <context>

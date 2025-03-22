@@ -1267,6 +1267,7 @@ class TblPlanStatistics(QTableWidget):
     def refresh_statistics(self, plan_period_id: UUID | None):
         if self.frm_plan.plan.plan_period.id == plan_period_id or plan_period_id is None:
             self.clear()
+            self.frm_plan.refresh_plan()  # damit eventuell vorhandene Markierungen entfernt werden
             self._setup_data()
             self._setup_table()
             self._fill_in_table_cells()

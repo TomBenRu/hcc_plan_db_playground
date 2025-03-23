@@ -7,13 +7,13 @@ from gui.custom_widgets.tabbars import TabBar
 
 
 class DlgOpenPlanPeriodMask(QDialog):
-    def __init__(self, parent: QWidget | None, team_id: UUID, tabs_planungsmasken: TabBar):
+    def __init__(self, parent: QWidget | None, team_id: UUID, tabs_planning_masks: TabBar):
         super().__init__(parent=parent)
 
-        self.setWindowTitle('Planungsmasken')
+        self.setWindowTitle(self.tr('Planning Masks'))
 
         self.team_id = team_id
-        self.tabs_planungsmasken = tabs_planungsmasken
+        self.tabs_planning_masks = tabs_planning_masks
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -25,15 +25,15 @@ class DlgOpenPlanPeriodMask(QDialog):
 
     def _set_layout(self):
         self.lb_description = QLabel()
-        self.lb_description.setText('Wählen Sie aus, für welche Planungsperiode\n'
-                                    'die Planungsmasken geöffnet werden sollen.')
+        self.lb_description.setText(self.tr('Please select the planning period\n'
+                                          'for which the planning masks should be opened.'))
         self.layout.addWidget(self.lb_description)
-        self.group_plan_periods = QGroupBox('Planungsperioden')
+        self.group_plan_periods = QGroupBox(self.tr('Planning Periods'))
         self.layout.addWidget(self.group_plan_periods)
         self.layout_plan_periods = QFormLayout()
         self.group_plan_periods.setLayout(self.layout_plan_periods)
         self.combo_plan_periods = QComboBox()
-        self.layout_plan_periods.addRow('wählen:', self.combo_plan_periods)
+        self.layout_plan_periods.addRow(self.tr('select:'), self.combo_plan_periods)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.layout.addWidget(self.button_box)
@@ -43,8 +43,8 @@ class DlgOpenPlanPeriodMask(QDialog):
 
     def fill_combo_plan_periods(self):
         self.plan_periods = sorted((pp for pp in db_services.PlanPeriod.get_all_from__team_minimal(self.team_id)
-                                    if pp.id not in {self.tabs_planungsmasken.widget(i).plan_period_id
-                                                     for i in range(self.tabs_planungsmasken.count())}
+                                    if pp.id not in {self.tabs_planning_masks.widget(i).plan_period_id
+                                                     for i in range(self.tabs_planning_masks.count())}
                                     and not pp.prep_delete),
                                    key=lambda x: x.start, reverse=True)
         for pp in self.plan_periods:

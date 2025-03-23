@@ -14,7 +14,7 @@ class DlgNumActorsApp(QDialog):
         self._init_ui()
 
     def _init_ui(self):
-        self.setWindowTitle("Anzahl der Mitarbeiter pro Veranstaltung")
+        self.setWindowTitle(self.tr("Number of Employees per Event"))
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(20)
         self.layout_head = QVBoxLayout()
@@ -24,15 +24,15 @@ class DlgNumActorsApp(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_explanation = QLabel("Bitte geben Sie die Anzahl der Mitarbeiter pro Veranstaltung an.")
+        self.lb_explanation = QLabel(self.tr("Please enter the number of employees per event."))
         self.layout_head.addWidget(self.lb_explanation)
         self.spinbox_num_actors = QSpinBox()
-        self.layout_body.addRow("Anzahl der Mitarbeiter:", self.spinbox_num_actors)
+        self.layout_body.addRow(self.tr("Number of employees:"), self.spinbox_num_actors)
         self.spinbox_num_actors.setMinimum(0)
         self.spinbox_num_actors.setValue(self.location_plan_period.nr_actors)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.bt_reset = QPushButton("Zurücksetzen")
-        self.bt_reset.setToolTip('Setzt die Anzahl der Mitarbeiter auf den Standartwert der Einrichtung.')
+        self.bt_reset = QPushButton(self.tr("Reset"))
+        self.bt_reset.setToolTip(self.tr('Resets the number of employees to the facility default value.'))
         self.bt_reset.clicked.connect(self.reset_num_actors)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)

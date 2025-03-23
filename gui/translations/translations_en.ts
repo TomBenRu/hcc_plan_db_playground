@@ -546,6 +546,26 @@ If you select an employee in the selection box, this calendar can automatically 
     </message>
 </context>
 <context>
+    <name>DlgAppointmentNotes</name>
+    <message>
+        <location filename="../frm_notes.py" line="138"/>
+        <source>Appointment Information</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="156"/>
+        <source>Enter information relevant for the appointment.
+This will be included in the generated Excel file of the schedule.
+Appointment: {date} ({time}) - {location}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="163"/>
+        <source>Reset from Planning Event</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgAskNrPlansToSave</name>
     <message>
         <location filename="../frm_calculate_plan.py" line="27"/>
@@ -1005,6 +1025,36 @@ Here you can change the cast.</source>
         <location filename="../frm_cast_rule.py" line="177"/>
         <source>Here you can edit the casting rule.
 {text_rule_chars}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgEventNotes</name>
+    <message>
+        <location filename="../frm_notes.py" line="95"/>
+        <source>Event Notes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="110"/>
+        <source>events</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="111"/>
+        <source>event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="111"/>
+        <source>all times of day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="116"/>
+        <source>Enter information relevant for the {events_type}.
+This will be copied to linked appointments in the schedules.
+{events_type}: {date} ({time}) - {location}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1706,14 +1756,153 @@ to a different day and time.</source>
     </message>
 </context>
 <context>
+    <name>DlgNumActorsApp</name>
+    <message>
+        <location filename="../frm_num_actors_app.py" line="17"/>
+        <source>Number of Employees per Event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_num_actors_app.py" line="27"/>
+        <source>Please enter the number of employees per event.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_num_actors_app.py" line="30"/>
+        <source>Number of employees:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_num_actors_app.py" line="34"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_num_actors_app.py" line="35"/>
+        <source>Resets the number of employees to the facility default value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgOpenPlanPeriodMask</name>
+    <message>
+        <location filename="../frm_open_plan_period_mask.py" line="13"/>
+        <source>Planning Masks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_open_plan_period_mask.py" line="29"/>
+        <source>Please select the planning period
+for which the planning masks should be opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_open_plan_period_mask.py" line="31"/>
+        <source>Planning Periods</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_open_plan_period_mask.py" line="36"/>
+        <source>select:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgPartnerLocationPrefs</name>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="306"/>
+        <source>Partner Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="348"/>
+        <source>Date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="353"/>
+        <location filename="../frm_partner_location_prefs.py" line="564"/>
+        <source>Employees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="371"/>
+        <location filename="../frm_partner_location_prefs.py" line="590"/>
+        <source>Facilities</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="391"/>
+        <source>The selection of employees and facilities may change at a later date.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="400"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="470"/>
+        <source>Reset to Normal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="471"/>
+        <source>Set all values to &quot;Normal&quot;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="474"/>
+        <source>Values from parent model</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="475"/>
+        <source>All values will be taken from the parent model</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="511"/>
+        <source>The same partners belong to the team on all days of the period.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="516"/>
+        <source>Not all days of the period have the same partners in the team.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="532"/>
+        <source>The same facilities belong to the team on all days of the period.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="536"/>
+        <source>Not all days of the period have the same facilities in the team.
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="561"/>
+        <source>In {name} ({city}):</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="587"/>
+        <source>With {first_name} {last_name}:</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>DlgPersonCreate</name>
     <message>
-        <location filename="../frm_masterdata.py" line="359"/>
+        <location filename="../frm_masterdata.py" line="360"/>
         <source>Person Created</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="360"/>
+        <location filename="../frm_masterdata.py" line="361"/>
         <source>Person {} created in project {}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1721,72 +1910,72 @@ to a different day and time.</source>
 <context>
     <name>DlgPersonData</name>
     <message>
-        <location filename="../frm_masterdata.py" line="289"/>
+        <location filename="../frm_masterdata.py" line="290"/>
         <source>Person Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="300"/>
+        <location filename="../frm_masterdata.py" line="301"/>
         <source>Personal Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="304"/>
+        <location filename="../frm_masterdata.py" line="305"/>
         <source>Login Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="308"/>
+        <location filename="../frm_masterdata.py" line="309"/>
         <source>Address Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="324"/>
+        <location filename="../frm_masterdata.py" line="325"/>
         <source>First Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="325"/>
+        <location filename="../frm_masterdata.py" line="326"/>
         <source>Last Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="326"/>
+        <location filename="../frm_masterdata.py" line="327"/>
         <source>Email</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="327"/>
+        <location filename="../frm_masterdata.py" line="328"/>
         <source>Gender</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="328"/>
+        <location filename="../frm_masterdata.py" line="329"/>
         <source>Phone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="329"/>
+        <location filename="../frm_masterdata.py" line="330"/>
         <source>Username</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="330"/>
+        <location filename="../frm_masterdata.py" line="331"/>
         <source>Password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="331"/>
+        <location filename="../frm_masterdata.py" line="332"/>
         <source>Street</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="332"/>
+        <location filename="../frm_masterdata.py" line="333"/>
         <source>ZIP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="333"/>
+        <location filename="../frm_masterdata.py" line="334"/>
         <source>City</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1794,64 +1983,91 @@ to a different day and time.</source>
 <context>
     <name>DlgPersonModify</name>
     <message>
-        <location filename="../frm_masterdata.py" line="382"/>
+        <location filename="../frm_masterdata.py" line="383"/>
         <source>Specific Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="388"/>
         <location filename="../frm_masterdata.py" line="389"/>
         <location filename="../frm_masterdata.py" line="390"/>
         <location filename="../frm_masterdata.py" line="391"/>
-        <location filename="../frm_masterdata.py" line="393"/>
+        <location filename="../frm_masterdata.py" line="392"/>
+        <location filename="../frm_masterdata.py" line="394"/>
         <source>Edit...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="395"/>
+        <location filename="../frm_masterdata.py" line="396"/>
         <source>Requested Assignments</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="396"/>
+        <location filename="../frm_masterdata.py" line="397"/>
         <source>Times of Day</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="397"/>
+        <location filename="../frm_masterdata.py" line="398"/>
         <source>Location Combinations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="398"/>
+        <location filename="../frm_masterdata.py" line="399"/>
         <source>Location Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="399"/>
-        <location filename="../frm_masterdata.py" line="498"/>
+        <location filename="../frm_masterdata.py" line="400"/>
+        <location filename="../frm_masterdata.py" line="499"/>
         <source>Employee Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="400"/>
+        <location filename="../frm_masterdata.py" line="401"/>
         <source>Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="418"/>
+        <location filename="../frm_masterdata.py" line="419"/>
         <source>Person Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="419"/>
+        <location filename="../frm_masterdata.py" line="420"/>
         <source>Person has been updated:
 {} {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="499"/>
+        <location filename="../frm_masterdata.py" line="500"/>
         <source>{} {} is not yet a member of any team</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgPlanPeriodNotes</name>
+    <message>
+        <location filename="../frm_notes.py" line="12"/>
+        <source>Plan Information</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="30"/>
+        <source>Enter the information that should appear
+in the generated schedules
+Plan: {plan}
+Team: {team}
+Planning period: {start} - {end}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="38"/>
+        <source>Reset from Planning Period</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="40"/>
+        <source>Also save as Planning Period information</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1888,6 +2104,21 @@ to a different day and time.</source>
     <message>
         <location filename="../frm_appointments_to_google_calendar.py" line="32"/>
         <source>&lt;h4&gt;Team: {team_name}&lt;br&gt;Period: {time_span}&lt;/h4&gt;&lt;p&gt;Do you want to add the appointments of this period&lt;br&gt;to the corresponding Google Calendars of the employees?&lt;br&gt;During this process, existing appointments of this period will be removed from the calendars.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgTeamNotes</name>
+    <message>
+        <location filename="../frm_notes.py" line="60"/>
+        <source>Team Information</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_notes.py" line="77"/>
+        <source>Enter information relevant for the team.
+This will be copied to newly created planning periods.
+Team: {team}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2287,7 +2518,7 @@ Do you want to delete these available days from the planning mask?</source>
 <context>
     <name>FrmLocationCreate</name>
     <message>
-        <location filename="../frm_masterdata.py" line="712"/>
+        <location filename="../frm_masterdata.py" line="713"/>
         <source>Facility Data</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2295,37 +2526,37 @@ Do you want to delete these available days from the planning mask?</source>
 <context>
     <name>FrmLocationData</name>
     <message>
-        <location filename="../frm_masterdata.py" line="673"/>
+        <location filename="../frm_masterdata.py" line="674"/>
         <source>Facility Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="676"/>
+        <location filename="../frm_masterdata.py" line="677"/>
         <source>Address Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="685"/>
+        <location filename="../frm_masterdata.py" line="686"/>
         <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="686"/>
+        <location filename="../frm_masterdata.py" line="687"/>
         <source>Street</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="687"/>
+        <location filename="../frm_masterdata.py" line="688"/>
         <source>ZIP Code</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="688"/>
+        <location filename="../frm_masterdata.py" line="689"/>
         <source>City</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="701"/>
+        <location filename="../frm_masterdata.py" line="702"/>
         <source>Facility Created</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2333,71 +2564,71 @@ Do you want to delete these available days from the planning mask?</source>
 <context>
     <name>FrmLocationModify</name>
     <message>
-        <location filename="../frm_masterdata.py" line="720"/>
+        <location filename="../frm_masterdata.py" line="721"/>
         <source>Facility Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="730"/>
+        <location filename="../frm_masterdata.py" line="731"/>
         <source>Specific Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="742"/>
         <location filename="../frm_masterdata.py" line="743"/>
         <location filename="../frm_masterdata.py" line="744"/>
+        <location filename="../frm_masterdata.py" line="745"/>
         <source>Edit...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="746"/>
+        <location filename="../frm_masterdata.py" line="747"/>
         <source>Staff Count</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="747"/>
+        <location filename="../frm_masterdata.py" line="748"/>
         <source>Times of Day</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="748"/>
+        <location filename="../frm_masterdata.py" line="749"/>
         <source>Team</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="749"/>
+        <location filename="../frm_masterdata.py" line="750"/>
         <source>Desired Staff</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="750"/>
+        <location filename="../frm_masterdata.py" line="751"/>
         <source>Skill Groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="768"/>
+        <location filename="../frm_masterdata.py" line="769"/>
         <source>Location Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="769"/>
+        <location filename="../frm_masterdata.py" line="770"/>
         <source>The location has been updated:
 {name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="790"/>
-        <location filename="../frm_masterdata.py" line="807"/>
+        <location filename="../frm_masterdata.py" line="791"/>
+        <location filename="../frm_masterdata.py" line="808"/>
         <source>No Team</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="805"/>
+        <location filename="../frm_masterdata.py" line="806"/>
         <source>No subsequent team assignment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="806"/>
+        <location filename="../frm_masterdata.py" line="807"/>
         <source>{team} from {date}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2666,17 +2897,17 @@ You may have subsequently deleted &quot;{}&quot; from the standards.</source>
 <context>
     <name>FrmMasterData</name>
     <message>
-        <location filename="../frm_masterdata.py" line="31"/>
+        <location filename="../frm_masterdata.py" line="32"/>
         <source>Master Data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="47"/>
+        <location filename="../frm_masterdata.py" line="48"/>
         <source>Employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="48"/>
+        <location filename="../frm_masterdata.py" line="49"/>
         <source>Facilities</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3325,6 +3556,62 @@ Open planning mask for %s</source>
     </message>
 </context>
 <context>
+    <name>PartnerLocPrefs</name>
+    <message>
+        <location filename="../widget_styles/buttons.py" line="54"/>
+        <source>with all employees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widget_styles/buttons.py" line="55"/>
+        <source>in all facilities</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widget_styles/buttons.py" line="57"/>
+        <source>with some employees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widget_styles/buttons.py" line="61"/>
+        <source>in some facilities</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SliderValToText</name>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="68"/>
+        <source>do not assign</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="69"/>
+        <source>assign if necessary</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="70"/>
+        <source>assign gladly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="71"/>
+        <source>assign preferably</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="75"/>
+        <source>assign mandatory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_partner_location_prefs.py" line="80"/>
+        <source>Value must be between 0-4 inclusive. Current: {val}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>StrictCastPref</name>
     <message>
         <location filename="../frm_cast_group.py" line="43"/>
@@ -3345,42 +3632,42 @@ Open planning mask for %s</source>
 <context>
     <name>TableLocationsOfWork</name>
     <message>
-        <location filename="../frm_masterdata.py" line="618"/>
+        <location filename="../frm_masterdata.py" line="619"/>
         <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="619"/>
+        <location filename="../frm_masterdata.py" line="620"/>
         <source>Street</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="620"/>
+        <location filename="../frm_masterdata.py" line="621"/>
         <source>ZIP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="621"/>
+        <location filename="../frm_masterdata.py" line="622"/>
         <source>City</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="622"/>
+        <location filename="../frm_masterdata.py" line="623"/>
         <source>Team</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="623"/>
+        <location filename="../frm_masterdata.py" line="624"/>
         <source>Staff</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="656"/>
+        <location filename="../frm_masterdata.py" line="657"/>
         <source>{team} from {date}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="658"/>
+        <location filename="../frm_masterdata.py" line="659"/>
         <source>No Team</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3388,104 +3675,104 @@ Open planning mask for %s</source>
 <context>
     <name>TablePersons</name>
     <message>
-        <location filename="../frm_masterdata.py" line="194"/>
+        <location filename="../frm_masterdata.py" line="195"/>
         <source>First Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="195"/>
+        <location filename="../frm_masterdata.py" line="196"/>
         <source>Last Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="196"/>
+        <location filename="../frm_masterdata.py" line="197"/>
         <source>Email</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="197"/>
+        <location filename="../frm_masterdata.py" line="198"/>
         <source>Gender</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="198"/>
+        <location filename="../frm_masterdata.py" line="199"/>
         <source>Phone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="199"/>
+        <location filename="../frm_masterdata.py" line="200"/>
         <source>Street</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="200"/>
+        <location filename="../frm_masterdata.py" line="201"/>
         <source>ZIP</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="201"/>
+        <location filename="../frm_masterdata.py" line="202"/>
         <source>City</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="202"/>
+        <location filename="../frm_masterdata.py" line="203"/>
         <source>Team</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="210"/>
+        <location filename="../frm_masterdata.py" line="211"/>
         <source>male</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="211"/>
+        <location filename="../frm_masterdata.py" line="212"/>
         <source>female</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="215"/>
+        <location filename="../frm_masterdata.py" line="216"/>
         <source>diverse</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="258"/>
+        <location filename="../frm_masterdata.py" line="259"/>
         <source>immediately</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="259"/>
-        <location filename="../frm_masterdata.py" line="275"/>
+        <location filename="../frm_masterdata.py" line="260"/>
+        <location filename="../frm_masterdata.py" line="276"/>
         <source>Person</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="260"/>
+        <location filename="../frm_masterdata.py" line="261"/>
         <source>The person &quot;{}&quot; is assigned to team &quot;{}&quot; starting {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="262"/>
+        <location filename="../frm_masterdata.py" line="263"/>
         <source>New Employee</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="263"/>
+        <location filename="../frm_masterdata.py" line="264"/>
         <source>Do you want to create planning periods for {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="270"/>
+        <location filename="../frm_masterdata.py" line="271"/>
         <source>New Planning Periods</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="271"/>
+        <location filename="../frm_masterdata.py" line="272"/>
         <source>The following planning periods were created for {}:
 {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="276"/>
+        <location filename="../frm_masterdata.py" line="277"/>
         <source>The person &quot;{}&quot; is not assigned to any team starting {}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3658,47 +3945,47 @@ in the plan.</source>
 <context>
     <name>WidgetLocationsOfWork</name>
     <message>
-        <location filename="../frm_masterdata.py" line="542"/>
+        <location filename="../frm_masterdata.py" line="543"/>
         <source>Create Facility</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="545"/>
+        <location filename="../frm_masterdata.py" line="546"/>
         <source>Edit Facility</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="548"/>
+        <location filename="../frm_masterdata.py" line="549"/>
         <source>Delete Facility</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="575"/>
+        <location filename="../frm_masterdata.py" line="576"/>
         <source>Edit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="577"/>
-        <location filename="../frm_masterdata.py" line="589"/>
+        <location filename="../frm_masterdata.py" line="578"/>
+        <location filename="../frm_masterdata.py" line="590"/>
         <source>You must first select an entry.
 Click on the corresponding row.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="587"/>
-        <location filename="../frm_masterdata.py" line="592"/>
-        <location filename="../frm_masterdata.py" line="598"/>
+        <location filename="../frm_masterdata.py" line="588"/>
+        <location filename="../frm_masterdata.py" line="593"/>
+        <location filename="../frm_masterdata.py" line="599"/>
         <source>Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="593"/>
+        <location filename="../frm_masterdata.py" line="594"/>
         <source>Do you really want to permanently delete the data of...
 {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="599"/>
+        <location filename="../frm_masterdata.py" line="600"/>
         <source>Deleted:
 {}</source>
         <translation type="unfinished"></translation>
@@ -3707,93 +3994,93 @@ Click on the corresponding row.</source>
 <context>
     <name>WidgetPerson</name>
     <message>
-        <location filename="../frm_masterdata.py" line="76"/>
+        <location filename="../frm_masterdata.py" line="77"/>
         <source>Create Person</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="80"/>
+        <location filename="../frm_masterdata.py" line="81"/>
         <source>Import People from XLSX</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="83"/>
+        <location filename="../frm_masterdata.py" line="84"/>
         <source>Import employees from XLSX file.
 Columns: First name, Last name, username</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="85"/>
+        <location filename="../frm_masterdata.py" line="86"/>
         <source>Edit Person</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="89"/>
+        <location filename="../frm_masterdata.py" line="90"/>
         <source>Delete Person</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="102"/>
-        <location filename="../frm_masterdata.py" line="146"/>
-        <location filename="../frm_masterdata.py" line="175"/>
+        <location filename="../frm_masterdata.py" line="103"/>
+        <location filename="../frm_masterdata.py" line="147"/>
+        <location filename="../frm_masterdata.py" line="176"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="102"/>
-        <location filename="../frm_masterdata.py" line="146"/>
-        <location filename="../frm_masterdata.py" line="175"/>
+        <location filename="../frm_masterdata.py" line="103"/>
+        <location filename="../frm_masterdata.py" line="147"/>
+        <location filename="../frm_masterdata.py" line="176"/>
         <source>Error: {}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="129"/>
+        <location filename="../frm_masterdata.py" line="130"/>
         <source>Employee on Server</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="130"/>
+        <location filename="../frm_masterdata.py" line="131"/>
         <source>The employee will be created on the server.
 Not yet implemented</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="138"/>
+        <location filename="../frm_masterdata.py" line="139"/>
         <source>Open XLSX File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="138"/>
+        <location filename="../frm_masterdata.py" line="139"/>
         <source>XLSX Files (*.xlsx)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="151"/>
+        <location filename="../frm_masterdata.py" line="152"/>
         <source>Edit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="152"/>
-        <location filename="../frm_masterdata.py" line="163"/>
+        <location filename="../frm_masterdata.py" line="153"/>
+        <location filename="../frm_masterdata.py" line="164"/>
         <source>Please select an entry first.
 Click on the corresponding row.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="162"/>
-        <location filename="../frm_masterdata.py" line="166"/>
-        <location filename="../frm_masterdata.py" line="173"/>
+        <location filename="../frm_masterdata.py" line="163"/>
+        <location filename="../frm_masterdata.py" line="167"/>
+        <location filename="../frm_masterdata.py" line="174"/>
         <source>Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="167"/>
+        <location filename="../frm_masterdata.py" line="168"/>
         <source>Do you really want to permanently delete the data of...
 {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_masterdata.py" line="173"/>
+        <location filename="../frm_masterdata.py" line="174"/>
         <source>Deleted:
 {}</source>
         <translation type="unfinished"></translation>

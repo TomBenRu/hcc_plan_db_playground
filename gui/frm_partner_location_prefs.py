@@ -3,7 +3,7 @@ from functools import partial
 from typing import Literal, Callable
 from uuid import UUID
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QCoreApplication
 from PySide6.QtGui import Qt, QResizeEvent
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QHBoxLayout, QGroupBox, QMenu, QDateEdit, \
@@ -64,16 +64,24 @@ def factory_for_reload_curr_model(curr_model: schemas.ModelWithPartnerLocPrefs) 
 
 
 class SliderValToText:
-
-    val2text: dict[int, str] = {0: 'nicht einsetzen', 1: 'notfalls einsetzen', 2: 'gerne einsetzen',
-                                3: 'bevorzugt einsetzen', 4: 'unbedingt einsetzen'}
+    val_to_text = {
+        0: QCoreApplication.translate('SliderValToText', 'do not assign'),
+        1: QCoreApplication.translate('SliderValToText', 'assign if necessary'),
+        2: QCoreApplication.translate('SliderValToText', 'assign gladly'),
+        3: QCoreApplication.translate('SliderValToText', 'assign preferably'),
+        4: QCoreApplication.translate('SliderValToText', 'assign mandatory')
+    }
 
     @classmethod
     def get_text(cls, val: int) -> str:
         if not (0 <= val <= 4):
-            raise ValueError(f'Der Wert muss zwischen einschließlich 0-4 liegen. Aktuell: {val=}')
-        else:
-            return cls.val2text[val]
+            raise ValueError(
+                QCoreApplication.translate(
+                    'SliderValToText', 'Value must be between 0-4 inclusive. Current: {val}').format(val=val)
+            )
+
+
+        return cls.val_to_text[val]
 
 
 class DlgPartnerLocationPrefsLocs(QDialog):
@@ -288,14 +296,14 @@ class DlgPartnerLocationPrefsPartner(QDialog):
 
 
 class DlgPartnerLocationPrefs(QDialog):
-    """Hier werden die Mitarbeiter-Einrichtungs-Präferenzen festgelegt.
-    Falls keine Präferenz einer bestimmten Kombination vorhanden ist, wird sie als Präferenz mit Score=1 gewertet."""
+    """Dialog for setting employee-facility preferences.
+    If no preference exists for a specific combination, it is treated as a preference with score=1."""
 
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
                  parent_model: schemas.ModelWithPartnerLocPrefs | None,
                  team_at_date_factory: Callable[[datetime.date], schemas.Team]):
         super().__init__(parent)
-        self.setWindowTitle('Partner-Präferenzen')
+        self.setWindowTitle(self.tr('Partner Preferences'))
 
         self.screen_geometry = QApplication.primaryScreen().geometry()
 
@@ -337,12 +345,12 @@ class DlgPartnerLocationPrefs(QDialog):
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_foot)
 
-        self.group_date = QGroupBox('Datum')
+        self.group_date = QGroupBox(self.tr('Date'))
         self.layout_head.addWidget(self.group_date)
         self.layout_date = QHBoxLayout(self.group_date)
 
         # Layout für die Mitarbeiter-Gruppe
-        self.group_partners = QGroupBox('Mitarbeiter')
+        self.group_partners = QGroupBox(self.tr('Employees'))
         self.layout_body.addWidget(self.group_partners)
         # Erstelle zunächst einen QScrollArea und mach ihn anpassbar
         self.scroll_area_partners = QScrollArea(self.group_partners)
@@ -360,7 +368,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.group_partners_layout.addWidget(self.scroll_area_partners)
 
         # Layout für die Einrichtungs-Gruppe
-        self.group_locations = QGroupBox('Einrichtungen')
+        self.group_locations = QGroupBox(self.tr('Facilities'))
         self.layout_body.addWidget(self.group_locations)
         # Erstelle zunächst einen QScrollArea und mach ihn anpassbar
         self.scroll_area_locations = QScrollArea(self.group_locations)
@@ -380,7 +388,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.lb_info = QLabel()
         self.layout_head.addWidget(self.lb_info)
 
-        self.lb_date = QLabel('zu einem späteren Datum kann sich die Auswahl an Mitarbeitern und Einrichtungen ändern.')
+        self.lb_date = QLabel(self.tr('The selection of employees and facilities may change at a later date.'))
         self.de_date = QDateEdit()
         self.de_date.dateChanged.connect(self.on_date_change)
         self.layout_date.addWidget(self.de_date)
@@ -389,7 +397,7 @@ class DlgPartnerLocationPrefs(QDialog):
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
                                            QDialogButtonBox.StandardButton.Cancel)
-        self.bt_reset = QPushButton('reset')
+        self.bt_reset = QPushButton(self.tr('Reset'))
         self.reset_menu: QMenu | None = None
         self.configure_bt_reset()
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
@@ -459,11 +467,13 @@ class DlgPartnerLocationPrefs(QDialog):
         else:
             self.reset_menu = QMenu(self)
             self.reset_menu.addAction(
-                MenuToolbarAction(self, None, 'alles auf Normal', 'Alle Werte auf "Normal" setzen.',
-                                  self.reset_to_ones))
+                MenuToolbarAction(self, None, self.tr('Reset to Normal'),
+                                self.tr('Set all values to "Normal".'),
+                                self.reset_to_ones))
             self.reset_menu.addAction(
-                MenuToolbarAction(self, None, 'Werte von übergeordnetem Modell',
-                       'Alle Werte werden vom übergeordnten Modell übernommen', self.reset_to_parent_values))
+                MenuToolbarAction(self, None, self.tr('Values from parent model'),
+                                self.tr('All values will be taken from the parent model'),
+                                self.reset_to_parent_values))
             self.bt_reset.setMenu(self.reset_menu)
 
     def set_curr_team(self):
@@ -497,12 +507,12 @@ class DlgPartnerLocationPrefs(QDialog):
                                if get_curr_assignment_of_person(self.person, date).team.id == self.curr_team.id]
         curr_partner_ids = {pers.id for pers in get_persons_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])
                             if pers.id != self.person.id}
-        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Partner zu.'
+        info_text = self.tr('The same partners belong to the team on all days of the period.')
         for date in valid_days_of_actor[1:]:
             partner_ids_at_date = {p.id for p in get_persons_of_team_at_date(self.curr_team.id, date)
                                    if p.id != self.person.id}
             if partner_ids_at_date != curr_partner_ids:
-                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Partner zu.'
+                info_text = self.tr('Not all days of the period have the same partners in the team.')
             curr_partner_ids |= partner_ids_at_date
 
         self.lb_info.setText(self.lb_info.text() + info_text)
@@ -518,11 +528,11 @@ class DlgPartnerLocationPrefs(QDialog):
                                if get_curr_assignment_of_person(self.person, date).team.id == self.curr_team.id]
         curr_loc_of_work_ids = {loc.id for loc in
                                 get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
-        info_text = 'An allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.\n'
+        info_text = self.tr('The same facilities belong to the team on all days of the period.\n')
         for date in valid_days_of_actor[1:]:
             location_ids_at_date = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
             if location_ids_at_date != curr_loc_of_work_ids:
-                info_text = 'Nicht an allen Tagen des Zeitraums gehören dem Team die gleichen Einrichtungen zu.\n'
+                info_text = self.tr('Not all days of the period have the same facilities in the team.\n')
             curr_loc_of_work_ids |= location_ids_at_date
 
         self.lb_info.setText(self.lb_info.text() + info_text)
@@ -544,13 +554,14 @@ class DlgPartnerLocationPrefs(QDialog):
         self.dict_partner_id__bt_slider_lb = {}
 
     def setup_option_field(self):
-        """Regler und Buttons für Locations und Partners werden hinzugefügt"""
+        """Setup sliders and buttons for locations and partners"""
 
         '''setup locations group:'''
         for row, loc in enumerate(self.locations):
-            lb_location = QLabel(f'In {loc.name} ({loc.address.city}):')
+            lb_location = QLabel(self.tr('In {name} ({city}):').format(
+                name=loc.name, city=loc.address.city))
             self.layout_options_locations.addWidget(lb_location, row, 0)
-            bt_partners = QPushButton('Mitarbeiter', clicked=partial(self.choice_partners, loc.id))
+            bt_partners = QPushButton(self.tr('Employees'), clicked=partial(self.choice_partners, loc.id))
             self.layout_options_locations.addWidget(bt_partners, row, 1)
 
             lb_loc_val = QLabel('Error')
@@ -573,9 +584,10 @@ class DlgPartnerLocationPrefs(QDialog):
             }
         '''setup partners group:'''
         for row, partner in enumerate(self.partners):
-            lb_partner = QLabel(f'Mit {partner.f_name} {partner.l_name}:')
+            lb_partner = QLabel(self.tr('With {first_name} {last_name}:').format(
+                first_name=partner.f_name, last_name=partner.l_name))
             self.layout_options_partners.addWidget(lb_partner, row, 0)
-            bt_locations = QPushButton('Einrichtungen', clicked=partial(self.choice_locations, partner.id))
+            bt_locations = QPushButton(self.tr('Facilities'), clicked=partial(self.choice_locations, partner.id))
             self.layout_options_partners.addWidget(bt_locations, row, 1)
 
             lb_partner_val = QLabel('Error')

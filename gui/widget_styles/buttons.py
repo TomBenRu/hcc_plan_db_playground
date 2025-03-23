@@ -1,5 +1,6 @@
 import dataclasses
 from typing import Literal
+from PySide6.QtCore import QCoreApplication
 
 # maps time_of_day_enum.time_index to style
 
@@ -50,9 +51,11 @@ class PartnerLocPrefs:
     dict_style_buttons: dict[
         Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
         'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
-                'text': {'locs': 'mit allen Mitarbeitern', 'partners': 'in allen Einrichtungen'}},
+                'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with all employees'),
+                        'partners': QCoreApplication.translate('PartnerLocPrefs', 'in all facilities')}},
         'some': {'color': {'locs': 'orange', 'partners': 'orange'},
-                 'text': {'locs': 'mit einigen Mitarbeitern', 'partners': 'in einigen Einrichtungen'}}
+                 'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with some employees'),
+                         'partners': QCoreApplication.translate('PartnerLocPrefs', 'in some facilities')}}
     }
 
     @classmethod

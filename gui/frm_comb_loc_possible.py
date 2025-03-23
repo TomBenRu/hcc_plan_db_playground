@@ -125,6 +125,9 @@ class DlgCombLocPossibleEditList(QDialog):
     def set_new__locations__parent_model(self):
         date = self.de_date.date().toPython()
         self.curr_team = self.team_at_date_factory(date) if self.team_at_date_factory else self.curr_model
+        if not self.curr_team:
+            self.lb_info.setText(self.tr('No team is assigned to this person at this date.'))
+            return
         self.locations_of_work = get_locations_of_team_at_date(self.curr_team.id, date)
         self.parent_model = self.parent_model_factory(date) if self.parent_model_factory else None
         self.fill_table_combinations()
@@ -195,6 +198,10 @@ class DlgCombLocPossibleEditList(QDialog):
         self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
 
     def new(self):
+        if not self.locations_of_work:
+            QMessageBox.critical(self, self.tr('Facility Combinations'),
+                               self.tr('No facilities are assigned to this team at this date.'))
+            return
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
                                 for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
         dlg = DlgNewCombLocPossible(self, self.locations_of_work)
@@ -220,6 +227,8 @@ class DlgCombLocPossibleEditList(QDialog):
             self.fill_table_combinations()
 
     def reset(self):
+        if not self.parent_model:
+            return
         for c in self.curr_model.combination_locations_possibles:
             remove_command = self.factory_for_remove_combs(self.curr_model, c.id)
             self.controller.execute(remove_command)

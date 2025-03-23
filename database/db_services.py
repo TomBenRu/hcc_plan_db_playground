@@ -357,8 +357,8 @@ class Person:
         persons_list: list[schemas.Person] = []
         for _, row in df.iterrows():
             new_person = schemas.PersonCreate(
-                f_name=row['Vorname'],
-                l_name=row['Nachname'],
+                f_name=row['First name'],
+                l_name=row['Last name'],
                 email='fake@email.com',
                 gender=Gender.divers,
                 phone_nr=None,

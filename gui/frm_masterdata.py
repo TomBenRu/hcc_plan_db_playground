@@ -4,7 +4,7 @@ import os
 from functools import partial
 from uuid import UUID
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
@@ -20,6 +20,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
     location_plan_period_commands, event_group_commands
+from tools.helper_functions import date_to_string
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -28,7 +29,7 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 class FrmMasterData(QWidget):
     def __init__(self, project_id: UUID):
         super().__init__()
-        self.setWindowTitle('Stammdaten')
+        self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)
 
         self.project_id = project_id
@@ -44,8 +45,8 @@ class FrmMasterData(QWidget):
 
         self.widget_locations_of_work = WidgetLocationsOfWork(project_id)
 
-        self.tab_bar.addTab(self.widget_persons, 'Mitarbeiter')
-        self.tab_bar.addTab(self.widget_locations_of_work, 'Einrichtungen')
+        self.tab_bar.addTab(self.widget_persons, self.tr('Employees'))
+        self.tab_bar.addTab(self.widget_locations_of_work, self.tr('Facilities'))
         self.layout.addWidget(self.tab_bar)
 
 
@@ -73,18 +74,20 @@ class WidgetPerson(QWidget):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
-        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--plus.png')), ' Person anlegen')
+        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--plus.png')), self.tr('Create Person'))
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_person)
-        self.bt_new_from_xlsx = QPushButton(QIcon(os.path.join(self.path_to_icons, 'file--plus.png')), ' Personen aus XLSX importieren')
+
+        self.bt_new_from_xlsx = QPushButton(QIcon(os.path.join(self.path_to_icons, 'file--plus.png')), self.tr('Import People from XLSX'))
         self.bt_new_from_xlsx.setFixedWidth(200)
         self.bt_new_from_xlsx.clicked.connect(self.create_persons_from_xlsx)
-        self.bt_new_from_xlsx.setToolTip('Importiert Mitarbeiter aus einer XLSX-Datei.\n'
-                                         'Spalten: Vorname, Nachname, username')
-        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), 'Person bearbeiten')
+        self.bt_new_from_xlsx.setToolTip(self.tr('Import employees from XLSX file.\nColumns: First name, Last name, username'))
+
+        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), self.tr('Edit Person'))
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_person)
-        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--minus.png')), ' Person löschen')
+
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--minus.png')), self.tr('Delete Person'))
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_person)
 
@@ -97,7 +100,7 @@ class WidgetPerson(QWidget):
         try:
             return [p for p in db_services.Person.get_all_from__project(self.project_id) if not p.prep_delete]
         except Exception as e:
-            QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+            QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
 
     def refresh_table(self):
         self.persons = self.get_persons()
@@ -124,16 +127,16 @@ class WidgetPerson(QWidget):
 
     def create_person_on_api(self, person: schemas_plan_api.PersonCreate):
         # TODO: Implement API call to create person on server
-        QMessageBox.information(self, 'Mitarbeiter auf Server',
-                                'Der Mitarbeiter wird auf dem Server angelegt.\nNoch nicht implementiert')
+        QMessageBox.information(self, self.tr('Employee on Server'),
+                              self.tr('The employee will be created on the server.\nNot yet implemented'))
 
     def create_persons_from_xlsx(self):
         """
-        Importiert Mitarbeiter aus einer XLSX-Datei.
-        Spalten: Vorname, Nachname, username
-        Fake-E-Mail und Fake-Passwort werden generiert.
+        Import employees from XLSX file.
+        Columns: First name, Last name, username
+        Fake email and password will be generated.
         """
-        file_name, _ = QFileDialog.getOpenFileName(self, 'XLSX-Datei öffnen', '', 'XLSX-Dateien (*.xlsx)')
+        file_name, _ = QFileDialog.getOpenFileName(self, self.tr('Open XLSX File'), '', self.tr('XLSX Files (*.xlsx)'))
         if file_name:
             try:
                 persons = db_services.Person.create_persons_from_xlsx(file_name, self.project_id)
@@ -141,13 +144,13 @@ class WidgetPerson(QWidget):
                 self.table_persons.persons = persons
                 self.refresh_table()
             except Exception as e:
-                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+                QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
 
     def edit_person(self):
         row = self.table_persons.currentRow()
         if row == -1:
-            QMessageBox.information(self, 'Bearbeiten', 'Sie müssen zuerst einen Eintrag auswählen.\n'
-                                                        'Klicken Sie dafür in die entsprechende Zeile.')
+            QMessageBox.information(self, self.tr('Edit'),
+                                  self.tr('Please select an entry first.\nClick on the corresponding row.'))
             return
         person = db_services.Person.get(UUID(self.table_persons.item(row, 9).text()))
         dlg = DlgPersonModify(self, self.project_id, person)
@@ -157,20 +160,20 @@ class WidgetPerson(QWidget):
     def delete_person(self):
         row = self.table_persons.currentRow()
         if row == -1:
-            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
-                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            QMessageBox.information(self, self.tr('Delete'),
+                                  self.tr('Please select an entry first.\nClick on the corresponding row.'))
             return
         text_person = f'{self.table_persons.item(row, 0).text()} {self.table_persons.item(row, 1).text()}'
-        res = QMessageBox.warning(self, 'Löschen',
-                                  f'Wollen Sie die Daten von...\n{text_person}\n...wirklich entgültig löschen?',
-                                  QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        res = QMessageBox.warning(self, self.tr('Delete'),
+                                self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_person),
+                                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
             person_id = UUID(self.table_persons.item(row, 9).text())
             try:
                 deleted_person = db_services.Person.delete(person_id)
-                QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_person}')
+                QMessageBox.information(self, self.tr('Delete'), self.tr('Deleted:\n{}').format(deleted_person))
             except Exception as e:
-                QMessageBox.critical(self, 'Fehler', f'Fehler: {e}')
+                QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
         self.refresh_table()
 
 
@@ -188,12 +191,27 @@ class TablePersons(QTableWidget):
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        self.headers = ['Vorname', 'Nachname', 'Email', 'Geschlecht', 'Telefon', 'Straße', 'PLZ', 'Ort', 'Team', 'id']
+        self.headers = [
+            self.tr('First Name'),
+            self.tr('Last Name'),
+            self.tr('Email'),
+            self.tr('Gender'),
+            self.tr('Phone'),
+            self.tr('Street'),
+            self.tr('ZIP'),
+            self.tr('City'),
+            self.tr('Team'),
+            'id'
+        ]
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(6, 50)
         self.setHorizontalHeaderLabels(self.headers)
         self.hideColumn(9)
-        self.gender_visible_strings = {'m': 'männlich', 'f': 'weiblich', 'd': 'divers'}
+        self.gender_visible_strings = {
+            'm': self.tr('male'),
+            'f': self.tr('female'),
+            'd': self.tr('diverse')
+        }
 
         self.put_data_to_table()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -232,32 +250,32 @@ class TablePersons(QTableWidget):
             sender.blockSignals(False)
             return
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
-        # fixme: schon vorhandene ActorPlanPeriods müssen noch berücksichtigt werden.
-        #  Siehe auch "CreateLocationPlanPeriodsFromDate(Command)".
+        # fixme: existing ActorPlanPeriods need to be considered.
+        #  See also "CreateLocationPlanPeriodsFromDate(Command)".
         if team_id:
             person_commands.AssignToTeam(person_id, team_id, dlg.start_date_new_team).execute()
             next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())
-            text_start = next_assignment.start.strftime("%d.%m.%Y") if next_assignment else 'ab sofort'
+            text_start = date_to_string(next_assignment.start) if next_assignment else self.tr('immediately')
             text_team_name = db_services.Team.get(team_id).name
-            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
-                                                    f'{text_start} dem Team '
-                                                    f'"{text_team_name}" zugeordnet.')
-            reply = QMessageBox.question(self, 'Neuer Mitarbeiter',
-                                         f'Sollen für {person_full_name} Planperioden erstellt werden?')
+            QMessageBox.information(self, self.tr('Person'),
+                self.tr('The person "{}" is assigned to team "{}" starting {}').format(
+                    person_full_name, text_team_name, text_start))
+            reply = QMessageBox.question(self, self.tr('New Employee'),
+                self.tr('Do you want to create planning periods for {}?').format(person_full_name))
             if reply == QMessageBox.StandardButton.Yes:
                 plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__team(team_id)
                                 if pp.end > datetime.date.today()]
                 for plan_period in plan_periods:
                     new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period.id, person_id)
                     db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
-                QMessageBox.information(self, 'Neue Planperioden',
-                                        f'Für {person_full_name} wurden folgende Planperioden erstellt:\n'
-                                        f'{[pp.start for pp in plan_periods]}')
+                QMessageBox.information(self, self.tr('New Planning Periods'),
+                    self.tr('The following planning periods were created for {}:\n{}').format(
+                        person_full_name, [pp.start for pp in plan_periods]))
         else:
             person_commands.LeaveTeam(person_id, dlg.start_date_new_team).execute()
-            QMessageBox.information(self, 'Person', f'Die Person "{person_full_name}" ist ab '
-                                                    f'{dlg.start_date_new_team.strftime("%d.%m.%Y")} '
-                                                    f'keinem Team zugeordnet.')
+            QMessageBox.information(self, self.tr('Person'),
+                self.tr('The person "{}" is not assigned to any team starting {}').format(
+                    person_full_name, date_to_string(dlg.start_date_new_team)))
 
         sender.blockSignals(True)
         curr_team = get_curr_team_of_person_at_date(person=db_services.Person.get(person_id))
@@ -269,7 +287,7 @@ class DlgPersonData(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
-        self.setWindowTitle('Personendaten')
+        self.setWindowTitle(self.tr('Person Data'))
 
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
@@ -280,15 +298,15 @@ class DlgPersonData(QDialog):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.group_person_data = QGroupBox('Personendaten')
+        self.group_person_data = QGroupBox(self.tr('Personal Data'))
         self.group_person_data_layout = QFormLayout(self.group_person_data)
         self.layout.addWidget(self.group_person_data)
 
-        self.group_auth_data = QGroupBox('Anmeldedaten')
+        self.group_auth_data = QGroupBox(self.tr('Login Data'))
         self.group_auth_data_layout = QFormLayout(self.group_auth_data)
         self.layout.addWidget(self.group_auth_data)
 
-        self.group_address_data = QGroupBox('Adressdaten')
+        self.group_address_data = QGroupBox(self.tr('Address Data'))
         self.group_address_data_layout = QFormLayout(self.group_address_data)
         self.layout.addWidget(self.group_address_data)
 
@@ -304,16 +322,16 @@ class DlgPersonData(QDialog):
         self.le_postal_code = QLineEdit()
         self.le_city = QLineEdit()
 
-        self.group_person_data_layout.addRow('Vorname', self.le_f_name)
-        self.group_person_data_layout.addRow('Nachname', self.le_l_name)
-        self.group_person_data_layout.addRow('Email', self.le_email)
-        self.group_person_data_layout.addRow('Gerschlecht', self.cb_gender)
-        self.group_person_data_layout.addRow('Telefon', self.le_phone_nr)
-        self.group_auth_data_layout.addRow('Username', self.le_username)
-        self.group_auth_data_layout.addRow('Passwort', self.le_password)
-        self.group_address_data_layout.addRow('Straße', self.le_street)
-        self.group_address_data_layout.addRow('Postleitzahl', self.le_postal_code)
-        self.group_address_data_layout.addRow('Ort', self.le_city)
+        self.group_person_data_layout.addRow(self.tr('First Name'), self.le_f_name)
+        self.group_person_data_layout.addRow(self.tr('Last Name'), self.le_l_name)
+        self.group_person_data_layout.addRow(self.tr('Email'), self.le_email)
+        self.group_person_data_layout.addRow(self.tr('Gender'), self.cb_gender)
+        self.group_person_data_layout.addRow(self.tr('Phone'), self.le_phone_nr)
+        self.group_auth_data_layout.addRow(self.tr('Username'), self.le_username)
+        self.group_auth_data_layout.addRow(self.tr('Password'), self.le_password)
+        self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
+        self.group_address_data_layout.addRow(self.tr('ZIP'), self.le_postal_code)
+        self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -339,9 +357,10 @@ class DlgPersonCreate(DlgPersonData):
         create_command = person_commands.Create(person, self.project_id)
         self.controller.execute(create_command)
         self.created_person = create_command.created_person
-        QMessageBox.information(self, 'Person angelegt:\n',
-                                f'{self.created_person.full_name}\n'
-                                f'im Projekt{self.created_person.project.name}')
+        QMessageBox.information(self, self.tr('Person Created'),
+                                self.tr('Person {} created in project {}').format(
+                                    self.created_person.full_name,
+                                    self.created_person.project.name))
         super().accept()
 
     @property
@@ -361,25 +380,25 @@ class DlgPersonModify(DlgPersonData):
     def _setup_ui(self):
         super()._setup_ui()
         self.group_auth_data.close()
-        self.group_specific_data = QGroupBox('Spezielles')
+        self.group_specific_data = QGroupBox(self.tr('Specific Data'))
         self.group_specific_data_layout = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
-        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
-        self.bt_comb_loc_possible = QPushButton('Bearbeiten...', clicked=self.edit_comb_loc_possible)
-        self.bt_actor_loc_prefs = QPushButton('Bearbeiten...', clicked=self.edit_location_prefs)
-        self.bt_actor_partner_loc_prefs = QPushButton('Bearbeiten...',
+        self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
+        self.bt_comb_loc_possible = QPushButton(self.tr('Edit...'), clicked=self.edit_comb_loc_possible)
+        self.bt_actor_loc_prefs = QPushButton(self.tr('Edit...'), clicked=self.edit_location_prefs)
+        self.bt_actor_partner_loc_prefs = QPushButton(self.tr('Edit...'),
                                                       clicked=self.edit_partner_location_prefs)
-        self.bt_skills = QPushButton('Bearbeiten...', clicked=self.select_skills)
+        self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
-        self.group_specific_data_layout.addRow('Anz. gew. Einsätze', self.spin_num_requested_assignments)
-        self.group_specific_data_layout.addRow('Tageszeiten', self.bt_time_of_days)
-        self.group_specific_data_layout.addRow('Einrichtungskombinationnen', self.bt_comb_loc_possible)
-        self.group_specific_data_layout.addRow('Einrichtungspräferenzen', self.bt_actor_loc_prefs)
-        self.group_specific_data_layout.addRow('Mitarbeiterpräferenzen', self.bt_actor_partner_loc_prefs)
-        self.group_specific_data_layout.addRow('Fähigkeiten', self.bt_skills)
+        self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
+        self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
+        self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
+        self.group_specific_data_layout.addRow(self.tr('Location Preferences'), self.bt_actor_loc_prefs)
+        self.group_specific_data_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
+        self.group_specific_data_layout.addRow(self.tr('Skills'), self.bt_skills)
 
         self.layout.addWidget(self.button_box)
         self.button_box.rejected.connect(self.reject)
@@ -397,8 +416,9 @@ class DlgPersonModify(DlgPersonData):
         self.person.address.city = self.le_city.text()
 
         updated_person = db_services.Person.update(self.person)
-        QMessageBox.information(self, 'Person Update',
-                                f'Die Person wurde upgedatet:\n{updated_person.f_name} {updated_person.l_name}')
+        QMessageBox.information(self, self.tr('Person Update'),
+                                self.tr('Person has been updated:\n{} {}').format(
+                                    updated_person.f_name, updated_person.l_name))
         super().accept()
 
     def reject(self):
@@ -476,9 +496,9 @@ class DlgPersonModify(DlgPersonData):
     def edit_partner_location_prefs(self):
         team = get_curr_team_of_person_at_date(self.person)
         if not team:
-            QMessageBox.critical(self, 'Mitarbeiterpräferenzen',
-                                 f'{self.person.f_name} {self.person.l_name} '
-                                 f'ist noch nicht Mitarbeiter*in eines Teams.')
+            QMessageBox.critical(self, self.tr('Employee Preferences'),
+                                 self.tr('{} {} is not yet a member of any team').format(
+                                     self.person.f_name, self.person.l_name))
             return
 
         team_at_date_factory = partial(get_curr_team_of_person_at_date, self.person)
@@ -507,7 +527,7 @@ class WidgetLocationsOfWork(QWidget):
         self.setLayout(self.layout)
 
         self.layout_buttons = QHBoxLayout()
-        self.layout_buttons.setAlignment(Qt.AlignLeft)
+        self.layout_buttons.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.layout.addLayout(self.layout_buttons)
 
         self.project_id = project_id
@@ -520,13 +540,13 @@ class WidgetLocationsOfWork(QWidget):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
-        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--plus.png')), ' Einrichtung anlegen')
+        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--plus.png')), ' ' + self.tr('Create Facility'))
         self.bt_new.setFixedWidth(200)
         self.bt_new.clicked.connect(self.create_location)
-        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' Einrichtung bearbeiten')
+        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' ' + self.tr('Edit Facility'))
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_location)
-        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--minus.png')), ' Einrichtung löschen')
+        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--minus.png')), ' ' + self.tr('Delete Facility'))
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_location)
 
@@ -553,8 +573,9 @@ class WidgetLocationsOfWork(QWidget):
     def edit_location(self):
         row = self.table_locations.currentRow()
         if row == -1:
-            QMessageBox.information(self, 'Bearbeiten', 'Sie müssen zuerst einen Eintrag auswählen.\n'
-                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            QMessageBox.information(self, self.tr('Edit'),
+                                  self.tr('You must first select an entry.\n'
+                                        'Click on the corresponding row.'))
             return
         location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
         dlg = FrmLocationModify(self, self.project_id, location_id)
@@ -564,17 +585,19 @@ class WidgetLocationsOfWork(QWidget):
     def delete_location(self):
         row = self.table_locations.currentRow()
         if row == -1:
-            QMessageBox.information(self, 'Löschen', 'Sie müssen zuerst einen Eintrag auswählen.\n'
-                                                     'Klicken Sie dafür in die entsprechende Zeile.')
+            QMessageBox.information(self, self.tr('Delete'),
+                                  self.tr('You must first select an entry.\n'
+                                        'Click on the corresponding row.'))
             return
         text_location = f'{self.table_locations.item(row, 0).text()} {self.table_locations.item(row, 1).text()}'
-        res = QMessageBox.warning(self, 'Löschen',
-                                  f'Wollen Sie die Daten von...\n{text_location}\n...wirklich entgültig löschen?',
-                                  QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        res = QMessageBox.warning(self, self.tr('Delete'),
+                                self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_location),
+                                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
             location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
             deleted_location = db_services.LocationOfWork.delete(location_id)
-            QMessageBox.information(self, 'Löschen', f'Gelöscht:\n{deleted_location}')
+            QMessageBox.information(self, self.tr('Delete'),
+                                  self.tr('Deleted:\n{}').format(deleted_location))
         self.refresh_table()
 
 
@@ -591,7 +614,16 @@ class TableLocationsOfWork(QTableWidget):
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        self.headers = ['Name', 'Straße', 'PLZ', 'Ort', 'Team', 'Besetung', 'id']
+        # Using tr() for column headers
+        self.headers = [
+            self.tr('Name'),
+            self.tr('Street'),
+            self.tr('ZIP'),
+            self.tr('City'),
+            self.tr('Team'),
+            self.tr('Staff'),
+            'id'
+        ]
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(4, 50)
         self.setHorizontalHeaderLabels(self.headers)
@@ -621,8 +653,11 @@ class TableLocationsOfWork(QTableWidget):
         if next_assignment__date := get_next_assignment_of_location(location, datetime.date.today()):
             next_assignment, date = next_assignment__date
             if next_assignment:
-                return (f'{next_assignment.team.name if next_assignment else "Kein Team"} '
-                        f'ab dem {date.strftime("%d.%m.%y")}')
+                return QCoreApplication.translate("TableLocationsOfWork",
+                    "{team} from {date}").format(
+                        team=(next_assignment.team.name if next_assignment
+                              else QCoreApplication.translate("TableLocationsOfWork", "No Team")),
+                        date=date_to_string(date))
         return ''
 
 
@@ -636,10 +671,10 @@ class FrmLocationData(QDialog):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.group_location_data = QGroupBox('Einrichtungsdaten')
+        self.group_location_data = QGroupBox(self.tr('Facility Data'))
         self.group_location_data_layout = QFormLayout(self.group_location_data)
         self.layout.addWidget(self.group_location_data)
-        self.group_address_data = QGroupBox('Adressdaten')
+        self.group_address_data = QGroupBox(self.tr('Address Data'))
         self.group_address_data_layout = QFormLayout(self.group_address_data)
         self.layout.addWidget(self.group_address_data)
 
@@ -648,10 +683,10 @@ class FrmLocationData(QDialog):
         self.le_postal_code = QLineEdit()
         self.le_city = QLineEdit()
 
-        self.group_location_data_layout.addRow('Name', self.le_name)
-        self.group_address_data_layout.addRow('Straße', self.le_street)
-        self.group_address_data_layout.addRow('Postleitzahl', self.le_postal_code)
-        self.group_address_data_layout.addRow('Ort', self.le_city)
+        self.group_location_data_layout.addRow(self.tr('Name'), self.le_name)
+        self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
+        self.group_address_data_layout.addRow(self.tr('ZIP Code'), self.le_postal_code)
+        self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_location)
@@ -664,7 +699,7 @@ class FrmLocationData(QDialog):
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
 
         created = db_services.LocationOfWork.create(location, self.project_id)
-        QMessageBox.information(self, 'Einrichtung angelegt', f'{created}')
+        QMessageBox.information(self, self.tr('Facility Created'), str(created))
         self.close()
 
     def reject(self):
@@ -675,8 +710,7 @@ class FrmLocationCreate(FrmLocationData):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent, project_id=project_id)
 
-        self.setWindowTitle('Einrichtungsdaten')
-
+        self.setWindowTitle(self.tr('Facility Data'))
         self.layout.addWidget(self.button_box)
 
 
@@ -684,21 +718,17 @@ class FrmLocationModify(FrmLocationData):
     def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
         super().__init__(parent, project_id=project_id)
 
-        self.setWindowTitle('Einrichtungsdaten')
-
+        self.setWindowTitle(self.tr('Facility Data'))
         self.location_id = location_id
-
         self.controller = command_base_classes.ContrExecUndoRedo()
-
         self.location_of_work = self.get_location_of_work()
-
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self._setup_ui()
         self._autofill_widgets()
 
     def _setup_ui(self):
-        self.group_specific_data = QGroupBox('Spezielles')
+        self.group_specific_data = QGroupBox(self.tr('Specific Data'))
         self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
@@ -710,15 +740,15 @@ class FrmLocationModify(FrmLocationData):
         self.lb_teams_info = QLabel()
         self.layout_teams.addWidget(self.cb_teams)
         self.layout_teams.addWidget(self.lb_teams_info)
-        self.bt_time_of_days = QPushButton('Bearbeiten...', clicked=self.edit_time_of_days)
-        self.bt_fixed_cast = QPushButton('Bearbeiten...', clicked=self.edit_fixed_cast)
-        self.bt_skill_groups = QPushButton('Bearbeiten...', clicked=self.edit_skill_groups)
+        self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
+        self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
+        self.bt_skill_groups = QPushButton(self.tr('Edit...'), clicked=self.edit_skill_groups)
 
-        self.layout_group_specific_data.addRow('Besetzungsstärke', self.spin_nr_actors)
-        self.layout_group_specific_data.addRow('Tageszeiten', self.bt_time_of_days)
-        self.layout_group_specific_data.addRow('Team', self.layout_teams)
-        self.layout_group_specific_data.addRow('Besetzung erwünscht', self.bt_fixed_cast)
-        self.layout_group_specific_data.addRow('Fertigkeitsgruppen', self.bt_skill_groups)
+        self.layout_group_specific_data.addRow(self.tr('Staff Count'), self.spin_nr_actors)
+        self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
+        self.layout_group_specific_data.addRow(self.tr('Team'), self.layout_teams)
+        self.layout_group_specific_data.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
+        self.layout_group_specific_data.addRow(self.tr('Skill Groups'), self.bt_skill_groups)
         self.layout.addWidget(self.button_box)
 
     def _autofill_widgets(self):
@@ -736,7 +766,9 @@ class FrmLocationModify(FrmLocationData):
         self.location_of_work.address.city = self.le_city.text()
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
         updated_location = db_services.LocationOfWork.update(self.location_of_work)
-        QMessageBox.information(self, 'Location Update', f'Die Location wurde upgedatet:\n{updated_location.name}')
+        QMessageBox.information(self, self.tr('Location Update'),
+                              self.tr('The location has been updated:\n{name}').format(
+                                  name=updated_location.name))
         self.accept()
 
     def reject(self):
@@ -756,7 +788,7 @@ class FrmLocationModify(FrmLocationData):
         self.cb_teams.blockSignals(True)
         self.cb_teams.clear()
         teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
-        self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), 'kein Team', None)
+        self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), self.tr('No Team'), None)
         for team in teams:
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), team.name, team.id)
         self.set_curr_team()
@@ -770,9 +802,11 @@ class FrmLocationModify(FrmLocationData):
 
     def get_team_info_text(self) -> str:
         if not (next_assignment__date := get_next_assignment_of_location(self.location_of_work, datetime.date.today())):
-            return 'Keine nachfolgende Teamzuweisung'
+            return self.tr('No subsequent team assignment')
         next_assignment, date = next_assignment__date
-        return f'{next_assignment.team.name if next_assignment else "Kein Team"} ab dem {date.strftime("%d.%m.%y")}'
+        return self.tr('{team} from {date}').format(
+            team=next_assignment.team.name if next_assignment else self.tr('No Team'),
+            date=date_to_string(date))
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationOfWork(self, self.location_of_work).build()

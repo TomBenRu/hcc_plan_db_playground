@@ -124,13 +124,11 @@ def multi_resource_scheduling_2():
     for task in tasks:
         machine_vars = [model.NewBoolVar(f'machine_{machine}') for machine in range(1,num_machines + 1)]
         model.Add(sum(machine_vars) == 1)
-        # is_machine_1 = model.NewBoolVar(f'is_machine_1_{task.name}')
         for machine_nr, duration in enumerate(task.durations, start=1):
-            task_intervals[(task.name, f'Machine {machine_nr}')] = model.NewOptionalIntervalVar(
+            task_intervals[(task.name, f'Machine {machine_nr}')] = model.NewIntervalVar(
                 model.NewIntVar(0, horizon, f'start_{task.name}_{machine_nr}'),
-                duration,
+                duration * machine_vars[machine_nr - 1],
                 model.NewIntVar(0, horizon, f'end_{task.name}_{machine_nr}'),
-                machine_vars[machine_nr - 1],
                 f'task_interval_{task.name}_{machine_nr}')
 
     machine_to_intervals: dict[str, list[cp_model.IntervalVar]] = {f'Machine {machine}': []
@@ -154,7 +152,7 @@ def multi_resource_scheduling_2():
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Optimaler Zeitplan gefunden:')
         for task_interval in task_intervals.values():
-            if not solver.Value(task_interval.EndExpr()):
+            if not solver.Value(task_interval.SizeExpr()):
                 continue
             start = solver.Value(task_interval.StartExpr())
             end = solver.Value(task_interval.EndExpr())
@@ -175,4 +173,4 @@ def multi_resource_scheduling_2():
 
 
 # Ausführen des Beispiels
-multi_resource_scheduling_1()
+multi_resource_scheduling_2()

@@ -111,8 +111,9 @@ def multi_resource_scheduling():
             end = solver.Value(task_interval.EndExpr())
             print(f'{task_interval.name}: Start = {start}, Ende = {end}')
         print(f'Gesamtdauer (Makespan): {solver.Value(makespan)}')
-        print("\nZeitplan-Visualisierung:")
 
+        # Visualisierung als ASCII-Diagramm
+        print("\nZeitplan-Visualisierung:")
         for machine, intervals in machine_to_intervals.items():
             print(f"{machine}: ", end="")
             timeline = ['.'] * (solver.Value(makespan) + 1)

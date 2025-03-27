@@ -323,6 +323,13 @@ class Person:
         return {taa.person.full_name: taa.person.id for taa in team_actor_assigns}
 
     @classmethod
+    @db_session
+    def get_dispatchers_from__project(cls, project_id: UUID) -> list[schemas.PersonShow]:
+        project_db = models.Project.get_for_update(id=project_id)
+        dispatchers_db = models.Person.select(lambda p: p.project == project_db and p.teams_of_dispatcher)
+        return [schemas.PersonShow.model_validate(d) for d in dispatchers_db]
+
+    @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, person: schemas.PersonCreate, project_id: UUID, person_id: UUID = None) -> schemas.Person:
         log_function_info(cls)

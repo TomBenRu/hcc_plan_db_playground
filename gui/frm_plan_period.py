@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton, QTextEdit
-from urllib3.exceptions import NewConnectionError
+from line_profiler_pycharm import profile
 
 from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas
@@ -302,22 +302,22 @@ class DlgPlanPeriodEdit(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def fill_dispatchers(self):
-        dispatcher = [p for p in db_services.Person.get_all_from__project(self.project_id)
-                      if p.teams_of_dispatcher and not p.prep_delete]
-        for d in dispatcher:
+        dispatchers = [d for d in db_services.Person.get_dispatchers_from__project(self.project_id)
+                      if not d.prep_delete]
+        for d in dispatchers:
             self.cb_dispatcher.addItem(
                 QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/user.png')),
                 f'{d.f_name} {d.l_name}', d
             )
 
-    def fill_teams(self):
+    def fill_teams(self, *args):
         self.cb_teams.clear()
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
         for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
             team = db_services.Team.get(t.id)
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/users.png')), team.name, team)
 
-    def fill_plan_periods(self):
+    def fill_plan_periods(self, *args):
         self.cb_planperiods.clear()
         curr_team: schemas.TeamShow = self.cb_teams.currentData()
         self.curr_plan_periods = sorted([p for p in curr_team.plan_periods if not p.prep_delete],
@@ -326,7 +326,7 @@ class DlgPlanPeriodEdit(QDialog):
             text = f'{pp.start.strftime("%d.%m.%Y")} - {pp.end.strftime("%d.%m.%Y")}'
             self.cb_planperiods.addItem(text, pp)
 
-    def fill_plan_period_datas(self):
+    def fill_plan_period_datas(self, *args):
         pp_after = (self.curr_plan_periods[self.cb_planperiods.currentIndex() - 1]
                     if self.cb_planperiods.currentIndex() > 0 else None)
         pp_before = (self.curr_plan_periods[self.cb_planperiods.currentIndex() + 1]

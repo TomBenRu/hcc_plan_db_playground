@@ -14,6 +14,7 @@ from database.special_schema_requests import get_locations_of_team_at_date, \
 from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
     actor_plan_period_commands, avail_day_group_commands
 from gui.frm_remote_access_plan_api import plan_api_handler
+from tools.helper_functions import date_to_string
 
 
 class DlgPlanPeriodCreate(QDialog):
@@ -195,9 +196,9 @@ class DlgPlanPeriodCreate(QDialog):
                                           '<p>Deadline: {deadline_date}</p>'
                                           '<p>Notes in Online Portal:<br>{notes}</p>').format(
                                               team_name=created_plan_period.team.name,
-                                              start_date=created_plan_period.start.strftime("%d.%m.%y"),
-                                              end_date=created_plan_period.end.strftime("%d.%m.%y"),
-                                              deadline_date=created_plan_period.deadline.strftime("%d.%m.%y"),
+                                              start_date=date_to_string(created_plan_period.start),
+                                              end_date=date_to_string(created_plan_period.end),
+                                              deadline_date=date_to_string(created_plan_period.deadline),
                                               notes=created_plan_period.notes))
         except Exception as e:
             QMessageBox.critical(self, self.tr('New Planning Period on Server'),
@@ -323,7 +324,7 @@ class DlgPlanPeriodEdit(QDialog):
         self.curr_plan_periods = sorted([p for p in curr_team.plan_periods if not p.prep_delete],
                                         key=lambda x: x.start, reverse=True)
         for pp in self.curr_plan_periods:
-            text = f'{pp.start.strftime("%d.%m.%Y")} - {pp.end.strftime("%d.%m.%Y")}'
+            text = f'{date_to_string(pp.start)} - {date_to_string(pp.end)}'
             self.cb_planperiods.addItem(text, pp)
 
     def fill_plan_period_datas(self, *args):

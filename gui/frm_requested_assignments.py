@@ -6,13 +6,14 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands
 from database import db_services
+from tools.helper_functions import date_to_string
 
 
 class DlgRequestedAssignments(QDialog):
     def __init__(self, parent: QWidget, actor_plan_period_id: UUID):
         super().__init__(parent=parent)
 
-        self.setWindowTitle('Anzahl gewünschter Termine')
+        self.setWindowTitle(self.tr('Number of Requested Assignments'))
 
         self.actor_plan_period_id = actor_plan_period_id
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period_id)
@@ -32,11 +33,11 @@ class DlgRequestedAssignments(QDialog):
         self.layout_head.addWidget(self.lb_info)
 
         self.spin_requested_assignments = QSpinBox()
-        self.layout_body.addRow('Anzahl gewünschter Termine', self.spin_requested_assignments)
+        self.layout_body.addRow(self.tr('Number of requested assignments'), self.spin_requested_assignments)
         self.chk_required_assignments = QCheckBox()
-        self.layout_body.addRow('als absolut setzen', self.chk_required_assignments)
+        self.layout_body.addRow(self.tr('Set as absolute'), self.chk_required_assignments)
 
-        self.bt_reset = QPushButton('Reset', clicked=self.reset)
+        self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
@@ -51,11 +52,13 @@ class DlgRequestedAssignments(QDialog):
         super().reject()
 
     def setup_widgets(self):
-        self.lb_info.setText(f'Die Anzahl gewünschter Einsätze bezieht sich auf den gesamten Planungszeitraum\n'
-                             f'von {self.actor_plan_period.plan_period.start: %d.%m.%Y} '
-                             f'bis {self.actor_plan_period.plan_period.end:%d.%m.%Y}\n'
-                             f'Wenn "als absolut setzen" ausgewählt ist, wird versucht, die Anzahl der Einsätze\n'
-                             f'so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.')
+        self.lb_info.setText(
+            self.tr('The number of requested assignments refers to the entire planning period\n'
+                   'from {start_date} to {end_date}\n'
+                   'If "Set as absolute" is selected, the system will try to match\n'
+                   'the number of assignments as close as possible to the requested number.').format(
+                start_date=date_to_string(self.actor_plan_period.plan_period.start),
+                end_date=date_to_string(self.actor_plan_period.plan_period.end)))
         self.spin_requested_assignments.setFixedWidth(40)
         self.spin_requested_assignments.setRange(0, 500)
         self.spin_requested_assignments.setValue(self.actor_plan_period.requested_assignments)

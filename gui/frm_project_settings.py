@@ -16,7 +16,7 @@ from .frm_time_of_day_enum import DlgTimeOfDayEnumsEditList
 class DlgSettingsProject(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
-        self.setWindowTitle('Projekt-Einstellungen')
+        self.setWindowTitle(self.tr('Project Settings'))
 
         self.project_id = project_id
 
@@ -27,37 +27,35 @@ class DlgSettingsProject(QDialog):
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 
-        self.group_project_data = QGroupBox('Projektdaten')
+        self.group_project_data = QGroupBox(self.tr('Project Data'))
         self.layout_group_project_data = QGridLayout()
         self.group_project_data.setLayout(self.layout_group_project_data)
         self.layout.addWidget(self.group_project_data)
 
-        self.lb_name = QLabel('Name')
+        self.lb_name = QLabel(self.tr('Name'))
         self.le_name = QLineEdit()
-        self.lb_teams = QLabel('Teams')
+        self.lb_teams = QLabel(self.tr('Teams'))
         self.cb_teams = QComboBox()
-        self.lb_admin = QLabel('Admin')
+        self.lb_admin = QLabel(self.tr('Admin'))
         self.cb_admin = QComboBox()
-        self.lb_time_of_days = QLabel('Tageszeiten')
-        # self.cb_time_of_days = QComboBox()
-        self.lb_time_of_day_enums = QLabel('Tagesz. Standards')
+        self.lb_time_of_days = QLabel(self.tr('Times of Day'))
+        self.lb_time_of_day_enums = QLabel(self.tr('Time of Day Categories'))
         self.cb_time_of_day_enums = QComboBox()
-        self.lb_skills = QLabel('Fähigkeiten')
-        self.lb_cast_rules = QLabel('Besetzungsregeln')
-        self.lb_excel_export_settings = QLabel('Excel-Settings')
+        self.lb_skills = QLabel(self.tr('Skills'))
+        self.lb_cast_rules = QLabel(self.tr('Cast Rules'))
+        self.lb_excel_export_settings = QLabel(self.tr('Excel Settings'))
         self.layout_excel_export_settings = QHBoxLayout()
         self.layout_excel_export_settings.setSpacing(2)
         self.color_widgets = [QWidget() for _ in self.project.excel_export_settings.model_dump(exclude={'id'})]
 
-        self.bt_name_save = QPushButton('Speichern', clicked=self.save_name)
-        self.bt_teams = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_team)
-        self.bt_admin = QPushButton('Speichern', clicked=self.save_admin)
-        self.bt_time_of_day = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day)
-        self.bt_time_of_day_enums = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_time_of_day_enums)
-        self.bt_skills = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_skills)
-        self.bt_cast_rules = QPushButton('Neu/Ändern/Löschen', clicked=self.edit_cast_rules)
-
-        self.bt_excel_export_settings = QPushButton('Bearbeiten', clicked=self.edit_excel_export_settings)
+        self.bt_name_save = QPushButton(self.tr('Save'), clicked=self.save_name)
+        self.bt_teams = QPushButton(self.tr('New/Edit/Delete'), clicked=self.edit_team)
+        self.bt_admin = QPushButton(self.tr('Save'), clicked=self.save_admin)
+        self.bt_time_of_day = QPushButton(self.tr('New/Edit/Delete'), clicked=self.edit_time_of_day)
+        self.bt_time_of_day_enums = QPushButton(self.tr('New/Edit/Delete'), clicked=self.edit_time_of_day_enums)
+        self.bt_skills = QPushButton(self.tr('New/Edit/Delete'), clicked=self.edit_skills)
+        self.bt_cast_rules = QPushButton(self.tr('New/Edit/Delete'), clicked=self.edit_cast_rules)
+        self.bt_excel_export_settings = QPushButton(self.tr('Edit'), clicked=self.edit_excel_export_settings)
 
         self.layout_group_project_data.addWidget(self.lb_name, 0, 0)
         self.layout_group_project_data.addWidget(self.le_name, 0, 1)
@@ -106,8 +104,8 @@ class DlgSettingsProject(QDialog):
         if self.project.admin:
             self.cb_admin.setCurrentText(f'{self.project.admin.f_name} {self.project.admin.l_name}')
         else:
-            self.cb_admin.addItem('kein Admin', None)
-            self.cb_admin.setCurrentText('kein Admin')
+            self.cb_admin.addItem(self.tr('no admin'), None)
+            self.cb_admin.setCurrentText(self.tr('no admin'))
 
     def fill_time_of_day_enums(self):
         self.cb_time_of_day_enums.clear()
@@ -122,7 +120,8 @@ class DlgSettingsProject(QDialog):
 
     def save_name(self):
         project_updated = db_services.Project.update_name(self.le_name.text(), self.project_id)
-        QMessageBox.information(self, 'Projekt', f'Name wurde upgedatet:\n{project_updated}')
+        QMessageBox.information(self, self.tr('Project'),
+                              self.tr('Name has been updated:\n{}').format(project_updated))
 
     def edit_team(self):
         if FrmTeam(self, self.project, self.cb_teams.currentData()).exec():
@@ -131,8 +130,11 @@ class DlgSettingsProject(QDialog):
 
     def save_admin(self):
         updated_person = db_services.Person.update_project_of_admin(self.cb_admin.currentData().id, self.project_id)
-        QMessageBox.information(self, 'Projekt', f'Admin des Projektes "{self.project.name}" ist nun '
-                                                 f'"{updated_person.f_name} {updated_person.l_name}"')
+        QMessageBox.information(self, self.tr('Project'),
+                              self.tr('Admin of project "{}" is now "{} {}"').format(
+                                  self.project.name,
+                                  updated_person.f_name,
+                                  updated_person.l_name))
         self.project = db_services.Project.get(self.project_id)
         self.fill_admins()
 
@@ -158,13 +160,16 @@ class DlgSettingsProject(QDialog):
         if dlg.exec():
             if dlg.chk_new_mode.isChecked():
                 created_time_of_day_enum = db_services.TimeOfDayEnum.create(dlg.new_time_of_day_enum)
-                QMessageBox.information(self, 'new time_of_day_enum', f'{created_time_of_day_enum}')
+                QMessageBox.information(self, self.tr('New Time of Day Category'),
+                                      str(created_time_of_day_enum))
             elif dlg.to_delete_status:
                 db_services.TimeOfDayEnum.delete(dlg.curr_time_of_day_enum.id)
-                QMessageBox.information(self, 'deleted time_of_day_enum', f'{dlg.curr_time_of_day_enum}')
+                QMessageBox.information(self, self.tr('Deleted Time of Day Category'),
+                                      str(dlg.curr_time_of_day_enum))
             else:
                 updated_time_of_day_enum = db_services.TimeOfDayEnum.update(dlg.curr_time_of_day_enum)
-                QMessageBox.information(self, 'update time_of_day_enum', f'{updated_time_of_day_enum}')
+                QMessageBox.information(self, self.tr('Updated Time of Day Category'),
+                                      str(updated_time_of_day_enum))
 
             self.project = db_services.Project.get(self.project_id)
             self.fill_time_of_day_enums()
@@ -172,10 +177,12 @@ class DlgSettingsProject(QDialog):
     def edit_skills(self):
         dlg = DlgEditSkills(self, self.project_id)
         if dlg.exec():
-            QMessageBox.information(self, 'Skills', 'Skills wurden geändert')
+            QMessageBox.information(self, self.tr('Skills'),
+                                  self.tr('Skills have been modified'))
         else:
             dlg.controller.undo_all()
-            QMessageBox.information(self, 'Skills', 'Skills wurden nicht geändert')
+            QMessageBox.information(self, self.tr('Skills'),
+                                  self.tr('Skills have not been modified'))
 
     def edit_cast_rules(self):
         dlg = frm_cast_rule.DlgCastRules(self, self.project_id)
@@ -188,7 +195,7 @@ class DlgSettingsProject(QDialog):
         dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)
         if dlg.exec():
             updated_excel_settings = db_services.ExcelExportSettings.update(dlg.excel_settings)
-            QMessageBox.information(self, 'Excel Expert-Settings', f'Update wurde durchgeführt:\n'
-                                                                   f'{updated_excel_settings}')
+            QMessageBox.information(self, self.tr('Excel Export Settings'),
+                                  self.tr('Update completed:\n{}').format(updated_excel_settings))
             self.project = db_services.Project.get(self.project_id)
             self.fill_excel_colors()

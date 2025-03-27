@@ -15,7 +15,7 @@ class DlgSkillGroup(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID, exclude_skill_ids: set[UUID] = None,
                  skill_group: schemas.SkillGroup = None):
         super().__init__(parent)
-        self.setWindowTitle("Fertigkeitsgruppe")
+        self.setWindowTitle(self.tr("Skill Group"))
 
         self.skills_of_project: list[schemas.Skill] = db_services.Skill.get_all_from__project(project_id)
 
@@ -34,13 +34,13 @@ class DlgSkillGroup(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("<h3>Fertigkeitsgruppe</h3>")
+        self.lb_description = QLabel(self.tr("<h3>Skill Group</h3>"))
         self.layout_head.addWidget(self.lb_description)
 
         self.combo_skill = self._setup_combo_skill()
         self.spin_person_count = self._setup_spin_person_count()
-        self.layout_body.addRow("Fähigkeit/Kenntnis", self.combo_skill)
-        self.layout_body.addRow("Anzahl Personen", self.spin_person_count)
+        self.layout_body.addRow(self.tr("Skill/Knowledge"), self.combo_skill)
+        self.layout_body.addRow(self.tr("Number of People"), self.spin_person_count)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -79,7 +79,7 @@ class DlgSkillGroup(QDialog):
 class DlgSkillGroups(QDialog):
     def __init__(self, parent: QWidget, object_with_skill_groups: schemas.LocationOfWorkShow | schemas.EventShow):
         super().__init__(parent)
-        self.setWindowTitle("Skill Groups")
+        self.setWindowTitle(self.tr("Skill Groups"))
 
         self.object_with_skill_groups = object_with_skill_groups
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -97,17 +97,19 @@ class DlgSkillGroups(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         if isinstance(self.object_with_skill_groups, schemas.LocationOfWorkShow):
-            text_description = (f"<h3>Fertigkeitsgruppen</h3>"
-                                f"<p>Hier können Sie die Fertigkeitsgruppen für"
-                                f" {self.object_with_skill_groups.name_an_city} festlegen.</p>")
+            text_description = self.tr("<h3>Skill Groups</h3>"
+                                     "<p>Here you can define the skill groups for {location}.</p>").format(
+                location=self.object_with_skill_groups.name_an_city)
         elif isinstance(self.object_with_skill_groups, schemas.EventShow):
-            text_description = (
-                f"<h3>Fertigkeitsgruppen</h3>"
-                f"<p>Hier können Sie die Fertigkeitsgruppen für die Einsätze am<br>"
-                f"{self.object_with_skill_groups.date:%d.%m.%Y} "
-                f"({self.object_with_skill_groups.time_of_day.name}) - "
-                f"{self.object_with_skill_groups.location_plan_period.location_of_work.name_an_city}<br>"
-                f"festlegen.</p>")
+            text_description = self.tr(
+                "<h3>Skill Groups</h3>"
+                "<p>Here you can define the skill groups for assignments on<br>"
+                "{date} "
+                "({time_of_day}) - "
+                "{location}<br></p>").format(
+                    date=self.object_with_skill_groups.date.strftime('%d.%m.%Y'),
+                    time_of_day=self.object_with_skill_groups.time_of_day.name,
+                    location=self.object_with_skill_groups.location_plan_period.location_of_work.name_an_city)
         else:
             raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
         self.lb_description = QLabel(text_description)
@@ -117,18 +119,18 @@ class DlgSkillGroups(QDialog):
         self.table_skill_groups.cellDoubleClicked.connect(self.edit_skill_group)
         self.layout_body.addWidget(self.table_skill_groups)
 
-        self.btn_add_skill_group = QPushButton("Neue Fertigkeitsgruppe")
+        self.btn_add_skill_group = QPushButton(self.tr("New Skill Group"))
         self.btn_add_skill_group.clicked.connect(self.add_skill_group)
-        self.btn_remove_skill_group = QPushButton("Fertigkeitsgruppe entfernen")
+        self.btn_remove_skill_group = QPushButton(self.tr("Remove Skill Group"))
         self.btn_remove_skill_group.clicked.connect(self.remove_skill_group)
-        self.btn_edit_skill_group = QPushButton("Fertigkeitsgruppe bearbeiten")
+        self.btn_edit_skill_group = QPushButton(self.tr("Edit Skill Group"))
         self.btn_edit_skill_group.clicked.connect(self.edit_skill_group)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.btn_add_skill_group, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.btn_remove_skill_group, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.btn_edit_skill_group, QDialogButtonBox.ButtonRole.ActionRole)
         if isinstance(self.object_with_skill_groups, schemas.EventShow):
-            self.btn_reset = QPushButton("Zurücksetzen")
+            self.btn_reset = QPushButton(self.tr("Reset"))
             self.btn_reset.clicked.connect(self.reset_skill_groups)
             self.button_box.addButton(self.btn_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)
@@ -138,7 +140,11 @@ class DlgSkillGroups(QDialog):
     def _setup_table_skill_groups(self) -> QTableWidget:
         table_skills_groups = QTableWidget()
         table_skills_groups.setColumnCount(3)
-        table_skills_groups.setHorizontalHeaderLabels(["Fähigkeit/Kenntnis", "Beschreibung", "Anzahl Personen"])
+        table_skills_groups.setHorizontalHeaderLabels([
+            self.tr("Skill/Knowledge"),
+            self.tr("Description"),
+            self.tr("Number of People")
+        ])
         table_skills_groups.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table_skills_groups.setAlternatingRowColors(True)
         table_skills_groups.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -179,7 +185,7 @@ class DlgSkillGroups(QDialog):
             raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
         already_used_skill_ids = {sg.skill.id for sg in self.object_with_skill_groups.skill_groups}
         if not [s for s in db_services.Skill.get_all_from__project(project_id) if s.id not in already_used_skill_ids]:
-            QMessageBox.warning(self, "Fehler", "Es sind keine weiteren Fähigkeiten/Kenntnisse verfügbar.")
+            QMessageBox.warning(self, self.tr("Error"), self.tr("No additional skills/knowledge available."))
             return
         dlg = DlgSkillGroup(self, project_id, already_used_skill_ids)
         if dlg.exec():
@@ -209,7 +215,7 @@ class DlgSkillGroups(QDialog):
     def remove_skill_group(self):
         current_row = self.table_skill_groups.currentRow()
         if current_row < 0:
-            QMessageBox.warning(self, "Fehler", "Keine Fertigkeitsgruppe ausgewählt.")
+            QMessageBox.warning(self, self.tr("Error"), self.tr("No skill group selected."))
             return
         skill_group_id = self.table_skill_groups.item(current_row, 0).data(Qt.ItemDataRole.UserRole)
         if isinstance(self.object_with_skill_groups, schemas.LocationOfWorkShow):
@@ -231,7 +237,7 @@ class DlgSkillGroups(QDialog):
             raise NotImplementedError(f"Unsupported object type: {type(self.object_with_skill_groups)}")
         current_row = self.table_skill_groups.currentRow()
         if current_row < 0:
-            QMessageBox.warning(self, "Fehler", "Keine Fertigkeitsgruppe ausgewählt.")
+            QMessageBox.warning(self, self.tr("Error"), self.tr("No skill group selected."))
             return
         curr_skill_group_id = self.table_skill_groups.item(current_row, 0).data(Qt.ItemDataRole.UserRole)
         curr_skill_group = db_services.SkillGroup.get(curr_skill_group_id)

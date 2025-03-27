@@ -12,7 +12,7 @@ class DlgProjectSelect(QDialog):
     def __init__(self, parent, project_id: UUID | None = None):
         super().__init__(parent)
 
-        self.setWindowTitle('Projekt auswählen')
+        self.setWindowTitle(self.tr("Select Project"))
         self.project_id = project_id
 
         self.delayed_timer = DelayedTimerSingleShot(5000, self.accept)
@@ -26,7 +26,9 @@ class DlgProjectSelect(QDialog):
         self.layout = QVBoxLayout(self)
         self.combo_projects = QComboBoxToFindData(self)
         self.layout.addWidget(self.combo_projects)
-        self.chk_save_for_next_time = QCheckBox('Projekt für nächstes Mal speichern')
+        self.chk_save_for_next_time = QCheckBox(
+            self.tr("Save project for next time")
+        )
         self.layout.addWidget(self.chk_save_for_next_time)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)

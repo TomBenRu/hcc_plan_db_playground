@@ -2144,6 +2144,187 @@ die Planungsmasken geöffnet werden sollen.</translation>
     </message>
 </context>
 <context>
+    <name>DlgPlanPeriodCreate</name>
+    <message>
+        <location filename="../frm_plan_period.py" line="25"/>
+        <location filename="../frm_plan_period.py" line="138"/>
+        <source>Planning Period</source>
+        <translation>Planungszeitraum</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="42"/>
+        <source>Create a new planning period here.</source>
+        <translation>Erstellen Sie hier einen neuen Planungszeitraum.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="65"/>
+        <source>Send reminder?</source>
+        <translation>Erinnerung senden?</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="67"/>
+        <source>Planner</source>
+        <translation>Planer*in</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="68"/>
+        <source>Team</source>
+        <translation>Team</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="69"/>
+        <source>Start</source>
+        <translation>Start</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="70"/>
+        <source>End</source>
+        <translation>Ende</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="71"/>
+        <source>Deadline</source>
+        <translation>Deadline</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="72"/>
+        <source>Notes</source>
+        <translation>Anmerkungen</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="74"/>
+        <source>Notes in Online Portal</source>
+        <translation>Hinweise im Online-Portal</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="139"/>
+        <source>You must first select a team.</source>
+        <translation>Sie müssen zuerst ein Team auswählen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="191"/>
+        <location filename="../frm_plan_period.py" line="203"/>
+        <source>New Planning Period on Server</source>
+        <translation>Neue Planungsperiode auf Server</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="196"/>
+        <source>&lt;h3&gt;A new planning period has been created on the server&lt;/h3&gt;&lt;p&gt;Team: {team_name}&lt;/p&gt;&lt;p&gt;Period: {start_date} - {end_date}&lt;/p&gt;&lt;p&gt;Deadline: {deadline_date}&lt;/p&gt;&lt;p&gt;Notes in Online Portal:&lt;br&gt;{notes}&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Eine neue Planungsperiode wurde auf dem Server erstellt&lt;/h3&gt;&lt;p&gt;Team: {team_name}&lt;/p&gt;&lt;p&gt;Zeitraum: {start_date} - {end_date}&lt;/p&gt;&lt;p&gt;Deadline: {deadline_date}&lt;/p&gt;&lt;p&gt;Hinweise im Online-Portal:&lt;br&gt;{notes}&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="206"/>
+        <source>The planning period could not be created on the server
+due to the following error during transfer:
+{error}</source>
+        <translation>Die Planungsperiode konnte nicht auf dem Server erstellt werden,
+da beim Übertragen der Planungsperiode auf den Server folgender Fehler aufgetreten ist:
+{error}</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="207"/>
+        <location filename="../frm_plan_period.py" line="212"/>
+        <location filename="../frm_plan_period.py" line="215"/>
+        <source>New Planning Period</source>
+        <translation>Neue Planungsperiode</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="209"/>
+        <source>Do you want to create the planning period locally?
+You can transfer it to the server later.</source>
+        <translation>Möchten Sie die Planungsperiode lokal anlegen?
+Sie können die Planungsperiode später noch übertragen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="213"/>
+        <source>The planning period was not created.</source>
+        <translation>Die Planungsperiode wurde nicht erstellt.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="216"/>
+        <source>The planning period was created locally.</source>
+        <translation>Die Planungsperiode wurde lokal erstellt.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgPlanPeriodEdit</name>
+    <message>
+        <location filename="../frm_plan_period.py" line="224"/>
+        <source>Edit Planning</source>
+        <translation>Planung ändern</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="252"/>
+        <source>Modify an existing planning period here.</source>
+        <translation>Ändern Sie hier eine bestehende Planung.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="255"/>
+        <source>Select Planning</source>
+        <translation>Auswahl Planung</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="256"/>
+        <source>Planning Data</source>
+        <translation>Planungsdaten</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="270"/>
+        <source>Select Planner:</source>
+        <translation>Auswahl Planer*in:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="271"/>
+        <source>Select Team:</source>
+        <translation>Auswahl Team:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="272"/>
+        <source>Select Planning:</source>
+        <translation>Auswahl Planung:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="280"/>
+        <source>Copy from Team Notes</source>
+        <translation>Übernehme von Team-Notes</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="283"/>
+        <source>Send Reminder</source>
+        <translation>Remainder verschicken</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="285"/>
+        <source>Start:</source>
+        <translation>Start:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="286"/>
+        <source>End:</source>
+        <translation>Ende:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="287"/>
+        <source>Deadline:</source>
+        <translation>Deadline:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="288"/>
+        <source>Notes:</source>
+        <translation>Anmerkungen:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="291"/>
+        <source>API Messages to Employees:</source>
+        <translation>API-Mitteilungen an die Mitarbeiter:</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan_period.py" line="295"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+</context>
+<context>
     <name>DlgPlanPeriodNotes</name>
     <message>
         <location filename="../frm_notes.py" line="12"/>

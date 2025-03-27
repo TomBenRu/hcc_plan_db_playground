@@ -22,7 +22,7 @@ class DlgPlanPeriodCreate(QDialog):
 
         self.project_id = project_id
 
-        self.setWindowTitle('Planungszeitraum')
+        self.setWindowTitle(self.tr('Planning Period'))
 
         self.controller = ContrExecUndoRedo()
 
@@ -39,7 +39,7 @@ class DlgPlanPeriodCreate(QDialog):
         self.layout.setSpacing(20)
         self.setLayout(self.layout)
 
-        self.lb_title = QLabel('Erstellen Sie hier einen neuen Planungszeitraum.')
+        self.lb_title = QLabel(self.tr('Create a new planning period here.'))
         self.lb_title.setFixedHeight(40)
         self.layout.addWidget(self.lb_title)
 
@@ -62,16 +62,16 @@ class DlgPlanPeriodCreate(QDialog):
         self.text_notes = QTextEdit()
         self.text_notes_for_employees = QTextEdit()
 
-        self.chk_remainder = QCheckBox('Remainder verschicken?')
+        self.chk_remainder = QCheckBox(self.tr('Send reminder?'))
 
-        self.data_input_layout.addRow('Planer*in', self.cb_dispatcher)
-        self.data_input_layout.addRow('Team', self.cb_teams)
-        self.data_input_layout.addRow('Start', self.de_start)
-        self.data_input_layout.addRow('Ende', self.de_end)
-        self.data_input_layout.addRow('Deadline', self.de_deadline)
-        self.data_input_layout.addRow('Notizen', None)
+        self.data_input_layout.addRow(self.tr('Planner'), self.cb_dispatcher)
+        self.data_input_layout.addRow(self.tr('Team'), self.cb_teams)
+        self.data_input_layout.addRow(self.tr('Start'), self.de_start)
+        self.data_input_layout.addRow(self.tr('End'), self.de_end)
+        self.data_input_layout.addRow(self.tr('Deadline'), self.de_deadline)
+        self.data_input_layout.addRow(self.tr('Notes'), None)
         self.data_input_layout.addRow(self.text_notes)
-        self.data_input_layout.addRow('Hinweise im Online-Portal', None)
+        self.data_input_layout.addRow(self.tr('Notes in Online Portal'), None)
         self.data_input_layout.addRow(self.text_notes_for_employees)
 
         self.data_input_layout.addRow(self.chk_remainder)
@@ -135,17 +135,21 @@ class DlgPlanPeriodCreate(QDialog):
 
     def accept(self) -> None:
         if not self.cb_teams.currentData():
-            QMessageBox.critical(self, 'Planungszeitraum', 'Wie müssen zuerst ein Team auswählen.')
+            QMessageBox.critical(self, self.tr('Planning Period'),
+                               self.tr('You must first select a team.'))
             return
         start = self.de_start.date().toPython()
         end = self.de_end.date().toPython()
         deadline = self.de_deadline.date().toPython()
 
-        new_plan_period = schemas.PlanPeriodCreate(start=start, end=end, deadline=deadline,
-                                                   notes=self.text_notes.toPlainText(),
-                                                   notes_for_employees=self.text_notes_for_employees.toPlainText(),
-                                                   team=self.cb_teams.currentData(),
-                                                   remainder=self.chk_remainder.isChecked())
+        new_plan_period = schemas.PlanPeriodCreate(
+            start=start,
+            end=end,
+            deadline=deadline,
+            notes=self.text_notes.toPlainText(),
+            notes_for_employees=self.text_notes_for_employees.toPlainText(),
+            team=self.cb_teams.currentData(),
+            remainder=self.chk_remainder.isChecked())
         command = plan_period_commands.Create(new_plan_period)
         self.controller.execute(command)
         plan_period_created = command.created_plan_period
@@ -184,27 +188,32 @@ class DlgPlanPeriodCreate(QDialog):
         try:
             created_plan_period = plan_api_handler.create_plan_period(team_id, start, end, deadline, remainder,
                                                                       notes, plan_period_id)
-            QMessageBox.information(self, 'Neue Planungsperiode auf Server',
-                                    f'<h3>Eine neue Planungsperiode wurde auf dem Server erstellt</h3>'
-                                    f'<p>Team: {created_plan_period.team.name}</p>'
-                                    f'<p>Zeitraum: {created_plan_period.start:%d.%m.%y} '
-                                    f'- {created_plan_period.end:%d.%m.%y}</p>'
-                                    f'<p>Deadline: {created_plan_period.deadline:%d.%m.%y}</p>'
-                                    f'<p>Hinweise im Online-Portal:<br>{created_plan_period.notes}</p>')
+            QMessageBox.information(self, self.tr('New Planning Period on Server'),
+                                    self.tr('<h3>A new planning period has been created on the server</h3>'
+                                          '<p>Team: {team_name}</p>'
+                                          '<p>Period: {start_date} - {end_date}</p>'
+                                          '<p>Deadline: {deadline_date}</p>'
+                                          '<p>Notes in Online Portal:<br>{notes}</p>').format(
+                                              team_name=created_plan_period.team.name,
+                                              start_date=created_plan_period.start.strftime("%d.%m.%y"),
+                                              end_date=created_plan_period.end.strftime("%d.%m.%y"),
+                                              deadline_date=created_plan_period.deadline.strftime("%d.%m.%y"),
+                                              notes=created_plan_period.notes))
         except Exception as e:
-            QMessageBox.critical(self, 'Neue Planungsperiode auf Server',
-                                 f'Die Planungsperiode Konnte nicht auf dem Server erstellt werden,\n'
-                                 f'da beim Übertragen der Planungsperiode auf den Server '
-                                 f'folgender Fehler aufgetreten ist:\n'
-                                 f'{e}')
-            reply = QMessageBox.question(self, 'Neue Planungsperiode',
-                                         'Möchten Sie die Planungsperiode lokal anlegen?\n'
-                                         'Sie können die Planungsperiode später noch übertragen.')
+            QMessageBox.critical(self, self.tr('New Planning Period on Server'),
+                                 self.tr('The planning period could not be created on the server\n'
+                                       'due to the following error during transfer:\n'
+                                       '{error}').format(error=str(e)))
+            reply = QMessageBox.question(self, self.tr('New Planning Period'),
+                                         self.tr('Do you want to create the planning period locally?\n'
+                                               'You can transfer it to the server later.'))
             if reply == QMessageBox.StandardButton.No:
                 self.controller.undo_all()
-                QMessageBox.information(self, 'Neue Planungsperiode', 'Die Planungsperiode wurde nicht erstellt.')
+                QMessageBox.information(self, self.tr('New Planning Period'),
+                                      self.tr('The planning period was not created.'))
             else:
-                QMessageBox.information(self, 'Neue Planungsperiode', 'Die Planungsperiode wurde lokal erstellt.')
+                QMessageBox.information(self, self.tr('New Planning Period'),
+                                      self.tr('The planning period was created locally.'))
 
 
 class DlgPlanPeriodEdit(QDialog):
@@ -212,7 +221,7 @@ class DlgPlanPeriodEdit(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
 
-        self.setWindowTitle('Planung ändern')
+        self.setWindowTitle(self.tr('Edit Planning'))
 
         self.project_id = project_id
         self.curr_plan_periods: list[schemas.PlanPeriod] = []
@@ -240,11 +249,11 @@ class DlgPlanPeriodEdit(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_explanation = QLabel('Ändern Sie hier eine bestehende Planung.')
+        self.lb_explanation = QLabel(self.tr('Modify an existing planning period here.'))
         self.layout_head.addWidget(self.lb_explanation)
 
-        self.group_pp_select = QGroupBox('Auswahl Planung')
-        self.group_pp_datas = QGroupBox('Planungsdaten')
+        self.group_pp_select = QGroupBox(self.tr('Select Planning'))
+        self.group_pp_datas = QGroupBox(self.tr('Planning Data'))
         self.layout_body.addWidget(self.group_pp_select)
         self.layout_body.addWidget(self.group_pp_datas)
 
@@ -258,9 +267,9 @@ class DlgPlanPeriodEdit(QDialog):
         self.cb_planperiods = QComboBox()
         self.cb_planperiods.currentIndexChanged.connect(self.fill_plan_period_datas)
 
-        self.layout_pp_select.addRow('Auswahl Planer*in:', self.cb_dispatcher)
-        self.layout_pp_select.addRow('Auswahl Team:', self.cb_teams)
-        self.layout_pp_select.addRow('Aúswahl Planung:', self.cb_planperiods)
+        self.layout_pp_select.addRow(self.tr('Select Planner:'), self.cb_dispatcher)
+        self.layout_pp_select.addRow(self.tr('Select Team:'), self.cb_teams)
+        self.layout_pp_select.addRow(self.tr('Select Planning:'), self.cb_planperiods)
 
         self.de_start = QDateEdit()
         self.de_start.dateChanged.connect(self.proof_with_end)
@@ -268,22 +277,22 @@ class DlgPlanPeriodEdit(QDialog):
         self.de_end.dateChanged.connect(self.proof_with_start)
         self.de_deadline = QDateEdit()
         self.te_notes = QTextEdit()
-        self.bt_reset_from_team = QPushButton('Übernehme von Team-Notes')
+        self.bt_reset_from_team = QPushButton(self.tr('Copy from Team Notes'))
         self.bt_reset_from_team.clicked.connect(self.reset_notes_from_team)
         self.te_notes_for_employees = QTextEdit()
-        self.chk_remainder = QCheckBox('Remainder verschicken')
+        self.chk_remainder = QCheckBox(self.tr('Send Reminder'))
 
-        self.layout_pp_datas.addRow('Start:', self.de_start)
-        self.layout_pp_datas.addRow('Ende:', self.de_end)
-        self.layout_pp_datas.addRow('Deadline:', self.de_deadline)
-        self.layout_pp_datas.addRow('Notizen:', None)
+        self.layout_pp_datas.addRow(self.tr('Start:'), self.de_start)
+        self.layout_pp_datas.addRow(self.tr('End:'), self.de_end)
+        self.layout_pp_datas.addRow(self.tr('Deadline:'), self.de_deadline)
+        self.layout_pp_datas.addRow(self.tr('Notes:'), None)
         self.layout_pp_datas.addRow(self.te_notes)
         self.layout_pp_datas.addRow(self.bt_reset_from_team)
-        self.layout_pp_datas.addRow('API-Mitteilungen an die Mitarbeiter:', None)
+        self.layout_pp_datas.addRow(self.tr('API Messages to Employees:'), None)
         self.layout_pp_datas.addRow(self.te_notes_for_employees)
         self.layout_pp_datas.addRow(self.chk_remainder)
 
-        self.bt_delete = QPushButton('Delete')
+        self.bt_delete = QPushButton(self.tr('Delete'))
         self.bt_delete.clicked.connect(self.delete)
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)

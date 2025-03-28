@@ -14,6 +14,8 @@ class DlgTimeOfDayEnumEdit(QDialog):
                  project: schemas.ProjectShow):
         super().__init__(parent)
 
+        self.setWindowTitle(self.tr('Time of Day Category'))
+
         self.project = project
         self.curr_enum = time_of_day_enum
         self.new_enum: schemas.TimeOfDayEnumCreate | None = None
@@ -32,11 +34,11 @@ class DlgTimeOfDayEnumEdit(QDialog):
         self.bt_box.accepted.connect(self.accept)
         self.bt_box.rejected.connect(self.reject)
 
-        self.layout.addRow('Name', self.le_name)
-        self.layout.addRow('Kürzel', self.le_abbreviation)
-        self.layout.addRow('Tageszeit-Index', self.sp_time_index)
-        self.layout.addRow('Als Standard definieren?', self.chk_default)
-        self.layout.addRow('Als neue Tageszeit speichern?', self.chk_new_mode)
+        self.layout.addRow(self.tr('Name'), self.le_name)
+        self.layout.addRow(self.tr('Abbreviation'), self.le_abbreviation)
+        self.layout.addRow(self.tr('Time of Day Index'), self.sp_time_index)
+        self.layout.addRow(self.tr('Set as default?'), self.chk_default)
+        self.layout.addRow(self.tr('Save as new time of day?'), self.chk_new_mode)
 
         self.layout.addRow(self.bt_box)
 
@@ -58,7 +60,8 @@ class DlgTimeOfDayEnumEdit(QDialog):
 
     def accept(self):
         if not all([self.le_name.text().strip(), self.le_abbreviation.text().strip()]):
-            QMessageBox.information(self, 'Fehler', 'Sie müssen die Felder für Kürzel und Name ausfüllen.')
+            QMessageBox.information(self, self.tr('Error'),
+                                  self.tr('You must fill in both the abbreviation and name fields.'))
             return
         if self.curr_enum:
             self.curr_enum.name = self.le_name.text()
@@ -84,7 +87,7 @@ class DlgTimeOfDayEnumsEditList(QDialog):
 
         self.project = project.model_copy()
 
-        self.setWindowTitle('Tageszeiten Enums')
+        self.setWindowTitle(self.tr('Time of Day Categories'))
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
@@ -93,9 +96,9 @@ class DlgTimeOfDayEnumsEditList(QDialog):
         self.table_enums: QTableWidget | None = None
         self.setup_table_enums()
 
-        self.bt_new = QPushButton('Neu...', clicked=self.new_enum)
-        self.bt_edit = QPushButton('Bearbeiten...', clicked=self.edit_enum)
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete_time_of_day_enum)
+        self.bt_new = QPushButton(self.tr('New...'), clicked=self.new_enum)
+        self.bt_edit = QPushButton(self.tr('Edit...'), clicked=self.edit_enum)
+        self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete_time_of_day_enum)
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -116,7 +119,7 @@ class DlgTimeOfDayEnumsEditList(QDialog):
                         if not t_o_d_enum.prep_delete),  key=lambda x: x.time_index)
         enum_standards = [t_o_d_enum for t_o_d_enum in self.project.time_of_day_enum_standards
                           if not t_o_d_enum.prep_delete]
-        header_labels = ['id', 'Name', 'Index', 'Standard']
+        header_labels = ['id', self.tr('Name'), self.tr('Index'), self.tr('Default')]
         self.table_enums.setRowCount(len(enums))
         self.table_enums.setColumnCount(len(header_labels))
         self.table_enums.setHorizontalHeaderLabels(header_labels)
@@ -133,9 +136,9 @@ class DlgTimeOfDayEnumsEditList(QDialog):
             self.table_enums.setItem(row, 1, QTableWidgetItem(t_o_d_enum.name))
             self.table_enums.setItem(row, 2, QTableWidgetItem(str(t_o_d_enum.time_index)))
             if t_o_d_enum.id in [t.id for t in enum_standards]:
-                text_standard = 'ja'
+                text_standard = self.tr('yes')
             else:
-                text_standard = 'nein'
+                text_standard = self.tr('no')
             self.table_enums.setItem(row, 3, QTableWidgetItem(text_standard))
 
     def accept(self) -> None:
@@ -157,7 +160,8 @@ class DlgTimeOfDayEnumsEditList(QDialog):
     def edit_enum(self):
         curr_row = self.table_enums.currentRow()
         if curr_row == -1:
-            QMessageBox.critical(self, 'Tageszeiten Enums', 'Sie müssen zuerst eine Zeile zur Bearbeitung auswählen.')
+            QMessageBox.critical(self, self.tr('Time of Day Categories'),
+                               self.tr('You must first select a row to edit.'))
             return
         curr_enum_id = UUID(self.table_enums.item(curr_row, 0).text())
         curr_enum = db_services.TimeOfDayEnum.get(curr_enum_id)
@@ -179,27 +183,30 @@ class DlgTimeOfDayEnumsEditList(QDialog):
 
     def create_enum(self, time_of_day_enum: schemas.TimeOfDayEnumCreate, standard: bool):
         if time_of_day_enum.name in [t.name for t in self.project.time_of_day_enums if not t.prep_delete]:
-            '''Der Name der neu zu erstellenden Tageszeit ist schon in time_of_days vorhanden.'''
-            QMessageBox.critical(self, 'Fehler', f'Das Tageszeit-Enum "{time_of_day_enum.name}" ist schon vorhanden.')
+            # The name of the time of day category already exists in time_of_days
+            QMessageBox.critical(self, self.tr('Error'),
+                               self.tr('The time of day category "{}" already exists.').format(time_of_day_enum.name))
             return
         create_command = time_of_day_enum_commands.Create(time_of_day_enum)
         self.controller.execute(create_command)
         if standard:
             created_t_o_d_enum_id = create_command.get_created_time_of_day_enum_id()
             self.controller.execute(project_commands.NewTimeOfDayEnumStandard(created_t_o_d_enum_id))
-        # todo: consolidate enum-indexes wth button or with accept
+        # todo: consolidate enum-indexes with button or with accept
 
     def delete_time_of_day_enum(self):
         curr_row = self.table_enums.currentRow()
         if curr_row == -1:
-            QMessageBox.critical(self, 'Tageszeiten Enums', 'Sie müssen zuerst eine Zeile zur Bearbeitung auswählen.')
+            QMessageBox.critical(self, self.tr('Time of Day Categories'),
+                               self.tr('You must first select a row to edit.'))
             return
 
         curr_enum_id = UUID(self.table_enums.item(curr_row, 0).text())
         self.controller.execute(time_of_day_enum_commands.PrepDelete(curr_enum_id))
 
         curr_enum = db_services.TimeOfDayEnum.get(curr_enum_id)
-        QMessageBox.information(self, 'Tageszeit Enum Löschen', f'Das Tageszeit Enum wurde gelöscht:\n{curr_enum.name}')
+        QMessageBox.information(self, self.tr('Delete Time of Day Category'),
+                              self.tr('The time of day category has been deleted:\n{}').format(curr_enum.name))
 
     def reload_project(self):
         self.project = db_services.Project.get(self.project.id)

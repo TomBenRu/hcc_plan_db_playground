@@ -143,13 +143,13 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
         <location filename="../frm_actor_plan_period.py" line="115"/>
         <location filename="../frm_actor_plan_period.py" line="145"/>
         <source>Skills</source>
-        <translation>Fähigkeiten</translation>
+        <translation>Fertigkeiten</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="147"/>
         <source>Skills cannot be selected,
 as no availability has been chosen yet.</source>
-        <translation>Es können keine Fähigkeiten gewählt werden,
+        <translation>Es können keine Fertigkeiten gewählt werden,
 da hier noch keine Verfügbarkeit gewählt wurde.</translation>
     </message>
     <message>
@@ -191,7 +191,7 @@ Aktuell: %s (%s-%s)</translation>
         <location filename="../frm_location_plan_period.py" line="127"/>
         <location filename="../frm_location_plan_period.py" line="168"/>
         <source>Skills</source>
-        <translation>Fähigkeiten</translation>
+        <translation>Fertigkeiten</translation>
     </message>
     <message>
         <location filename="../frm_location_plan_period.py" line="128"/>
@@ -1096,7 +1096,7 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../frm_skills.py" line="143"/>
         <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Here you can add and edit skills and knowledge&lt;br&gt;for your project.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Hier kannst du deine Fähigkeiten und Kenntnisse für dein Projekt&lt;br&gt;hinzufügen und bearbeiten.&lt;/p&gt;</translation>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Hier kannst du deine Fertigkeiten und Kenntnisse für dein Projekt&lt;br&gt;hinzufügen und bearbeiten.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../frm_skills.py" line="147"/>
@@ -1158,7 +1158,7 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../frm_skills.py" line="229"/>
         <source>Skill will be permanently deleted. Do you really want to do this?</source>
-        <translation>Fähigkeit wird endgültig gelöscht. Möchtest du es wirklich tun?</translation>
+        <translation>Fertigkeit wird endgültig gelöscht. Möchtest du es wirklich tun?</translation>
     </message>
     <message>
         <location filename="../frm_skills.py" line="237"/>
@@ -2510,12 +2510,12 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_skills.py" line="302"/>
         <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} uses for their work.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} für seine Arbeit verwendet.&lt;/p&gt;</translation>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fertigkeiten und Kenntnisse aus,&lt;br&gt;die {} für seine Arbeit verwendet.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../frm_skills.py" line="306"/>
         <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} can use on {} ({}).&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} am {} ({}) einsetzen kann.&lt;/p&gt;</translation>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fertigkeiten und Kenntnisse aus,&lt;br&gt;die {} am {} ({}) einsetzen kann.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../frm_skills.py" line="317"/>
@@ -2591,7 +2591,7 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_project_settings.py" line="42"/>
         <source>Time of Day Categories</source>
-        <translation>Tageszeiten-Kathegorien</translation>
+        <translation>Tageszeiten-Kategorien</translation>
     </message>
     <message>
         <location filename="../frm_project_settings.py" line="44"/>
@@ -2657,17 +2657,17 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_project_settings.py" line="163"/>
         <source>New Time of Day Category</source>
-        <translation>Neue Tageszeiten-Kathegorie</translation>
+        <translation>Neue Tageszeiten-Kategorie</translation>
     </message>
     <message>
         <location filename="../frm_project_settings.py" line="167"/>
         <source>Deleted Time of Day Category</source>
-        <translation>Gelöschte Tageszeiten-Kathegorie</translation>
+        <translation>Gelöschte Tageszeiten-Kategorie</translation>
     </message>
     <message>
         <location filename="../frm_project_settings.py" line="171"/>
         <source>Updated Time of Day Category</source>
-        <translation>Aktualisierte Tageszeiten-Kathegorie</translation>
+        <translation>Aktualisierte Tageszeiten-Kategorie</translation>
     </message>
     <message>
         <location filename="../frm_project_settings.py" line="181"/>
@@ -2702,7 +2702,7 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_skills.py" line="100"/>
         <source>&lt;h3&gt;{}&lt;/h3&gt;&lt;p&gt;Enter name and description of your skill/knowledge here.&lt;/p&gt;</source>
-        <translation>&lt;h3&gt;{}&lt;/h3&gt;&lt;p&gt;Setze hier Name und Beschreibung deiner Fähigkeit/Kenntnis ein.&lt;/p&gt;</translation>
+        <translation>&lt;h3&gt;{}&lt;/h3&gt;&lt;p&gt;Setze hier Name und Beschreibung deiner Fertigkeit/Kenntnis ein.&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../frm_skills.py" line="101"/>
@@ -2810,7 +2810,7 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_skill_groups.py" line="188"/>
         <source>No additional skills/knowledge available.</source>
-        <translation>Es sind keine weiteren Fähigkeiten/Kenntnisse verfügbar.</translation>
+        <translation>Es sind keine weiteren Fertigkeiten/Kenntnisse verfügbar.</translation>
     </message>
     <message>
         <location filename="../frm_skill_groups.py" line="218"/>
@@ -2857,6 +2857,333 @@ Team: {team}</source>
         <translation>Geben Sie hier die Informationen ein, die für das Team relevant sind.
 Diese werden in neu erstellten Planperioden übernommen.
 Team: {team}</translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEdit</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="217"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="218"/>
+        <source>Save as new time of day?</source>
+        <translation>Als neue Tageszeit speichern?</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="226"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="227"/>
+        <source>Start time</source>
+        <translation>Startzeitpunkt</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="228"/>
+        <source>End time</source>
+        <translation>Endzeitpunkt</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="229"/>
+        <source>Time of day standard</source>
+        <translation>Tagesz.-Standard</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="260"/>
+        <source>Save as default for {}?</source>
+        <translation>Als Default für {} speichern?</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="265"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="265"/>
+        <source>You must specify a name for this time of day.</source>
+        <translation>Sie müssen einen Namen für diese Tageszeit angeben.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="268"/>
+        <source>Time of day</source>
+        <translation>Tageszeit</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="268"/>
+        <source>A time of day category must be created first.</source>
+        <translation>Es muss zuerst ein Tageszeit-Kategorie angelegt werden.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnum</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="477"/>
+        <location filename="../frm_time_of_day.py" line="515"/>
+        <location filename="../frm_time_of_day.py" line="519"/>
+        <location filename="../frm_time_of_day.py" line="522"/>
+        <location filename="../frm_time_of_day.py" line="529"/>
+        <location filename="../frm_time_of_day.py" line="533"/>
+        <source>Time of day category</source>
+        <translation>Tagezeit-Kategorie</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="493"/>
+        <source>Save as new time of day category?</source>
+        <translation>Als neue Tageszeit-Kategorie speichern?</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="496"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="502"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="503"/>
+        <source>Abbreviation</source>
+        <translation>Abkürzung</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="504"/>
+        <source>Order in day</source>
+        <translation>Einordnung am Tag</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="515"/>
+        <source>You must specify both name and abbreviation.</source>
+        <translation>Sie müssen sowohl Name und Abkürzung angeben.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="519"/>
+        <location filename="../frm_time_of_day.py" line="529"/>
+        <source>The name {} is already in the categories.</source>
+        <translation>Der Name {} ist bereits .unter den Kategorien vergeben.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="522"/>
+        <location filename="../frm_time_of_day.py" line="533"/>
+        <source>The abbreviation {} is already in the categories.</source>
+        <translation>Die Abkürzung {} ist bereits unter den Kategorien vergeben.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnumEdit</name>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="17"/>
+        <source>Time of Day Category</source>
+        <translation>Tagezeit-Kategorie</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="37"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="38"/>
+        <source>Abbreviation</source>
+        <translation>Abkürzung</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="39"/>
+        <source>Time of Day Index</source>
+        <translation>Tageszeiten-Index</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="40"/>
+        <source>Set as default?</source>
+        <translation>Als Standard setzen?</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="41"/>
+        <source>Save as new time of day?</source>
+        <translation>Als neue Tageszeit speichern?</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="63"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="64"/>
+        <source>You must fill in both the abbreviation and name fields.</source>
+        <translation>Sie müssen sowohl Name und Abkürzung angeben.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnumsEditList</name>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="90"/>
+        <location filename="../frm_time_of_day_enum.py" line="163"/>
+        <location filename="../frm_time_of_day_enum.py" line="200"/>
+        <source>Time of Day Categories</source>
+        <translation>Tageszeiten-Kategorien</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="99"/>
+        <source>New...</source>
+        <translation>Neu...</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="100"/>
+        <source>Edit...</source>
+        <translation>Bearbeiten...</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="101"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="122"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="122"/>
+        <source>Index</source>
+        <translation>Index</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="123"/>
+        <source>Default</source>
+        <translation>Standard</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="140"/>
+        <source>yes</source>
+        <translation>ja</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="142"/>
+        <source>no</source>
+        <translation>nein</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="164"/>
+        <location filename="../frm_time_of_day_enum.py" line="201"/>
+        <source>You must first select a row to edit.</source>
+        <translation>Sie müssen zuerst eine Zeile zur Bearbeitung auswählen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="187"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="188"/>
+        <source>The time of day category &quot;{}&quot; already exists.</source>
+        <translation>Die Tageszeit-Kategorie &quot;{}&quot; existiert bereits.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="208"/>
+        <source>Delete Time of Day Category</source>
+        <translation>Tageszeit-Kategorie löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="209"/>
+        <source>The time of day category has been deleted:
+{}</source>
+        <translation>Die Tageszeit-Kategorie wurde gelöscht:
+{}</translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDaysEditList</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="317"/>
+        <source>New...</source>
+        <translation>Neu...</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="318"/>
+        <source>Edit...</source>
+        <translation>Bearbeiten...</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="319"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="320"/>
+        <source>Reset</source>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Time span</source>
+        <translation>Zeitspanne</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Category</source>
+        <translation>Kategorie</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="345"/>
+        <source>Standard</source>
+        <translation>Standard</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="364"/>
+        <source>yes</source>
+        <translation>ja</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="366"/>
+        <source>no</source>
+        <translation>nein</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="393"/>
+        <location filename="../frm_time_of_day.py" line="460"/>
+        <source>Times of day</source>
+        <translation>Tageszeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="393"/>
+        <source>You must first select a time of day to edit.</source>
+        <translation>Sie müssen zuerst eine Tageszeit zur Bearbeitung auswählen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="451"/>
+        <source>Times of day reset</source>
+        <translation>Tageszeiten Reset</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="453"/>
+        <source>The times of day have been reset:
+</source>
+        <translation>Die Tageszeiten wurden zurückgesetzt:
+</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="460"/>
+        <source>You must first select a time of day to delete.</source>
+        <translation>Sie müssen zuerst eine zu löschende Tageszeit auswählen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="468"/>
+        <source>Time of day deleted</source>
+        <translation>Tageszeit gelöscht</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="468"/>
+        <source>The time of day has been deleted:
+</source>
+        <translation>Die Tageszeit wurde gelöscht:
+</translation>
     </message>
 </context>
 <context>
@@ -3059,7 +3386,7 @@ Team: {team}</translation>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1035"/>
         <source>Skills</source>
-        <translation>Fähigkeiten</translation>
+        <translation>Fertigkeiten</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1036"/>
@@ -4677,6 +5004,30 @@ in the plan.</source>
         <translation>Click:
 Aktuelle Einsätze von %s
 im Plan markieren.</translation>
+    </message>
+</context>
+<context>
+    <name>TimeOfDayEditList</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="70"/>
+        <source>Times of day for project {}</source>
+        <translation>Tageszeiten des Projekts {}</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="91"/>
+        <source>Times of day for {} {}</source>
+        <translation>Tageszeiten von {} {}</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="115"/>
+        <source>Times of day for facility {} {}</source>
+        <translation>Tageszeiten die Einrichtung {} {}</translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="140"/>
+        <location filename="../frm_time_of_day.py" line="169"/>
+        <source>Times of day for planning period, {} {}</source>
+        <translation>Tageszeiten des Planungszeitraums {} {}</translation>
     </message>
 </context>
 <context>

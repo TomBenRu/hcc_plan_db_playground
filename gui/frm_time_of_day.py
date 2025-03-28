@@ -5,7 +5,7 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QCoreApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QApplication
@@ -15,6 +15,7 @@ from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, location_plan_period_commands, project_commands, \
     person_commands, location_of_work_commands, time_of_day_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools.helper_functions import time_to_string
 
 
 class DlgTimeOfDayEditListBuilderABC(ABC):
@@ -67,7 +68,8 @@ class DlgTimeOfDayEditListBuilderProject(DlgTimeOfDayEditListBuilderABC):
         self.object_with_time_of_days: schemas.ProjectShow = project.model_copy()
 
     def _generate_field_values(self):
-        self.window_title = f'Tageszeiten des Projekts {self.object_with_time_of_days.name}'
+        self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for project {}").format(
+            self.object_with_time_of_days.name)
         self.project_id = self.object_with_time_of_days.id
         self.put_in_command = partial(project_commands.PutInTimeOfDay, self.object_with_time_of_days.id)
         self.remove_command = partial(project_commands.RemoveTimeOfDay, self.object_with_time_of_days.id)
@@ -87,8 +89,8 @@ class DlgTimeOfDayEditListBuilderPerson(DlgTimeOfDayEditListBuilderABC):
         self.object_with_time_of_days: schemas.PersonShow = person.model_copy()
 
     def _generate_field_values(self):
-        self.window_title = (f'Tageszeiten von '
-                             f'{self.object_with_time_of_days.f_name} {self.object_with_time_of_days.l_name}')
+        self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for {} {}").format(
+            self.object_with_time_of_days.f_name, self.object_with_time_of_days.l_name)
         self.project_id = self.object_with_time_of_days.project.id
         project = db_services.Project.get(self.project_id)
         self.parent_time_of_days = project.time_of_days
@@ -111,8 +113,8 @@ class DlgTimeOfDayEditListBuilderLocation(DlgTimeOfDayEditListBuilderABC):
         self.object_with_time_of_days: schemas.LocationOfWorkShow = location.model_copy()
 
     def _generate_field_values(self):
-        self.window_title = (f'Tageszeiten die Einrichtung, {self.object_with_time_of_days.name} '
-                             f'{self.object_with_time_of_days.address.city}')
+        self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for facility {} {}").format(
+            self.object_with_time_of_days.name, self.object_with_time_of_days.address.city)
         self.project_id = self.object_with_time_of_days.project.id
         project = db_services.Project.get(self.project_id)
         self.parent_time_of_days = [t_o_d for t_o_d in project.time_of_days if not t_o_d.prep_delete]
@@ -136,8 +138,8 @@ class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC)
         self.object_with_time_of_days: schemas.ActorPlanPeriodShow = actor_plan_period.model_copy()
 
     def _generate_field_values(self):
-        self.window_title = (f'Tageszeiten des Planungszeitraums, {self.object_with_time_of_days.person.f_name} '
-                             f'{self.object_with_time_of_days.person.l_name}')
+        self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for planning period, {} {}").format(
+            self.object_with_time_of_days.person.f_name, self.object_with_time_of_days.person.l_name)
         self.project_id = self.object_with_time_of_days.project.id
         self.parent_time_of_days = [
                 t_o_d for t_o_d in db_services.Person.get(self.object_with_time_of_days.person.id).time_of_days
@@ -165,9 +167,9 @@ class DlgTimeOfDayEditListBuilderLocationPlanPeriod(DlgTimeOfDayEditListBuilderA
         self.object_with_time_of_days: schemas.LocationPlanPeriodShow = location_plan_period.model_copy()
 
     def _generate_field_values(self):
-        self.window_title = (f'Tageszeiten des Planungszeitraums, '
-                             f'{self.object_with_time_of_days.location_of_work.name} '
-                             f'{self.object_with_time_of_days.location_of_work.address.city}')
+        self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for planning period, {} {}").format(
+            self.object_with_time_of_days.location_of_work.name,
+            self.object_with_time_of_days.location_of_work.address.city)
         self.project_id = self.object_with_time_of_days.project.id
         self.parent_time_of_days = [
             t_o_d for t_o_d in
@@ -213,8 +215,8 @@ class DlgTimeOfDayEdit(QDialog):
         self.cb_time_of_day_enum = QComboBoxToFindData()
         self.cb_time_of_day_enum.currentIndexChanged.connect(self.time_of_day_enum_changed)
         self.chk_default = QCheckBox()
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
-        self.chk_new_mode = QCheckBox('Als neue Tageszeit speichern?')
+        self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete)
+        self.chk_new_mode = QCheckBox(self.tr('Save as new time of day?'))
         self.chk_new_mode.toggled.connect(self.change_new_mode)
 
         self.bt_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -222,10 +224,10 @@ class DlgTimeOfDayEdit(QDialog):
         self.bt_box.accepted.connect(self.accept)
         self.bt_box.rejected.connect(self.reject)
 
-        self.layout.addRow('Name', self.le_name)
-        self.layout.addRow('Zeitpunkt Start', self.te_start)
-        self.layout.addRow('Zeitpunkt Ende', self.te_end)
-        self.layout.addRow('Tagesz.-Standart', self.cb_time_of_day_enum)
+        self.layout.addRow(self.tr('Name'), self.le_name)
+        self.layout.addRow(self.tr('Start time'), self.te_start)
+        self.layout.addRow(self.tr('End time'), self.te_end)
+        self.layout.addRow(self.tr('Time of day standard'), self.cb_time_of_day_enum)
         self.layout.addRow(self.chk_default)
         self.layout.addRow(self.chk_new_mode)
 
@@ -256,15 +258,15 @@ class DlgTimeOfDayEdit(QDialog):
 
     def time_of_day_enum_changed(self):
         if t_o_d_enum := self.cb_time_of_day_enum.currentText():
-            self.chk_default.setText(f'Als Default für {t_o_d_enum} speichern?')
+            self.chk_default.setText(self.tr('Save as default for {}?').format(t_o_d_enum))
 
     def accept(self):
         name = self.le_name.text()
         if not name:
-            QMessageBox.information(self, 'Fehler', 'Sie müssen einen Namen für diese Tageszeit angeben.')
+            QMessageBox.information(self, self.tr('Error'), self.tr('You must specify a name for this time of day.'))
             return
         if not self.cb_time_of_day_enum.currentData():
-            QMessageBox.critical(self, 'Tageszeit', 'Es muss zuerst ein Tageszeit-Standart angelegt werden.')
+            QMessageBox.critical(self, self.tr('Time of day'), self.tr('A time of day category must be created first.'))
             self.reject()
         start = datetime.time(self.te_start.time().hour(), self.te_start.time().minute())
         end = datetime.time(self.te_end.time().hour(), self.te_end.time().minute())
@@ -313,10 +315,10 @@ class DlgTimeOfDaysEditList(QDialog):
         self.table_time_of_days: QTableWidget | None = None
         self.setup_table_time_of_days()
 
-        self.bt_new = QPushButton('Neu...', clicked=self.new_time_of_day)
-        self.bt_edit = QPushButton('Berabeiten...', clicked=self.edit_time_of_day)
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete_time_of_day)
-        self.bt_reset = QPushButton('Reset', clicked=self.reset_time_of_days)
+        self.bt_new = QPushButton(self.tr('New...'), clicked=self.new_time_of_day)
+        self.bt_edit = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_day)
+        self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete_time_of_day)
+        self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset_time_of_days)
         if self.builder.parent_time_of_days is None:
             self.bt_reset.setDisabled(True)
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
@@ -340,7 +342,7 @@ class DlgTimeOfDaysEditList(QDialog):
                                if not t_o_d.prep_delete),  key=lambda x: x.time_of_day_enum.time_index)
         time_of_day_standards = [t_o_d for t_o_d in self.builder.object_with_time_of_days.time_of_day_standards
                                  if not t_o_d.prep_delete]
-        header_labels = ['id', 'Name', 'Zeitspanne', 'Enum', 'Standard']
+        header_labels = ['id', self.tr('Name'), self.tr('Time span'), self.tr('Category'), self.tr('Standard')]
         self.table_time_of_days.setRowCount(len(time_of_days))
         self.table_time_of_days.setColumnCount(len(header_labels))
         self.table_time_of_days.setHorizontalHeaderLabels(header_labels)
@@ -355,13 +357,13 @@ class DlgTimeOfDaysEditList(QDialog):
         for row, t_o_d in enumerate(time_of_days):
             self.table_time_of_days.setItem(row, 0, QTableWidgetItem(str(t_o_d.id)))
             self.table_time_of_days.setItem(row, 1, QTableWidgetItem(t_o_d.name))
-            text_times = f'{t_o_d.start.strftime("%H:%M")}-{t_o_d.end.strftime("%H:%M")}'
+            text_times = f'{time_to_string(t_o_d.start)}-{time_to_string(t_o_d.end)}'
             self.table_time_of_days.setItem(row, 2, QTableWidgetItem(text_times))
             self.table_time_of_days.setItem(row, 3, QTableWidgetItem(t_o_d.time_of_day_enum.name))
             if t_o_d.id in [t.id for t in time_of_day_standards]:
-                text_standard = 'ja'
+                text_standard = self.tr('yes')
             else:
-                text_standard = 'nein'
+                text_standard = self.tr('no')
             self.table_time_of_days.setItem(row, 4, QTableWidgetItem(text_standard))
 
     def accept(self) -> None:
@@ -389,7 +391,7 @@ class DlgTimeOfDaysEditList(QDialog):
     def edit_time_of_day(self):
         curr_row = self.table_time_of_days.currentRow()
         if curr_row == -1:
-            QMessageBox.critical(self, 'Tageszeiten', 'Sie müssen zuerst eine Tageszeit zur Bearbeitung auswählen.')
+            QMessageBox.critical(self, self.tr('Times of day'), self.tr('You must first select a time of day to edit.'))
             return
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
         curr_t_o_d = db_services.TimeOfDay.get(curr_t_o_d_id, True)
@@ -447,16 +449,16 @@ class DlgTimeOfDaysEditList(QDialog):
         self.builder.reload_object_with_time_of_days()
 
         QMessageBox.information(
-            self, 'Tageszeiten reset',
-            f'Die Tageszeiten wurden zurückgesetzt:\n'
-            f'{[(t_o_d.name, t_o_d.start, t_o_d.end) for t_o_d in self.builder.object_with_time_of_days.time_of_days]}')
+            self, self.tr('Times of day reset'),
+            self.tr('The times of day have been reset:\n') +
+            '\n'.join(f'{t_o_d.name} ({t_o_d.start} - {t_o_d.end})' for t_o_d in self.builder.object_with_time_of_days.time_of_days))
 
         self.setup_table_time_of_days()
 
     def delete_time_of_day(self):
         curr_row = self.table_time_of_days.currentRow()
         if curr_row == -1:
-            QMessageBox.critical(self, 'Tageszeiten', 'Sie müssen zuerst eine Tageszeit zur Bearbeitung auswählen.')
+            QMessageBox.critical(self, self.tr('Times of day'), self.tr('You must first select a time of day to delete.'))
             return
 
         curr_t_o_d_id = UUID(self.table_time_of_days.item(curr_row, 0).text())
@@ -464,7 +466,7 @@ class DlgTimeOfDaysEditList(QDialog):
         self.controller.execute(self.builder.remove_command(curr_t_o_d_id))
         self.controller.execute(self.builder.remove_time_of_day_standard_command(curr_t_o_d_id))
         curr_time_of_day = db_services.TimeOfDay.get(curr_t_o_d_id)
-        QMessageBox.information(self, 'Tageszeit Löschen', f'Die Tageszeit wurde gelöscht:\n{curr_time_of_day.name}')
+        QMessageBox.information(self, self.tr('Time of day deleted'), self.tr('The time of day has been deleted:\n') + curr_time_of_day.name)
         self.builder.reload_object_with_time_of_days()
         self.setup_table_time_of_days()
 
@@ -473,7 +475,7 @@ class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. O
     def __init__(self, parent: QWidget, project: schemas.ProjectShow,
                  time_of_day_enum: schemas.TimeOfDayEnumShow | None):
         super().__init__(parent)
-        self.setWindowTitle('Tageszeit Standard')
+        self.setWindowTitle(self.tr('Time of day category'))
 
         self.project = project.model_copy()
         self.curr_time_of_day_enum: schemas.TimeOfDayEnumShow | None = time_of_day_enum
@@ -489,18 +491,18 @@ class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. O
         self.sp_time_index = QSpinBox()
         self.sp_time_index.setMinimum(1)
 
-        self.chk_new_mode = QCheckBox('Als neuen Tagesz.-Standard speichern?')
+        self.chk_new_mode = QCheckBox(self.tr('Save as new time of day category?'))
         self.chk_new_mode.toggled.connect(self.change_new_mode)
 
-        self.bt_delete = QPushButton('Löschen', clicked=self.delete)
+        self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_delete, QDialogButtonBox.ButtonRole.DestructiveRole)
         self.button_box.accepted.connect(self.save)
         self.button_box.rejected.connect(self.reject)
 
-        self.layout.addRow('Name', self.le_name)
-        self.layout.addRow('Kürzel', self.le_abbreviation)
-        self.layout.addRow('Einordnung am Tag', self.sp_time_index)
+        self.layout.addRow(self.tr('Name'), self.le_name)
+        self.layout.addRow(self.tr('Abbreviation'), self.le_abbreviation)
+        self.layout.addRow(self.tr('Order in day'), self.sp_time_index)
         self.layout.addRow(self.chk_new_mode)
         self.layout.addRow(self.button_box)
 
@@ -511,25 +513,25 @@ class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. O
         abbreviation = self.le_abbreviation.text()
         time_index = self.sp_time_index.value()
         if not name or not abbreviation:
-            QMessageBox.critical(self, 'Tagesz.-Standard', 'Sie müssen sowohl Namen als auch Kürzel angeben.')
+            QMessageBox.critical(self, self.tr('Time of day category'), self.tr('You must specify both name and abbreviation.'))
             return
         if self.chk_new_mode.isChecked():
             if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums]:
-                QMessageBox.critical(self, 'Tagesz.-Standard', f'Der Name {n} ist schon unter den Standards vorhanden.')
+                QMessageBox.critical(self, self.tr('Time of day category'), self.tr('The name {} is already in the categories.').format(n))
                 return
             if (k := self.le_name.text()) in [t.abbreviation for t in self.project.time_of_day_enums]:
-                QMessageBox.critical(self, 'Tagesz.-Standard', f'Das Kürzel {k} ist schon unter den Standards vorhanden.')
+                QMessageBox.critical(self, self.tr('Time of day category'), self.tr('The abbreviation {} is already in the categories.').format(k))
                 return
             self.new_time_of_day_enum = schemas.TimeOfDayEnumCreate(name=name, abbreviation=abbreviation,
                                                                     time_index=time_index, project=self.project)
         else:
             if (n := self.le_name.text()) in [t.name for t in self.project.time_of_day_enums
                                               if t.id != self.curr_time_of_day_enum.id]:
-                QMessageBox.critical(self, 'Tagesz.-Standard', f'Der Name {n} ist schon unter den Standards vorhanden.')
+                QMessageBox.critical(self, self.tr('Time of day category'), self.tr('The name {} is already in the categories.').format(n))
                 return
             if (k := self.le_name.text()) in [t.abbreviation for t in self.project.time_of_day_enums
                                               if t.id != self.curr_time_of_day_enum.id]:
-                QMessageBox.critical(self, 'Tagesz.-Standard', f'Das Kürzel {k} ist schon unter den Standards vorhanden.')
+                QMessageBox.critical(self, self.tr('Time of day category'), self.tr('The abbreviation {} is already in the categories.').format(k))
                 return
             self.curr_time_of_day_enum.name = name
             self.curr_time_of_day_enum.abbreviation = abbreviation

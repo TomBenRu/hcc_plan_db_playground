@@ -2747,6 +2747,330 @@ Team: {team}</source>
     </message>
 </context>
 <context>
+    <name>DlgTimeOfDayEdit</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="217"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="218"/>
+        <source>Save as new time of day?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="226"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="227"/>
+        <source>Start time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="228"/>
+        <source>End time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="229"/>
+        <source>Time of day standard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="260"/>
+        <source>Save as default for {}?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="265"/>
+        <source>Error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="265"/>
+        <source>You must specify a name for this time of day.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="268"/>
+        <source>Time of day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="268"/>
+        <source>A time of day category must be created first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnum</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="477"/>
+        <location filename="../frm_time_of_day.py" line="515"/>
+        <location filename="../frm_time_of_day.py" line="519"/>
+        <location filename="../frm_time_of_day.py" line="522"/>
+        <location filename="../frm_time_of_day.py" line="529"/>
+        <location filename="../frm_time_of_day.py" line="533"/>
+        <source>Time of day category</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="493"/>
+        <source>Save as new time of day category?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="496"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="502"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="503"/>
+        <source>Abbreviation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="504"/>
+        <source>Order in day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="515"/>
+        <source>You must specify both name and abbreviation.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="519"/>
+        <location filename="../frm_time_of_day.py" line="529"/>
+        <source>The name {} is already in the categories.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="522"/>
+        <location filename="../frm_time_of_day.py" line="533"/>
+        <source>The abbreviation {} is already in the categories.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnumEdit</name>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="17"/>
+        <source>Time of Day Category</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="37"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="38"/>
+        <source>Abbreviation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="39"/>
+        <source>Time of Day Index</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="40"/>
+        <source>Set as default?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="41"/>
+        <source>Save as new time of day?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="63"/>
+        <source>Error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="64"/>
+        <source>You must fill in both the abbreviation and name fields.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDayEnumsEditList</name>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="90"/>
+        <location filename="../frm_time_of_day_enum.py" line="163"/>
+        <location filename="../frm_time_of_day_enum.py" line="200"/>
+        <source>Time of Day Categories</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="99"/>
+        <source>New...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="100"/>
+        <source>Edit...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="101"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="122"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="122"/>
+        <source>Index</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="123"/>
+        <source>Default</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="140"/>
+        <source>yes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="142"/>
+        <source>no</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="164"/>
+        <location filename="../frm_time_of_day_enum.py" line="201"/>
+        <source>You must first select a row to edit.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="187"/>
+        <source>Error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="188"/>
+        <source>The time of day category &quot;{}&quot; already exists.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="208"/>
+        <source>Delete Time of Day Category</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day_enum.py" line="209"/>
+        <source>The time of day category has been deleted:
+{}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DlgTimeOfDaysEditList</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="317"/>
+        <source>New...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="318"/>
+        <source>Edit...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="319"/>
+        <source>Delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="320"/>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Time span</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="344"/>
+        <source>Category</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="345"/>
+        <source>Standard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="364"/>
+        <source>yes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="366"/>
+        <source>no</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="393"/>
+        <location filename="../frm_time_of_day.py" line="460"/>
+        <source>Times of day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="393"/>
+        <source>You must first select a time of day to edit.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="451"/>
+        <source>Times of day reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="453"/>
+        <source>The times of day have been reset:
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="460"/>
+        <source>You must first select a time of day to delete.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="468"/>
+        <source>Time of day deleted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="468"/>
+        <source>The time of day has been deleted:
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>FirstDayFromWeekday</name>
     <message>
         <location filename="../frm_event_planing_rules.py" line="33"/>
@@ -4546,6 +4870,30 @@ in the plan.</source>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TimeOfDayEditList</name>
+    <message>
+        <location filename="../frm_time_of_day.py" line="70"/>
+        <source>Times of day for project {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="91"/>
+        <source>Times of day for {} {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="115"/>
+        <source>Times of day for facility {} {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_time_of_day.py" line="140"/>
+        <location filename="../frm_time_of_day.py" line="169"/>
+        <source>Times of day for planning period, {} {}</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

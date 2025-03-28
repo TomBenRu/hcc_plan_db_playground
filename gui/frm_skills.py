@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from commands import command_base_classes
 from commands.database_commands import skill_commands, person_commands, avail_day_commands
 from database import db_services, schemas
-
+from tools.helper_functions import date_to_string, time_to_string
 
 
 class DlgSkillsOfProject(QDialog):
@@ -193,7 +193,8 @@ class DlgEditSkills(QDialog):
             self.table_skills.setItem(row, 0, item_name)
             self.table_skills.setItem(row, 1, QTableWidgetItem(skill.notes))
             self.table_skills.setItem(row, 2,
-                                      QTableWidgetItem(skill.prep_delete.strftime("%d.%m.%Y %H:%M:%S")
+                                      QTableWidgetItem(f'{date_to_string(skill.prep_delete.date())} '
+                                                            f'{time_to_string(skill.prep_delete.time())}'
                                                        if skill.prep_delete else ""))
 
     def _update_table(self):
@@ -239,7 +240,8 @@ class DlgEditSkills(QDialog):
         if isinstance(command, skill_commands.PrepDelete):
             skill.prep_delete = command.skill_deleted.prep_delete
             (self.table_skills.item(self.table_skills.currentRow(), 2)
-             .setText(skill.prep_delete.strftime("%d.%m.%Y %H:%M:%S")))
+             .setText(f'{date_to_string(command.skill_deleted.prep_delete.date())} '
+                      f'{time_to_string(command.skill_deleted.prep_delete.time())}'))
         elif isinstance(command, skill_commands.Delete):
             del self.skills[i]
             self.table_skills.removeRow(self.table_skills.currentRow())
@@ -303,7 +305,7 @@ class DlgSelectSkills(QDialog):
                                      "<p>Select the skills and knowledge here<br>"
                                      "that {} can use on {} ({}).</p>").format(
                 self.object_with_skills.actor_plan_period.person.full_name,
-                self.object_with_skills.date.strftime("%d.%m.%Y"),
+                date_to_string(self.object_with_skills.date),
                 self.object_with_skills.time_of_day.name)
         else:
             raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')

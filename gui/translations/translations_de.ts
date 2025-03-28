@@ -1139,34 +1139,34 @@ Hier können Sie die Besetzung ändern.</translation>
         <translation>Gelöscht</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="225"/>
-        <location filename="../frm_skills.py" line="236"/>
-        <location filename="../frm_skills.py" line="249"/>
+        <location filename="../frm_skills.py" line="226"/>
+        <location filename="../frm_skills.py" line="237"/>
+        <location filename="../frm_skills.py" line="251"/>
         <source>Error</source>
         <translation>Fehler</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="225"/>
+        <location filename="../frm_skills.py" line="226"/>
         <source>Skill is used and cannot be deleted</source>
         <translation>Fertigkeit wird verwendet und kann nicht gelöscht werden</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="227"/>
+        <location filename="../frm_skills.py" line="228"/>
         <source>Warning</source>
         <translation>Warnung</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="228"/>
+        <location filename="../frm_skills.py" line="229"/>
         <source>Skill will be permanently deleted. Do you really want to do this?</source>
         <translation>Fähigkeit wird endgültig gelöscht. Möchtest du es wirklich tun?</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="236"/>
+        <location filename="../frm_skills.py" line="237"/>
         <source>Skill not found</source>
         <translation>Fertigkeit nicht gefunden</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="249"/>
+        <location filename="../frm_skills.py" line="251"/>
         <source>Skill is not deleted</source>
         <translation>Fertigkeit ist nicht gelöscht</translation>
     </message>
@@ -2508,41 +2508,37 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
 <context>
     <name>DlgSelectSkills</name>
     <message>
-        <location filename="../frm_skills.py" line="300"/>
+        <location filename="../frm_skills.py" line="302"/>
         <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} uses for their work.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} für seine Arbeit verwendet.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="304"/>
+        <location filename="../frm_skills.py" line="306"/>
         <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} can use on {} ({}).&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} am {} ({}) einsetzen kann.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="315"/>
+        <location filename="../frm_skills.py" line="317"/>
         <source>Add Skill</source>
         <translation>Fertigkeit hinzufügen</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="317"/>
+        <location filename="../frm_skills.py" line="319"/>
         <source>Remove Skill</source>
         <translation>Fertigkeit entfernen</translation>
     </message>
     <message>
-        <source>Delete Skill</source>
-        <translation type="vanished">Fertigkeit löschen</translation>
-    </message>
-    <message>
-        <location filename="../frm_skills.py" line="325"/>
+        <location filename="../frm_skills.py" line="327"/>
         <source>Reset Skills</source>
         <translation>Fertigkeit zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="333"/>
+        <location filename="../frm_skills.py" line="335"/>
         <source>Skill/Knowledge</source>
         <translation>Fertigkeit/Kenntnis</translation>
     </message>
     <message>
-        <location filename="../frm_skills.py" line="333"/>
+        <location filename="../frm_skills.py" line="335"/>
         <source>Description</source>
         <translation>Beschreibung</translation>
     </message>
@@ -3765,6 +3761,116 @@ Eventuell haben Sie nachträglich &quot;{}&quot; aus den Standards gelöscht.</t
         <location filename="../frm_plan.py" line="874"/>
         <source>No remaining action</source>
         <translation>Keine verbleibende Aktion</translation>
+    </message>
+</context>
+<context>
+    <name>FrmTeam</name>
+    <message>
+        <location filename="../frm_team.py" line="16"/>
+        <source>Team</source>
+        <translation>Team</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="30"/>
+        <source>Change</source>
+        <translation>Ändern</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="35"/>
+        <source>Delete</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="37"/>
+        <source>Save as new team?</source>
+        <translation>Als neues Team speichern?</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="45"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="46"/>
+        <source>Dispatcher</source>
+        <translation>Planer*in</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="47"/>
+        <source>Excel Settings</source>
+        <translation>Excel-Settings</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="55"/>
+        <source>No Dispatcher</source>
+        <translation>Kein Planer</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="79"/>
+        <source>Incomplete</source>
+        <translation>Unvollständig</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="80"/>
+        <source>You must specify a team name</source>
+        <translation>Sie müssen einen Team-Namen angeben</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="85"/>
+        <location filename="../frm_team.py" line="103"/>
+        <source>New Team</source>
+        <translation>Neues Team</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="87"/>
+        <source>Team name {name} already exists.
+Please choose a different name.</source>
+        <translation>Teamname {name} ist schon vorhanden.
+Bitte wählen sie einen anderen Namen.</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="94"/>
+        <location filename="../frm_team.py" line="100"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="98"/>
+        <source>A team named &quot;{name}&quot; already exists but is marked for deletion.
+You must first synchronize with the server database to successfully complete this action.</source>
+        <translation>Ein Team mit Namen &quot;{name}&quot; ist bereits vorhanden aber zum Löschen markiert.
+Sie müssen zuerst mit der Serverdatenbank synchronisieren, damit sie diese Aktion erfolgreich durchführen können.</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="105"/>
+        <source>The team has been created:
+{team}</source>
+        <translation>Das Team wurde erstellt:
+{team}</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="110"/>
+        <source>Team Update</source>
+        <translation>Team Update</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="112"/>
+        <source>Team has been updated:
+{team}</source>
+        <translation>Team wurde aktualisiert:
+{team}</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="117"/>
+        <source>Team Deletion</source>
+        <translation>Team Löschung</translation>
+    </message>
+    <message>
+        <location filename="../frm_team.py" line="119"/>
+        <source>The team has been deleted:
+{team}</source>
+        <translation>Das Team wurde gelöscht:
+{team}</translation>
     </message>
 </context>
 <context>

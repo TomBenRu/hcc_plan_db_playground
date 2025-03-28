@@ -13,7 +13,7 @@ from database import db_services, schemas
 class DlgSkillsOfProject(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID, exclude_skill_ids: set[UUID] = None):
         super().__init__(parent)
-        self.setWindowTitle("Skills of Project")
+        self.setWindowTitle(self.tr("Skills of Project"))
 
         self.project_id = project_id
         self.exclude_skill_ids = exclude_skill_ids
@@ -37,9 +37,9 @@ class DlgSkillsOfProject(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("<h3>Skills des Projektes</h3>"
-                                     "<p>Hier sind alle zusätzlichen Fähigkeiten und Kenntnisse,<br>"
-                                     "welche in deinem Projekt angelegt sind, aufgelistet.</p>")
+        self.lb_description = QLabel(self.tr("<h3>Project Skills</h3>"
+                                     "<p>Here are all additional skills and knowledge<br>"
+                                     "that are defined in your project.</p>"))
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
         self._put_skills_in_table()
@@ -52,7 +52,7 @@ class DlgSkillsOfProject(QDialog):
     def _setup_table(self):
         table_skills = QTableWidget()
         table_skills.setColumnCount(2)
-        table_skills.setHorizontalHeaderLabels(["Fähigkeit/Kenntnis", "Beschreibung"])
+        table_skills.setHorizontalHeaderLabels([self.tr("Skill/Knowledge"), self.tr("Description")])
         table_skills.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table_skills.setAlternatingRowColors(True)
         table_skills.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -76,7 +76,7 @@ class DlgSkillsOfProject(QDialog):
 class DlgSkill(QDialog):
     def __init__(self, parent: QWidget, skill_id: UUID = None):
         super().__init__(parent)
-        self.setWindowTitle("Skill")
+        self.setWindowTitle(self.tr("Skill"))
         self.skill_id = skill_id
         self._setup_ui()
         self._setup_data()
@@ -96,13 +96,16 @@ class DlgSkill(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel(f"<h3>{'Edit Skill' if self.skill_id else 'New Skill'}</h3>"
-                                     "<p>Setze hier Name und Beschreibung deiner Fähigkeit/Kenntnis ein.</p>")
+        self.lb_description = QLabel(
+            self.tr("<h3>{}</h3><p>Enter name and description of your skill/knowledge here.</p>").format(
+                self.tr("Edit Skill") if self.skill_id else self.tr("New Skill")
+            )
+        )
         self.layout_head.addWidget(self.lb_description)
         self.le_name = QLineEdit()
         self.le_notes = QLineEdit()
-        self.layout_body.addRow("Name", self.le_name)
-        self.layout_body.addRow("Beschreibung", self.le_notes)
+        self.layout_body.addRow(self.tr("Name"), self.le_name)
+        self.layout_body.addRow(self.tr("Description"), self.le_notes)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -135,25 +138,25 @@ class DlgEditSkills(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
 
-        self.lb_description = QLabel("<h3>Skills</h3>"
-                                     "<p>Hier kannst du deine Fähigkeiten und Kenntnisse für dein Projekt<br>"
-                                     "hinzufügen und bearbeiten.</p>")
+        self.lb_description = QLabel(self.tr("<h3>Skills</h3>"
+                                     "<p>Here you can add and edit skills and knowledge<br>"
+                                     "for your project.</p>"))
         self.layout_head.addWidget(self.lb_description)
         self.table_skills = self._setup_table()
         self.table_skills.cellDoubleClicked.connect(self._edit_skill)
-        self.chk_show_deleted = QCheckBox("Gelöschte Fähigkeiten anzeigen")
+        self.chk_show_deleted = QCheckBox(self.tr("Show deleted skills"))
         self.chk_show_deleted.setChecked(False)
         self.chk_show_deleted.stateChanged.connect(self._update_table)
         self._put_skills_in_table()
         self.layout_body.addWidget(self.table_skills)
         self.layout_body.addWidget(self.chk_show_deleted)
-        self.btn_add_skill = QPushButton("Add Skill")
+        self.btn_add_skill = QPushButton(self.tr("Add Skill"))
         self.btn_add_skill.clicked.connect(self._add_skill)
-        self.btn_edit_skill = QPushButton("Edit Skill")
+        self.btn_edit_skill = QPushButton(self.tr("Edit Skill"))
         self.btn_edit_skill.clicked.connect(self._edit_skill)
-        self.btn_delete_skill = QPushButton("Delete Skill")
+        self.btn_delete_skill = QPushButton(self.tr("Delete Skill"))
         self.btn_delete_skill.clicked.connect(self._delete_skill)
-        self.btn_undelete_skill = QPushButton("Undelete Skill")
+        self.btn_undelete_skill = QPushButton(self.tr("Undelete Skill"))
         self.btn_undelete_skill.clicked.connect(self._undelete_skill)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.btn_add_skill, QDialogButtonBox.ButtonRole.ActionRole)
@@ -170,7 +173,7 @@ class DlgEditSkills(QDialog):
     def _setup_table(self):
         table_skills = QTableWidget()
         table_skills.setColumnCount(3)
-        table_skills.setHorizontalHeaderLabels(["Fähigkeit/Kenntnis", "Beschreibung", "Entfernt"])
+        table_skills.setHorizontalHeaderLabels([self.tr("Skill/Knowledge"), self.tr("Description"), self.tr("Deleted")])
         table_skills.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table_skills.setAlternatingRowColors(True)
         table_skills.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -219,10 +222,10 @@ class DlgEditSkills(QDialog):
             if skill.id == skill_id:
                 if skill.prep_delete:
                     if self._skill_is_used(skill_id):
-                        QMessageBox.critical(self, "Error", "Skill is used and cannot be deleted")
+                        QMessageBox.critical(self, self.tr("Error"), self.tr("Skill is used and cannot be deleted"))
                         return
-                    reply = QMessageBox.question(self, "Warning",
-                                        "Skill wird endgültig gelöscht. Möchtest du es wirklich tun?")
+                    reply = QMessageBox.question(self, self.tr("Warning"),
+                                        self.tr("Skill will be permanently deleted. Do you really want to do this?"))
                     if reply == QMessageBox.StandardButton.No:
                         return
                     command = skill_commands.Delete(skill_id, self.project_id)
@@ -230,7 +233,7 @@ class DlgEditSkills(QDialog):
                     command = skill_commands.PrepDelete(skill_id)
                 break
         else:
-            QMessageBox.critical(self, "Error", "Skill not found")
+            QMessageBox.critical(self, self.tr("Error"), self.tr("Skill not found"))
             return
         self.controller.execute(command)
         if isinstance(command, skill_commands.PrepDelete):
@@ -243,7 +246,7 @@ class DlgEditSkills(QDialog):
 
     def _undelete_skill(self):
         if not self.table_skills.item(self.table_skills.currentRow(), 2).text():
-            QMessageBox.critical(self, "Error", "Skill is not deleted")
+            QMessageBox.critical(self, self.tr("Error"), self.tr("Skill is not deleted"))
             return
         skill_id = self.table_skills.item(self.table_skills.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
         command = skill_commands.Undelete(skill_id)
@@ -292,15 +295,16 @@ class DlgSelectSkills(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         if isinstance(self.object_with_skills, schemas.PersonShow):
-            text_description = (f"<h3>Skills</h3>"
-                                f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
-                                f"die {self.object_with_skills.full_name} für seine Arbeit verwendet.</p>")
+            text_description = self.tr("<h3>Skills</h3>"
+                                     "<p>Select the skills and knowledge here<br>"
+                                     "that {} uses for their work.</p>").format(self.object_with_skills.full_name)
         elif isinstance(self.object_with_skills, schemas.AvailDayShow):
-            text_description = (f"<h3>Skills</h3>"
-                                f"<p>Wähle hier die Fähigkeiten und Kenntnisse aus,<br>"
-                                f"die {self.object_with_skills.actor_plan_period.person.full_name} "
-                                f"am {self.object_with_skills.date:%d.%m.%Y} "
-                                f"({self.object_with_skills.time_of_day.name}) einsetzen kann.</p>")
+            text_description = self.tr("<h3>Skills</h3>"
+                                     "<p>Select the skills and knowledge here<br>"
+                                     "that {} can use on {} ({}).</p>").format(
+                self.object_with_skills.actor_plan_period.person.full_name,
+                self.object_with_skills.date.strftime("%d.%m.%Y"),
+                self.object_with_skills.time_of_day.name)
         else:
             raise NotImplementedError(f'Unsupported object type: {type(self.object_with_skills)}')
         self.lb_description = QLabel(text_description)
@@ -308,9 +312,9 @@ class DlgSelectSkills(QDialog):
         self.table_skills = self._setup_table()
         self._put_skills_in_table()
         self.layout_body.addWidget(self.table_skills)
-        self.btn_add_skill = QPushButton("Add Skill")
+        self.btn_add_skill = QPushButton(self.tr("Add Skill"))
         self.btn_add_skill.clicked.connect(self._add_skill)
-        self.btn_delete_skill = QPushButton("Delete Skill")
+        self.btn_delete_skill = QPushButton(self.tr("Remove Skill"))
         self.btn_delete_skill.clicked.connect(self._remove_skill)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -318,7 +322,7 @@ class DlgSelectSkills(QDialog):
         self.button_box.addButton(self.btn_add_skill, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.btn_delete_skill, QDialogButtonBox.ButtonRole.ActionRole)
         if isinstance(self.object_with_skills, schemas.AvailDayShow):
-            self.btn_reset_skills = QPushButton("Reset Skills")
+            self.btn_reset_skills = QPushButton(self.tr("Reset Skills"))
             self.btn_reset_skills.clicked.connect(self._reset_skills)
             self.button_box.addButton(self.btn_reset_skills, QDialogButtonBox.ButtonRole.ActionRole)
         self.layout_foot.addWidget(self.button_box)
@@ -326,7 +330,7 @@ class DlgSelectSkills(QDialog):
     def _setup_table(self) -> QTableWidget:
         table_skills = QTableWidget()
         table_skills.setColumnCount(2)
-        table_skills.setHorizontalHeaderLabels(["Fähigkeit/Kenntnis", "Beschreibung"])
+        table_skills.setHorizontalHeaderLabels([self.tr("Skill/Knowledge"), self.tr("Description")])
         table_skills.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table_skills.setAlternatingRowColors(True)
         table_skills.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)

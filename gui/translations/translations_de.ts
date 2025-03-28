@@ -1092,6 +1092,86 @@ Hier können Sie die Besetzung ändern.</translation>
     </message>
 </context>
 <context>
+    <name>DlgEditSkills</name>
+    <message>
+        <location filename="../frm_skills.py" line="143"/>
+        <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Here you can add and edit skills and knowledge&lt;br&gt;for your project.&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Hier kannst du deine Fähigkeiten und Kenntnisse für dein Projekt&lt;br&gt;hinzufügen und bearbeiten.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="147"/>
+        <source>Show deleted skills</source>
+        <translation>Gelöschte Fertigkeiten anzeigen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="153"/>
+        <source>Add Skill</source>
+        <translation>Fertigkeit hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="155"/>
+        <source>Edit Skill</source>
+        <translation>Fertigkeit bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="157"/>
+        <source>Delete Skill</source>
+        <translation>Fertigkeit löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="159"/>
+        <source>Undelete Skill</source>
+        <translation>Fertigkeit wiederherstellen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="176"/>
+        <source>Skill/Knowledge</source>
+        <translation>Fertigkeit/Kenntnis</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="176"/>
+        <source>Description</source>
+        <translation>Beschreibung</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="176"/>
+        <source>Deleted</source>
+        <translation>Gelöscht</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="225"/>
+        <location filename="../frm_skills.py" line="236"/>
+        <location filename="../frm_skills.py" line="249"/>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="225"/>
+        <source>Skill is used and cannot be deleted</source>
+        <translation>Fertigkeit wird verwendet und kann nicht gelöscht werden</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="227"/>
+        <source>Warning</source>
+        <translation>Warnung</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="228"/>
+        <source>Skill will be permanently deleted. Do you really want to do this?</source>
+        <translation>Fähigkeit wird endgültig gelöscht. Möchtest du es wirklich tun?</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="236"/>
+        <source>Skill not found</source>
+        <translation>Fertigkeit nicht gefunden</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="249"/>
+        <source>Skill is not deleted</source>
+        <translation>Fertigkeit ist nicht gelöscht</translation>
+    </message>
+</context>
+<context>
     <name>DlgEventNotes</name>
     <message>
         <location filename="../frm_notes.py" line="95"/>
@@ -2426,6 +2506,48 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     </message>
 </context>
 <context>
+    <name>DlgSelectSkills</name>
+    <message>
+        <location filename="../frm_skills.py" line="300"/>
+        <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} uses for their work.&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} für seine Arbeit verwendet.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="304"/>
+        <source>&lt;h3&gt;Skills&lt;/h3&gt;&lt;p&gt;Select the skills and knowledge here&lt;br&gt;that {} can use on {} ({}).&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Wähle hier die Fähigkeiten und Kenntnisse aus,&lt;br&gt;die {} am {} ({}) einsetzen kann.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="315"/>
+        <source>Add Skill</source>
+        <translation>Fertigkeit hinzufügen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="317"/>
+        <source>Remove Skill</source>
+        <translation>Fertigkeit entfernen</translation>
+    </message>
+    <message>
+        <source>Delete Skill</source>
+        <translation type="vanished">Fertigkeit löschen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="325"/>
+        <source>Reset Skills</source>
+        <translation>Fertigkeit zurücksetzen</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="333"/>
+        <source>Skill/Knowledge</source>
+        <translation>Fertigkeit/Kenntnis</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="333"/>
+        <source>Description</source>
+        <translation>Beschreibung</translation>
+    </message>
+</context>
+<context>
     <name>DlgSendAppointmentsToGoogleCal</name>
     <message>
         <location filename="../frm_appointments_to_google_calendar.py" line="10"/>
@@ -2575,6 +2697,39 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     </message>
 </context>
 <context>
+    <name>DlgSkill</name>
+    <message>
+        <location filename="../frm_skills.py" line="79"/>
+        <source>Skill</source>
+        <translation>Fertigkeit</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="100"/>
+        <source>&lt;h3&gt;{}&lt;/h3&gt;&lt;p&gt;Enter name and description of your skill/knowledge here.&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;{}&lt;/h3&gt;&lt;p&gt;Setze hier Name und Beschreibung deiner Fähigkeit/Kenntnis ein.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="101"/>
+        <source>Edit Skill</source>
+        <translation>Fertigkeit bearbeiten</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="102"/>
+        <source>New Skill</source>
+        <translation>Neue Fertigkeit</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="107"/>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="108"/>
+        <source>Description</source>
+        <translation>Beschreibung</translation>
+    </message>
+</context>
+<context>
     <name>DlgSkillGroup</name>
     <message>
         <location filename="../frm_skill_groups.py" line="18"/>
@@ -2666,6 +2821,29 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
         <location filename="../frm_skill_groups.py" line="240"/>
         <source>No skill group selected.</source>
         <translation>Keine Fertigkeitsgruppe ausgewählt.</translation>
+    </message>
+</context>
+<context>
+    <name>DlgSkillsOfProject</name>
+    <message>
+        <location filename="../frm_skills.py" line="16"/>
+        <source>Skills of Project</source>
+        <translation>Fertigkeiten des Projekts</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="42"/>
+        <source>&lt;h3&gt;Project Skills&lt;/h3&gt;&lt;p&gt;Here are all additional skills and knowledge&lt;br&gt;that are defined in your project.&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;Fertigkeiten&lt;/h3&gt;&lt;p&gt;Hier sind alle zusätzlichen Fertigkeiten und Kenntnisse,&lt;br&gt;welche in deinem Projekt angelegt sind, aufgelistet.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="55"/>
+        <source>Skill/Knowledge</source>
+        <translation>Fertigkeit/Kenntnis</translation>
+    </message>
+    <message>
+        <location filename="../frm_skills.py" line="55"/>
+        <source>Description</source>
+        <translation>Beschreibung</translation>
     </message>
 </context>
 <context>

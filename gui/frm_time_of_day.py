@@ -451,7 +451,8 @@ class DlgTimeOfDaysEditList(QDialog):
         QMessageBox.information(
             self, self.tr('Times of day reset'),
             self.tr('The times of day have been reset:\n') +
-            '\n'.join(f'{t_o_d.name} ({t_o_d.start} - {t_o_d.end})' for t_o_d in self.builder.object_with_time_of_days.time_of_days))
+            '\n'.join(f'{t_o_d.name} ({time_to_string(t_o_d.start)} - {time_to_string(t_o_d.end)})'
+                      for t_o_d in self.builder.object_with_time_of_days.time_of_days))
 
         self.setup_table_time_of_days()
 

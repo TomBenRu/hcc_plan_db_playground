@@ -243,8 +243,8 @@ class ExportToXlsx:
             cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
             text = ''
             if len(appointment.avail_days) + len(appointment.guests):
-                text = '\n ' + '\n '.join([f'{avd.actor_plan_period.person.full_name}'
-                                          for avd in appointment.avail_days] + appointment.guests)
+                text = '\n ' + '\n '.join(sorted(avd.actor_plan_period.person.full_name
+                                          for avd in appointment.avail_days) + appointment.guests)
             for _ in range(cast_group.nr_actors - len(appointment.avail_days) - len(appointment.guests)):
                 text += '\n unbesetzt'
             if self.note_in_empty_fields and cast_group.nr_actors == 0:

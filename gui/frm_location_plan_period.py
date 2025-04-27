@@ -228,7 +228,7 @@ class ButtonEvent(QPushButton):
                 self.tr('Event Notes'),
                 self.tr('The new notes have been applied.')
             )
-            signal_handling.handler_plan_tabs.event_changed(event.id)
+            signal_handling.handler_plan_tabs.event_changed(event.id, True)
             signal_handling.handler_location_plan_period.reset_styling_notes_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
             )
@@ -471,7 +471,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             for event in self.events_at_day:
                 command = event_commands.UpdateNotes(event, dlg.notes)
                 self.controller.execute(command)
-                signal_handling.handler_plan_tabs.event_changed(event.id)
+                signal_handling.handler_plan_tabs.event_changed(event.id, True)
             self.set_stylesheet_and_tooltip()
             QMessageBox.information(
                 self,

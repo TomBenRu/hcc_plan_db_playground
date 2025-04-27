@@ -663,10 +663,21 @@ class AppointmentField(QWidget):
         self.lb_missing.setContentsMargins(5, 0, 0, 2)
         self.lb_missing.setStyleSheet('color: #ff7c00')
 
-    @Slot(UUID)
-    def _event_changed(self, event_id: UUID):
+    @Slot(UUID, bool)
+    def _event_changed(self, event_id: UUID, notes_changed: bool):
         if event_id == self.appointment.event.id:
             self._reload_appointment_and_tooltip()
+            if notes_changed:
+                reply = QMessageBox.question(
+                    self, self.tr('Notes changed'),
+                    f'Die Anmerkungen des Events am '
+                    f'{date_to_string(self.appointment.event.date)} wurden geändert.\n'
+                    f'Sollen die Änderungen für den entsprechenden Termin im Plan übernommen werden?')
+                if reply == QMessageBox.StandardButton.Yes:
+                    appointment_commands.UpdateNotes(self.appointment, self.appointment.event.notes).execute()
+                    self._reload_appointment_and_tooltip()
+                    fill_in_data(self)
+
 
 
 class FrmTabPlan(QWidget):

@@ -62,7 +62,10 @@ def fill_in_data(appointment_field: 'AppointmentField'):
     else:
         appointment_field.lb_missing.setParent(None)
 
-    appointment_field.lb_employees.setText(employees)
+    if nr_required_persons:
+        appointment_field.lb_employees.setText(employees)
+    else:
+        appointment_field.lb_employees.setText(f'<i>{appointment_field.appointment.notes or ""}</i>')
 
 
 class DlgAvailAtDay(QDialog):
@@ -635,6 +638,7 @@ class AppointmentField(QWidget):
             self._reload_appointment_and_tooltip()
             QMessageBox.information(self, self.tr('Appointment Notes'),
                                     self.tr('The new notes have been applied.'))
+            fill_in_data(self)
 
     def _reload_appointment_and_tooltip(self):
         self.appointment = db_services.Appointment.get(self.appointment.id)
@@ -1244,8 +1248,8 @@ class TblPlanStatistics(QTableWidget):
         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.setItem(self.row_kind_of_dates[kind], column, item)
 
-    def set_tool_tip(self, item: QTimer, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str,
-                     column: int):
+    def set_tool_tip(self, item: QTableWidgetItem, kind: str, actor_plan_period: schemas.ActorPlanPeriod | None,
+                     full_name: str, column: int):
         if kind == 'able' and actor_plan_period:
             item.setToolTip(self.tr('Click:\nMark possible assignments of %s\nin the plan.') % full_name)
             self.cells_with_action.add((self.row_kind_of_dates['able'], column))

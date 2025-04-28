@@ -3,7 +3,7 @@ from typing import runtime_checkable, Protocol
 from uuid import UUID
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
 
-from database.enums import Gender
+from database.enums import Gender, Role
 
 db = Database()
 
@@ -30,6 +30,7 @@ class Person(db.Entity):
     f_name = Required(str, 50)
     l_name = Required(str, 50)
     gender = Optional(Gender, 20)
+    role = Optional(Role, 20, nullable=True)
     email = Required(str, 50)
     phone_nr = Optional(str, 50, nullable=True)
     username = Required(str, 50, unique=True)

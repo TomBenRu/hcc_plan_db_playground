@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Json
 
-from database.enums import Gender
+from database.enums import Gender, Role
 
 
 @runtime_checkable
@@ -91,6 +91,7 @@ class PersonCreate(BaseModel):
 class Person(PersonCreate):
 
     id: UUID
+    role: Optional[Role]
     project: 'Project'
     address: Optional['Address'] = None
     notes: Optional[str] = None

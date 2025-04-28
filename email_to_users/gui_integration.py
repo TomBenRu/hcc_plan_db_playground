@@ -18,12 +18,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QObject, Signal, Slot
 
-from pony.orm import db_session, select
-
-from database.models import Person, Team, PlanPeriod, Plan, Project
-
-from .service import email_service
-from .config import email_config, load_config_from_file
+from .config import email_config
+from .sender import EmailSender
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +103,10 @@ class EmailConfigDialog(QDialog):
         
     def load_config(self):
         """Lädt die Konfiguration in die UI-Elemente."""
+        # Aktualisiere die Konfiguration aus der zentralen Quelle
+        if hasattr(email_config, 'refresh'):
+            email_config.refresh()
+            
         self.host_edit.setText(email_config.smtp_host)
         self.port_edit.setText(str(email_config.smtp_port))
         self.username_edit.setText(email_config.smtp_username)
@@ -121,41 +121,37 @@ class EmailConfigDialog(QDialog):
         
     def save_config(self):
         """Speichert die Konfiguration."""
-        # Aktualisiere die Konfiguration
-        email_config.smtp_host = self.host_edit.text()
-        email_config.smtp_port = int(self.port_edit.text() or "587")
-        email_config.smtp_username = self.username_edit.text()
-        email_config.smtp_password = self.password_edit.text()
+        # Sammle alle Einstellungen in einem Dictionary
+        settings = {
+            "smtp_host": self.host_edit.text(),
+            "smtp_port": int(self.port_edit.text() or "587"),
+            "smtp_username": self.username_edit.text(),
+            "smtp_password": self.password_edit.text(),
+            "default_sender_email": self.sender_email_edit.text(),
+            "default_sender_name": self.sender_name_edit.text(),
+            "use_tls": self.use_tls_check.isChecked(),
+            "use_ssl": self.use_ssl_check.isChecked(),
+            "debug_mode": self.debug_mode_check.isChecked()
+        }
         
-        email_config.default_sender_email = self.sender_email_edit.text()
-        email_config.default_sender_name = self.sender_name_edit.text()
+        try:
+            # Zentrale Konfiguration verwenden, wenn verfügbar
+            if hasattr(email_config, 'save_settings'):
+                email_config.save_settings(settings)
+            else:
+                # Fallback für die alte Implementierung
+                # Direktes Setzen der Attribute
+                for key, value in settings.items():
+                    if hasattr(email_config, key):
+                        setattr(email_config, key, value)
         
-        email_config.use_tls = self.use_tls_check.isChecked()
-        email_config.use_ssl = self.use_ssl_check.isChecked()
-        email_config.debug_mode = self.debug_mode_check.isChecked()
-        
-        # Speichere in der Konfigurationsdatei
-        config_dir = Path("configuration")
-        if not config_dir.exists():
-            config_dir.mkdir(exist_ok=True)
-            
-        config_path = config_dir / "email_config.toml"
-        
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.write("[email]\n")
-            f.write(f'smtp_host = "{email_config.smtp_host}"\n')
-            f.write(f'smtp_port = {email_config.smtp_port}\n')
-            f.write(f'smtp_username = "{email_config.smtp_username}"\n')
-            f.write(f'smtp_password = "{email_config.smtp_password}"\n')
-            f.write(f'default_sender_email = "{email_config.default_sender_email}"\n')
-            f.write(f'default_sender_name = "{email_config.default_sender_name}"\n')
-            f.write(f'use_tls = {str(email_config.use_tls).lower()}\n')
-            f.write(f'use_ssl = {str(email_config.use_ssl).lower()}\n')
-            f.write(f'debug_mode = {str(email_config.debug_mode).lower()}\n')
-            
-        QMessageBox.information(self, "Konfiguration gespeichert", 
-                               "Die E-Mail-Konfiguration wurde erfolgreich gespeichert.")
-        self.accept()
+            QMessageBox.information(self, "Konfiguration gespeichert", 
+                                "Die E-Mail-Konfiguration wurde erfolgreich gespeichert.")
+            self.accept()
+        except Exception as e:
+            logger.error(f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}")
+            QMessageBox.critical(self, "Fehler", 
+                              f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}")
         
     def test_connection(self):
         """Testet die SMTP-Verbindung."""
@@ -163,25 +159,45 @@ class EmailConfigDialog(QDialog):
         import smtplib
         
         # Temporäre Konfiguration erstellen
-        from email_to_users.config import EmailConfig
-        temp_config = EmailConfig(
-            smtp_host=self.host_edit.text(),
-            smtp_port=int(self.port_edit.text() or "587"),
-            smtp_username=self.username_edit.text(),
-            smtp_password=self.password_edit.text(),
-            use_tls=self.use_tls_check.isChecked(),
-            use_ssl=self.use_ssl_check.isChecked(),
-            debug_mode=False  # Debug-Modus für den Test deaktivieren
-        )
+        test_config = {
+            "smtp_host": self.host_edit.text(),
+            "smtp_port": int(self.port_edit.text() or "587"),
+            "smtp_username": self.username_edit.text(),
+            "smtp_password": self.password_edit.text(),
+            "use_tls": self.use_tls_check.isChecked(),
+            "use_ssl": self.use_ssl_check.isChecked(),
+            "debug_mode": False  # Debug-Modus für den Test deaktivieren
+        }
         
-        # Test-E-Mail-Sender erstellen
-        sender = EmailSender(config=temp_config)
-        
+        # Test-E-Mail-Sender erstellen mit temporärer Konfiguration
         try:
-            # SMTP-Verbindung testen
-            with sender._create_smtp_connection():
-                QMessageBox.information(self, "Verbindungstest",
-                                      "Die Verbindung zum SMTP-Server wurde erfolgreich hergestellt.")
+            # Wir testen die Verbindung manuell, um die vorhandene EmailSender-Klasse
+            # nicht ändern zu müssen
+            if test_config["use_ssl"]:
+                smtp = smtplib.SMTP_SSL(
+                    test_config["smtp_host"],
+                    test_config["smtp_port"],
+                    timeout=30
+                )
+            else:
+                smtp = smtplib.SMTP(
+                    test_config["smtp_host"],
+                    test_config["smtp_port"],
+                    timeout=30
+                )
+                
+                if test_config["use_tls"]:
+                    smtp.starttls()
+                    
+            # Authentifizierung, falls Benutzername und Passwort vorhanden sind
+            if test_config["smtp_username"] and test_config["smtp_password"]:
+                smtp.login(test_config["smtp_username"], test_config["smtp_password"])
+                
+            # Verbindung wieder schließen
+            smtp.quit()
+            
+            QMessageBox.information(self, "Verbindungstest",
+                                  "Die Verbindung zum SMTP-Server wurde erfolgreich hergestellt.")
         except smtplib.SMTPAuthenticationError:
             QMessageBox.critical(self, "Verbindungsfehler",
                                "Authentifizierungsfehler. Bitte überprüfen Sie Benutzername und Passwort.")

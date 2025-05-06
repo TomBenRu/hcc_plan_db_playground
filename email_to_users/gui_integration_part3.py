@@ -14,7 +14,10 @@ from pony.orm import db_session
 
 from database.models import PlanPeriod
 
-from .service import email_service
+try:
+    from .service import email_service
+except ImportError:
+    from service import email_service
 
 
 class AvailabilityRequestDialog(QDialog):

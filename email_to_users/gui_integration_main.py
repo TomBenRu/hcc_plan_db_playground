@@ -16,6 +16,7 @@ try:
     from .gui_integration_part2 import PlanNotificationDialog
     from .gui_integration_part3 import AvailabilityRequestDialog
     from .gui_integration_part4 import CustomEmailDialog
+    from .config import load_config_from_file
     
 except ImportError:
     # Falls die Dateien direkt als Module ausgeführt werden
@@ -23,8 +24,7 @@ except ImportError:
     from gui_integration_part2 import PlanNotificationDialog
     from gui_integration_part3 import AvailabilityRequestDialog
     from gui_integration_part4 import CustomEmailDialog
-
-from .config import load_config_from_file
+    from config import load_config_from_file
 
 logger = logging.getLogger(__name__)
 
@@ -107,3 +107,7 @@ def show_custom_email_dialog(parent=None):
 
 # Beim Import des Moduls die Konfiguration laden
 load_email_config()
+
+
+if __name__ == '__main__':
+    show_custom_email_dialog()

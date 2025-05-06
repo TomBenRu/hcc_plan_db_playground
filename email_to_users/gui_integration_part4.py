@@ -14,7 +14,10 @@ from pony.orm import db_session, select
 
 from database.models import Person, Team, Project
 
-from .service import email_service
+try:
+    from .service import email_service
+except ImportError:
+    from service import email_service
 
 
 class CustomEmailDialog(QDialog):

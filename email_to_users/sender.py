@@ -12,13 +12,22 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Union
 from email.mime.multipart import MIMEMultipart
 
-from .config import email_config
-from .utils import (
-    validate_email,
-    format_recipients,
-    create_multipart_message,
-    extract_emails_from_persons
-)
+try:
+    from .config import email_config
+    from .utils import (
+        validate_email,
+        format_recipients,
+        create_multipart_message,
+        extract_emails_from_persons
+    )
+except ImportError:
+    from config import email_config
+    from utils import (
+        validate_email,
+        format_recipients,
+        create_multipart_message,
+        extract_emails_from_persons
+    )
 
 logger = logging.getLogger(__name__)
 

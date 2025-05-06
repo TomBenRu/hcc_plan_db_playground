@@ -15,9 +15,14 @@ from pony.orm import db_session, select
 
 from database.models import Person, Team, Plan, PlanPeriod, Project
 
-from .sender import EmailSender
-from .templates import PlanNotificationTemplate, AvailabilityRequestTemplate
-from .utils import extract_emails_from_persons
+try:
+    from .sender import EmailSender
+    from .templates import PlanNotificationTemplate, AvailabilityRequestTemplate
+    from .utils import extract_emails_from_persons
+except ImportError:
+    from sender import EmailSender
+    from templates import PlanNotificationTemplate, AvailabilityRequestTemplate
+    from utils import extract_emails_from_persons
 
 logger = logging.getLogger(__name__)
 

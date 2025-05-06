@@ -13,7 +13,10 @@ from pony.orm import db_session
 
 from database.models import Plan
 
-from .service import email_service
+try:
+    from .service import email_service
+except ImportError:
+    from service import email_service
 
 
 class PlanNotificationDialog(QDialog):

@@ -2,6 +2,7 @@
 Teil 4 der GUI-Integration für die E-Mail-Funktionalität.
 Enthält den Dialog für benutzerdefinierte E-Mails.
 """
+from uuid import UUID
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
@@ -12,6 +13,7 @@ from PySide6.QtCore import Qt
 
 from pony.orm import db_session, select
 
+from database import db_services
 from database.models import Person, Team, Project
 
 try:
@@ -23,13 +25,15 @@ except ImportError:
 class CustomEmailDialog(QDialog):
     """Dialog zum Senden von benutzerdefinierten E-Mails."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, project_id: UUID = None):
         """Initialisiert den Dialog."""
         super().__init__(parent)
         self.setWindowTitle("Benutzerdefinierte E-Mail senden")
         self.setMinimumWidth(700)
         self.setMinimumHeight(600)
         
+        self.project_id = project_id
+
         self.setup_ui()
         self.load_recipients()
         
@@ -132,23 +136,25 @@ class CustomEmailDialog(QDialog):
         button_layout.addWidget(self.cancel_button)
         
         layout.addLayout(button_layout)
-    
-    @db_session
+
     def load_recipients(self):
         """Lädt Empfänger, Teams und Projekte."""
         # Lade Personen
-        for person in select(p for p in Person if not p.prep_delete).order_by(Person.l_name, Person.f_name):
+        persons = sorted(db_services.Person.get_all_from__project(self.project_id), key=lambda x: x.full_name)
+        for person in persons:
             item = QListWidgetItem(f"{person.full_name} ({person.email})")
-            item.setData(Qt.UserRole, person.id)
+            item.setData(Qt.ItemDataRole.UserRole, person.id)
             self.person_list.addItem(item)
         
         # Lade Teams
-        for team in select(t for t in Team if not t.prep_delete).order_by(Team.name):
+        teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
+        for team in teams:
             self.team_combo.addItem(team.name, team.id)
         
         # Lade Projekte
-        for project in select(p for p in Project if p.active).order_by(Project.name):
-            self.project_combo.addItem(project.name, project.id)
+        project = db_services.Project.get(self.project_id)
+        self.project_combo.addItem(project.name, project.id)
+        self.project_combo.setEnabled(False)
     
     def toggle_person_list(self, checked):
         """Aktiviert/deaktiviert die Personenliste."""

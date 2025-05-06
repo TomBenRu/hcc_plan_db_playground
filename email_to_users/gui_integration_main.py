@@ -8,6 +8,8 @@ bietet einfache Funktionen zum Öffnen der verschiedenen Dialoge.
 import os
 import logging
 from pathlib import Path
+from uuid import UUID
+
 from pony.orm import db_session
 
 try:
@@ -61,19 +63,18 @@ def show_config_dialog(parent=None):
     return dialog.exec_() == 1
 
 
-def show_plan_notification_dialog(plan_id, parent=None):
+def show_plan_notification_dialog(parent=None):
     """
     Zeigt den Dialog zum Senden von Einsatzplan-Benachrichtigungen an.
     
     Args:
-        plan_id: ID des Plans
         parent: Übergeordnetes Widget
         
     Returns:
         bool: True, wenn die E-Mails gesendet wurden, sonst False
     """
-    dialog = PlanNotificationDialog(plan_id, parent)
-    return dialog.exec_() == 1
+    dialog = PlanNotificationDialog(parent)
+    return dialog.exec() == 1
 
 
 def show_availability_request_dialog(plan_period_id, parent=None):
@@ -91,17 +92,18 @@ def show_availability_request_dialog(plan_period_id, parent=None):
     return dialog.exec_() == 1
 
 
-def show_custom_email_dialog(parent=None):
+def show_custom_email_dialog(parent=None, project_id: UUID = None):
     """
     Zeigt den Dialog zum Senden von benutzerdefinierten E-Mails an.
     
     Args:
         parent: Übergeordnetes Widget
+        project_id: Optional, ID des Projekts
         
     Returns:
         bool: True, wenn die E-Mails gesendet wurden, sonst False
     """
-    dialog = CustomEmailDialog(parent)
+    dialog = CustomEmailDialog(parent, project_id)
     return dialog.exec_() == 1
 
 
@@ -110,4 +112,9 @@ load_email_config()
 
 
 if __name__ == '__main__':
-    show_custom_email_dialog()
+    import sys
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    show_plan_notification_dialog()
+    sys.exit(app.exec())

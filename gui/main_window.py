@@ -164,9 +164,20 @@ class MainWindow(QMainWindow):
                               self.tr('Transfer appointments from active plan to facilities planning mask.'),
                               self.apply_events__plan_to_mask),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'), 
-                              self.tr('Emails...'), 
-                              self.tr('Send emails.'),
-                              self.send_email),
+                              self.tr('Send custom Mails...'),
+                              self.tr('Send custom emails.'),
+                              self.send_custom_emails),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'),
+                              self.tr('Send Plan Notifications...'),
+                              self.tr('Send plan notifications.'),
+                              self.send_plan_notifications),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'),
+                              self.tr('Send Availability Requests...'),
+                              self.tr('Send availability requests.'),
+                              self.send_availability_requests),
+            MenuToolbarAction(self, None, self.tr('Email Configuration...'),
+                              self.tr('Configure email settings.'),
+                              self.show_email_config_dialog),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 
                               self.tr('Transfer Appointments'),
                               self.tr('Transfer appointments from active plan to Google Calendar'),
@@ -235,7 +246,8 @@ class MainWindow(QMainWindow):
                            self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
-            self.tr('&Emails'): [self.actions['send_email']],
+            self.tr('&Emails'): [self.actions['send_custom_emails'], self.actions['send_plan_notifications'],
+                                 self.actions['send_availability_requests'], None, self.actions['show_email_config_dialog']],
             self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'], self.actions['open_google_calendar'],
                                  None, self.actions['create_google_calendar'],
                                  self.actions['synchronize_google_calenders'],
@@ -827,8 +839,25 @@ class MainWindow(QMainWindow):
     def apply_events__plan_to_mask(self):
         ...
 
-    def send_email(self):
-        ...
+    def send_custom_emails(self):
+        from email_to_users.gui_integration_main import show_custom_email_dialog
+        show_custom_email_dialog(self, self.project_id)
+
+    def send_plan_notifications(self):
+        from email_to_users.gui_integration_main import show_plan_notification_dialog
+        show_plan_notification_dialog(self)
+
+    def send_availability_requests(self):
+        from email_to_users.gui_integration_main import show_availability_request_dialog
+        curr_plan_widget: frm_plan.FrmTabPlan = self.tabs_plans.currentWidget()
+        if not curr_plan_widget:
+            QMessageBox.critical(self, 'Verfügbarkeiten anfragen', 'Sie müssen zuerst einen Plan öffnen.')
+            return
+        plan_period = curr_plan_widget.plan.plan_period
+
+    def show_email_config_dialog(self):
+        from email_to_users.gui_integration_main import show_config_dialog
+        show_config_dialog(self)
 
     def plan_events_to_google_calendar(self):
         def transfer(plan: schemas.PlanShow):

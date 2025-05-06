@@ -22,7 +22,7 @@ except ImportError:
 class PlanNotificationDialog(QDialog):
     """Dialog zum Senden von Einsatzplan-Benachrichtigungen."""
     
-    def __init__(self, plan_id, parent=None):
+    def __init__(self, parent=None):
         """
         Initialisiert den Dialog.
         
@@ -31,28 +31,21 @@ class PlanNotificationDialog(QDialog):
             parent: Übergeordnetes Widget
         """
         super().__init__(parent)
-        self.plan_id = plan_id
         self.setWindowTitle("Einsatzplan-Benachrichtigung senden")
         self.setMinimumWidth(600)
         
         self.setup_ui()
-        self.load_recipients()
-        
-    @db_session
+
     def setup_ui(self):
         """Erstellt die UI-Elemente."""
         layout = QVBoxLayout(self)
         
-        # Plan-Informationen
-        plan = Plan[self.plan_id]
-        plan_period = plan.plan_period
+        # info_text = (f"<h3>Einsatzplan: {plan.name}</h3>"
+        #             f"<p>Zeitraum: {plan_period.start.strftime('%d.%m.%Y')} - "
+        #             f"{plan_period.end.strftime('%d.%m.%Y')}</p>"
+        #             f"<p>Team: {plan_period.team.name}</p>")
         
-        info_text = (f"<h3>Einsatzplan: {plan.name}</h3>"
-                    f"<p>Zeitraum: {plan_period.start.strftime('%d.%m.%Y')} - "
-                    f"{plan_period.end.strftime('%d.%m.%Y')}</p>"
-                    f"<p>Team: {plan_period.team.name}</p>")
-        
-        info_label = QLabel(info_text)
+        info_label = QLabel()
         info_label.setTextFormat(Qt.RichText)
         layout.addWidget(info_label)
         

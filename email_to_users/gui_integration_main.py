@@ -14,18 +14,18 @@ from pony.orm import db_session
 
 try:
     # Importiere die Dialoge der einzelnen Teile
-    from .gui_integration import EmailConfigDialog
-    from .gui_integration_part2 import PlanNotificationDialog
-    from .gui_integration_part3 import AvailabilityRequestDialog
-    from .gui_integration_part4 import CustomEmailDialog
+    from .gui_integration_email_config import EmailConfigDialog
+    from .gui_integration_plan_notification import PlanNotificationDialog
+    from .gui_integration_availability_request import AvailabilityRequestDialog
+    from .gui_integration_custom_email import CustomEmailDialog
     from .config import load_config_from_file
     
 except ImportError:
     # Falls die Dateien direkt als Module ausgeführt werden
-    from gui_integration import EmailConfigDialog
-    from gui_integration_part2 import PlanNotificationDialog
-    from gui_integration_part3 import AvailabilityRequestDialog
-    from gui_integration_part4 import CustomEmailDialog
+    from gui_integration_email_config import EmailConfigDialog
+    from gui_integration_plan_notification import PlanNotificationDialog
+    from gui_integration_availability_request import AvailabilityRequestDialog
+    from gui_integration_custom_email import CustomEmailDialog
     from config import load_config_from_file
 
 logger = logging.getLogger(__name__)

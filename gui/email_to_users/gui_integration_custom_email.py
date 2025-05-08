@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
     QPushButton, QComboBox, QCheckBox, QGroupBox, QFormLayout,
     QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QCalendarWidget, QDialogButtonBox, QScrollArea, QWidget,
-    QFileDialog
+    QFileDialog, QApplication
 )
 from PySide6.QtCore import Qt, QDate
 
@@ -61,6 +61,17 @@ class CustomEmailDialog(QDialog):
         
     def _setup_ui(self):
         """Erstellt die UI-Elemente."""
+
+        # Methode zum Anpassen der Höhe basierend auf der Scrollbar-Sichtbarkeit
+        def adjust_scroll_height():
+            # Prüfen, ob die Scrollbar einen gültigen Bereich hat (d.h. ob sie wirklich benötigt wird)
+            # alle Layout-Events verarbeiten, damit die Scrollbar angezeigt wird, falls nötig
+            QApplication.processEvents()
+            scrollbar = self.attachments_scroll.horizontalScrollBar()
+            has_scrollbar = scrollbar.minimum() < scrollbar.maximum()
+            scrollbar_height = scrollbar.height() if has_scrollbar else 0
+            self.attachments_scroll.setFixedHeight(35 + scrollbar_height)  # Basishöhe + Scrollbar-Höhe
+
         layout = QVBoxLayout(self)
         
         # E-Mail-Kopf
@@ -105,9 +116,10 @@ class CustomEmailDialog(QDialog):
         # QScrollArea für horizontales Scrollen bei vielen Anhängen
         self.attachments_scroll = QScrollArea()
         self.attachments_scroll.setWidgetResizable(True)
-        self.attachments_scroll.setMinimumHeight(40)  # Minimalhöhe festlegen
         self.attachments_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.attachments_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.attachments_scroll.horizontalScrollBar().rangeChanged.connect(adjust_scroll_height)
+        adjust_scroll_height()
 
         # Container-Widget für das Layout
         self.attachments_container = QWidget()

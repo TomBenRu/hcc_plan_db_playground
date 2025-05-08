@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
     QPushButton, QComboBox, QCheckBox, QGroupBox, QFormLayout,
     QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QCalendarWidget, QDialogButtonBox, QScrollArea, QWidget,
-    QFileDialog, QApplication
+    QFileDialog, QApplication, QRadioButton
 )
 from PySide6.QtCore import Qt, QDate
 
@@ -162,8 +162,8 @@ class CustomEmailDialog(QDialog):
         content_group = QGroupBox("E-Mail-Inhalt")
         content_layout = QVBoxLayout(content_group)
         
-        self.plain_radio = QCheckBox("Nur Plaintext")
-        self.html_radio = QCheckBox("HTML-E-Mail")
+        self.plain_radio = QRadioButton("Nur Plaintext")
+        self.html_radio = QRadioButton("HTML-E-Mail")
         
         self.plain_radio.setChecked(True)
         
@@ -171,9 +171,6 @@ class CustomEmailDialog(QDialog):
         radio_layout.addWidget(self.plain_radio)
         radio_layout.addWidget(self.html_radio)
         radio_layout.addStretch()
-        
-        self.plain_radio.toggled.connect(self.toggle_content_type)
-        self.html_radio.toggled.connect(self.toggle_content_type)
         
         self.content_edit = QTextEdit()
         self.content_edit.setPlaceholderText(
@@ -223,6 +220,7 @@ class CustomEmailDialog(QDialog):
             # Kein Team ausgewählt, also alle Personen anzeigen
             for i in range(self.person_list.count()):
                 item = self.person_list.item(i)
+                item.setSelected(False)
                 person_id = item.data(Qt.ItemDataRole.UserRole)
                 person = db_services.Person.get(person_id)
                 assigned_to_team_on_date = [taa for taa in person.team_actor_assigns
@@ -236,6 +234,7 @@ class CustomEmailDialog(QDialog):
             # Nur Personen des ausgewählten Teams am gewählten Datum anzeigen
             for i in range(self.person_list.count()):
                 item = self.person_list.item(i)
+                item.setSelected(False)
                 person_id = item.data(Qt.ItemDataRole.UserRole)
                 person = db_services.Person.get(person_id)
                 assigned_to_team_on_date = [taa for taa in person.team_actor_assigns
@@ -269,15 +268,6 @@ class CustomEmailDialog(QDialog):
         for i in range(self.person_list.count()):
             item = self.person_list.item(i)
             item.setSelected(False)
-
-    def toggle_content_type(self, checked):
-        """Wechselt zwischen Plaintext und HTML."""
-        if self.plain_radio.isChecked() and self.html_radio.isChecked():
-            # Stelle sicher, dass immer mindestens eine Option ausgewählt ist
-            if self.sender() == self.plain_radio:
-                self.html_radio.setChecked(False)
-            else:
-                self.plain_radio.setChecked(False)
 
     def add_attachments(self):
         """Öffnet einen Dateidialog und fügt ausgewählte Dateien als Anhänge hinzu"""

@@ -27,10 +27,10 @@ class CustomEmailDialog(QDialog):
         
         self.project_id = project_id
 
-        self.setup_ui()
+        self._setup_ui()
         self.load_recipients()
         
-    def setup_ui(self):
+    def _setup_ui(self):
         """Erstellt die UI-Elemente."""
         layout = QVBoxLayout(self)
         

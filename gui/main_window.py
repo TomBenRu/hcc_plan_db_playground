@@ -242,8 +242,10 @@ class MainWindow(QMainWindow):
                            self.actions['plans_of_team_delete_prep_deletes'], None,
                            self.actions['apply_events__plan_to_mask']
                            ],
-            self.tr('&Emails'): [self.actions['send_custom_emails'], self.actions['send_plan_notifications'],
-                                 self.actions['send_availability_requests'], None, self.actions['show_email_config_dialog']],
+            self.tr('&Emails'): [self.actions['send_custom_emails'],
+                                 # self.actions['send_plan_notifications'],
+                                 # self.actions['send_availability_requests'],
+                                 None, self.actions['show_email_config_dialog']],
             self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'], self.actions['open_google_calendar'],
                                  None, self.actions['create_google_calendar'],
                                  self.actions['synchronize_google_calenders'],

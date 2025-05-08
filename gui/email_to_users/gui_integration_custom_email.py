@@ -138,11 +138,25 @@ class CustomEmailDialog(QDialog):
         # Personenliste
         self.person_list = QListWidget()
         self.person_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        # Schriftfarbe selektierter Einträge auf grün setzen
+        self.person_list.setStyleSheet("""
+            QListWidget::item:selected { background-color: rgba(17, 199, 0, 50); }
+        """)
 
         recipients_layout.addLayout(selection_layout)
         recipients_layout.addWidget(self.person_list)
         
         layout.addWidget(recipients_group)
+
+        # Buttons für alle Empfänger aus-/abwählen
+        select_all_button = QPushButton("Alle auswählen")
+        select_all_button.clicked.connect(self.select_all_persons)
+        deselect_all_button = QPushButton("Alle abwählen")
+        deselect_all_button.clicked.connect(self.deselect_all_persons)
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(select_all_button)
+        button_layout.addWidget(deselect_all_button)
+        recipients_layout.addLayout(button_layout)
         
         # E-Mail-Inhalt
         content_group = QGroupBox("E-Mail-Inhalt")
@@ -242,6 +256,19 @@ class CustomEmailDialog(QDialog):
             self.team_assignment_date = dialog.calendar.selectedDate().toPython()
             self.team_assignment_button.setText(date_to_string(self.team_assignment_date))
             self.filter_persons()
+
+    def select_all_persons(self):
+        """Wählt alle Personen aus."""
+        for i in range(self.person_list.count()):
+            item = self.person_list.item(i)
+            if not item.isHidden():
+                item.setSelected(True)
+
+    def deselect_all_persons(self):
+        """Deselects all persons."""
+        for i in range(self.person_list.count()):
+            item = self.person_list.item(i)
+            item.setSelected(False)
 
     def toggle_content_type(self, checked):
         """Wechselt zwischen Plaintext und HTML."""

@@ -5,28 +5,16 @@ Dieses Modul importiert alle benötigten Klassen aus den Teil-Modulen und
 bietet einfache Funktionen zum Öffnen der verschiedenen Dialoge.
 """
 
-import os
 import logging
 from pathlib import Path
 from uuid import UUID
 
-from pony.orm import db_session
+from .gui_integration_email_config import EmailConfigDialog
+from .gui_integration_plan_notification import PlanNotificationDialog
+from .gui_integration_availability_request import AvailabilityRequestDialog
+from .gui_integration_custom_email import CustomEmailDialog
+from email_to_users.config import load_config_from_file
 
-try:
-    # Importiere die Dialoge der einzelnen Teile
-    from .gui_integration_email_config import EmailConfigDialog
-    from .gui_integration_plan_notification import PlanNotificationDialog
-    from .gui_integration_availability_request import AvailabilityRequestDialog
-    from .gui_integration_custom_email import CustomEmailDialog
-    from .config import load_config_from_file
-    
-except ImportError:
-    # Falls die Dateien direkt als Module ausgeführt werden
-    from gui_integration_email_config import EmailConfigDialog
-    from gui_integration_plan_notification import PlanNotificationDialog
-    from gui_integration_availability_request import AvailabilityRequestDialog
-    from gui_integration_custom_email import CustomEmailDialog
-    from config import load_config_from_file
 
 logger = logging.getLogger(__name__)
 

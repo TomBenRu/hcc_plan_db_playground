@@ -18,12 +18,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QObject, Signal, Slot
 
-try:
-    from .config import email_config
-    from .sender import EmailSender
-except ImportError:
-    from config import email_config
-    from sender import EmailSender
+from email_to_users.config import email_config
+from email_to_users.sender import EmailSender
 
 logger = logging.getLogger(__name__)
 

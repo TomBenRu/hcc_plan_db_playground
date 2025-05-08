@@ -1,7 +1,6 @@
 import functools
 import logging
 import os.path
-import pprint
 import sys
 from uuid import UUID
 
@@ -16,7 +15,6 @@ from xlsxwriter.exceptions import FileCreateError
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
-from configuration.general_settings import general_settings_handler
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx, avail_days_to_xlsx
@@ -51,8 +49,6 @@ from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.toolbars import MainToolBar
-from line_profiler_pycharm import profile
-
 
 logger = logging.getLogger(__name__)
 
@@ -840,15 +836,14 @@ class MainWindow(QMainWindow):
         ...
 
     def send_custom_emails(self):
-        from email_to_users.gui_integration_main import show_custom_email_dialog
+        from gui.email_to_users.gui_integration_main import show_custom_email_dialog
         show_custom_email_dialog(self, self.project_id)
 
     def send_plan_notifications(self):
-        from email_to_users.gui_integration_main import show_plan_notification_dialog
+        from gui.email_to_users.gui_integration_main import show_plan_notification_dialog
         show_plan_notification_dialog(self)
 
     def send_availability_requests(self):
-        from email_to_users.gui_integration_main import show_availability_request_dialog
         curr_plan_widget: frm_plan.FrmTabPlan = self.tabs_plans.currentWidget()
         if not curr_plan_widget:
             QMessageBox.critical(self, 'Verfügbarkeiten anfragen', 'Sie müssen zuerst einen Plan öffnen.')
@@ -856,7 +851,7 @@ class MainWindow(QMainWindow):
         plan_period = curr_plan_widget.plan.plan_period
 
     def show_email_config_dialog(self):
-        from email_to_users.gui_integration_main import show_config_dialog
+        from gui.email_to_users.gui_integration_main import show_config_dialog
         show_config_dialog(self)
 
     def plan_events_to_google_calendar(self):

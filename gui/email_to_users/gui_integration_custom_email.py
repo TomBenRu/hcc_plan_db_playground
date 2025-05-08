@@ -11,15 +11,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from pony.orm import db_session, select
-
 from database import db_services
-from database.models import Person, Team, Project
-
-try:
-    from .service import email_service
-except ImportError:
-    from service import email_service
+from email_to_users.service import email_service
 
 
 class CustomEmailDialog(QDialog):

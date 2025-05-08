@@ -37,7 +37,7 @@ Mit diesem Dialog können benutzerdefinierte E-Mails an einzelne Personen, ein g
 ### Konfiguration
 
 ```python
-from email_to_users.gui_integration_main import show_config_dialog
+from gui.email_to_users.gui_integration_main import show_config_dialog
 
 # Zeigt den Konfigurationsdialog an
 if show_config_dialog(parent_widget):
@@ -49,7 +49,7 @@ else:
 ### Einsatzplan-Benachrichtigung
 
 ```python
-from email_to_users.gui_integration_main import show_plan_notification_dialog
+from gui.email_to_users.gui_integration_main import show_plan_notification_dialog
 
 # Zeigt den Dialog zum Senden von Einsatzplan-Benachrichtigungen an
 plan_id = "12345"  # UUID des Plans
@@ -62,7 +62,7 @@ else:
 ### Verfügbarkeitsanfrage
 
 ```python
-from email_to_users.gui_integration_main import show_availability_request_dialog
+from gui.email_to_users.gui_integration_main import show_availability_request_dialog
 
 # Zeigt den Dialog zum Senden von Verfügbarkeitsanfragen an
 plan_period_id = "67890"  # UUID des Planungszeitraums
@@ -75,7 +75,7 @@ else:
 ### Benutzerdefinierte E-Mail
 
 ```python
-from email_to_users.gui_integration_main import show_custom_email_dialog
+from gui.email_to_users.gui_integration_main import show_custom_email_dialog
 
 # Zeigt den Dialog zum Senden von benutzerdefinierten E-Mails an
 if show_custom_email_dialog(parent_widget):

@@ -12,7 +12,7 @@ from .templates import EmailTemplate, PlanNotificationTemplate, AvailabilityRequ
 
 # GUI-Integration (nur importieren, wenn PySide6 verfügbar ist)
 try:
-    from .gui_integration_main import (
+    from gui.email_to_users.gui_integration_main import (
         show_config_dialog,
         show_plan_notification_dialog,
         show_availability_request_dialog,

@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Optional, Union
 from datetime import date, datetime
 from pathlib import Path
 import os
+from uuid import UUID
 
 from pony.orm import db_session, select
 
@@ -231,9 +232,7 @@ class EmailService:
         subject: str,
         text_content: str,
         html_content: Optional[str] = None,
-        recipient_ids: Optional[List[str]] = None,
-        team_id: Optional[str] = None,
-        project_id: Optional[str] = None,
+        recipient_ids: Optional[List[UUID]] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, int]:
         """
@@ -257,26 +256,13 @@ class EmailService:
         try:
             # Bestimme die Empfänger
             recipients = []
-            
+
             if recipient_ids:
                 for id in recipient_ids:
                     if Person.exists(id=id):
                         person = Person[id]
                         if person not in recipients:
                             recipients.append(person)
-            
-            if team_id and Team.exists(id=team_id):
-                team = Team[team_id]
-                for taa in team.team_actor_assigns:
-                    if not taa.end:  # Nur aktuelle Teammitglieder
-                        if taa.person not in recipients:
-                            recipients.append(taa.person)
-            
-            if project_id and Project.exists(id=project_id):
-                project = Project[project_id]
-                for person in project.persons:
-                    if not person.prep_delete and person not in recipients:
-                        recipients.append(person)
             
             if not recipients:
                 logger.warning("Keine Empfänger für benutzerdefinierte E-Mail gefunden")

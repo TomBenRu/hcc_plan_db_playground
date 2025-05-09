@@ -363,6 +363,7 @@ class EmailSender:
             
             # Füge Empfänger-spezifische Parameter hinzu
             params['name'] = recipient.get('name', '')
+            params['full_name'] = recipient.get('name', '')
             params['email'] = recipient['email']
             
             # Füge individuelle Parameter hinzu, falls vorhanden
@@ -409,12 +410,25 @@ class EmailSender:
         Returns:
             Das personalisierte Template
         """
-        # Einfache Implementierung mit Formatstring
         try:
-            return template.format(**params)
-        except KeyError as e:
-            logger.warning(f"Fehlender Template-Parameter: {str(e)}")
-            return template
+            # Verwende Jinja2 für die Template-Personalisierung
+            from jinja2 import Template
+            jinja_template = Template(template)
+            return jinja_template.render(**params)
+        except ImportError:
+            logger.warning("Jinja2 ist nicht installiert. Verwende einfache Formatstring-Implementierung.")
+            try:
+                return template.format(**params)
+            except KeyError as e:
+                logger.warning(f"Fehlender Template-Parameter: {str(e)}")
+                return template
+            except Exception as e:
+                logger.error(f"Fehler bei der Template-Personalisierung: {str(e)}")
+                return template
         except Exception as e:
-            logger.error(f"Fehler bei der Template-Personalisierung: {str(e)}")
-            return template
+            logger.error(f"Fehler bei der Jinja2-Template-Personalisierung: {str(e)}")
+            # Fallback zur einfachen Formatstring-Implementierung
+            try:
+                return template.format(**params)
+            except Exception:
+                return template

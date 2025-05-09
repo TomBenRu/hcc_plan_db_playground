@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QCalendarWidget, QDialogButtonBox, QScrollArea, QWidget,
     QFileDialog, QApplication, QRadioButton
 )
+from PySide6.QtGui import QFont, QTextCharFormat
 from PySide6.QtCore import Qt, QDate
 
 from configuration.project_paths import curr_user_path_handler
@@ -161,24 +162,44 @@ class CustomEmailDialog(QDialog):
         # E-Mail-Inhalt
         content_group = QGroupBox("E-Mail-Inhalt")
         content_layout = QVBoxLayout(content_group)
-        
-        self.plain_radio = QRadioButton("Nur Plaintext")
-        self.html_radio = QRadioButton("HTML-E-Mail")
-        
-        self.plain_radio.setChecked(True)
-        
-        radio_layout = QHBoxLayout()
-        radio_layout.addWidget(self.plain_radio)
-        radio_layout.addWidget(self.html_radio)
-        radio_layout.addStretch()
-        
+
         self.content_edit = QTextEdit()
+        self.content_edit.setAcceptRichText(True)  # Erlaubt Rich-Text-Bearbeitung
         self.content_edit.setPlaceholderText(
-            "E-Mail-Inhalt hier eingeben... (Personalisierung möglich mit {name}, {email})")
-        
-        content_layout.addLayout(radio_layout)
+            "E-Mail-Inhalt hier eingeben... (Personalisierung möglich mit {{ name }}, {{ email }})")
+
+        # Formatierungsleiste hinzufügen
+        self.format_toolbar = QHBoxLayout()
+        bold_button = QPushButton("B")
+        bold_font = QFont("Arial", 10)
+        bold_font.setBold(True)
+        bold_button.setFont(bold_font)
+        bold_button.setFixedSize(30, 25)
+        bold_button.clicked.connect(lambda: self.format_text("bold"))
+
+        italic_button = QPushButton("I")
+        italic_font = QFont("Arial", 10)
+        italic_font.setItalic(True)
+        italic_button.setFont(italic_font)
+        italic_button.setFixedSize(30, 25)
+        italic_button.clicked.connect(lambda: self.format_text("italic"))
+
+        underline_button = QPushButton("U")
+        underline_font = QFont("Arial", 10)
+        underline_font.setUnderline(True)
+        underline_button.setFont(underline_font)
+        underline_button.setFixedSize(30, 25)
+        underline_button.clicked.connect(lambda: self.format_text("underline"))
+
+        self.format_toolbar.addWidget(bold_button)
+        self.format_toolbar.addWidget(italic_button)
+        self.format_toolbar.addWidget(underline_button)
+        self.format_toolbar.addStretch(1)
+
+        # Toolbar und Editor zum Layout hinzufügen
+        content_layout.addLayout(self.format_toolbar)
         content_layout.addWidget(self.content_edit)
-        
+
         layout.addWidget(content_group)
 
         layout.addLayout(self.attachments_area)
@@ -338,11 +359,6 @@ class CustomEmailDialog(QDialog):
         if not recipient_ids:
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
-                
-        # HTML-Inhalt vorbereiten
-        html_content = None
-        if self.html_radio.isChecked():
-            html_content = self.content_edit.toPlainText()
             
         # Fortschrittsdialog anzeigen
         progress = QProgressDialog("Sende E-Mails...", "Abbrechen", 0, 100, self)
@@ -354,10 +370,8 @@ class CustomEmailDialog(QDialog):
         stats = email_service.send_custom_email(
             subject=self.subject_edit.text(),
             text_content=self.content_edit.toPlainText(),
-            html_content=html_content,
+            html_content=self.content_edit.toHtml(),
             recipient_ids=recipient_ids or None,
-            team_id=team_id,
-            project_id=project_id,
             attachments=[{'path': file_path} for file_path in self.attachment_files]
         )
         
@@ -373,3 +387,27 @@ class CustomEmailDialog(QDialog):
         )
         
         self.accept()
+
+    def format_text(self, format_type):
+        """Formatiert den ausgewählten Text."""
+        cursor = self.content_edit.textCursor()
+        if not cursor.hasSelection():
+            return
+        
+        if format_type == "bold":
+            if cursor.charFormat().fontWeight() == QFont.Bold:
+                cursor.setCharFormat(QTextCharFormat())
+            else:
+                format = QTextCharFormat()
+                format.setFontWeight(QFont.Bold)
+                cursor.mergeCharFormat(format)
+        elif format_type == "italic":
+            format = QTextCharFormat()
+            format.setFontItalic(not cursor.charFormat().fontItalic())
+            cursor.mergeCharFormat(format)
+        elif format_type == "underline":
+            format = QTextCharFormat()
+            format.setFontUnderline(not cursor.charFormat().fontUnderline())
+            cursor.mergeCharFormat(format)
+        
+        self.content_edit.setTextCursor(cursor)

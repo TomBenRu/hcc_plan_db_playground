@@ -93,11 +93,8 @@ def create_multipart_message(
     Returns:
         Eine MIME-Multipart-Nachricht für den E-Mail-Versand
     """
-    # Erstelle die Basis-Nachricht
-    if html_content:
-        message = MIMEMultipart('alternative')
-    else:
-        message = MIMEMultipart()
+    # Erstelle die Hauptnachricht als mixed (für Anhänge)
+    message = MIMEMultipart('mixed')
         
     # Füge Metadaten hinzu
     message['From'] = sender
@@ -109,13 +106,20 @@ def create_multipart_message(
         message['Cc'] = ', '.join(cc)
     if reply_to:
         message['Reply-To'] = reply_to
-        
-    # Füge Plaintext-Inhalt hinzu
-    message.attach(MIMEText(text_content, 'plain', 'utf-8'))
     
-    # Füge HTML-Inhalt hinzu, wenn vorhanden
+    # Wenn sowohl Text als auch HTML vorhanden sind, erstelle einen 'alternative' Teil
     if html_content:
-        message.attach(MIMEText(html_content, 'html', 'utf-8'))
+        # Erstelle einen 'alternative' Teil für Text und HTML
+        alt_part = MIMEMultipart('alternative')
+        # Füge Plaintext-Inhalt zum alternative Teil hinzu
+        alt_part.attach(MIMEText(text_content, 'plain', 'utf-8'))
+        # Füge HTML-Inhalt zum alternative Teil hinzu
+        alt_part.attach(MIMEText(html_content, 'html', 'utf-8'))
+        # Füge den alternativen Teil zur Hauptnachricht hinzu
+        message.attach(alt_part)
+    else:
+        # Nur Plaintext - direkt zur Hauptnachricht hinzufügen
+        message.attach(MIMEText(text_content, 'plain', 'utf-8'))
     
     # Füge Anhänge hinzu, wenn vorhanden
     if attachments:
@@ -131,9 +135,22 @@ def create_multipart_message(
             with open(path, 'rb') as file:
                 part = MIMEApplication(file.read())
                 
+            # Setze die Header für korrekte Anzeige in verschiedenen Clients
             part.add_header('Content-Disposition', 'attachment', filename=filename)
             if content_type:
                 part.add_header('Content-Type', content_type)
+            else:
+                # Wenn kein Content-Type angegeben ist, versuchen wir die Dateiendung zu erkennen
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in ['.pdf']:
+                    part.add_header('Content-Type', 'application/pdf')
+                elif ext in ['.jpg', '.jpeg']:
+                    part.add_header('Content-Type', 'image/jpeg')
+                elif ext in ['.png']:
+                    part.add_header('Content-Type', 'image/png')
+                elif ext in ['.txt']:
+                    part.add_header('Content-Type', 'text/plain')
+                # Weitere Content-Types könnten hier hinzugefügt werden
                 
             message.attach(part)
     

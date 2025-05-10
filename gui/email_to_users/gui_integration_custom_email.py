@@ -96,7 +96,7 @@ class CustomEmailDialog(QDialog):
         self.team_assignment_button = QPushButton(date_to_string(datetime.date.today()))
         self.team_assignment_date: datetime.date = datetime.date.today()
         self.team_assignment_button.clicked.connect(self.show_team_assignment_date_dialog)
-        self.inclusive_none_team_check = QCheckBox("Keinem Team zugeordnete Teammitglieder einbeziehen")
+        self.inclusive_none_team_check = QCheckBox("Keinem Team zugeordnete Personen einbeziehen")
         self.inclusive_none_team_check.setChecked(False)
         self.inclusive_none_team_check.toggled.connect(self.filter_persons)
         

@@ -9,25 +9,13 @@ import smtplib
 import logging
 import time
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Literal
 from email.mime.multipart import MIMEMultipart
 
-try:
-    from .config import email_config
-    from .utils import (
-        validate_email,
-        format_recipients,
-        create_multipart_message,
-        extract_emails_from_persons
-    )
-except ImportError:
-    from config import email_config
-    from utils import (
-        validate_email,
-        format_recipients,
-        create_multipart_message,
-        extract_emails_from_persons
-    )
+from database import schemas
+
+from .config import email_config
+from .utils import create_multipart_message
 
 logger = logging.getLogger(__name__)
 
@@ -161,91 +149,16 @@ class EmailSender:
         except Exception as e:
             logger.error(f"Fehler beim Senden der E-Mail: {str(e)}")
             return False
-            
-    def _send_debug(
-        self,
-        message: MIMEMultipart,
-        recipients: List[str],
-        cc: Optional[List[str]] = None,
-        bcc: Optional[List[str]] = None
-    ):
-        """
-        Gibt eine E-Mail im Debug-Modus aus.
-        
-        Args:
-            message: Die zu sendende MIME-Multipart-Nachricht
-            recipients: Liste der Empfänger-E-Mail-Adressen
-            cc: Liste der CC-Empfänger (optional)
-            bcc: Liste der BCC-Empfänger (optional)
-        """
-        debug_prefix = "[DEBUG EMAIL] "
-        print(f"\n{debug_prefix}{'=' * 50}")
-        print(f"{debug_prefix}Von: {message['From']}")
-        print(f"{debug_prefix}An: {', '.join(recipients)}")
-        
-        if cc:
-            print(f"{debug_prefix}CC: {', '.join(cc)}")
-        if bcc:
-            print(f"{debug_prefix}BCC: {', '.join(bcc)}")
-            
-        print(f"{debug_prefix}Betreff: {message['Subject']}")
-        print(f"{debug_prefix}Datum: {message['Date']}")
-        
-        if 'Reply-To' in message:
-            print(f"{debug_prefix}Antwort an: {message['Reply-To']}")
-            
-        print(f"{debug_prefix}{'-' * 50}")
-        
-        # Zeige den Plaintext-Inhalt an
-        for part in message.walk():
-            if part.get_content_type() == 'text/plain':
-                print(f"{debug_prefix}Plaintext-Inhalt:")
-                print(f"{debug_prefix}{part.get_payload(decode=True).decode('utf-8')}")
-                break
-                
-        # Liste Anhänge auf
-        attachments = []
-        for part in message.walk():
-            if part.get_content_disposition() == 'attachment':
-                filename = part.get_filename()
-                if filename:
-                    attachments.append(filename)
-                    
-        if attachments:
-            print(f"{debug_prefix}Anhänge: {', '.join(attachments)}")
-            
-        print(f"{debug_prefix}{'=' * 50}\n")
-    
-    def _format_recipients_input(self, recipients):
-        """
-        Formatiert die Empfänger-Eingabe zu einer Liste von E-Mail-Adressen.
-        
-        Args:
-            recipients: Liste von Empfängern, entweder als Dictionaries mit 'email' und 'name'
-                       Keys oder als einfache E-Mail-Adressen oder None
-        
-        Returns:
-            Liste von formatierten E-Mail-Adressen oder leere Liste wenn keine gültigen Empfänger
-        """
-        if not recipients:
-            return []
-            
-        # Überprüfe, ob es sich um eine Liste von Strings handelt
-        if isinstance(recipients[0], str):
-            return [r for r in recipients if validate_email(r)]
-            
-        # Ansonsten handelt es sich um eine Liste von Dictionaries
-        return format_recipients(recipients)
         
     def send_email(
         self,
-        recipients: Union[List[Dict[str, str]], List[str]],
+        recipients: list[schemas.Person],
         subject: str,
         text_content: str,
         html_content: Optional[str] = None,
         sender: Optional[str] = None,
-        cc: Optional[Union[List[Dict[str, str]], List[str]]] = None,
-        bcc: Optional[Union[List[Dict[str, str]], List[str]]] = None,
+        cc: Optional[list[schemas.Person]] = None,
+        bcc: Optional[list[schemas.Person]] = None,
         reply_to: Optional[str] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
     ) -> bool:
@@ -269,14 +182,14 @@ class EmailSender:
             True, wenn die E-Mail erfolgreich gesendet wurde, sonst False
         """
         # Formatiere und validiere die Empfänger
-        formatted_recipients = self._format_recipients_input(recipients)
+        formatted_recipients = [str(recipient.email) for recipient in recipients if recipient.email]
         if not formatted_recipients:
             logger.error("Keine gültigen Empfänger angegeben")
             return False
             
         # Formatiere CC und BCC, falls vorhanden
-        formatted_cc = self._format_recipients_input(cc) if cc else None
-        formatted_bcc = self._format_recipients_input(bcc) if bcc else None
+        formatted_cc = [str(r.email) for r in cc if r.email] if cc else None
+        formatted_bcc = [str(r.email) for r in bcc if r.email] if bcc else None
         
         # Verwende den Standard-Absender, falls keiner angegeben wurde
         sender_address = sender or self.config.sender_formatted
@@ -304,7 +217,7 @@ class EmailSender:
         
     def send_bulk_email(
         self,
-        recipients: List[Dict[str, str]],
+        all_recipients: dict[Literal['recipients', 'cc', 'bcc'], list[schemas.Person]],
         subject: str,
         text_template: str,
         html_template: Optional[str] = None,
@@ -312,7 +225,6 @@ class EmailSender:
         reply_to: Optional[str] = None,
         attachments: Optional[List[Dict[str, Any]]] = None,
         template_params: Optional[Dict[str, Any]] = None,
-        individual_template_params: Optional[List[Dict[str, Any]]] = None,
         delay: float = 0.0
     ) -> Dict[str, int]:
         """
@@ -335,26 +247,20 @@ class EmailSender:
         Returns:
             Dictionary mit Statistiken: Anzahl erfolgreicher und fehlgeschlagener E-Mails
         """
+
         # Validiere die Eingabedaten
-        if not recipients:
+        if not all_recipients['recipients']:
             logger.error("Keine Empfänger angegeben")
-            return {'success': 0, 'failed': 0}
-            
-        if individual_template_params and len(individual_template_params) != len(recipients):
-            logger.error(
-                f"Die Anzahl der individuellen Template-Parameter ({len(individual_template_params)}) "
-                f"stimmt nicht mit der Anzahl der Empfänger ({len(recipients)}) überein"
-            )
             return {'success': 0, 'failed': 0}
             
         # Initialisiere Statistiken
         stats = {'success': 0, 'failed': 0}
         template_params = template_params or {}
-        
+
         # Sende personalisierte E-Mails an jeden Empfänger
-        for i, recipient in enumerate(recipients):
+        for i, recipient in enumerate(all_recipients['recipients']):
             # Überprüfe, ob es eine gültige E-Mail-Adresse ist
-            if not recipient.get('email') or not validate_email(recipient['email']):
+            if not recipient.email:
                 stats['failed'] += 1
                 continue
                 
@@ -362,20 +268,17 @@ class EmailSender:
             params = template_params.copy()
             
             # Füge Empfänger-spezifische Parameter hinzu
-            params['name'] = recipient.get('name', '')
-            params['full_name'] = recipient.get('name', '')
-            params['email'] = recipient['email']
-            
-            # Füge individuelle Parameter hinzu, falls vorhanden
-            if individual_template_params:
-                params.update(individual_template_params[i])
-                
+            params['full_name'] = recipient.full_name
+            params['f_name'] = recipient.f_name
+            params['l_name'] = recipient.l_name
+            params['email'] = recipient.email
+
             # Personalisiere die Templates
             personalized_text = self._personalize_template(text_template, params)
             personalized_html = None
             if html_template:
                 personalized_html = self._personalize_template(html_template, params)
-                
+
             # Sende die E-Mail
             success = self.send_email(
                 recipients=[recipient],
@@ -394,7 +297,7 @@ class EmailSender:
                 stats['failed'] += 1
                 
             # Verzögerung, um den Server nicht zu überlasten
-            if delay > 0 and i < len(recipients) - 1:
+            if delay > 0 and i < len(all_recipients['recipients']) - 1:
                 time.sleep(delay)
                 
         return stats

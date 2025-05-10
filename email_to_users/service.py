@@ -6,24 +6,19 @@ Integration mit dem Datenmodell und kontextbezogene E-Mail-Aktionen.
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Union
-from datetime import date, datetime
-from pathlib import Path
-import os
-from uuid import UUID
+from typing import List, Dict, Any, Optional
 
 from pony.orm import db_session, select
 
+from database import schemas
 from database.models import Person, Team, Plan, PlanPeriod, Project
 
 try:
     from .sender import EmailSender
     from .templates import PlanNotificationTemplate, AvailabilityRequestTemplate
-    from .utils import extract_emails_from_persons
 except ImportError:
     from sender import EmailSender
     from templates import PlanNotificationTemplate, AvailabilityRequestTemplate
-    from utils import extract_emails_from_persons
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +227,7 @@ class EmailService:
         subject: str,
         text_content: str,
         html_content: Optional[str] = None,
-        recipient_ids: Optional[List[UUID]] = None,
+        recipients: Optional[List[schemas.Person]] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, int]:
         """
@@ -254,26 +249,13 @@ class EmailService:
             Mindestens eines der Argumente recipient_ids, team_id oder project_id muss angegeben werden.
         """
         try:
-            # Bestimme die Empfänger
-            recipients = []
-
-            if recipient_ids:
-                for id in recipient_ids:
-                    if Person.exists(id=id):
-                        person = Person[id]
-                        if person not in recipients:
-                            recipients.append(person)
-            
             if not recipients:
                 logger.warning("Keine Empfänger für benutzerdefinierte E-Mail gefunden")
                 return {'success': 0, 'failed': 0}
-            
-            # Extrahiere E-Mail-Adressen aus Personen
-            recipient_dicts = extract_emails_from_persons(recipients)
-            
+
             # Sende die E-Mail an alle Empfänger
             stats = self.sender.send_bulk_email(
-                recipients=recipient_dicts,
+                all_recipients={'recipients': recipients, 'cc': [], 'bcc': []},
                 subject=subject,
                 text_template=text_content,
                 html_template=html_content,

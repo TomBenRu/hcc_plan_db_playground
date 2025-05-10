@@ -37,34 +37,6 @@ def validate_email_str(email: str) -> bool:
         return False
 
 
-def format_recipients(recipients: List[Dict[str, str]]) -> List[str]:
-    """
-    Formatiert eine Liste von Empfänger-Dictionaries in eine Liste von formatierten Strings.
-    
-    Args:
-        recipients: Liste von Dictionaries mit 'email' und optional 'name' Keys
-        
-    Returns:
-        Liste von formatierten Empfänger-Strings ("Name <email@example.com>")
-    """
-    formatted = []
-    for recipient in recipients:
-        email = recipient.get('email', '')
-        name = recipient.get('name', '')
-
-        if not email or not validate_email_str(email):
-            print(f"Ungültige E-Mail-Adresse übersprungen: {email}")
-            logger.warning(f"Ungültige E-Mail-Adresse übersprungen: {email}")
-            continue
-            
-        if name:
-            formatted.append(f"{name} <{email}>")
-        else:
-            formatted.append(email)
-            
-    return formatted
-
-
 def create_multipart_message(
     sender: str,
     recipients: List[str],
@@ -155,26 +127,3 @@ def create_multipart_message(
             message.attach(part)
     
     return message
-
-
-def extract_emails_from_persons(persons, attr_name='email'):
-    """
-    Extrahiert E-Mail-Adressen aus einer Liste von Person-Objekten.
-    
-    Args:
-        persons: Liste von Person-Objekten
-        attr_name: Name des Attributs, das die E-Mail-Adresse enthält (Standard: 'email')
-        
-    Returns:
-        Liste von Dictionaries mit 'email' und 'name' Keys
-    """
-    recipients = []
-    for person in persons:
-        if hasattr(person, attr_name) and getattr(person, attr_name):
-            email = getattr(person, attr_name)
-            if validate_email_str(email):
-                recipients.append({
-                    'email': email,
-                    'name': getattr(person, 'full_name', f"{getattr(person, 'f_name', '')} {getattr(person, 'l_name', '')}")
-                })
-    return recipients

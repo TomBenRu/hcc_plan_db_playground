@@ -16,7 +16,7 @@ from PySide6.QtGui import QFont, QTextCharFormat
 from PySide6.QtCore import Qt, QDate
 
 from configuration.project_paths import curr_user_path_handler
-from database import db_services
+from database import db_services, schemas
 from email_to_users.service import email_service
 from tools.helper_functions import date_to_string
 
@@ -166,7 +166,7 @@ class CustomEmailDialog(QDialog):
         self.content_edit = QTextEdit()
         self.content_edit.setAcceptRichText(True)  # Erlaubt Rich-Text-Bearbeitung
         self.content_edit.setPlaceholderText(
-            "E-Mail-Inhalt hier eingeben... (Personalisierung möglich mit {{ name }}, {{ email }})")
+            "E-Mail-Inhalt hier eingeben... (Personalisierung möglich mit {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }})")
 
         # Formatierungsleiste hinzufügen
         self.format_toolbar = QHBoxLayout()
@@ -225,7 +225,7 @@ class CustomEmailDialog(QDialog):
         persons = sorted(db_services.Person.get_all_from__project(self.project_id), key=lambda x: x.full_name)
         for person in persons:
             item = QListWidgetItem(f"{person.full_name} ({person.email})")
-            item.setData(Qt.ItemDataRole.UserRole, person.id)
+            item.setData(Qt.ItemDataRole.UserRole, person)
             self.person_list.addItem(item)
         
         # Lade Teams
@@ -242,8 +242,7 @@ class CustomEmailDialog(QDialog):
             for i in range(self.person_list.count()):
                 item = self.person_list.item(i)
                 item.setSelected(False)
-                person_id = item.data(Qt.ItemDataRole.UserRole)
-                person = db_services.Person.get(person_id)
+                person: schemas.PersonShow = item.data(Qt.ItemDataRole.UserRole)
                 assigned_to_team_on_date = [taa for taa in person.team_actor_assigns
                                             if taa.start <= self.team_assignment_date <
                                             (taa.end or self.team_assignment_date + datetime.timedelta(days=1))]
@@ -256,8 +255,7 @@ class CustomEmailDialog(QDialog):
             for i in range(self.person_list.count()):
                 item = self.person_list.item(i)
                 item.setSelected(False)
-                person_id = item.data(Qt.ItemDataRole.UserRole)
-                person = db_services.Person.get(person_id)
+                person = item.data(Qt.ItemDataRole.UserRole)
                 assigned_to_team_on_date = [taa for taa in person.team_actor_assigns
                                             if taa.start <= self.team_assignment_date <
                                             (taa.end or self.team_assignment_date + datetime.timedelta(days=1))]
@@ -347,16 +345,16 @@ class CustomEmailDialog(QDialog):
             return
             
         # Empfänger bestimmen
-        recipient_ids = []
+        recipients = []
         team_id = None
         project_id = None
 
         for i in range(self.person_list.count()):
             item = self.person_list.item(i)
             if item.isSelected():
-                recipient_ids.append(item.data(Qt.ItemDataRole.UserRole))
+                recipients.append(item.data(Qt.ItemDataRole.UserRole))
 
-        if not recipient_ids:
+        if not recipients:
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
             
@@ -371,7 +369,7 @@ class CustomEmailDialog(QDialog):
             subject=self.subject_edit.text(),
             text_content=self.content_edit.toPlainText(),
             html_content=self.content_edit.toHtml(),
-            recipient_ids=recipient_ids or None,
+            recipients=recipients or None,
             attachments=[{'path': file_path} for file_path in self.attachment_files]
         )
         

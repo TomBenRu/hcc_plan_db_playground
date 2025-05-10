@@ -60,7 +60,7 @@ Allow = 0
 File = C:\Users\tombe\OneDrive\Desktop\hcc_plan_installer.exe
 SetupIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
 UninstallIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
-CompressionMethod = 0
+CompressionMethod = 1
 CompressionLevel = 2
 [Updater]
 Allow = 0

@@ -267,7 +267,7 @@ class EmailService:
             
         except Exception as e:
             logger.error(f"Fehler beim Senden der benutzerdefinierten E-Mail: {str(e)}")
-            return {'success': 0, 'failed': 0}
+            return {'success': 0, 'failed': 0, 'error': str(e)}
 
 
 # Globale Service-Instanz

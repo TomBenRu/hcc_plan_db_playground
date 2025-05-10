@@ -100,7 +100,7 @@ class CustomEmailDialog(QDialog):
         self.inclusive_none_team_check.setChecked(False)
         self.inclusive_none_team_check.toggled.connect(self.filter_persons)
         
-        selection_layout.addWidget(QLabel("Filter fürTeam:"))
+        selection_layout.addWidget(QLabel("Filter für Team:"))
         selection_layout.addWidget(self.team_combo)
         selection_layout.addSpacing(20)
         selection_layout.addWidget(QLabel("Zuweisungsdatum:"))

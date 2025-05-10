@@ -5,21 +5,15 @@ Dieses Modul bietet Klassen und Funktionen zur Integration der E-Mail-Funktional
 in die Qt-basierte GUI des HCC Plan DB Playground-Projekts.
 """
 
-import os
 import logging
-from typing import List, Optional, Dict, Any, Callable
-from datetime import datetime
-from pathlib import Path
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
     QPushButton, QComboBox, QCheckBox, QMessageBox, QFileDialog, QGroupBox,
     QFormLayout, QListWidget, QListWidgetItem, QProgressDialog
 )
-from PySide6.QtCore import Qt, QObject, Signal, Slot
 
 from email_to_users.config import email_config
-from email_to_users.sender import EmailSender
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +27,10 @@ class EmailConfigDialog(QDialog):
         self.setWindowTitle("E-Mail-Konfiguration")
         self.setMinimumWidth(500)
         
-        self.setup_ui()
+        self._setup_ui()
         self.load_config()
         
-    def setup_ui(self):
+    def _setup_ui(self):
         """Erstellt die UI-Elemente."""
         layout = QVBoxLayout(self)
         
@@ -48,7 +42,7 @@ class EmailConfigDialog(QDialog):
         self.port_edit = QLineEdit()
         self.username_edit = QLineEdit()
         self.password_edit = QLineEdit()
-        self.password_edit.setEchoMode(QLineEdit.Password)
+        self.password_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         
         smtp_layout.addRow("SMTP-Server:", self.host_edit)
         smtp_layout.addRow("Port:", self.port_edit)
@@ -63,6 +57,7 @@ class EmailConfigDialog(QDialog):
         
         self.sender_email_edit = QLineEdit()
         self.sender_name_edit = QLineEdit()
+        self.sender_name_edit.setPlaceholderText("Keine Umlaute verwenden!")
         
         sender_layout.addRow("E-Mail-Adresse:", self.sender_email_edit)
         sender_layout.addRow("Name:", self.sender_name_edit)
@@ -76,6 +71,7 @@ class EmailConfigDialog(QDialog):
         self.use_tls_check = QCheckBox("TLS verwenden")
         self.use_ssl_check = QCheckBox("SSL verwenden")
         self.debug_mode_check = QCheckBox("Debug-Modus (keine E-Mails senden)")
+        self.debug_mode_check.setDisabled(True)
         
         connection_layout.addRow(self.use_tls_check)
         connection_layout.addRow(self.use_ssl_check)
@@ -135,15 +131,7 @@ class EmailConfigDialog(QDialog):
         }
         
         try:
-            # Zentrale Konfiguration verwenden, wenn verfügbar
-            if hasattr(email_config, 'save_settings'):
-                email_config.save_settings(settings)
-            else:
-                # Fallback für die alte Implementierung
-                # Direktes Setzen der Attribute
-                for key, value in settings.items():
-                    if hasattr(email_config, key):
-                        setattr(email_config, key, value)
+            email_config.save_settings(settings)
         
             QMessageBox.information(self, "Konfiguration gespeichert", 
                                 "Die E-Mail-Konfiguration wurde erfolgreich gespeichert.")

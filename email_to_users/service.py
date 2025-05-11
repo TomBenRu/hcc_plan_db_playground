@@ -220,8 +220,7 @@ class EmailService:
         except Exception as e:
             logger.error(f"Fehler beim Senden der Verfügbarkeitsanfrage: {str(e)}")
             return {'success': 0, 'failed': 0}
-    
-    @db_session
+
     def send_custom_email(
         self,
         subject: str,

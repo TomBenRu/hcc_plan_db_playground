@@ -146,8 +146,6 @@ class BaseEmailDialog(QDialog):
 
         self.content_edit = QTextEdit()
         self.content_edit.setAcceptRichText(True)  # Erlaubt Rich-Text-Bearbeitung
-        self.content_edit.setPlaceholderText(
-            "E-Mail-Inhalt hier eingeben... (Personalisierung möglich mit {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }})")
 
         # Formatierungsleiste hinzufügen
         self.format_toolbar = QHBoxLayout()

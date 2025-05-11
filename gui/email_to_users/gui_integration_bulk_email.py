@@ -18,6 +18,9 @@ class BulkEmailDialog(BaseEmailDialog):
         """Initialisiert den Dialog."""
         super().__init__(parent, project_id)
         self.setWindowTitle("Benutzerdefinierte E-Mail senden")
+
+        self.content_edit.setPlaceholderText(
+            "E-Mail-Inhalt hier eingeben...")
         
         # Konstante für benutzerdefinierte Datenrolle
         self.RECIPIENT_TYPE_ROLE = Qt.ItemDataRole.UserRole + 1

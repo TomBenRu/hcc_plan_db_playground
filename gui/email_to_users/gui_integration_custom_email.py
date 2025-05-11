@@ -18,6 +18,9 @@ class CustomEmailDialog(BaseEmailDialog):
         """Initialisiert den Dialog."""
         super().__init__(parent, project_id)
         self.setWindowTitle("Benutzerdefinierte E-Mail senden")
+        self.content_edit.setPlaceholderText(
+            "E-Mail-Inhalt hier eingeben... "
+            "(Personalisierung möglich mit {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }})")
     
     def send_email(self):
         """Sendet die E-Mail."""

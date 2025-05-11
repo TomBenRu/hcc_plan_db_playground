@@ -164,6 +164,10 @@ class MainWindow(QMainWindow):
                               self.tr('Send custom emails.'),
                               self.send_custom_emails),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'),
+                              self.tr('Send Bulk Email...'),
+                              self.tr('Send bulk emails.'),
+                              self.send_bulk_email),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'),
                               self.tr('Send Plan Notifications...'),
                               self.tr('Send plan notifications.'),
                               self.send_plan_notifications),
@@ -243,6 +247,7 @@ class MainWindow(QMainWindow):
                            self.actions['apply_events__plan_to_mask']
                            ],
             self.tr('&Emails'): [self.actions['send_custom_emails'],
+                                 self.actions['send_bulk_email'],
                                  # self.actions['send_plan_notifications'],
                                  # self.actions['send_availability_requests'],
                                  None, self.actions['show_email_config_dialog']],
@@ -840,6 +845,10 @@ class MainWindow(QMainWindow):
     def send_custom_emails(self):
         from gui.email_to_users.gui_integration_main import show_custom_email_dialog
         show_custom_email_dialog(self, self.project_id)
+
+    def send_bulk_email(self):
+        from gui.email_to_users.gui_integration_main import show_bulk_email_dialog
+        show_bulk_email_dialog(self, self.project_id)
 
     def send_plan_notifications(self):
         from gui.email_to_users.gui_integration_main import show_plan_notification_dialog

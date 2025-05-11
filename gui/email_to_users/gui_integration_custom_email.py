@@ -9,38 +9,17 @@ from uuid import UUID
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
     QPushButton, QComboBox, QCheckBox, QGroupBox, QFormLayout,
-    QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QCalendarWidget, QDialogButtonBox, QScrollArea, QWidget,
-    QFileDialog, QApplication, QRadioButton
+    QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QScrollArea, QWidget,
+    QFileDialog, QApplication
 )
 from PySide6.QtGui import QFont, QTextCharFormat
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt
 
 from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas
 from email_to_users.service import email_service
+from gui.email_to_users.shared_dialogs import TeamAssignmentDateDialog
 from tools.helper_functions import date_to_string
-
-
-class TeamAssignmentDateDialog(QDialog):
-    def __init__(self, parent: 'CustomEmailDialog', current_date: datetime.date | None = None):
-        super().__init__(parent)
-        self.parent = parent
-        self.setWindowTitle("Team-Zuweisungsdatum")
-        self.setMinimumWidth(300)
-        self.current_date = current_date
-
-        self._setup_ui()
-
-    def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        self.calendar = QCalendarWidget()
-        layout.addWidget(self.calendar)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        if self.current_date:
-            self.calendar.setSelectedDate(QDate(self.current_date.year, self.current_date.month, self.current_date.day))
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
 
 
 class CustomEmailDialog(QDialog):

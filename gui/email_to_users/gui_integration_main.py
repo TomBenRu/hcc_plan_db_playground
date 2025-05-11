@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from uuid import UUID
 
+from gui.email_to_users.gui_integration_bulk_email_tryout import BulkEmailDialog
 from .gui_integration_email_config import EmailConfigDialog
 from .gui_integration_plan_notification import PlanNotificationDialog
 from .gui_integration_availability_request import AvailabilityRequestDialog
@@ -92,7 +93,22 @@ def show_custom_email_dialog(parent=None, project_id: UUID = None):
         bool: True, wenn die E-Mails gesendet wurden, sonst False
     """
     dialog = CustomEmailDialog(parent, project_id)
-    return dialog.exec_() == 1
+    return dialog.exec() == 1
+
+
+def show_bulk_email_dialog(parent=None, project_id: UUID = None):
+    """
+    Zeigt den Dialog zum Senden von Massen-E-Mails an.
+
+    Args:
+        parent: Übergeordnetes Widget
+        project_id: Optional, ID des Projekts
+
+    Returns:
+        bool: True, wenn die E-Mails gesendet wurden, sonst False
+    """
+    dialog = BulkEmailDialog(parent, project_id)
+    return dialog.exec() == 1
 
 
 # Beim Import des Moduls die Konfiguration laden

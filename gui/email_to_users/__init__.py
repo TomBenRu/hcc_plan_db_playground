@@ -10,6 +10,7 @@ from .gui_integration_main import (
     show_plan_notification_dialog,
     show_availability_request_dialog,
     show_custom_email_dialog,
+    show_bulk_email_dialog,
     load_email_config
 )
 
@@ -18,5 +19,6 @@ __all__ = [
     'show_plan_notification_dialog',
     'show_availability_request_dialog',
     'show_custom_email_dialog',
+    'show_bulk_email_dialog',
     'load_email_config'
 ]

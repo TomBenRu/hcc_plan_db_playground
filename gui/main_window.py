@@ -153,6 +153,9 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, None, self.tr('Excel Output Folder...'),
                               self.tr('Set folder for Excel file output'), 
                               self.determine_excel_output_folder),
+            MenuToolbarAction(self, None, self.tr('Open Log File'),
+                              self.tr('Open log file'),
+                              self.open_log_file),
             MenuToolbarAction(self, None, self.tr('Permanently Delete Current Team\'s Plans...'),
                               self.tr('The marked plans of the current team will be permanently deleted'),
                               self.plans_of_team_delete_prep_deletes),
@@ -259,7 +262,8 @@ class MainWindow(QMainWindow):
                         self.actions['general_setting'],
                         self.actions['settings_project'],
                         self.actions['plan_calculation_settings'], None,
-                        self.actions['determine_excel_output_folder']],
+                        self.actions['determine_excel_output_folder'], None,
+                        self.actions['open_log_file']],
             self.tr('&Help'): [self.actions['open_help'], None, self.actions['check_for_updates'], None,
                        self.actions['about_hcc_plan']]
         }
@@ -485,6 +489,14 @@ class MainWindow(QMainWindow):
         paths.excel_output_path = output_folder
         path_handler.save_config_to_file(paths)
 
+    def open_log_file(self):
+        path_handler = project_paths.curr_user_path_handler
+        log_file_path = path_handler.get_config().log_file_path
+        print(log_file_path)
+        try:
+            open_file_or_folder.open_file_or_folder(log_file_path)
+        except Exception as e:
+            QMessageBox.critical(self, 'Log-File', f'Beim Öffnen der Log-Datei ist ein Fehler aufgetreten:\n{e}')
 
     def plan_save(self):
         """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.

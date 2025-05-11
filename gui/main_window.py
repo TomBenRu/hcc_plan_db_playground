@@ -492,7 +492,6 @@ class MainWindow(QMainWindow):
     def open_log_file(self):
         path_handler = project_paths.curr_user_path_handler
         log_file_path = path_handler.get_config().log_file_path
-        print(log_file_path)
         try:
             open_file_or_folder.open_file_or_folder(log_file_path)
         except Exception as e:

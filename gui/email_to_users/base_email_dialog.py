@@ -29,7 +29,7 @@ class BaseEmailDialog(QDialog):
         """Initialisiert den Dialog."""
         super().__init__(parent)
         self.setWindowTitle("E-Mail senden")
-        self.setMinimumWidth(700)
+        self.setMinimumWidth(800)
         self.setMinimumHeight(600)
 
         self.project_id = project_id
@@ -146,25 +146,26 @@ class BaseEmailDialog(QDialog):
 
         self.content_edit = QTextEdit()
         self.content_edit.setAcceptRichText(True)  # Erlaubt Rich-Text-Bearbeitung
+        self.content_edit.setFont(QFont("Arial", 11))
 
         # Formatierungsleiste hinzufügen
         self.format_toolbar = QHBoxLayout()
         bold_button = QPushButton("B")
-        bold_font = QFont("Arial", 10)
+        bold_font = QFont("Arial", 11)
         bold_font.setBold(True)
         bold_button.setFont(bold_font)
         bold_button.setFixedSize(30, 25)
         bold_button.clicked.connect(lambda: self.format_text("bold"))
 
         italic_button = QPushButton("I")
-        italic_font = QFont("Arial", 10)
+        italic_font = QFont("Arial", 11)
         italic_font.setItalic(True)
         italic_button.setFont(italic_font)
         italic_button.setFixedSize(30, 25)
         italic_button.clicked.connect(lambda: self.format_text("italic"))
 
         underline_button = QPushButton("U")
-        underline_font = QFont("Arial", 10)
+        underline_font = QFont("Arial", 11)
         underline_font.setUnderline(True)
         underline_button.setFont(underline_font)
         underline_button.setFixedSize(30, 25)
@@ -324,11 +325,11 @@ class BaseEmailDialog(QDialog):
             return
 
         if format_type == "bold":
-            if cursor.charFormat().fontWeight() == QFont.Bold:
+            if cursor.charFormat().fontWeight() == QFont.Weight.Bold:
                 cursor.setCharFormat(QTextCharFormat())
             else:
                 char_format = QTextCharFormat()
-                char_format.setFontWeight(QFont.Bold)
+                char_format.setFontWeight(QFont.Weight.Bold)
                 cursor.mergeCharFormat(char_format)
         elif format_type == "italic":
             char_format = QTextCharFormat()

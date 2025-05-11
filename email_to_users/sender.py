@@ -97,6 +97,29 @@ class EmailSender:
             
         return smtp
         
+    def _send_debug(
+        self,
+        message: MIMEMultipart,
+        recipients: List[str],
+        cc: Optional[List[str]] = None,
+        bcc: Optional[List[str]] = None
+    ) -> None:
+        """
+        Simuliert das Senden einer E-Mail im Debug-Modus.
+
+        Args:
+            message: Die zu sendende MIME-Multipart-Nachricht
+            recipients: Liste der Empfänger-E-Mail-Adressen
+            cc: Liste der CC-Empfänger (optional)
+            bcc: Liste der BCC-Empfänger (optional)
+        """
+        logger.info("Debug-Modus: E-Mail wird nicht gesendet, sondern nur protokolliert.")
+        logger.info(f"Betreff: {message['Subject']}")
+        logger.info(f"Empfänger: {', '.join(recipients)}")
+        logger.info(f"CC: {', '.join(cc or [])}")
+        logger.info(f"BCC: {', '.join(bcc or [])}")
+        logger.info(f"Inhalt: {message.as_string()}")
+
     def _send_via_smtp(
         self,
         message: MIMEMultipart,

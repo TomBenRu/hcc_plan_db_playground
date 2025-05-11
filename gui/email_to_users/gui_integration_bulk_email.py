@@ -1,16 +1,16 @@
 """
-Teil 4 der GUI-Integration für die E-Mail-Funktionalität.
-Enthält den Dialog für benutzerdefinierte E-Mails.
+Teil 5 der GUI-Integration für die E-Mail-Funktionalität.
+Enthält den Dialog für Massen-E-Mails an mehrere Nutzer.
 """
-import datetime
 import os
 from uuid import UUID
+import datetime
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
-    QPushButton, QComboBox, QCheckBox, QGroupBox, QFormLayout,
-    QListWidget, QListWidgetItem, QProgressDialog, QMessageBox, QScrollArea, QWidget,
-    QFileDialog, QApplication
+    QPushButton, QGroupBox, QListWidget, QListWidgetItem, QProgressDialog,
+    QMessageBox, QFileDialog, QTabWidget, QWidget, QFormLayout, QRadioButton, QComboBox, QCheckBox, QMenu, QApplication,
+    QScrollArea
 )
 from PySide6.QtGui import QFont, QTextCharFormat
 from PySide6.QtCore import Qt
@@ -18,27 +18,28 @@ from PySide6.QtCore import Qt
 from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas
 from email_to_users.service import email_service
+from email_to_users.sender import EmailSender
 from gui.email_to_users.shared_dialogs import TeamAssignmentDateDialog
 from tools.helper_functions import date_to_string
 
 
-class CustomEmailDialog(QDialog):
+class BulkEmailDialog(QDialog):
     """Dialog zum Senden von benutzerdefinierten E-Mails."""
-    
+
     def __init__(self, parent=None, project_id: UUID = None):
         """Initialisiert den Dialog."""
         super().__init__(parent)
         self.setWindowTitle("Benutzerdefinierte E-Mail senden")
         self.setMinimumWidth(700)
         self.setMinimumHeight(600)
-        
+
         self.project_id = project_id
         self.attachment_files = set()
         self.path_to_excel_export = curr_user_path_handler.get_config().excel_output_path
 
         self._setup_ui()
         self.load_recipients()
-        
+
     def _setup_ui(self):
         """Erstellt die UI-Elemente."""
 
@@ -53,23 +54,23 @@ class CustomEmailDialog(QDialog):
             self.attachments_scroll.setFixedHeight(35 + scrollbar_height)  # Basishöhe + Scrollbar-Höhe
 
         layout = QVBoxLayout(self)
-        
+
         # E-Mail-Kopf
         header_group = QGroupBox("E-Mail-Kopf")
         header_layout = QFormLayout(header_group)
-        
+
         self.subject_edit = QLineEdit()
         header_layout.addRow("Betreff:", self.subject_edit)
-        
+
         layout.addWidget(header_group)
-        
+
         # Empfänger-Gruppe
         recipients_group = QGroupBox("Empfänger")
         recipients_layout = QVBoxLayout(recipients_group)
 
         # Team-Auswahl
         selection_layout = QHBoxLayout()
-        
+
         self.team_combo = QComboBox()
         self.team_combo.currentIndexChanged.connect(self.filter_persons)
         self.team_assignment_button = QPushButton(date_to_string(datetime.date.today()))
@@ -78,7 +79,7 @@ class CustomEmailDialog(QDialog):
         self.inclusive_none_team_check = QCheckBox("Keinem Team zugeordnete Personen einbeziehen")
         self.inclusive_none_team_check.setChecked(False)
         self.inclusive_none_team_check.toggled.connect(self.filter_persons)
-        
+
         selection_layout.addWidget(QLabel("Filter für Team:"))
         selection_layout.addWidget(self.team_combo)
         selection_layout.addSpacing(20)
@@ -114,7 +115,7 @@ class CustomEmailDialog(QDialog):
         self.attachments_area = QVBoxLayout()
         self.attachments_area.addWidget(self.attachments_scroll)
         self.attachments_area.addWidget(self.attachments_button)
-        
+
         # Personenliste
         self.person_list = QListWidget()
         self.person_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
@@ -125,7 +126,7 @@ class CustomEmailDialog(QDialog):
 
         recipients_layout.addLayout(selection_layout)
         recipients_layout.addWidget(self.person_list)
-        
+
         layout.addWidget(recipients_group)
 
         # Buttons für alle Empfänger aus-/abwählen
@@ -137,7 +138,7 @@ class CustomEmailDialog(QDialog):
         button_layout.addWidget(select_all_button)
         button_layout.addWidget(deselect_all_button)
         recipients_layout.addLayout(button_layout)
-        
+
         # E-Mail-Inhalt
         content_group = QGroupBox("E-Mail-Inhalt")
         content_layout = QVBoxLayout(content_group)
@@ -182,20 +183,20 @@ class CustomEmailDialog(QDialog):
         layout.addWidget(content_group)
 
         layout.addLayout(self.attachments_area)
-        
+
         # Buttons
         button_layout = QHBoxLayout()
-        
+
         self.send_button = QPushButton("Senden")
         self.cancel_button = QPushButton("Abbrechen")
-        
+
         self.send_button.clicked.connect(self.send_email)
         self.cancel_button.clicked.connect(self.reject)
-        
+
         button_layout.addStretch()
         button_layout.addWidget(self.send_button)
         button_layout.addWidget(self.cancel_button)
-        
+
         layout.addLayout(button_layout)
 
     def load_recipients(self):
@@ -206,13 +207,13 @@ class CustomEmailDialog(QDialog):
             item = QListWidgetItem(f"{person.full_name} ({person.email})")
             item.setData(Qt.ItemDataRole.UserRole, person)
             self.person_list.addItem(item)
-        
+
         # Lade Teams
         teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         self.team_combo.addItem("Alle Teams", None)
         for team in teams:
             self.team_combo.addItem(team.name, team.id)
-        
+
     def filter_persons(self):
         """Filtert die Personenliste nach dem ausgewählten Team."""
         selected_team_id = self.team_combo.currentData()
@@ -225,7 +226,7 @@ class CustomEmailDialog(QDialog):
                 assigned_to_team_on_date = [taa for taa in person.team_actor_assigns
                                             if taa.start <= self.team_assignment_date <
                                             (taa.end or self.team_assignment_date + datetime.timedelta(days=1))]
-                if not self.inclusive_none_team_check.isChecked()and not assigned_to_team_on_date:
+                if not self.inclusive_none_team_check.isChecked() and not assigned_to_team_on_date:
                     self.person_list.item(i).setHidden(True)
                     continue
                 self.person_list.item(i).setHidden(False)
@@ -311,18 +312,18 @@ class CustomEmailDialog(QDialog):
         self.attachments_layout.removeWidget(widget)
         widget.deleteLater()
         self.attachment_files.remove(file_path)
-    
+
     def send_email(self):
         """Sendet die E-Mail."""
         # Validierung
         if not self.subject_edit.text():
             QMessageBox.warning(self, "Fehlende Eingabe", "Bitte geben Sie einen Betreff ein.")
             return
-            
+
         if not self.content_edit.toPlainText():
             QMessageBox.warning(self, "Fehlende Eingabe", "Bitte geben Sie einen E-Mail-Inhalt ein.")
             return
-            
+
         # Empfänger bestimmen
         recipients = []
         team_id = None
@@ -336,13 +337,13 @@ class CustomEmailDialog(QDialog):
         if not recipients:
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
-            
+
         # Fortschrittsdialog anzeigen
         progress = QProgressDialog("Sende E-Mails...", "Abbrechen", 0, 100, self)
         progress.setWindowTitle("E-Mail-Versand")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setValue(10)
-        
+
         # E-Mails senden
         stats = email_service.send_custom_email(
             subject=self.subject_edit.text(),
@@ -351,9 +352,9 @@ class CustomEmailDialog(QDialog):
             recipients=recipients or None,
             attachments=[{'path': file_path} for file_path in self.attachment_files]
         )
-        
+
         progress.setValue(100)
-        
+
         # Ergebnis anzeigen
         QMessageBox.information(
             self,
@@ -362,7 +363,7 @@ class CustomEmailDialog(QDialog):
             f"Erfolgreich gesendet: {stats['success']}\n"
             f"Fehlgeschlagen: {stats['failed']}"
         )
-        
+
         self.accept()
 
     def format_text(self, format_type):
@@ -370,7 +371,7 @@ class CustomEmailDialog(QDialog):
         cursor = self.content_edit.textCursor()
         if not cursor.hasSelection():
             return
-        
+
         if format_type == "bold":
             if cursor.charFormat().fontWeight() == QFont.Bold:
                 cursor.setCharFormat(QTextCharFormat())
@@ -386,5 +387,5 @@ class CustomEmailDialog(QDialog):
             char_format = QTextCharFormat()
             char_format.setFontUnderline(not cursor.charFormat().fontUnderline())
             cursor.mergeCharFormat(char_format)
-        
+
         self.content_edit.setTextCursor(cursor)

@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from uuid import UUID
 
-from gui.email_to_users.gui_integration_bulk_email_tryout import BulkEmailDialog
+from gui.email_to_users.gui_integration_bulk_email import BulkEmailDialog
 from .gui_integration_email_config import EmailConfigDialog
 from .gui_integration_plan_notification import PlanNotificationDialog
 from .gui_integration_availability_request import AvailabilityRequestDialog

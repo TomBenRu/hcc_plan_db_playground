@@ -305,10 +305,7 @@ class EmailService:
             )
             
             # Statistik basierend auf Erfolg oder Misserfolg zurückgeben
-            if success:
-                return {'success': 1, 'failed': 0}
-            else:
-                return {'success': 0, 'failed': 1}
+            return {'success': len(success.successfully_sent), 'failed': len(success.failed_to_send)}
             
         except Exception as e:
             logger.error(f"Fehler beim Senden der benutzerdefinierten E-Mail: {str(e)}")

@@ -8,6 +8,7 @@ und bietet Methoden für Einzel- und Massen-E-Mails.
 import smtplib
 import logging
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Union, Literal
 from email.mime.multipart import MIMEMultipart
@@ -18,6 +19,12 @@ from .config import email_config
 from .utils import create_multipart_message
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EmailSendSuccess:
+    successfully_sent: list[str]
+    failed_to_send: list[str]
 
 
 class EmailSender:
@@ -61,9 +68,9 @@ class EmailSender:
             
         return True
         
-    def _increment_sent_count(self):
+    def _increment_sent_count(self, count=1):
         """Erhöht den Zähler für gesendete E-Mails."""
-        self._sent_count += 1
+        self._sent_count += count
         
     def _create_smtp_connection(self) -> smtplib.SMTP:
         """
@@ -126,7 +133,7 @@ class EmailSender:
         recipients: List[str],
         cc: Optional[List[str]] = None,
         bcc: Optional[List[str]] = None
-    ) -> bool:
+    ) -> EmailSendSuccess:
         """
         Sendet eine E-Mail über SMTP.
         
@@ -142,36 +149,61 @@ class EmailSender:
         # Überprüfe das Rate-Limit
         if not self._check_rate_limit():
             return False
-            
+        
         # Überprüfe Debug-Modus
         if self.config.debug_mode:
             self._send_debug(message, recipients, cc, bcc)
-            self._increment_sent_count()
             return True
-            
+
+        email_send_success = EmailSendSuccess(successfully_sent=[], failed_to_send=[])
+        
         # Alle Empfänger für SMTP
         all_recipients = recipients.copy()
         if cc:
             all_recipients.extend(cc)
         if bcc:
             all_recipients.extend(bcc)
-            
+        
         # Sende die E-Mail
         try:
             with self._create_smtp_connection() as smtp:
-                smtp.send_message(
-                    message,
-                    from_addr=message['From'],
-                    to_addrs=all_recipients
-                )
+                try:
+                    # sendmail gibt ein Dictionary mit fehlgeschlagenen Empfängern zurück
+                    refused = smtp.sendmail(
+                        message['From'],
+                        all_recipients,
+                        message.as_string()
+                    )
+                    
+                    # Wenn refused leer ist, wurden alle E-Mails akzeptiert
+                    if not refused:
+                        email_send_success.successfully_sent.extend(all_recipients)
+                        logger.info(f"E-Mail vom SMTP-Server akzeptiert für alle Empfänger: {', '.join(all_recipients)}")
+                        return email_send_success
+                    
+                    # Andernfalls wurden einige Empfänger abgelehnt
+                    failed_recipients = list(refused.keys())
+                    successful_recipients = [r for r in all_recipients if r not in failed_recipients]
+                    email_send_success.failed_to_send.extend(failed_recipients)
+                    email_send_success.successfully_sent.extend(successful_recipients)
+                    
+                    logger.error(f"E-Mail konnte nicht an folgende Empfänger gesendet werden: {', '.join(failed_recipients)}")
+                    
+                    if successful_recipients:
+                        logger.info(f"E-Mail vom SMTP-Server akzeptiert für: {', '.join(successful_recipients)}")
+
+                    return email_send_success
+                    
+                except smtplib.SMTPRecipientsRefused as e:
+                    # Dieser Fehler tritt auf, wenn alle Empfänger abgelehnt wurden
+                    logger.error(f"Alle Empfänger wurden vom SMTP-Server abgelehnt: {str(e)}")
+                    email_send_success.failed_to_send.extend(all_recipients)
+                    return email_send_success
                 
-            self._increment_sent_count()
-            logger.info(f"E-Mail erfolgreich gesendet an: {', '.join(recipients)}")
-            return True
-            
         except Exception as e:
             logger.error(f"Fehler beim Senden der E-Mail: {str(e)}")
-            return False
+            email_send_success.failed_to_send.extend(all_recipients)
+            return email_send_success
         
     def send_email(
         self,
@@ -184,7 +216,7 @@ class EmailSender:
         bcc: Optional[list[schemas.Person]] = None,
         reply_to: Optional[str] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
-    ) -> bool:
+    ) -> EmailSendSuccess:
         """
         Sendet eine E-Mail an eine oder mehrere Adressen.
         
@@ -208,7 +240,7 @@ class EmailSender:
         formatted_recipients = [str(recipient.email) for recipient in recipients if recipient.email]
         if not formatted_recipients:
             logger.error("Keine gültigen Empfänger angegeben")
-            return False
+            return EmailSendSuccess(successfully_sent=[], failed_to_send=[])
             
         # Formatiere CC und BCC, falls vorhanden
         formatted_cc = [str(r.email) for r in cc if r.email] if cc else None
@@ -254,7 +286,7 @@ class EmailSender:
         Sendet personalisierte E-Mails an mehrere Empfänger.
         
         Args:
-            recipients: Liste von Empfänger-Dictionaries mit 'email' und 'name' Keys
+            all_recipients: Dictionary mit den Empfängern, CC und BCC als Listen von Person-Objekten
             subject: Betreff der E-Mail
             text_template: Plaintext-Template mit Platzhaltern für die Personalisierung
             html_template: HTML-Template mit Platzhaltern für die Personalisierung (optional)
@@ -262,9 +294,6 @@ class EmailSender:
             reply_to: Reply-To-Adresse (optional)
             attachments: Liste von Anhängen als Dictionaries (optional)
             template_params: Dictionary mit globalen Parametern für alle E-Mails (optional)
-            individual_template_params: Liste von Dictionaries mit individuellen Parametern
-                                       für jeden Empfänger (optional, muss die gleiche Länge
-                                       wie recipients haben)
             delay: Verzögerung zwischen dem Senden von E-Mails in Sekunden (optional)
                   
         Returns:
@@ -314,7 +343,7 @@ class EmailSender:
             )
             
             # Aktualisiere Statistiken
-            if success:
+            if success.successfully_sent:
                 stats['success'] += 1
             else:
                 stats['failed'] += 1

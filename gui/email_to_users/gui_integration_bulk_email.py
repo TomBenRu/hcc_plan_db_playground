@@ -211,7 +211,7 @@ class BulkEmailDialog(QDialog):
         # Lade Personen
         persons = sorted(db_services.Person.get_all_from__project(self.project_id), key=lambda x: x.full_name)
         for person in persons:
-            item = QListWidgetItem(f"{person.full_name} ({person.email})")
+            item = QListWidgetItem(f"[To] {person.full_name} ({person.email})")
             item.setData(Qt.ItemDataRole.UserRole, person)
             # Standardtyp "To" setzen
             item.setData(self.RECIPIENT_TYPE_ROLE, "To")

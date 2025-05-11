@@ -65,7 +65,7 @@ class BulkEmailDialog(QDialog):
         layout.addWidget(header_group)
 
         # Empfänger-Gruppe
-        recipients_group = QGroupBox("Empfänger")
+        recipients_group = QGroupBox("Empfänger (To/CC/BCC per Rechtsklick wählbar)")
         recipients_layout = QVBoxLayout(recipients_group)
 
         # Team-Auswahl
@@ -123,6 +123,13 @@ class BulkEmailDialog(QDialog):
         self.person_list.setStyleSheet("""
             QListWidget::item:selected { background-color: rgba(17, 199, 0, 50); }
         """)
+        
+        # Rechtsklick-Menü für Empfängertyp (To, CC, BCC)
+        self.person_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.person_list.customContextMenuRequested.connect(self.show_context_menu)
+        
+        # Konstanten für benutzerdefinierte Datenrollen
+        self.RECIPIENT_TYPE_ROLE = Qt.ItemDataRole.UserRole + 1
 
         recipients_layout.addLayout(selection_layout)
         recipients_layout.addWidget(self.person_list)
@@ -206,6 +213,8 @@ class BulkEmailDialog(QDialog):
         for person in persons:
             item = QListWidgetItem(f"{person.full_name} ({person.email})")
             item.setData(Qt.ItemDataRole.UserRole, person)
+            # Standardtyp "To" setzen
+            item.setData(self.RECIPIENT_TYPE_ROLE, "To")
             self.person_list.addItem(item)
 
         # Lade Teams
@@ -313,6 +322,44 @@ class BulkEmailDialog(QDialog):
         widget.deleteLater()
         self.attachment_files.remove(file_path)
 
+    def show_context_menu(self, position):
+        """Zeigt das Kontextmenü für die Personenliste an."""
+        # Element unter dem Cursor finden
+        item = self.person_list.itemAt(position)
+        if not item:
+            return
+
+        context_menu = QMenu(self)
+        to_action = context_menu.addAction("To")
+        cc_action = context_menu.addAction("CC")
+        bcc_action = context_menu.addAction("BCC")
+        
+        # Kontextmenü anzeigen und Aktion abrufen
+        action = context_menu.exec(self.person_list.mapToGlobal(position))
+        
+        if action:
+            # Empfängertyp für das Element unter dem Cursor setzen
+            recipient_type = None
+            if action == to_action:
+                recipient_type = "To"
+            elif action == cc_action:
+                recipient_type = "CC"
+            elif action == bcc_action:
+                recipient_type = "BCC"
+                
+            if recipient_type:
+                # Typ direkt im Item speichern
+                item.setData(self.RECIPIENT_TYPE_ROLE, recipient_type)
+                
+                # Visuelles Feedback durch Präfix im Listeneintrag
+                current_text = item.text()
+                if current_text.startswith("[To] ") or current_text.startswith("[CC] ") or current_text.startswith("[BCC] "):
+                    # Präfix entfernen, wenn bereits vorhanden
+                    text_without_prefix = current_text.split("] ", 1)[1]
+                    item.setText(f"[{recipient_type}] {text_without_prefix}")
+                else:
+                    item.setText(f"[{recipient_type}] {current_text}")
+
     def send_email(self):
         """Sendet die E-Mail."""
         # Validierung
@@ -325,31 +372,42 @@ class BulkEmailDialog(QDialog):
             return
 
         # Empfänger bestimmen
-        recipients = []
-        team_id = None
-        project_id = None
+        to_recipients = []
+        cc_recipients = []
+        bcc_recipients = []
 
         for i in range(self.person_list.count()):
             item = self.person_list.item(i)
             if item.isSelected():
-                recipients.append(item.data(Qt.ItemDataRole.UserRole))
+                person = item.data(Qt.ItemDataRole.UserRole)
+                # Empfängertyp direkt aus dem Item lesen
+                recipient_type = item.data(self.RECIPIENT_TYPE_ROLE)
+                
+                if recipient_type == "To":
+                    to_recipients.append(person)
+                elif recipient_type == "CC":
+                    cc_recipients.append(person)
+                elif recipient_type == "BCC":
+                    bcc_recipients.append(person)
 
-        if not recipients:
+        if not (to_recipients or cc_recipients or bcc_recipients):
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
 
         # Fortschrittsdialog anzeigen
-        progress = QProgressDialog("Sende E-Mails...", "Abbrechen", 0, 100, self)
+        progress = QProgressDialog("Sende E-Mail...", "Abbrechen", 0, 100, self)
         progress.setWindowTitle("E-Mail-Versand")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setValue(10)
 
-        # E-Mails senden
-        stats = email_service.send_custom_email(
+        # E-Mail senden
+        stats = email_service.send_bulk_email(
             subject=self.subject_edit.text(),
             text_content=self.content_edit.toPlainText(),
             html_content=self.content_edit.toHtml(),
-            recipients=recipients or None,
+            recipients=to_recipients,
+            cc=cc_recipients,
+            bcc=bcc_recipients,
             attachments=[{'path': file_path} for file_path in self.attachment_files]
         )
 
@@ -363,7 +421,7 @@ class BulkEmailDialog(QDialog):
             f"Erfolgreich gesendet: {stats['success']}\n"
             f"Fehlgeschlagen: {stats['failed']}"
         )
-
+        
         self.accept()
 
     def format_text(self, format_type):

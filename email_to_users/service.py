@@ -236,16 +236,11 @@ class EmailService:
             subject: Betreff der E-Mail
             text_content: Plaintext-Inhalt der E-Mail
             html_content: HTML-Inhalt der E-Mail (optional)
-            recipient_ids: Liste von Empfänger-IDs (optional)
-            team_id: ID eines Teams, dessen Mitglieder benachrichtigt werden sollen (optional)
-            project_id: ID eines Projekts, dessen Mitglieder benachrichtigt werden sollen (optional)
+            recipients: Liste von Empfängern (optional)
             attachments: Liste von Anhängen als Dictionaries (optional)
             
         Returns:
             Dictionary mit Statistiken: Anzahl erfolgreicher und fehlgeschlagener E-Mails
-            
-        Note:
-            Mindestens eines der Argumente recipient_ids, team_id oder project_id muss angegeben werden.
         """
         try:
             if not recipients:
@@ -267,6 +262,57 @@ class EmailService:
         except Exception as e:
             logger.error(f"Fehler beim Senden der benutzerdefinierten E-Mail: {str(e)}")
             return {'success': 0, 'failed': 0, 'error': str(e)}
+    
+    def send_bulk_email(
+        self,
+        subject: str,
+        text_content: str,
+        html_content: Optional[str] = None,
+        recipients: Optional[List[schemas.Person]] = None,
+        cc: Optional[List[schemas.Person]] = None,
+        bcc: Optional[List[schemas.Person]] = None,
+        attachments: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, int]:
+        """
+        Sendet eine einzelne E-Mail an mehrere Empfänger mit Unterstützung für To/CC/BCC.
+        
+        Args:
+            subject: Betreff der E-Mail
+            text_content: Plaintext-Inhalt der E-Mail
+            html_content: HTML-Inhalt der E-Mail (optional)
+            recipients: Liste von 'To'-Empfängern (optional)
+            cc: Liste von 'CC'-Empfängern (optional)
+            bcc: Liste von 'BCC'-Empfängern (optional)
+            attachments: Liste von Anhängen als Dictionaries (optional)
+            
+        Returns:
+            Dictionary mit Statistiken: Anzahl erfolgreicher und fehlgeschlagener E-Mails
+        """
+        try:
+            if not (recipients or cc or bcc):
+                logger.warning("Keine Empfänger für benutzerdefinierte E-Mail gefunden")
+                return {'success': 0, 'failed': 0}
+
+            # Hier senden wir eine einzelne E-Mail an alle Empfänger
+            success = self.sender.send_email(
+                recipients=recipients or [],
+                cc=cc or [],
+                bcc=bcc or [],
+                subject=subject,
+                text_content=text_content,
+                html_content=html_content,
+                attachments=attachments
+            )
+            
+            # Statistik basierend auf Erfolg oder Misserfolg zurückgeben
+            if success:
+                return {'success': 1, 'failed': 0}
+            else:
+                return {'success': 0, 'failed': 1}
+            
+        except Exception as e:
+            logger.error(f"Fehler beim Senden der benutzerdefinierten E-Mail: {str(e)}")
+            return {'success': 0, 'failed': 1, 'error': str(e)}
 
 
 # Globale Service-Instanz

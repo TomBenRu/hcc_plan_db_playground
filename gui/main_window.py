@@ -808,7 +808,11 @@ class MainWindow(QMainWindow):
                                 f'Verfügbarkeiten wurden unter\n{excel_output_path}\nexportiert.')
 
     def statistics(self):
-        ...
+        """Öffnet den Employment Statistics Dialog"""
+        from gui.employment_statistics import EmploymentStatisticsDialog
+        
+        dlg = EmploymentStatisticsDialog(self)
+        dlg.exec()
 
     def calculate_plans(self):
         if not self.curr_team:

@@ -122,15 +122,15 @@ class EmploymentStatisticsDialog(QDialog):
         
         # Info-Label für aktuelle Auswahl
         self.selection_info_label = QLabel("Bitte wählen Sie einen Zeitraum und Kontext aus.")
-        # self.selection_info_label.setStyleSheet("""
-        #     QLabel {
-        #         background-color: #f0f0f0;
-        #         border: 1px solid #ccc;
-        #         border-radius: 5px;
-        #         padding: 10px;
-        #         font-weight: bold;
-        #     }
-        # """)
+        self.selection_info_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(0, 150, 50, 0.3);
+                border: 1px solid rgba(0, 150, 50, 0.5);
+                border-radius: 5px;
+                padding: 10px;
+                font-weight: bold;
+            }
+        """)
         stats_layout.addWidget(self.selection_info_label)
         
         # Tab-Widget für verschiedene Statistik-Ansichten

@@ -145,7 +145,7 @@ class DateRangeWidget(QWidget):
         
         # Info-Label für verfügbaren Datumsbereich
         self.date_info_label = QLabel()
-        self.date_info_label.setStyleSheet("color: #666; font-style: italic;")
+        self.date_info_label.setStyleSheet("color: rgba(0, 150, 50, 0.5); font-style: italic;")
         date_layout.addWidget(self.date_info_label)
         
         layout.addWidget(date_group)
@@ -155,7 +155,6 @@ class DateRangeWidget(QWidget):
         button_layout = QHBoxLayout()
         
         self.btn_update_range = QPushButton("Verfügbaren Zeitraum aktualisieren")
-        self.btn_update_range.setStyleSheet("QPushButton { font-weight: bold; }")
         
         button_layout.addWidget(self.btn_update_range)
         button_layout.addStretch()

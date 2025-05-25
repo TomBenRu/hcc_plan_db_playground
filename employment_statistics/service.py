@@ -193,12 +193,12 @@ class EmploymentStatisticsService:
         latest_plans = []
         
         for plan_period in plan_periods:
-            # Suche den aktuellsten Plan (nach created_at) für diese Planperiode
+            # Suche den aktuellsten Plan (nach last_modified) für diese Planperiode
             latest_plan = select(
                 p for p in models.Plan
                 if p.plan_period == plan_period
                 and not p.prep_delete
-            ).order_by(desc(models.Plan.created_at)).first()
+            ).order_by(desc(models.Plan.last_modified)).first()
             
             if latest_plan:
                 latest_plans.append(latest_plan)

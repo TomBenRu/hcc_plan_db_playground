@@ -91,11 +91,12 @@ class ButtonEvent(QPushButton):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
                            .replace('<<ObjectName>>', self.objectName()))
     
-    def get_curr_event(self) -> schemas.EventShow:
+    def get_curr_event(self) -> schemas.EventShow | None:
         if self.isChecked():
             return db_services.Event.get_from__location_pp_date_tod(
                 self.location_plan_period.id, self.date, self.time_of_day.id
             )
+        return None
 
     @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):

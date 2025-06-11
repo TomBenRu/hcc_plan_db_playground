@@ -38,11 +38,11 @@ class DlgPlanToXLSX(QDialog):
 
         self.check_notes_in_empty_fields = QCheckBox(
             self.tr('Enter notes in fields without assignments'))
-        self.check_notes_in_empty_fields.setChecked(False)
+        self.check_notes_in_empty_fields.setChecked(True)
 
         self.check_notes_in_employee_fields = QCheckBox(
             self.tr('Enter notes in fields with assignments'))
-        self.check_notes_in_empty_fields.setChecked(False)
+        self.check_notes_in_employee_fields.setChecked(False)
 
         self.layout_body.addWidget(self.check_notes_in_empty_fields)
         self.layout_body.addWidget(self.check_notes_in_employee_fields)

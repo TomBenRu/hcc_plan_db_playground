@@ -670,9 +670,12 @@ class AppointmentField(QWidget):
             if notes_changed:
                 reply = QMessageBox.question(
                     self, self.tr('Notes changed'),
-                    f'Die Anmerkungen des Events am '
-                    f'{date_to_string(self.appointment.event.date)} wurden geändert.\n'
-                    f'Sollen die Änderungen für den entsprechenden Termin im Plan übernommen werden?')
+                    f'Die Anmerkungen des Events\n'
+                    f'am {date_to_string(self.appointment.event.date)} ({self.appointment.event.time_of_day.name})\n'
+                    f'an {self.appointment.event.location_plan_period.location_of_work.name_an_city}\n'
+                    f'wurden geändert.\n'
+                    f'Sollen die Änderungen für den entsprechenden Termin im Plan\n'
+                    f'{self.plan_widget.plan.name} übernommen werden?')
                 if reply == QMessageBox.StandardButton.Yes:
                     appointment_commands.UpdateNotes(self.appointment, self.appointment.event.notes).execute()
                     self._reload_appointment_and_tooltip()

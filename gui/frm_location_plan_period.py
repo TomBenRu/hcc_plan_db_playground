@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
-    QMenu
+    QMenu, QSpinBox, QWidgetAction
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
@@ -68,6 +68,9 @@ class ButtonEvent(QPushButton):
         signal_handling.handler_location_plan_period.signal_reload_location_pp__events.connect(
             self.reload_location_plan_period
         )
+        signal_handling.handler_location_plan_period.signal_event_update_num_employees.connect(
+            self.update_num_employees
+        )
 
         self.group_mode = False
 
@@ -75,16 +78,13 @@ class ButtonEvent(QPushButton):
         self.date = date
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        self.spin_box_num_employees: QSpinBox | None = None
+        self.action_num_employees: QWidgetAction | None = None
         self.context_menu = QMenu()
-        self.menu_times_of_day = QMenu(self.tr('Times of Day'))
-        self.context_menu.addMenu(self.menu_times_of_day)
-        self.create_actions__skills_fixed_flags_notes()
+        self.add_context_menu_items()
 
         self.set_stylesheet()
 
-        self.actions = []
-        self.create_actions_times_of_day()
-        self.menu_times_of_day.addActions(self.actions)
         self.set_tooltip()
 
     def set_stylesheet(self):
@@ -123,6 +123,14 @@ class ButtonEvent(QPushButton):
     def contextMenuEvent(self, pos):
         self.context_menu.exec(pos.globalPos())
 
+    def add_context_menu_items(self):
+        self.menu_times_of_day = QMenu(self.tr('Times of Day'))
+        self.actions_times_of_day = []
+        self.create_actions_times_of_day()
+        self.menu_times_of_day.addActions(self.actions_times_of_day)
+        self.context_menu.addMenu(self.menu_times_of_day)
+        self.create_actions__skills_fixed_flags_notes()
+
     def create_actions__skills_fixed_flags_notes(self):
         actions = [
             (self.tr('Skills'), self.edit_skills),
@@ -133,16 +141,47 @@ class ButtonEvent(QPushButton):
         for text, slot in actions:
             self.context_menu.addAction(MenuToolbarAction(self, None, text, None, slot))
 
+    def add_spin_box_num_employees(self):
+        container_spin_box_num_employees = QWidget()
+        layout_container = QHBoxLayout(container_spin_box_num_employees)
+        lb_num_employees = QLabel(self.tr('Num Employees:'))
+        self.spin_box_num_employees = QSpinBox()
+        self.spin_box_num_employees.setRange(0, 100)
+        self.spin_box_num_employees.setValue(self.get_curr_event().cast_group.nr_actors)
+        layout_container.addWidget(lb_num_employees)
+        layout_container.addWidget(self.spin_box_num_employees)
+        self.spin_box_num_employees.valueChanged.connect(self.change_num_employees)
+        self.action_num_employees = QWidgetAction(self.context_menu)
+        self.action_num_employees.setObjectName('Num Employees')
+        self.action_num_employees.setDefaultWidget(container_spin_box_num_employees)
+        self.context_menu.addAction(self.action_num_employees)
+
+    @Slot(UUID)
+    def update_num_employees(self, location_plan_period_id: UUID):
+        if location_plan_period_id != self.location_plan_period.id or not self.isChecked():
+            return
+        event = self.get_curr_event()
+        if event:
+            self.spin_box_num_employees.blockSignals(True)
+            self.spin_box_num_employees.setValue(event.cast_group.nr_actors)
+            self.spin_box_num_employees.blockSignals(False)
+
+    def change_num_employees(self):
+        event = self.get_curr_event()
+        cast_group = event.cast_group
+        self.controller.execute(
+            cast_group_commands.UpdateNrActors(cast_group.id, self.spin_box_num_employees.value()))
+
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
         self.location_plan_period = location_plan_period
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         for action in self.menu_times_of_day.actions():
             self.menu_times_of_day.removeAction(action)
         self.create_actions_times_of_day()
-        self.menu_times_of_day.addActions(self.actions)
+        self.menu_times_of_day.addActions(self.actions_times_of_day)
 
     def create_actions_times_of_day(self):
-        self.actions = [
+        self.actions_times_of_day = [
             MenuToolbarAction(self, QIcon(os.path.join(os.path.dirname(__file__),
                                             'resources/toolbar_icons/icons/clock-select.png'))
             if t.name == self.time_of_day.name else None,
@@ -258,6 +297,10 @@ class ButtonEvent(QPushButton):
     @Slot()
     def button_clicked(self):
         self.slot__event_toggled(self)
+        if self.isChecked():
+            self.add_spin_box_num_employees()
+        else:
+            self.context_menu.removeAction(self.action_num_employees)
 
 
 class ButtonFixedCast(QPushButton):
@@ -1049,6 +1092,8 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id)
             )
+            signal_handling.handler_location_plan_period.event_update_num_employees(
+                self.location_plan_period.id)
         else:
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 
@@ -1070,6 +1115,7 @@ class FrmLocationPlanPeriod(QWidget):
             button.time_of_day = event.time_of_day
             button.create_actions_times_of_day()
             button.reset_menu_times_of_day(self.location_plan_period)
+            button.add_spin_box_num_employees()
             button.set_tooltip()
 
     def set_nr_actors(self):

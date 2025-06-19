@@ -41,6 +41,11 @@ class DataDate:
     plan_period_id: UUID | None = None
     date: datetime.date | None = None
 
+@dataclass
+class DataEventUpdateNumEmployees:
+    plan_period_id: UUID | None = None
+    location_plan_period_id: UUID | None = None
+
 
 class HandlerActorPlanPeriod(QObject):
 
@@ -73,7 +78,7 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reset_styling_notes_configs = Signal(object)
     signal_reset_styling_skills_configs = Signal(object)
     signal_reload_location_pp__events = Signal(object)
-    signal_event_update_num_employees = Signal(UUID)
+    signal_event_update_num_employees = Signal(object)
     signal_reload_cast_groups__cast_configs = Signal(object)
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
     signal_change_location_plan_period_group_mode = Signal(object)
@@ -94,8 +99,9 @@ class HandlerLocationPlanPeriod(QObject):
     def reload_location_pp__events(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__events.emit(data)
 
-    def event_update_num_employees(self, location_plan_period_id: UUID):
-        self.signal_event_update_num_employees.emit(location_plan_period_id)
+    def event_update_num_employees(self, *, plan_period_id: UUID, location_plan_period_id: UUID):
+        self.signal_event_update_num_employees.emit(
+            DataEventUpdateNumEmployees(plan_period_id, location_plan_period_id))
 
     def reload_location_pp_on__frm_location_plan_period(self, data: schemas.LocationPlanPeriodShow = None):
         self.signal_reload_location_pp__frm_location_plan_period.emit(data)

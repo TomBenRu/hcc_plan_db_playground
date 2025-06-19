@@ -156,9 +156,12 @@ class ButtonEvent(QPushButton):
         self.action_num_employees.setDefaultWidget(container_spin_box_num_employees)
         self.context_menu.addAction(self.action_num_employees)
 
-    @Slot(UUID)
-    def update_num_employees(self, location_plan_period_id: UUID):
-        if location_plan_period_id != self.location_plan_period.id or not self.isChecked():
+    @Slot(object)
+    def update_num_employees(self, data: signal_handling.DataEventUpdateNumEmployees):
+        if not self.isChecked():
+            return
+        if (data.plan_period_id != self.location_plan_period.plan_period.id
+                and data.location_plan_period_id != self.location_plan_period.id):
             return
         event = self.get_curr_event()
         if event:
@@ -843,6 +846,9 @@ class FrmTabLocationPlanPeriods(QWidget):
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
                 signal_handling.DataDate(self.plan_period.id)
             )
+            signal_handling.handler_location_plan_period.event_update_num_employees(
+                plan_period_id=self.plan_period.id, location_plan_period_id=None
+            )
 
     @Slot(UUID)
     def _edit_cast_groups_plan_period(self, plan_period_id: UUID):
@@ -1093,7 +1099,8 @@ class FrmLocationPlanPeriod(QWidget):
                 signal_handling.DataDate(self.location_plan_period.plan_period.id)
             )
             signal_handling.handler_location_plan_period.event_update_num_employees(
-                self.location_plan_period.id)
+                plan_period_id=None, location_plan_period_id=self.location_plan_period.id
+            )
         else:
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 

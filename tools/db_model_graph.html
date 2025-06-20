@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datenbankmodell Graph - Robuste Version</title>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-group label {
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .control-group select, .control-group input {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            outline: none;
+        }
+
+        .control-group input[type="file"] {
+            background: rgba(255,255,255,0.3);
+            padding: 4px 8px;
+            font-size: 12px;
+            max-width: 180px;
+        }
+
+        .control-group input[type="file"]::-webkit-file-upload-button {
+            background: rgba(255,255,255,0.4);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 10px;
+            margin-right: 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .control-group input[type="file"]::-webkit-file-upload-button:hover {
+            background: rgba(255,255,255,0.6);
+        }
+
+        .control-group select option {
+            background: #333;
+            color: white;
+        }
+
+        #graph-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            height: 800px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 250px;
+            z-index: 1000;
+        }
+
+        .legend h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #ddd;
+        }
+
+        .info-panel {
+            position: absolute;
+            background: white;
+            padding: 0;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 2px solid #3498db;
+            font-size: 12px;
+            max-width: 320px;
+            min-width: 250px;
+            display: none;
+            z-index: 1000;
+            pointer-events: auto;
+            max-height: 400px;
+            cursor: default;
+        }
+
+        .info-panel .panel-header {
+            background: #3498db;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px 4px 0 0;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .info-panel .panel-content {
+            padding: 12px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .info-panel .close-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0.8;
+            font-weight: bold;
+        }
+
+        .info-panel .close-button:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .info-panel h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+
+        .info-panel .field-list {
+            margin: 0;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .info-panel .field-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .info-panel .field-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-panel .field-name {
+            font-weight: 500;
+            color: #444;
+            flex: 1;
+            margin-right: 8px;
+        }
+
+        .info-panel .field-type {
+            color: #888;
+            font-style: italic;
+            font-size: 11px;
+        }
+
+        .info-panel .description {
+            margin: 8px 0 6px 0;
+            color: #555;
+            font-style: italic;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .info-panel .category-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .parser-status {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-align: center;
+            margin: 10px auto;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            font-size: 0.9em;
+        }
+
+        .loading { opacity: 0.7; }
+        .success { color: #2ecc71; }
+        .error { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ Datenbankmodell Graph</h1>
+        <p class="subtitle">hcc_plan_db_playground - Robuste Pony ORM Analyse</p>
+        
+        <div class="parser-status" id="parser-status">
+            🚀 Parser bereit - Datei laden um zu beginnen
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="entity-count">—</span>
+                <span class="stat-label">Entitäten</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="relation-count">—</span>
+                <span class="stat-label">Beziehungen</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="field-count">—</span>
+                <span class="stat-label">Felder gesamt</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="file-input">📁 models.py laden:</label>
+                <input type="file" id="file-input" accept=".py" style="color: white;">
+            </div>
+            <div class="control-group">
+                <label for="category-filter">Kategorie:</label>
+                <select id="category-filter">
+                    <option value="all">Alle anzeigen</option>
+                    <option value="core">Kernentitäten</option>
+                    <option value="planning">Planungsentitäten</option>
+                    <option value="groups">Gruppierungen</option>
+                    <option value="preferences">Präferenzen & Regeln</option>
+                    <option value="support">Unterstützende Entitäten</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="layout">Layout:</label>
+                <select id="layout">
+                    <option value="force">Kraft-gerichtet</option>
+                    <option value="circular">Kreisförmig</option>
+                    <option value="hierarchical">Hierarchisch</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="show-relations">Beziehungen:</label>
+                <input type="checkbox" id="show-relations" checked>
+            </div>
+        </div>
+
+        <div id="graph-container">
+            <div class="legend">
+                <h3>Kategorien</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c"></div>
+                    Kernentitäten
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db"></div>
+                    Planungsentitäten
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71"></div>
+                    Gruppierungen
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12"></div>
+                    Präferenzen & Regeln
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9b59b6"></div>
+                    Unterstützende Entitäten
+                </div>
+            </div>
+            
+            <div class="info-panel" id="info-panel">
+                <!-- Inhalt wird dynamisch generiert -->
+            </div>
+            
+            <svg id="graph"></svg>
+        </div>
+    </div>
+
+    <!-- D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    
+    <script>
+        // Robuster Python Models Parser - Hybrid-Ansatz
+        class RobustPonyORMParser {
+            constructor() {
+                this.entities = {};
+                this.relationships = [];
+            }
+
+            parseModelsFile(content) {
+                console.log('🔍 Starting robust parsing...');
+                this.entities = {};
+                this.relationships = [];
+
+                try {
+                    // Schritt 1: Bereinigung
+                    const cleanContent = this.cleanPythonCode(content);
+                    
+                    // Schritt 2: Klassen-Extraktion mit verbesserter Logik
+                    const classes = this.extractClassesRobust(cleanContent);
+                    console.log(`📋 Found ${Object.keys(classes).length} classes:`, Object.keys(classes));
+
+                    if (Object.keys(classes).length === 0) {
+                        throw new Error('Keine Klassen gefunden. Überprüfen Sie die Datei-Struktur.');
+                    }
+
+                    // Schritt 3: Entitäten parsen
+                    let entityCount = 0;
+                    Object.entries(classes).forEach(([className, classData]) => {
+                        if (this.isPonyEntity(classData.content)) {
+                            console.log(`🎯 Parsing Pony Entity: ${className}`);
+                            this.parseEntityRobust(className, classData);
+                            entityCount++;
+                        } else {
+                            console.log(`⏭️  Skipping non-Pony class: ${className}`);
+                        }
+                    });
+
+                    if (entityCount === 0) {
+                        throw new Error('Keine Pony ORM Entitäten gefunden. Überprüfen Sie ob db.Entity verwendet wird.');
+                    }
+
+                    // Schritt 4: Beziehungen extrahieren
+                    this.extractRelationshipsRobust();
+
+                    console.log(`✅ Parsing complete: ${Object.keys(this.entities).length} entities, ${this.relationships.length} relationships`);
+
+                    return {
+                        entities: this.entities,
+                        relationships: this.relationships,
+                        success: true
+                    };
+
+                } catch (error) {
+                    console.error('❌ Parsing error:', error);
+                    return {
+                        entities: {},
+                        relationships: [],
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+
+            cleanPythonCode(content) {
+                // Erweiterte Bereinigung
+                return content
+                    .split('\n')
+                    .map((line, index) => {
+                        // Entferne nur echte Kommentare, nicht # in Strings
+                        let cleanLine = line;
+                        let inString = false;
+                        let stringChar = '';
+                        let result = '';
+                        
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            const prevChar = i > 0 ? line[i-1] : '';
+                            
+                            if (!inString && (char === '"' || char === "'")) {
+                                inString = true;
+                                stringChar = char;
+                                result += char;
+                            } else if (inString && char === stringChar && prevChar !== '\\') {
+                                inString = false;
+                                stringChar = '';
+                                result += char;
+                            } else if (!inString && char === '#') {
+                                // Kommentar gefunden - Rest der Zeile abschneiden
+                                break;
+                            } else {
+                                result += char;
+                            }
+                        }
+                        
+                        return result.trimRight();
+                    })
+                    .join('\n');
+            }
+
+            extractClassesRobust(content) {
+                const classes = {};
+                const lines = content.split('\n');
+                
+                let currentClass = null;
+                let currentClassContent = [];
+                let currentIndentLevel = 0;
+                let inMultilineString = false;
+                let multilineStringDelim = '';
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+                    const lineIndent = line.length - line.trimStart().length;
+                    
+                    // Handle multiline strings
+                    if (!inMultilineString && (trimmed.startsWith('"""') || trimmed.startsWith("'''"))) {
+                        multilineStringDelim = trimmed.substring(0, 3);
+                        if (trimmed.length > 3 && trimmed.endsWith(multilineStringDelim)) {
+                            // Single line docstring
+                            if (currentClass) currentClassContent.push(line);
+                            continue;
+                        } else {
+                            inMultilineString = true;
+                            if (currentClass) currentClassContent.push(line);
+                            continue;
+                        }
+                    }
+                    
+                    if (inMultilineString) {
+                        if (currentClass) currentClassContent.push(line);
+                        if (trimmed.endsWith(multilineStringDelim)) {
+                            inMultilineString = false;
+                            multilineStringDelim = '';
+                        }
+                        continue;
+                    }
+                    
+                    // Detect class definition with better regex
+                    const classMatch = trimmed.match(/^class\s+(\w+)\s*\([^)]*\)\s*:/);
+                    if (classMatch) {
+                        // Save previous class
+                        if (currentClass && currentClassContent.length > 0) {
+                            classes[currentClass] = {
+                                content: currentClassContent.join('\n'),
+                                startLine: i - currentClassContent.length,
+                                endLine: i - 1
+                            };
+                        }
+                        
+                        // Start new class
+                        currentClass = classMatch[1];
+                        currentClassContent = [line];
+                        currentIndentLevel = lineIndent;
+                        console.log(`📝 Found class: ${currentClass} at line ${i}`);
+                        continue;
+                    }
+                    
+                    // If we're in a class, collect its content
+                    if (currentClass) {
+                        // Check if we're still in the class or if it ended
+                        if (trimmed === '') {
+                            currentClassContent.push(line);
+                        } else if (lineIndent > currentIndentLevel || 
+                                  (lineIndent === currentIndentLevel && !trimmed.match(/^(class|def|import|from)\s/))) {
+                            currentClassContent.push(line);
+                        } else if (lineIndent <= currentIndentLevel && trimmed && 
+                                  trimmed.match(/^(class|def|import|from|if\s+__name__|$)/)) {
+                            // End of current class
+                            if (currentClassContent.length > 0) {
+                                classes[currentClass] = {
+                                    content: currentClassContent.join('\n'),
+                                    startLine: i - currentClassContent.length,
+                                    endLine: i - 1
+                                };
+                            }
+                            currentClass = null;
+                            currentClassContent = [];
+                            
+                            // Check if this line starts a new class
+                            const newClassMatch = trimmed.match(/^class\s+(\w+)\s*\([^)]*\)\s*:/);
+                            if (newClassMatch) {
+                                currentClass = newClassMatch[1];
+                                currentClassContent = [line];
+                                currentIndentLevel = lineIndent;
+                                console.log(`📝 Found class: ${currentClass} at line ${i}`);
+                            }
+                        } else {
+                            currentClassContent.push(line);
+                        }
+                    }
+                }
+                
+                // Save last class
+                if (currentClass && currentClassContent.length > 0) {
+                    classes[currentClass] = {
+                        content: currentClassContent.join('\n'),
+                        startLine: lines.length - currentClassContent.length,
+                        endLine: lines.length - 1
+                    };
+                }
+                
+                return classes;
+            }
+
+            isPonyEntity(classContent) {
+                return classContent.includes('db.Entity') || 
+                       /\b(Required|Optional|Set|PrimaryKey)\s*\(/.test(classContent);
+            }
+
+            parseEntityRobust(className, classData) {
+                const fields = this.extractFieldsRobust(classData.content);
+                const description = this.extractDescriptionRobust(classData.content, className);
+                const category = this.categorizeEntity(className, description);
+                
+                this.entities[className] = {
+                    category: category,
+                    color: this.getCategoryColor(category),
+                    description: description,
+                    fields: fields
+                };
+                
+                console.log(`✅ Parsed ${className}: ${fields.length} fields`);
+                if (fields.length > 0) {
+                    console.log(`   Fields: ${fields.slice(0, 5).map(f => f.name).join(', ')}${fields.length > 5 ? '...' : ''}`);
+                }
+            }
+
+            extractFieldsRobust(classContent) {
+                const fields = [];
+                const lines = classContent.split('\n');
+                
+                console.log(`🔍 Analyzing ${lines.length} lines for fields...`);
+                
+                let inMethod = false;
+                let inDocstring = false;
+                let docstringDelim = '';
+                let braceStack = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.length - line.trimStart().length;
+                    
+                    // Skip empty lines
+                    if (!trimmed) continue;
+                    
+                    // Handle docstrings
+                    if (!inDocstring && (trimmed.startsWith('"""') || trimmed.startsWith("'''"))) {
+                        docstringDelim = trimmed.substring(0, 3);
+                        if (trimmed.length > 3 && trimmed.endsWith(docstringDelim)) {
+                            continue; // Single line docstring
+                        } else {
+                            inDocstring = true;
+                            continue;
+                        }
+                    }
+                    
+                    if (inDocstring) {
+                        if (trimmed.endsWith(docstringDelim)) {
+                            inDocstring = false;
+                        }
+                        continue;
+                    }
+                    
+                    // Skip method definitions and decorators
+                    if (trimmed.startsWith('@') || trimmed.startsWith('def ') || 
+                        trimmed.startsWith('class ') || trimmed.startsWith('#') ||
+                        trimmed.match(/^(if|for|while|try|except|else|elif|finally|with|return|yield|raise|import|from)\s/)) {
+                        inMethod = true;
+                        continue;
+                    }
+                    
+                    // Reset method flag on class-level indentation (usually 4 spaces)
+                    if (inMethod && indent <= 4 && trimmed && !trimmed.startsWith(' ')) {
+                        inMethod = false;
+                    }
+                    
+                    if (inMethod) continue;
+                    
+                    // Advanced field detection
+                    const fieldPattern = /^(\w+)\s*=\s*(Required|Optional|Set|PrimaryKey)\s*\(/;
+                    const fieldMatch = trimmed.match(fieldPattern);
+                    
+                    if (fieldMatch) {
+                        const fieldName = fieldMatch[1];
+                        const fieldType = fieldMatch[2];
+                        
+                        console.log(`   🎯 Found field: ${fieldName} (${fieldType})`);
+                        
+                        // Collect complete field definition (may span multiple lines)
+                        let fullDefinition = trimmed;
+                        let currentIndex = i;
+                        let openParens = (fullDefinition.match(/\(/g) || []).length;
+                        let closeParens = (fullDefinition.match(/\)/g) || []).length;
+                        
+                        // Continue collecting lines until parentheses are balanced
+                        while (openParens > closeParens && currentIndex < lines.length - 1) {
+                            currentIndex++;
+                            const nextLine = lines[currentIndex].trim();
+                            if (nextLine) {
+                                fullDefinition += ' ' + nextLine;
+                                openParens += (nextLine.match(/\(/g) || []).length;
+                                closeParens += (nextLine.match(/\)/g) || []).length;
+                            }
+                        }
+                        
+                        // Parse the complete field definition
+                        const parsedType = this.parseFieldTypeRobust(fieldType, fullDefinition);
+                        
+                        fields.push({
+                            name: fieldName,
+                            type: parsedType
+                        });
+                        
+                        console.log(`      ✅ Added: ${fieldName} = ${parsedType}`);
+                        
+                        // Skip processed lines
+                        i = currentIndex;
+                    }
+                }
+                
+                console.log(`📊 Total fields extracted: ${fields.length}`);
+                return fields;
+            }
+
+            parseFieldTypeRobust(fieldType, fullDefinition) {
+                try {
+                    // Extract parameters between parentheses
+                    const paramMatch = fullDefinition.match(/\((.*)\)(?:\s*$|[^)]*$)/);
+                    if (!paramMatch) return fieldType;
+                    
+                    const params = paramMatch[1];
+                    
+                    if (fieldType === 'PrimaryKey') {
+                        if (params.includes('UUID')) return 'UUID (PK)';
+                        if (params.includes('int')) return 'int (PK)';
+                        return 'PrimaryKey';
+                    }
+                    
+                    if (fieldType === 'Required' || fieldType === 'Optional') {
+                        const args = this.splitParameters(params);
+                        if (args.length > 0) {
+                            let baseType = args[0].replace(/['"]/g, '').trim();
+                            
+                            // Handle size parameters
+                            if (baseType === 'str') {
+                                const sizeMatch = params.match(/\b(\d+)\b/) || params.match(/size\s*=\s*(\d+)/);
+                                return sizeMatch ? `str(${sizeMatch[1]})` : 'str';
+                            }
+                            
+                            if (baseType === 'int') {
+                                const sizeMatch = params.match(/size\s*=\s*(\d+)/);
+                                return sizeMatch ? `int(${sizeMatch[1]})` : 'int';
+                            }
+                            
+                            // Handle datetime types
+                            const typeMap = {
+                                'datetime.datetime': 'datetime',
+                                'datetime.date': 'date',
+                                'datetime.time': 'time',
+                                'datetime.timedelta': 'timedelta'
+                            };
+                            
+                            baseType = typeMap[baseType] || baseType;
+                            
+                            // Add optional indicator
+                            return fieldType === 'Optional' ? `${baseType}?` : baseType;
+                        }
+                    }
+                    
+                    if (fieldType === 'Set') {
+                        const args = this.splitParameters(params);
+                        if (args.length > 0) {
+                            const targetType = args[0].replace(/['"]/g, '').trim();
+                            
+                            // Check for reverse parameter
+                            const reverseMatch = params.match(/reverse\s*=\s*['"]([^'"]+)['"]/);
+                            if (reverseMatch) {
+                                return `Set[${targetType}] ↔ ${reverseMatch[1]}`;
+                            }
+                            
+                            return `Set[${targetType}]`;
+                        }
+                        return 'Set';
+                    }
+                    
+                    return fieldType;
+                    
+                } catch (error) {
+                    console.warn(`⚠️  Error parsing field type: ${error.message}`);
+                    return fieldType;
+                }
+            }
+
+            splitParameters(paramString) {
+                // Simple parameter splitting that handles nested parentheses and quotes
+                const params = [];
+                let current = '';
+                let depth = 0;
+                let inString = false;
+                let stringChar = '';
+                
+                for (let i = 0; i < paramString.length; i++) {
+                    const char = paramString[i];
+                    
+                    if (!inString && (char === '"' || char === "'")) {
+                        inString = true;
+                        stringChar = char;
+                        current += char;
+                    } else if (inString && char === stringChar && paramString[i-1] !== '\\') {
+                        inString = false;
+                        stringChar = '';
+                        current += char;
+                    } else if (!inString && char === '(') {
+                        depth++;
+                        current += char;
+                    } else if (!inString && char === ')') {
+                        depth--;
+                        current += char;
+                    } else if (!inString && char === ',' && depth === 0) {
+                        params.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                if (current.trim()) {
+                    params.push(current.trim());
+                }
+                
+                return params;
+            }
+
+            extractDescriptionRobust(classContent, className) {
+                // Look for docstring
+                const docstringMatch = classContent.match(/class\s+\w+[^:]*:\s*"""([^"]+)"""/s) ||
+                                      classContent.match(/class\s+\w+[^:]*:\s*'''([^']+)'''/s);
+                
+                if (docstringMatch) {
+                    return docstringMatch[1].trim().replace(/\s+/g, ' ');
+                }
+                
+                // Look for comment after class definition
+                const commentMatch = classContent.match(/class\s+\w+[^:]*:\s*#\s*([^\n]+)/);
+                if (commentMatch) {
+                    return commentMatch[1].trim();
+                }
+                
+                return `${className} Entität`;
+            }
+
+            categorizeEntity(className, description) {
+                const name = className.toLowerCase();
+                const desc = description.toLowerCase();
+                
+                // Core entities (main business objects)
+                if (['person', 'project', 'team', 'planperiod', 'locationofwork', 'address'].includes(name)) {
+                    return 'core';
+                }
+                
+                // Planning entities (time and event related)
+                if (name.includes('plan') || name.includes('period') || name.includes('event') || 
+                    name.includes('appointment') || name.includes('avail') || name.includes('time') ||
+                    name.includes('actor') && name.includes('plan')) {
+                    return 'planning';
+                }
+                
+                // Groups (hierarchical structures)
+                if (name.includes('group') || name.includes('cast') || desc.includes('hierarchical')) {
+                    return 'groups';
+                }
+                
+                // Preferences and rules (scoring and constraints)
+                if (name.includes('pref') || name.includes('rule') || name.includes('combination') ||
+                    desc.includes('präferenz') || desc.includes('score') || desc.includes('regel')) {
+                    return 'preferences';
+                }
+                
+                // Support entities (auxiliary and configuration)
+                if (name.includes('skill') || name.includes('flag') || name.includes('assign') ||
+                    name.includes('export') || name.includes('setting') || name.includes('required') ||
+                    name.includes('max') || name.includes('fair') || name.includes('excel')) {
+                    return 'support';
+                }
+                
+                return 'core';
+            }
+
+            getCategoryColor(category) {
+                const colors = {
+                    'core': '#e74c3c',
+                    'planning': '#3498db',
+                    'groups': '#2ecc71',
+                    'preferences': '#f39c12',
+                    'support': '#9b59b6'
+                };
+                return colors[category] || '#7f8c8d';
+            }
+
+            extractRelationshipsRobust() {
+                this.relationships = [];
+                
+                Object.entries(this.entities).forEach(([entityName, entityData]) => {
+                    entityData.fields.forEach(field => {
+                        const fieldType = field.type;
+                        
+                        // Direct entity references
+                        const cleanType = fieldType.replace(/\?$/, ''); // Remove optional marker
+                        if (this.entities[cleanType]) {
+                            this.relationships.push({
+                                source: entityName,
+                                target: cleanType,
+                                type: 'references',
+                                label: field.name
+                            });
+                        }
+                        
+                        // Set relationships
+                        const setMatch = fieldType.match(/Set\[([^\]]+)\]/);
+                        if (setMatch) {
+                            const targetType = setMatch[1].split(' ')[0]; // Remove reverse info
+                            if (this.entities[targetType]) {
+                                this.relationships.push({
+                                    source: entityName,
+                                    target: targetType,
+                                    type: 'many_to_many',
+                                    label: field.name
+                                });
+                            }
+                        }
+                    });
+                });
+                
+                console.log(`🔗 Extracted ${this.relationships.length} relationships`);
+            }
+        }
+
+        // Main Database Graph Application
+        class DatabaseGraph {
+            constructor() {
+                console.log('🚀 Initializing Robust DatabaseGraph...');
+                this.svg = d3.select('#graph');
+                this.width = parseInt(this.svg.style('width'));
+                this.height = parseInt(this.svg.style('height'));
+                this.currentFilter = 'all';
+                this.showRelations = true;
+                this.currentLayout = 'force';
+                this.parser = new RobustPonyORMParser();
+                
+                this.entities = {};
+                this.relationships = [];
+                
+                // Info panel state - sempre gepinnt
+                this.infoPanelPinned = false;
+                this.currentInfoData = null;
+                
+                this.initGraph();
+                this.setupControls();
+                this.setupFileInput();
+                this.updateStats();
+            }
+            
+            setupFileInput() {
+                const fileInput = document.getElementById('file-input');
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file && file.name.endsWith('.py')) {
+                        console.log('📁 Loading file:', file.name);
+                        this.updateStatus('📖 Datei wird gelesen...', 'loading');
+                        
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const content = e.target.result;
+                                console.log('📄 File loaded, size:', content.length);
+                                
+                                this.parseWithRobustParser(content, file.name);
+                                
+                            } catch (error) {
+                                console.error('❌ Error loading file:', error);
+                                this.updateStatus('❌ Fehler beim Laden: ' + error.message, 'error');
+                            }
+                        };
+                        
+                        reader.onerror = () => {
+                            this.updateStatus('❌ Fehler beim Lesen der Datei', 'error');
+                        };
+                        
+                        reader.readAsText(file);
+                    } else {
+                        this.updateStatus('❌ Bitte wählen Sie eine .py Datei aus', 'error');
+                    }
+                });
+            }
+            
+            parseWithRobustParser(content, filename) {
+                this.updateStatus('🔍 Analysiere Python-Code...', 'loading');
+                
+                try {
+                    const result = this.parser.parseModelsFile(content);
+                    
+                    if (result.success) {
+                        this.entities = result.entities;
+                        this.relationships = result.relationships;
+                        
+                        const entityCount = Object.keys(this.entities).length;
+                        const totalFields = Object.values(this.entities).reduce((sum, entity) => sum + entity.fields.length, 0);
+                        
+                        console.log('✅ Parsing successful:');
+                        console.log(`  Entities: ${entityCount}`);
+                        console.log(`  Relationships: ${this.relationships.length}`);
+                        console.log(`  Total fields: ${totalFields}`);
+                        
+                        this.updateStats();
+                        this.render();
+                        
+                        this.updateStatus(`✅ Erfolgreich: ${entityCount} Entitäten, ${totalFields} Felder`, 'success');
+                        
+                        // Log first entity details for verification
+                        if (entityCount > 0) {
+                            const firstEntityName = Object.keys(this.entities)[0];
+                            const firstEntity = this.entities[firstEntityName];
+                            console.log(`📋 First entity (${firstEntityName}): ${firstEntity.fields.length} fields`);
+                            console.log(`   Sample fields: ${firstEntity.fields.slice(0, 3).map(f => f.name + ':' + f.type).join(', ')}`);
+                        }
+                        
+                    } else {
+                        throw new Error(result.error || 'Parsing failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Parsing error:', error);
+                    this.updateStatus('❌ Fehler: ' + error.message, 'error');
+                }
+            }
+            
+            updateStatus(message, statusClass = '') {
+                const statusElement = document.getElementById('parser-status');
+                statusElement.textContent = message;
+                statusElement.className = `parser-status ${statusClass}`;
+            }
+            
+            updateStats() {
+                const entityCount = Object.keys(this.entities).length;
+                const relationCount = this.relationships.length;
+                const fieldCount = Object.values(this.entities).reduce((sum, entity) => sum + entity.fields.length, 0);
+                
+                document.getElementById('entity-count').textContent = entityCount || '—';
+                document.getElementById('relation-count').textContent = relationCount || '—';
+                document.getElementById('field-count').textContent = fieldCount || '—';
+            }
+            
+            initGraph() {
+                this.svg.selectAll('*').remove();
+                
+                const defs = this.svg.append('defs');
+                defs.append('marker')
+                    .attr('id', 'arrowhead')
+                    .attr('viewBox', '-0 -5 10 10')
+                    .attr('refX', 20)
+                    .attr('refY', 0)
+                    .attr('orient', 'auto')
+                    .attr('markerWidth', 8)
+                    .attr('markerHeight', 8)
+                    .append('path')
+                    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                    .attr('fill', '#999')
+                    .style('stroke', 'none');
+
+                this.container = this.svg.append('g');
+                
+                // Click handler für SVG-Bereich um Panel zu schließen
+                this.svg.on('click', (event) => {
+                    if (this.infoPanelPinned && !event.defaultPrevented) {
+                        this.closeInfo();
+                    }
+                });
+                
+                const zoom = d3.zoom()
+                    .scaleExtent([0.1, 3])
+                    .on('zoom', (event) => {
+                        this.container.attr('transform', event.transform);
+                    });
+                
+                this.svg.call(zoom);
+            }
+            
+            getFilteredData() {
+                let filteredEntities = Object.keys(this.entities);
+                
+                if (this.currentFilter !== 'all') {
+                    filteredEntities = filteredEntities.filter(entity => 
+                        this.entities[entity].category === this.currentFilter
+                    );
+                }
+
+                const filteredRelationships = this.showRelations ? 
+                    this.relationships.filter(rel => 
+                        filteredEntities.includes(rel.source) && 
+                        filteredEntities.includes(rel.target)
+                    ) : [];
+
+                const nodes = filteredEntities.map(entity => ({
+                    id: entity,
+                    ...this.entities[entity]
+                }));
+
+                // Create a map for faster node lookup
+                const nodeMap = {};
+                nodes.forEach(node => {
+                    nodeMap[node.id] = node;
+                });
+
+                // Ensure links reference actual node objects (needed for D3)
+                const links = filteredRelationships.map(rel => {
+                    const link = {
+                        source: nodeMap[rel.source] || rel.source,
+                        target: nodeMap[rel.target] || rel.target,
+                        type: rel.type,
+                        label: rel.label || rel.type
+                    };
+                    
+                    // Fallback to IDs if nodes not found
+                    if (!nodeMap[rel.source]) {
+                        console.warn(`Source node ${rel.source} not found for link`);
+                        link.source = rel.source;
+                    }
+                    if (!nodeMap[rel.target]) {
+                        console.warn(`Target node ${rel.target} not found for link`);
+                        link.target = rel.target;
+                    }
+                    
+                    return link;
+                });
+
+                console.log(`📊 Data prepared: ${nodes.length} nodes, ${links.length} links`);
+                return { nodes, links };
+            }
+            
+            render() {
+                if (Object.keys(this.entities).length === 0) {
+                    console.log('No entities to render');
+                    return;
+                }
+                
+                this.container.selectAll('*').remove();
+                
+                const data = this.getFilteredData();
+                console.log(`🎨 Rendering: ${data.nodes.length} nodes, ${data.links.length} links`);
+                
+                const linkGroup = this.container.append('g').attr('class', 'links');
+                const nodeGroup = this.container.append('g').attr('class', 'nodes');
+                
+                // Setup layout based on current layout type
+                this.setupLayout(data);
+
+                // Links
+                let linkUpdate = null;
+                if (this.showRelations && data.links.length > 0) {
+                    const link = linkGroup.selectAll('.link').data(data.links);
+                    
+                    linkUpdate = link.enter().append('line')
+                        .attr('class', 'link')
+                        .style('stroke', '#666')
+                        .style('stroke-opacity', 0.6)
+                        .style('stroke-width', 1.5)
+                        .attr('marker-end', 'url(#arrowhead)')
+                        .merge(link);
+                }
+
+                // Nodes
+                const node = nodeGroup.selectAll('.node').data(data.nodes);
+                
+                const nodeEnter = node.enter().append('g')
+                    .attr('class', 'node')
+                    .style('cursor', 'pointer');
+
+                nodeEnter.append('circle')
+                    .attr('r', 30)
+                    .style('fill', d => d.color)
+                    .style('stroke', '#fff')
+                    .style('stroke-width', 3)
+                    .style('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+
+                nodeEnter.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', 40)
+                    .style('font-size', '11px')
+                    .style('font-weight', 'bold')
+                    .style('fill', '#333')
+                    .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8)')
+                    .text(d => d.id);
+
+                const nodeUpdate = nodeEnter.merge(node);
+
+                // Apply event handlers to all nodes regardless of layout
+                nodeUpdate
+                    .on('click', (event, d) => {
+                        event.stopPropagation();
+                        this.showPinnedInfo(d, event);
+                        
+                        // Visual feedback for clicked node
+                        this.container.selectAll('.node circle')
+                            .style('stroke', '#fff')
+                            .style('stroke-width', 3);
+                        
+                        d3.select(event.currentTarget).select('circle')
+                            .style('stroke', '#3498db')
+                            .style('stroke-width', 4);
+                    })
+                    .on('mouseover', (event, d) => {
+                        // Visuelles Feedback + Move-Cursor
+                        d3.select(event.currentTarget)
+                            .style('cursor', 'move');
+                        d3.select(event.currentTarget).select('circle')
+                            .style('stroke', '#333')
+                            .style('stroke-width', 4);
+                    })
+                    .on('mouseout', (event, d) => {
+                        // Reset nur wenn nicht gepinnt
+                        d3.select(event.currentTarget)
+                            .style('cursor', 'pointer');
+                        if (!this.infoPanelPinned || this.currentInfoData?.id !== d.id) {
+                            d3.select(event.currentTarget).select('circle')
+                                .style('stroke', '#fff')
+                                .style('stroke-width', 3);
+                        }
+                    })
+                    .call(this.getDragBehavior()); // Always apply drag behavior
+
+                // Store references for link updates
+                this.currentLinkUpdate = linkUpdate;
+                this.currentNodeUpdate = nodeUpdate;
+
+                // Layout-specific rendering
+                if (this.currentLayout === 'force') {
+                    this.renderForceLayout(data, linkUpdate, nodeUpdate);
+                } else if (this.currentLayout === 'circular') {
+                    this.renderCircularLayout(data, linkUpdate, nodeUpdate);
+                } else if (this.currentLayout === 'hierarchical') {
+                    this.renderHierarchicalLayout(data, linkUpdate, nodeUpdate);
+                }
+                
+                console.log(`✅ Layout ${this.currentLayout} rendered with dragging enabled`);
+            }
+            
+            setupLayout(data) {
+                // Stop existing simulation
+                if (this.simulation) {
+                    this.simulation.stop();
+                }
+                
+                if (this.currentLayout === 'force') {
+                    this.setupForceLayout(data);
+                }
+                // Other layouts don't need simulation setup
+            }
+            
+            renderForceLayout(data, linkUpdate, nodeUpdate) {
+                if (this.simulation) {
+                    this.simulation.nodes(data.nodes);
+                    
+                    if (this.simulation.force('link')) {
+                        this.simulation.force('link').links(data.links);
+                    }
+                    
+                    this.simulation.on('tick', () => {
+                        if (linkUpdate) {
+                            linkUpdate
+                                .attr('x1', d => d.source.x)
+                                .attr('y1', d => d.source.y)
+                                .attr('x2', d => d.target.x)
+                                .attr('y2', d => d.target.y);
+                        }
+
+                        nodeUpdate.attr('transform', d => `translate(${d.x},${d.y})`);
+                    });
+
+                    this.simulation.alpha(1).restart();
+                }
+            }
+            
+            renderCircularLayout(data, linkUpdate, nodeUpdate) {
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                const radius = Math.min(this.width, this.height) * 0.35;
+                
+                console.log('🔵 Setting up circular layout...');
+                
+                // Create node position map for link lookup
+                const nodePositions = {};
+                
+                data.nodes.forEach((node, i) => {
+                    const angle = (2 * Math.PI * i) / data.nodes.length;
+                    node.x = centerX + radius * Math.cos(angle);
+                    node.y = centerY + radius * Math.sin(angle);
+                    
+                    // ✅ FIX: Don't fix positions for draggability
+                    // Remove any existing fx/fy to allow dragging
+                    node.fx = null;
+                    node.fy = null;
+                    
+                    nodePositions[node.id] = node;
+                });
+                
+                // Position nodes initially
+                nodeUpdate.attr('transform', d => `translate(${d.x},${d.y})`);
+                
+                // Position links - ensure source/target are objects with x/y
+                if (linkUpdate) {
+                    linkUpdate
+                        .attr('x1', d => {
+                            const source = typeof d.source === 'object' ? d.source : nodePositions[d.source];
+                            return source ? source.x : 0;
+                        })
+                        .attr('y1', d => {
+                            const source = typeof d.source === 'object' ? d.source : nodePositions[d.source];
+                            return source ? source.y : 0;
+                        })
+                        .attr('x2', d => {
+                            const target = typeof d.target === 'object' ? d.target : nodePositions[d.target];
+                            return target ? target.x : 0;
+                        })
+                        .attr('y2', d => {
+                            const target = typeof d.target === 'object' ? d.target : nodePositions[d.target];
+                            return target ? target.y : 0;
+                        });
+                }
+                
+                console.log('🔵 Circular layout applied with', data.links.length, 'relations');
+                console.log('🖱️ Nodes should now be draggable in circular layout');
+            }
+            
+            renderHierarchicalLayout(data, linkUpdate, nodeUpdate) {
+                console.log('📊 Setting up hierarchical layout...');
+                
+                // Group nodes by category
+                const categories = ['core', 'planning', 'groups', 'preferences', 'support'];
+                const nodesByCategory = {};
+                
+                categories.forEach(cat => {
+                    nodesByCategory[cat] = data.nodes.filter(n => n.category === cat);
+                });
+                
+                const layers = categories.filter(cat => nodesByCategory[cat].length > 0);
+                const layerHeight = (this.height - 100) / Math.max(layers.length, 1);
+                const startY = 50;
+                
+                // Create node position map for link lookup
+                const nodePositions = {};
+                
+                layers.forEach((category, layerIndex) => {
+                    const layerNodes = nodesByCategory[category];
+                    const layerY = startY + layerIndex * layerHeight;
+                    const nodeSpacing = (this.width - 100) / Math.max(layerNodes.length, 1);
+                    const startX = 50;
+                    
+                    layerNodes.forEach((node, nodeIndex) => {
+                        node.x = startX + nodeIndex * nodeSpacing + nodeSpacing / 2;
+                        node.y = layerY;
+                        
+                        // ✅ FIX: Don't fix positions for draggability
+                        // Remove any existing fx/fy to allow dragging
+                        node.fx = null;
+                        node.fy = null;
+                        
+                        nodePositions[node.id] = node;
+                    });
+                });
+                
+                // Position nodes initially
+                nodeUpdate.attr('transform', d => `translate(${d.x},${d.y})`);
+                
+                // Position links - ensure source/target are objects with x/y
+                if (linkUpdate) {
+                    linkUpdate
+                        .attr('x1', d => {
+                            const source = typeof d.source === 'object' ? d.source : nodePositions[d.source];
+                            return source ? source.x : 0;
+                        })
+                        .attr('y1', d => {
+                            const source = typeof d.source === 'object' ? d.source : nodePositions[d.source];
+                            return source ? source.y : 0;
+                        })
+                        .attr('x2', d => {
+                            const target = typeof d.target === 'object' ? d.target : nodePositions[d.target];
+                            return target ? target.x : 0;
+                        })
+                        .attr('y2', d => {
+                            const target = typeof d.target === 'object' ? d.target : nodePositions[d.target];
+                            return target ? target.y : 0;
+                        });
+                }
+                
+                console.log('📊 Hierarchical layout applied with', data.links.length, 'relations');
+                console.log('🖱️ Nodes should now be draggable in hierarchical layout');
+            }
+            
+            setupForceLayout(data) {
+                this.simulation = d3.forceSimulation(data.nodes)
+                    .force('link', d3.forceLink(data.links)
+                        .id(d => d.id)
+                        .distance(120)
+                        .strength(0.5)
+                    )
+                    .force('charge', d3.forceManyBody()
+                        .strength(-400)
+                        .distanceMax(400)
+                    )
+                    .force('center', d3.forceCenter(this.width / 2, this.height / 2))
+                    .force('collision', d3.forceCollide()
+                        .radius(50)
+                        .strength(0.8)
+                    )
+                    .alpha(1)
+                    .alphaDecay(0.02);
+            }
+            
+            getDragBehavior() {
+                return d3.drag()
+                    .on('start', (event, d) => {
+                        if (!event.active && this.simulation) this.simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x;
+                        d.fy = d.y;
+                        
+                        // ✅ FIX: Prevent event bubbling and conflicts
+                        event.sourceEvent.stopPropagation();
+                        event.sourceEvent.preventDefault();
+                        
+                        // ✅ FIX: Bring dragged node to front (higher z-index)
+                        const draggedNode = d3.select(event.sourceEvent.target.parentNode);
+                        const parentGroup = draggedNode.node().parentNode;
+                        parentGroup.appendChild(draggedNode.node());
+                        
+                        // ✅ FIX: Disable pointer events on other nodes to prevent interference
+                        this.container.selectAll('.node')
+                            .style('pointer-events', function() {
+                                return this === draggedNode.node() ? 'auto' : 'none';
+                            });
+                        
+                        // Store reference to dragged node for cleanup
+                        this.draggedNode = draggedNode;
+                    })
+                    .on('drag', (event, d) => {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                        d.x = event.x;
+                        d.y = event.y;
+                        
+                        // ✅ FIX: Stop all event propagation during drag
+                        event.sourceEvent.stopPropagation();
+                        event.sourceEvent.preventDefault();
+                        
+                        // Update node position more robustly
+                        if (this.draggedNode) {
+                            this.draggedNode.attr('transform', `translate(${d.x},${d.y})`);
+                        }
+                        
+                        // ✅ FIX: More robust link updates with proper validation
+                        if (this.currentLinkUpdate) {
+                            this.currentLinkUpdate
+                                .attr('x1', link => {
+                                    if (typeof link.source === 'object' && link.source.x !== undefined) {
+                                        return link.source.x;
+                                    }
+                                    return 0;
+                                })
+                                .attr('y1', link => {
+                                    if (typeof link.source === 'object' && link.source.y !== undefined) {
+                                        return link.source.y;
+                                    }
+                                    return 0;
+                                })
+                                .attr('x2', link => {
+                                    if (typeof link.target === 'object' && link.target.x !== undefined) {
+                                        return link.target.x;
+                                    }
+                                    return 0;
+                                })
+                                .attr('y2', link => {
+                                    if (typeof link.target === 'object' && link.target.y !== undefined) {
+                                        return link.target.y;
+                                    }
+                                    return 0;
+                                });
+                        }
+                    })
+                    .on('end', (event, d) => {
+                        if (!event.active && this.simulation) this.simulation.alphaTarget(0);
+                        
+                        // ✅ FIX: Restore pointer events for all nodes
+                        this.container.selectAll('.node')
+                            .style('pointer-events', 'auto');
+                        
+                        // Clean up reference
+                        this.draggedNode = null;
+                        
+                        // Layout-specific position handling
+                        if (this.currentLayout === 'force') {
+                            d.fx = null;
+                            d.fy = null;
+                        }
+                        
+                        // ✅ FIX: Stop final event propagation
+                        event.sourceEvent.stopPropagation();
+                        event.sourceEvent.preventDefault();
+                    });
+            }
+            
+            showPinnedInfo(data, event) {
+                console.log('🔍 Showing pinned info for:', data.id);
+                
+                this.infoPanelPinned = true;
+                this.currentInfoData = data;
+                
+                const infoPanel = document.getElementById('info-panel');
+                
+                const categoryColors = {
+                    'core': '#e74c3c',
+                    'planning': '#3498db', 
+                    'groups': '#2ecc71',
+                    'preferences': '#f39c12',
+                    'support': '#9b59b6'
+                };
+                
+                // Show all fields with better formatting
+                const fieldsHtml = data.fields.map(field => `
+                    <div class="field-row">
+                        <span class="field-name">${field.name}</span>
+                        <span class="field-type">${field.type}</span>
+                    </div>
+                `).join('');
+                
+                const relationCount = this.relationships.filter(rel => 
+                    rel.source === data.id || rel.target === data.id
+                ).length;
+                
+                infoPanel.innerHTML = `
+                    <div class="panel-header" id="panel-header">
+                        <span>📋 ${data.id}</span>
+                        <button class="close-button" onclick="graph.closeInfo()">✕</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="category-badge" style="background-color: ${categoryColors[data.category]};">
+                            ${data.category.toUpperCase()}
+                        </div>
+                        <div class="description">${data.description}</div>
+                        <div class="field-list">${fieldsHtml}</div>
+                        <div class="field-row" style="margin-top: 8px; border-top: 1px solid #eee; padding-top: 4px;">
+                            <span class="field-name">Felder gesamt</span>
+                            <span class="field-type">${data.fields.length}</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">Beziehungen</span>
+                            <span class="field-type">${relationCount}</span>
+                        </div>
+                        <div class="field-row" style="border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px; font-size: 10px; color: #888;">
+                            <span class="field-name">💡 Ziehbar am Header • Klick außerhalb zum Schließen</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Position the panel
+                this.positionPanel(event);
+                
+                infoPanel.style.display = 'block';
+                infoPanel.style.opacity = '1';
+                
+                // Scroll to top
+                const contentArea = infoPanel.querySelector('.panel-content');
+                if (contentArea) {
+                    contentArea.scrollTop = 0;
+                }
+                
+                // Setup drag behavior for the panel
+                this.setupPanelDrag();
+            }
+            
+            setupPanelDrag() {
+                const infoPanel = document.getElementById('info-panel');
+                const header = document.getElementById('panel-header');
+                
+                if (!header) return;
+                
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+                
+                header.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    // Get current position
+                    const rect = infoPanel.getBoundingClientRect();
+                    const containerRect = this.svg.node().getBoundingClientRect();
+                    initialX = rect.left - containerRect.left;
+                    initialY = rect.top - containerRect.top;
+                    
+                    header.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    
+                    let newX = initialX + dx;
+                    let newY = initialY + dy;
+                    
+                    // Keep panel within bounds
+                    const panelWidth = 320;
+                    const panelHeight = 400;
+                    newX = Math.max(0, Math.min(newX, this.width - panelWidth));
+                    newY = Math.max(0, Math.min(newY, this.height - panelHeight));
+                    
+                    infoPanel.style.left = newX + 'px';
+                    infoPanel.style.top = newY + 'px';
+                    
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        header.style.cursor = 'move';
+                    }
+                });
+            }
+            
+            positionPanel(event) {
+                const infoPanel = document.getElementById('info-panel');
+                const rect = this.svg.node().getBoundingClientRect();
+                
+                let x = event.clientX - rect.left + 15;
+                let y = event.clientY - rect.top - 15;
+                
+                // Intelligente Positionierung um im Viewport zu bleiben
+                const panelWidth = 320;  // max-width
+                const panelHeight = 400; // max-height
+                
+                // Rechts übergelaufen? Links positionieren
+                if (x + panelWidth > this.width) {
+                    x = event.clientX - rect.left - panelWidth - 15;
+                }
+                
+                // Unten übergelaufen? Nach oben positionieren
+                if (y + panelHeight > this.height) {
+                    y = event.clientY - rect.top - panelHeight - 15;
+                }
+                
+                // Mindestabstände einhalten
+                x = Math.max(10, Math.min(x, this.width - panelWidth - 10));
+                y = Math.max(10, Math.min(y, this.height - panelHeight - 10));
+                
+                infoPanel.style.left = x + 'px';
+                infoPanel.style.top = y + 'px';
+            }
+            
+            closeInfo() {
+                this.infoPanelPinned = false;
+                this.currentInfoData = null;
+                
+                // Reset all node strokes
+                this.container.selectAll('.node circle')
+                    .style('stroke', '#fff')
+                    .style('stroke-width', 3);
+                
+                const infoPanel = document.getElementById('info-panel');
+                infoPanel.style.display = 'none';
+                infoPanel.style.opacity = '0';
+                
+                console.log('❌ Info panel closed');
+            }
+
+            
+            setupControls() {
+                document.getElementById('category-filter').addEventListener('change', (e) => {
+                    this.currentFilter = e.target.value;
+                    this.render();
+                });
+
+                document.getElementById('layout').addEventListener('change', (e) => {
+                    this.currentLayout = e.target.value;
+                    this.render();
+                });
+
+                document.getElementById('show-relations').addEventListener('change', (e) => {
+                    this.showRelations = e.target.checked;
+                    this.render();
+                });
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.graph = new DatabaseGraph();
+        });
+    </script>
+</body>
+</html>

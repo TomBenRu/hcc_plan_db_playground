@@ -1196,11 +1196,20 @@ class MainWindow(QMainWindow):
         models_path = os.path.join(project_paths.paths.root_path, 'database', 'models.py')
 
         try:
+            # ✅ FIX: Read models.py content and embed it directly in template
+            with open(models_path, 'r', encoding='utf-8') as f:
+                models_content = f.read()
+            
             # Template laden und rendern
             with open(template_path, 'r', encoding='utf-8') as f:
                 template = Template(f.read())
 
-            rendered_html = template.render(models_path=models_path)
+            # ✅ FIX: Pass both path and content to avoid CORS issues
+            rendered_html = template.render(
+                models_path=models_path,
+                models_content=models_content,
+                models_filename=os.path.basename(models_path)
+            )
 
             # ✅ FIX: Use temporary file instead of data URL (Windows length limit)
             with tempfile.NamedTemporaryFile(mode='w', suffix='.html', 
@@ -1225,10 +1234,15 @@ class MainWindow(QMainWindow):
 
             threading.Timer(60.0, cleanup).start()
 
-        except FileNotFoundError:
-            QMessageBox.critical(self, 'DB-Struktur Template',
-                                 f'Template-Datei nicht gefunden:\n{template_path}\n\n'
-                                 f'Stellen Sie sicher, dass db_model_graph_template.html existiert.')
+        except FileNotFoundError as e:
+            if 'db_model_graph_template.html' in str(e):
+                QMessageBox.critical(self, 'DB-Struktur Template',
+                                     f'Template-Datei nicht gefunden:\n{template_path}\n\n'
+                                     f'Stellen Sie sicher, dass db_model_graph_template.html existiert.')
+            else:
+                QMessageBox.critical(self, 'DB-Struktur Models',
+                                     f'Models-Datei nicht gefunden:\n{models_path}\n\n'
+                                     f'Stellen Sie sicher, dass models.py existiert.')
         except Exception as e:
             print(f'❌ Error in show_db_structure: {e}')
             QMessageBox.critical(self, 'DB-Struktur',

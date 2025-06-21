@@ -313,7 +313,7 @@
         <div class="parser-status" id="parser-status">
             🚀 Parser bereit - Datei laden um zu beginnen
             <div style="font-size: 0.8em; margin-top: 5px; opacity: 0.8;">
-                💡 Tipps: Datei hierher ziehen • URL: ?modelPath=/pfad/models.py zeigt Pfad-Hinweis • Letztes File wird gemerkt
+                💡 Tipps: Datei hierher ziehen • Template mit eingebettetem Content • Letztes File wird gemerkt
             </div>
         </div>
         
@@ -399,6 +399,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     
     <script>
+        // ✅ JINJA2: Get models data from template variables
+        const JINJA_MODELS_PATH = {% if models_path %}"{{ models_path|replace('\\', '\\\\')|safe }}"{% else %}null{% endif %};
+        const JINJA_MODELS_CONTENT = {% if models_content %}{{ models_content|tojson|safe }}{% else %}null{% endif %};
+        const JINJA_MODELS_FILENAME = {% if models_filename %}"{{ models_filename|safe }}"{% else %}null{% endif %};
+        
+        console.log('🎯 Jinja2 Models Path:', JINJA_MODELS_PATH);
+        console.log('🎯 Jinja2 Models Filename:', JINJA_MODELS_FILENAME);
+        console.log('📄 Jinja2 Models Content Length:', JINJA_MODELS_CONTENT ? JINJA_MODELS_CONTENT.length : 'null');
+
         // Robuster Python Models Parser - Hybrid-Ansatz
         class RobustPonyORMParser {
             constructor() {
@@ -961,8 +970,8 @@
                 this.setupDragDrop();
                 this.updateStats();
                 
-                // ✅ NEW: Auto-load functionality
-                this.checkForAutoLoad();
+                // ✅ JINJA2: Check for template-provided models path
+                this.checkForJinjaModelsPath();
             }
             
             setupFileInput() {
@@ -1021,41 +1030,47 @@
                 });
             }
             
-            // ✅ NEW: Check for auto-load via URL parameter or localStorage
-            checkForAutoLoad() {
-                // Check URL parameter first
-                const urlParams = new URLSearchParams(window.location.search);
-                const modelPath = urlParams.get('modelPath') || urlParams.get('path') || urlParams.get('file');
-                
-                if (modelPath) {
-                    this.updateStatus(`🔍 Versuche automatisches Laden: ${modelPath.split('/').pop()}`, 'loading');
-                    this.loadFileFromPath(modelPath);
-                    return;
-                }
-                
-                // Check localStorage for last used file
-                const lastFilePath = localStorage.getItem('lastModelPath');
-                const lastFileName = localStorage.getItem('lastModelName');
-                
-                if (lastFilePath && lastFileName) {
-                    this.updateStatus(`💾 Letztes File gefunden: ${lastFileName}`, 'loading');
-                    // Show option to reload last file
-                    setTimeout(() => {
-                        if (confirm(`Zuletzt verwendete Datei wieder laden?\n${lastFileName}`)) {
-                            this.loadFileFromPath(lastFilePath);
-                        } else {
+            // ✅ JINJA2: Auto-load from template variable
+            checkForJinjaModelsPath() {
+                if (JINJA_MODELS_CONTENT && JINJA_MODELS_FILENAME) {
+                    console.log('🎯 Jinja2 models content embedded detected');
+                    this.updateStatus(`🎯 Template-Content erkannt: ${JINJA_MODELS_FILENAME}`, 'loading');
+                    
+                    // ✅ FIX: Use embedded content directly (no fetch needed!)
+                    this.parseWithRobustParser(JINJA_MODELS_CONTENT, JINJA_MODELS_FILENAME);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('lastModelName', JINJA_MODELS_FILENAME);
+                    
+                    console.log('✅ Jinja2 embedded content loaded successfully');
+                    
+                } else if (JINJA_MODELS_PATH) {
+                    console.log('🎯 Jinja2 models path detected (fallback):', JINJA_MODELS_PATH);
+                    this.updateStatus(`🎯 Template-Pfad erkannt: ${JINJA_MODELS_PATH.split('/').pop()}`, 'loading');
+                    
+                    // Fallback: Try to load the file from the provided path
+                    this.loadFileFromJinjaPath(JINJA_MODELS_PATH);
+                } else {
+                    // Check localStorage for last used file
+                    const lastFileName = localStorage.getItem('lastModelName');
+                    
+                    if (lastFileName) {
+                        this.updateStatus(`💾 Letztes File: ${lastFileName} (manuell laden)`, 'loading');
+                        setTimeout(() => {
                             this.updateStatus('🚀 Parser bereit - Datei laden um zu beginnen', '');
-                        }
-                    }, 500);
+                        }, 2000);
+                    } else {
+                        this.updateStatus('🚀 Parser bereit - Datei laden um zu beginnen', '');
+                    }
                 }
             }
             
-            // ✅ NEW: Load file from file path with smart fallback
-            async loadFileFromPath(filePath) {
+            // ✅ JINJA2: Load file from Jinja2-provided path
+            async loadFileFromJinjaPath(filePath) {
                 try {
-                    this.updateStatus('📖 Lade Datei automatisch...', 'loading');
+                    this.updateStatus('📖 Lade Datei aus Template-Pfad...', 'loading');
                     
-                    // Try to fetch the file (works for HTTP/HTTPS and some local scenarios)
+                    // Try to fetch the file (works for relative paths and HTTP)
                     const response = await fetch(filePath);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1065,23 +1080,23 @@
                     this.parseWithRobustParser(content, filePath.split('/').pop());
                     
                     // Save to localStorage
-                    localStorage.setItem('lastModelPath', filePath);
                     localStorage.setItem('lastModelName', filePath.split('/').pop());
                     
-                    console.log('✅ Auto-load successful');
+                    console.log('✅ Jinja2 auto-load successful');
                     
                 } catch (error) {
-                    console.warn('⚠️ Auto-load failed, showing manual selection hint:', error.message);
+                    console.warn('⚠️ Jinja2 auto-load failed, showing manual selection hint:', error.message);
                     
-                    // Fallback: Show helpful file selection hint
+                    // Fallback: Show helpful file selection hint with the provided path
                     this.showFileSelectionHint(filePath);
                 }
             }
             
-            // ✅ NEW: Helper method to show file selection hint
+            // ✅ Enhanced: Helper method to show file selection hint
             showFileSelectionHint(suggestedPath) {
+                const fileName = suggestedPath.split('/').pop();
                 this.updateStatus(
-                    `💡 Automatisches Laden nicht möglich. Bitte wählen Sie manuell:\n${suggestedPath}`, 
+                    `💡 Automatisches Laden nicht möglich. Bitte wählen Sie manuell:\n${fileName}\nPfad: ${suggestedPath}`, 
                     'loading'
                 );
                 
@@ -1099,7 +1114,7 @@
                     fileInput.style.border = '';
                     fileInput.title = originalTitle;
                     this.updateStatus('🚀 Parser bereit - Datei laden um zu beginnen', '');
-                }, 10000);
+                }, 12000);
             }
             
             // ✅ NEW: Unified file loading method

@@ -1184,15 +1184,57 @@ class MainWindow(QMainWindow):
         )
 
     def show_db_structure(self):
+        import urllib.parse
+        import webbrowser
+        import os
+        import tempfile
+        import threading
+        from jinja2 import Template
+
         tools_dir = os.path.join(project_paths.paths.root_path, 'tools')
-        html_file_path = os.path.join(tools_dir, 'db_model_graph.html')
-        model_py_path = os.path.join(os.path.abspath(project_paths.paths.root_path), 'database', 'models.py')
+        template_path = os.path.join(tools_dir, 'db_model_graph_template.html')
+        models_path = os.path.join(project_paths.paths.root_path, 'database', 'models.py')
+
         try:
-            open_file_or_folder.open_file_or_folder(f'{html_file_path}?modelPath={model_py_path}')
+            # Template laden und rendern
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template = Template(f.read())
+
+            rendered_html = template.render(models_path=models_path)
+
+            # ✅ FIX: Use temporary file instead of data URL (Windows length limit)
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', 
+                                           delete=False, encoding='utf-8') as f:
+                f.write(rendered_html)
+                temp_path = f.name
+
+            # Öffnen der temporären Datei
+            file_url = f'file:///{temp_path.replace(os.sep, "/")}'
+            webbrowser.open(file_url)
+
+            print(f'🎯 DB Structure opened with models: {models_path}')
+            print(f'📁 Temporary file: {temp_path}')
+
+            # ✅ Cleanup nach 60 Sekunden (genug Zeit zum Laden)
+            def cleanup():
+                try:
+                    os.unlink(temp_path)
+                    print(f'🧹 Temporary file cleaned up: {temp_path}')
+                except Exception as e:
+                    print(f'⚠️ Cleanup failed: {e}')
+
+            threading.Timer(60.0, cleanup).start()
+
         except FileNotFoundError:
+            QMessageBox.critical(self, 'DB-Struktur Template',
+                                 f'Template-Datei nicht gefunden:\n{template_path}\n\n'
+                                 f'Stellen Sie sicher, dass db_model_graph_template.html existiert.')
+        except Exception as e:
+            print(f'❌ Error in show_db_structure: {e}')
             QMessageBox.critical(self, 'DB-Struktur',
-                                 f'Die DB-Struktur konnte nicht angezeigt werden:\n'
-                                 f'{html_file_path}?modelPath={model_py_path}')
+                                 f'Fehler beim Öffnen der DB-Struktur:\n{e}\n\n'
+                                 f'Template: {template_path}\n'
+                                 f'Models: {models_path}')
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         """

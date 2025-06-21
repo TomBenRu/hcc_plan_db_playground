@@ -296,6 +296,13 @@
         .loading { opacity: 0.7; }
         .success { color: #2ecc71; }
         .error { color: #e74c3c; }
+        
+        /* ✅ NEW: Animation for file input highlighting */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -306,7 +313,7 @@
         <div class="parser-status" id="parser-status">
             🚀 Parser bereit - Datei laden um zu beginnen
             <div style="font-size: 0.8em; margin-top: 5px; opacity: 0.8;">
-                💡 Tipps: Datei hierher ziehen • URL: ?modelPath=/pfad/models.py • Letztes File wird gemerkt
+                💡 Tipps: Datei hierher ziehen • URL: ?modelPath=/pfad/models.py zeigt Pfad-Hinweis • Letztes File wird gemerkt
             </div>
         </div>
         
@@ -1021,7 +1028,7 @@
                 const modelPath = urlParams.get('modelPath') || urlParams.get('path') || urlParams.get('file');
                 
                 if (modelPath) {
-                    this.updateStatus(`🔍 Versuche zu laden: ${modelPath}`, 'loading');
+                    this.updateStatus(`🔍 Versuche automatisches Laden: ${modelPath.split('/').pop()}`, 'loading');
                     this.loadFileFromPath(modelPath);
                     return;
                 }
@@ -1043,12 +1050,12 @@
                 }
             }
             
-            // ✅ NEW: Load file from file path (for URL params and localStorage)
+            // ✅ NEW: Load file from file path with smart fallback
             async loadFileFromPath(filePath) {
                 try {
-                    this.updateStatus('📖 Lade Datei von Pfad...', 'loading');
+                    this.updateStatus('📖 Lade Datei automatisch...', 'loading');
                     
-                    // Try to fetch the file (works for relative paths and some local scenarios)
+                    // Try to fetch the file (works for HTTP/HTTPS and some local scenarios)
                     const response = await fetch(filePath);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1061,15 +1068,38 @@
                     localStorage.setItem('lastModelPath', filePath);
                     localStorage.setItem('lastModelName', filePath.split('/').pop());
                     
-                } catch (error) {
-                    console.error('❌ Error loading file from path:', error);
-                    this.updateStatus(`❌ Konnte Datei nicht laden: ${error.message}`, 'error');
+                    console.log('✅ Auto-load successful');
                     
-                    // Show file input as fallback
-                    setTimeout(() => {
-                        this.updateStatus('🚀 Parser bereit - Datei manuell laden', '');
-                    }, 3000);
+                } catch (error) {
+                    console.warn('⚠️ Auto-load failed, showing manual selection hint:', error.message);
+                    
+                    // Fallback: Show helpful file selection hint
+                    this.showFileSelectionHint(filePath);
                 }
+            }
+            
+            // ✅ NEW: Helper method to show file selection hint
+            showFileSelectionHint(suggestedPath) {
+                this.updateStatus(
+                    `💡 Automatisches Laden nicht möglich. Bitte wählen Sie manuell:\n${suggestedPath}`, 
+                    'loading'
+                );
+                
+                // Highlight the file input
+                const fileInput = document.getElementById('file-input');
+                fileInput.style.animation = 'pulse 2s infinite';
+                fileInput.style.border = '2px solid #f39c12';
+                
+                // Show a helpful tooltip
+                const originalTitle = fileInput.title;
+                fileInput.title = `Bitte diese Datei auswählen: ${suggestedPath}`;
+                
+                setTimeout(() => {
+                    fileInput.style.animation = '';
+                    fileInput.style.border = '';
+                    fileInput.title = originalTitle;
+                    this.updateStatus('🚀 Parser bereit - Datei laden um zu beginnen', '');
+                }, 10000);
             }
             
             // ✅ NEW: Unified file loading method

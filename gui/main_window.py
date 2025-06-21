@@ -216,7 +216,10 @@ class MainWindow(QMainWindow):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'), 
                               self.tr('About...'),
                               self.tr('Information about the program'), 
-                              self.about_hcc_plan)
+                              self.about_hcc_plan),
+            MenuToolbarAction(self, None, self.tr('Show DB Structure...'),
+                              self.tr('Shows the database structure.'),
+                              self.show_db_structure)
         }
         self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
@@ -265,7 +268,8 @@ class MainWindow(QMainWindow):
                         self.actions['determine_excel_output_folder'], None,
                         self.actions['open_log_file']],
             self.tr('&Help'): [self.actions['open_help'], None, self.actions['check_for_updates'], None,
-                       self.actions['about_hcc_plan']]
+                       self.actions['about_hcc_plan'], None,
+                       {self.tr('Expert Mode'): [self.actions['show_db_structure']]}]
         }
 
         self.toolbar = MainToolBar('Main Toolbar', self.toolbar_actions, icon_size=16)
@@ -1178,6 +1182,17 @@ class MainWindow(QMainWindow):
                 current_index_left_tabs=curr_left_tabs_index
             )
         )
+
+    def show_db_structure(self):
+        tools_dir = os.path.join(project_paths.paths.root_path, 'tools')
+        html_file_path = os.path.join(tools_dir, 'db_model_graph.html')
+        model_py_path = os.path.join(os.path.abspath(project_paths.paths.root_path), 'database', 'models.py')
+        try:
+            open_file_or_folder.open_file_or_folder(f'{html_file_path}?modelPath={model_py_path}')
+        except FileNotFoundError:
+            QMessageBox.critical(self, 'DB-Struktur',
+                                 f'Die DB-Struktur konnte nicht angezeigt werden:\n'
+                                 f'{html_file_path}?modelPath={model_py_path}')
 
     def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
         """

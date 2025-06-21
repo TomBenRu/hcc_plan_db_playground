@@ -305,6 +305,9 @@
         
         <div class="parser-status" id="parser-status">
             🚀 Parser bereit - Datei laden um zu beginnen
+            <div style="font-size: 0.8em; margin-top: 5px; opacity: 0.8;">
+                💡 Tipps: Datei hierher ziehen • URL: ?modelPath=/pfad/models.py • Letztes File wird gemerkt
+            </div>
         </div>
         
         <div class="stats">
@@ -948,7 +951,11 @@
                 this.initGraph();
                 this.setupControls();
                 this.setupFileInput();
+                this.setupDragDrop();
                 this.updateStats();
+                
+                // ✅ NEW: Auto-load functionality
+                this.checkForAutoLoad();
             }
             
             setupFileInput() {
@@ -956,32 +963,143 @@
                 fileInput.addEventListener('change', (event) => {
                     const file = event.target.files[0];
                     if (file && file.name.endsWith('.py')) {
-                        console.log('📁 Loading file:', file.name);
-                        this.updateStatus('📖 Datei wird gelesen...', 'loading');
-                        
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            try {
-                                const content = e.target.result;
-                                console.log('📄 File loaded, size:', content.length);
-                                
-                                this.parseWithRobustParser(content, file.name);
-                                
-                            } catch (error) {
-                                console.error('❌ Error loading file:', error);
-                                this.updateStatus('❌ Fehler beim Laden: ' + error.message, 'error');
-                            }
-                        };
-                        
-                        reader.onerror = () => {
-                            this.updateStatus('❌ Fehler beim Lesen der Datei', 'error');
-                        };
-                        
-                        reader.readAsText(file);
+                        this.loadFile(file);
                     } else {
                         this.updateStatus('❌ Bitte wählen Sie eine .py Datei aus', 'error');
                     }
                 });
+            }
+            
+            // ✅ NEW: Drag & Drop support
+            setupDragDrop() {
+                const container = document.getElementById('graph-container');
+                
+                // Prevent default drag behaviors
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    container.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+                });
+                
+                // Highlight on drag enter/over
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    container.addEventListener(eventName, () => {
+                        container.style.borderColor = '#3498db';
+                        container.style.borderWidth = '4px';
+                        container.style.borderStyle = 'dashed';
+                        this.updateStatus('📁 models.py hier ablegen...', 'loading');
+                    });
+                });
+                
+                // Remove highlight on drag leave/drop
+                ['dragleave', 'drop'].forEach(eventName => {
+                    container.addEventListener(eventName, () => {
+                        container.style.borderColor = '#e0e0e0';
+                        container.style.borderWidth = '2px';
+                        container.style.borderStyle = 'solid';
+                    });
+                });
+                
+                // Handle drop
+                container.addEventListener('drop', (e) => {
+                    const files = Array.from(e.dataTransfer.files);
+                    const pyFile = files.find(file => file.name.endsWith('.py'));
+                    
+                    if (pyFile) {
+                        this.loadFile(pyFile);
+                    } else {
+                        this.updateStatus('❌ Bitte ziehen Sie eine .py Datei hierher', 'error');
+                    }
+                });
+            }
+            
+            // ✅ NEW: Check for auto-load via URL parameter or localStorage
+            checkForAutoLoad() {
+                // Check URL parameter first
+                const urlParams = new URLSearchParams(window.location.search);
+                const modelPath = urlParams.get('modelPath') || urlParams.get('path') || urlParams.get('file');
+                
+                if (modelPath) {
+                    this.updateStatus(`🔍 Versuche zu laden: ${modelPath}`, 'loading');
+                    this.loadFileFromPath(modelPath);
+                    return;
+                }
+                
+                // Check localStorage for last used file
+                const lastFilePath = localStorage.getItem('lastModelPath');
+                const lastFileName = localStorage.getItem('lastModelName');
+                
+                if (lastFilePath && lastFileName) {
+                    this.updateStatus(`💾 Letztes File gefunden: ${lastFileName}`, 'loading');
+                    // Show option to reload last file
+                    setTimeout(() => {
+                        if (confirm(`Zuletzt verwendete Datei wieder laden?\n${lastFileName}`)) {
+                            this.loadFileFromPath(lastFilePath);
+                        } else {
+                            this.updateStatus('🚀 Parser bereit - Datei laden um zu beginnen', '');
+                        }
+                    }, 500);
+                }
+            }
+            
+            // ✅ NEW: Load file from file path (for URL params and localStorage)
+            async loadFileFromPath(filePath) {
+                try {
+                    this.updateStatus('📖 Lade Datei von Pfad...', 'loading');
+                    
+                    // Try to fetch the file (works for relative paths and some local scenarios)
+                    const response = await fetch(filePath);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const content = await response.text();
+                    this.parseWithRobustParser(content, filePath.split('/').pop());
+                    
+                    // Save to localStorage
+                    localStorage.setItem('lastModelPath', filePath);
+                    localStorage.setItem('lastModelName', filePath.split('/').pop());
+                    
+                } catch (error) {
+                    console.error('❌ Error loading file from path:', error);
+                    this.updateStatus(`❌ Konnte Datei nicht laden: ${error.message}`, 'error');
+                    
+                    // Show file input as fallback
+                    setTimeout(() => {
+                        this.updateStatus('🚀 Parser bereit - Datei manuell laden', '');
+                    }, 3000);
+                }
+            }
+            
+            // ✅ NEW: Unified file loading method
+            loadFile(file) {
+                console.log('📁 Loading file:', file.name);
+                this.updateStatus('📖 Datei wird gelesen...', 'loading');
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        console.log('📄 File loaded, size:', content.length);
+                        
+                        this.parseWithRobustParser(content, file.name);
+                        
+                        // Save to localStorage for next time
+                        localStorage.setItem('lastModelName', file.name);
+                        // Note: Can't save actual file path for security reasons
+                        
+                    } catch (error) {
+                        console.error('❌ Error loading file:', error);
+                        this.updateStatus('❌ Fehler beim Laden: ' + error.message, 'error');
+                    }
+                };
+                
+                reader.onerror = () => {
+                    this.updateStatus('❌ Fehler beim Lesen der Datei', 'error');
+                };
+                
+                reader.readAsText(file);
             }
             
             parseWithRobustParser(content, filename) {

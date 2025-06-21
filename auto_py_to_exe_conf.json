@@ -82,8 +82,20 @@
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/favicon.ico;."
   },
   {
+   "optionDest": "datas",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/translations;gui/translations/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/tools/db_model_graph_template.html;tools/"
+  },
+  {
    "optionDest": "binaries",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/abseil_dll.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/bz2.dll;."
   },
   {
    "optionDest": "binaries",
@@ -95,6 +107,14 @@
   },
   {
    "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/libscip.dll;."
+  },
+  {
+   "optionDest": "binaries",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/libutf8_validity.dll;."
+  },
+  {
+   "optionDest": "binaries",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/ortools.dll;."
   },
   {
@@ -103,15 +123,11 @@
   },
   {
    "optionDest": "binaries",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/utf8_validity.dll;."
-  },
-  {
-   "optionDest": "binaries",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/.venv/Lib/site-packages/ortools/.libs/zlib1.dll;."
   },
   {
    "optionDest": "datas",
-   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/translations;gui/translations/"
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/database/models.py;database/"
   }
  ],
  "nonPyinstallerOptions": {

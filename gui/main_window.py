@@ -1191,9 +1191,13 @@ class MainWindow(QMainWindow):
         import threading
         from jinja2 import Template
 
-        tools_dir = os.path.join(project_paths.paths.root_path, 'tools')
+        tools_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tools')
         template_path = os.path.join(tools_dir, 'db_model_graph_template.html')
-        models_path = os.path.join(project_paths.paths.root_path, 'database', 'models.py')
+        models_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'models.py')
+        print(f'🎯 DB Structure: {template_path=}')
+        print(f'🎯 DB Structure: {models_path=}')
+        print(f'🎯 DB Structure: {os.path.exists(template_path)=}')
+        print(f'🎯 DB Structure: {os.path.exists(models_path)=}')
 
         try:
             # ✅ FIX: Read models.py content and embed it directly in template

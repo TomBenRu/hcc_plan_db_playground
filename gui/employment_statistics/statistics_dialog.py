@@ -462,7 +462,7 @@ Arbeitsverteilung:
                 employee.assignments_by_location.items(), 
                 key=lambda x: x[1], 
                 reverse=True
-            )[:3]
+            )[:]
             locations_text = ", ".join([f"{loc} ({count})" for loc, count in top_locations])
             self.employees_table.setItem(row, 2, QTableWidgetItem(locations_text))
             

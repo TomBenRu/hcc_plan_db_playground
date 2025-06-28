@@ -16,13 +16,11 @@ from .event_groups import EventGroupsConstraint
 from .avail_day_groups import AvailDayGroupsConstraint
 from .location_prefs import LocationPrefsConstraint
 from .shifts import ShiftsConstraint
-
-# Noch nicht implementierte Constraints (werden nach und nach hinzugefügt)
-# from .weights import WeightsConstraint
-# from .partner_prefs import PartnerLocationPrefsConstraint
-# from .cast_rules import CastRulesConstraint
-# from .fixed_cast import FixedCastConstraint
-# from .skills import SkillsConstraint
+from .weights import WeightsConstraint
+from .partner_prefs import PartnerLocationPrefsConstraint
+from .skills import SkillsConstraint
+from .fixed_cast import FixedCastConstraint
+from .cast_rules import CastRulesConstraint
 
 __all__ = [
     'AbstractConstraint',
@@ -32,10 +30,9 @@ __all__ = [
     'AvailDayGroupsConstraint', 
     'LocationPrefsConstraint',
     'ShiftsConstraint',
-    # Werden später hinzugefügt:
-    # 'WeightsConstraint',
-    # 'PartnerLocationPrefsConstraint',
-    # 'CastRulesConstraint',
-    # 'FixedCastConstraint',
-    # 'SkillsConstraint'
+    'WeightsConstraint',
+    'PartnerLocationPrefsConstraint',
+    'SkillsConstraint',
+    'FixedCastConstraint',
+    'CastRulesConstraint'
 ]

@@ -12,57 +12,16 @@ from sat_solver.core.solver_context import SolverContext
 from .base import AbstractConstraint, ConstraintSetupError
 
 # Import aller Constraint-Implementierungen
-# Diese werden nach und nach hinzugefügt während der Migration
-try:
-    from .availability import EmployeeAvailabilityConstraint
-except ImportError:
-    EmployeeAvailabilityConstraint = None
-
-try:
-    from .event_groups import EventGroupsConstraint
-except ImportError:
-    EventGroupsConstraint = None
-
-try:
-    from .avail_day_groups import AvailDayGroupsConstraint
-except ImportError:
-    AvailDayGroupsConstraint = None
-
-try:
-    from .location_prefs import LocationPrefsConstraint
-except ImportError:
-    LocationPrefsConstraint = None
-
-try:
-    from .shifts import ShiftsConstraint
-except ImportError:
-    ShiftsConstraint = None
-
-# Noch nicht implementierte Constraints
-try:
-    from .weights import WeightsConstraint
-except ImportError:
-    WeightsConstraint = None
-
-try:
-    from .partner_prefs import PartnerLocationPrefsConstraint
-except ImportError:
-    PartnerLocationPrefsConstraint = None
-
-try:
-    from .cast_rules import CastRulesConstraint
-except ImportError:
-    CastRulesConstraint = None
-
-try:
-    from .fixed_cast import FixedCastConstraint
-except ImportError:
-    FixedCastConstraint = None
-
-try:
-    from .skills import SkillsConstraint
-except ImportError:
-    SkillsConstraint = None
+from .availability import EmployeeAvailabilityConstraint
+from .event_groups import EventGroupsConstraint
+from .avail_day_groups import AvailDayGroupsConstraint
+from .location_prefs import LocationPrefsConstraint
+from .shifts import ShiftsConstraint
+from .weights import WeightsConstraint
+from .partner_prefs import PartnerLocationPrefsConstraint
+from .skills import SkillsConstraint
+from .fixed_cast import FixedCastConstraint
+from .cast_rules import CastRulesConstraint
 
 
 logger = logging.getLogger(__name__)
@@ -88,19 +47,19 @@ class ConstraintFactory:
         """Registriert alle verfügbaren Constraint-Klassen."""
         cls.AVAILABLE_CONSTRAINT_CLASSES.clear()
         
-        # Alle importierten Constraint-Klassen registrieren
+        # Alle Constraint-Klassen registrieren
         # Reihenfolge ist wichtig: Basis-Constraints zuerst, dann abhängige
         constraint_classes = [
-            EmployeeAvailabilityConstraint,  # ✅ Implementiert
-            EventGroupsConstraint,           # ✅ Implementiert  
-            AvailDayGroupsConstraint,        # ✅ Implementiert
-            LocationPrefsConstraint,         # ✅ Implementiert
-            ShiftsConstraint,               # ✅ Implementiert
-            WeightsConstraint,              # 🔄 Noch zu implementieren
-            PartnerLocationPrefsConstraint, # 🔄 Noch zu implementieren
-            CastRulesConstraint,            # 🔄 Noch zu implementieren
-            FixedCastConstraint,            # 🔄 Noch zu implementieren
-            SkillsConstraint,               # 🔄 Noch zu implementieren
+            EmployeeAvailabilityConstraint,  # ✅ Basis-Verfügbarkeit
+            EventGroupsConstraint,           # ✅ Event-Group-Aktivität  
+            AvailDayGroupsConstraint,        # ✅ AvailDay-Group-Management
+            LocationPrefsConstraint,         # ✅ Standort-Präferenzen
+            ShiftsConstraint,               # ✅ Schicht-Management
+            WeightsConstraint,              # ✅ Gewichtungen (Event/AvailDay)
+            PartnerLocationPrefsConstraint, # ✅ Partner-Standort-Präferenzen
+            SkillsConstraint,               # ✅ Fertigkeiten-Matching
+            FixedCastConstraint,            # ✅ Feste Besetzungen
+            CastRulesConstraint,            # ✅ Besetzungsregeln
         ]
         
         for constraint_class in constraint_classes:

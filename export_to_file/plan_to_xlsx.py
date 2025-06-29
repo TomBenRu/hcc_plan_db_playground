@@ -85,25 +85,33 @@ class ExportToXlsx:
         self.format_title = self.workbook.add_format({'bold': True, 'font_size': 18})
         self.format_creation_date = self.workbook.add_format({'italic': True, 'font_size': 10, 'align': 'right'})
         self.format_weekday_1 = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_head_weekdays_1})
         self.format_weekday_2 = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_head_weekdays_2})
         self.format_locations_1 = self.workbook.add_format(
             {'bold': True, 'font_size': 10, 'font_color': 'white', 'border': 1, 'text_wrap': True,
-             'align': 'center', 'valign': 'vcenter'})
+             'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_head_locations_1})
         self.format_locations_2 = self.workbook.add_format(
             {'bold': True, 'font_size': 10, 'font_color': 'white', 'border': 1, 'text_wrap': True,
-             'align': 'center', 'valign': 'vcenter'})
+             'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_head_locations_2})
         self.format_day_nrs_1 = self.workbook.add_format(
-            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_day_nrs_1})
         self.format_day_nrs_2 = self.workbook.add_format(
-            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter'})
+            {'bold': False, 'font_size': 10, 'border': 1, 'align': 'center', 'valign': 'vcenter',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_day_nrs_2})
         self.format_column_kw_1 = self.workbook.add_format(
             {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'text_wrap': True,
-             'align': 'center', 'valign': 'top'})
+             'align': 'center', 'valign': 'top',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_column_kw_1})
         self.format_column_kw_2 = self.workbook.add_format(
             {'bold': True, 'font_size': 12, 'font_color': 'white', 'border': 1, 'text_wrap': True,
-             'align': 'center', 'valign': 'top'})
+             'align': 'center', 'valign': 'top',
+             'bg_color': self.tab_plan.plan.excel_export_settings.color_column_kw_2})
         self.format_appointments = self.workbook.add_format(
             {'bold': False, 'font_size': 10, 'border': 1, 'valign': 'top', 'text_wrap': True})
         self.format_appointments_unbesetzt = self.workbook.add_format(
@@ -124,15 +132,6 @@ class ExportToXlsx:
             {'font_size': 12, 'text_wrap': True, 'bg_color': '#D3D3D3'})
         self.format_space_rows_scheduling_overview_odd = self.workbook.add_format({'bg_color': 'white'})
         self.format_space_rows_scheduling_overview_even = self.workbook.add_format({'bg_color': '#D3D3D3'})
-
-        self.format_weekday_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_1
-        self.format_weekday_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_weekdays_2
-        self.format_locations_1.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_1
-        self.format_locations_2.bg_color = self.tab_plan.plan.excel_export_settings.color_head_locations_2
-        self.format_day_nrs_1.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_1
-        self.format_day_nrs_2.bg_color = self.tab_plan.plan.excel_export_settings.color_day_nrs_2
-        self.format_column_kw_1.bg_color = self.tab_plan.plan.excel_export_settings.color_column_kw_1
-        self.format_column_kw_2.bg_color = self.tab_plan.plan.excel_export_settings.color_column_kw_2
 
         self.row_height_weekdays = 20
         self.row_height_locations = 25

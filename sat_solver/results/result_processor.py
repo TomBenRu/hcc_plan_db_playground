@@ -14,7 +14,7 @@ from ortools.sat.cp_model_pb2 import CpSolverStatus
 
 from sat_solver.core.solver_context import SolverContext
 from sat_solver.solving.callbacks import PartialSolutionCallback
-from sat_solver.solving.solver import SolverResult
+from sat_solver.core.solver_result import SolverResult
 from database import schemas
 
 

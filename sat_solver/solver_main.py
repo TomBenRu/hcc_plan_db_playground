@@ -25,7 +25,8 @@ from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree
 from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree
 
 # Import der neuen Architektur
-from sat_solver.solving.solver import SATSolver, SolverResult
+from sat_solver.solving.solver import SATSolver
+from sat_solver.core.solver_result import SolverResult
 from sat_solver.core.solver_config import SolverConfig
 from sat_solver.core.entities import Entities
 

@@ -19,6 +19,7 @@ from sat_solver.core.solver_config import SolverConfig
 from sat_solver.constraints.constraint_factory import ConstraintFactory
 from sat_solver.solving.objectives import ObjectiveBuilder
 from sat_solver.solving.callbacks import PartialSolutionCallback
+from sat_solver.core.solver_result import SolverResult
 from sat_solver.results.result_processor import ResultProcessor
 
 from sat_solver.avail_day_group_tree import get_avail_day_group_tree
@@ -417,27 +418,3 @@ class SATSolver:
             cp_model.UNKNOWN: "UNKNOWN"
         }
         return status_map.get(status, f"UNKNOWN_STATUS_{status}")
-
-
-# Datenklasse für Solver-Ergebnisse
-from dataclasses import dataclass
-from typing import Any
-
-@dataclass
-class SolverResult:
-    """Datenklasse für Solver-Ergebnisse."""
-    
-    status: CpSolverStatus
-    is_optimal: bool
-    is_feasible: bool
-    objective_value: Optional[float]
-    solve_time: float
-    statistics: Dict[str, Any]
-    appointments: List  # List[schemas.AppointmentCreate]
-    solutions: List     # List[List[schemas.AppointmentCreate]]
-    constraint_values: Dict[str, Any]
-    
-    @property
-    def success(self) -> bool:
-        """True wenn Solving erfolgreich war."""
-        return self.is_optimal or self.is_feasible

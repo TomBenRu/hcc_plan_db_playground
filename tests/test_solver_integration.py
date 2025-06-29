@@ -18,7 +18,7 @@ from datetime import date, time, datetime
 from typing import Generator
 
 from database import schemas
-from sat_solver import solver_main
+from sat_solver import solver_main_legacy as solver_main
 from sat_solver.core.solver_result import SolverResult, SolverStatus
 from sat_solver.core.entities import Entities
 from sat_solver.avail_day_group_tree import AvailDayGroupTree

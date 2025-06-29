@@ -56,11 +56,11 @@ class SolverThread(QThread):
     def run(self):
         # Call the solver function here
         (schedule_versions, fixed_cast_conflicts, skill_conflicts,
-         max_shifts_per_app, fair_shifts_per_app) = sat_solver.solver_main.solve(self.plan_period_id,
-                                                                                 self.num_plans,
-                                                                                 self.time_calc_max_shifts,
-                                                                                 self.time_calc_fair_distribution,
-                                                                                 self.time_calc_plan)
+         max_shifts_per_app, fair_shifts_per_app) = sat_solver.solver_main_legacy.solve(self.plan_period_id,
+                                                                                         self.num_plans,
+                                                                                         self.time_calc_max_shifts,
+                                                                                         self.time_calc_fair_distribution,
+                                                                                         self.time_calc_plan)
         self.finished.emit(schedule_versions, fixed_cast_conflicts, skill_conflicts,
                            max_shifts_per_app, fair_shifts_per_app)
 
@@ -207,7 +207,7 @@ class DlgCalculate(QDialog):
 
     @Slot()
     def quit_solver_tread(self):
-        sat_solver.solver_main.solver_quit()
+        sat_solver.solver_main_legacy.solver_quit()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

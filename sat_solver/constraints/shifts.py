@@ -89,6 +89,10 @@ class ShiftsConstraint(AbstractConstraint):
         
         # Speichere für späteren Zugriff
         self.add_metadata('unassigned_shifts_vars', unassigned_shifts_per_event)
+        
+        # Speichere auch direkt in entities für Callback-Kompatibilität
+        self.entities.unassigned_shifts_per_event = unassigned_shifts_per_event
+        
         return unassigned_shifts_per_event
     
     def _create_shift_deviation_vars(self) -> Dict[str, any]:
@@ -141,6 +145,12 @@ class ShiftsConstraint(AbstractConstraint):
         # Speichere für späteren Zugriff
         for key, value in deviation_vars.items():
             self.add_metadata(f'{key}_vars', value)
+        
+        # Speichere auch direkt in entities für Callback-Kompatibilität
+        self.entities.sum_assigned_shifts = deviation_vars['sum_assigned_shifts']
+        self.entities.relative_shift_deviations = deviation_vars['relative_deviations']
+        self.entities.squared_deviations = deviation_vars['squared_deviations']
+        self.entities.sum_squared_deviations = deviation_vars['sum_squared_deviations']
         
         return deviation_vars
     

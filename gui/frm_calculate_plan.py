@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, 
     QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
 import tools
-import sat_solver.solver_main
+import sat_solver
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
 from database import db_services, schemas
@@ -198,7 +198,7 @@ class DlgCalculate(QDialog):
             self, self.curr_plan_period_id, self.spin_num_plans.value(),
             self.spin_time_calculate_max_shifts.value(),
             self.spin_time_calculate_fair_distribution.value() // self.num_actor_plan_periods,
-            self.spin_time_calculate_plan.value()
+            self.spin_time_calculate_plan.value(),
         )
         self.solver_thread.finished.connect(self.save_plan_to_db)
 

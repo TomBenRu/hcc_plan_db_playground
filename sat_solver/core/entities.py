@@ -62,8 +62,23 @@ class Entities:
         self.shifts_exclusive.clear()
     
     def is_initialized(self) -> bool:
-        """Prüft, ob die Entities initialisiert wurden."""
-        return bool(self.actor_plan_periods and self.event_groups)
+        """
+        Prüft, ob die Entities initialisiert wurden.
+        
+        Returns:
+            True wenn grundlegende Entities-Strukturen existieren
+        """
+        try:
+            # Prüfe ob die wichtigsten Datenstrukturen existieren und nicht None sind
+            return (
+                hasattr(self, 'actor_plan_periods') and 
+                hasattr(self, 'event_groups') and
+                self.actor_plan_periods is not None and 
+                self.event_groups is not None
+            )
+        except Exception:
+            # Bei jedem Fehler False zurückgeben
+            return False
     
     def get_summary(self) -> Dict[str, int]:
         """Gibt eine Zusammenfassung der Entitäten-Größen zurück."""

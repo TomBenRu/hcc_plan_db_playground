@@ -140,20 +140,43 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         """
         Sammelt die aktuelle Lösung als Schedule-Version.
         
-        Note: Diese Methode benötigt Zugriff auf entities, was in der aktuellen
-        Architektur noch nicht optimal gelöst ist. Für die Integration wird
-        dies über den SolverContext gelöst.
+        Diese Methode muss Zugriff auf entities haben um Schedules zu sammeln.
         """
         try:
-            # TODO: Implementation abhängig von verfügbaren Daten im Context
-            # Für jetzt als Platzhalter
-            current_schedule = []
-            self._schedule_versions.append(current_schedule)
+            # Prüfe ob entities verfügbar sind (über context)
+            if not hasattr(self, '_context') or not self._context:
+                logger.warning("No context available for schedule collection")
+                return
             
-            logger.debug(f"Collected schedule version {len(self._schedule_versions)}")
+            entities = self._context.entities
+            current_schedule = []
+            
+            # Sammle alle aktiven Events und ihre Zuweisungen
+            for event_group in sorted(list(entities.event_groups_with_event.values()),
+                                      key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
+                
+                if not self.Value(entities.event_group_vars[event_group.event_group_id]):
+                    continue
+                
+                # Finde alle zugewiesenen AvailDayGroups für dieses Event
+                scheduled_adg_ids = []
+                for (adg_id, eg_id), var in entities.shift_vars.items():
+                    if eg_id == event_group.event_group_id and self.Value(var):
+                        scheduled_adg_ids.append(adg_id)
+                
+                if scheduled_adg_ids:
+                    event = event_group.event
+                    avail_days = [entities.avail_day_groups_with_avail_day[adg_id].avail_day 
+                                 for adg_id in scheduled_adg_ids]
+                    current_schedule.append(schemas.AppointmentCreate(avail_days=avail_days, event=event))
+            
+            self._schedule_versions.append(current_schedule)
+            logger.debug(f"Collected schedule version {len(self._schedule_versions)} with {len(current_schedule)} appointments")
             
         except Exception as e:
             logger.error(f"Failed to collect schedule: {e}")
+            # Füge leere Schedule hinzu um Index-Konsistenz zu behalten
+            self._schedule_versions.append([])
     
     def _update_max_assigned_shifts(self) -> None:
         """Aktualisiert die maximalen Zuweisungen pro Mitarbeiter."""

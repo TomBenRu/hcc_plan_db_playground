@@ -136,37 +136,48 @@ class SATSolver:
         solver = cp_model.CpSolver()
         self._configure_solver(solver)
         
+        # Update globalen Solver für Quit-Funktionalität
+        # Import hier um Circular Import zu vermeiden
+        import sat_solver.solver_main as solver_main_module
+        solver_main_module._current_solver = solver
+        
         start_time = time.time()
         
-        if collect_multiple_solutions:
-            # Solving mit Solution Callback für mehrere Lösungen
-            callback = self._create_solution_callback()
-            status = solver.Solve(self.context.model, callback)
-            solutions = callback.get_schedule_versions() if callback else []
-        else:
-            # Einfaches Solving für eine optimale Lösung
-            callback = None
-            status = solver.Solve(self.context.model)
-            solutions = []
+        try:
+            if collect_multiple_solutions:
+                # Solving mit Solution Callback für mehrere Lösungen
+                callback = self._create_solution_callback()
+                status = solver.Solve(self.context.model, callback)
+                solutions = callback.get_schedule_versions() if callback else []
+            else:
+                # Einfaches Solving für eine optimale Lösung
+                callback = None
+                status = solver.Solve(self.context.model)
+                solutions = []
+            
+            solve_time = time.time() - start_time
+            
+            # Speichere Solving-Statistiken
+            self.last_solve_status = status
+            self.solve_statistics = {
+                'status': status,
+                'solve_time': solve_time,
+                'objective_value': solver.ObjectiveValue() if status in [cp_model.OPTIMAL, cp_model.FEASIBLE] else None,
+                'num_conflicts': solver.NumConflicts(),
+                'num_branches': solver.NumBranches(),
+                'wall_time': solver.WallTime(),
+                'solution_count': callback.solution_count() if callback else 1
+            }
+            
+            logger.info(f"SAT-Solving completed in {solve_time:.2f}s with status: {self._status_to_string(status)}")
+            
+            # Verarbeite Ergebnisse
+            return self.result_processor.process_results(solver, callback, status, self.solve_statistics)
         
-        solve_time = time.time() - start_time
-        
-        # Speichere Solving-Statistiken
-        self.last_solve_status = status
-        self.solve_statistics = {
-            'status': status,
-            'solve_time': solve_time,
-            'objective_value': solver.ObjectiveValue() if status in [cp_model.OPTIMAL, cp_model.FEASIBLE] else None,
-            'num_conflicts': solver.NumConflicts(),
-            'num_branches': solver.NumBranches(),
-            'wall_time': solver.WallTime(),
-            'solution_count': callback.solution_count() if callback else 1
-        }
-        
-        logger.info(f"SAT-Solving completed in {solve_time:.2f}s with status: {self._status_to_string(status)}")
-        
-        # Verarbeite Ergebnisse
-        return self.result_processor.process_results(solver, callback, status, self.solve_statistics)
+        finally:
+            # Clear solver reference
+            import sat_solver.solver_main as solver_main_module
+            solver_main_module._current_solver = None
     
     def get_setup_summary(self) -> Dict:
         """
@@ -307,7 +318,7 @@ class SATSolver:
         }
         
         # Shift Variables
-        from solver_main import check_time_span_avail_day_fits_event  # Import der Helper-Funktion
+        from sat_solver.utils.helpers import check_time_span_avail_day_fits_event
         
         for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
             for event_group_id, event_group in entities.event_groups_with_event.items():
@@ -388,21 +399,26 @@ class SATSolver:
     def _create_solution_callback(self) -> Optional[PartialSolutionCallback]:
         """Erstellt Solution Callback für mehrere Lösungen."""
         try:
-            # Hole notwendige Constraint-Variablen
-            unassigned_shifts = self.context.get_constraint_vars("unassigned_shifts")
-            sum_assigned_shifts = self.context.get_constraint_vars("sum_assigned_shifts")
-            sum_squared_deviations = self.context.get_constraint_vars("sum_squared_deviations")
-            fixed_cast_conflicts = self.context.get_constraint_vars("fixed_cast")
+            # Hole notwendige Constraint-Variablen direkt aus entities
+            unassigned_shifts = list(self.context.entities.unassigned_shifts_per_event.values()) if hasattr(self.context.entities, 'unassigned_shifts_per_event') else []
+            sum_assigned_shifts = getattr(self.context.entities, 'sum_assigned_shifts', {})
+            sum_squared_deviations = getattr(self.context.entities, 'sum_squared_deviations', None)
+            fixed_cast_conflicts = getattr(self.context.entities, 'fixed_cast_conflicts', {})
             
-            return PartialSolutionCallback(
+            callback = PartialSolutionCallback(
                 unassigned_shifts_per_event=unassigned_shifts,
                 sum_assigned_shifts=sum_assigned_shifts,
-                sum_squared_deviations=sum_squared_deviations[0] if sum_squared_deviations else None,
+                sum_squared_deviations=sum_squared_deviations,
                 fixed_cast_conflicts=fixed_cast_conflicts,
                 limit=self.config.solver_parameters.solution_limit,
                 print_results=self.config.solver_parameters.log_search_progress,
                 collect_schedule_versions=True
             )
+            
+            # Übergebe Context für Schedule Collection
+            callback._context = self.context
+            
+            return callback
             
         except Exception as e:
             logger.error(f"Failed to create solution callback: {e}")

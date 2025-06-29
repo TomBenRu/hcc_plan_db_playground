@@ -104,6 +104,17 @@ class FixedCastConstraint(AbstractConstraint):
                 continue
         
         self.add_metadata('total_fixed_cast_conflicts', len(fixed_cast_vars))
+        
+        # Erstelle Dictionary für Callback-Kompatibilität
+        fixed_cast_conflicts_dict = {}
+        for i, cast_group in enumerate(self.entities.cast_groups_with_event.values()):
+            if cast_group.fixed_cast and i < len(fixed_cast_vars):
+                key = (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)
+                fixed_cast_conflicts_dict[key] = fixed_cast_vars[i]
+        
+        # Speichere in entities für Callback-Kompatibilität
+        self.entities.fixed_cast_conflicts = fixed_cast_conflicts_dict
+        
         return fixed_cast_vars
     
     def add_constraints(self) -> None:

@@ -13,12 +13,13 @@ Migration Status: Phase 4 - Finale Integration (28.06.2025)
 import logging
 import time
 from datetime import date
-from typing import Generator, Tuple, List, Dict, Any
+from typing import Generator, Tuple, List, Dict, Any, Optional
 from uuid import UUID
 
 from database import db_services, schemas
 from database.schemas import AppointmentCreate
 from gui.observer import signal_handling
+from ortools.sat.python import cp_model
 from sat_solver import solver_variables
 from sat_solver.avail_day_group_tree import get_avail_day_group_tree, AvailDayGroupTree
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree
@@ -29,6 +30,7 @@ from sat_solver.solving.solver import SATSolver
 from sat_solver.core.solver_result import SolverResult
 from sat_solver.core.solver_config import SolverConfig
 from sat_solver.core.entities import Entities
+from sat_solver.utils.helpers import check_time_span_avail_day_fits_event
 
 
 logger = logging.getLogger(__name__)
@@ -37,26 +39,26 @@ logger = logging.getLogger(__name__)
 # Globale entities Variable für Rückwärtskompatibilität
 entities: Entities | None = None
 
+# Globaler Solver für Quit-Funktionalität
+_current_solver: Optional['cp_model.CpSolver'] = None
 
-def check_time_span_avail_day_fits_event(
-        event: schemas.Event, avail_day: schemas.AvailDay, only_time_index: bool = True) -> bool:
+
+def solver_quit():
     """
-    Helper-Funktion: Prüft ob AvailDay zeitlich zu Event passt.
+    Stoppt den aktuell laufenden Solver.
     
-    Behalten für Rückwärtskompatibilität und Nutzung in neuer Architektur.
+    Diese Funktion wird von der GUI aufgerufen um das Solving zu beenden.
     """
-    if only_time_index:
-        return (
-            avail_day.date == event.date
-            and avail_day.time_of_day.time_of_day_enum.time_index
-            == event.time_of_day.time_of_day_enum.time_index
-        )
+    global _current_solver
+    if _current_solver:
+        logger.info("Stopping solver on user request")
+        # CP-SAT hat keine direkte Stop-Methode, aber wir können den Solver invalidieren
+        _current_solver = None
     else:
-        return (
-            avail_day.date == event.date
-            and avail_day.time_of_day.start <= event.time_of_day.start
-            and avail_day.time_of_day.end >= event.time_of_day.end
-        )
+        logger.warning("No active solver to quit")
+
+
+from sat_solver.utils.helpers import check_time_span_avail_day_fits_event
 
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):

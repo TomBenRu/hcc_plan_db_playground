@@ -26,7 +26,7 @@ from gui.frm_notes import DlgAppointmentNotes
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
     cell_backgrounds_statistics
-from sat_solver import solver_main, solver_main_legacy
+from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
     time_to_string
@@ -770,7 +770,7 @@ class FrmTabPlan(QWidget):
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
-        worker = general_worker.WorkerCheckPlan(solver_main_legacy.test_plan, self.plan.id)
+        worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
         worker.signals.finished.connect(self._check_finished)
         self.thread_pool.start(worker)
 

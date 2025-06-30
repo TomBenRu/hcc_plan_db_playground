@@ -27,6 +27,11 @@ class EinrichtungDetail(BaseModel):
     durchgefuehrt: int
     ausfaelle: int
     erfuellungsrate: float
+    
+    # Zusätzliche Termin-Metriken
+    geplante_termine: int
+    ausgefallene_termine: int
+    termine_erfuellungsrate: float
 
 
 class ClownEinsatz(BaseModel):
@@ -243,9 +248,11 @@ class DashboardService:
     ) -> List[EinrichtungDetail]:
         """Berechnet Details für Einrichtungen basierend auf tatsächlich geplanten Events (via Appointments)"""
         
-        # Sammle geplante und tatsächliche Mitarbeiter-Einsätze pro Einrichtung
+        # Sammle geplante und tatsächliche Mitarbeiter-Einsätze + Termine pro Einrichtung
         planned_staff_assignments = defaultdict(int)
         actual_staff_assignments = defaultdict(int)
+        planned_appointments = defaultdict(int)  # Termine mit >0 geplanten Mitarbeitern
+        cancelled_appointments = defaultdict(int)  # Termine mit >0 geplant aber 0 durchgeführt
         
         logger.info(f"Berechne Einrichtungsdetails basierend auf {len(appointments)} Appointments")
         
@@ -284,6 +291,8 @@ class DashboardService:
                 logger.debug(f"Appointment {appointment.id} für Event {event.date} in {location_name}: 0 geplante Mitarbeiter - übersprungen")
                 continue
             
+            # Das ist ein geplanter Termin (>0 Mitarbeiter geplant)
+            planned_appointments[location_name] += 1
             planned_staff_assignments[location_name] += planned_staff
             
             # 2. TATSÄCHLICHE MITARBEITER: Aus Appointment (avail_days + guests)
@@ -305,6 +314,11 @@ class DashboardService:
             total_actual_staff = regular_staff_count + guest_staff_count
             actual_staff_assignments[location_name] += total_actual_staff
             
+            # Prüfe ob der Termin ausgefallen ist (>0 geplant aber 0 durchgeführt)
+            if total_actual_staff == 0:
+                cancelled_appointments[location_name] += 1
+                logger.debug(f"  → Termin ausgefallen (0 Mitarbeiter eingesetzt)")
+            
             logger.debug(f"Appointment {appointment.id} - Event {event.date} in {location_name}:")
             logger.debug(f"  Geplante Mitarbeiter: {planned_staff} (Quelle: {staff_source})")
             logger.debug(f"  Reguläre Mitarbeiter: {regular_staff_count}")
@@ -313,6 +327,8 @@ class DashboardService:
         
         logger.info(f"Geplante Mitarbeiter-Einsätze (aus tatsächlich geplanten Events): {dict(planned_staff_assignments)}")
         logger.info(f"Tatsächliche Mitarbeiter-Einsätze (inkl. Gäste): {dict(actual_staff_assignments)}")
+        logger.info(f"Geplante Termine (Events mit >0 Mitarbeitern): {dict(planned_appointments)}")
+        logger.info(f"Ausgefallene Termine (geplant aber 0 durchgeführt): {dict(cancelled_appointments)}")
         
         # Falls keine Daten vorhanden
         if not planned_staff_assignments and not actual_staff_assignments:
@@ -329,7 +345,10 @@ class DashboardService:
                     geplant=actual_staff,
                     durchgefuehrt=actual_staff,
                     ausfaelle=0,
-                    erfuellungsrate=100.0
+                    erfuellungsrate=100.0,
+                    geplante_termine=1,  # Annahme: mindestens 1 Termin
+                    ausgefallene_termine=0,
+                    termine_erfuellungsrate=100.0
                 ))
             
             einrichtungen.sort(key=lambda x: x.durchgefuehrt, reverse=True)
@@ -340,30 +359,46 @@ class DashboardService:
         all_locations = set(planned_staff_assignments.keys()) | set(actual_staff_assignments.keys())
         
         for location_name in all_locations:
+            # Mitarbeiter-Einsätze
             geplant = planned_staff_assignments.get(location_name, 0)
             durchgefuehrt = actual_staff_assignments.get(location_name, 0)
+            
+            # Termine
+            geplante_termine = planned_appointments.get(location_name, 0)
+            ausgefallene_termine = cancelled_appointments.get(location_name, 0)
             
             # Falls geplant = 0 aber tatsächliche Einsätze vorhanden, setze geplant = durchgeführt
             if geplant == 0 and durchgefuehrt > 0:
                 geplant = durchgefuehrt
+                geplante_termine = 1  # Annahme: mindestens 1 Termin
                 logger.debug(f"Korrigiere {location_name}: setze geplant={geplant} (keine Planungsdaten gefunden)")
             
+            # Erfüllungsraten berechnen
             ausfaelle = geplant - durchgefuehrt
             erfuellungsrate = (durchgefuehrt / geplant * 100) if geplant > 0 else 0.0
+            
+            durchgefuehrte_termine = geplante_termine - ausgefallene_termine
+            termine_erfuellungsrate = (durchgefuehrte_termine / geplante_termine * 100) if geplante_termine > 0 else 0.0
             
             einrichtungen.append(EinrichtungDetail(
                 name=location_name,
                 geplant=geplant,
                 durchgefuehrt=durchgefuehrt,
                 ausfaelle=max(0, ausfaelle),  # Negative Ausfälle vermeiden
-                erfuellungsrate=erfuellungsrate
+                erfuellungsrate=erfuellungsrate,
+                geplante_termine=geplante_termine,
+                ausgefallene_termine=ausgefallene_termine,
+                termine_erfuellungsrate=termine_erfuellungsrate
             ))
             
             logger.debug(f"Einrichtung: {location_name}")
             logger.debug(f"  Geplante Mitarbeiter-Einsätze: {geplant}")
             logger.debug(f"  Durchgeführte Mitarbeiter-Einsätze: {durchgefuehrt}")
             logger.debug(f"  Ausgefallene Mitarbeiter-Einsätze: {max(0, ausfaelle)}")
-            logger.debug(f"  Erfüllungsrate: {erfuellungsrate:.1f}%")
+            logger.debug(f"  Erfüllungsrate Mitarbeiter: {erfuellungsrate:.1f}%")
+            logger.debug(f"  Geplante Termine: {geplante_termine}")
+            logger.debug(f"  Ausgefallene Termine: {ausgefallene_termine}")
+            logger.debug(f"  Erfüllungsrate Termine: {termine_erfuellungsrate:.1f}%")
         
         # Sortiere nach Erfüllungsrate (absteigend)
         einrichtungen.sort(key=lambda x: x.erfuellungsrate, reverse=True)
@@ -375,7 +410,14 @@ class DashboardService:
         total_ausfaelle = sum(e.ausfaelle for e in einrichtungen)
         gesamt_erfuellung = (total_durchgefuehrt / total_geplant * 100) if total_geplant > 0 else 0.0
         
-        logger.info(f"GESAMTSTATISTIK (korrigiert) - Geplant: {total_geplant}, Durchgeführt: {total_durchgefuehrt}, Ausfälle: {total_ausfaelle}, Erfüllung: {gesamt_erfuellung:.1f}%")
+        total_geplante_termine = sum(e.geplante_termine for e in einrichtungen)
+        total_ausgefallene_termine = sum(e.ausgefallene_termine for e in einrichtungen)
+        total_durchgefuehrte_termine = total_geplante_termine - total_ausgefallene_termine
+        gesamt_termine_erfuellung = (total_durchgefuehrte_termine / total_geplante_termine * 100) if total_geplante_termine > 0 else 0.0
+        
+        logger.info(f"GESAMTSTATISTIK (korrigiert):")
+        logger.info(f"  Mitarbeiter-Einsätze - Geplant: {total_geplant}, Durchgeführt: {total_durchgefuehrt}, Ausfälle: {total_ausfaelle}, Erfüllung: {gesamt_erfuellung:.1f}%")
+        logger.info(f"  Termine - Geplant: {total_geplante_termine}, Durchgeführt: {total_durchgefuehrte_termine}, Ausgefallen: {total_ausgefallene_termine}, Erfüllung: {gesamt_termine_erfuellung:.1f}%")
         
         return einrichtungen
 

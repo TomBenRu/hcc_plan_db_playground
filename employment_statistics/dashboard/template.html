@@ -388,9 +388,15 @@
                                 afterLabel: function(context) {
                                     const detail = DASHBOARD_DATA.einrichtungen[context.dataIndex];
                                     return [
-                                        `Geplant: ${detail.geplant}`,
-                                        `Durchgeführt: ${detail.durchgefuehrt}`,
-                                        `Ausfälle: ${detail.ausfaelle}`
+                                        `Mitarbeiter-Einsätze:`,
+                                        `  Geplant: ${detail.geplant}`,
+                                        `  Durchgeführt: ${detail.durchgefuehrt}`,
+                                        `  Ausfälle: ${detail.ausfaelle}`,
+                                        ``,
+                                        `Termine:`,
+                                        `  Geplant: ${detail.geplante_termine}`,
+                                        `  Ausgefallen: ${detail.ausgefallene_termine}`,
+                                        `  Erfüllung: ${detail.termine_erfuellungsrate.toFixed(1)}%`
                                     ];
                                 }
                             }

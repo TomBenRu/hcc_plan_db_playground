@@ -100,7 +100,8 @@ class DashboardService:
         start_date: datetime.date,
         end_date: datetime.date,
         team_id: Optional[UUID] = None,
-        project_id: Optional[UUID] = None
+        project_id: Optional[UUID] = None,
+        include_zero_cast_events: bool = False
     ) -> DashboardData:
         """
         Hauptmethode für Dashboard-Daten.
@@ -110,6 +111,7 @@ class DashboardService:
             end_date: Enddatum für die Analyse
             team_id: Optional - für team-spezifische Analyse
             project_id: Optional - für projekt-weite Analyse
+            include_zero_cast_events: Optional - True um Events mit Besetzungsstärke 0 einzubeziehen
             
         Returns:
             DashboardData: Komplette Daten für das Dashboard
@@ -145,9 +147,9 @@ class DashboardService:
         all_appointments = cls._get_appointments_from_plans(latest_plans, start_date, end_date)
         
         # Berechne Dashboard-Komponenten
-        einrichtungen = cls._calculate_einrichtung_details(all_appointments, plan_periods)
+        einrichtungen = cls._calculate_einrichtung_details(all_appointments, plan_periods, include_zero_cast_events)
         clowns = cls._calculate_clown_einsaetze(all_appointments)
-        monatliche_rates = cls._calculate_monthly_fulfillment(plan_periods, latest_plans)
+        monatliche_rates = cls._calculate_monthly_fulfillment(plan_periods, latest_plans, include_zero_cast_events)
         netzwerk_nodes, netzwerk_links = cls._calculate_netzwerk_data(all_appointments)
         
         # Summary-Daten (erweitert um detaillierte Metriken)
@@ -263,9 +265,19 @@ class DashboardService:
     def _calculate_einrichtung_details(
         cls,
         appointments: List[models.Appointment],
-        plan_periods: List[models.PlanPeriod]
+        plan_periods: List[models.PlanPeriod],
+        include_zero_cast_events: bool = False
     ) -> List[EinrichtungDetail]:
-        """Berechnet Details für Einrichtungen basierend auf tatsächlich geplanten Events (via Appointments)"""
+        """Berechnet Details für Einrichtungen basierend auf tatsächlich geplanten Events (via Appointments)
+        
+        Args:
+            appointments: Liste aller Appointments
+            plan_periods: Liste aller relevanten Planperioden
+            include_zero_cast_events: True um Events mit 0 Besetzung einzubeziehen (Besetzung aus location_plan_period)
+        
+        Returns:
+            Liste von EinrichtungDetail-Objekten
+        """
         
         # Sammle geplante und tatsächliche Mitarbeiter-Einsätze + Termine pro Einrichtung
         planned_staff_assignments = defaultdict(int)
@@ -305,10 +317,31 @@ class DashboardService:
                     planned_staff = event.location_plan_period.location_of_work.nr_actors
                     staff_source = "location_of_work.nr_actors (Fallback)"
             
-            # Events mit 0 geplanten Mitarbeitern überspringen (formal geplant aber nicht stattfindend)
+            # Events mit 0 geplanten Mitarbeitern behandeln
             if planned_staff == 0:
-                logger.debug(f"Appointment {appointment.id} für Event {event.date} in {location_name}: 0 geplante Mitarbeiter - übersprungen")
-                continue
+                if not include_zero_cast_events:
+                    logger.debug(f"Appointment {appointment.id} für Event {event.date} in {location_name}: 0 geplante Mitarbeiter - übersprungen")
+                    continue
+                else:
+                    # Bei include_zero_cast_events: Verwende alternative Besetzungslogik
+                    alternative_staff = 0
+                    alt_source = "unknown"
+                    
+                    if event.location_plan_period.nr_actors is not None:
+                        alternative_staff = event.location_plan_period.nr_actors
+                        alt_source = f"location_plan_period.nr_actors (LocationPlanPeriod ID: {event.location_plan_period.id})"
+                    elif event.location_plan_period.location_of_work.nr_actors is not None:
+                        alternative_staff = event.location_plan_period.location_of_work.nr_actors
+                        alt_source = f"location_of_work.nr_actors (LocationOfWork ID: {event.location_plan_period.location_of_work.id})"
+                    
+                    if alternative_staff > 0:
+                        planned_staff = alternative_staff
+                        staff_source = f"ZERO-CAST-FALLBACK: {alt_source}"
+                        logger.debug(f"Zero-Cast Event {appointment.id}: Verwende alternative Besetzung {planned_staff} aus {alt_source}")
+                    else:
+                        # Auch alternative Quellen ergeben 0 - überspringe
+                        logger.debug(f"Zero-Cast Event {appointment.id}: Auch alternative Quellen ergeben 0 Mitarbeiter - übersprungen")
+                        continue
             
             # Das ist ein geplanter Termin (>0 Mitarbeiter geplant)
             planned_appointments[location_name] += 1
@@ -465,9 +498,19 @@ class DashboardService:
     def _calculate_monthly_fulfillment(
         cls,
         plan_periods: List[models.PlanPeriod],
-        plans: List[models.Plan]
+        plans: List[models.Plan],
+        include_zero_cast_events: bool = False
     ) -> List[MonatlicheErfuellung]:
-        """Berechnet monatliche Erfüllungsraten für beide Metriken"""
+        """Berechnet monatliche Erfüllungsraten für beide Metriken
+        
+        Args:
+            plan_periods: Liste aller relevanten Planperioden
+            plans: Liste aller relevanten Pläne
+            include_zero_cast_events: True um Events mit 0 Besetzung einzubeziehen
+        
+        Returns:
+            Liste von MonatlicheErfuellung-Objekten
+        """
         
         monthly_data = defaultdict(lambda: {
             'geplante_mitarbeiter': 0, 'durchgefuehrte_mitarbeiter': 0,
@@ -503,9 +546,24 @@ class DashboardService:
                 else:
                     planned_staff = appointment.event.location_plan_period.location_of_work.nr_actors
                 
-                # Events mit 0 geplanten Mitarbeitern überspringen
+                # Events mit 0 geplanten Mitarbeitern behandeln
                 if planned_staff == 0:
-                    continue
+                    if not include_zero_cast_events:
+                        continue
+                    else:
+                        # Bei include_zero_cast_events: Verwende alternative Besetzungslogik
+                        alternative_staff = 0
+                        
+                        if appointment.event.location_plan_period.nr_actors is not None:
+                            alternative_staff = appointment.event.location_plan_period.nr_actors
+                        elif appointment.event.location_plan_period.location_of_work.nr_actors is not None:
+                            alternative_staff = appointment.event.location_plan_period.location_of_work.nr_actors
+                        
+                        if alternative_staff > 0:
+                            planned_staff = alternative_staff
+                        else:
+                            # Auch alternative Quellen ergeben 0 - überspringe
+                            continue
                 
                 # Das ist ein geplanter Termin
                 monthly_data[year_month]['geplante_termine'] += 1

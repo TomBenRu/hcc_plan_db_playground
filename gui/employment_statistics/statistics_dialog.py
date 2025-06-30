@@ -571,12 +571,21 @@ Arbeitsverteilung:
             # Parameter holen
             start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
             
-            # Dashboard-Daten laden
-            dashboard_data = DashboardService.get_dashboard_data(
+            # Dashboard-Daten laden - BEIDE Modi für Client-seitiges Umschalten
+            dashboard_data_standard = DashboardService.get_dashboard_data(
                 start_date=start_date,
                 end_date=end_date,
                 team_id=team_id,
-                project_id=project_id
+                project_id=project_id,
+                include_zero_cast_events=False
+            )
+            
+            dashboard_data_with_zero_cast = DashboardService.get_dashboard_data(
+                start_date=start_date,
+                end_date=end_date,
+                team_id=team_id,
+                project_id=project_id,
+                include_zero_cast_events=True
             )
             
             # HTML-Template laden und rendern
@@ -601,28 +610,45 @@ Arbeitsverteilung:
             from jinja2 import Template
             template = Template(template_content)
             
-            # Template-Variablen
+            # Template-Variablen - Standard-Daten (besetzte Termine) + Alternative (alle Termine)
             template_vars = {
-                # Dashboard-Daten (erweitert)
-                'aktive_clowns': dashboard_data.aktive_clowns,
-                'einrichtungen_count': dashboard_data.einrichtungen_count,
-                'total_geplante_mitarbeiter': dashboard_data.total_geplante_mitarbeiter,
-                'total_durchgefuehrte_mitarbeiter': dashboard_data.total_durchgefuehrte_mitarbeiter,
-                'mitarbeiter_erfuellung': dashboard_data.mitarbeiter_erfuellung,
-                'total_geplante_termine': dashboard_data.total_geplante_termine,
-                'total_durchgefuehrte_termine': dashboard_data.total_durchgefuehrte_termine,
-                'termine_erfuellung': dashboard_data.termine_erfuellung,
-                'einrichtungen': [e.dict() for e in dashboard_data.einrichtungen],
-                'clowns': [c.dict() for c in dashboard_data.clowns],
-                'monatliche_erfuellung': [m.dict() for m in dashboard_data.monatliche_erfuellung],
-                'netzwerk_nodes': dashboard_data.netzwerk_nodes,
-                'netzwerk_links': dashboard_data.netzwerk_links,
+                # Standard Dashboard-Daten (nur besetzte Termine)
+                'aktive_clowns': dashboard_data_standard.aktive_clowns,
+                'einrichtungen_count': dashboard_data_standard.einrichtungen_count,
+                'total_geplante_mitarbeiter': dashboard_data_standard.total_geplante_mitarbeiter,
+                'total_durchgefuehrte_mitarbeiter': dashboard_data_standard.total_durchgefuehrte_mitarbeiter,
+                'mitarbeiter_erfuellung': dashboard_data_standard.mitarbeiter_erfuellung,
+                'total_geplante_termine': dashboard_data_standard.total_geplante_termine,
+                'total_durchgefuehrte_termine': dashboard_data_standard.total_durchgefuehrte_termine,
+                'termine_erfuellung': dashboard_data_standard.termine_erfuellung,
+                'einrichtungen': [e.dict() for e in dashboard_data_standard.einrichtungen],
+                'clowns': [c.dict() for c in dashboard_data_standard.clowns],
+                'monatliche_erfuellung': [m.dict() for m in dashboard_data_standard.monatliche_erfuellung],
+                'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
+                'netzwerk_links': dashboard_data_standard.netzwerk_links,
                 
-                # Meta-Informationen
-                'zeitraum_start': dashboard_data.zeitraum_start,
-                'zeitraum_ende': dashboard_data.zeitraum_ende,
-                'team_name': dashboard_data.team_name,
-                'project_name': dashboard_data.project_name,
+                # Alternative Dashboard-Daten (alle Termine inkl. Zero-Cast)
+                'zero_cast_data': {
+                    'aktive_clowns': dashboard_data_with_zero_cast.aktive_clowns,
+                    'einrichtungen_count': dashboard_data_with_zero_cast.einrichtungen_count,
+                    'total_geplante_mitarbeiter': dashboard_data_with_zero_cast.total_geplante_mitarbeiter,
+                    'total_durchgefuehrte_mitarbeiter': dashboard_data_with_zero_cast.total_durchgefuehrte_mitarbeiter,
+                    'mitarbeiter_erfuellung': dashboard_data_with_zero_cast.mitarbeiter_erfuellung,
+                    'total_geplante_termine': dashboard_data_with_zero_cast.total_geplante_termine,
+                    'total_durchgefuehrte_termine': dashboard_data_with_zero_cast.total_durchgefuehrte_termine,
+                    'termine_erfuellung': dashboard_data_with_zero_cast.termine_erfuellung,
+                    'einrichtungen': [e.dict() for e in dashboard_data_with_zero_cast.einrichtungen],
+                    'clowns': [c.dict() for c in dashboard_data_with_zero_cast.clowns],
+                    'monatliche_erfuellung': [m.dict() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
+                    'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
+                    'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links
+                },
+                
+                # Meta-Informationen (verwende Standard-Daten)
+                'zeitraum_start': dashboard_data_standard.zeitraum_start,
+                'zeitraum_ende': dashboard_data_standard.zeitraum_ende,
+                'team_name': dashboard_data_standard.team_name,
+                'project_name': dashboard_data_standard.project_name,
                 'now': datetime.datetime.now()
             }
             
@@ -645,6 +671,7 @@ Arbeitsverteilung:
             QTimer.singleShot(60000, lambda: self._cleanup_temp_file(temp_file_path))
             
         except Exception as e:
+            logger.exception("Dashboard-Fehler:")
             QMessageBox.critical(
                 self,
                 "Dashboard-Fehler",

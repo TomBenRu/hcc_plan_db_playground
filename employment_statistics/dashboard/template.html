@@ -223,38 +223,51 @@
         
         <div class="meta-info">
             📅 Zeitraum: {{ zeitraum_start }} bis {{ zeitraum_ende }} | 
-            🔄 Generiert: {{ now.strftime('%d.%m.%Y %H:%M') }} Uhr
+            🔄 Generiert: {{ now.strftime('%d.%m.%Y %H:%M') }} Uhr |
+            <button id="toggleZeroCastEvents" onclick="toggleZeroCastMode()" style="
+                margin-left: 15px; 
+                padding: 5px 10px; 
+                background: #3498db; 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                font-size: 12px;
+                font-weight: bold;
+            ">
+                📋 Nur besetzte Termine
+            </button>
         </div>
         
         <div class="summary-cards">
             <div class="summary-card">
                 <h3>Aktive Clowns</h3>
-                <div class="big-number">{{ aktive_clowns }}</div>
+                <div class="big-number" id="summary-aktive-clowns">{{ aktive_clowns }}</div>
                 <div class="unit">Klinikclowns</div>
             </div>
             <div class="summary-card">
                 <h3>Einrichtungen</h3>
-                <div class="big-number">{{ einrichtungen_count }}</div>
+                <div class="big-number" id="summary-einrichtungen-count">{{ einrichtungen_count }}</div>
                 <div class="unit">Kliniken & Zentren</div>
             </div>
             <div class="summary-card">
                 <h3>Mitarbeiter-Einsätze</h3>
-                <div class="big-number">{{ total_durchgefuehrte_mitarbeiter }}</div>
-                <div class="unit">von {{ total_geplante_mitarbeiter }} geplant</div>
+                <div class="big-number" id="summary-mitarbeiter-einsaetze">{{ total_durchgefuehrte_mitarbeiter }}</div>
+                <div class="unit">von <span id="summary-geplante-mitarbeiter">{{ total_geplante_mitarbeiter }}</span> geplant</div>
             </div>
             <div class="summary-card">
                 <h3>Termine</h3>
-                <div class="big-number">{{ total_durchgefuehrte_termine }}</div>
-                <div class="unit">von {{ total_geplante_termine }} geplant</div>
+                <div class="big-number" id="summary-termine">{{ total_durchgefuehrte_termine }}</div>
+                <div class="unit">von <span id="summary-geplante-termine">{{ total_geplante_termine }}</span> geplant</div>
             </div>
             <div class="summary-card">
                 <h3>Erfüllung Mitarbeiter</h3>
-                <div class="big-number">{{ "%.1f"|format(mitarbeiter_erfuellung) }}%</div>
+                <div class="big-number" id="summary-mitarbeiter-erfuellung">{{ "%.1f"|format(mitarbeiter_erfuellung) }}%</div>
                 <div class="unit">Planerfüllung</div>
             </div>
             <div class="summary-card">
                 <h3>Erfüllung Termine</h3>
-                <div class="big-number">{{ "%.1f"|format(termine_erfuellung) }}%</div>
+                <div class="big-number" id="summary-termine-erfuellung">{{ "%.1f"|format(termine_erfuellung) }}%</div>
                 <div class="unit">Planerfüllung</div>
             </div>
         </div>
@@ -342,14 +355,47 @@
     </div>
 
     <script>
-        // Daten aus Template
+        // Daten aus Template - Standard (nur besetzte Termine) + Zero-Cast (alle Termine)
         const DASHBOARD_DATA = {
-            einrichtungen: {{ einrichtungen | tojson }},
-            clowns: {{ clowns | tojson }},
-            monatliche_erfuellung: {{ monatliche_erfuellung | tojson }},
-            netzwerk_nodes: {{ netzwerk_nodes | tojson }},
-            netzwerk_links: {{ netzwerk_links | tojson }}
+            standard: {
+                einrichtungen: {{ einrichtungen | tojson }},
+                clowns: {{ clowns | tojson }},
+                monatliche_erfuellung: {{ monatliche_erfuellung | tojson }},
+                netzwerk_nodes: {{ netzwerk_nodes | tojson }},
+                netzwerk_links: {{ netzwerk_links | tojson }},
+                summary: {
+                    aktive_clowns: {{ aktive_clowns }},
+                    einrichtungen_count: {{ einrichtungen_count }},
+                    total_geplante_mitarbeiter: {{ total_geplante_mitarbeiter }},
+                    total_durchgefuehrte_mitarbeiter: {{ total_durchgefuehrte_mitarbeiter }},
+                    mitarbeiter_erfuellung: {{ mitarbeiter_erfuellung }},
+                    total_geplante_termine: {{ total_geplante_termine }},
+                    total_durchgefuehrte_termine: {{ total_durchgefuehrte_termine }},
+                    termine_erfuellung: {{ termine_erfuellung }}
+                }
+            },
+            zero_cast: {
+                einrichtungen: {{ zero_cast_data.einrichtungen | tojson }},
+                clowns: {{ zero_cast_data.clowns | tojson }},
+                monatliche_erfuellung: {{ zero_cast_data.monatliche_erfuellung | tojson }},
+                netzwerk_nodes: {{ zero_cast_data.netzwerk_nodes | tojson }},
+                netzwerk_links: {{ zero_cast_data.netzwerk_links | tojson }},
+                summary: {
+                    aktive_clowns: {{ zero_cast_data.aktive_clowns }},
+                    einrichtungen_count: {{ zero_cast_data.einrichtungen_count }},
+                    total_geplante_mitarbeiter: {{ zero_cast_data.total_geplante_mitarbeiter }},
+                    total_durchgefuehrte_mitarbeiter: {{ zero_cast_data.total_durchgefuehrte_mitarbeiter }},
+                    mitarbeiter_erfuellung: {{ zero_cast_data.mitarbeiter_erfuellung }},
+                    total_geplante_termine: {{ zero_cast_data.total_geplante_termine }},
+                    total_durchgefuehrte_termine: {{ zero_cast_data.total_durchgefuehrte_termine }},
+                    termine_erfuellung: {{ zero_cast_data.termine_erfuellung }}
+                }
+            }
         };
+
+        // Aktueller Modus und aktive Daten
+        let includeZeroCastEvents = false;
+        let currentData = DASHBOARD_DATA.standard;
 
         // Überprüfung ob Libraries geladen sind
         if (typeof Chart === 'undefined') {
@@ -359,45 +405,46 @@
             console.error('D3.js nicht geladen');
         }
 
-        console.log('Dashboard-Daten:', DASHBOARD_DATA);
-
         // Prüfe ob Daten vorhanden sind
-        if (!DASHBOARD_DATA.einrichtungen || DASHBOARD_DATA.einrichtungen.length === 0) {
+        if (!currentData.einrichtungen || currentData.einrichtungen.length === 0) {
             console.warn('Keine Einrichtungsdaten verfügbar');
         }
 
-        // Vorbereitung der Label für alle Charts
-        const einrichtungsLabels = DASHBOARD_DATA.einrichtungen.map(e => 
-            e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
-        );
-        const erfuellungsraten = DASHBOARD_DATA.einrichtungen.map(e => e.erfuellungsrate);
+        // Chart-Erstellung - nutzt currentData
+        let allCharts = {}; // Speichere Chart-Instanzen für Updates
 
-        // Datenvorverarbeitung: Adaptive minimale Höhe für 0-Werte
-        function addMinimalHeightForZeros(data, chartType = 'percentage') {
-            if (chartType === 'percentage') {
-                // Für Prozent-Charts: Feste minimale Höhe
-                return data.map(value => value === 0 ? 1.0 : value);
-            } else {
-                // Für Einsatz-Charts: 1.5% vom Maximum der Daten
-                const maxValue = Math.max(...data.filter(val => val > 0));
-                const minHeight = maxValue > 0 ? Math.max(0.1, maxValue * 0.015) : 0.1;
-                return data.map(value => value === 0 ? minHeight : value);
-            }
+        function createAllCharts() {
+            // Zerstöre existierende Charts
+            Object.values(allCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            allCharts = {};
+            
+            // Charts neu erstellen
+            createErfuellungsChart();
+            createStapelChart();
+            createClownChart();
+            createMonthlyChart();
+            createNetworkVisualization();
         }
 
-        // Erfüllungsraten Chart mit beiden Metriken
-        try {
+        function createErfuellungsChart() {
             const ctx1 = document.getElementById('erfuellungsChart').getContext('2d');
+            
+            const einrichtungsLabels = currentData.einrichtungen.map(e => 
+                e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
+            );
+            const erfuellungsraten = currentData.einrichtungen.map(e => e.erfuellungsrate);
             
             // Originaldaten für Tooltips behalten
             const originalMitarbeiterRaten = erfuellungsraten;
-            const originalTermineRaten = DASHBOARD_DATA.einrichtungen.map(e => e.termine_erfuellungsrate);
+            const originalTermineRaten = currentData.einrichtungen.map(e => e.termine_erfuellungsrate);
             
             // Daten für Anzeige (mit minimaler Höhe für 0-Werte)
             const displayMitarbeiterRaten = addMinimalHeightForZeros(originalMitarbeiterRaten, 'percentage');
             const displayTermineRaten = addMinimalHeightForZeros(originalTermineRaten, 'percentage');
             
-            new Chart(ctx1, {
+            allCharts.erfuellungsChart = new Chart(ctx1, {
                 type: 'bar',
                 data: {
                     labels: einrichtungsLabels,
@@ -438,7 +485,7 @@
                                     return `${datasetLabel}: ${realValue.toFixed(1)}%`;
                                 },
                                 afterLabel: function(context) {
-                                    const detail = DASHBOARD_DATA.einrichtungen[context.dataIndex];
+                                    const detail = currentData.einrichtungen[context.dataIndex];
                                     return [
                                         ``,
                                         `Mitarbeiter-Einsätze:`,
@@ -475,42 +522,29 @@
                     }
                 }
             });
-        } catch (error) {
-            console.error("Fehler bei Erfüllungsraten Chart:", error);
         }
 
-        // Stapelbalken Chart mit minimaler Höhe für 0-Werte
-        try {
+        function createStapelChart() {
             const ctx1b = document.getElementById('stapelChart').getContext('2d');
             
-            // Debug: Prüfe Einrichtungsdaten
-            console.log('Einrichtungsdaten für Stapelchart:', DASHBOARD_DATA.einrichtungen);
+            const einrichtungsLabels = currentData.einrichtungen.map(e => 
+                e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
+            );
             
-            const originalDurchgefuehrtData = DASHBOARD_DATA.einrichtungen.map(e => e.durchgefuehrt);
-            const originalAusfalleData = DASHBOARD_DATA.einrichtungen.map(e => e.ausfaelle);
+            const originalDurchgefuehrtData = currentData.einrichtungen.map(e => e.durchgefuehrt);
+            const originalAusfalleData = currentData.einrichtungen.map(e => e.ausfaelle);
             
             // Daten für Anzeige (mit minimaler Höhe für 0-Werte)
             const displayDurchgefuehrtData = addMinimalHeightForZeros(originalDurchgefuehrtData, 'count');
             const displayAusfalleData = addMinimalHeightForZeros(originalAusfalleData, 'count');
             
-            console.log('Original Durchgeführt-Daten:', originalDurchgefuehrtData);
-            console.log('Original Ausfälle-Daten:', originalAusfalleData);
-            console.log('Display Durchgeführt-Daten:', displayDurchgefuehrtData);
-            console.log('Display Ausfälle-Daten:', displayAusfalleData);
-            
             // Prüfe ob Daten vorhanden sind
-            const hasDurchgefuehrt = originalDurchgefuehrtData.some(val => val > 0);
-            const hasAusfaelle = originalAusfalleData.some(val => val > 0);
             const hasAnyData = displayDurchgefuehrtData.some(val => val > 0) || displayAusfalleData.some(val => val > 0);
             
-            console.log('Hat Durchgeführt-Daten:', hasDurchgefuehrt);
-            console.log('Hat Ausfälle-Daten:', hasAusfaelle);
-            console.log('Hat irgendwelche Daten:', hasAnyData);
-            
             if (!hasAnyData) {
-                console.warn('Keine Daten für Stapelchart - zeige Platzhalter');
-                // Zeige Nachricht im Chart-Container
-                const chartContainer = document.querySelector('#stapelChart').parentElement;
+                // Zeige Platzhalter - ersetze nur den chart-container Inhalt
+                const chartContainer = document.querySelector('#stapelChart').closest('.chart-container');
+                
                 chartContainer.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; text-align: center; flex-direction: column;">
                         <h3>Keine Planungsdaten verfügbar</h3>
@@ -519,7 +553,16 @@
                     </div>
                 `;
             } else {
-                new Chart(ctx1b, {
+                // Chart-Container zurücksetzen - ersetze nur den chart-container Inhalt
+                const chartContainer = document.querySelector('#stapelChart').closest('.chart-container');
+                
+                chartContainer.innerHTML = `
+                    <canvas id="stapelChart"></canvas>
+                `;
+                
+                const ctx = document.getElementById('stapelChart').getContext('2d');
+                
+                allCharts.stapelChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: einrichtungsLabels,
@@ -549,7 +592,6 @@
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        // Zeige echte Werte im Tooltip
                                         const datasetLabel = context.dataset.label;
                                         const realValue = context.datasetIndex === 0 ? 
                                             originalDurchgefuehrtData[context.dataIndex] : 
@@ -557,7 +599,7 @@
                                         return `${datasetLabel}: ${realValue}`;
                                     },
                                     afterLabel: function(context) {
-                                        const detail = DASHBOARD_DATA.einrichtungen[context.dataIndex];
+                                        const detail = currentData.einrichtungen[context.dataIndex];
                                         const erfuellungsrate = ((detail.durchgefuehrt / detail.geplant) * 100).toFixed(1);
                                         return `Erfüllungsrate: ${erfuellungsrate}%`;
                                     }
@@ -571,21 +613,18 @@
                     }
                 });
             }
-        } catch (error) {
-            console.error("Fehler bei Stapel Chart:", error);
         }
 
-        // Clown Einsätze Chart mit minimaler Höhe für 0-Werte
-        try {
+        function createClownChart() {
             const ctx2 = document.getElementById('clownChart').getContext('2d');
             
-            const originalClownData = DASHBOARD_DATA.clowns.map(c => c.einsaetze);
+            const originalClownData = currentData.clowns.map(c => c.einsaetze);
             const displayClownData = addMinimalHeightForZeros(originalClownData, 'count');
             
-            new Chart(ctx2, {
+            allCharts.clownChart = new Chart(ctx2, {
                 type: 'bar',
                 data: {
-                    labels: DASHBOARD_DATA.clowns.map(c => c.name),
+                    labels: currentData.clowns.map(c => c.name),
                     datasets: [{
                         label: 'Anzahl Einsätze',
                         data: displayClownData,
@@ -605,7 +644,6 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    // Zeige echte Werte im Tooltip
                                     const realValue = originalClownData[context.dataIndex];
                                     return `Einsätze: ${realValue}`;
                                 }
@@ -615,20 +653,17 @@
                     scales: { x: { beginAtZero: true } }
                 }
             });
-        } catch (error) {
-            console.error("Fehler bei Clown Chart:", error);
         }
 
-        // Monatliche Entwicklung - Dual-Line Chart
-        try {
+        function createMonthlyChart() {
             const ctx3 = document.getElementById('monthlyChart').getContext('2d');
-            new Chart(ctx3, {
+            allCharts.monthlyChart = new Chart(ctx3, {
                 type: 'line',
                 data: {
-                    labels: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.monat),
+                    labels: currentData.monatliche_erfuellung.map(m => m.monat),
                     datasets: [{
                         label: 'Mitarbeiter-Einsätze (%)',
-                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.mitarbeiter_rate),
+                        data: currentData.monatliche_erfuellung.map(m => m.mitarbeiter_rate),
                         borderColor: 'rgba(255, 107, 107, 1)',
                         backgroundColor: 'rgba(255, 107, 107, 0.2)',
                         borderWidth: 3,
@@ -640,7 +675,7 @@
                         pointRadius: 6
                     }, {
                         label: 'Termine (%)',
-                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.termine_rate),
+                        data: currentData.monatliche_erfuellung.map(m => m.termine_rate),
                         borderColor: 'rgba(52, 152, 219, 1)',
                         backgroundColor: 'rgba(52, 152, 219, 0.2)',
                         borderWidth: 3,
@@ -668,7 +703,7 @@
                                     return `${datasetLabel}: ${value}%`;
                                 },
                                 afterLabel: function(context) {
-                                    const monthData = DASHBOARD_DATA.monatliche_erfuellung[context.dataIndex];
+                                    const monthData = currentData.monatliche_erfuellung[context.dataIndex];
                                     return [
                                         ``,
                                         `Monat: ${monthData.monat}`,
@@ -686,7 +721,6 @@
                             ticks: {
                                 stepSize: 20,
                                 callback: function(value) {
-                                    // Zeige nur Werte bis 100%
                                     if (value <= 100) {
                                         return value + '%';
                                     }
@@ -704,295 +738,504 @@
                     }
                 }
             });
-        } catch (error) {
-            console.error("Fehler bei Monthly Chart:", error);
         }
 
-        // Netzwerk-Visualisierung mit D3.js
-        const networkData = {
-            nodes: DASHBOARD_DATA.netzwerk_nodes,
-            links: DASHBOARD_DATA.netzwerk_links
-        };
+        function createNetworkVisualization() {
+            // Netzwerk-Visualisierung mit D3.js
+            const networkData = {
+                nodes: currentData.netzwerk_nodes,
+                links: currentData.netzwerk_links
+            };
 
-        console.log('Netzwerk-Daten:', networkData);
+            console.log('Netzwerk-Daten:', networkData);
 
-        try {
-            const svg = d3.select("#networkGraph")
-                .append("svg")
-                .attr("width", "100%")
-                .attr("height", "100%")
-                .attr("viewBox", "0 0 1300 600");
-
-            const width = 1300;
-            const height = 600;
-            let currentLayout = 'weighted';
-
-            // Node-Größen berechnen
-            const nodeData = networkData.nodes.map(d => ({
-                ...d,
-                radius: d.type === "clown" ? 
-                    Math.max(15, Math.min(30, Math.sqrt(d.einsaetze || 10) * 1.8)) : 
-                    22
-            }));
-
-            let simulation, link, node, labels;
-
-            function initializeWeightedLayout() {
-                simulation = d3.forceSimulation(nodeData)
-                    .force("link", d3.forceLink(networkData.links)
-                        .id(d => d.id)
-                        .distance(d => Math.max(80, 200 - d.weight * 1.5))
-                        .strength(0.8)
-                    )
-                    .force("charge", d3.forceManyBody()
-                        .strength(-800)
-                        .distanceMin(50)
-                        .distanceMax(400)
-                    )
-                    .force("center", d3.forceCenter(width / 2, height / 2))
-                    .force("collision", d3.forceCollide()
-                        .radius(d => d.radius + 8)
-                        .strength(0.9)
-                        .iterations(3)
-                    )
-                    .force("x", d3.forceX(width / 2).strength(0.1))
-                    .force("y", d3.forceY(height / 2).strength(0.1));
+            // Komplett neues Cleanup - entferne alles und starte frisch
+            const networkContainer = document.querySelector("#networkGraph");
+            const existingSvg = d3.select("#networkGraph svg");
+            if (!existingSvg.empty()) {
+                // Stoppe alle aktiven Simulationen
+                const oldSimulation = existingSvg.datum();
+                if (oldSimulation && typeof oldSimulation.stop === 'function') {
+                    oldSimulation.stop();
+                    oldSimulation.alphaTarget(0);
+                }
+                existingSvg.remove();
             }
 
-            function initializeBipartiteLayout() {
-                const clowns = nodeData.filter(d => d.type === "clown");
-                const einrichtungen = nodeData.filter(d => d.type === "einrichtung");
-                
-                clowns.forEach((d, i) => {
-                    d.fx = (width / (clowns.length + 1)) * (i + 1);
-                    d.fy = height * 0.25;
-                });
-                
-                einrichtungen.forEach((d, i) => {
-                    d.fx = (width / (einrichtungen.length + 1)) * (i + 1);
-                    d.fy = height * 0.75;
-                });
+            try {
+                const svg = d3.select("#networkGraph")
+                    .append("svg")
+                    .attr("width", "100%")
+                    .attr("height", "100%")
+                    .attr("viewBox", "0 0 1300 600");
 
-                simulation = d3.forceSimulation(nodeData)
-                    .force("link", d3.forceLink(networkData.links)
-                        .id(d => d.id)
-                        .distance(d => Math.max(100, 300 - d.weight * 2))
-                        .strength(0.5)
-                    )
-                    .force("collision", d3.forceCollide()
-                        .radius(d => d.radius + 5)
-                        .strength(0.7)
-                    );
-            }
+                const width = 1300;
+                const height = 600;
+                let currentLayout = 'weighted'; // Immer mit weighted starten
 
-            function createElements() {
-                // Links
-                link = svg.append("g")
-                    .attr("class", "links")
-                    .selectAll("line")
-                    .data(networkData.links)
-                    .enter().append("line")
-                    .style("stroke", "#95a5a6")
-                    .style("stroke-opacity", d => Math.min(0.9, Math.max(0.3, d.weight / 25)))
-                    .style("stroke-width", d => Math.max(1.5, Math.min(6, d.weight / 4)))
-                    .style("stroke-linecap", "round");
+                // KOMPLETT NEUE Node-Daten erstellen (keine Referenzen zu alten Daten)
+                const nodeData = networkData.nodes.map(d => ({
+                    id: d.id,
+                    type: d.type,
+                    einsaetze: d.einsaetze || 0,
+                    radius: d.type === "clown" ? 
+                        Math.max(15, Math.min(30, Math.sqrt(d.einsaetze || 10) * 1.8)) : 
+                        22,
+                    // Keine festen Positionen setzen - lasse D3 entscheiden
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: 0,
+                    vy: 0
+                }));
 
-                // Nodes
-                node = svg.append("g")
-                    .attr("class", "nodes")
-                    .selectAll("circle")
-                    .data(nodeData)
-                    .enter().append("circle")
-                    .attr("r", d => d.radius)
-                    .style("fill", d => d.type === "clown" ? "#e74c3c" : "#3498db")
-                    .style("stroke", d => d.type === "clown" ? "#c0392b" : "#2980b9")
-                    .style("stroke-width", "3px")
-                    .style("cursor", "grab")
-                    .call(d3.drag()
-                        .on("start", dragstarted)
-                        .on("drag", dragged)
-                        .on("end", dragended));
+                // KOMPLETT NEUE Link-Daten erstellen
+                const linkData = networkData.links.map(l => ({
+                    source: l.source,
+                    target: l.target,
+                    weight: l.weight
+                }));
 
-                // Labels
-                labels = svg.append("g")
-                    .attr("class", "labels")
-                    .selectAll("text")
-                    .data(nodeData)
-                    .enter().append("text")
-                    .style("font-family", "Arial, sans-serif")
-                    .style("font-size", d => d.type === "clown" ? "12px" : "11px")
-                    .style("font-weight", d => d.type === "clown" ? "bold" : "normal")
-                    .style("fill", "#2c3e50")
-                    .style("text-anchor", "middle")
-                    .style("pointer-events", "none")
-                    .style("user-select", "none")
-                    .text(d => {
-                        const name = d.id;
-                        return name.length > 15 ? name.substring(0, 12) + '...' : name;
+                let simulation, link, node, labels;
+
+                function initializeWeightedLayout() {
+                    // Reset alle Node-Positionen
+                    nodeData.forEach(d => {
+                        delete d.fx;
+                        delete d.fy;
+                        d.x = Math.random() * width;
+                        d.y = Math.random() * height;
                     });
 
-                // Tooltips
-                node.append("title")
-                    .text(d => {
-                        if (d.type === "clown") {
-                            return `${d.id}\n${d.einsaetze} Gesamteinsätze`;
-                        } else {
-                            const clownCount = networkData.links.filter(link => 
-                                link.target === d.id || link.target.id === d.id).length;
-                            return `${d.id}\n${clownCount} zugeordnete Clowns`;
-                        }
+                    simulation = d3.forceSimulation(nodeData)
+                        .force("link", d3.forceLink(linkData)
+                            .id(d => d.id)
+                            .distance(d => Math.max(80, 200 - d.weight * 1.5))
+                            .strength(0.8)
+                        )
+                        .force("charge", d3.forceManyBody()
+                            .strength(-800)
+                            .distanceMin(50)
+                            .distanceMax(400)
+                        )
+                        .force("center", d3.forceCenter(width / 2, height / 2))
+                        .force("collision", d3.forceCollide()
+                            .radius(d => d.radius + 8)
+                            .strength(0.9)
+                            .iterations(3)
+                        )
+                        .force("x", d3.forceX(width / 2).strength(0.1))
+                        .force("y", d3.forceY(height / 2).strength(0.1));
+                    
+                    // Speichere Simulation-Referenz im SVG für Cleanup
+                    svg.datum(simulation);
+                }
+
+                function initializeBipartiteLayout() {
+                    // Reset alle Node-Positionen erst
+                    nodeData.forEach(d => {
+                        delete d.fx;
+                        delete d.fy;
                     });
 
-                // Hover-Effekte
-                node.on("mouseenter", function(event, d) {
-                    d3.select(this)
-                        .transition()
-                        .duration(200)
-                        .style("stroke-width", "5px")
-                        .attr("r", d => d.radius * 1.1);
+                    const clowns = nodeData.filter(d => d.type === "clown");
+                    const einrichtungen = nodeData.filter(d => d.type === "einrichtung");
+                    
+                    // Setze feste Positionen für Bipartite Layout
+                    clowns.forEach((d, i) => {
+                        d.fx = (width / (clowns.length + 1)) * (i + 1);
+                        d.fy = height * 0.25;
+                        d.x = d.fx;
+                        d.y = d.fy;
+                    });
+                    
+                    einrichtungen.forEach((d, i) => {
+                        d.fx = (width / (einrichtungen.length + 1)) * (i + 1);
+                        d.fy = height * 0.75;
+                        d.x = d.fx;
+                        d.y = d.fy;
+                    });
 
-                    link.style("stroke-opacity", l => 
-                        (l.source === d || l.target === d) ? 1 : 0.1
-                    );
-                })
-                .on("mouseleave", function(event, d) {
-                    d3.select(this)
-                        .transition()
-                        .duration(200)
+                    simulation = d3.forceSimulation(nodeData)
+                        .force("link", d3.forceLink(linkData)
+                            .id(d => d.id)
+                            .distance(d => Math.max(100, 300 - d.weight * 2))
+                            .strength(0.5)
+                        )
+                        .force("collision", d3.forceCollide()
+                            .radius(d => d.radius + 5)
+                            .strength(0.7)
+                        );
+                    
+                    // Speichere Simulation-Referenz im SVG für Cleanup
+                    svg.datum(simulation);
+                }
+
+                function createElements() {
+                    // Links
+                    link = svg.append("g")
+                        .attr("class", "links")
+                        .selectAll("line")
+                        .data(linkData)
+                        .enter().append("line")
+                        .style("stroke", "#95a5a6")
+                        .style("stroke-opacity", d => Math.min(0.9, Math.max(0.3, d.weight / 25)))
+                        .style("stroke-width", d => Math.max(1.5, Math.min(6, d.weight / 4)))
+                        .style("stroke-linecap", "round");
+
+                    // Nodes
+                    node = svg.append("g")
+                        .attr("class", "nodes")
+                        .selectAll("circle")
+                        .data(nodeData)
+                        .enter().append("circle")
+                        .attr("r", d => d.radius)
+                        .style("fill", d => d.type === "clown" ? "#e74c3c" : "#3498db")
+                        .style("stroke", d => d.type === "clown" ? "#c0392b" : "#2980b9")
                         .style("stroke-width", "3px")
-                        .attr("r", d => d.radius);
+                        .style("cursor", "grab")
+                        .call(d3.drag()
+                            .on("start", dragstarted)
+                            .on("drag", dragged)
+                            .on("end", dragended));
 
-                    link.style("stroke-opacity", l => 
-                        Math.min(0.9, Math.max(0.3, l.weight / 25))
-                    );
-                });
-            }
+                    // Labels
+                    labels = svg.append("g")
+                        .attr("class", "labels")
+                        .selectAll("text")
+                        .data(nodeData)
+                        .enter().append("text")
+                        .style("font-family", "Arial, sans-serif")
+                        .style("font-size", d => d.type === "clown" ? "12px" : "11px")
+                        .style("font-weight", d => d.type === "clown" ? "bold" : "normal")
+                        .style("fill", "#2c3e50")
+                        .style("text-anchor", "middle")
+                        .style("pointer-events", "none")
+                        .style("user-select", "none")
+                        .text(d => {
+                            const name = d.id;
+                            return name.length > 15 ? name.substring(0, 12) + '...' : name;
+                        });
 
-            function ticked() {
-                if (currentLayout === 'weighted') {
-                    node.each(d => {
-                        d.x = Math.max(d.radius + 10, Math.min(width - d.radius - 10, d.x));
-                        d.y = Math.max(d.radius + 10, Math.min(height - d.radius - 10, d.y));
+                    // Tooltips
+                    node.append("title")
+                        .text(d => {
+                            if (d.type === "clown") {
+                                return `${d.id}\n${d.einsaetze} Gesamteinsätze`;
+                            } else {
+                                const clownCount = linkData.filter(link => 
+                                    link.target === d.id || link.target.id === d.id).length;
+                                return `${d.id}\n${clownCount} zugeordnete Clowns`;
+                            }
+                        });
+
+                    // Hover-Effekte
+                    node.on("mouseenter", function(event, d) {
+                        d3.select(this)
+                            .transition()
+                            .duration(200)
+                            .style("stroke-width", "5px")
+                            .attr("r", d => d.radius * 1.1);
+
+                        link.style("stroke-opacity", l => 
+                            (l.source === d || l.target === d) ? 1 : 0.1
+                        );
+                    })
+                    .on("mouseleave", function(event, d) {
+                        d3.select(this)
+                            .transition()
+                            .duration(200)
+                            .style("stroke-width", "3px")
+                            .attr("r", d => d.radius);
+
+                        link.style("stroke-opacity", l => 
+                            Math.min(0.9, Math.max(0.3, l.weight / 25))
+                        );
                     });
                 }
 
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
+                function ticked() {
+                    if (currentLayout === 'weighted') {
+                        node.each(d => {
+                            d.x = Math.max(d.radius + 10, Math.min(width - d.radius - 10, d.x));
+                            d.y = Math.max(d.radius + 10, Math.min(height - d.radius - 10, d.y));
+                        });
+                    }
 
-                node
-                    .attr("cx", d => d.x)
-                    .attr("cy", d => d.y);
+                    link
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
 
-                labels
-                    .attr("x", d => d.x)
-                    .attr("y", d => d.y + 5);
-            }
+                    node
+                        .attr("cx", d => d.x)
+                        .attr("cy", d => d.y);
 
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                if (currentLayout === 'weighted') {
-                    d.fx = d.x;
-                    d.fy = d.y;
+                    labels
+                        .attr("x", d => d.x)
+                        .attr("y", d => d.y + 5);
                 }
-                d3.select(this).style("cursor", "grabbing");
-            }
 
-            function dragged(event, d) {
-                if (currentLayout === 'weighted') {
-                    d.fx = event.x;
-                    d.fy = event.y;
-                } else {
-                    d.fx = event.x;
+                function dragstarted(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    if (currentLayout === 'weighted') {
+                        d.fx = d.x;
+                        d.fy = d.y;
+                    }
+                    d3.select(this).style("cursor", "grabbing");
                 }
-            }
 
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                if (currentLayout === 'weighted') {
-                    d.fx = null;
-                    d.fy = null;
+                function dragged(event, d) {
+                    if (currentLayout === 'weighted') {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                    } else {
+                        d.fx = event.x;
+                    }
                 }
-                d3.select(this).style("cursor", "grab");
-            }
 
-            function switchLayout() {
-                const button = document.getElementById('toggleLayout');
-                
-                if (currentLayout === 'weighted') {
-                    currentLayout = 'bipartite';
-                    button.textContent = '🕸️ Gewichtet';
-                    button.style.background = '#e74c3c';
-                    
-                    nodeData.forEach(d => {
+                function dragended(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    if (currentLayout === 'weighted') {
                         d.fx = null;
                         d.fy = null;
-                    });
+                    }
+                    d3.select(this).style("cursor", "grab");
+                }
+
+                function switchLayout() {
+                    const button = document.getElementById('toggleLayout');
                     
-                    simulation.stop();
-                    initializeBipartiteLayout();
-                    simulation.on("tick", ticked);
-                    simulation.alpha(0.8).restart();
+                    // Stoppe alte Simulation komplett
+                    if (simulation) {
+                        simulation.stop();
+                        simulation.alphaTarget(0);
+                    }
                     
-                } else {
-                    currentLayout = 'weighted';
-                    button.textContent = '📊 Zweireihig';
-                    button.style.background = '#3498db';
-                    
+                    if (currentLayout === 'weighted') {
+                        currentLayout = 'bipartite';
+                        button.textContent = '🕸️ Gewichtet';
+                        button.style.background = '#e74c3c';
+                        
+                        initializeBipartiteLayout();
+                        simulation.on("tick", ticked);
+                        simulation.alpha(1).restart(); // Stärkerer Restart
+                        
+                    } else {
+                        currentLayout = 'weighted';
+                        button.textContent = '📊 Zweireihig';
+                        button.style.background = '#3498db';
+                        
+                        initializeWeightedLayout();
+                        simulation.on("tick", ticked);
+                        simulation.alpha(1).restart(); // Stärkerer Restart
+                    }
+                }
+
+                function resetView() {
+                    // Vollständiger Reset aller Positionen
                     nodeData.forEach(d => {
-                        d.fx = null;
-                        d.fy = null;
+                        delete d.fx;
+                        delete d.fy;
+                        d.x = Math.random() * width;
+                        d.y = Math.random() * height;
+                        d.vx = 0;
+                        d.vy = 0;
                     });
                     
-                    simulation.stop();
+                    if (currentLayout === 'weighted') {
+                        initializeWeightedLayout();
+                        simulation.on("tick", ticked);
+                    }
+                    simulation.alpha(1).restart();
+                }
+
+                // Reset Button-State beim Erstellen
+                const toggleButton = document.getElementById('toggleLayout');
+                toggleButton.textContent = '📊 Zweireihig';
+                toggleButton.style.background = '#3498db';
+
+                // Event Listeners für Netzwerk-Buttons (ersetze alte)
+                toggleButton.onclick = switchLayout;
+                document.getElementById('resetView').onclick = resetView;
+
+                // Initial Setup
+                if (nodeData.length > 0 && linkData.length > 0) {
+                    createElements();
                     initializeWeightedLayout();
                     simulation.on("tick", ticked);
-                    simulation.alpha(0.8).restart();
+                } else {
+                    // Fallback wenn keine Netzwerk-Daten
+                    svg.append("text")
+                        .attr("x", width / 2)
+                        .attr("y", height / 2)
+                        .attr("text-anchor", "middle")
+                        .style("font-size", "18px")
+                        .style("fill", "#666")
+                        .text("Keine Netzwerk-Daten verfügbar");
+                }
+
+            } catch (error) {
+                console.error("Fehler bei Netzwerk-Visualisierung:", error);
+                document.querySelector("#networkGraph").innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        <div style="text-align: center;">
+                            <h3>Netzwerk-Visualisierung</h3>
+                            <p>Fehler beim Laden der D3.js Visualisierung</p>
+                            <p>Clowns und Einrichtungen sind über ${networkData.links?.length || 0} Verbindungen verknüpft</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Datenvorverarbeitung: Adaptive minimale Höhe für 0-Werte
+        function addMinimalHeightForZeros(data, chartType = 'percentage') {
+            if (chartType === 'percentage') {
+                // Für Prozent-Charts: Feste minimale Höhe
+                return data.map(value => value === 0 ? 1.0 : value);
+            } else {
+                // Für Einsatz-Charts: 1.5% vom Maximum der Daten
+                const maxValue = Math.max(...data.filter(val => val > 0));
+                const minHeight = maxValue > 0 ? Math.max(0.1, maxValue * 0.015) : 0.1;
+                return data.map(value => value === 0 ? minHeight : value);
+            }
+        }
+
+        // Erstelle alle Charts initial
+        createAllCharts();
+
+        // Toggle Zero-Cast Events Funktionalität
+        function toggleZeroCastMode() {
+            includeZeroCastEvents = !includeZeroCastEvents;
+            currentData = includeZeroCastEvents ? DASHBOARD_DATA.zero_cast : DASHBOARD_DATA.standard;
+            
+            const button = document.getElementById('toggleZeroCastEvents');
+            
+            if (includeZeroCastEvents) {
+                button.textContent = '📋 Alle Termine';
+                button.style.background = '#e74c3c';
+                button.title = 'Klicken um nur besetzte Termine anzuzeigen';
+            } else {
+                button.textContent = '📋 Nur besetzte Termine';
+                button.style.background = '#3498db';
+                button.title = 'Klicken um alle Termine (inkl. unbesetzte) anzuzeigen';
+            }
+            
+            // Update Summary Cards
+            updateSummaryCards();
+            
+            // Alle Charts mit neuen Daten neu erstellen
+            createAllCharts();
+            
+            console.log('Dashboard-Modus geändert zu:', includeZeroCastEvents ? 'Alle Termine (inkl. Zero-Cast)' : 'Nur besetzte Termine');
+            console.log('Charts aktualisiert mit neuen Daten:', currentData.summary);
+        }
+
+        function updateSummaryCards() {
+            const summary = currentData.summary;
+            
+            // Haupt-Summary Cards aktualisieren
+            document.getElementById('summary-aktive-clowns').textContent = summary.aktive_clowns;
+            document.getElementById('summary-einrichtungen-count').textContent = summary.einrichtungen_count;
+            document.getElementById('summary-mitarbeiter-einsaetze').textContent = summary.total_durchgefuehrte_mitarbeiter;
+            document.getElementById('summary-geplante-mitarbeiter').textContent = summary.total_geplante_mitarbeiter;
+            document.getElementById('summary-termine').textContent = summary.total_durchgefuehrte_termine;
+            document.getElementById('summary-geplante-termine').textContent = summary.total_geplante_termine;
+            document.getElementById('summary-mitarbeiter-erfuellung').textContent = summary.mitarbeiter_erfuellung.toFixed(1) + '%';
+            document.getElementById('summary-termine-erfuellung').textContent = summary.termine_erfuellung.toFixed(1) + '%';
+            
+            // Top Einrichtungen aktualisieren
+            updateTopEinrichtungen();
+            
+            // Top Clowns aktualisieren
+            updateTopClowns();
+        }
+
+        function updateTopEinrichtungen() {
+            // Finde das Top Einrichtungen Container durch Text-Suche
+            const h3Elements = document.querySelectorAll('h3');
+            let container = null;
+            
+            for (let h3 of h3Elements) {
+                if (h3.textContent.includes('Top Einrichtungen')) {
+                    container = h3.parentElement;
+                    break;
                 }
             }
-
-            function resetView() {
-                nodeData.forEach(d => {
-                    d.fx = null;
-                    d.fy = null;
+            
+            if (container) {
+                // Erstelle neue stat-items basierend auf aktuellen Daten
+                const sortedEinrichtungen = [...currentData.einrichtungen]
+                    .sort((a, b) => b.erfuellungsrate - a.erfuellungsrate)
+                    .slice(0, 5);
+                
+                // Neue HTML generieren
+                let newContent = '<h3>🏆 Top Einrichtungen (Erfüllungsrate)</h3>';
+                sortedEinrichtungen.forEach(einrichtung => {
+                    const displayName = einrichtung.name.length > 25 ? 
+                        einrichtung.name.substring(0, 25) + '...' : 
+                        einrichtung.name;
+                    newContent += `
+                        <div class="stat-item">
+                            <span>${displayName}</span>
+                            <span class="stat-value">${einrichtung.erfuellungsrate.toFixed(1)}%</span>
+                        </div>
+                    `;
                 });
-                simulation.alpha(0.8).restart();
+                
+                container.innerHTML = newContent;
             }
-
-            // Event Listeners
-            document.getElementById('toggleLayout').addEventListener('click', switchLayout);
-            document.getElementById('resetView').addEventListener('click', resetView);
-
-            // Initial Setup
-            if (nodeData.length > 0 && networkData.links.length > 0) {
-                createElements();
-                initializeWeightedLayout();
-                simulation.on("tick", ticked);
-            } else {
-                // Fallback wenn keine Netzwerk-Daten
-                svg.append("text")
-                    .attr("x", width / 2)
-                    .attr("y", height / 2)
-                    .attr("text-anchor", "middle")
-                    .style("font-size", "18px")
-                    .style("fill", "#666")
-                    .text("Keine Netzwerk-Daten verfügbar");
-            }
-
-        } catch (error) {
-            console.error("Fehler bei Netzwerk-Visualisierung:", error);
-            document.querySelector("#networkGraph").innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
-                    <div style="text-align: center;">
-                        <h3>Netzwerk-Visualisierung</h3>
-                        <p>Fehler beim Laden der D3.js Visualisierung</p>
-                        <p>Clowns und Einrichtungen sind über ${networkData.links.length} Verbindungen verknüpft</p>
-                    </div>
-                </div>
-            `;
         }
+
+        function updateTopClowns() {
+            // Finde das Top Clowns Container
+            const topClownsElements = document.querySelectorAll('h3');
+            let container = null;
+            
+            for (let h3 of topClownsElements) {
+                if (h3.textContent.includes('Top Clowns')) {
+                    container = h3.parentElement;
+                    break;
+                }
+            }
+            
+            if (container) {
+                // Erstelle neue stat-items basierend auf aktuellen Daten
+                const sortedClowns = [...currentData.clowns]
+                    .sort((a, b) => b.einsaetze - a.einsaetze)
+                    .slice(0, 5);
+                
+                // Neue HTML generieren
+                let newContent = '<h3>⭐ Top Clowns (Einsätze)</h3>';
+                sortedClowns.forEach(clown => {
+                    newContent += `
+                        <div class="stat-item">
+                            <span>${clown.name}</span>
+                            <span class="stat-value">${clown.einsaetze} Einsätze</span>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = newContent;
+            }
+        }
+
+        function reloadDashboardWithMode() {
+            // Nicht mehr benötigt - lokales Umschalten ohne Reload
+            console.log('Dashboard-Modus geändert:', includeZeroCastEvents ? 'Alle Termine' : 'Nur besetzte Termine');
+        }
+
+        // Initial state - verwende Standard-Daten
+        function initializeZeroCastMode() {
+            const button = document.getElementById('toggleZeroCastEvents');
+            button.textContent = '📋 Nur besetzte Termine';
+            button.style.background = '#3498db';
+            button.title = 'Klicken um alle Termine (inkl. unbesetzte) anzuzeigen';
+        }
+
+        // Initialisiere Zero-Cast Modus beim Laden der Seite
+        initializeZeroCastMode();
     </script>
 </body>
 </html>

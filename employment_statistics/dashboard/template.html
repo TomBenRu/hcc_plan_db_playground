@@ -304,7 +304,7 @@
             </div>
             
             <div class="chart-panel">
-                <div class="chart-title">Monatliche Entwicklung</div>
+                <div class="chart-title">Monatliche Entwicklung (Einsätze vs. Termine)</div>
                 <div class="chart-container">
                     <canvas id="monthlyChart"></canvas>
                 </div>
@@ -457,10 +457,15 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 100,
+                            max: 105,
                             ticks: {
+                                stepSize: 20,
                                 callback: function(value) {
-                                    return value + '%';
+                                    // Zeige nur Werte bis 100%
+                                    if (value <= 100) {
+                                        return value + '%';
+                                    }
+                                    return null;
                                 }
                             }
                         },
@@ -614,7 +619,7 @@
             console.error("Fehler bei Clown Chart:", error);
         }
 
-        // Monatliche Entwicklung
+        // Monatliche Entwicklung - Dual-Line Chart
         try {
             const ctx3 = document.getElementById('monthlyChart').getContext('2d');
             new Chart(ctx3, {
@@ -622,29 +627,80 @@
                 data: {
                     labels: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.monat),
                     datasets: [{
-                        label: 'Erfüllungsrate (%)',
-                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.rate),
-                        borderColor: 'rgba(255, 206, 84, 1)',
-                        backgroundColor: 'rgba(255, 206, 84, 0.2)',
+                        label: 'Mitarbeiter-Einsätze (%)',
+                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.mitarbeiter_rate),
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        backgroundColor: 'rgba(255, 107, 107, 0.2)',
                         borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                        pointBorderColor: 'rgba(255, 255, 255, 1)',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }, {
+                        label: 'Termine (%)',
+                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.termine_rate),
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                        pointBorderColor: 'rgba(255, 255, 255, 1)',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label;
+                                    const value = context.parsed.y.toFixed(1);
+                                    return `${datasetLabel}: ${value}%`;
+                                },
+                                afterLabel: function(context) {
+                                    const monthData = DASHBOARD_DATA.monatliche_erfuellung[context.dataIndex];
+                                    return [
+                                        ``,
+                                        `Monat: ${monthData.monat}`,
+                                        `Mitarbeiter-Einsätze: ${monthData.mitarbeiter_rate.toFixed(1)}%`,
+                                        `Termine: ${monthData.termine_rate.toFixed(1)}%`
+                                    ];
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 105,
+                            ticks: {
+                                stepSize: 20,
+                                callback: function(value) {
+                                    // Zeige nur Werte bis 100%
+                                    if (value <= 100) {
+                                        return value + '%';
+                                    }
+                                    return null;
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: { maxRotation: 45 }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
             });

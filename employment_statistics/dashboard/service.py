@@ -41,9 +41,10 @@ class ClownEinsatz(BaseModel):
 
 
 class MonatlicheErfuellung(BaseModel):
-    """Monatliche Erfüllungsrate"""
+    """Monatliche Erfüllungsraten (beide Metriken)"""
     monat: str
-    rate: float
+    mitarbeiter_rate: float
+    termine_rate: float
 
 
 class NetzwerkVerbindung(BaseModel):
@@ -466,43 +467,93 @@ class DashboardService:
         plan_periods: List[models.PlanPeriod],
         plans: List[models.Plan]
     ) -> List[MonatlicheErfuellung]:
-        """Berechnet monatliche Erfüllungsraten"""
+        """Berechnet monatliche Erfüllungsraten für beide Metriken"""
         
-        monthly_data = defaultdict(lambda: {'geplant': 0, 'durchgefuehrt': 0})
+        monthly_data = defaultdict(lambda: {
+            'geplante_mitarbeiter': 0, 'durchgefuehrte_mitarbeiter': 0,
+            'geplante_termine': 0, 'ausgefallene_termine': 0,
+            'month_name': ''
+        })
         
-        # Sammle Daten pro Monat
+        # Sammle Daten pro Monat basierend auf tatsächlichen Appointments
         for plan_period in plan_periods:
             plan = next((p for p in plans if p.plan_period == plan_period), None)
             if not plan:
                 continue
                 
-            # Bestimme Monat (verwende Start-Datum der Planperiode)
-            year_month = plan_period.start.strftime('%Y-%m')
-            month_name = plan_period.start.strftime('%b %y')
-            
-            # Zähle geplante Events
-            for location_plan_period in plan_period.location_plan_periods:
-                events_count = len([e for e in location_plan_period.events if not e.prep_delete])
-                monthly_data[year_month]['geplant'] += events_count
-                monthly_data[year_month]['month_name'] = month_name
-            
-            # Zähle durchgeführte Appointments
+            # Hole alle Appointments für diesen Plan
             appointments = select(
                 a for a in models.Appointment
                 if a.plan == plan and not a.prep_delete
             )
-            monthly_data[year_month]['durchgefuehrt'] += len(list(appointments))
+            
+            # Gruppiere Appointments nach Monaten
+            for appointment in appointments:
+                event_date = appointment.event.date
+                year_month = event_date.strftime('%Y-%m')
+                month_name = event_date.strftime('%b %y')
+                monthly_data[year_month]['month_name'] = month_name
+                
+                # Geplante Mitarbeiter aus CastGroup
+                planned_staff = 0
+                if hasattr(appointment.event, 'cast_group') and appointment.event.cast_group:
+                    planned_staff = appointment.event.cast_group.nr_actors
+                elif appointment.event.location_plan_period.nr_actors:
+                    planned_staff = appointment.event.location_plan_period.nr_actors
+                else:
+                    planned_staff = appointment.event.location_plan_period.location_of_work.nr_actors
+                
+                # Events mit 0 geplanten Mitarbeitern überspringen
+                if planned_staff == 0:
+                    continue
+                
+                # Das ist ein geplanter Termin
+                monthly_data[year_month]['geplante_termine'] += 1
+                monthly_data[year_month]['geplante_mitarbeiter'] += planned_staff
+                
+                # Tatsächliche Mitarbeiter (reguläre + Gäste)
+                regular_staff = len(appointment.avail_days)
+                guest_staff = 0
+                try:
+                    import json
+                    if appointment.guests:
+                        guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                        guest_staff = len(guests_data) if guests_data else 0
+                except:
+                    guest_staff = 0
+                
+                total_actual_staff = regular_staff + guest_staff
+                monthly_data[year_month]['durchgefuehrte_mitarbeiter'] += total_actual_staff
+                
+                # Prüfe ob Termin ausgefallen (geplant aber 0 durchgeführt)
+                if total_actual_staff == 0:
+                    monthly_data[year_month]['ausgefallene_termine'] += 1
         
         # Konvertiere zu MonatlicheErfuellung
         monthly_rates = []
         for year_month in sorted(monthly_data.keys()):
             data = monthly_data[year_month]
-            rate = (data['durchgefuehrt'] / data['geplant'] * 100) if data['geplant'] > 0 else 0.0
+            
+            # Mitarbeiter-Erfüllungsrate
+            mitarbeiter_rate = (
+                data['durchgefuehrte_mitarbeiter'] / data['geplante_mitarbeiter'] * 100
+                if data['geplante_mitarbeiter'] > 0 else 0.0
+            )
+            
+            # Termine-Erfüllungsrate
+            durchgefuehrte_termine = data['geplante_termine'] - data['ausgefallene_termine']
+            termine_rate = (
+                durchgefuehrte_termine / data['geplante_termine'] * 100
+                if data['geplante_termine'] > 0 else 0.0
+            )
             
             monthly_rates.append(MonatlicheErfuellung(
                 monat=data['month_name'],
-                rate=rate
+                mitarbeiter_rate=mitarbeiter_rate,
+                termine_rate=termine_rate
             ))
+            
+            logger.debug(f"Monat {data['month_name']}: Mitarbeiter {mitarbeiter_rate:.1f}%, Termine {termine_rate:.1f}%")
         
         return monthly_rates
 

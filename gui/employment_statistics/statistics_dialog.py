@@ -603,11 +603,15 @@ Arbeitsverteilung:
             
             # Template-Variablen
             template_vars = {
-                # Dashboard-Daten
+                # Dashboard-Daten (erweitert)
                 'aktive_clowns': dashboard_data.aktive_clowns,
                 'einrichtungen_count': dashboard_data.einrichtungen_count,
-                'gesamteinsaetze': dashboard_data.gesamteinsaetze,
-                'durchschnittliche_erfuellung': dashboard_data.durchschnittliche_erfuellung,
+                'total_geplante_mitarbeiter': dashboard_data.total_geplante_mitarbeiter,
+                'total_durchgefuehrte_mitarbeiter': dashboard_data.total_durchgefuehrte_mitarbeiter,
+                'mitarbeiter_erfuellung': dashboard_data.mitarbeiter_erfuellung,
+                'total_geplante_termine': dashboard_data.total_geplante_termine,
+                'total_durchgefuehrte_termine': dashboard_data.total_durchgefuehrte_termine,
+                'termine_erfuellung': dashboard_data.termine_erfuellung,
                 'einrichtungen': [e.dict() for e in dashboard_data.einrichtungen],
                 'clowns': [c.dict() for c in dashboard_data.clowns],
                 'monatliche_erfuellung': [m.dict() for m in dashboard_data.monatliche_erfuellung],

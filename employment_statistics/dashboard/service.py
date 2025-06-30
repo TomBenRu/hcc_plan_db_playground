@@ -55,11 +55,19 @@ class NetzwerkVerbindung(BaseModel):
 
 class DashboardData(BaseModel):
     """Komplette Daten für das Dashboard"""
-    # Summary Cards
+    # Summary Cards (erweitert)
     aktive_clowns: int
     einrichtungen_count: int
-    gesamteinsaetze: int
-    durchschnittliche_erfuellung: float
+    
+    # Mitarbeiter-Einsätze
+    total_geplante_mitarbeiter: int
+    total_durchgefuehrte_mitarbeiter: int
+    mitarbeiter_erfuellung: float
+    
+    # Termine  
+    total_geplante_termine: int
+    total_durchgefuehrte_termine: int
+    termine_erfuellung: float
     
     # Einrichtungsdetails
     einrichtungen: List[EinrichtungDetail]
@@ -141,20 +149,30 @@ class DashboardService:
         monatliche_rates = cls._calculate_monthly_fulfillment(plan_periods, latest_plans)
         netzwerk_nodes, netzwerk_links = cls._calculate_netzwerk_data(all_appointments)
         
-        # Summary-Daten
+        # Summary-Daten (erweitert um detaillierte Metriken)
         aktive_clowns = len(clowns)
         einrichtungen_count = len(einrichtungen)
-        gesamteinsaetze = len(all_appointments)
-        durchschnitt_erfuellung = (
-            sum(e.erfuellungsrate for e in einrichtungen) / len(einrichtungen)
-            if einrichtungen else 0.0
-        )
+        
+        # Berechne Gesamt-Metriken aus Einrichtungen
+        total_geplante_mitarbeiter = sum(e.geplant for e in einrichtungen)
+        total_durchgefuehrte_mitarbeiter = sum(e.durchgefuehrt for e in einrichtungen)
+        total_geplante_termine = sum(e.geplante_termine for e in einrichtungen)
+        total_ausgefallene_termine = sum(e.ausgefallene_termine for e in einrichtungen)
+        total_durchgefuehrte_termine = total_geplante_termine - total_ausgefallene_termine
+        
+        # Erfüllungsraten
+        mitarbeiter_erfuellung = (total_durchgefuehrte_mitarbeiter / total_geplante_mitarbeiter * 100) if total_geplante_mitarbeiter > 0 else 0.0
+        termine_erfuellung = (total_durchgefuehrte_termine / total_geplante_termine * 100) if total_geplante_termine > 0 else 0.0
         
         return DashboardData(
             aktive_clowns=aktive_clowns,
             einrichtungen_count=einrichtungen_count,
-            gesamteinsaetze=gesamteinsaetze,
-            durchschnittliche_erfuellung=durchschnitt_erfuellung,
+            total_geplante_mitarbeiter=total_geplante_mitarbeiter,
+            total_durchgefuehrte_mitarbeiter=total_durchgefuehrte_mitarbeiter,
+            mitarbeiter_erfuellung=mitarbeiter_erfuellung,
+            total_geplante_termine=total_geplante_termine,
+            total_durchgefuehrte_termine=total_durchgefuehrte_termine,
+            termine_erfuellung=termine_erfuellung,
             einrichtungen=einrichtungen,
             clowns=clowns,
             monatliche_erfuellung=monatliche_rates,
@@ -559,8 +577,12 @@ class DashboardService:
         return DashboardData(
             aktive_clowns=0,
             einrichtungen_count=0,
-            gesamteinsaetze=0,
-            durchschnittliche_erfuellung=0.0,
+            total_geplante_mitarbeiter=0,
+            total_durchgefuehrte_mitarbeiter=0,
+            mitarbeiter_erfuellung=0.0,
+            total_geplante_termine=0,
+            total_durchgefuehrte_termine=0,
+            termine_erfuellung=0.0,
             einrichtungen=[],
             clowns=[],
             monatliche_erfuellung=[],

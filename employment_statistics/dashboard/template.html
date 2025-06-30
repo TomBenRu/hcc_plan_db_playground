@@ -356,13 +356,15 @@
             console.warn('Keine Einrichtungsdaten verfügbar');
         }
 
+        // Vorbereitung der Label für alle Charts
+        const einrichtungsLabels = DASHBOARD_DATA.einrichtungen.map(e => 
+            e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
+        );
+        const erfuellungsraten = DASHBOARD_DATA.einrichtungen.map(e => e.erfuellungsrate);
+
         // Erfüllungsraten Chart
         try {
             const ctx1 = document.getElementById('erfuellungsChart').getContext('2d');
-            const einrichtungsLabels = DASHBOARD_DATA.einrichtungen.map(e => 
-                e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
-            );
-            const erfuellungsraten = DASHBOARD_DATA.einrichtungen.map(e => e.erfuellungsrate);
             
             new Chart(ctx1, {
                 type: 'bar',
@@ -417,36 +419,66 @@
         // Stapelbalken Chart
         try {
             const ctx1b = document.getElementById('stapelChart').getContext('2d');
-            new Chart(ctx1b, {
-                type: 'bar',
-                data: {
-                    labels: einrichtungsLabels,
-                    datasets: [{
-                        label: 'Durchgeführt',
-                        data: DASHBOARD_DATA.einrichtungen.map(e => e.durchgefuehrt),
-                        backgroundColor: 'rgba(46, 204, 113, 0.8)',
-                        borderColor: 'rgba(46, 204, 113, 1)',
-                        borderWidth: 1
-                    }, {
-                        label: 'Ausgefallen',
-                        data: DASHBOARD_DATA.einrichtungen.map(e => e.ausfaelle),
-                        backgroundColor: 'rgba(231, 76, 60, 0.8)',
-                        borderColor: 'rgba(231, 76, 60, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, position: 'top' }
+            
+            // Debug: Prüfe Einrichtungsdaten
+            console.log('Einrichtungsdaten für Stapelchart:', DASHBOARD_DATA.einrichtungen);
+            
+            const durchgefuehrtData = DASHBOARD_DATA.einrichtungen.map(e => e.durchgefuehrt);
+            const ausfalleData = DASHBOARD_DATA.einrichtungen.map(e => e.ausfaelle);
+            
+            console.log('Durchgeführt-Daten:', durchgefuehrtData);
+            console.log('Ausfälle-Daten:', ausfalleData);
+            
+            // Prüfe ob Daten vorhanden sind
+            const hasDurchgefuehrt = durchgefuehrtData.some(val => val > 0);
+            const hasAusfaelle = ausfalleData.some(val => val > 0);
+            
+            console.log('Hat Durchgeführt-Daten:', hasDurchgefuehrt);
+            console.log('Hat Ausfälle-Daten:', hasAusfaelle);
+            
+            if (!hasDurchgefuehrt && !hasAusfaelle) {
+                console.warn('Keine Daten für Stapelchart - zeige Platzhalter');
+                // Zeige Nachricht im Chart-Container
+                const chartContainer = document.querySelector('#stapelChart').parentElement;
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; text-align: center; flex-direction: column;">
+                        <h3>Keine Planungsdaten verfügbar</h3>
+                        <p>Es wurden keine geplanten Events gefunden.<br>Möglicherweise sind die Einsätze nicht über das Planungsmodul erfasst.</p>
+                        <p><small>Prüfen Sie die Logs für Details zur Datenverarbeitung.</small></p>
+                    </div>
+                `;
+            } else {
+                new Chart(ctx1b, {
+                    type: 'bar',
+                    data: {
+                        labels: einrichtungsLabels,
+                        datasets: [{
+                            label: 'Durchgeführt',
+                            data: durchgefuehrtData,
+                            backgroundColor: 'rgba(46, 204, 113, 0.8)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Ausgefallen',
+                            data: ausfalleData,
+                            backgroundColor: 'rgba(231, 76, 60, 0.8)',
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        x: { stacked: true, ticks: { maxRotation: 45 } },
-                        y: { stacked: true, beginAtZero: true }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: 'top' }
+                        },
+                        scales: {
+                            x: { stacked: true, ticks: { maxRotation: 45 } },
+                            y: { stacked: true, beginAtZero: true }
+                        }
                     }
-                }
-            });
+                });
+            }
         } catch (error) {
             console.error("Fehler bei Stapel Chart:", error);
         }

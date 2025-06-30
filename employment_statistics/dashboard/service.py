@@ -128,7 +128,7 @@ class DashboardService:
         latest_plans = cls._get_latest_plans_per_period(plan_periods)
         
         # Sammle alle Appointments
-        all_appointments = cls._get_appointments_from_plans(latest_plans)
+        all_appointments = cls._get_appointments_from_plans(latest_plans, start_date, end_date)
         
         # Berechne Dashboard-Komponenten
         einrichtungen = cls._calculate_einrichtung_details(all_appointments, plan_periods)
@@ -216,7 +216,9 @@ class DashboardService:
     @db_session
     def _get_appointments_from_plans(
         cls,
-        plans: List[models.Plan]
+        plans: List[models.Plan],
+        start_date: datetime.date,
+        end_date: datetime.date
     ) -> List[models.Appointment]:
         """Sammelt alle Appointments aus den gegebenen Plänen"""
         all_appointments = []
@@ -225,6 +227,8 @@ class DashboardService:
             appointments = select(
                 a for a in models.Appointment
                 if a.plan == plan
+                and a.event.date >= start_date
+                and a.event.date <= end_date
                 and not a.prep_delete
             )
             all_appointments.extend(appointments)
@@ -237,30 +241,113 @@ class DashboardService:
         appointments: List[models.Appointment],
         plan_periods: List[models.PlanPeriod]
     ) -> List[EinrichtungDetail]:
-        """Berechnet Details für Einrichtungen"""
+        """Berechnet Details für Einrichtungen basierend auf tatsächlich geplanten Events (via Appointments)"""
         
-        # Sammle geplante Events pro Einrichtung
-        planned_events = defaultdict(int)
-        actual_appointments = defaultdict(int)
+        # Sammle geplante und tatsächliche Mitarbeiter-Einsätze pro Einrichtung
+        planned_staff_assignments = defaultdict(int)
+        actual_staff_assignments = defaultdict(int)
         
-        # Zähle geplante Events aus allen Planperioden
-        for plan_period in plan_periods:
-            for location_plan_period in plan_period.location_plan_periods:
-                location_name = location_plan_period.location_of_work.name_and_city
-                # Zähle Events in dieser LocationPlanPeriod
-                events_count = len([e for e in location_plan_period.events if not e.prep_delete])
-                planned_events[location_name] += events_count
+        logger.info(f"Berechne Einrichtungsdetails basierend auf {len(appointments)} Appointments")
         
-        # Zähle tatsächliche Appointments pro Einrichtung
-        for appointment in appointments:
-            location_name = appointment.event.location_plan_period.location_of_work.name_and_city
-            actual_appointments[location_name] += 1
+        # Filtere Appointments: Nur nicht zum Löschen markierte
+        active_appointments = [a for a in appointments if not a.prep_delete]
+        deleted_appointments_count = len(appointments) - len(active_appointments)
+        
+        if deleted_appointments_count > 0:
+            logger.info(f"Gefiltert: {deleted_appointments_count} zum Löschen markierte Appointments ignoriert")
+        
+        logger.info(f"Verarbeite {len(active_appointments)} aktive Appointments")
+        
+        # Iteriere über aktive Appointments (= tatsächlich geplante Events)
+        for appointment in active_appointments:
+            event = appointment.event
+            location_name = event.location_plan_period.location_of_work.name_and_city
+            
+            # 1. GEPLANTE MITARBEITER: Aus CastGroup des Events
+            planned_staff = 0
+            staff_source = "unknown"
+            
+            if hasattr(event, 'cast_group') and event.cast_group:
+                planned_staff = event.cast_group.nr_actors
+                staff_source = f"event.cast_group.nr_actors (CastGroup ID: {event.cast_group.id})"
+            else:
+                # Fallback auf LocationPlanPeriod/LocationOfWork wenn keine CastGroup
+                if event.location_plan_period.nr_actors is not None:
+                    planned_staff = event.location_plan_period.nr_actors
+                    staff_source = "location_plan_period.nr_actors (Fallback)"
+                else:
+                    planned_staff = event.location_plan_period.location_of_work.nr_actors
+                    staff_source = "location_of_work.nr_actors (Fallback)"
+            
+            # Events mit 0 geplanten Mitarbeitern überspringen (formal geplant aber nicht stattfindend)
+            if planned_staff == 0:
+                logger.debug(f"Appointment {appointment.id} für Event {event.date} in {location_name}: 0 geplante Mitarbeiter - übersprungen")
+                continue
+            
+            planned_staff_assignments[location_name] += planned_staff
+            
+            # 2. TATSÄCHLICHE MITARBEITER: Aus Appointment (avail_days + guests)
+            # Reguläre Mitarbeiter (avail_days)
+            regular_staff_count = len(appointment.avail_days)
+            
+            # Gastmitarbeiter (guests JSON-Array)
+            guest_staff_count = 0
+            try:
+                import json
+                if appointment.guests:
+                    guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                    guest_staff_count = len(guests_data) if guests_data else 0
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning(f"Fehler beim Parsen der Guests für Appointment {appointment.id}: {e}")
+                guest_staff_count = 0
+            
+            # Gesamtzahl eingesetzter Mitarbeiter
+            total_actual_staff = regular_staff_count + guest_staff_count
+            actual_staff_assignments[location_name] += total_actual_staff
+            
+            logger.debug(f"Appointment {appointment.id} - Event {event.date} in {location_name}:")
+            logger.debug(f"  Geplante Mitarbeiter: {planned_staff} (Quelle: {staff_source})")
+            logger.debug(f"  Reguläre Mitarbeiter: {regular_staff_count}")
+            logger.debug(f"  Gastmitarbeiter: {guest_staff_count}")
+            logger.debug(f"  Tatsächliche Mitarbeiter: {total_actual_staff}")
+        
+        logger.info(f"Geplante Mitarbeiter-Einsätze (aus tatsächlich geplanten Events): {dict(planned_staff_assignments)}")
+        logger.info(f"Tatsächliche Mitarbeiter-Einsätze (inkl. Gäste): {dict(actual_staff_assignments)}")
+        
+        # Falls keine Daten vorhanden
+        if not planned_staff_assignments and not actual_staff_assignments:
+            logger.warning("Keine geplanten oder tatsächlichen Mitarbeiter-Einsätze gefunden")
+            return []
+        
+        # Falls nur tatsächliche Einsätze vorhanden (alle Events hatten 0 geplante Mitarbeiter)
+        if not planned_staff_assignments and actual_staff_assignments:
+            logger.warning("Keine geplanten Mitarbeiter-Einsätze gefunden - verwende tatsächliche Einsätze als Basis")
+            einrichtungen = []
+            for location_name, actual_staff in actual_staff_assignments.items():
+                einrichtungen.append(EinrichtungDetail(
+                    name=location_name,
+                    geplant=actual_staff,
+                    durchgefuehrt=actual_staff,
+                    ausfaelle=0,
+                    erfuellungsrate=100.0
+                ))
+            
+            einrichtungen.sort(key=lambda x: x.durchgefuehrt, reverse=True)
+            return einrichtungen
         
         # Kombiniere zu Einrichtung-Details
         einrichtungen = []
-        for location_name in planned_events.keys():
-            geplant = planned_events[location_name]
-            durchgefuehrt = actual_appointments.get(location_name, 0)
+        all_locations = set(planned_staff_assignments.keys()) | set(actual_staff_assignments.keys())
+        
+        for location_name in all_locations:
+            geplant = planned_staff_assignments.get(location_name, 0)
+            durchgefuehrt = actual_staff_assignments.get(location_name, 0)
+            
+            # Falls geplant = 0 aber tatsächliche Einsätze vorhanden, setze geplant = durchgeführt
+            if geplant == 0 and durchgefuehrt > 0:
+                geplant = durchgefuehrt
+                logger.debug(f"Korrigiere {location_name}: setze geplant={geplant} (keine Planungsdaten gefunden)")
+            
             ausfaelle = geplant - durchgefuehrt
             erfuellungsrate = (durchgefuehrt / geplant * 100) if geplant > 0 else 0.0
             
@@ -271,9 +358,25 @@ class DashboardService:
                 ausfaelle=max(0, ausfaelle),  # Negative Ausfälle vermeiden
                 erfuellungsrate=erfuellungsrate
             ))
+            
+            logger.debug(f"Einrichtung: {location_name}")
+            logger.debug(f"  Geplante Mitarbeiter-Einsätze: {geplant}")
+            logger.debug(f"  Durchgeführte Mitarbeiter-Einsätze: {durchgefuehrt}")
+            logger.debug(f"  Ausgefallene Mitarbeiter-Einsätze: {max(0, ausfaelle)}")
+            logger.debug(f"  Erfüllungsrate: {erfuellungsrate:.1f}%")
         
         # Sortiere nach Erfüllungsrate (absteigend)
         einrichtungen.sort(key=lambda x: x.erfuellungsrate, reverse=True)
+        logger.info(f"Erstellt {len(einrichtungen)} Einrichtungsdetails (basierend auf tatsächlich geplanten Events)")
+        
+        # Log Gesamtstatistik
+        total_geplant = sum(e.geplant for e in einrichtungen)
+        total_durchgefuehrt = sum(e.durchgefuehrt for e in einrichtungen)
+        total_ausfaelle = sum(e.ausfaelle for e in einrichtungen)
+        gesamt_erfuellung = (total_durchgefuehrt / total_geplant * 100) if total_geplant > 0 else 0.0
+        
+        logger.info(f"GESAMTSTATISTIK (korrigiert) - Geplant: {total_geplant}, Durchgeführt: {total_durchgefuehrt}, Ausfälle: {total_ausfaelle}, Erfüllung: {gesamt_erfuellung:.1f}%")
+        
         return einrichtungen
 
     @classmethod

@@ -8,6 +8,7 @@ import datetime
 import tempfile
 import webbrowser
 import os
+import logging
 from typing import Optional
 
 from PySide6.QtWidgets import (
@@ -27,6 +28,10 @@ from employment_statistics.utils import (
     calculate_workload_balance, export_statistics_to_dict
 )
 from .date_range_widget import DateRangeWidget
+
+# Logging für Dashboard-Debug aktivieren
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class StatisticsWorker(QThread):

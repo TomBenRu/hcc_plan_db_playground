@@ -5,6 +5,9 @@ Hauptdialog für die Darstellung der Einsatzstatistiken mit verschiedenen Ansich
 """
 
 import datetime
+import tempfile
+import webbrowser
+import os
 from typing import Optional
 
 from PySide6.QtWidgets import (
@@ -17,6 +20,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QFont, QPixmap, QPainter, QPen, QBrush
 
 from employment_statistics.service import EmploymentStatisticsService, EmploymentStatistics
+from employment_statistics.dashboard.service import DashboardService
 from employment_statistics.utils import (
     format_statistics_summary, get_top_employees, get_top_locations,
     calculate_distribution_percentages, group_employees_by_assignment_range,
@@ -314,12 +318,17 @@ class EmploymentStatisticsDialog(QDialog):
         self.btn_refresh = QPushButton("Aktualisieren")
         self.btn_refresh.setEnabled(False)
         
+        self.btn_dashboard = QPushButton("🎭 Dashboard")
+        self.btn_dashboard.setEnabled(False)
+        self.btn_dashboard.setToolTip("Öffnet interaktives Dashboard im Browser")
+        
         self.btn_export = QPushButton("Exportieren...")
         self.btn_export.setEnabled(False)
         
         self.btn_close = QPushButton("Schließen")
         
         button_layout.addWidget(self.btn_refresh)
+        button_layout.addWidget(self.btn_dashboard)
         button_layout.addWidget(self.btn_export)
         button_layout.addStretch()
         button_layout.addWidget(self.btn_close)
@@ -331,6 +340,7 @@ class EmploymentStatisticsDialog(QDialog):
         self.date_range_widget.selection_changed.connect(self.on_selection_changed)
         
         self.btn_refresh.clicked.connect(self.load_statistics)
+        self.btn_dashboard.clicked.connect(self.open_dashboard)
         self.btn_export.clicked.connect(self.export_statistics)
         self.btn_close.clicked.connect(self.close)
 
@@ -375,6 +385,7 @@ class EmploymentStatisticsDialog(QDialog):
         # Progress verstecken
         self.progress_bar.setVisible(False)
         self.btn_refresh.setEnabled(True)
+        self.btn_dashboard.setEnabled(True)
         self.btn_export.setEnabled(True)
         self.stats_tabs.setEnabled(True)
         
@@ -540,6 +551,104 @@ Arbeitsverteilung:
         layout.addLayout(button_layout)
         
         export_dialog.exec_()
+
+    def open_dashboard(self):
+        """Öffnet das interaktive Dashboard im Browser"""
+        if not self.date_range_widget.is_valid_selection():
+            QMessageBox.warning(
+                self,
+                "Ungültige Auswahl",
+                "Bitte wählen Sie einen gültigen Zeitraum und Kontext aus."
+            )
+            return
+            
+        try:
+            # Parameter holen
+            start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
+            
+            # Dashboard-Daten laden
+            dashboard_data = DashboardService.get_dashboard_data(
+                start_date=start_date,
+                end_date=end_date,
+                team_id=team_id,
+                project_id=project_id
+            )
+            
+            # HTML-Template laden und rendern
+            template_path = os.path.join(
+                os.path.dirname(__file__), 
+                '..', '..',
+                'employment_statistics', 'dashboard', 'template.html'
+            )
+            
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    template_content = f.read()
+            except FileNotFoundError:
+                QMessageBox.critical(
+                    self,
+                    "Template nicht gefunden",
+                    f"Dashboard-Template nicht gefunden:\n{template_path}"
+                )
+                return
+            
+            # Jinja2-Template rendern
+            from jinja2 import Template
+            template = Template(template_content)
+            
+            # Template-Variablen
+            template_vars = {
+                # Dashboard-Daten
+                'aktive_clowns': dashboard_data.aktive_clowns,
+                'einrichtungen_count': dashboard_data.einrichtungen_count,
+                'gesamteinsaetze': dashboard_data.gesamteinsaetze,
+                'durchschnittliche_erfuellung': dashboard_data.durchschnittliche_erfuellung,
+                'einrichtungen': [e.dict() for e in dashboard_data.einrichtungen],
+                'clowns': [c.dict() for c in dashboard_data.clowns],
+                'monatliche_erfuellung': [m.dict() for m in dashboard_data.monatliche_erfuellung],
+                'netzwerk_nodes': dashboard_data.netzwerk_nodes,
+                'netzwerk_links': dashboard_data.netzwerk_links,
+                
+                # Meta-Informationen
+                'zeitraum_start': dashboard_data.zeitraum_start,
+                'zeitraum_ende': dashboard_data.zeitraum_ende,
+                'team_name': dashboard_data.team_name,
+                'project_name': dashboard_data.project_name,
+                'now': datetime.datetime.now()
+            }
+            
+            rendered_html = template.render(**template_vars)
+            
+            # Temporäre HTML-Datei erstellen
+            with tempfile.NamedTemporaryFile(
+                mode='w', 
+                suffix='.html', 
+                delete=False, 
+                encoding='utf-8'
+            ) as temp_file:
+                temp_file.write(rendered_html)
+                temp_file_path = temp_file.name
+            
+            # Im Browser öffnen
+            webbrowser.open(f'file://{temp_file_path}')
+            
+            # Nach 60 Sekunden aufräumen
+            QTimer.singleShot(60000, lambda: self._cleanup_temp_file(temp_file_path))
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Dashboard-Fehler",
+                f"Das Dashboard konnte nicht geöffnet werden:\n\n{str(e)}"
+            )
+
+    def _cleanup_temp_file(self, file_path: str):
+        """Räumt temporäre Dateien auf"""
+        try:
+            if os.path.exists(file_path):
+                os.unlink(file_path)
+        except Exception:
+            pass  # Ignoriere Cleanup-Fehler
 
     def closeEvent(self, event):
         """Wird beim Schließen aufgerufen"""

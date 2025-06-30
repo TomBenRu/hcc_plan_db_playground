@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Einsatzanalyse Dashboard - {{ project_name }}{% if team_name %} ({{ team_name }}){% endif %}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.6.1/d3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+        
+        .stats-panel {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .chart-panel {
+            padding: 30px;
+            background: white;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .stat-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-title {
+            color: #2c3e50;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        #networkGraph {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+            position: relative;
+        }
+        
+        .node-clown {
+            fill: #ff6b6b;
+            stroke: #c0392b;
+            stroke-width: 2px;
+        }
+        
+        .node-einrichtung {
+            fill: #3498db;
+            stroke: #2980b9;
+            stroke-width: 2px;
+        }
+        
+        .link {
+            stroke: #bdc3c7;
+            stroke-opacity: 0.6;
+        }
+        
+        .node-text {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            fill: #2c3e50;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        .summary-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .summary-card .big-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .summary-card .unit {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .meta-info {
+            background: rgba(0, 150, 50, 0.1);
+            border: 1px solid rgba(0, 150, 50, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 30px;
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Einsatzanalyse Dashboard</h1>
+            <p>{{ project_name }}{% if team_name %} - Team: {{ team_name }}{% endif %}</p>
+        </div>
+        
+        <div class="meta-info">
+            📅 Zeitraum: {{ zeitraum_start }} bis {{ zeitraum_ende }} | 
+            🔄 Generiert: {{ now.strftime('%d.%m.%Y %H:%M') }} Uhr
+        </div>
+        
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>Aktive Clowns</h3>
+                <div class="big-number">{{ aktive_clowns }}</div>
+                <div class="unit">Klinikclowns</div>
+            </div>
+            <div class="summary-card">
+                <h3>Einrichtungen</h3>
+                <div class="big-number">{{ einrichtungen_count }}</div>
+                <div class="unit">Kliniken & Zentren</div>
+            </div>
+            <div class="summary-card">
+                <h3>Gesamteinsätze</h3>
+                <div class="big-number">{{ gesamteinsaetze }}</div>
+                <div class="unit">Dokumentierte Einsätze</div>
+            </div>
+            <div class="summary-card">
+                <h3>Durchschnittliche Erfüllung</h3>
+                <div class="big-number">{{ "%.1f"|format(durchschnittliche_erfuellung) }}%</div>
+                <div class="unit">Planerfüllung</div>
+            </div>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <h3>🏆 Top Einrichtungen (Erfüllungsrate)</h3>
+                    {% for einrichtung in einrichtungen[:5] %}
+                    <div class="stat-item">
+                        <span>{{ einrichtung.name[:25] }}{% if einrichtung.name|length > 25 %}...{% endif %}</span>
+                        <span class="stat-value">{{ "%.1f"|format(einrichtung.erfuellungsrate) }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="stat-card">
+                    <h3>⭐ Top Clowns (Einsätze)</h3>
+                    {% for clown in clowns[:5] %}
+                    <div class="stat-item">
+                        <span>{{ clown.name }}</span>
+                        <span class="stat-value">{{ clown.einsaetze }} Einsätze</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="chart-panel">
+                <div class="chart-title">Erfüllungsraten nach Einrichtung</div>
+                <div class="chart-container">
+                    <canvas id="erfuellungsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-panel">
+                <div class="chart-title">Geplante vs. Ausgefallene Einsätze</div>
+                <div class="chart-container">
+                    <canvas id="stapelChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-panel">
+                <div class="chart-title">Einsätze pro Clown</div>
+                <div class="chart-container">
+                    <canvas id="clownChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-panel">
+                <div class="chart-title">Monatliche Entwicklung</div>
+                <div class="chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="full-width chart-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="chart-title">🕸️ Netzwerk-Visualisierung: Clown ↔ Einrichtung Zuordnungen</div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="toggleLayout" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        📊 Zweireihig
+                    </button>
+                    <button id="resetView" style="padding: 8px 15px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+            <div id="networkGraph">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e74c3c;"></div>
+                        <span>Clowns</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3498db;"></div>
+                        <span>Einrichtungen</span>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Linienstärke = Anzahl Einsätze
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Daten aus Template
+        const DASHBOARD_DATA = {
+            einrichtungen: {{ einrichtungen | tojson }},
+            clowns: {{ clowns | tojson }},
+            monatliche_erfuellung: {{ monatliche_erfuellung | tojson }},
+            netzwerk_nodes: {{ netzwerk_nodes | tojson }},
+            netzwerk_links: {{ netzwerk_links | tojson }}
+        };
+
+        // Überprüfung ob Libraries geladen sind
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js nicht geladen');
+        }
+        if (typeof d3 === 'undefined') {
+            console.error('D3.js nicht geladen');
+        }
+
+        console.log('Dashboard-Daten:', DASHBOARD_DATA);
+
+        // Prüfe ob Daten vorhanden sind
+        if (!DASHBOARD_DATA.einrichtungen || DASHBOARD_DATA.einrichtungen.length === 0) {
+            console.warn('Keine Einrichtungsdaten verfügbar');
+        }
+
+        // Erfüllungsraten Chart
+        try {
+            const ctx1 = document.getElementById('erfuellungsChart').getContext('2d');
+            const einrichtungsLabels = DASHBOARD_DATA.einrichtungen.map(e => 
+                e.name.length > 15 ? e.name.substring(0, 15) + '...' : e.name
+            );
+            const erfuellungsraten = DASHBOARD_DATA.einrichtungen.map(e => e.erfuellungsrate);
+            
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: einrichtungsLabels,
+                    datasets: [{
+                        label: 'Erfüllungsrate (%)',
+                        data: erfuellungsraten,
+                        backgroundColor: 'rgba(255, 107, 107, 0.8)',
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const detail = DASHBOARD_DATA.einrichtungen[context.dataIndex];
+                                    return [
+                                        `Geplant: ${detail.geplant}`,
+                                        `Durchgeführt: ${detail.durchgefuehrt}`,
+                                        `Ausfälle: ${detail.ausfaelle}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: { maxRotation: 45 }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Fehler bei Erfüllungsraten Chart:", error);
+        }
+
+        // Stapelbalken Chart
+        try {
+            const ctx1b = document.getElementById('stapelChart').getContext('2d');
+            new Chart(ctx1b, {
+                type: 'bar',
+                data: {
+                    labels: einrichtungsLabels,
+                    datasets: [{
+                        label: 'Durchgeführt',
+                        data: DASHBOARD_DATA.einrichtungen.map(e => e.durchgefuehrt),
+                        backgroundColor: 'rgba(46, 204, 113, 0.8)',
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Ausgefallen',
+                        data: DASHBOARD_DATA.einrichtungen.map(e => e.ausfaelle),
+                        backgroundColor: 'rgba(231, 76, 60, 0.8)',
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                        x: { stacked: true, ticks: { maxRotation: 45 } },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Fehler bei Stapel Chart:", error);
+        }
+
+        // Clown Einsätze Chart
+        try {
+            const ctx2 = document.getElementById('clownChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: DASHBOARD_DATA.clowns.map(c => c.name),
+                    datasets: [{
+                        label: 'Anzahl Einsätze',
+                        data: DASHBOARD_DATA.clowns.map(c => c.einsaetze),
+                        backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        } catch (error) {
+            console.error("Fehler bei Clown Chart:", error);
+        }
+
+        // Monatliche Entwicklung
+        try {
+            const ctx3 = document.getElementById('monthlyChart').getContext('2d');
+            new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.monat),
+                    datasets: [{
+                        label: 'Erfüllungsrate (%)',
+                        data: DASHBOARD_DATA.monatliche_erfuellung.map(m => m.rate),
+                        borderColor: 'rgba(255, 206, 84, 1)',
+                        backgroundColor: 'rgba(255, 206, 84, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Fehler bei Monthly Chart:", error);
+        }
+
+        // Netzwerk-Visualisierung mit D3.js
+        const networkData = {
+            nodes: DASHBOARD_DATA.netzwerk_nodes,
+            links: DASHBOARD_DATA.netzwerk_links
+        };
+
+        console.log('Netzwerk-Daten:', networkData);
+
+        try {
+            const svg = d3.select("#networkGraph")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", "0 0 1300 600");
+
+            const width = 1300;
+            const height = 600;
+            let currentLayout = 'weighted';
+
+            // Node-Größen berechnen
+            const nodeData = networkData.nodes.map(d => ({
+                ...d,
+                radius: d.type === "clown" ? 
+                    Math.max(15, Math.min(30, Math.sqrt(d.einsaetze || 10) * 1.8)) : 
+                    22
+            }));
+
+            let simulation, link, node, labels;
+
+            function initializeWeightedLayout() {
+                simulation = d3.forceSimulation(nodeData)
+                    .force("link", d3.forceLink(networkData.links)
+                        .id(d => d.id)
+                        .distance(d => Math.max(80, 200 - d.weight * 1.5))
+                        .strength(0.8)
+                    )
+                    .force("charge", d3.forceManyBody()
+                        .strength(-800)
+                        .distanceMin(50)
+                        .distanceMax(400)
+                    )
+                    .force("center", d3.forceCenter(width / 2, height / 2))
+                    .force("collision", d3.forceCollide()
+                        .radius(d => d.radius + 8)
+                        .strength(0.9)
+                        .iterations(3)
+                    )
+                    .force("x", d3.forceX(width / 2).strength(0.1))
+                    .force("y", d3.forceY(height / 2).strength(0.1));
+            }
+
+            function initializeBipartiteLayout() {
+                const clowns = nodeData.filter(d => d.type === "clown");
+                const einrichtungen = nodeData.filter(d => d.type === "einrichtung");
+                
+                clowns.forEach((d, i) => {
+                    d.fx = (width / (clowns.length + 1)) * (i + 1);
+                    d.fy = height * 0.25;
+                });
+                
+                einrichtungen.forEach((d, i) => {
+                    d.fx = (width / (einrichtungen.length + 1)) * (i + 1);
+                    d.fy = height * 0.75;
+                });
+
+                simulation = d3.forceSimulation(nodeData)
+                    .force("link", d3.forceLink(networkData.links)
+                        .id(d => d.id)
+                        .distance(d => Math.max(100, 300 - d.weight * 2))
+                        .strength(0.5)
+                    )
+                    .force("collision", d3.forceCollide()
+                        .radius(d => d.radius + 5)
+                        .strength(0.7)
+                    );
+            }
+
+            function createElements() {
+                // Links
+                link = svg.append("g")
+                    .attr("class", "links")
+                    .selectAll("line")
+                    .data(networkData.links)
+                    .enter().append("line")
+                    .style("stroke", "#95a5a6")
+                    .style("stroke-opacity", d => Math.min(0.9, Math.max(0.3, d.weight / 25)))
+                    .style("stroke-width", d => Math.max(1.5, Math.min(6, d.weight / 4)))
+                    .style("stroke-linecap", "round");
+
+                // Nodes
+                node = svg.append("g")
+                    .attr("class", "nodes")
+                    .selectAll("circle")
+                    .data(nodeData)
+                    .enter().append("circle")
+                    .attr("r", d => d.radius)
+                    .style("fill", d => d.type === "clown" ? "#e74c3c" : "#3498db")
+                    .style("stroke", d => d.type === "clown" ? "#c0392b" : "#2980b9")
+                    .style("stroke-width", "3px")
+                    .style("cursor", "grab")
+                    .call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+
+                // Labels
+                labels = svg.append("g")
+                    .attr("class", "labels")
+                    .selectAll("text")
+                    .data(nodeData)
+                    .enter().append("text")
+                    .style("font-family", "Arial, sans-serif")
+                    .style("font-size", d => d.type === "clown" ? "12px" : "11px")
+                    .style("font-weight", d => d.type === "clown" ? "bold" : "normal")
+                    .style("fill", "#2c3e50")
+                    .style("text-anchor", "middle")
+                    .style("pointer-events", "none")
+                    .style("user-select", "none")
+                    .text(d => {
+                        const name = d.id;
+                        return name.length > 15 ? name.substring(0, 12) + '...' : name;
+                    });
+
+                // Tooltips
+                node.append("title")
+                    .text(d => {
+                        if (d.type === "clown") {
+                            return `${d.id}\n${d.einsaetze} Gesamteinsätze`;
+                        } else {
+                            const clownCount = networkData.links.filter(link => 
+                                link.target === d.id || link.target.id === d.id).length;
+                            return `${d.id}\n${clownCount} zugeordnete Clowns`;
+                        }
+                    });
+
+                // Hover-Effekte
+                node.on("mouseenter", function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .style("stroke-width", "5px")
+                        .attr("r", d => d.radius * 1.1);
+
+                    link.style("stroke-opacity", l => 
+                        (l.source === d || l.target === d) ? 1 : 0.1
+                    );
+                })
+                .on("mouseleave", function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .style("stroke-width", "3px")
+                        .attr("r", d => d.radius);
+
+                    link.style("stroke-opacity", l => 
+                        Math.min(0.9, Math.max(0.3, l.weight / 25))
+                    );
+                });
+            }
+
+            function ticked() {
+                if (currentLayout === 'weighted') {
+                    node.each(d => {
+                        d.x = Math.max(d.radius + 10, Math.min(width - d.radius - 10, d.x));
+                        d.y = Math.max(d.radius + 10, Math.min(height - d.radius - 10, d.y));
+                    });
+                }
+
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                labels
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y + 5);
+            }
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                if (currentLayout === 'weighted') {
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+                d3.select(this).style("cursor", "grabbing");
+            }
+
+            function dragged(event, d) {
+                if (currentLayout === 'weighted') {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                } else {
+                    d.fx = event.x;
+                }
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                if (currentLayout === 'weighted') {
+                    d.fx = null;
+                    d.fy = null;
+                }
+                d3.select(this).style("cursor", "grab");
+            }
+
+            function switchLayout() {
+                const button = document.getElementById('toggleLayout');
+                
+                if (currentLayout === 'weighted') {
+                    currentLayout = 'bipartite';
+                    button.textContent = '🕸️ Gewichtet';
+                    button.style.background = '#e74c3c';
+                    
+                    nodeData.forEach(d => {
+                        d.fx = null;
+                        d.fy = null;
+                    });
+                    
+                    simulation.stop();
+                    initializeBipartiteLayout();
+                    simulation.on("tick", ticked);
+                    simulation.alpha(0.8).restart();
+                    
+                } else {
+                    currentLayout = 'weighted';
+                    button.textContent = '📊 Zweireihig';
+                    button.style.background = '#3498db';
+                    
+                    nodeData.forEach(d => {
+                        d.fx = null;
+                        d.fy = null;
+                    });
+                    
+                    simulation.stop();
+                    initializeWeightedLayout();
+                    simulation.on("tick", ticked);
+                    simulation.alpha(0.8).restart();
+                }
+            }
+
+            function resetView() {
+                nodeData.forEach(d => {
+                    d.fx = null;
+                    d.fy = null;
+                });
+                simulation.alpha(0.8).restart();
+            }
+
+            // Event Listeners
+            document.getElementById('toggleLayout').addEventListener('click', switchLayout);
+            document.getElementById('resetView').addEventListener('click', resetView);
+
+            // Initial Setup
+            if (nodeData.length > 0 && networkData.links.length > 0) {
+                createElements();
+                initializeWeightedLayout();
+                simulation.on("tick", ticked);
+            } else {
+                // Fallback wenn keine Netzwerk-Daten
+                svg.append("text")
+                    .attr("x", width / 2)
+                    .attr("y", height / 2)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "18px")
+                    .style("fill", "#666")
+                    .text("Keine Netzwerk-Daten verfügbar");
+            }
+
+        } catch (error) {
+            console.error("Fehler bei Netzwerk-Visualisierung:", error);
+            document.querySelector("#networkGraph").innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                    <div style="text-align: center;">
+                        <h3>Netzwerk-Visualisierung</h3>
+                        <p>Fehler beim Laden der D3.js Visualisierung</p>
+                        <p>Clowns und Einrichtungen sind über ${networkData.links.length} Verbindungen verknüpft</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

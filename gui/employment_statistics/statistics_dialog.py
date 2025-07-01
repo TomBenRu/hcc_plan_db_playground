@@ -20,7 +20,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QFont
 
 from employment_statistics.service import EmploymentStatisticsService, EmploymentStatistics
-from employment_statistics.dashboard.service import DashboardService
+from employment_statistics.dashboard.service import DashboardService, DashboardData
 from employment_statistics.utils import (
     format_statistics_summary, get_top_employees, get_top_locations,
     calculate_distribution_percentages, group_employees_by_assignment_range,
@@ -568,7 +568,7 @@ Arbeitsverteilung:
         
         export_dialog.exec_()
 
-    def render_dashboard(self) -> str:
+    def render_dashboard(self) -> tuple[str, DashboardData]:
         """Rendert das Dashboard"""
         # Parameter holen
         start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
@@ -623,9 +623,9 @@ Arbeitsverteilung:
             'total_geplante_termine': dashboard_data_standard.total_geplante_termine,
             'total_durchgefuehrte_termine': dashboard_data_standard.total_durchgefuehrte_termine,
             'termine_erfuellung': dashboard_data_standard.termine_erfuellung,
-            'einrichtungen': [e.dict() for e in dashboard_data_standard.einrichtungen],
-            'clowns': [c.dict() for c in dashboard_data_standard.clowns],
-            'monatliche_erfuellung': [m.dict() for m in dashboard_data_standard.monatliche_erfuellung],
+            'einrichtungen': [e.model_dump() for e in dashboard_data_standard.einrichtungen],
+            'clowns': [c.model_dump() for c in dashboard_data_standard.clowns],
+            'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_standard.monatliche_erfuellung],
             'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
             'netzwerk_links': dashboard_data_standard.netzwerk_links,
 
@@ -639,9 +639,9 @@ Arbeitsverteilung:
                 'total_geplante_termine': dashboard_data_with_zero_cast.total_geplante_termine,
                 'total_durchgefuehrte_termine': dashboard_data_with_zero_cast.total_durchgefuehrte_termine,
                 'termine_erfuellung': dashboard_data_with_zero_cast.termine_erfuellung,
-                'einrichtungen': [e.dict() for e in dashboard_data_with_zero_cast.einrichtungen],
-                'clowns': [c.dict() for c in dashboard_data_with_zero_cast.clowns],
-                'monatliche_erfuellung': [m.dict() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
+                'einrichtungen': [e.model_dump() for e in dashboard_data_with_zero_cast.einrichtungen],
+                'clowns': [c.model_dump() for c in dashboard_data_with_zero_cast.clowns],
+                'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
                 'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
                 'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links
             },
@@ -654,12 +654,12 @@ Arbeitsverteilung:
             'now': datetime.datetime.now()
         }
 
-        return template.render(**template_vars)
+        return template.render(**template_vars), dashboard_data_standard
 
     def open_dashboard(self):
         """Öffnet das interaktive Dashboard im Browser"""
         try:
-            rendered_html = self.render_dashboard()
+            rendered_html, _ = self.render_dashboard()
             # Temporäre HTML-Datei erstellen
             with tempfile.NamedTemporaryFile(
                 mode='w', 
@@ -687,10 +687,14 @@ Arbeitsverteilung:
     def save_dashboard(self):
         """Speichert das Dashboard als HTML-Datei"""
         try:
-            rendered_html = self.render_dashboard()
+            rendered_html, dashboard_data = self.render_dashboard()
             # Verwende den konfigurierten Excel-Output-Pfad
             from configuration.project_paths import curr_user_path_handler
-            save_path = os.path.join(curr_user_path_handler.get_config().excel_output_path, 'dashboard.html')
+            start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
+            project_name, team_name, start_date, end_date = (dashboard_data.project_name, dashboard_data.team_name,
+                                                             dashboard_data.zeitraum_start, dashboard_data.zeitraum_ende)
+            file_name = f'Statistics_{project_name}{"_" + team_name if team_name else ""}_{start_date}_{end_date}.html'
+            save_path = os.path.join(curr_user_path_handler.get_config().excel_output_path, file_name)
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Dashboard speichern",

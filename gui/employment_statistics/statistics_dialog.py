@@ -13,12 +13,11 @@ from typing import Optional
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTabWidget, QWidget, QLabel,
-    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QTextEdit,
-    QSplitter, QGroupBox, QProgressBar, QMessageBox, QApplication,
-    QFrame, QScrollArea
+    QTableWidget, QTableWidgetItem, QPushButton, QTextEdit, QFileDialog,
+    QSplitter, QGroupBox, QProgressBar, QMessageBox, QScrollArea
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QFont, QPixmap, QPainter, QPen, QBrush
+from PySide6.QtGui import QFont
 
 from employment_statistics.service import EmploymentStatisticsService, EmploymentStatistics
 from employment_statistics.dashboard.service import DashboardService
@@ -326,6 +325,9 @@ class EmploymentStatisticsDialog(QDialog):
         self.btn_dashboard = QPushButton("🎭 Dashboard")
         self.btn_dashboard.setEnabled(False)
         self.btn_dashboard.setToolTip("Öffnet interaktives Dashboard im Browser")
+        self.btn_save_dashboard = QPushButton("💾 Dashboard speichern")
+        self.btn_save_dashboard.setEnabled(False)
+        self.btn_save_dashboard.setToolTip("Speichert das Dashboard als HTML-Datei")
         
         self.btn_export = QPushButton("Exportieren...")
         self.btn_export.setEnabled(False)
@@ -334,6 +336,7 @@ class EmploymentStatisticsDialog(QDialog):
         
         button_layout.addWidget(self.btn_refresh)
         button_layout.addWidget(self.btn_dashboard)
+        button_layout.addWidget(self.btn_save_dashboard)
         button_layout.addWidget(self.btn_export)
         button_layout.addStretch()
         button_layout.addWidget(self.btn_close)
@@ -346,6 +349,7 @@ class EmploymentStatisticsDialog(QDialog):
         
         self.btn_refresh.clicked.connect(self.load_statistics)
         self.btn_dashboard.clicked.connect(self.open_dashboard)
+        self.btn_save_dashboard.clicked.connect(self.save_dashboard)
         self.btn_export.clicked.connect(self.export_statistics)
         self.btn_close.clicked.connect(self.close)
 
@@ -356,6 +360,9 @@ class EmploymentStatisticsDialog(QDialog):
             description = self.date_range_widget.get_selection_description()
             self.selection_info_label.setText(f"Gewählter Bereich: {description}")
             self.btn_refresh.setEnabled(True)
+            self.btn_dashboard.setEnabled(True)
+            self.btn_save_dashboard.setEnabled(True)
+            self.btn_export.setEnabled(True)
             
             # Auto-Update mit Verzögerung starten
             self.update_timer.start(1000)  # 1 Sekunde Verzögerung
@@ -363,6 +370,9 @@ class EmploymentStatisticsDialog(QDialog):
             self.selection_info_label.setText("Bitte wählen Sie einen gültigen Zeitraum und Kontext aus.")
             self.btn_refresh.setEnabled(False)
             self.stats_tabs.setEnabled(False)
+            self.btn_dashboard.setEnabled(False)
+            self.btn_save_dashboard.setEnabled(False)
+            self.btn_export.setEnabled(False)
 
     def load_statistics(self):
         """Lädt die Statistiken"""
@@ -391,6 +401,7 @@ class EmploymentStatisticsDialog(QDialog):
         self.progress_bar.setVisible(False)
         self.btn_refresh.setEnabled(True)
         self.btn_dashboard.setEnabled(True)
+        self.btn_save_dashboard.setEnabled(True)
         self.btn_export.setEnabled(True)
         self.stats_tabs.setEnabled(True)
         
@@ -557,103 +568,98 @@ Arbeitsverteilung:
         
         export_dialog.exec_()
 
-    def open_dashboard(self):
-        """Öffnet das interaktive Dashboard im Browser"""
-        if not self.date_range_widget.is_valid_selection():
-            QMessageBox.warning(
+    def render_dashboard(self) -> str:
+        """Rendert das Dashboard"""
+        # Parameter holen
+        start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
+
+        # Dashboard-Daten laden - BEIDE Modi für Client-seitiges Umschalten
+        dashboard_data_standard = DashboardService.get_dashboard_data(
+            start_date=start_date,
+            end_date=end_date,
+            team_id=team_id,
+            project_id=project_id,
+            include_zero_cast_events=False
+        )
+
+        dashboard_data_with_zero_cast = DashboardService.get_dashboard_data(
+            start_date=start_date,
+            end_date=end_date,
+            team_id=team_id,
+            project_id=project_id,
+            include_zero_cast_events=True
+        )
+
+        # HTML-Template laden und rendern
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            '..', '..',
+            'employment_statistics', 'dashboard', 'template.html'
+        )
+
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+        except FileNotFoundError:
+            QMessageBox.critical(
                 self,
-                "Ungültige Auswahl",
-                "Bitte wählen Sie einen gültigen Zeitraum und Kontext aus."
+                "Template nicht gefunden",
+                f"Dashboard-Template nicht gefunden:\n{template_path}"
             )
             return
-            
+
+        # Jinja2-Template rendern
+        from jinja2 import Template
+        template = Template(template_content)
+
+        # Template-Variablen - Standard-Daten (besetzte Termine) + Alternative (alle Termine)
+        template_vars = {
+            # Standard Dashboard-Daten (nur besetzte Termine)
+            'aktive_clowns': dashboard_data_standard.aktive_clowns,
+            'einrichtungen_count': dashboard_data_standard.einrichtungen_count,
+            'total_geplante_mitarbeiter': dashboard_data_standard.total_geplante_mitarbeiter,
+            'total_durchgefuehrte_mitarbeiter': dashboard_data_standard.total_durchgefuehrte_mitarbeiter,
+            'mitarbeiter_erfuellung': dashboard_data_standard.mitarbeiter_erfuellung,
+            'total_geplante_termine': dashboard_data_standard.total_geplante_termine,
+            'total_durchgefuehrte_termine': dashboard_data_standard.total_durchgefuehrte_termine,
+            'termine_erfuellung': dashboard_data_standard.termine_erfuellung,
+            'einrichtungen': [e.dict() for e in dashboard_data_standard.einrichtungen],
+            'clowns': [c.dict() for c in dashboard_data_standard.clowns],
+            'monatliche_erfuellung': [m.dict() for m in dashboard_data_standard.monatliche_erfuellung],
+            'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
+            'netzwerk_links': dashboard_data_standard.netzwerk_links,
+
+            # Alternative Dashboard-Daten (alle Termine inkl. Zero-Cast)
+            'zero_cast_data': {
+                'aktive_clowns': dashboard_data_with_zero_cast.aktive_clowns,
+                'einrichtungen_count': dashboard_data_with_zero_cast.einrichtungen_count,
+                'total_geplante_mitarbeiter': dashboard_data_with_zero_cast.total_geplante_mitarbeiter,
+                'total_durchgefuehrte_mitarbeiter': dashboard_data_with_zero_cast.total_durchgefuehrte_mitarbeiter,
+                'mitarbeiter_erfuellung': dashboard_data_with_zero_cast.mitarbeiter_erfuellung,
+                'total_geplante_termine': dashboard_data_with_zero_cast.total_geplante_termine,
+                'total_durchgefuehrte_termine': dashboard_data_with_zero_cast.total_durchgefuehrte_termine,
+                'termine_erfuellung': dashboard_data_with_zero_cast.termine_erfuellung,
+                'einrichtungen': [e.dict() for e in dashboard_data_with_zero_cast.einrichtungen],
+                'clowns': [c.dict() for c in dashboard_data_with_zero_cast.clowns],
+                'monatliche_erfuellung': [m.dict() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
+                'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
+                'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links
+            },
+
+            # Meta-Informationen (verwende Standard-Daten)
+            'zeitraum_start': dashboard_data_standard.zeitraum_start,
+            'zeitraum_ende': dashboard_data_standard.zeitraum_ende,
+            'team_name': dashboard_data_standard.team_name,
+            'project_name': dashboard_data_standard.project_name,
+            'now': datetime.datetime.now()
+        }
+
+        return template.render(**template_vars)
+
+    def open_dashboard(self):
+        """Öffnet das interaktive Dashboard im Browser"""
         try:
-            # Parameter holen
-            start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
-            
-            # Dashboard-Daten laden - BEIDE Modi für Client-seitiges Umschalten
-            dashboard_data_standard = DashboardService.get_dashboard_data(
-                start_date=start_date,
-                end_date=end_date,
-                team_id=team_id,
-                project_id=project_id,
-                include_zero_cast_events=False
-            )
-            
-            dashboard_data_with_zero_cast = DashboardService.get_dashboard_data(
-                start_date=start_date,
-                end_date=end_date,
-                team_id=team_id,
-                project_id=project_id,
-                include_zero_cast_events=True
-            )
-            
-            # HTML-Template laden und rendern
-            template_path = os.path.join(
-                os.path.dirname(__file__), 
-                '..', '..',
-                'employment_statistics', 'dashboard', 'template.html'
-            )
-            
-            try:
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
-            except FileNotFoundError:
-                QMessageBox.critical(
-                    self,
-                    "Template nicht gefunden",
-                    f"Dashboard-Template nicht gefunden:\n{template_path}"
-                )
-                return
-            
-            # Jinja2-Template rendern
-            from jinja2 import Template
-            template = Template(template_content)
-            
-            # Template-Variablen - Standard-Daten (besetzte Termine) + Alternative (alle Termine)
-            template_vars = {
-                # Standard Dashboard-Daten (nur besetzte Termine)
-                'aktive_clowns': dashboard_data_standard.aktive_clowns,
-                'einrichtungen_count': dashboard_data_standard.einrichtungen_count,
-                'total_geplante_mitarbeiter': dashboard_data_standard.total_geplante_mitarbeiter,
-                'total_durchgefuehrte_mitarbeiter': dashboard_data_standard.total_durchgefuehrte_mitarbeiter,
-                'mitarbeiter_erfuellung': dashboard_data_standard.mitarbeiter_erfuellung,
-                'total_geplante_termine': dashboard_data_standard.total_geplante_termine,
-                'total_durchgefuehrte_termine': dashboard_data_standard.total_durchgefuehrte_termine,
-                'termine_erfuellung': dashboard_data_standard.termine_erfuellung,
-                'einrichtungen': [e.dict() for e in dashboard_data_standard.einrichtungen],
-                'clowns': [c.dict() for c in dashboard_data_standard.clowns],
-                'monatliche_erfuellung': [m.dict() for m in dashboard_data_standard.monatliche_erfuellung],
-                'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
-                'netzwerk_links': dashboard_data_standard.netzwerk_links,
-                
-                # Alternative Dashboard-Daten (alle Termine inkl. Zero-Cast)
-                'zero_cast_data': {
-                    'aktive_clowns': dashboard_data_with_zero_cast.aktive_clowns,
-                    'einrichtungen_count': dashboard_data_with_zero_cast.einrichtungen_count,
-                    'total_geplante_mitarbeiter': dashboard_data_with_zero_cast.total_geplante_mitarbeiter,
-                    'total_durchgefuehrte_mitarbeiter': dashboard_data_with_zero_cast.total_durchgefuehrte_mitarbeiter,
-                    'mitarbeiter_erfuellung': dashboard_data_with_zero_cast.mitarbeiter_erfuellung,
-                    'total_geplante_termine': dashboard_data_with_zero_cast.total_geplante_termine,
-                    'total_durchgefuehrte_termine': dashboard_data_with_zero_cast.total_durchgefuehrte_termine,
-                    'termine_erfuellung': dashboard_data_with_zero_cast.termine_erfuellung,
-                    'einrichtungen': [e.dict() for e in dashboard_data_with_zero_cast.einrichtungen],
-                    'clowns': [c.dict() for c in dashboard_data_with_zero_cast.clowns],
-                    'monatliche_erfuellung': [m.dict() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
-                    'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
-                    'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links
-                },
-                
-                # Meta-Informationen (verwende Standard-Daten)
-                'zeitraum_start': dashboard_data_standard.zeitraum_start,
-                'zeitraum_ende': dashboard_data_standard.zeitraum_ende,
-                'team_name': dashboard_data_standard.team_name,
-                'project_name': dashboard_data_standard.project_name,
-                'now': datetime.datetime.now()
-            }
-            
-            rendered_html = template.render(**template_vars)
-            
+            rendered_html = self.render_dashboard()
             # Temporäre HTML-Datei erstellen
             with tempfile.NamedTemporaryFile(
                 mode='w', 
@@ -676,6 +682,27 @@ Arbeitsverteilung:
                 self,
                 "Dashboard-Fehler",
                 f"Das Dashboard konnte nicht geöffnet werden:\n\n{str(e)}"
+            )
+
+    def save_dashboard(self):
+        """Speichert das Dashboard als HTML-Datei"""
+        try:
+            rendered_html = self.render_dashboard()
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Dashboard speichern",
+                "",
+                "HTML-Dateien (*.html)"
+            )
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(rendered_html)
+        except Exception as e:
+            logger.exception("Dashboard-Fehler:")
+            QMessageBox.critical(
+                self,
+                "Dashboard-Fehler",
+                f"Das Dashboard konnte nicht gespeichert werden:\n\n{str(e)}"
             )
 
     def _cleanup_temp_file(self, file_path: str):

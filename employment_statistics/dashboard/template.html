@@ -697,19 +697,16 @@
                         },
                         tooltip: {
                             callbacks: {
+                                title: function(context) {
+                                    // Zeige Monat als Titel
+                                    const monthData = currentData.monatliche_erfuellung[context[0].dataIndex];
+                                    return `📅 ${monthData.monat}`;
+                                },
                                 label: function(context) {
+                                    // Zeige nur die aktuelle Linie (über die gehovert wird)
                                     const datasetLabel = context.dataset.label;
                                     const value = context.parsed.y.toFixed(1);
                                     return `${datasetLabel}: ${value}%`;
-                                },
-                                afterLabel: function(context) {
-                                    const monthData = currentData.monatliche_erfuellung[context.dataIndex];
-                                    return [
-                                        ``,
-                                        `Monat: ${monthData.monat}`,
-                                        `Mitarbeiter-Einsätze: ${monthData.mitarbeiter_rate.toFixed(1)}%`,
-                                        `Termine: ${monthData.termine_rate.toFixed(1)}%`
-                                    ];
                                 }
                             }
                         }

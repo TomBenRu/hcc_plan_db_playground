@@ -688,15 +688,23 @@ Arbeitsverteilung:
         """Speichert das Dashboard als HTML-Datei"""
         try:
             rendered_html = self.render_dashboard()
+            # Verwende den konfigurierten Excel-Output-Pfad
+            from configuration.project_paths import curr_user_path_handler
+            save_path = os.path.join(curr_user_path_handler.get_config().excel_output_path, 'dashboard.html')
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Dashboard speichern",
-                "",
+                save_path,
                 "HTML-Dateien (*.html)"
             )
             if file_path:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(rendered_html)
+                QMessageBox.information(
+                    self,
+                    "Dashboard gespeichert",
+                    f"Das Dashboard wurde erfolgreich unter\n{file_path}\ngespeichert."
+                )
         except Exception as e:
             logger.exception("Dashboard-Fehler:")
             QMessageBox.critical(

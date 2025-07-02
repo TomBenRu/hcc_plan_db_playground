@@ -235,7 +235,7 @@
                 font-size: 12px;
                 font-weight: bold;
             ">
-                📋 Nur besetzte Termine
+                📋 Termine excl. abgesageter Termine
             </button>
         </div>
         
@@ -355,7 +355,7 @@
     </div>
 
     <script>
-        // Daten aus Template - Standard (nur besetzte Termine) + Zero-Cast (alle Termine)
+        // Daten aus Template - Standard (Termine excl. abgesageter Termine) + Zero-Cast (alle Termine)
         const DASHBOARD_DATA = {
             standard: {
                 einrichtungen: {{ einrichtungen | tojson }},
@@ -1112,11 +1112,11 @@
             if (includeZeroCastEvents) {
                 button.textContent = '📋 Alle Termine';
                 button.style.background = '#e74c3c';
-                button.title = 'Klicken um nur besetzte Termine anzuzeigen';
+                button.title = 'Klicken um Termine excl. abgesageter Termine anzuzeigen';
             } else {
-                button.textContent = '📋 Nur besetzte Termine';
+                button.textContent = '📋 Termine excl. abgesageter Termine';
                 button.style.background = '#3498db';
-                button.title = 'Klicken um alle Termine (inkl. unbesetzte) anzuzeigen';
+                button.title = 'Klicken um alle Termine (inkl. abgesagter Termine) anzuzeigen';
             }
             
             // Update Summary Cards
@@ -1125,7 +1125,7 @@
             // Alle Charts mit neuen Daten neu erstellen
             createAllCharts();
             
-            console.log('Dashboard-Modus geändert zu:', includeZeroCastEvents ? 'Alle Termine (inkl. Zero-Cast)' : 'Nur besetzte Termine');
+            console.log('Dashboard-Modus geändert zu:', includeZeroCastEvents ? 'Alle Termine (inkl. Zero-Cast)' : 'Termine excl. abgesageter Termine');
             console.log('Charts aktualisiert mit neuen Daten:', currentData.summary);
         }
 
@@ -1220,15 +1220,15 @@
 
         function reloadDashboardWithMode() {
             // Nicht mehr benötigt - lokales Umschalten ohne Reload
-            console.log('Dashboard-Modus geändert:', includeZeroCastEvents ? 'Alle Termine' : 'Nur besetzte Termine');
+            console.log('Dashboard-Modus geändert:', includeZeroCastEvents ? 'Alle Termine' : 'Termine excl. abgesageter Termine');
         }
 
         // Initial state - verwende Standard-Daten
         function initializeZeroCastMode() {
             const button = document.getElementById('toggleZeroCastEvents');
-            button.textContent = '📋 Nur besetzte Termine';
+            button.textContent = '📋 Termine excl. abgesageter Termine';
             button.style.background = '#3498db';
-            button.title = 'Klicken um alle Termine (inkl. unbesetzte) anzuzeigen';
+            button.title = 'Klicken um alle Termine (inkl. abgesagter Termine) anzuzeigen';
         }
 
         // Initialisiere Zero-Cast Modus beim Laden der Seite

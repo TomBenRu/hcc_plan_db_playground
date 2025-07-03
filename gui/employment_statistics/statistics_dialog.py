@@ -573,13 +573,14 @@ Arbeitsverteilung:
         # Parameter holen
         start_date, end_date, team_id, project_id = self.date_range_widget.get_selection()
 
-        # Dashboard-Daten laden - BEIDE Modi für Client-seitiges Umschalten
+        # Dashboard-Daten laden - ALLE 4 Modi für Client-seitiges Umschalten
         dashboard_data_standard = DashboardService.get_dashboard_data(
             start_date=start_date,
             end_date=end_date,
             team_id=team_id,
             project_id=project_id,
-            include_zero_cast_events=False
+            include_zero_cast_events=False,
+            include_guests=False
         )
 
         dashboard_data_with_zero_cast = DashboardService.get_dashboard_data(
@@ -587,7 +588,26 @@ Arbeitsverteilung:
             end_date=end_date,
             team_id=team_id,
             project_id=project_id,
-            include_zero_cast_events=True
+            include_zero_cast_events=True,
+            include_guests=False
+        )
+
+        dashboard_data_with_guests = DashboardService.get_dashboard_data(
+            start_date=start_date,
+            end_date=end_date,
+            team_id=team_id,
+            project_id=project_id,
+            include_zero_cast_events=False,
+            include_guests=True
+        )
+
+        dashboard_data_with_zero_cast_and_guests = DashboardService.get_dashboard_data(
+            start_date=start_date,
+            end_date=end_date,
+            team_id=team_id,
+            project_id=project_id,
+            include_zero_cast_events=True,
+            include_guests=True
         )
 
         # HTML-Template laden und rendern
@@ -612,9 +632,9 @@ Arbeitsverteilung:
         from jinja2 import Template
         template = Template(template_content)
 
-        # Template-Variablen - Standard-Daten (besetzte Termine) + Alternative (alle Termine)
+        # Template-Variablen - Alle 4 Modi: (Standard/Zero-Cast) × (ohne/mit Gäste)
         template_vars = {
-            # Standard Dashboard-Daten (nur besetzte Termine)
+            # Standard Dashboard-Daten (nur besetzte Termine, ohne Gäste)
             'aktive_clowns': dashboard_data_standard.aktive_clowns,
             'einrichtungen_count': dashboard_data_standard.einrichtungen_count,
             'total_geplante_mitarbeiter': dashboard_data_standard.total_geplante_mitarbeiter,
@@ -629,7 +649,7 @@ Arbeitsverteilung:
             'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
             'netzwerk_links': dashboard_data_standard.netzwerk_links,
 
-            # Alternative Dashboard-Daten (alle Termine inkl. Zero-Cast)
+            # Zero-Cast Dashboard-Daten (alle Termine inkl. Zero-Cast, ohne Gäste)
             'zero_cast_data': {
                 'aktive_clowns': dashboard_data_with_zero_cast.aktive_clowns,
                 'einrichtungen_count': dashboard_data_with_zero_cast.einrichtungen_count,
@@ -644,6 +664,40 @@ Arbeitsverteilung:
                 'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
                 'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
                 'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links
+            },
+
+            # Gäste Dashboard-Daten (nur besetzte Termine, mit Gästen)
+            'guests_data': {
+                'aktive_clowns': dashboard_data_with_guests.aktive_clowns,
+                'einrichtungen_count': dashboard_data_with_guests.einrichtungen_count,
+                'total_geplante_mitarbeiter': dashboard_data_with_guests.total_geplante_mitarbeiter,
+                'total_durchgefuehrte_mitarbeiter': dashboard_data_with_guests.total_durchgefuehrte_mitarbeiter,
+                'mitarbeiter_erfuellung': dashboard_data_with_guests.mitarbeiter_erfuellung,
+                'total_geplante_termine': dashboard_data_with_guests.total_geplante_termine,
+                'total_durchgefuehrte_termine': dashboard_data_with_guests.total_durchgefuehrte_termine,
+                'termine_erfuellung': dashboard_data_with_guests.termine_erfuellung,
+                'einrichtungen': [e.model_dump() for e in dashboard_data_with_guests.einrichtungen],
+                'clowns': [c.model_dump() for c in dashboard_data_with_guests.clowns],
+                'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_guests.monatliche_erfuellung],
+                'netzwerk_nodes': dashboard_data_with_guests.netzwerk_nodes,
+                'netzwerk_links': dashboard_data_with_guests.netzwerk_links
+            },
+
+            # Zero-Cast + Gäste Dashboard-Daten (alle Termine + mit Gästen)
+            'zero_cast_guests_data': {
+                'aktive_clowns': dashboard_data_with_zero_cast_and_guests.aktive_clowns,
+                'einrichtungen_count': dashboard_data_with_zero_cast_and_guests.einrichtungen_count,
+                'total_geplante_mitarbeiter': dashboard_data_with_zero_cast_and_guests.total_geplante_mitarbeiter,
+                'total_durchgefuehrte_mitarbeiter': dashboard_data_with_zero_cast_and_guests.total_durchgefuehrte_mitarbeiter,
+                'mitarbeiter_erfuellung': dashboard_data_with_zero_cast_and_guests.mitarbeiter_erfuellung,
+                'total_geplante_termine': dashboard_data_with_zero_cast_and_guests.total_geplante_termine,
+                'total_durchgefuehrte_termine': dashboard_data_with_zero_cast_and_guests.total_durchgefuehrte_termine,
+                'termine_erfuellung': dashboard_data_with_zero_cast_and_guests.termine_erfuellung,
+                'einrichtungen': [e.model_dump() for e in dashboard_data_with_zero_cast_and_guests.einrichtungen],
+                'clowns': [c.model_dump() for c in dashboard_data_with_zero_cast_and_guests.clowns],
+                'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_zero_cast_and_guests.monatliche_erfuellung],
+                'netzwerk_nodes': dashboard_data_with_zero_cast_and_guests.netzwerk_nodes,
+                'netzwerk_links': dashboard_data_with_zero_cast_and_guests.netzwerk_links
             },
 
             # Meta-Informationen (verwende Standard-Daten)

@@ -38,6 +38,7 @@ class ClownEinsatz(BaseModel):
     """Einsätze eines Clowns"""
     name: str
     einsaetze: int
+    is_guest: bool = False  # True für Gastmitarbeiter
 
 
 class MonatlicheErfuellung(BaseModel):
@@ -101,7 +102,8 @@ class DashboardService:
         end_date: datetime.date,
         team_id: Optional[UUID] = None,
         project_id: Optional[UUID] = None,
-        include_zero_cast_events: bool = False
+        include_zero_cast_events: bool = False,
+        include_guests: bool = False
     ) -> DashboardData:
         """
         Hauptmethode für Dashboard-Daten.
@@ -112,6 +114,7 @@ class DashboardService:
             team_id: Optional - für team-spezifische Analyse
             project_id: Optional - für projekt-weite Analyse
             include_zero_cast_events: Optional - True um Events mit Besetzungsstärke 0 einzubeziehen
+            include_guests: Optional - True um Gastmitarbeiter in Clown-Statistiken einzubeziehen
             
         Returns:
             DashboardData: Komplette Daten für das Dashboard
@@ -148,9 +151,9 @@ class DashboardService:
         
         # Berechne Dashboard-Komponenten
         einrichtungen = cls._calculate_einrichtung_details(all_appointments, plan_periods, include_zero_cast_events)
-        clowns = cls._calculate_clown_einsaetze(all_appointments)
+        clowns = cls._calculate_clown_einsaetze(all_appointments, include_guests)
         monatliche_rates = cls._calculate_monthly_fulfillment(plan_periods, latest_plans, include_zero_cast_events)
-        netzwerk_nodes, netzwerk_links = cls._calculate_netzwerk_data(all_appointments)
+        netzwerk_nodes, netzwerk_links = cls._calculate_netzwerk_data(all_appointments, include_guests)
         
         # Summary-Daten (erweitert um detaillierte Metriken)
         aktive_clowns = len(clowns)
@@ -476,21 +479,66 @@ class DashboardService:
     @classmethod
     def _calculate_clown_einsaetze(
         cls,
-        appointments: List[models.Appointment]
+        appointments: List[models.Appointment],
+        include_guests: bool = False
     ) -> List[ClownEinsatz]:
-        """Berechnet Einsätze pro Clown"""
+        """Berechnet Einsätze pro Clown und optional auch für Gäste
         
-        clown_counts = Counter()
+        Args:
+            appointments: Liste aller Appointments
+            include_guests: True um Gastmitarbeiter einzubeziehen
+            
+        Returns:
+            Liste von ClownEinsatz-Objekten (Stamm-Clowns und optional Gäste)
+        """
+        
+        # Reguläre Clowns (Stamm-Mitarbeiter)
+        regular_clown_counts = Counter()
+        
+        # Gäste (falls include_guests=True)
+        guest_counts = Counter()
         
         for appointment in appointments:
+            # Reguläre Mitarbeiter (avail_days)
             for avail_day in appointment.avail_days:
                 person = avail_day.actor_plan_period.person
-                clown_counts[person.full_name] += 1
+                regular_clown_counts[person.full_name] += 1
+            
+            # Gastmitarbeiter (guests JSON-Array)
+            if include_guests:
+                try:
+                    import json
+                    if appointment.guests:
+                        guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                        if guests_data:
+                            for guest_info in guests_data:
+                                # guest_info kann ein Dict oder String sein
+                                if isinstance(guest_info, dict):
+                                    guest_name = guest_info.get('name', guest_info.get('full_name', 'Unbekannter Gast'))
+                                else:
+                                    guest_name = str(guest_info)
+                                guest_counts[guest_name] += 1
+                                
+                except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                    logger.warning(f"Fehler beim Parsen der Guests für Appointment {appointment.id}: {e}")
+                    continue
         
-        clowns = [
-            ClownEinsatz(name=name, einsaetze=count)
-            for name, count in clown_counts.most_common()
-        ]
+        # Kombiniere Ergebnisse
+        clowns = []
+        
+        # Reguläre Clowns hinzufügen
+        for name, count in regular_clown_counts.most_common():
+            clowns.append(ClownEinsatz(name=name, einsaetze=count, is_guest=False))
+        
+        # Gäste hinzufügen (falls gewünscht)
+        if include_guests:
+            for name, count in guest_counts.most_common():
+                clowns.append(ClownEinsatz(name=f"{name} (Gast)", einsaetze=count, is_guest=True))
+        
+        # Nach Einsätzen sortieren (absteigend)
+        clowns.sort(key=lambda x: x.einsaetze, reverse=True)
+        
+        logger.debug(f"Clown-Einsätze berechnet: {len(regular_clown_counts)} Stamm-Clowns, {len(guest_counts) if include_guests else 0} Gäste")
         
         return clowns
 
@@ -618,42 +666,104 @@ class DashboardService:
     @classmethod
     def _calculate_netzwerk_data(
         cls,
-        appointments: List[models.Appointment]
+        appointments: List[models.Appointment],
+        include_guests: bool = False
     ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Berechnet Netzwerk-Daten für D3.js Visualisierung"""
+        """Berechnet Netzwerk-Daten für D3.js Visualisierung
         
-        # Sammle Clowns und Einrichtungen
-        clowns = set()
+        Args:
+            appointments: Liste aller Appointments
+            include_guests: True um Gastmitarbeiter als separate Nodes einzubeziehen
+            
+        Returns:
+            Tuple von (nodes, links) für D3.js Netzwerk-Visualisierung
+        """
+        
+        # Sammle Clowns, Gäste und Einrichtungen
+        regular_clowns = set()
+        guests = set()
         einrichtungen = set()
-        connections = Counter()
+        regular_connections = Counter()
+        guest_connections = Counter()
         
         for appointment in appointments:
             location_name = appointment.event.location_plan_period.location_of_work.name_and_city
             einrichtungen.add(location_name)
             
+            # Reguläre Mitarbeiter (avail_days)
             for avail_day in appointment.avail_days:
                 person_name = avail_day.actor_plan_period.person.full_name
-                clowns.add(person_name)
+                regular_clowns.add(person_name)
                 
-                # Zähle Verbindung
-                connections[(person_name, location_name)] += 1
+                # Zähle Verbindung (Clown -> Einrichtung)
+                regular_connections[(person_name, location_name)] += 1
+            
+            # Gastmitarbeiter (guests JSON-Array)
+            if include_guests:
+                try:
+                    import json
+                    if appointment.guests:
+                        guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                        if guests_data:
+                            for guest_info in guests_data:
+                                # guest_info kann ein Dict oder String sein
+                                if isinstance(guest_info, dict):
+                                    guest_name = guest_info.get('name', guest_info.get('full_name', 'Unbekannter Gast'))
+                                else:
+                                    guest_name = str(guest_info)
+                                
+                                guest_display_name = f"{guest_name} (Gast)"
+                                guests.add(guest_display_name)
+                                
+                                # Zähle Verbindung (Gast -> Einrichtung)
+                                guest_connections[(guest_display_name, location_name)] += 1
+                                
+                except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                    logger.warning(f"Fehler beim Parsen der Guests für Appointment {appointment.id}: {e}")
+                    continue
         
         # Erstelle Nodes
         nodes = []
         
-        # Clown-Nodes
-        clown_einsaetze = Counter()
+        # Reguläre Clown-Nodes
+        regular_clown_einsaetze = Counter()
         for appointment in appointments:
             for avail_day in appointment.avail_days:
                 person_name = avail_day.actor_plan_period.person.full_name
-                clown_einsaetze[person_name] += 1
+                regular_clown_einsaetze[person_name] += 1
         
-        for clown in clowns:
+        for clown in regular_clowns:
             nodes.append({
                 'id': clown,
                 'type': 'clown',
-                'einsaetze': clown_einsaetze.get(clown, 0)
+                'einsaetze': regular_clown_einsaetze.get(clown, 0)
             })
+        
+        # Gäste-Nodes (falls gewünscht)
+        if include_guests:
+            guest_einsaetze = Counter()
+            for appointment in appointments:
+                try:
+                    import json
+                    if appointment.guests:
+                        guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                        if guests_data:
+                            for guest_info in guests_data:
+                                if isinstance(guest_info, dict):
+                                    guest_name = guest_info.get('name', guest_info.get('full_name', 'Unbekannter Gast'))
+                                else:
+                                    guest_name = str(guest_info)
+                                guest_display_name = f"{guest_name} (Gast)"
+                                guest_einsaetze[guest_display_name] += 1
+                except:
+                    continue
+            
+            for guest in guests:
+                nodes.append({
+                    'id': guest,
+                    'type': 'guest',
+                    'einsaetze': guest_einsaetze.get(guest, 0)
+                })
         
         # Einrichtung-Nodes
         for einrichtung in einrichtungen:
@@ -664,12 +774,25 @@ class DashboardService:
         
         # Erstelle Links
         links = []
-        for (clown, einrichtung), weight in connections.items():
+        
+        # Reguläre Clown-Verbindungen
+        for (clown, einrichtung), weight in regular_connections.items():
             links.append({
                 'source': clown,
                 'target': einrichtung,
                 'weight': weight
             })
+        
+        # Gäste-Verbindungen (falls gewünscht)
+        if include_guests:
+            for (guest, einrichtung), weight in guest_connections.items():
+                links.append({
+                    'source': guest,
+                    'target': einrichtung,
+                    'weight': weight
+                })
+        
+        logger.debug(f"Netzwerk-Daten berechnet: {len(regular_clowns)} Clowns, {len(guests) if include_guests else 0} Gäste, {len(einrichtungen)} Einrichtungen")
         
         return nodes, links
 

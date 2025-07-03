@@ -127,6 +127,12 @@
             stroke-width: 2px;
         }
         
+        .node-guest {
+            fill: #f39c12;
+            stroke: #e67e22;
+            stroke-width: 2px;
+        }
+        
         .node-einrichtung {
             fill: #3498db;
             stroke: #2980b9;
@@ -160,6 +166,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 8px;
+            flex-direction: row;
         }
         
         .legend-color {
@@ -167,6 +174,7 @@
             height: 15px;
             border-radius: 50%;
             margin-right: 8px;
+            flex-shrink: 0;
         }
         
         .summary-cards {
@@ -236,6 +244,19 @@
                 font-weight: bold;
             ">
                 📋 Termine excl. abgesageter Termine
+            </button>
+            <button id="toggleGuestMode" onclick="toggleGuestMode()" style="
+                margin-left: 10px; 
+                padding: 5px 10px; 
+                background: #27ae60; 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                font-size: 12px;
+                font-weight: bold;
+            ">
+                👥 Gäste einblenden
             </button>
         </div>
         
@@ -342,6 +363,7 @@
                         <div class="legend-color" style="background: #e74c3c;"></div>
                         <span>Clowns</span>
                     </div>
+                    <!-- Gäste-Item wird dynamisch per JavaScript eingefügt -->
                     <div class="legend-item">
                         <div class="legend-color" style="background: #3498db;"></div>
                         <span>Einrichtungen</span>
@@ -355,9 +377,9 @@
     </div>
 
     <script>
-        // Daten aus Template - Standard (Termine excl. abgesageter Termine) + Zero-Cast (alle Termine)
+        // Daten aus Template - Alle 4 Modi: (Standard/Zero-Cast) × (ohne/mit Gäste)
         const DASHBOARD_DATA = {
-            standard: {
+            standard_no_guests: {
                 einrichtungen: {{ einrichtungen | tojson }},
                 clowns: {{ clowns | tojson }},
                 monatliche_erfuellung: {{ monatliche_erfuellung | tojson }},
@@ -374,7 +396,7 @@
                     termine_erfuellung: {{ termine_erfuellung }}
                 }
             },
-            zero_cast: {
+            zero_cast_no_guests: {
                 einrichtungen: {{ zero_cast_data.einrichtungen | tojson }},
                 clowns: {{ zero_cast_data.clowns | tojson }},
                 monatliche_erfuellung: {{ zero_cast_data.monatliche_erfuellung | tojson }},
@@ -390,12 +412,60 @@
                     total_durchgefuehrte_termine: {{ zero_cast_data.total_durchgefuehrte_termine }},
                     termine_erfuellung: {{ zero_cast_data.termine_erfuellung }}
                 }
+            },
+            standard_with_guests: {
+                einrichtungen: {{ guests_data.einrichtungen | tojson }},
+                clowns: {{ guests_data.clowns | tojson }},
+                monatliche_erfuellung: {{ guests_data.monatliche_erfuellung | tojson }},
+                netzwerk_nodes: {{ guests_data.netzwerk_nodes | tojson }},
+                netzwerk_links: {{ guests_data.netzwerk_links | tojson }},
+                summary: {
+                    aktive_clowns: {{ guests_data.aktive_clowns }},
+                    einrichtungen_count: {{ guests_data.einrichtungen_count }},
+                    total_geplante_mitarbeiter: {{ guests_data.total_geplante_mitarbeiter }},
+                    total_durchgefuehrte_mitarbeiter: {{ guests_data.total_durchgefuehrte_mitarbeiter }},
+                    mitarbeiter_erfuellung: {{ guests_data.mitarbeiter_erfuellung }},
+                    total_geplante_termine: {{ guests_data.total_geplante_termine }},
+                    total_durchgefuehrte_termine: {{ guests_data.total_durchgefuehrte_termine }},
+                    termine_erfuellung: {{ guests_data.termine_erfuellung }}
+                }
+            },
+            zero_cast_with_guests: {
+                einrichtungen: {{ zero_cast_guests_data.einrichtungen | tojson }},
+                clowns: {{ zero_cast_guests_data.clowns | tojson }},
+                monatliche_erfuellung: {{ zero_cast_guests_data.monatliche_erfuellung | tojson }},
+                netzwerk_nodes: {{ zero_cast_guests_data.netzwerk_nodes | tojson }},
+                netzwerk_links: {{ zero_cast_guests_data.netzwerk_links | tojson }},
+                summary: {
+                    aktive_clowns: {{ zero_cast_guests_data.aktive_clowns }},
+                    einrichtungen_count: {{ zero_cast_guests_data.einrichtungen_count }},
+                    total_geplante_mitarbeiter: {{ zero_cast_guests_data.total_geplante_mitarbeiter }},
+                    total_durchgefuehrte_mitarbeiter: {{ zero_cast_guests_data.total_durchgefuehrte_mitarbeiter }},
+                    mitarbeiter_erfuellung: {{ zero_cast_guests_data.mitarbeiter_erfuellung }},
+                    total_geplante_termine: {{ zero_cast_guests_data.total_geplante_termine }},
+                    total_durchgefuehrte_termine: {{ zero_cast_guests_data.total_durchgefuehrte_termine }},
+                    termine_erfuellung: {{ zero_cast_guests_data.termine_erfuellung }}
+                }
             }
         };
 
         // Aktueller Modus und aktive Daten
         let includeZeroCastEvents = false;
-        let currentData = DASHBOARD_DATA.standard;
+        let includeGuests = false;
+        let currentData = DASHBOARD_DATA.standard_no_guests;
+
+        // Hilfsfunktion: Ermittelt den korrekten Datenkey basierend auf aktuellen Modi
+        function getCurrentDataKey() {
+            if (includeZeroCastEvents && includeGuests) return 'zero_cast_with_guests';
+            if (includeZeroCastEvents && !includeGuests) return 'zero_cast_no_guests';
+            if (!includeZeroCastEvents && includeGuests) return 'standard_with_guests';
+            return 'standard_no_guests';
+        }
+
+        // Aktualisiert currentData basierend auf den aktuellen Modi
+        function updateCurrentData() {
+            currentData = DASHBOARD_DATA[getCurrentDataKey()];
+        }
 
         // Überprüfung ob Libraries geladen sind
         if (typeof Chart === 'undefined') {
@@ -621,6 +691,21 @@
             const originalClownData = currentData.clowns.map(c => c.einsaetze);
             const displayClownData = addMinimalHeightForZeros(originalClownData, 'count');
             
+            // Farben basierend auf is_guest Eigenschaft
+            const backgroundColors = currentData.clowns.map(c => {
+                if (originalClownData[currentData.clowns.indexOf(c)] === 0) {
+                    // 0-Werte: Transparente Version der entsprechenden Farbe
+                    return c.is_guest ? 'rgba(243, 156, 18, 0.3)' : 'rgba(52, 152, 219, 0.3)';
+                } else {
+                    // Normale Werte: Volle Farbe
+                    return c.is_guest ? 'rgba(243, 156, 18, 0.8)' : 'rgba(52, 152, 219, 0.8)';
+                }
+            });
+            
+            const borderColors = currentData.clowns.map(c => 
+                c.is_guest ? 'rgba(230, 126, 34, 1)' : 'rgba(52, 152, 219, 1)'
+            );
+            
             allCharts.clownChart = new Chart(ctx2, {
                 type: 'bar',
                 data: {
@@ -628,10 +713,8 @@
                     datasets: [{
                         label: 'Anzahl Einsätze',
                         data: displayClownData,
-                        backgroundColor: originalClownData.map(val => 
-                            val === 0 ? 'rgba(52, 152, 219, 0.3)' : 'rgba(52, 152, 219, 0.8)'
-                        ),
-                        borderColor: 'rgba(52, 152, 219, 1)',
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
                         borderWidth: 2
                     }]
                 },
@@ -645,7 +728,9 @@
                             callbacks: {
                                 label: function(context) {
                                     const realValue = originalClownData[context.dataIndex];
-                                    return `Einsätze: ${realValue}`;
+                                    const clown = currentData.clowns[context.dataIndex];
+                                    const guestInfo = clown.is_guest ? ' (Gast)' : '';
+                                    return `Einsätze: ${realValue}${guestInfo}`;
                                 }
                             }
                         }
@@ -775,7 +860,7 @@
                     id: d.id,
                     type: d.type,
                     einsaetze: d.einsaetze || 0,
-                    radius: d.type === "clown" ? 
+                    radius: d.type === "clown" || d.type === "guest" ? 
                         Math.max(15, Math.min(30, Math.sqrt(d.einsaetze || 10) * 1.8)) : 
                         22,
                     // Keine festen Positionen setzen - lasse D3 entscheiden
@@ -835,11 +920,15 @@
                     });
 
                     const clowns = nodeData.filter(d => d.type === "clown");
+                    const guests = nodeData.filter(d => d.type === "guest");
                     const einrichtungen = nodeData.filter(d => d.type === "einrichtung");
                     
+                    // Kombiniere Clowns und Gäste für die obere Reihe
+                    const allMitarbeiter = [...clowns, ...guests];
+                    
                     // Setze feste Positionen für Bipartite Layout
-                    clowns.forEach((d, i) => {
-                        d.fx = (width / (clowns.length + 1)) * (i + 1);
+                    allMitarbeiter.forEach((d, i) => {
+                        d.fx = (width / (allMitarbeiter.length + 1)) * (i + 1);
                         d.fy = height * 0.25;
                         d.x = d.fx;
                         d.y = d.fy;
@@ -886,8 +975,16 @@
                         .data(nodeData)
                         .enter().append("circle")
                         .attr("r", d => d.radius)
-                        .style("fill", d => d.type === "clown" ? "#e74c3c" : "#3498db")
-                        .style("stroke", d => d.type === "clown" ? "#c0392b" : "#2980b9")
+                        .style("fill", d => {
+                            if (d.type === "clown") return "#e74c3c";
+                            if (d.type === "guest") return "#f39c12";
+                            return "#3498db"; // einrichtung
+                        })
+                        .style("stroke", d => {
+                            if (d.type === "clown") return "#c0392b";
+                            if (d.type === "guest") return "#e67e22";
+                            return "#2980b9"; // einrichtung
+                        })
                         .style("stroke-width", "3px")
                         .style("cursor", "grab")
                         .call(d3.drag()
@@ -918,10 +1015,12 @@
                         .text(d => {
                             if (d.type === "clown") {
                                 return `${d.id}\n${d.einsaetze} Gesamteinsätze`;
+                            } else if (d.type === "guest") {
+                                return `${d.id}\n${d.einsaetze} Gesamteinsätze`;
                             } else {
                                 const clownCount = linkData.filter(link => 
                                     link.target === d.id || link.target.id === d.id).length;
-                                return `${d.id}\n${clownCount} zugeordnete Clowns`;
+                                return `${d.id}\n${clownCount} zugeordnete Mitarbeiter`;
                             }
                         });
 
@@ -1105,7 +1204,7 @@
         // Toggle Zero-Cast Events Funktionalität
         function toggleZeroCastMode() {
             includeZeroCastEvents = !includeZeroCastEvents;
-            currentData = includeZeroCastEvents ? DASHBOARD_DATA.zero_cast : DASHBOARD_DATA.standard;
+            updateCurrentData();
             
             const button = document.getElementById('toggleZeroCastEvents');
             
@@ -1119,14 +1218,65 @@
                 button.title = 'Klicken um alle Termine (inkl. abgesagter Termine) anzuzeigen';
             }
             
+            // Update UI
+            updateDashboard();
+            
+            console.log('Zero-Cast-Modus geändert zu:', includeZeroCastEvents ? 'Alle Termine (inkl. Zero-Cast)' : 'Termine excl. abgesageter Termine');
+        }
+
+        // Toggle Guests Funktionalität
+        function toggleGuestMode() {
+            includeGuests = !includeGuests;
+            updateCurrentData();
+            
+            const button = document.getElementById('toggleGuestMode');
+            const legend = document.querySelector('.legend');
+            
+            if (includeGuests) {
+                button.textContent = '👥 Gäste ausblenden';
+                button.style.background = '#e67e22';
+                button.title = 'Klicken um Gäste auszublenden';
+                
+                // Gäste-Legende-Item hinzufügen (zwischen Clowns und Einrichtungen)
+                const guestLegendItem = document.createElement('div');
+                guestLegendItem.className = 'legend-item';
+                guestLegendItem.id = 'guest-legend-item';
+                guestLegendItem.innerHTML = `
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Gäste</span>
+                `;
+                
+                // Füge nach dem ersten legend-item (Clowns) ein
+                const firstLegendItem = legend.querySelector('.legend-item');
+                firstLegendItem.insertAdjacentElement('afterend', guestLegendItem);
+                
+            } else {
+                button.textContent = '👥 Gäste einblenden';
+                button.style.background = '#27ae60';
+                button.title = 'Klicken um Gäste einzublenden';
+                
+                // Gäste-Legende-Item entfernen
+                const guestLegendItem = document.getElementById('guest-legend-item');
+                if (guestLegendItem) {
+                    guestLegendItem.remove();
+                }
+            }
+            
+            // Update UI
+            updateDashboard();
+            
+            console.log('Gäste-Modus geändert zu:', includeGuests ? 'Mit Gästen' : 'Ohne Gäste');
+        }
+
+        // Haupt-Update-Funktion für Dashboard
+        function updateDashboard() {
             // Update Summary Cards
             updateSummaryCards();
             
             // Alle Charts mit neuen Daten neu erstellen
             createAllCharts();
             
-            console.log('Dashboard-Modus geändert zu:', includeZeroCastEvents ? 'Alle Termine (inkl. Zero-Cast)' : 'Termine excl. abgesageter Termine');
-            console.log('Charts aktualisiert mit neuen Daten:', currentData.summary);
+            console.log('Dashboard aktualisiert mit Daten:', getCurrentDataKey());
         }
 
         function updateSummaryCards() {
@@ -1220,19 +1370,31 @@
 
         function reloadDashboardWithMode() {
             // Nicht mehr benötigt - lokales Umschalten ohne Reload
-            console.log('Dashboard-Modus geändert:', includeZeroCastEvents ? 'Alle Termine' : 'Termine excl. abgesageter Termine');
+            console.log('Dashboard-Modus:', 
+                'Zero-Cast:', includeZeroCastEvents ? 'Ein' : 'Aus', 
+                'Gäste:', includeGuests ? 'Ein' : 'Aus'
+            );
         }
 
-        // Initial state - verwende Standard-Daten
-        function initializeZeroCastMode() {
-            const button = document.getElementById('toggleZeroCastEvents');
-            button.textContent = '📋 Termine excl. abgesageter Termine';
-            button.style.background = '#3498db';
-            button.title = 'Klicken um alle Termine (inkl. abgesagter Termine) anzuzeigen';
+        // Initial state - verwende Standard-Daten ohne Gäste
+        function initializeModes() {
+            // Zero-Cast Button
+            const zeroCastButton = document.getElementById('toggleZeroCastEvents');
+            zeroCastButton.textContent = '📋 Termine excl. abgesageter Termine';
+            zeroCastButton.style.background = '#3498db';
+            zeroCastButton.title = 'Klicken um alle Termine (inkl. abgesagter Termine) anzuzeigen';
+            
+            // Gäste Button
+            const guestButton = document.getElementById('toggleGuestMode');
+            guestButton.textContent = '👥 Gäste einblenden';
+            guestButton.style.background = '#27ae60';
+            guestButton.title = 'Klicken um Gäste einzublenden';
+            
+            // Gäste-Legende ist initial nicht vorhanden (wird bei Bedarf eingefügt)
         }
 
-        // Initialisiere Zero-Cast Modus beim Laden der Seite
-        initializeZeroCastMode();
+        // Initialisiere Modi beim Laden der Seite
+        initializeModes();
     </script>
 </body>
 </html>

@@ -220,6 +220,84 @@
             font-weight: bold;
             color: #2c3e50;
         }
+        
+        .clown-filter-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .filter-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background: #2980b9;
+        }
+        
+        .filter-info {
+            color: #666;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        
+        .filter-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .filter-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+        
+        .filter-checkbox-item input[type="checkbox"] {
+            margin: 0;
+            transform: scale(0.9);
+        }
+        
+        .filter-checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+            line-height: 1.2;
+        }
+        
+        .filter-checkbox-item.guest-item {
+            color: #e67e22;
+            font-style: italic;
+        }
+        
+        .filter-checkbox-item.regular-item {
+            color: #2c3e50;
+        }
     </style>
 </head>
 <body>
@@ -343,6 +421,23 @@
                     <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
+            
+            <div class="chart-panel">
+                <div class="chart-title">Monatliche Entwicklung (Einsätze der Clowns)</div>
+                <div class="clown-filter-container">
+                    <div class="filter-header">
+                        <button id="selectAllClowns" class="filter-btn">Alle auswählen</button>
+                        <button id="deselectAllClowns" class="filter-btn">Alle abwählen</button>
+                        <span class="filter-info" id="clownFilterInfo">0 von 0 ausgewählt</span>
+                    </div>
+                    <div class="filter-checkboxes" id="clownFilterCheckboxes">
+                        <!-- Checkboxen werden dynamisch generiert -->
+                    </div>
+                </div>
+                <div class="chart-container" id="clownTimelineChartContainer">
+                    <canvas id="clownTimelineChart"></canvas>
+                </div>
+            </div>
         </div>
         
         <div class="full-width chart-panel">
@@ -385,6 +480,7 @@
                 monatliche_erfuellung: {{ monatliche_erfuellung | tojson }},
                 netzwerk_nodes: {{ netzwerk_nodes | tojson }},
                 netzwerk_links: {{ netzwerk_links | tojson }},
+                clown_timeline: {{ clown_timeline | tojson }},
                 summary: {
                     aktive_clowns: {{ aktive_clowns }},
                     einrichtungen_count: {{ einrichtungen_count }},
@@ -402,6 +498,7 @@
                 monatliche_erfuellung: {{ zero_cast_data.monatliche_erfuellung | tojson }},
                 netzwerk_nodes: {{ zero_cast_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ zero_cast_data.netzwerk_links | tojson }},
+                clown_timeline: {{ zero_cast_data.clown_timeline | tojson }},
                 summary: {
                     aktive_clowns: {{ zero_cast_data.aktive_clowns }},
                     einrichtungen_count: {{ zero_cast_data.einrichtungen_count }},
@@ -419,6 +516,7 @@
                 monatliche_erfuellung: {{ guests_data.monatliche_erfuellung | tojson }},
                 netzwerk_nodes: {{ guests_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ guests_data.netzwerk_links | tojson }},
+                clown_timeline: {{ guests_data.clown_timeline | tojson }},
                 summary: {
                     aktive_clowns: {{ guests_data.aktive_clowns }},
                     einrichtungen_count: {{ guests_data.einrichtungen_count }},
@@ -436,6 +534,7 @@
                 monatliche_erfuellung: {{ zero_cast_guests_data.monatliche_erfuellung | tojson }},
                 netzwerk_nodes: {{ zero_cast_guests_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ zero_cast_guests_data.netzwerk_links | tojson }},
+                clown_timeline: {{ zero_cast_guests_data.clown_timeline | tojson }},
                 summary: {
                     aktive_clowns: {{ zero_cast_guests_data.aktive_clowns }},
                     einrichtungen_count: {{ zero_cast_guests_data.einrichtungen_count }},
@@ -495,6 +594,7 @@
             createStapelChart();
             createClownChart();
             createMonthlyChart();
+            createClownTimelineChart();
             createNetworkVisualization();
         }
 
@@ -817,6 +917,272 @@
                     interaction: {
                         intersect: false,
                         mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Clown Timeline Chart mit Checkboxen-Filter
+        let selectedClowns = new Set(); // Aktuell ausgewählte Clowns
+        let availableClowns = []; // Alle verfügbaren Clowns
+
+        function createClownTimelineChart() {
+            // Initialisiere verfügbare Clowns und Auswahl
+            availableClowns = currentData.clown_timeline || [];
+            
+            // Debug nur bei Problemen
+            if (availableClowns.length === 0) {
+                console.log('Debug - Clown Timeline:', currentData.clown_timeline);
+                console.log('Debug - CurrentData keys:', Object.keys(currentData));
+            }
+            
+            // Direkte ID-basierte Container-Referenz
+            const chartContainer = document.getElementById('clownTimelineChartContainer');
+            
+            if (!chartContainer) {
+                console.error('Clown Timeline Chart Container nicht gefunden');
+                return;
+            }
+            
+            if (availableClowns.length === 0) {
+                // Fallback wenn keine Timeline-Daten
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; text-align: center; flex-direction: column;">
+                        <h3>Keine Timeline-Daten verfügbar</h3>
+                        <p>Es wurden keine Clown-Timeline-Daten gefunden.</p>
+                        <p><small>Möglicherweise sind keine Einsätze im gewählten Zeitraum vorhanden.</small></p>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log(`✅ ${availableClowns.length} Clowns für Timeline gefunden`);
+            
+            // Standard: Alle Clowns auswählen (max. 10 für bessere Übersicht)
+            selectedClowns.clear();
+            availableClowns.slice(0, Math.min(10, availableClowns.length)).forEach(clown => {
+                selectedClowns.add(clown.name);
+            });
+            
+            // Erstelle Filter-Checkboxen
+            createClownFilterCheckboxes();
+            
+            // Erstelle Chart
+            updateClownTimelineChart();
+        }
+
+        function createClownFilterCheckboxes() {
+            const container = document.getElementById('clownFilterCheckboxes');
+            container.innerHTML = '';
+            
+            // Sortiere Clowns alphabetisch nach Namen für bessere Übersicht
+            const sortedClowns = [...availableClowns].sort((a, b) => a.name.localeCompare(b.name));
+            
+            sortedClowns.forEach((clown, index) => {
+                const isChecked = selectedClowns.has(clown.name);
+                const totalEinsaetze = clown.monthly_data.reduce((sum, month) => sum + month.einsaetze, 0);
+                
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = `filter-checkbox-item ${clown.is_guest ? 'guest-item' : 'regular-item'}`;
+                
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" id="clown_${index}" ${isChecked ? 'checked' : ''} onchange="toggleClownSelection('${clown.name}')">
+                    <label for="clown_${index}" title="${clown.name} (${totalEinsaetze} Einsätze)">${clown.name} (${totalEinsaetze})</label>
+                `;
+                
+                container.appendChild(checkboxItem);
+            });
+            
+            updateClownFilterInfo();
+        }
+
+        function toggleClownSelection(clownName) {
+            if (selectedClowns.has(clownName)) {
+                selectedClowns.delete(clownName);
+            } else {
+                selectedClowns.add(clownName);
+            }
+            
+            updateClownFilterInfo();
+            updateClownTimelineChart();
+        }
+
+        function selectAllClowns() {
+            selectedClowns.clear();
+            availableClowns.forEach(clown => {
+                selectedClowns.add(clown.name);
+            });
+            
+            // Update checkbox states
+            document.querySelectorAll('#clownFilterCheckboxes input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            
+            updateClownFilterInfo();
+            updateClownTimelineChart();
+        }
+
+        function deselectAllClowns() {
+            selectedClowns.clear();
+            
+            // Update checkbox states
+            document.querySelectorAll('#clownFilterCheckboxes input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            updateClownFilterInfo();
+            updateClownTimelineChart();
+        }
+
+        function updateClownFilterInfo() {
+            const infoElement = document.getElementById('clownFilterInfo');
+            infoElement.textContent = `${selectedClowns.size} von ${availableClowns.length} ausgewählt`;
+        }
+
+        function updateClownTimelineChart() {
+            // Direkte ID-basierte Container-Referenz
+            const chartContainer = document.getElementById('clownTimelineChartContainer');
+            
+            if (!chartContainer) {
+                console.error('Clown Timeline Chart Container nicht gefunden');
+                return;
+            }
+            
+            // Zerstöre existierenden Chart
+            if (allCharts.clownTimelineChart) {
+                allCharts.clownTimelineChart.destroy();
+                allCharts.clownTimelineChart = null;
+            }
+            
+            // Filtere ausgewählte Clowns
+            const selectedClownData = availableClowns.filter(clown => selectedClowns.has(clown.name));
+            
+            if (selectedClownData.length === 0) {
+                // Zeige "Keine Auswahl" Nachricht
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 400px; color: #666; text-align: center;">
+                        <div>
+                            <h3>Keine Clowns ausgewählt</h3>
+                            <p>Bitte wähle mindestens einen Clown über die Checkboxen aus.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Stelle sicher, dass Canvas existiert
+            chartContainer.innerHTML = '<canvas id="clownTimelineChart"></canvas>';
+            const ctx = document.getElementById('clownTimelineChart').getContext('2d');
+            
+            // Bestimme Labels (Monate) aus den Daten
+            const monthLabels = selectedClownData.length > 0 ? 
+                selectedClownData[0].monthly_data.map(m => m.monat) : [];
+            
+            // Farb-Palette für Linien
+            const colors = [
+                '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+                '#1abc9c', '#e67e22', '#34495e', '#f1c40f', '#e91e63',
+                '#8e44ad', '#16a085', '#d35400', '#2c3e50', '#f39c12'
+            ];
+            
+            // Erstelle Datasets
+            const datasets = selectedClownData.map((clown, index) => {
+                const colorIndex = index % colors.length;
+                const baseColor = colors[colorIndex];
+                
+                return {
+                    label: clown.name,
+                    data: clown.monthly_data.map(m => m.einsaetze),
+                    borderColor: baseColor,
+                    backgroundColor: baseColor.replace(')', ', 0.1)').replace('rgb', 'rgba'),
+                    borderWidth: clown.is_guest ? 2 : 3,
+                    borderDash: clown.is_guest ? [5, 5] : [], // Gestrichelt für Gäste
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: baseColor,
+                    pointBorderColor: 'rgba(255, 255, 255, 1)',
+                    pointBorderWidth: 1,
+                    pointRadius: clown.is_guest ? 4 : 5,
+                    pointHoverRadius: clown.is_guest ? 6 : 7
+                };
+            });
+            
+            allCharts.clownTimelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                generateLabels: function(chart) {
+                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                    const labels = original.call(this, chart);
+                                    
+                                    // Markiere Gäste in der Legende
+                                    labels.forEach((label, index) => {
+                                        const clown = selectedClownData[index];
+                                        if (clown && clown.is_guest) {
+                                            label.text += ' (Gast)';
+                                            label.fontStyle = 'italic';
+                                        }
+                                    });
+                                    
+                                    return labels;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `📅 ${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    const clown = selectedClownData[context.datasetIndex];
+                                    const guestInfo = clown.is_guest ? ' (Gast)' : '';
+                                    return `${context.dataset.label}${guestInfo}: ${context.parsed.y} Einsätze`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : null;
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Anzahl Einsätze'
+                            }
+                        },
+                        x: {
+                            ticks: { maxRotation: 45 },
+                            title: {
+                                display: true,
+                                text: 'Monat'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    elements: {
+                        point: {
+                            hoverBackgroundColor: 'rgba(255, 255, 255, 1)'
+                        }
                     }
                 }
             });
@@ -1395,6 +1761,10 @@
 
         // Initialisiere Modi beim Laden der Seite
         initializeModes();
+        
+        // Event-Handler für Clown Timeline Filter
+        document.getElementById('selectAllClowns').onclick = selectAllClowns;
+        document.getElementById('deselectAllClowns').onclick = deselectAllClowns;
     </script>
 </body>
 </html>

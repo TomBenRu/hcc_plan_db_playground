@@ -55,6 +55,13 @@ class NetzwerkVerbindung(BaseModel):
     weight: int
 
 
+class ClownTimeline(BaseModel):
+    """Zeitlicher Verlauf der Einsätze eines Clowns/Gasts"""
+    name: str
+    is_guest: bool = False
+    monthly_data: List[Dict[str, Any]]  # [{"monat": "Jan 25", "einsaetze": 5}, ...]
+
+
 class DashboardData(BaseModel):
     """Komplette Daten für das Dashboard"""
     # Summary Cards (erweitert)
@@ -83,6 +90,9 @@ class DashboardData(BaseModel):
     # Netzwerk-Daten
     netzwerk_nodes: List[Dict[str, Any]]
     netzwerk_links: List[Dict[str, Any]]
+    
+    # Clown-Timeline-Daten
+    clown_timeline: List[ClownTimeline]
     
     # Meta-Informationen
     zeitraum_start: str
@@ -154,6 +164,7 @@ class DashboardService:
         clowns = cls._calculate_clown_einsaetze(all_appointments, include_guests)
         monatliche_rates = cls._calculate_monthly_fulfillment(plan_periods, latest_plans, include_zero_cast_events)
         netzwerk_nodes, netzwerk_links = cls._calculate_netzwerk_data(all_appointments, include_guests)
+        clown_timeline = cls._calculate_clown_timeline(all_appointments, include_guests)
         
         # Summary-Daten (erweitert um detaillierte Metriken)
         aktive_clowns = len(clowns)
@@ -184,6 +195,7 @@ class DashboardService:
             monatliche_erfuellung=monatliche_rates,
             netzwerk_nodes=netzwerk_nodes,
             netzwerk_links=netzwerk_links,
+            clown_timeline=clown_timeline,
             zeitraum_start=start_date.strftime('%d.%m.%Y'),
             zeitraum_ende=end_date.strftime('%d.%m.%Y'),
             team_name=team_name,
@@ -797,6 +809,139 @@ class DashboardService:
         return nodes, links
 
     @classmethod
+    def _calculate_clown_timeline(
+        cls,
+        appointments: List[models.Appointment],
+        include_guests: bool = False
+    ) -> List[ClownTimeline]:
+        """Berechnet zeitlichen Verlauf der Einsätze pro Clown und optional Gäste
+        
+        Args:
+            appointments: Liste aller Appointments
+            include_guests: True um Gastmitarbeiter einzubeziehen
+            
+        Returns:
+            Liste von ClownTimeline-Objekten mit monatlichen Einsätzen
+        """
+        
+        # Sammle Einsätze pro Clown und Monat
+        regular_clown_monthly = defaultdict(lambda: defaultdict(lambda: {'month_name': '', 'count': 0}))
+        guest_monthly = defaultdict(lambda: defaultdict(lambda: {'month_name': '', 'count': 0}))
+        
+        for appointment in appointments:
+            event_date = appointment.event.date
+            year_month = event_date.strftime('%Y-%m')
+            month_name = event_date.strftime('%b %y')
+            
+            # Reguläre Mitarbeiter (avail_days)
+            for avail_day in appointment.avail_days:
+                person_name = avail_day.actor_plan_period.person.full_name
+                regular_clown_monthly[person_name][year_month]['month_name'] = month_name
+                regular_clown_monthly[person_name][year_month]['count'] += 1
+            
+            # Gastmitarbeiter (guests JSON-Array)
+            if include_guests:
+                try:
+                    import json
+                    if appointment.guests:
+                        guests_data = json.loads(appointment.guests) if isinstance(appointment.guests, str) else appointment.guests
+                        if guests_data:
+                            for guest_info in guests_data:
+                                # guest_info kann ein Dict oder String sein
+                                if isinstance(guest_info, dict):
+                                    guest_name = guest_info.get('name', guest_info.get('full_name', 'Unbekannter Gast'))
+                                else:
+                                    guest_name = str(guest_info)
+                                
+                                guest_display_name = f"{guest_name} (Gast)"
+                                guest_monthly[guest_display_name][year_month]['month_name'] = month_name
+                                guest_monthly[guest_display_name][year_month]['count'] += 1
+                                
+                except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                    logger.warning(f"Fehler beim Parsen der Guests für Appointment {appointment.id}: {e}")
+                    continue
+        
+        # Erstelle Liste aller Monate im Zeitraum (sortiert)
+        all_year_months = set()
+        for clown_data in regular_clown_monthly.values():
+            all_year_months.update(clown_data.keys())
+        if include_guests:
+            for guest_data in guest_monthly.values():
+                all_year_months.update(guest_data.keys())
+        
+        sorted_year_months = sorted(all_year_months)
+        
+        # Konvertiere zu ClownTimeline-Objekten
+        timelines = []
+        
+        # Reguläre Clowns
+        for clown_name, monthly_data in regular_clown_monthly.items():
+            monthly_list = []
+            for year_month in sorted_year_months:
+                if year_month in monthly_data:
+                    monthly_list.append({
+                        'monat': monthly_data[year_month]['month_name'],
+                        'einsaetze': monthly_data[year_month]['count']
+                    })
+                else:
+                    # Fülle fehlende Monate mit 0 auf
+                    month_name = ""
+                    if sorted_year_months:
+                        # Extrahiere Monatsnamen von anderen Einträgen
+                        try:
+                            sample_date = datetime.datetime.strptime(year_month, '%Y-%m')
+                            month_name = sample_date.strftime('%b %y')
+                        except ValueError:
+                            month_name = year_month  # Fallback
+                    monthly_list.append({
+                        'monat': month_name,
+                        'einsaetze': 0
+                    })
+            
+            timelines.append(ClownTimeline(
+                name=clown_name,
+                is_guest=False,
+                monthly_data=monthly_list
+            ))
+        
+        # Gäste (falls gewünscht)
+        if include_guests:
+            for guest_name, monthly_data in guest_monthly.items():
+                monthly_list = []
+                for year_month in sorted_year_months:
+                    if year_month in monthly_data:
+                        monthly_list.append({
+                            'monat': monthly_data[year_month]['month_name'],
+                            'einsaetze': monthly_data[year_month]['count']
+                        })
+                    else:
+                        # Fülle fehlende Monate mit 0 auf
+                        month_name = ""
+                        if sorted_year_months:
+                            try:
+                                sample_date = datetime.datetime.strptime(year_month, '%Y-%m')
+                                month_name = sample_date.strftime('%b %y')
+                            except ValueError:
+                                month_name = year_month  # Fallback
+                        monthly_list.append({
+                            'monat': month_name,
+                            'einsaetze': 0
+                        })
+                
+                timelines.append(ClownTimeline(
+                    name=guest_name,
+                    is_guest=True,
+                    monthly_data=monthly_list
+                ))
+        
+        # Sortiere nach Gesamteinsätzen (absteigend)
+        timelines.sort(key=lambda x: sum(m['einsaetze'] for m in x.monthly_data), reverse=True)
+        
+        logger.debug(f"Clown-Timeline berechnet: {len(timelines)} Zeitreihen für {len(sorted_year_months)} Monate")
+        
+        return timelines
+
+    @classmethod
     def _create_empty_dashboard_data(
         cls,
         team_name: Optional[str],
@@ -820,6 +965,7 @@ class DashboardService:
             monatliche_erfuellung=[],
             netzwerk_nodes=[],
             netzwerk_links=[],
+            clown_timeline=[],
             zeitraum_start=start_date.strftime('%d.%m.%Y'),
             zeitraum_ende=end_date.strftime('%d.%m.%Y'),
             team_name=team_name,

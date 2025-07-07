@@ -53,6 +53,38 @@
             gap: 0;
         }
         
+        /* Responsive Design für kleinere Bildschirme */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0;
+            }
+            
+            .chart-panel {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .chart-panel {
+                padding: 15px;
+            }
+            
+            .chart-title {
+                font-size: 1.2em;
+                margin-bottom: 15px;
+            }
+            
+            .clown-filter-container {
+                padding: 10px;
+            }
+            
+            .filter-checkboxes {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                max-height: 100px;
+            }
+        }
+        
         .stats-panel {
             padding: 30px;
             background: #f8f9fa;
@@ -103,6 +135,13 @@
             position: relative;
             height: 400px;
             margin-bottom: 30px;
+            width: 100%; /* Explizite Breite */
+            overflow: hidden; /* Verhindert Überlauf */
+        }
+        
+        .chart-container canvas {
+            max-width: 100% !important; /* Verhindert Canvas-Überlauf */
+            height: auto !important;
         }
         
         .chart-title {
@@ -639,6 +678,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    resizeDelay: 0, // Sofortiges Resize
                     plugins: {
                         legend: { 
                             display: true,
@@ -757,6 +797,7 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        resizeDelay: 0,
                         plugins: {
                             legend: { display: true, position: 'top' },
                             tooltip: {
@@ -822,6 +863,7 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
+                    resizeDelay: 0,
                     plugins: { 
                         legend: { display: false },
                         tooltip: {
@@ -875,6 +917,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    resizeDelay: 0, // Sofortiges Resize
                     plugins: { 
                         legend: { 
                             display: true,
@@ -1116,6 +1159,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    resizeDelay: 0, // Sofortiges Resize
                     plugins: {
                         legend: {
                             display: true,
@@ -1765,6 +1809,40 @@
         // Event-Handler für Clown Timeline Filter
         document.getElementById('selectAllClowns').onclick = selectAllClowns;
         document.getElementById('deselectAllClowns').onclick = deselectAllClowns;
+        
+        // Robuster Chart-Resize-Mechanismus
+        function forceChartsResize() {
+            // Warte kurz bis Layout-Änderung abgeschlossen ist
+            setTimeout(() => {
+                Object.values(allCharts).forEach(chart => {
+                    if (chart && typeof chart.resize === 'function') {
+                        // Explizite Container-Größe bestimmen
+                        const container = chart.canvas.parentElement;
+                        const containerWidth = container.clientWidth;
+                        
+                        // Chart zur neuen Container-Größe zwingen
+                        chart.canvas.style.width = containerWidth + 'px';
+                        chart.resize();
+                        
+                        // Debug-Info (optional - kann entfernt werden)
+                        console.log(`📏 Chart resized to: ${containerWidth}px`);
+                    }
+                });
+            }, 100);
+        }
+        
+        // Event-Listener für Orientierungswechsel
+        window.addEventListener('orientationchange', () => {
+            forceChartsResize();
+        });
+        
+        // Event-Listener für Window-Resize (Fallback)
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeTimeout);
+            window.resizeTimeout = setTimeout(() => {
+                forceChartsResize();
+            }, 250);
+        });
     </script>
 </body>
 </html>

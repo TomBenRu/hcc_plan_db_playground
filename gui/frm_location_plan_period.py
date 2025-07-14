@@ -1,5 +1,6 @@
 import datetime
 import functools
+import logging
 import os
 from argparse import Action
 from typing import Callable, Literal
@@ -29,6 +30,8 @@ from gui.observer import signal_handling
 from line_profiler_pycharm import profile
 
 from tools.helper_functions import time_to_string, date_to_string
+
+logger = logging.getLogger(__name__)
 
 
 # Durch direkte Implementierung von signal.disconnect in die entsprechenden Widget-Klassen
@@ -271,6 +274,8 @@ class ButtonEvent(QPushButton):
                 self.tr('Event Notes'),
                 self.tr('The new notes have been applied.')
             )
+            logger.info(f"Signal will be emitted - event_changed for event {event.id} on {self.date} "
+                        f"- {self.time_of_day.name}")
             signal_handling.handler_plan_tabs.event_changed(event.id, True)
             signal_handling.handler_location_plan_period.reset_styling_notes_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)

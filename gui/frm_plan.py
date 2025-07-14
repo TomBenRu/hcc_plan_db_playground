@@ -1,4 +1,5 @@
 import datetime
+import logging
 from collections import defaultdict
 from functools import partial
 from typing import Literal
@@ -30,6 +31,9 @@ from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
     time_to_string
+
+logger = logging.getLogger(__name__)
+
 
 WEEKDAY_NAMES = [
     QCoreApplication.translate("WeekDays", "Monday"),
@@ -666,6 +670,8 @@ class AppointmentField(QWidget):
     @Slot(UUID, bool)
     def _event_changed(self, event_id: UUID, notes_changed: bool):
         if event_id == self.appointment.event.id:
+            logger.info(f'Signal received - _event_changed in AppointmentField {event_id} '
+                        f'- Plan {self.plan_widget.plan.name}')
             self._reload_appointment_and_tooltip()
             if notes_changed:
                 reply = QMessageBox.question(

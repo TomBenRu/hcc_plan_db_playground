@@ -833,6 +833,8 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
 
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
     # todo: funktioniert bislang nur für CastGroups mit Event
+    # todo: verschiedene Modi hinzufügen: Strict (muss mit den genannten Mitarbeitern besetzt werden),
+    #  Soft (sollte mit den genannten Mitarbeitern besetzt werden, falls möglich)
     
     def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')

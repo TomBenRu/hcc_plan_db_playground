@@ -9,7 +9,6 @@ from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog,
                                QApplication)
 from httplib2 import ServerNotFoundError
-from pydantic_core import ValidationError
 from xlsxwriter.exceptions import FileCreateError
 
 from commands import command_base_classes
@@ -25,8 +24,7 @@ from google_calendar_api.get_calendars import synchronize_local_calendars, get_c
 from google_calendar_api.show_google_calendar import open_google_calendar_in_browser
 from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
 from tools import open_file_or_folder
-from tools.helper_functions import date_to_string
-from . import frm_comb_loc_possible, frm_calculate_plan, frm_plan, frm_settings_solver_params, frm_excel_settings
+from . import frm_comb_loc_possible, frm_calculate_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_create_google_calendar import CreateGoogleCalendar
@@ -35,18 +33,16 @@ from .frm_excel_export import DlgPlanToXLSX
 from .frm_general_settings import DlgGeneralSettings
 from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
-from .frm_actor_plan_period import FrmTabActorPlanPeriods
-from .frm_location_plan_period import FrmTabLocationPlanPeriods
 from .frm_masterdata import FrmMasterData
 from tools.actions import MenuToolbarAction
 from .frm_open_plan_period_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
-from .frm_plan_period_tab_widget import PlanPeriodTabWidget
 from .frm_project_select import DlgProjectSelect
 from .frm_project_settings import DlgSettingsProject
 from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .observer import signal_handling
+from .tab_manager import TabManager
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.toolbars import MainToolBar
 
@@ -54,6 +50,19 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
+    """
+    Hauptfenster der hcc-plan Anwendung.
+    
+    Diese Klasse koordiniert die UI-Komponenten und delegiert die Tab-Verwaltung
+    an den TabManager. Die MainWindow ist verantwortlich für:
+    - UI-Koordination und Layout
+    - Menu/Toolbar-Management  
+    - Dialog-Anzeige
+    - Signal-Weiterleitung an entsprechende Handler
+    
+    Tab-Management (Öffnen/Schließen/Navigation) wird vollständig vom
+    TabManager übernommen.
+    """
     def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
         logger.info(f'{"="*50}\nStarting hcc-plan')
@@ -285,7 +294,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.tabs_left = TabBar(self.central_widget, 'west', 16, 200)
-        self.tabs_left.currentChanged.connect(self._tabs_left_toggled)
+        # Signal wird jetzt vom TabManager verwaltet
 
         self.widget_planungsmasken = QWidget()
         self.widget_plans = QWidget()
@@ -299,6 +308,27 @@ class MainWindow(QMainWindow):
         self.tabs_left.addTab(self.tabs_planungsmasken, self.tr('Planning masks'))
         self.tabs_left.addTab(self.tabs_plans, self.tr('Schedules'))
 
+        # === TAB MANAGER INTEGRATION ===
+        
+        # TabManager instanziieren
+        self.tab_manager = TabManager(
+            self, 
+            self.controller, 
+            self.global_update_plan_tabs_progress_manager
+        )
+        
+        # TabBars an TabManager übergeben
+        self.tab_manager.initialize_tabs(
+            self.tabs_left,
+            self.tabs_planungsmasken, 
+            self.tabs_plans
+        )
+        
+        # TabManager Signals verbinden
+        self._connect_tab_manager_signals()
+        
+        # === ENDE TAB MANAGER INTEGRATION ===
+
         self.frm_master_data = None
 
         self._activate_signals()
@@ -308,6 +338,113 @@ class MainWindow(QMainWindow):
             self._show_location_plan_period_mask)
         signal_handling.handler_plan_period_tabs.signal_show_actor_plan_period.connect(
             self._show_actor_plan_period_mask)
+
+    def _connect_tab_manager_signals(self):
+        """Verbindet TabManager-Signals mit entsprechenden MainWindow-Methoden"""
+        
+        # Tab-Events
+        self.tab_manager.tab_opened.connect(self._on_tab_opened)
+        self.tab_manager.tab_closed.connect(self._on_tab_closed)
+        self.tab_manager.tab_activated.connect(self._on_tab_activated)
+        
+        # Config-Events
+        self.tab_manager.team_config_saved.connect(self._on_team_config_saved)
+        
+        # UI-Update Events
+        self.tab_manager.menu_toolbar_update_needed.connect(self._update_menu_toolbar_for_tab_type)
+        self.tab_manager.status_message.connect(self.statusBar().showMessage)
+        
+        # Error-Events
+        self.tab_manager.error_occurred.connect(self._show_error_message)
+
+        # === SIGNALS FÜR INTERNE KOMMUNIKATION ===
+        self.tab_manager.plan_export_requested.connect(self.plan_export_to_excel)
+
+    # === TAB MANAGER SIGNAL HANDLERS ===
+
+    @Slot(str, object)
+    def _on_tab_opened(self, tab_type: str, widget: object):
+        """Handler für geöffnete Tabs"""
+        if tab_type == "plan":
+            # Plan-Tab geöffnet - weitere Aktionen wenn nötig
+            pass
+        elif tab_type == "plan_period":
+            # Planungsmasken-Tab geöffnet
+            pass
+
+    @Slot(str, object)
+    def _on_tab_closed(self, tab_type: str, widget: object):
+        """Handler für geschlossene Tabs"""
+        # Cleanup wenn nötig
+        pass
+
+    @Slot(str, object)
+    def _on_tab_activated(self, tab_type: str, widget: object):
+        """Handler für aktivierte Tabs"""
+        # UI-Updates wenn bestimmter Tab aktiv wird
+        pass
+
+    @Slot(UUID)
+    def _on_team_config_saved(self, team_id: UUID):
+        """Handler für gespeicherte Team-Konfiguration"""
+        logger.info(f"Team-Konfiguration gespeichert: {team_id}")
+
+    @Slot(str, str)
+    def _show_error_message(self, title: str, message: str):
+        """Zeigt Fehlermeldungen an"""
+        QMessageBox.critical(self, title, message)
+
+    @Slot(str)
+    def _update_menu_toolbar_for_tab_type(self, tab_type: str):
+        """Aktualisiert Menü/Toolbar basierend auf aktivem Tab-Typ"""
+        menu_plan: QMenu = self.main_menu.findChild(QMenu, self.tr('Schedule'))
+        file_menu_name = self.tr('File')
+        
+        if tab_type == 'masks':
+            menu_plan.setDisabled(True)
+            self.actions['show_masks'].setChecked(True)
+            for action in menu_plan.actions():
+                action.setDisabled(True)
+            self.actions['plan_export_to_excel'].setDisabled(True)
+            self.actions['new_plan_period'].setEnabled(True)
+            self._replace_action_in_menu(
+                self.main_menu.findChild(QMenu, file_menu_name),
+                self.actions['open_plan'],
+                self.actions['open_plan_period_masks']
+            )
+            self._replace_action_in_toolbar(
+                self.toolbar,
+                self.actions['open_plan'],
+                self.actions['open_plan_period_masks']
+            )
+            self._replace_action_in_toolbar(
+                self.toolbar,
+                self.actions['calculate_plans'],
+                self.actions['new_plan_period']
+            )
+            
+        elif tab_type == 'plans':
+            menu_plan.setEnabled(True)
+            self.actions['show_plans'].setChecked(True)
+            for action in menu_plan.actions():
+                action.setEnabled(True)
+            self.actions['plan_export_to_excel'].setEnabled(True)
+            self.actions['new_plan_period'].setDisabled(True)
+            self._replace_action_in_menu(
+                self.main_menu.findChild(QMenu, file_menu_name),
+                self.actions['open_plan_period_masks'],
+                self.actions['open_plan']
+            )
+            self._replace_action_in_toolbar(
+                self.toolbar,
+                self.actions['open_plan_period_masks'],
+                self.actions['open_plan']
+            )
+            self._replace_action_in_toolbar(
+                self.toolbar,
+                self.actions['new_plan_period'],
+                self.actions['calculate_plans']
+            )
 
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
@@ -362,44 +499,22 @@ class MainWindow(QMainWindow):
                     signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(dlg.updated_plan_period.id)
 
     def open_plan(self):
+        """Refactored: Nutzt TabManager"""
         if not self.curr_team:
-            QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst eine Team auswählen.')
+            QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst ein Team auswählen.')
             return
-        plans = {
-            name: p_id
-            for name, p_id in db_services.Plan.get_all_from__team(self.curr_team.id, True).items()
-            if p_id not in {
-                tab.plan.id for tab in [self.tabs_plans.widget(i) for i in range(self.tabs_plans.count())]
-            }
-        }
-        if not plans:
-            QMessageBox.critical(self, 'Plan öffnen',
-                                 f'Es sind keine weiteren Pläne des Teams {self.curr_team.name} vorhanden. ')
-            return
-
-        # Zeige den Dialog an, um einen Plan auszuwählen
-        chosen_plan_name, ok = QInputDialog.getItem(self, "Plan auswählen", "Wähle einen Plan aus:",
-                                                    reversed(list(plans)), editable=False)
-        plan_id = plans[chosen_plan_name] if ok else None
-
-        if ok:
-            self.open_plan_tab(plan_id)
+        
+        # TabManager übernimmt die komplette Logik
+        self.tab_manager.current_team = self.curr_team  # Team setzen
+        self.tab_manager.open_plan_from_dialog()
 
     def context_menu_tabs_plans(self, point: QPoint, index: int):
-        context_menu = QMenu()
-        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan löschen...', None,
-                                                 lambda: self.delete_plan(index)))
-        context_menu.addAction(MenuToolbarAction(context_menu, None, 'Plan als Excel-File exportieren...', None,
-                                                 lambda: self.plan_export_to_excel(index)))
-        context_menu.exec(self.tabs_plans.mapToGlobal(point))
+        """Delegiert Kontextmenü an TabManager"""
+        self.tab_manager.create_plan_context_menu(point, index)
 
     def delete_plan(self, index: int):
-        widget: FrmTabPlan = self.tabs_plans.widget(index)
-        confirmation = QMessageBox.question(self, 'Plan löschen',
-                                            f'Möchten Sie den Plan {widget.plan.name} wirklich löschen?')
-        if confirmation == QMessageBox.StandardButton.Yes:
-            self.tabs_plans.close_tab_and_delete_widget(index)
-            self.controller.execute(plan_commands.Delete(widget.plan.id))
+        """Delegiert Plan-Löschung an TabManager"""
+        self.tab_manager.delete_plan_tab(index)
 
     def plans_of_team_delete_prep_deletes(self):
         num_plans_to_delete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))
@@ -460,7 +575,12 @@ class MainWindow(QMainWindow):
             self.controller.execute(team_commands.UpdateNotes(team.id, dlg.notes))
 
     def plan_excel_configs(self):
-        plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        """Minimal angepasst: Nutzt TabManager Properties"""
+        plan_widget = self.tab_manager.current_plan_widget
+        if not plan_widget:
+            QMessageBox.critical(self, 'Excel-Einstellungen', 'Sie müssen zuerst einen Plan öffnen.')
+            return
+            
         team = plan_widget.plan.plan_period.team
         dlg = frm_excel_settings.DlgExcelExportSettings(
             self, plan_widget.plan.excel_export_settings, team)
@@ -499,11 +619,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Log-File', f'Beim Öffnen der Log-Datei ist ein Fehler aufgetreten:\n{e}')
 
     def plan_save(self):
-        """Der active Plan von self.tabs_plans wird unter vorgegebenem Namen gespeichert.
-        Falls ein Plan dieses Namens schon vorhanden ist, wird angeboten diesen Plan zu löschen und den aktuellen Plan
-         unter diesem Namen abzuspeichern."""
-        # todo: Dialog, um Namensvorlage für das Speichern von Plänen festzulegen.
-
+        """Minimal angepasst: Nutzt TabManager Properties"""
         def generate_name_suggestion(plan: schemas.PlanShow):
             return f'{plan.plan_period.team.name} {plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
 
@@ -544,10 +660,12 @@ class MainWindow(QMainWindow):
         def update_tab_text(new_text):
             self.tabs_plans.setTabText(self.tabs_plans.currentIndex(), new_text)
 
-        if not self.tabs_plans.count():
-            QMessageBox.critical(self, 'Plan speichern', 'Sie müssen zuerst ein Plan öffnen.')
+        # TabManager Property nutzen
+        active_widget = self.tab_manager.current_plan_widget
+        if not active_widget:
+            QMessageBox.critical(self, 'Plan speichern', 'Sie müssen zuerst einen Plan öffnen.')
             return
-        active_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+            
         new_name_suggestion = generate_name_suggestion(active_widget.plan)
 
         if new_name_suggestion_is_same_as_plan_name(new_name_suggestion, active_widget):
@@ -588,7 +706,11 @@ class MainWindow(QMainWindow):
 
         signal_handling.handler_excel_export.signal_finished.connect(export_finished)
 
-        widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        # TabManager Property nutzen
+        widget = self.tab_manager.current_plan_widget
+        if not widget:
+            QMessageBox.critical(self, 'Plan Excel-Export', 'Sie müssen zuerst einen Plan öffnen.')
+            return
 
         dlg = DlgPlanToXLSX(self, widget.plan)
         if dlg.exec():
@@ -601,18 +723,22 @@ class MainWindow(QMainWindow):
             export_to_file.execute()
 
     def lookup_for_excel_plan_folder(self):
-        if self.tabs_left.currentWidget().objectName() == 'plans':
-            curr_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        """Minimal angepasst: Nutzt TabManager Properties"""
+        if self.tab_manager.current_tab_type == 'plans':
+            curr_widget = self.tab_manager.current_plan_widget
             if not curr_widget:
                 QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
                 return
             plan_period = curr_widget.plan.plan_period
-        if self.tabs_left.currentWidget().objectName() == 'masks':
-            curr_widget: PlanPeriodTabWidget = self.tabs_planungsmasken.currentWidget()
+        elif self.tab_manager.current_tab_type == 'masks':
+            curr_widget = self.tab_manager.current_plan_period_widget
             if not curr_widget:
                 QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst eine Planungsperiode öffnen.')
                 return
             plan_period = db_services.PlanPeriod.get(curr_widget.plan_period_id)
+        else:
+            QMessageBox.critical(self, 'Excel-Ordner', 'Unbekannter Tab-Typ.')
+            return
 
         excel_output_path = self._get_excel_folder_output_path(plan_period)
         try:
@@ -668,90 +794,61 @@ class MainWindow(QMainWindow):
 
     @Slot(UUID, UUID)
     def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):
-        self.show_masks()
-        self._load_plan_period_if_not_loaded(plan_period_id)
-        plan_period_tab_widget: PlanPeriodTabWidget = self._activate_tab_by_plan_period_id(plan_period_id)
-        self._load_location_plan_period_mask(plan_period_tab_widget, location_id)
+        """Refactored: Nutzt TabManager vollständig"""
+        self.show_masks()  # UI-Koordination bleibt in MainWindow
+        
+        # TabManager übernimmt alles Tab-bezogene
+        self.tab_manager.current_team = self.curr_team if self.curr_team else None
+        self.tab_manager.show_location_plan_period_mask(plan_period_id, location_id)
 
-    @Slot(UUID, UUID)
+    @Slot(UUID, UUID)  
     def _show_actor_plan_period_mask(self, plan_period_id: UUID, person_id: UUID):
-        self.show_masks()
-        self._load_plan_period_if_not_loaded(plan_period_id)
-        plan_period_tab_widget: PlanPeriodTabWidget = self._activate_tab_by_plan_period_id(plan_period_id)
-        self._load_actor_plan_period_mask(plan_period_tab_widget, person_id)
+        """Refactored: Nutzt TabManager vollständig"""
+        self.show_masks()  # UI-Koordination bleibt in MainWindow
+        
+        # TabManager übernimmt alles Tab-bezogene
+        self.tab_manager.current_team = self.curr_team if self.curr_team else None
+        self.tab_manager.show_actor_plan_period_mask(plan_period_id, person_id)
 
-    def _load_plan_period_if_not_loaded(self, plan_period_id: UUID):
-        if next((i for i in range(self.tabs_planungsmasken.count())
-                 if self.tabs_planungsmasken.widget(i).plan_period_id == plan_period_id), None) is None:
-            self.open_plan_period_tab(plan_period_id, 1, None, None)
-
-    def _activate_tab_by_plan_period_id(self, plan_period_id: UUID) -> PlanPeriodTabWidget:
-        for i in range(self.tabs_planungsmasken.count()):
-            if (pp_widget := self.tabs_planungsmasken.widget(i)).plan_period_id == plan_period_id:
-                self.tabs_planungsmasken.setCurrentIndex(i)
-                return pp_widget
-
-    def _load_location_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, location_id: UUID):
-        """
-        Aktiviert den Tab "Einrichtungen" im PlanPeriodTabWidget und zeigt die Events-Maske der gewählte Einrichtung an.
-        """
-        tab_locations_employees = plan_period_tab_widget.findChild(TabBar, 'tab_bar_locations_employees')
-        for i in range(tab_locations_employees.count()):
-            if (tab_locations := tab_locations_employees.widget(i)).objectName() == 'tab_location_plan_periods':
-                tab_locations_employees.setCurrentIndex(i)
-                tab_locations: FrmTabLocationPlanPeriods
-                tab_locations.data_setup(location_id=location_id)
-                break
-
-    def _load_actor_plan_period_mask(self, plan_period_tab_widget: PlanPeriodTabWidget, person_id: UUID):
-        """
-        Aktiviert den Tab "Mitarbeiter" im PlanPeriodTabWidget und zeigt AvailDays-Maske der gewählten Person an.
-        """
-        tab_locations_employees = plan_period_tab_widget.findChild(TabBar, 'tab_bar_locations_employees')
-        for i in range(tab_locations_employees.count()):
-            if (tab_persons := tab_locations_employees.widget(i)).objectName() == 'tab_actor_plan_periods':
-                tab_locations_employees.setCurrentIndex(i)
-                tab_persons: FrmTabActorPlanPeriods
-                tab_persons.data_setup(None, None, person_id)
-
-    def open_plan_period_masks(self, plan_period_id: UUID):
+    def open_plan_period_masks(self, plan_period_id: UUID = None):
+        """Refactored: Nutzt TabManager für Planungsmasken"""
         if not self.curr_team:
             QMessageBox.critical(self, 'Planungsmasken', 'Sie müssen zuerst ein Team auswählen.')
             return
-        dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
-        if not dlg.exec():
-            return
-        self.open_plan_period_tab(dlg.curr_plan_period_id, 0, None, None)
+        
+        # Team an TabManager setzen
+        self.tab_manager.current_team = self.curr_team
+        
+        if plan_period_id:
+            # Direktes Öffnen
+            self.tab_manager.open_plan_period_tab(plan_period_id)
+        else:
+            # Dialog anzeigen
+            dlg = DlgOpenPlanPeriodMask(self, self.curr_team.id, self.tabs_planungsmasken)
+            if dlg.exec():
+                self.tab_manager.open_plan_period_tab(dlg.curr_plan_period_id)
 
     def open_plan_period_tab(self, plan_period_id: UUID, current_index_actors_locals_tabs: int,
                              curr_person_id: UUID | None, curr_location_id: UUID | None):
-        plan_period = db_services.PlanPeriod.get(plan_period_id)
-        widget_pp_tab = PlanPeriodTabWidget(self, plan_period_id)
-        string_start = date_to_string(plan_period.start)
-        string_end = date_to_string(plan_period.end)
-        self.tabs_planungsmasken.addTab(widget_pp_tab, f'{string_start} - {string_end}')
-        tabs_period = TabBar(widget_pp_tab, 'north', 10, None, None,
-                             True, False, None, 'tab_bar_locations_employees')
-
-        tab_actor_plan_periods = FrmTabActorPlanPeriods(tabs_period, plan_period)
-        if curr_person_id:
-            tab_actor_plan_periods.data_setup(person_id=curr_person_id)
-        tab_location_plan_periods = FrmTabLocationPlanPeriods(tabs_period, plan_period)
-        if curr_location_id:
-            tab_location_plan_periods.data_setup(location_id=curr_location_id)
-        tabs_period.addTab(tab_actor_plan_periods, self.tr('Employees'))
-        tabs_period.addTab(tab_location_plan_periods, self.tr('Facilities'))
-        tabs_period.setCurrentIndex(current_index_actors_locals_tabs)
+        """
+        Legacy-Wrapper: Delegiert an TabManager.
+        
+        Diese Methode wird für Rückwärtskompatibilität beibehalten und 
+        delegiert die Funktionalität an den TabManager.
+        """
+        self.tab_manager.current_team = self.curr_team  # Team setzen falls nötig
+        return self.tab_manager.open_plan_period_tab(
+            plan_period_id, current_index_actors_locals_tabs, curr_person_id, curr_location_id
+        )
 
     def goto_team(self, team_id: UUID):
-        if self.curr_team:
-            self.save_current_team_config()
-            while self.tabs_planungsmasken.count():
-                self.tabs_planungsmasken.close_tab_and_delete_widget(0)
-            while self.tabs_plans.count():
-                self.tabs_plans.close_tab_and_delete_widget(0)
-        self.curr_team = db_services.Team.get(team_id)
-        self.load_current_team_config()
+        """Refactored: Nutzt TabManager für Team-Wechsel"""
+        team = db_services.Team.get(team_id)
+        
+        # TabManager übernimmt das Session-Management
+        self.tab_manager.set_current_team(team)
+        self.curr_team = team  # MainWindow-State synchron halten
+        
         self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
 
     def master_data(self):
@@ -762,29 +859,28 @@ class MainWindow(QMainWindow):
         self.frm_master_data.showNormal()
 
     def show_plans(self):
-        for i in range(self.tabs_left.count()):
-            if self.tabs_left.widget(i).objectName() == 'plans':
-                self.tabs_left.setCurrentIndex(i)
+        """Refactored: Delegiert an TabManager"""
+        self.tab_manager.show_plans()
 
     def show_masks(self):
-        for i in range(self.tabs_left.count()):
-            if self.tabs_left.widget(i).objectName() == 'masks':
-                self.tabs_left.setCurrentIndex(i)
+        """Refactored: Delegiert an TabManager"""
+        self.tab_manager.show_masks()
 
     def export_avail_days_to_excel(self):
+        """Minimal angepasst: Nutzt TabManager Properties"""
         def create_dir_if_not_exist(path: str):
             dir_path = path.rsplit(os.sep, 1)[0]
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
 
-        if self.tabs_left.currentWidget().objectName() == 'plans':
-            curr_plan_widget: FrmTabPlan = self.tabs_plans.currentWidget()
+        if self.tab_manager.current_tab_type == 'plans':
+            curr_plan_widget = self.tab_manager.current_plan_widget
             if not curr_plan_widget:
                 QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst einen Plan öffnen.')
                 return
             plan_period = curr_plan_widget.plan.plan_period
-        elif self.tabs_left.currentWidget().objectName() == 'masks':
-            curr_plan_widget: PlanPeriodTabWidget = self.tabs_planungsmasken.currentWidget()
+        elif self.tab_manager.current_tab_type == 'masks':
+            curr_plan_widget = self.tab_manager.current_plan_period_widget
             if not curr_plan_widget:
                 QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst eine Planungsperiode öffnen.')
                 return
@@ -815,6 +911,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def calculate_plans(self):
+        """Refactored: Nutzt TabManager zum Öffnen neuer Pläne"""
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
@@ -823,24 +920,30 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             reply = QMessageBox.question(self, 'Plänen anzeigen', 'Sollen die erstellten Pläne angezeigt werden?')
             if reply == QMessageBox.StandardButton.Yes:
+                # TabManager öffnet die Pläne
+                self.tab_manager.current_team = self.curr_team  # Team setzen
                 for plan_id in dlg.get_created_plan_ids():
-                    self.open_plan_tab(plan_id)
+                    self.tab_manager.open_plan_tab(plan_id)
                     QCoreApplication.processEvents()
 
     def open_plan_tab(self, plan_id: UUID):
-        try:
-            plan = db_services.Plan.get(plan_id)
-        except ValidationError:
-            QMessageBox.critical(self, 'Plan öffnen', f'Der Plan min der ID {plan_id} konnte nicht geöffnet werden.')
-            return
-
-        new_widget = frm_plan.FrmTabPlan(self.tabs_plans, plan, self.global_update_plan_tabs_progress_manager)
-        self.tabs_plans.addTab(new_widget, plan.name)
-        self.tabs_plans.setTabToolTip(self.tabs_plans.indexOf(new_widget), 'Rechtsklick: weitere Aktionen')
-        self.tabs_plans.setCurrentIndex(self.tabs_plans.indexOf(new_widget))
+        """
+        Legacy-Wrapper: Delegiert an TabManager.
+        
+        Diese Methode wird noch von einigen Stellen aufgerufen und 
+        delegiert die Funktionalität an den TabManager.
+        """
+        self.tab_manager.current_team = self.curr_team  # Team setzen falls nötig
+        return self.tab_manager.open_plan_tab(plan_id)
 
     def plan_infos(self):
-        curr_plan: schemas.PlanShow = self.tabs_plans.currentWidget().plan
+        """Minimal angepasst: Nutzt TabManager Properties"""
+        curr_plan_widget = self.tab_manager.current_plan_widget
+        if not curr_plan_widget:
+            QMessageBox.critical(self, 'Plan-Informationen', 'Sie müssen zuerst einen Plan öffnen.')
+            return
+            
+        curr_plan: schemas.PlanShow = curr_plan_widget.plan
         dlg = DlgPlanPeriodNotes(self, curr_plan)
         if dlg.exec():
             self.controller.execute(plan_commands.UpdateNotes(curr_plan.id, dlg.notes))
@@ -870,7 +973,8 @@ class MainWindow(QMainWindow):
         show_plan_notification_dialog(self)
 
     def send_availability_requests(self):
-        curr_plan_widget: frm_plan.FrmTabPlan = self.tabs_plans.currentWidget()
+        """Minimal angepasst: Nutzt TabManager Properties"""
+        curr_plan_widget = self.tab_manager.current_plan_widget
         if not curr_plan_widget:
             QMessageBox.critical(self, 'Verfügbarkeiten anfragen', 'Sie müssen zuerst einen Plan öffnen.')
             return
@@ -881,6 +985,7 @@ class MainWindow(QMainWindow):
         show_config_dialog(self)
 
     def plan_events_to_google_calendar(self):
+        """Minimal angepasst: Nutzt TabManager Properties"""
         def transfer(plan: schemas.PlanShow):
             try:
                 transfer_appointments_with_batch_requests(plan)
@@ -901,7 +1006,7 @@ class MainWindow(QMainWindow):
                                      f'Bei der Übertragung der Termine ist ein Fehler aufgetreten:\n'
                                      f'{result}')
 
-        curr_widget: frm_plan.FrmTabPlan | None = self.tabs_plans.currentWidget()
+        curr_widget = self.tab_manager.current_plan_widget
         if curr_widget:
             plan = curr_widget.plan
         else:
@@ -1054,55 +1159,6 @@ class MainWindow(QMainWindow):
     def about_hcc_plan(self):
         ...
 
-    def _tabs_left_toggled(self):
-        """
-        Ändert die Inhalte der Menüs und Toolbar, wenn der Tab "Pläne" oder "Planungsmasken" ausgewählt wird.
-        """
-        menu_plan: QMenu = self.main_menu.findChild(QMenu, self.tr('Schedule'))
-        file_menu_name = self.tr('File')
-        toggle_actions = {
-            'masks': [
-                functools.partial(menu_plan.setDisabled, True),
-                functools.partial(self.actions['show_masks'].setChecked, True),
-                *[functools.partial(action.setDisabled, True) for action in menu_plan.actions()],
-                functools.partial(self.actions['plan_export_to_excel'].setDisabled, True),
-                functools.partial(self.actions['new_plan_period'].setEnabled, True),
-                functools.partial(self._replace_action_in_menu,
-                                  self.main_menu.findChild(QMenu, file_menu_name),
-                                  self.actions['open_plan'],
-                                  self.actions['open_plan_period_masks']),
-                functools.partial(self._replace_action_in_toolbar,
-                                  self.toolbar,
-                                  self.actions['open_plan'],
-                                  self.actions['open_plan_period_masks']),
-                functools.partial(self._replace_action_in_toolbar,
-                                  self.toolbar,
-                                  self.actions['calculate_plans'],
-                                  self.actions['new_plan_period'])
-            ],
-            'plans': [
-                functools.partial(menu_plan.setEnabled, True),
-                functools.partial(self.actions['show_plans'].setChecked, True),
-                *[functools.partial(action.setEnabled, True) for action in menu_plan.actions()],
-                functools.partial(self.actions['plan_export_to_excel'].setEnabled, True),
-                functools.partial(self.actions['new_plan_period'].setDisabled, True),
-                functools.partial(self._replace_action_in_menu,
-                                  self.main_menu.findChild(QMenu, file_menu_name),
-                                  self.actions['open_plan_period_masks'],
-                                  self.actions['open_plan']),
-                functools.partial(self._replace_action_in_toolbar,
-                                  self.toolbar,
-                                  self.actions['open_plan_period_masks'],
-                                  self.actions['open_plan']),
-                functools.partial(self._replace_action_in_toolbar,
-                                  self.toolbar,
-                                  self.actions['new_plan_period'],
-                                  self.actions['calculate_plans'])
-            ]
-        }
-        for toggle_action in toggle_actions[self.tabs_left.currentWidget().objectName()]:
-            toggle_action()
-
     def _replace_action_in_menu(self, menu: QMenu, old_action: QAction, new_action: QAction):
         if menu:
             actions = menu.actions()
@@ -1120,64 +1176,25 @@ class MainWindow(QMainWindow):
                 toolbar.removeAction(old_action)
 
     def restore_tabs(self):
-        curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
-        if curr_team_id:
-            try:
-                self.curr_team = db_services.Team.get(curr_team_id)
-                self.actions_teams_in_clients_menu[curr_team_id].setChecked(True)
-            except ValidationError:
-                config = team_start_config.curr_start_config_handler.load_config_from_file()
-                config.default_team_id = None
-                config.teams = []
-                team_start_config.curr_start_config_handler.save_config_to_file(config)
-                return
-            self.load_current_team_config()
+        """Refactored: Delegiert an TabManager"""
+        self.tab_manager.restore_startup_tabs()
+        
+        # Window-Title setzen wenn Team geladen wurde
+        if self.tab_manager.current_team:
+            self.curr_team = self.tab_manager.current_team
             self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
-
-    def load_current_team_config(self):
-        start_config_handler = team_start_config.curr_start_config_handler
-        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
-        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
-            self.open_plan_period_tab(plan_period_id,
-                                      pp_tab_config['curr_index_actors_locals_tabs'],
-                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
-        for plan_id in config_curr_team.tabs_plans:
-            self.open_plan_tab(plan_id)
-        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
-        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
-        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
+            # Actions-Menu aktualisieren falls vorhanden
+            if hasattr(self, 'actions_teams_in_clients_menu') and self.curr_team.id in self.actions_teams_in_clients_menu:
+                self.actions_teams_in_clients_menu[self.curr_team.id].setChecked(True)
 
     def exit(self):
         self.close()
 
     def closeEvent(self, event=QCloseEvent):
-        self.save_current_team_config()
+        """Refactored: TabManager speichert Konfiguration"""
+        if self.curr_team:
+            self.tab_manager.save_team_config(self.curr_team.id)
         super().closeEvent(event)
-
-    def save_current_team_config(self):
-        start_config_handler = team_start_config.curr_start_config_handler
-        curr_index_planungsmasken = self.tabs_planungsmasken.currentIndex()
-        curr_index_plans = self.tabs_plans.currentIndex()
-        curr_left_tabs_index = self.tabs_left.currentIndex()
-        tabs_planungsmasken = {
-            self.tabs_planungsmasken.widget(i).plan_period_id:
-                {'person_id': self.tabs_planungsmasken.widget(i).findChild(FrmTabActorPlanPeriods).person_id,
-                 'location_id': self.tabs_planungsmasken.widget(i).findChild(FrmTabLocationPlanPeriods).location_id,
-                 'curr_index_actors_locals_tabs': self.tabs_planungsmasken.widget(i).findChild(TabBar).currentIndex()
-                 }
-            for i in range(self.tabs_planungsmasken.count())
-        }
-        tabs_plans = [self.tabs_plans.widget(i).plan.id for i in range(self.tabs_plans.count())]
-        start_config_handler.save_config_for_team(
-            self.curr_team.id if self.curr_team else None,
-            team_start_config.StartConfigTeam(
-                team_id=self.curr_team.id if self.curr_team else None,
-                tabs_planungsmasken=tabs_planungsmasken, tabs_plans=tabs_plans,
-                current_index_planungsmasken_tabs=curr_index_planungsmasken,
-                current_index_plans_tabs=curr_index_plans,
-                current_index_left_tabs=curr_left_tabs_index
-            )
-        )
 
     def show_db_structure(self):
         import urllib.parse
@@ -1284,7 +1301,4 @@ class MainWindow(QMainWindow):
                 else:  # callable
                     self.put_actions_to_menu(menu, value())
 
-
 # todo: Funktion zur Komprimierung der Datenbank hinzufügen.
-# not_sure: team_start_config.toml wird korrupt, falls zwischen Teams gewechselt wird und die Team keine
-#  geöffneten Planperioden haben.

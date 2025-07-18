@@ -393,16 +393,12 @@ class MainWindow(QMainWindow):
                                                  lambda: self.plan_export_to_excel(index)))
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
 
-    def remove_plan(self, index: int):
-        widget = self.tabs_plans.widget(index)
-        self.tabs_plans.close_tab_and_delete_widget(index)
-
     def delete_plan(self, index: int):
         widget: FrmTabPlan = self.tabs_plans.widget(index)
         confirmation = QMessageBox.question(self, 'Plan löschen',
                                             f'Möchten Sie den Plan {widget.plan.name} wirklich löschen?')
         if confirmation == QMessageBox.StandardButton.Yes:
-            self.remove_plan(index)
+            self.tabs_plans.close_tab_and_delete_widget(index)
             self.controller.execute(plan_commands.Delete(widget.plan.id))
 
     def plans_of_team_delete_prep_deletes(self):

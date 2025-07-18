@@ -67,6 +67,9 @@ class MainWindow(QMainWindow):
         self._choose_project()
         self.curr_team: schemas.TeamShow | None = None
 
+        self.team_tab_cache: dict[UUID, dict[str, list[QWidget]]] = {}  # {team_id: {'plans': [widgets], 'masks': [widgets]}}
+        self.max_cached_teams = 5  # Memory-Limit
+
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.thread_pool = QThreadPool()
@@ -750,12 +753,76 @@ class MainWindow(QMainWindow):
     def goto_team(self, team_id: UUID):
         if self.curr_team:
             self.save_current_team_config()
-            while self.tabs_planungsmasken.count():
-                self.tabs_planungsmasken.close_tab_and_delete_widget(0)
+            self._cache_current_team_tabs()
 
         self.curr_team = db_services.Team.get(team_id)
-        self.load_current_team_config()
+        self._restore_or_load_team_tabs(team_id)
         self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
+
+    def _cache_current_team_tabs(self):
+        if self.curr_team.id not in self.team_tab_cache:
+            self.team_tab_cache[self.curr_team.id] = {'plans': [], 'masks': []}
+
+        # Widgets aus TabBars entfernen aber nicht löschen
+        while self.tabs_plans.count():
+            widget = self.tabs_plans.widget(0)
+            self.tabs_plans.removeTab(0)
+            self.team_tab_cache[self.curr_team.id]['plans'].append(widget)
+
+        while self.tabs_planungsmasken.count():
+            widget = self.tabs_planungsmasken.widget(0)
+            self.tabs_planungsmasken.removeTab(0)
+            self.team_tab_cache[self.curr_team.id]['masks'].append(widget)
+
+    def _restore_or_load_team_tabs(self, team_id):
+        if team_id in self.team_tab_cache:
+            # Aus Cache wiederherstellen
+            for widget in self.team_tab_cache[team_id]['plans']:
+                self.tabs_plans.addTab(widget, widget.plan.name)
+            for widget in self.team_tab_cache[team_id]['masks']:
+                # Tab-Name aus Widget ableiten
+                self.tabs_planungsmasken.addTab(widget, "...")
+        else:
+            # Neu laden wie bisher
+            self.load_current_team_config()
+            self._cleanup_cache_if_needed()
+
+    def _cleanup_cache_if_needed(self):
+        if len(self.team_tab_cache) > self.max_cached_teams:
+            # Ältestes Team aus Cache entfernen
+            oldest_team = next(iter(self.team_tab_cache))
+            for widget_list in self.team_tab_cache[oldest_team].values():
+                for widget in widget_list:
+                    widget.deleteLater()
+            del self.team_tab_cache[oldest_team]
+
+    def restore_tabs(self):
+        curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
+        if curr_team_id:
+            try:
+                self.curr_team = db_services.Team.get(curr_team_id)
+                self.actions_teams_in_clients_menu[curr_team_id].setChecked(True)
+            except ValidationError:
+                config = team_start_config.curr_start_config_handler.load_config_from_file()
+                config.default_team_id = None
+                config.teams = []
+                team_start_config.curr_start_config_handler.save_config_to_file(config)
+                return
+            self.load_current_team_config()
+            self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
+
+    def load_current_team_config(self):
+        start_config_handler = team_start_config.curr_start_config_handler
+        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
+        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
+            self.open_plan_period_tab(plan_period_id,
+                                      pp_tab_config['curr_index_actors_locals_tabs'],
+                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
+        for plan_id in config_curr_team.tabs_plans:
+            self.open_plan_tab(plan_id)
+        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
+        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
+        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -1121,34 +1188,6 @@ class MainWindow(QMainWindow):
                 index = actions.index(old_action)
                 toolbar.insertAction(actions[index] if index < len(actions) else None, new_action)
                 toolbar.removeAction(old_action)
-
-    def restore_tabs(self):
-        curr_team_id = team_start_config.curr_start_config_handler.get_start_config().default_team_id
-        if curr_team_id:
-            try:
-                self.curr_team = db_services.Team.get(curr_team_id)
-                self.actions_teams_in_clients_menu[curr_team_id].setChecked(True)
-            except ValidationError:
-                config = team_start_config.curr_start_config_handler.load_config_from_file()
-                config.default_team_id = None
-                config.teams = []
-                team_start_config.curr_start_config_handler.save_config_to_file(config)
-                return
-            self.load_current_team_config()
-            self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
-
-    def load_current_team_config(self):
-        start_config_handler = team_start_config.curr_start_config_handler
-        config_curr_team = start_config_handler.get_start_config_for_team(self.curr_team.id)
-        for plan_period_id, pp_tab_config in config_curr_team.tabs_planungsmasken.items():
-            self.open_plan_period_tab(plan_period_id,
-                                      pp_tab_config['curr_index_actors_locals_tabs'],
-                                      pp_tab_config.get('person_id'), pp_tab_config.get('location_id'))
-        for plan_id in config_curr_team.tabs_plans:
-            self.open_plan_tab(plan_id)
-        self.tabs_planungsmasken.setCurrentIndex(config_curr_team.current_index_planungsmasken_tabs)
-        self.tabs_plans.setCurrentIndex(config_curr_team.current_index_plans_tabs)
-        self.tabs_left.setCurrentIndex(config_curr_team.current_index_left_tabs)
 
     def exit(self):
         self.close()

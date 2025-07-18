@@ -7,12 +7,13 @@ Inkludiert Performance-Monitoring und erweiterte Statistiken
 import logging
 import time
 from uuid import UUID
-from typing import Optional
+from typing import Optional, Protocol, TYPE_CHECKING
 
 from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QMessageBox, QMenu, QFileDialog
+from PySide6.QtWidgets import QMessageBox, QMenu, QFileDialog, QStatusBar, QMenuBar
 from PySide6.QtGui import QAction
 
+from gui.tab_manager import TabManager
 from tools.actions import MenuToolbarAction
 from configuration import team_start_config
 from gui.cache.performance_monitor import performance_monitor
@@ -31,6 +32,17 @@ class TabCacheIntegration:
     - Performance-Monitoring
     - Konfigurationsspeicherung
     """
+
+    # Type hint für IDE-Unterstützung
+    if TYPE_CHECKING:
+        # Diese Attribute kommen von MainWindow
+        tab_manager: TabManager
+        main_menu: QMenuBar
+        curr_team: Optional[object]
+
+        def statusBar(self) -> QStatusBar: ...
+
+        def setWindowTitle(self, title: str) -> None: ...
     
     def setup_cache_integration(self):
         """Initialisiert Cache-Integration für MainWindow"""

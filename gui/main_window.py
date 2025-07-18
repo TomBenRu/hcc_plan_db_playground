@@ -43,13 +43,14 @@ from .frm_project_settings import DlgSettingsProject
 from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .observer import signal_handling
 from .tab_manager import TabManager
+from .cache.main_window_integration import TabCacheIntegration
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.toolbars import MainToolBar
 
 logger = logging.getLogger(__name__)
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, TabCacheIntegration):
     """
     Hauptfenster der hcc-plan Anwendung.
     
@@ -59,9 +60,10 @@ class MainWindow(QMainWindow):
     - Menu/Toolbar-Management  
     - Dialog-Anzeige
     - Signal-Weiterleitung an entsprechende Handler
+    - Tab-Cache Management und Performance-Monitoring
     
     Tab-Management (Öffnen/Schließen/Navigation) wird vollständig vom
-    TabManager übernommen.
+    TabManager mit intelligentem Caching übernommen.
     """
     def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
@@ -332,6 +334,10 @@ class MainWindow(QMainWindow):
         self.frm_master_data = None
 
         self._activate_signals()
+
+        # === CACHE-INTEGRATION SETUP (nach Menu-Erstellung) ===
+        self.setup_cache_integration()
+        self.connect_cache_signals()
 
     def _activate_signals(self):
         signal_handling.handler_plan_period_tabs.signal_show_location_plan_period.connect(
@@ -842,14 +848,9 @@ class MainWindow(QMainWindow):
         )
 
     def goto_team(self, team_id: UUID):
-        """Refactored: Nutzt TabManager für Team-Wechsel"""
-        team = db_services.Team.get(team_id)
-        
-        # TabManager übernimmt das Session-Management
-        self.tab_manager.set_current_team(team)
-        self.curr_team = team  # MainWindow-State synchron halten
-        
-        self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
+        """Erweiterte Team-Wechsel-Logik mit Cache-Performance-Monitoring"""
+        # Nutze erweiterte Implementierung aus TabCacheIntegration
+        self.enhanced_goto_team(team_id)
 
     def master_data(self):
         if self.frm_master_data is None:
@@ -1191,9 +1192,11 @@ class MainWindow(QMainWindow):
         self.close()
 
     def closeEvent(self, event=QCloseEvent):
-        """Refactored: TabManager speichert Konfiguration"""
-        if self.curr_team:
-            self.tab_manager.save_team_config(self.curr_team.id)
+        """Erweiterte Close-Event Behandlung mit Cache-Management"""
+        # Nutze erweiterte Cache-Behandlung
+        self.enhanced_close_event(event)
+        
+        # Original closeEvent aufrufen
         super().closeEvent(event)
 
     def show_db_structure(self):

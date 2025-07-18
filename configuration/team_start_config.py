@@ -21,6 +21,11 @@ class StartConfig(BaseModel):
     project_id: UUID | None = None
     default_team_id: UUID | None = None
     teams: list[StartConfigTeam] = []
+    
+    # === TAB-CACHE EINSTELLUNGEN ===
+    tab_cache_enabled: bool = True
+    max_cached_teams: int = 5
+    cache_expire_hours: int = 24
 
 
 class ConfigHandlerToml:

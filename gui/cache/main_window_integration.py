@@ -104,11 +104,6 @@ class TabCacheIntegration:
                     self, None, 'Cache-Einstellungen...', 
                     'Konfiguriert Cache-Parameter (Max Teams, Ablaufzeit)', 
                     self.configure_cache
-                ),
-                'test_cache': MenuToolbarAction(
-                    self, None, 'Cache-System testen', 
-                    'Testet das Cache-System mit dem aktuellen Team', 
-                    self.test_cache_system
                 )
             }
             
@@ -542,44 +537,6 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
         except Exception as e:
             logger.error(f"Fehler beim Metriken-Export: {e}")
             QMessageBox.critical(self, 'Fehler', f'Metriken-Export fehlgeschlagen:\n{e}')
-    
-    def test_cache_system(self):
-        """Testet das Cache-System mit dem aktuellen Team"""
-        try:
-            if not hasattr(self, 'tab_manager'):
-                QMessageBox.critical(self, 'Test fehlgeschlagen', 'TabManager nicht verfügbar.')
-                return
-                
-            if not self.tab_manager._cache_enabled:
-                QMessageBox.information(self, 'Cache-Test', 
-                                      'Tab-Caching ist deaktiviert.\n'
-                                      'Aktivieren Sie das Caching zuerst über "Cache aktivieren/deaktivieren".')
-                return
-                
-            if not self.curr_team:
-                QMessageBox.information(self, 'Cache-Test', 
-                                      'Kein Team ausgewählt.\n'
-                                      'Wählen Sie zuerst ein Team aus und öffnen Sie einige Tabs.')
-                return
-                
-            # Test ausführen
-            success = self.tab_manager.test_cache_widget_lifecycle()
-            
-            if success:
-                QMessageBox.information(self, 'Cache-Test erfolgreich', 
-                                      '✅ Cache-System funktioniert korrekt!\n\n'
-                                      'Alle Widgets wurden erfolgreich gecacht und wiederhergestellt.\n'
-                                      'Details finden Sie im Log.')
-            else:
-                QMessageBox.critical(self, 'Cache-Test fehlgeschlagen', 
-                                   '❌ Cache-System hat Probleme!\n\n'
-                                   'Nicht alle Widgets wurden korrekt wiederhergestellt.\n'
-                                   'Prüfen Sie das Log für Details.\n\n'
-                                   'Tipp: Deaktivieren Sie den Cache falls Probleme auftreten.')
-                
-        except Exception as e:
-            logger.error(f"Fehler beim Cache-Test: {e}")
-            QMessageBox.critical(self, 'Test-Fehler', f'Cache-Test konnte nicht ausgeführt werden:\n{e}')
     
     def _save_cache_setting(self, key: str, value):
         """Speichert Cache-Einstellung in Konfiguration"""

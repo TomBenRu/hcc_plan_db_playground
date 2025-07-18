@@ -408,65 +408,6 @@ class TabManager(QObject):
         stats['cache_enabled'] = self._cache_enabled
         return stats
     
-    def test_cache_widget_lifecycle(self):
-        """Test-Methode für Widget-Lifecycle beim Caching"""
-        if not self._cache_enabled:
-            logger.warning("Cache ist deaktiviert - Test nicht möglich")
-            return False
-            
-        if not self.current_team:
-            logger.warning("Kein aktuelles Team - Test nicht möglich")
-            return False
-            
-        try:
-            # Status vor Test
-            initial_plan_count = self.tabs_plans.count()
-            initial_masken_count = self.tabs_planungsmasken.count()
-            
-            # 1. Caching testen
-            self._cache_current_team_tabs()
-            
-            # 2. Tabs schließen (damit Widgets unsichtbar werden für Validierung)
-            self._close_all_visible_tabs()
-            
-            after_close_plan_count = self.tabs_plans.count()
-            after_close_masken_count = self.tabs_planungsmasken.count()
-            
-            if after_close_plan_count != 0 or after_close_masken_count != 0:
-                logger.error("Tabs wurden nicht korrekt geschlossen!")
-                return False
-            
-            # 3. Cache-Inhalt prüfen (jetzt sind Widgets unsichtbar)
-            cached_team = self.cache_manager.get_team_tabs(self.current_team.id)
-            if not cached_team:
-                logger.error("Team wurde nicht gecacht!")
-                return False
-            
-            # 4. Tabs wiederherstellen
-            self._restore_tabs_from_cache(cached_team)
-            
-            final_plan_count = self.tabs_plans.count()
-            final_masken_count = self.tabs_planungsmasken.count()
-            
-            # 5. Ergebnis prüfen
-            success = (final_plan_count == initial_plan_count and 
-                      final_masken_count == initial_masken_count)
-            
-            if success:
-                logger.info("✅ Cache Widget Lifecycle Test ERFOLGREICH!")
-            else:
-                logger.error(f"❌ Cache Widget Lifecycle Test FEHLGESCHLAGEN!")
-                logger.error(f"Erwartet: Plans={initial_plan_count}, Masken={initial_masken_count}")
-                logger.error(f"Erhalten: Plans={final_plan_count}, Masken={final_masken_count}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Cache Widget Lifecycle Test fehlgeschlagen: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return False
-    
     def update_cache_config(self, max_cached_teams: Optional[int] = None, 
                            cache_expire_hours: Optional[int] = None):
         """Aktualisiert Cache-Konfiguration zur Laufzeit"""

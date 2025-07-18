@@ -15,7 +15,7 @@ class TabBar(QTabWidget):
 
         self.setTabsClosable(set_closable)
         self.context_menu_slot = context_menu_slot
-        self.tabCloseRequested.connect(self.close_tab)
+        self.tabCloseRequested.connect(self.close_tab_and_delete_widget)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -46,6 +46,9 @@ class TabBar(QTabWidget):
         if index >= 0:
             self.context_menu_slot(point, index)
 
-    def close_tab(self, index: int):
+    def close_tab_and_delete_widget(self, index: int):
+        widget = self.widget(index)
         self.removeTab(index)
+        if widget:
+            widget.deleteLater()
 

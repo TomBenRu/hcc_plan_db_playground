@@ -394,7 +394,8 @@ class MainWindow(QMainWindow):
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
 
     def remove_plan(self, index: int):
-        self.tabs_plans.removeTab(index)
+        widget = self.tabs_plans.widget(index)
+        self.tabs_plans.close_tab_and_delete_widget(index)
 
     def delete_plan(self, index: int):
         widget: FrmTabPlan = self.tabs_plans.widget(index)
@@ -537,7 +538,7 @@ class MainWindow(QMainWindow):
                 (i for i in range(self.tabs_plans.count())
                  if self.tabs_plans.tabText(i) == tab_name), -1
             )
-            self.tabs_plans.removeTab(tab_to_remove_index)
+            self.tabs_plans.close_tab_and_delete_widget(tab_to_remove_index)
 
         def update_plan_name(widget: FrmTabPlan, new_name: str):
             update_name_command = plan_commands.UpdateName(widget.plan.id, new_name)
@@ -750,9 +751,7 @@ class MainWindow(QMainWindow):
         if self.curr_team:
             self.save_current_team_config()
             while self.tabs_planungsmasken.count():
-                self.tabs_planungsmasken.removeTab(0)
-            while self.tabs_plans.count():
-                self.tabs_plans.removeTab(0)
+                self.tabs_planungsmasken.close_tab_and_delete_widget(0)
 
         self.curr_team = db_services.Team.get(team_id)
         self.load_current_team_config()

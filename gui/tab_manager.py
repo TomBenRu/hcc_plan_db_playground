@@ -199,18 +199,12 @@ class TabManager(QObject):
             return
             
         try:
-            logger.info(f"=== CACHE START für Team {self.current_team.name} ===")
-            logger.info(f"Plan-Tabs vor Caching: {self.tabs_plans.count()}")
-            logger.info(f"Masken-Tabs vor Caching: {self.tabs_planungsmasken.count()}")
-            
             # Plan-Tabs sammeln
             plan_tabs = []
             for i in range(self.tabs_plans.count()):
                 widget = self.tabs_plans.widget(i)
                 tab_text = self.tabs_plans.tabText(i)
                 tooltip = self.tabs_plans.tabToolTip(i) if self.tabs_plans.tabToolTip(i) else None
-                
-                logger.info(f"Caching Plan-Tab {i}: '{tab_text}' Widget: {widget}")
                 
                 cached_tab = CachedTab(
                     widget=widget,
@@ -226,8 +220,6 @@ class TabManager(QObject):
                 tab_text = self.tabs_planungsmasken.tabText(i)
                 tooltip = self.tabs_planungsmasken.tabToolTip(i) if self.tabs_planungsmasken.tabToolTip(i) else None
                 
-                logger.info(f"Caching Masken-Tab {i}: '{tab_text}' Widget: {widget}")
-                
                 cached_tab = CachedTab(
                     widget=widget,
                     tab_text=tab_text,
@@ -242,10 +234,6 @@ class TabManager(QObject):
                 'left': self.tabs_left.currentIndex() if self.tabs_left else 0
             }
             
-            logger.info(f"Tab-Indizes: {tab_indices}")
-            logger.info(f"Gecachte Plan-Tabs: {len(plan_tabs)}")
-            logger.info(f"Gecachte Masken-Tabs: {len(plan_period_tabs)}")
-            
             # Im Cache speichern
             success = self.cache_manager.store_team_tabs(
                 self.current_team.id, plan_tabs, plan_period_tabs, tab_indices
@@ -254,11 +242,9 @@ class TabManager(QObject):
             if success:
                 # Cache-Statistiken aktualisieren
                 self.cache_stats_updated.emit(self.cache_manager.get_cache_stats())
-                logger.info(f"Team {self.current_team.id} erfolgreich gecacht")
+                logger.info(f"Team {self.current_team.name} erfolgreich gecacht: {len(plan_tabs)} Pläne, {len(plan_period_tabs)} Masken")
             else:
                 logger.error(f"Fehler beim Cachen von Team {self.current_team.id}")
-            
-            logger.info(f"=== CACHE END ===")
             
         except Exception as e:
             logger.error(f"Fehler beim Cachen von Team {self.current_team.id}: {e}")
@@ -266,48 +252,31 @@ class TabManager(QObject):
             logger.error(traceback.format_exc())
     
     def _close_all_visible_tabs(self):
-        """Schließt Tabs nur visuell, ohne Widgets zu löschen (für Caching) - Verbesserte Version"""
+        """Schließt Tabs nur visuell, ohne Widgets zu löschen (für Caching)"""
         try:
-            logger.info(f"=== CLOSE VISIBLE TABS START ===")
-            logger.info(f"Plan-Tabs zu schließen: {self.tabs_plans.count()}")
-            logger.info(f"Masken-Tabs zu schließen: {self.tabs_planungsmasken.count()}")
-            
             # Plan-Tabs aus TabBar entfernen - RÜCKWÄRTS iterieren um Index-Probleme zu vermeiden
-            plan_widgets_removed = []
             plan_count = self.tabs_plans.count()
             for i in range(plan_count - 1, -1, -1):  # Rückwärts von letztem zu erstem
                 widget = self.tabs_plans.widget(i)
-                tab_text = self.tabs_plans.tabText(i)
-                logger.info(f"Entferne Plan-Tab {i}: '{tab_text}' Widget: {widget}")
                 
                 # Widget vom TabBar trennen BEVOR wir removeTab aufrufen
                 if widget:
                     widget.setParent(None)  # Erstmal Parent entfernen
                 
                 self.tabs_plans.removeTab(i)  # Tab entfernen
-                plan_widgets_removed.append((widget, tab_text))
-                
-            logger.info(f"Plan-Widgets entfernt: {len(plan_widgets_removed)}")
             
             # Planungsmasken-Tabs aus TabBar entfernen - RÜCKWÄRTS iterieren
-            masken_widgets_removed = []
             masken_count = self.tabs_planungsmasken.count()
             for i in range(masken_count - 1, -1, -1):  # Rückwärts von letztem zu erstem
                 widget = self.tabs_planungsmasken.widget(i)
-                tab_text = self.tabs_planungsmasken.tabText(i)
-                logger.info(f"Entferne Masken-Tab {i}: '{tab_text}' Widget: {widget}")
                 
                 # Widget vom TabBar trennen BEVOR wir removeTab aufrufen
                 if widget:
                     widget.setParent(None)  # Erstmal Parent entfernen
                     
                 self.tabs_planungsmasken.removeTab(i)  # Tab entfernen
-                masken_widgets_removed.append((widget, tab_text))
                 
-            logger.info(f"Masken-Widgets entfernt: {len(masken_widgets_removed)}")
-            logger.info(f"Verbleibende Plan-Tabs: {self.tabs_plans.count()}")
-            logger.info(f"Verbleibende Masken-Tabs: {self.tabs_planungsmasken.count()}")
-            logger.info(f"=== CLOSE VISIBLE TABS END ===")
+            logger.debug(f"Alle sichtbaren Tabs geschlossen: {plan_count} Pläne, {masken_count} Masken")
                 
         except Exception as e:
             logger.error(f"Fehler beim Schließen der sichtbaren Tabs: {e}")
@@ -315,38 +284,21 @@ class TabManager(QObject):
             logger.error(traceback.format_exc())
     
     def _restore_tabs_from_cache(self, cached_team: TeamTabCache):
-        """Stellt Tabs aus dem Cache wieder her - Verbesserte Version"""
+        """Stellt Tabs aus dem Cache wieder her"""
         try:
-            logger.info(f"=== RESTORE TABS START für Team {cached_team.team_id} ===")
-            logger.info(f"Zu restorende Plan-Tabs: {len(cached_team.plan_tabs)}")
-            logger.info(f"Zu restorende Masken-Tabs: {len(cached_team.plan_period_tabs)}")
-            
-            # Sicherstellen, dass TabBars leer sind
-            if self.tabs_plans.count() > 0:
-                logger.warning(f"TabBar Plans nicht leer vor Restore: {self.tabs_plans.count()} Tabs")
-            if self.tabs_planungsmasken.count() > 0:
-                logger.warning(f"TabBar Masken nicht leer vor Restore: {self.tabs_planungsmasken.count()} Tabs")
-            
             # Plan-Tabs wiederherstellen
             restored_plan_tabs = 0
             for i, cached_tab in enumerate(cached_team.plan_tabs):
                 widget = cached_tab.widget
                 tab_text = cached_tab.tab_text
                 
-                logger.info(f"Restore Plan-Tab {i}: '{tab_text}' Widget: {widget}")
-                
                 # Widget-Zustand prüfen
                 if widget is None:
                     logger.error(f"Plan-Tab {i}: Widget ist None!")
                     continue
                 
-                # Widget-Zustand validieren
-                if hasattr(widget, 'isVisible') and widget.isVisible():
-                    logger.warning(f"Plan-Tab {i}: Widget ist sichtbar (sollte nicht sein)")
-                    
                 current_parent = widget.parent()
                 if current_parent is not None:
-                    logger.info(f"Plan-Tab {i}: Widget hat Parent: {current_parent}, entferne...")
                     widget.setParent(None)
                 
                 # Widget korrekt zu TabBar hinzufügen
@@ -357,14 +309,11 @@ class TabManager(QObject):
                     if cached_tab.tooltip:
                         self.tabs_plans.setTabToolTip(tab_index, cached_tab.tooltip)
                     
-                    logger.info(f"Plan-Tab {i} erfolgreich wiederhergestellt als Index {tab_index}")
                     restored_plan_tabs += 1
                     
                 except Exception as tab_error:
                     logger.error(f"Fehler beim Hinzufügen von Plan-Tab {i}: {tab_error}")
                     continue
-            
-            logger.info(f"Plan-Tabs wiederhergestellt: {restored_plan_tabs}/{len(cached_team.plan_tabs)}")
             
             # Planungsmasken-Tabs wiederherstellen  
             restored_period_tabs = 0
@@ -372,20 +321,13 @@ class TabManager(QObject):
                 widget = cached_tab.widget
                 tab_text = cached_tab.tab_text
                 
-                logger.info(f"Restore Masken-Tab {i}: '{tab_text}' Widget: {widget}")
-                
                 # Widget-Zustand prüfen
                 if widget is None:
                     logger.error(f"Masken-Tab {i}: Widget ist None!")
                     continue
                 
-                # Widget-Zustand validieren
-                if hasattr(widget, 'isVisible') and widget.isVisible():
-                    logger.warning(f"Masken-Tab {i}: Widget ist sichtbar (sollte nicht sein)")
-                    
                 current_parent = widget.parent()
                 if current_parent is not None:
-                    logger.info(f"Masken-Tab {i}: Widget hat Parent: {current_parent}, entferne...")
                     widget.setParent(None)
                 
                 # Widget korrekt zu TabBar hinzufügen
@@ -396,14 +338,11 @@ class TabManager(QObject):
                     if cached_tab.tooltip:
                         self.tabs_planungsmasken.setTabToolTip(tab_index, cached_tab.tooltip)
                         
-                    logger.info(f"Masken-Tab {i} erfolgreich wiederhergestellt als Index {tab_index}")
                     restored_period_tabs += 1
                     
                 except Exception as tab_error:
                     logger.error(f"Fehler beim Hinzufügen von Masken-Tab {i}: {tab_error}")
                     continue
-            
-            logger.info(f"Masken-Tabs wiederhergestellt: {restored_period_tabs}/{len(cached_team.plan_period_tabs)}")
             
             # Prüfung ob alle Tabs korrekt wiederhergestellt wurden
             if restored_plan_tabs != len(cached_team.plan_tabs):
@@ -416,35 +355,27 @@ class TabManager(QObject):
             if 'plans' in cached_team.tab_indices and cached_team.tab_indices['plans'] >= 0:
                 max_index = max(0, self.tabs_plans.count() - 1)
                 index = min(cached_team.tab_indices['plans'], max_index)
-                logger.info(f"Setze Plan-Tab Index: {index} (verfügbar: 0-{max_index})")
                 if self.tabs_plans.count() > 0:
                     self.tabs_plans.setCurrentIndex(index)
                 
             if 'planungsmasken' in cached_team.tab_indices and cached_team.tab_indices['planungsmasken'] >= 0:
                 max_index = max(0, self.tabs_planungsmasken.count() - 1)
                 index = min(cached_team.tab_indices['planungsmasken'], max_index)
-                logger.info(f"Setze Masken-Tab Index: {index} (verfügbar: 0-{max_index})")
                 if self.tabs_planungsmasken.count() > 0:
                     self.tabs_planungsmasken.setCurrentIndex(index)
                 
             if 'left' in cached_team.tab_indices and self.tabs_left and cached_team.tab_indices['left'] >= 0:
                 max_index = max(0, self.tabs_left.count() - 1)
                 index = min(cached_team.tab_indices['left'], max_index)
-                logger.info(f"Setze Left-Tab Index: {index} (verfügbar: 0-{max_index})")
                 if self.tabs_left.count() > 0:
                     self.tabs_left.setCurrentIndex(index)
             
-            # Final-Status loggen
-            logger.info(f"Finale Tab-Counts: Plans={self.tabs_plans.count()}, Masken={self.tabs_planungsmasken.count()}")
-            
             # Erfolgsmeldung nur wenn alle Tabs korrekt wiederhergestellt wurden
             if restored_plan_tabs == len(cached_team.plan_tabs) and restored_period_tabs == len(cached_team.plan_period_tabs):
-                logger.info(f"✅ Alle Tabs für Team {cached_team.team_id} erfolgreich aus Cache wiederhergestellt")
+                logger.info(f"Alle Tabs für Team {cached_team.team_id} erfolgreich aus Cache wiederhergestellt: {restored_plan_tabs} Pläne, {restored_period_tabs} Masken")
             else:
-                logger.error(f"❌ NICHT ALLE Tabs für Team {cached_team.team_id} wiederhergestellt!")
+                logger.error(f"NICHT ALLE Tabs für Team {cached_team.team_id} wiederhergestellt!")
                 
-            logger.info(f"=== RESTORE TABS END ===")
-            
         except Exception as e:
             logger.error(f"Fehler beim Wiederherstellen der Tabs aus Cache: {e}")
             import traceback
@@ -487,27 +418,19 @@ class TabManager(QObject):
             logger.warning("Kein aktuelles Team - Test nicht möglich")
             return False
             
-        logger.info("=== CACHE WIDGET LIFECYCLE TEST START ===")
-        
         try:
             # Status vor Test
             initial_plan_count = self.tabs_plans.count()
             initial_masken_count = self.tabs_planungsmasken.count()
             
-            logger.info(f"Initial: Plans={initial_plan_count}, Masken={initial_masken_count}")
-            
             # 1. Caching testen
-            logger.info("1. Cache aktuelles Team...")
             self._cache_current_team_tabs()
             
             # 2. Tabs schließen (damit Widgets unsichtbar werden für Validierung)
-            logger.info("2. Schließe alle sichtbaren Tabs...")
             self._close_all_visible_tabs()
             
             after_close_plan_count = self.tabs_plans.count()
             after_close_masken_count = self.tabs_planungsmasken.count()
-            
-            logger.info(f"Nach Schließen: Plans={after_close_plan_count}, Masken={after_close_masken_count}")
             
             if after_close_plan_count != 0 or after_close_masken_count != 0:
                 logger.error("Tabs wurden nicht korrekt geschlossen!")
@@ -518,17 +441,12 @@ class TabManager(QObject):
             if not cached_team:
                 logger.error("Team wurde nicht gecacht!")
                 return False
-                
-            logger.info(f"Gecacht: {len(cached_team.plan_tabs)} Plan-Tabs, {len(cached_team.plan_period_tabs)} Masken-Tabs")
             
             # 4. Tabs wiederherstellen
-            logger.info("3. Stelle Tabs aus Cache wieder her...")
             self._restore_tabs_from_cache(cached_team)
             
             final_plan_count = self.tabs_plans.count()
             final_masken_count = self.tabs_planungsmasken.count()
-            
-            logger.info(f"Nach Restore: Plans={final_plan_count}, Masken={final_masken_count}")
             
             # 5. Ergebnis prüfen
             success = (final_plan_count == initial_plan_count and 
@@ -541,7 +459,6 @@ class TabManager(QObject):
                 logger.error(f"Erwartet: Plans={initial_plan_count}, Masken={initial_masken_count}")
                 logger.error(f"Erhalten: Plans={final_plan_count}, Masken={final_masken_count}")
             
-            logger.info("=== CACHE WIDGET LIFECYCLE TEST END ===")
             return success
             
         except Exception as e:

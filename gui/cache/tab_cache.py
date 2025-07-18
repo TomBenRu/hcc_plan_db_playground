@@ -162,8 +162,8 @@ class TabCacheManager:
         
         cached_team = self.cache[team_id]
         
-        # Validierung der gecachten Widgets
-        if not cached_team.validate_cached_widgets():
+        # Validierung der gecachten Widgets (für Cache-Retrieval)
+        if not cached_team.validate_cached_widgets(for_caching=False):
             logger.warning(f"Team {team_id}: Cache invalidiert durch Widget-Validierung")
             self.invalidate_team_cache(team_id)
             self.stats['misses'] += 1

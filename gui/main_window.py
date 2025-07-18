@@ -752,7 +752,8 @@ class MainWindow(QMainWindow):
             self.save_current_team_config()
             while self.tabs_planungsmasken.count():
                 self.tabs_planungsmasken.close_tab_and_delete_widget(0)
-
+            while self.tabs_plans.count():
+                self.tabs_plans.close_tab_and_delete_widget(0)
         self.curr_team = db_services.Team.get(team_id)
         self.load_current_team_config()
         self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')

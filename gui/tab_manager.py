@@ -56,10 +56,9 @@ class TabManager(QObject):
     # === SIGNALS FÜR INTERNE KOMMUNIKATION ===
     plan_export_requested = Signal(int)
     
-    # === NEUE CACHE-SIGNALS ===
+    # === CACHE-SIGNALS ===
     cache_hit = Signal(UUID, int, int)  # team_id, plan_tabs_count, plan_period_tabs_count
     cache_miss = Signal(UUID)  # team_id
-    cache_invalidated = Signal(UUID)  # team_id
     cache_stats_updated = Signal(dict)  # cache_stats
     
     def __init__(self, parent: QWidget,
@@ -82,49 +81,6 @@ class TabManager(QObject):
         self.cache_manager = TabCacheManager(max_cached_teams=5, cache_expire_hours=24)
         self._cache_enabled = True  # Kann zur Laufzeit deaktiviert werden
         
-        # Cache-Invalidierung bei Datenänderungen
-        self._setup_cache_invalidation_signals()
-        
-    def _setup_cache_invalidation_signals(self):
-        """Verbindet Signals für automatische Cache-Invalidierung"""
-        try:
-            # Wenn Controller command_executed Signal hat, verbinden
-            if hasattr(self.controller, 'command_executed'):
-                self.controller.command_executed.connect(self._on_command_executed)
-            else:
-                logger.debug("Controller hat kein command_executed Signal - Cache-Invalidierung manuell")
-        except Exception as e:
-            logger.warning(f"Cache-Invalidierung Signals konnten nicht verbunden werden: {e}")
-    
-    @Slot(object)
-    def _on_command_executed(self, command):
-        """Invalidiert Cache bei relevanten Datenänderungen"""
-        if not self._cache_enabled:
-            return
-            
-        try:
-            command_name = command.__class__.__name__
-            
-            # Plan-bezogene Kommandos
-            if hasattr(command, 'plan_id') and 'Plan' in command_name:
-                invalidated_teams = self.cache_manager.invalidate_plan_cache(command.plan_id)
-                for team_id in invalidated_teams:
-                    self.cache_invalidated.emit(team_id)
-            
-            # PlanPeriod-bezogene Kommandos
-            elif hasattr(command, 'plan_period_id') and 'PlanPeriod' in command_name:
-                invalidated_teams = self.cache_manager.invalidate_plan_period_cache(command.plan_period_id)
-                for team_id in invalidated_teams:
-                    self.cache_invalidated.emit(team_id)
-            
-            # Team-Änderungen invalidieren kompletten Team-Cache
-            elif hasattr(command, 'team_id') and 'Team' in command_name:
-                if self.cache_manager.invalidate_team_cache(command.team_id):
-                    self.cache_invalidated.emit(command.team_id)
-                    
-        except Exception as e:
-            logger.error(f"Fehler bei Cache-Invalidierung: {e}")
-            
     def initialize_tabs(self, tabs_left: TabBar, tabs_planungsmasken: TabBar, tabs_plans: TabBar):
         """
         Initialisiert die TabBar-Widgets und verbindet Signals
@@ -295,91 +251,91 @@ class TabManager(QObject):
             for i, cached_tab in enumerate(cached_team.plan_tabs):
                 widget = cached_tab.widget
                 tab_text = cached_tab.tab_text
-                
+
                 # Widget-Zustand prüfen
                 if widget is None:
                     logger.error(f"Plan-Tab {i}: Widget ist None!")
                     continue
-                
+
                 current_parent = widget.parent()
                 if current_parent is not None:
                     widget.setParent(None)
-                
+
                 # Widget korrekt zu TabBar hinzufügen
                 try:
                     widget.setParent(self.tabs_plans)
                     tab_index = self.tabs_plans.addTab(widget, tab_text)
-                    
+
                     if cached_tab.tooltip:
                         self.tabs_plans.setTabToolTip(tab_index, cached_tab.tooltip)
-                    
+
                     restored_plan_tabs += 1
-                    
+
                 except Exception as tab_error:
                     logger.error(f"Fehler beim Hinzufügen von Plan-Tab {i}: {tab_error}")
                     continue
-            
-            # Planungsmasken-Tabs wiederherstellen  
+
+            # Planungsmasken-Tabs wiederherstellen
             restored_period_tabs = 0
             for i, cached_tab in enumerate(cached_team.plan_period_tabs):
                 widget = cached_tab.widget
                 tab_text = cached_tab.tab_text
-                
+
                 # Widget-Zustand prüfen
                 if widget is None:
                     logger.error(f"Masken-Tab {i}: Widget ist None!")
                     continue
-                
+
                 current_parent = widget.parent()
                 if current_parent is not None:
                     widget.setParent(None)
-                
+
                 # Widget korrekt zu TabBar hinzufügen
                 try:
                     widget.setParent(self.tabs_planungsmasken)
                     tab_index = self.tabs_planungsmasken.addTab(widget, tab_text)
-                    
+
                     if cached_tab.tooltip:
                         self.tabs_planungsmasken.setTabToolTip(tab_index, cached_tab.tooltip)
-                        
+
                     restored_period_tabs += 1
-                    
+
                 except Exception as tab_error:
                     logger.error(f"Fehler beim Hinzufügen von Masken-Tab {i}: {tab_error}")
                     continue
-            
+
             # Prüfung ob alle Tabs korrekt wiederhergestellt wurden
             if restored_plan_tabs != len(cached_team.plan_tabs):
                 logger.error(f"NICHT ALLE Plan-Tabs wiederhergestellt! Erwartet: {len(cached_team.plan_tabs)}, Erhalten: {restored_plan_tabs}")
-            
+
             if restored_period_tabs != len(cached_team.plan_period_tabs):
                 logger.error(f"NICHT ALLE Masken-Tabs wiederhergestellt! Erwartet: {len(cached_team.plan_period_tabs)}, Erhalten: {restored_period_tabs}")
-            
+
             # Tab-Indizes wiederherstellen
             if 'plans' in cached_team.tab_indices and cached_team.tab_indices['plans'] >= 0:
                 max_index = max(0, self.tabs_plans.count() - 1)
                 index = min(cached_team.tab_indices['plans'], max_index)
                 if self.tabs_plans.count() > 0:
                     self.tabs_plans.setCurrentIndex(index)
-                
+
             if 'planungsmasken' in cached_team.tab_indices and cached_team.tab_indices['planungsmasken'] >= 0:
                 max_index = max(0, self.tabs_planungsmasken.count() - 1)
                 index = min(cached_team.tab_indices['planungsmasken'], max_index)
                 if self.tabs_planungsmasken.count() > 0:
                     self.tabs_planungsmasken.setCurrentIndex(index)
-                
+
             if 'left' in cached_team.tab_indices and self.tabs_left and cached_team.tab_indices['left'] >= 0:
                 max_index = max(0, self.tabs_left.count() - 1)
                 index = min(cached_team.tab_indices['left'], max_index)
                 if self.tabs_left.count() > 0:
                     self.tabs_left.setCurrentIndex(index)
-            
+
             # Erfolgsmeldung nur wenn alle Tabs korrekt wiederhergestellt wurden
             if restored_plan_tabs == len(cached_team.plan_tabs) and restored_period_tabs == len(cached_team.plan_period_tabs):
                 logger.info(f"Alle Tabs für Team {cached_team.team_id} erfolgreich aus Cache wiederhergestellt: {restored_plan_tabs} Pläne, {restored_period_tabs} Masken")
             else:
                 logger.error(f"NICHT ALLE Tabs für Team {cached_team.team_id} wiederhergestellt!")
-                
+
         except Exception as e:
             logger.error(f"Fehler beim Wiederherstellen der Tabs aus Cache: {e}")
             import traceback
@@ -559,15 +515,13 @@ class TabManager(QObject):
     # === TAB-SCHLIESSSUNG ===
     
     def close_plan_tab(self, index: int) -> bool:
-        """Erweiterte Plan-Tab-Schließung mit Cache-Invalidierung"""
+        """Schließt Plan-Tab mit Cache-Berücksichtigung"""
         if 0 <= index < self.tabs_plans.count():
             widget = self.tabs_plans.widget(index)
             
             # Cache invalidieren falls der Plan betroffen ist
             if hasattr(widget, 'plan') and self._cache_enabled:
-                invalidated_teams = self.cache_manager.invalidate_plan_cache(widget.plan.id)
-                for team_id in invalidated_teams:
-                    self.cache_invalidated.emit(team_id)
+                self.cache_manager.invalidate_plan_cache(widget.plan.id)
             
             self.tabs_plans.close_tab_and_delete_widget(index)
             self.tab_closed.emit("plan", widget)
@@ -575,15 +529,13 @@ class TabManager(QObject):
         return False
     
     def close_plan_period_tab(self, index: int) -> bool:
-        """Erweiterte Planungsmasken-Tab-Schließung mit Cache-Invalidierung"""
+        """Schließt Planungsmasken-Tab mit Cache-Berücksichtigung"""
         if 0 <= index < self.tabs_planungsmasken.count():
             widget = self.tabs_planungsmasken.widget(index)
             
             # Cache invalidieren falls die PlanPeriod betroffen ist
             if hasattr(widget, 'plan_period_id') and self._cache_enabled:
-                invalidated_teams = self.cache_manager.invalidate_plan_period_cache(widget.plan_period_id)
-                for team_id in invalidated_teams:
-                    self.cache_invalidated.emit(team_id)
+                self.cache_manager.invalidate_plan_period_cache(widget.plan_period_id)
             
             self.tabs_planungsmasken.close_tab_and_delete_widget(index)
             self.tab_closed.emit("plan_period", widget)

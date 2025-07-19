@@ -21,21 +21,6 @@ class CachedTab:
     tab_text: str
     tooltip: Optional[str] = None
     cached_at: datetime = field(default_factory=datetime.now)
-    
-    def is_valid_for_caching(self) -> bool:
-        """Prüft ob der Tab für das Caching geeignet ist (zur Cache-Erstellung)"""
-        return (
-            self.widget is not None and 
-            (hasattr(self.widget, 'plan') or hasattr(self.widget, 'plan_period_id'))
-        )
-    
-    def is_valid_for_retrieval(self) -> bool:
-        """Prüft ob der gecachte Tab für Retrieval gültig ist (aus Cache laden)"""
-        return (
-            self.widget is not None and 
-            not self.widget.isVisible() and  # Sollte nicht sichtbar sein wenn gecacht
-            (hasattr(self.widget, 'plan') or hasattr(self.widget, 'plan_period_id'))
-        )
 
 
 @dataclass
@@ -50,34 +35,6 @@ class TeamTabCache:
     def get_total_tabs(self) -> int:
         """Gibt die Gesamtanzahl der gecachten Tabs zurück"""
         return len(self.plan_tabs) + len(self.plan_period_tabs)
-    
-    def validate_cached_widgets(self, for_caching: bool = False) -> bool:
-        """
-        Validiert alle gecachten Widgets
-        
-        Args:
-            for_caching: True wenn für Cache-Erstellung, False für Cache-Retrieval
-        """
-        if for_caching:
-            # Bei Cache-Erstellung: Widgets können noch sichtbar sein
-            valid_plan_tabs = [tab for tab in self.plan_tabs if tab.is_valid_for_caching()]
-            valid_period_tabs = [tab for tab in self.plan_period_tabs if tab.is_valid_for_caching()]
-        else:
-            # Bei Cache-Retrieval: Widgets sollten nicht mehr sichtbar sein
-            valid_plan_tabs = [tab for tab in self.plan_tabs if tab.is_valid_for_retrieval()]
-            valid_period_tabs = [tab for tab in self.plan_period_tabs if tab.is_valid_for_retrieval()]
-        
-        # Invalide Tabs entfernen
-        invalid_count = (len(self.plan_tabs) - len(valid_plan_tabs) + 
-                        len(self.plan_period_tabs) - len(valid_period_tabs))
-        
-        if invalid_count > 0:
-            context = "beim Caching" if for_caching else "beim Retrieval"
-            logger.warning(f"Team {self.team_id}: {invalid_count} invalide Tabs {context} aus Cache entfernt")
-            self.plan_tabs = valid_plan_tabs
-            self.plan_period_tabs = valid_period_tabs
-        
-        return invalid_count == 0
 
 
 class TabCacheManager:
@@ -133,14 +90,10 @@ class TabCacheManager:
                 last_accessed=datetime.now()
             )
             
-            # Widgets validieren vor dem Cachen (für Cache-Erstellung)
-            if not team_cache.validate_cached_widgets(for_caching=True):
-                logger.warning(f"Team {team_id}: Einige Widgets waren bei der Cache-Erstellung bereits invalid")
-            
             self.cache[team_id] = team_cache
             
             total_tabs = team_cache.get_total_tabs()
-            logger.info(f"Team {team_id} gecacht: {len(plan_tabs)} Pläne, {len(plan_period_tabs)} Masken (Total: {total_tabs})")
+            logger.info(f"Team {team_id} gecacht: {total_tabs} Tabs")
             
             return True
             
@@ -157,24 +110,13 @@ class TabCacheManager:
         """
         if team_id not in self.cache:
             self.stats['misses'] += 1
-            logger.debug(f"Cache Miss für Team {team_id}")
             return None
         
         cached_team = self.cache[team_id]
         
-        # Validierung der gecachten Widgets (für Cache-Retrieval)
-        if not cached_team.validate_cached_widgets(for_caching=False):
-            logger.warning(f"Team {team_id}: Cache invalidiert durch Widget-Validierung")
-            self.invalidate_team_cache(team_id)
-            self.stats['misses'] += 1
-            return None
-        
         # LRU-Update
         cached_team.last_accessed = datetime.now()
         self.stats['hits'] += 1
-        
-        total_tabs = cached_team.get_total_tabs()
-        logger.info(f"Cache Hit für Team {team_id}: {len(cached_team.plan_tabs)} Pläne, {len(cached_team.plan_period_tabs)} Masken (Total: {total_tabs})")
         
         return cached_team
     
@@ -219,9 +161,6 @@ class TabCacheManager:
         for team_id in teams_to_invalidate:
             self.invalidate_team_cache(team_id)
         
-        if teams_to_invalidate:
-            logger.info(f"Plan {plan_id}: Cache invalidiert für Teams {teams_to_invalidate}")
-        
         return teams_to_invalidate
     
     def invalidate_plan_period_cache(self, plan_period_id: UUID) -> List[UUID]:
@@ -243,9 +182,6 @@ class TabCacheManager:
         # Cache invalidieren
         for team_id in teams_to_invalidate:
             self.invalidate_team_cache(team_id)
-        
-        if teams_to_invalidate:
-            logger.info(f"PlanPeriod {plan_period_id}: Cache invalidiert für Teams {teams_to_invalidate}")
         
         return teams_to_invalidate
     
@@ -291,9 +227,6 @@ class TabCacheManager:
         for team_id in expired_teams:
             self.invalidate_team_cache(team_id)
         
-        if expired_teams:
-            logger.info(f"Expired Cache bereinigt: {len(expired_teams)} Teams entfernt")
-        
         return len(expired_teams)
     
     def _evict_oldest_team(self) -> Optional[UUID]:
@@ -312,28 +245,17 @@ class TabCacheManager:
         )
         
         self.invalidate_team_cache(oldest_team_id)
-        logger.info(f"LRU Eviction: Team {oldest_team_id} aus Cache entfernt")
         
         return oldest_team_id
     
     def _cleanup_cached_widgets(self, cached_team: TeamTabCache):
         """Bereinigt Widgets eines gecachten Teams"""
-        widgets_to_cleanup = []
-        
-        # Alle Widgets sammeln
         for cached_tab in cached_team.plan_tabs + cached_team.plan_period_tabs:
             if cached_tab.widget and not cached_tab.widget.parent():
-                widgets_to_cleanup.append(cached_tab.widget)
-        
-        # Widgets für Deletion markieren
-        for widget in widgets_to_cleanup:
-            try:
-                widget.deleteLater()
-            except Exception as e:
-                logger.warning(f"Fehler beim Widget-Cleanup: {e}")
-        
-        if widgets_to_cleanup:
-            logger.debug(f"Team {cached_team.team_id}: {len(widgets_to_cleanup)} Widgets für Cleanup markiert")
+                try:
+                    cached_tab.widget.deleteLater()
+                except Exception as e:
+                    logger.warning(f"Fehler beim Widget-Cleanup: {e}")
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """

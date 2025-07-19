@@ -12,11 +12,13 @@ from PySide6.QtCore import QObject, Signal, Slot, QPoint
 from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu
 from pydantic_core import ValidationError
 
+from commands import command_base_classes
 from gui.cache import CachedTab, TeamTabCache, TabCacheManager
 from gui.cache.performance_monitor import performance_monitor
 
 from configuration import team_start_config
 from database import db_services, schemas
+from gui.custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager
 from gui.custom_widgets.tabbars import TabBar
 from tools.actions import MenuToolbarAction
 from tools.helper_functions import date_to_string
@@ -60,7 +62,9 @@ class TabManager(QObject):
     cache_invalidated = Signal(UUID)  # team_id
     cache_stats_updated = Signal(dict)  # cache_stats
     
-    def __init__(self, parent: QWidget, controller, global_update_plan_tabs_progress_manager):
+    def __init__(self, parent: QWidget,
+                 controller: command_base_classes.ContrExecUndoRedo,
+                 global_update_plan_tabs_progress_manager: GlobalUpdatePlanTabsProgressManager):
         super().__init__(parent)
         self.parent = parent
         self.controller = controller

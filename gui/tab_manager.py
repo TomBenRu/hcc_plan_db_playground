@@ -247,103 +247,57 @@ class TabManager(QObject):
         """Stellt Tabs aus dem Cache wieder her"""
         try:
             # Plan-Tabs wiederherstellen
-            restored_plan_tabs = 0
-            for i, cached_tab in enumerate(cached_team.plan_tabs):
-                widget = cached_tab.widget
-                tab_text = cached_tab.tab_text
-
-                # Widget-Zustand prüfen
-                if widget is None:
-                    logger.error(f"Plan-Tab {i}: Widget ist None!")
-                    continue
-
-                current_parent = widget.parent()
-                if current_parent is not None:
-                    widget.setParent(None)
-
-                # Widget korrekt zu TabBar hinzufügen
-                try:
-                    widget.setParent(self.tabs_plans)
-                    tab_index = self.tabs_plans.addTab(widget, tab_text)
-
+            for cached_tab in cached_team.plan_tabs:
+                if cached_tab.widget:
+                    cached_tab.widget.setParent(None)
+                    tab_index = self.tabs_plans.addTab(cached_tab.widget, cached_tab.tab_text)
                     if cached_tab.tooltip:
                         self.tabs_plans.setTabToolTip(tab_index, cached_tab.tooltip)
 
-                    restored_plan_tabs += 1
-
-                except Exception as tab_error:
-                    logger.error(f"Fehler beim Hinzufügen von Plan-Tab {i}: {tab_error}")
-                    continue
-
             # Planungsmasken-Tabs wiederherstellen
-            restored_period_tabs = 0
-            for i, cached_tab in enumerate(cached_team.plan_period_tabs):
-                widget = cached_tab.widget
-                tab_text = cached_tab.tab_text
-
-                # Widget-Zustand prüfen
-                if widget is None:
-                    logger.error(f"Masken-Tab {i}: Widget ist None!")
-                    continue
-
-                current_parent = widget.parent()
-                if current_parent is not None:
-                    widget.setParent(None)
-
-                # Widget korrekt zu TabBar hinzufügen
-                try:
-                    widget.setParent(self.tabs_planungsmasken)
-                    tab_index = self.tabs_planungsmasken.addTab(widget, tab_text)
-
+            for cached_tab in cached_team.plan_period_tabs:
+                if cached_tab.widget:
+                    cached_tab.widget.setParent(None)
+                    tab_index = self.tabs_planungsmasken.addTab(cached_tab.widget, cached_tab.tab_text)
                     if cached_tab.tooltip:
                         self.tabs_planungsmasken.setTabToolTip(tab_index, cached_tab.tooltip)
 
-                    restored_period_tabs += 1
-
-                except Exception as tab_error:
-                    logger.error(f"Fehler beim Hinzufügen von Masken-Tab {i}: {tab_error}")
-                    continue
-
-            # Prüfung ob alle Tabs korrekt wiederhergestellt wurden
-            if restored_plan_tabs != len(cached_team.plan_tabs):
-                logger.error(f"NICHT ALLE Plan-Tabs wiederhergestellt! Erwartet: {len(cached_team.plan_tabs)}, Erhalten: {restored_plan_tabs}")
-
-            if restored_period_tabs != len(cached_team.plan_period_tabs):
-                logger.error(f"NICHT ALLE Masken-Tabs wiederhergestellt! Erwartet: {len(cached_team.plan_period_tabs)}, Erhalten: {restored_period_tabs}")
-
             # Tab-Indizes wiederherstellen
-            if 'plans' in cached_team.tab_indices and cached_team.tab_indices['plans'] >= 0:
-                max_index = max(0, self.tabs_plans.count() - 1)
-                index = min(cached_team.tab_indices['plans'], max_index)
-                if self.tabs_plans.count() > 0:
-                    self.tabs_plans.setCurrentIndex(index)
+            self._restore_cached_tab_indices(cached_team.tab_indices)
 
-            if 'planungsmasken' in cached_team.tab_indices and cached_team.tab_indices['planungsmasken'] >= 0:
-                max_index = max(0, self.tabs_planungsmasken.count() - 1)
-                index = min(cached_team.tab_indices['planungsmasken'], max_index)
-                if self.tabs_planungsmasken.count() > 0:
-                    self.tabs_planungsmasken.setCurrentIndex(index)
-
-            if 'left' in cached_team.tab_indices and self.tabs_left and cached_team.tab_indices['left'] >= 0:
-                max_index = max(0, self.tabs_left.count() - 1)
-                index = min(cached_team.tab_indices['left'], max_index)
-                if self.tabs_left.count() > 0:
-                    self.tabs_left.setCurrentIndex(index)
-
-            # Erfolgsmeldung nur wenn alle Tabs korrekt wiederhergestellt wurden
-            if restored_plan_tabs == len(cached_team.plan_tabs) and restored_period_tabs == len(cached_team.plan_period_tabs):
-                logger.info(f"Alle Tabs für Team {cached_team.team_id} erfolgreich aus Cache wiederhergestellt: {restored_plan_tabs} Pläne, {restored_period_tabs} Masken")
-            else:
-                logger.error(f"NICHT ALLE Tabs für Team {cached_team.team_id} wiederhergestellt!")
+            logger.info(f"Tabs für Team {cached_team.team_id} aus Cache wiederhergestellt")
 
         except Exception as e:
-            logger.error(f"Fehler beim Wiederherstellen der Tabs aus Cache: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            # Fallback: Cache invalidieren und normal laden
-            logger.info(f"Fallback: Invalidiere Cache und lade normal für Team {cached_team.team_id}")
+            logger.error(f"Fehler beim Cache-Restore: {e}")
+            # Fallback auf normale Ladung
             self.cache_manager.invalidate_team_cache(cached_team.team_id)
             self.load_team_config(cached_team.team_id)
+
+    def _restore_cached_tab_indices(self, tab_indices: Dict[str, int]):
+        """Stellt gespeicherte Tab-Indizes wieder her"""
+        try:
+            # Plans-Tab Index wiederherstellen
+            if 'plans' in tab_indices and self.tabs_plans.count() > 0:
+                plans_index = min(tab_indices['plans'], self.tabs_plans.count() - 1)
+                self.tabs_plans.setCurrentIndex(max(0, plans_index))
+
+            # Planungsmasken-Tab Index wiederherstellen
+            if 'planungsmasken' in tab_indices and self.tabs_planungsmasken.count() > 0:
+                masken_index = min(tab_indices['planungsmasken'], self.tabs_planungsmasken.count() - 1)
+                self.tabs_planungsmasken.setCurrentIndex(max(0, masken_index))
+
+            # Left-Tab Index wiederherstellen
+            if 'left' in tab_indices and self.tabs_left and self.tabs_left.count() > 0:
+                left_index = min(tab_indices['left'], self.tabs_left.count() - 1)
+                self.tabs_left.setCurrentIndex(max(0, left_index))
+
+        except Exception as e:
+            logger.warning(f"Fehler beim Wiederherstellen der Tab-Indizes: {e}")
+            # Fallback: Erste Tabs aktivieren
+            if self.tabs_plans.count() > 0:
+                self.tabs_plans.setCurrentIndex(0)
+            if self.tabs_planungsmasken.count() > 0:
+                self.tabs_planungsmasken.setCurrentIndex(0)
     
     def enable_cache(self, enabled: bool = True):
         """Aktiviert/deaktiviert das Tab-Caching"""

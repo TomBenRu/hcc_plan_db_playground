@@ -160,8 +160,6 @@ class TabCacheIntegration:
                 cache_submenu.addAction(self.cache_actions['clear_cache'])
                 cache_submenu.addAction(self.cache_actions['toggle_cache'])
                 cache_submenu.addAction(self.cache_actions['cache_config'])
-                cache_submenu.addSeparator()
-                cache_submenu.addAction(self.cache_actions['test_cache'])
                     
                 logger.info("Cache-Menü erfolgreich zu Extras-Menü hinzugefügt")
             else:

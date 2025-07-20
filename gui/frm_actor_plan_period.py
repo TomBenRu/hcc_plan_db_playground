@@ -280,13 +280,14 @@ class ButtonCombLocPossible(QPushButton):
 
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
-        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if self.avail_days_at_date() or data.date:
-            if data is None or data.date is None or data.date == self.date:
-                if data is not None:
-                    self.actor_plan_period = data.actor_plan_period
-                else:
-                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        """Entweder das Signal kommt ohne Datumsangabe von ButtonCombLocPossible
+        oder mit Datumsangabe von ButtonAvailDay"""
+        if data is None:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet()
+        elif data.actor_plan_period.id == self.actor_plan_period.id:
+            if data.date is None or data.date == self.date:
+                self.actor_plan_period = data.actor_plan_period
                 self.set_stylesheet()
 
 
@@ -437,12 +438,12 @@ class ButtonActorLocationPref(QPushButton):
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if self.avail_days_at_date() or data.date:
-            if data is None or data.date is None or data.date == self.date:
-                if data is not None:
-                    self.actor_plan_period = data.actor_plan_period
-                else:
-                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        if data is None:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet()
+        elif data.actor_plan_period.id == self.actor_plan_period.id:
+            if data.date is None or data.date == self.date:
+                self.actor_plan_period = data.actor_plan_period
                 self.set_stylesheet()
 
 
@@ -584,12 +585,12 @@ class ButtonActorPartnerLocationPref(QPushButton):
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if self.avail_days_at_date() or data.date:
-            if data is None or data.date is None or data.date == self.date:
-                if data is not None:
-                    self.actor_plan_period = data.actor_plan_period
-                else:
-                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        if data is None:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet()
+        elif data.actor_plan_period.id == self.actor_plan_period.id:
+            if data.date is None or data.date == self.date:
+                self.actor_plan_period = data.actor_plan_period
                 self.set_stylesheet()
 
 
@@ -721,14 +722,12 @@ class ButtonSkills(QPushButton):
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
         """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if data and (data.actor_plan_period.id == self.actor_plan_period.id) and (data.date == self.date):
-            self._set_avail_days_at_day()
-        if self.avail_days_at_day or data.date:
-            if (data is None) or (data.date is None) or (data.date == self.date):
-                if data is not None:
-                    self.actor_plan_period = data.actor_plan_period
-                else:
-                    self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        if data is None:
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.set_stylesheet_and_tooltip()
+        elif data.actor_plan_period.id == self.actor_plan_period.id:
+            if data.date is None or data.date == self.date:
+                self.actor_plan_period = data.actor_plan_period
                 self.set_stylesheet_and_tooltip()
 
 

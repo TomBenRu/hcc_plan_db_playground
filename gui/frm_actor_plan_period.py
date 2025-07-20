@@ -1490,8 +1490,10 @@ class FrmActorPlanPeriod(QWidget):
                 t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
                              if t.time_of_day_enum.abbreviation == abbreviation)
                 button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
-                if button_avail_day:
-                    self.save_avail_day(button_avail_day)
+                save_command = avail_day_commands.Create(
+                    schemas.AvailDayCreate(date=date, actor_plan_period=self.actor_plan_period, time_of_day=t_o_d)
+                )
+                self.controller_avail_days.execute(save_command)
 
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(

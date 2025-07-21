@@ -1487,10 +1487,9 @@ class FrmActorPlanPeriod(QWidget):
                     )
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    for avail_day in actor_plan_period.avail_days:
+                    for avail_day in [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]:
                         delete_command = avail_day_commands.Delete(avail_day.id)
                         controller.execute(delete_command)
-                        db_services.AvailDay.delete(avail_day.id)
                         # todo: besser... send AvailDayButton Signal to uncheck:
                         if actor_plan_period.id == self.actor_plan_period.id:
                             self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)

@@ -1,5 +1,6 @@
 import datetime
 import functools
+import logging
 import os.path
 from datetime import timedelta
 from typing import Callable
@@ -28,6 +29,8 @@ from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
 from tools.helper_functions import date_to_string, time_to_string
+
+logger = logging.getLogger(__name__)
 
 
 class ButtonAvailDay(QPushButton):
@@ -1459,6 +1462,7 @@ class FrmActorPlanPeriod(QWidget):
 
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
                                                    *args, **kwargs):
+        controller = command_base_classes.ContrExecUndoRedo()
         actor_plan_period = actor_plan_period or self.actor_plan_period
         try:
             avail_days_on_server = plan_api_handler.fetch_avail_days(
@@ -1470,72 +1474,102 @@ class FrmActorPlanPeriod(QWidget):
                 self.tr('The following error occurred while downloading available days:\n{error}').format(error=e)
             )
             return
-        if not avail_days_on_server:
-            reply = QMessageBox.question(
-                self,
-                self.tr('Available Days'),
-                self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
-                       'Do you want to delete all available days from the planning mask?').format(
-                    name=actor_plan_period.person.full_name,
-                    start=date_to_string(actor_plan_period.plan_period.start),
-                    end=date_to_string(actor_plan_period.plan_period.end)
+        try:
+            if not avail_days_on_server:
+                reply = QMessageBox.question(
+                    self,
+                    self.tr('Available Days'),
+                    self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
+                           'Do you want to delete all available days from the planning mask?').format(
+                        name=actor_plan_period.person.full_name,
+                        start=date_to_string(actor_plan_period.plan_period.start),
+                        end=date_to_string(actor_plan_period.plan_period.end)
+                    )
                 )
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                for avail_day in actor_plan_period.avail_days:
-                    db_services.AvailDay.delete(avail_day.id)
-                    # todo: besser... send AvailDayButton Signal to uncheck:
-                    if actor_plan_period.id == self.actor_plan_period.id:
-                        self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
-            return
-
-        avail_days = [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]
-        if avail_days:
-            reply = QMessageBox.question(
-                self,
-                self.tr('Available Days'),
-                self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
-                       'Do you want to delete these available days from the planning mask?').format(
-                    name=actor_plan_period.person.full_name,
-                    start=date_to_string(actor_plan_period.plan_period.start),
-                    end=date_to_string(actor_plan_period.plan_period.end)
-                )
-            )
-            if reply == QMessageBox.StandardButton.No:
+                if reply == QMessageBox.StandardButton.Yes:
+                    for avail_day in actor_plan_period.avail_days:
+                        delete_command = avail_day_commands.Delete(avail_day.id)
+                        controller.execute(delete_command)
+                        db_services.AvailDay.delete(avail_day.id)
+                        # todo: besser... send AvailDayButton Signal to uncheck:
+                        if actor_plan_period.id == self.actor_plan_period.id:
+                            self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
                 return
 
-        for avail_day in actor_plan_period.avail_days:
-            db_services.AvailDay.delete(avail_day.id)
-            # todo: besser... send AvailDayButton Signal to uncheck:
-            if actor_plan_period.id == self.actor_plan_period.id:
-                self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
-
-        # fixme: Dies ist ein Workaround.
-        #  Wenn die API auf die Tageszeiten dieses Projektes angepasst wird, kann dieser Workaround gelöscht werden
-        abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
-        for avail_day in avail_days_on_server:
-            for abbreviation in abbreviation_dict[avail_day.time_of_day.value]:
-                date = avail_day.day
-                t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
-                             if t.time_of_day_enum.abbreviation == abbreviation)
-                if actor_plan_period.id == self.actor_plan_period.id:
-                    button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
-                save_command = avail_day_commands.Create(
-                    schemas.AvailDayCreate(date=date, actor_plan_period=actor_plan_period, time_of_day=t_o_d)
+            avail_days = [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]
+            if avail_days:
+                reply = QMessageBox.question(
+                    self,
+                    self.tr('Available Days'),
+                    self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
+                           'Do you want to delete these available days from the planning mask?').format(
+                        name=actor_plan_period.person.full_name,
+                        start=date_to_string(actor_plan_period.plan_period.start),
+                        end=date_to_string(actor_plan_period.plan_period.end)
+                    )
                 )
-                self.controller_avail_days.execute(save_command)
+                if reply == QMessageBox.StandardButton.No:
+                    return
 
-        if actor_plan_period.id == self.actor_plan_period.id:
-            self.reload_actor_plan_period()
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
+            for avail_day in actor_plan_period.avail_days:
+                delete_command = avail_day_commands.Delete(avail_day.id)
+                controller.execute(delete_command)
+                # todo: besser... send AvailDayButton Signal to uncheck:
+                if actor_plan_period.id == self.actor_plan_period.id:
+                    self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
 
-        QMessageBox.information(
-            self,
-            self.tr('Available Days'),
-            self.tr('Available days for {name} were successfully downloaded.').format(
-                name=actor_plan_period.person.full_name)
-        )
+            # fixme: Dies ist ein Workaround.
+            #  Wenn die API auf die Tageszeiten dieses Projektes angepasst wird, kann dieser Workaround gelöscht werden
+            abbreviation_dict = {'v': ('m',), 'n': ('n',), 'g': ('m', 'n')}
+            for avail_day in avail_days_on_server:
+                for abbreviation in abbreviation_dict[avail_day.time_of_day.value]:
+                    date = avail_day.day
+                    t_o_d = next(t for t in self.actor_plan_period.time_of_day_standards
+                                 if t.time_of_day_enum.abbreviation == abbreviation)
+                    if actor_plan_period.id == self.actor_plan_period.id:
+                        button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
+                    save_command = avail_day_commands.Create(
+                        schemas.AvailDayCreate(date=date, actor_plan_period=actor_plan_period, time_of_day=t_o_d)
+                    )
+                    controller.execute(save_command)
+            self.controller_avail_days.add_to_undo_stack(controller.get_undo_stack())
+            QMessageBox.information(
+                self,
+                self.tr('Available Days'),
+                self.tr('Available days for {name} were successfully downloaded.').format(
+                    name=actor_plan_period.person.full_name)
+            )
+        except Exception as e:
+            if actor_plan_period.id == self.actor_plan_period.id:
+                # uncheck all checked buttons
+                for command in controller.get_undo_stack():
+                    if isinstance(command, avail_day_commands.Create):
+                        self.set_button_avail_day_to_checked_and_configure(
+                            command.created_avail_day.date, command.created_avail_day.time_of_day, True
+                        )
+                # check all buttons to previous state
+                for avail_day in actor_plan_period.avail_days:
+                    # todo: besser... send AvailDayButton Signal to uncheck:
+                    self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day)
+            controller.undo_all()
+            QMessageBox.critical(
+                self,
+                self.tr('Available Days'),
+                self.tr('The following error occurred while downloading available days:\n'
+                        '{error}\n'
+                        'The changes for {name} were not applied.').format(
+                    error=e,
+                    name=actor_plan_period.person.full_name
+                )
+            )
+            logger.error(f'Error while downloading available days: {e}')
+
+            return
+        finally:
+            if actor_plan_period.id == self.actor_plan_period.id:
+                self.reload_actor_plan_period()
+                signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
+                    signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
     def fetch_avail_days_from_api_for_all_employees(self):
         actor_plan_periods = sorted(db_services.ActorPlanPeriod.get_all_from__plan_period(

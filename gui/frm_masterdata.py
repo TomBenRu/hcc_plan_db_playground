@@ -228,7 +228,7 @@ class TablePersons(QTableWidget):
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
             self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
             cb_team_of_actor = QComboBoxToFindData()
-            cb_team_of_actor.addItem('', None)
+            cb_team_of_actor.addItem(self.tr('No Team'), None)
             for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
                 cb_team_of_actor.addItem(team.name, team.id)
             curr_team = get_curr_team_of_person_at_date(person=p)
@@ -240,13 +240,14 @@ class TablePersons(QTableWidget):
 
     def change_team(self, e):
         person_id = UUID(self.item(self.currentRow(), 9).text())
-        sender: QComboBox = self.sender()
+        sender: QComboBoxToFindData = self.sender()
         team_id: UUID = sender.currentData()
         curr_team = get_curr_team_of_person_at_date(db_services.Person.get(person_id))
         dlg = frm_assign_to_team.DlgAssignDate(self, curr_team.id if curr_team else None, team_id)
         if not dlg.exec():
             sender.blockSignals(True)
-            sender.setCurrentIndex(sender.findData(curr_team.id))
+            idx = sender.findData(curr_team.id) if curr_team else 0
+            sender.setCurrentIndex(idx)
             sender.blockSignals(False)
             return
         person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'

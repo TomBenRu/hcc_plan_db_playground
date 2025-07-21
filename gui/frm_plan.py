@@ -1106,8 +1106,7 @@ class CustomHeaderView(QHeaderView):
     def mouseMoveEvent(self, event):
         # Bestimmt, über welcher Spalte sich der Mauszeiger befindet
         index = self.logicalIndexAt(event.pos())
-        person_id: UUID | None = self.parent.horizontalHeaderItem(index).data(Qt.ItemDataRole.UserRole)
-        if index >= 0 and person_id:
+        if index >= 0 and (person_id := self.parent.horizontalHeaderItem(index).data(Qt.ItemDataRole.UserRole)):
             self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
         else:
             self.viewport().setCursor(Qt.CursorShape.ArrowCursor)

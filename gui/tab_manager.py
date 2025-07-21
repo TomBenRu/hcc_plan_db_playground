@@ -378,7 +378,7 @@ class TabManager(QObject):
         Öffnet einen Planungsmasken-Tab
         """
         try:
-            # Prüfen ob Tab bereits offen
+            # Prüfen, ob Tab bereits offen
             if self._is_plan_period_tab_open(plan_period_id):
                 self._activate_plan_period_tab(plan_period_id)
                 return True
@@ -712,6 +712,7 @@ class TabManager(QObject):
             if curr_team_id:
                 team = db_services.Team.get(curr_team_id)
                 self.set_current_team(team)
+            self.menu_toolbar_update_needed.emit(self.current_tab_type)
                 
         except ValidationError:
             # Team existiert nicht mehr

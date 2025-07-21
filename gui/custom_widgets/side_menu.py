@@ -3,7 +3,7 @@ from typing import Literal, Iterable
 from PySide6.QtGui import QMouseEvent, Qt
 from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, QGraphicsView, QGraphicsScene,
                                QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout, QTableWidget)
-from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent, Slot
+from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent, Slot, QTimer
 
 
 class RotatableContainer(QGraphicsView):
@@ -182,6 +182,10 @@ class SlideInMenu(QWidget):
 
         self.animation = QPropertyAnimation(self, b"pos")
 
+        self._hide_timer = QTimer()
+        self._hide_timer.setSingleShot(True)
+        self._hide_timer.timeout.connect(self.hide_menu)
+
     def _setup_ui(self):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -238,11 +242,12 @@ class SlideInMenu(QWidget):
 
     def enterEvent(self, event: QMouseEvent) -> None:
         """Show the menu when the mouse enters."""
+        self._hide_timer.stop()  # Timer stoppen falls aktiv
         self.show_menu()
 
     def leaveEvent(self, event: QEvent) -> None:
-        """Hide the menu when the mouse leaves."""
-        self.hide_menu()
+        """Hide the menu when the mouse leaves with delay."""
+        self._hide_timer.start(500)  # 500ms Verzögerung
 
     def show_menu(self):
         """Show the menu with an animation."""

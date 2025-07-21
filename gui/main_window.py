@@ -927,16 +927,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     self.tab_manager.open_plan_tab(plan_id)
                     QCoreApplication.processEvents()
 
-    def open_plan_tab(self, plan_id: UUID):
-        """
-        Legacy-Wrapper: Delegiert an TabManager.
-        
-        Diese Methode wird noch von einigen Stellen aufgerufen und 
-        delegiert die Funktionalität an den TabManager.
-        """
-        self.tab_manager.current_team = self.curr_team  # Team setzen falls nötig
-        return self.tab_manager.open_plan_tab(plan_id)
-
     def plan_infos(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
         curr_plan_widget = self.tab_manager.current_plan_widget

@@ -1831,7 +1831,15 @@ class ActorPlanPeriod:
 
     @classmethod
     @db_session
-    def get_all_from__plan_period(cls, plan_period_id: UUID, maximal: bool = False) -> list[schemas.ActorPlanPeriod]:
+    def get_all_from__plan_period(
+            cls, plan_period_id: UUID, maximal: bool = False) -> list[schemas.ActorPlanPeriod |
+                                                                      schemas.ActorPlanPeriodShow]:
+        """
+        Wenn maximal == True:
+        Eine Liste aller ActorPlanPeriods als schemas.ActorPlanPeriodShow wird zurückgegeben.
+        Wenn maximal == False:
+        Eine Liste aller ActorPlanPeriods als schemas.ActorPlanPeriod wird zurückgegeben.
+        """
         actor_plan_periods_db = models.ActorPlanPeriod.select(lambda a: a.plan_period.id == plan_period_id)
         return [schemas.ActorPlanPeriodShow.model_validate(a) if maximal else schemas.ActorPlanPeriod.model_validate(a)
                 for a in actor_plan_periods_db]

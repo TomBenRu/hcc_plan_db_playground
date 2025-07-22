@@ -927,11 +927,12 @@ class FrmTabActorPlanPeriods(QWidget):
 
     @Slot(schemas.ActorPlanPeriod)
     def update_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriod):
-        self.pers_id__actor_pp[str(actor_plan_period.person.id)] = actor_plan_period
+        if actor_plan_period.plan_period.id == self.plan_period.id:
+            self.pers_id__actor_pp[str(actor_plan_period.person.id)] = actor_plan_period
 
-    @Slot(UUID)
-    def reload_actor_plan_period_notes(self, person_id: UUID):
-        if person_id == self.person_id:
+    @Slot(UUID, UUID)
+    def reload_actor_plan_period_notes(self, plan_period_id: UUID, person_id: UUID):
+        if plan_period_id == self.plan_period.id and person_id == self.person_id:
             self.notes_app_setup()
 
 
@@ -1533,9 +1534,11 @@ class FrmActorPlanPeriod(QWidget):
             save_command_notes = actor_plan_period_commands.UpdateNotes(actor_plan_period.id, notes)
             controller.execute(save_command_notes)
 
-            signal_handling.handler_actor_plan_period.update_app_in_app_tab_widget(save_command_notes.updated_actor_plan_period)
+            signal_handling.handler_actor_plan_period.update_app_in_app_tab_widget(
+                save_command_notes.updated_actor_plan_period)
             if actor_plan_period.id == self.actor_plan_period.id:
-                signal_handling.handler_actor_plan_period.reload_app_notes_in_app_tab_widget(actor_plan_period.person.id)
+                signal_handling.handler_actor_plan_period.reload_app_notes_in_app_tab_widget(
+                    actor_plan_period.plan_period.id, actor_plan_period.person.id)
 
             for avail_day in actor_plan_period.avail_days:
                 delete_command = avail_day_commands.Delete(avail_day.id)

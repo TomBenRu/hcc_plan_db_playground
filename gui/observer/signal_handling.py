@@ -55,7 +55,7 @@ class HandlerActorPlanPeriod(QObject):
     signal_change_actor_plan_period_group_mode = Signal(object)
     signal_reset_styling_skills_configs = Signal(object)
     signal_update_app_in_app_tab_widget = Signal(object)
-    signal_reload_app_notes_in_app_tab_widget = Signal(UUID)
+    signal_reload_app_notes_in_app_tab_widget = Signal(UUID, UUID)
 
     def reload_actor_pp__avail_configs(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_configs.emit(data)
@@ -75,8 +75,8 @@ class HandlerActorPlanPeriod(QObject):
     def update_app_in_app_tab_widget(self, data: schemas.ActorPlanPeriod):
         self.signal_update_app_in_app_tab_widget.emit(data)
 
-    def reload_app_notes_in_app_tab_widget(self, person_id: UUID):
-        self.signal_reload_app_notes_in_app_tab_widget.emit(person_id)
+    def reload_app_notes_in_app_tab_widget(self, plan_period_id: UUID, person_id: UUID):
+        self.signal_reload_app_notes_in_app_tab_widget.emit(plan_period_id, person_id)
 
 
 class HandlerLocationPlanPeriod(QObject):

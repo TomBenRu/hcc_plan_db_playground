@@ -209,7 +209,11 @@ class PlanApiHandler:
         self.session = requests.Session()
         self.config_remote = api_remote_config.current_config_handler.get_api_remote()
 
-    def fetch_avail_days(self, plan_period_id: UUID, person_id: UUID) -> list[AvailDay]:
+    def fetch_avail_days(self, plan_period_id: UUID, person_id: UUID) -> dict[str, list[AvailDay] | str]:
+        """
+        Rückgabe:
+        {'avail_days': [AvailDay, AvailDay, ...], 'notes': 'string'}
+        """
         if not self.session_has_authorization():
             self.authorize()
         for _ in range(5):
@@ -223,7 +227,7 @@ class PlanApiHandler:
         else:
             raise Exception(f'Fehler. {response.json().get("detail")}')
 
-        return [AvailDay.model_validate(avd) for avd in response.json()]
+        return {'avail_days': [AvailDay.model_validate(avd) for avd in response.json().get('avail_days')], 'notes': response.json().get('notes')}
 
     def create_plan_period(self, team_id: UUID, start: datetime.date, end: datetime.date,
                            deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID) -> PlanPeriod:

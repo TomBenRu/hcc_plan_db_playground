@@ -221,3 +221,26 @@ class UpdateRequestedAssignments(Command):
     def redo(self):
         db_services.ActorPlanPeriod.update_requested_assignments(
             self.actor_plan_period_id, self.requested_assignments, self.required_assignments)
+
+
+class UpdateNotes(Command):
+    def __init__(self, actor_plan_period_id: UUID, notes: str):
+        self.actor_plan_period_id = actor_plan_period_id
+        self.updated_actor_plan_period: schemas.ActorPlanPeriodShow | None = None
+        self.notes = notes
+        self.notes_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).notes
+
+    def execute(self):
+        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
+            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes)
+        )
+
+    def undo(self):
+        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
+            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes_old)
+        )
+
+    def redo(self):
+        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
+            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes)
+        )

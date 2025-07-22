@@ -1885,7 +1885,7 @@ class ActorPlanPeriod:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
-    def update_notes(cls, actor_plan_period: schemas.ActorPlanPeriodUpdate) -> schemas.ActorPlanPeriodShow:
+    def update_notes(cls, actor_plan_period: schemas.ActorPlanPeriodUpdateNotes) -> schemas.ActorPlanPeriodShow:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period.id)
         actor_plan_period_db.set(notes=actor_plan_period.notes)

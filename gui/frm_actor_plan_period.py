@@ -742,6 +742,9 @@ class FrmTabActorPlanPeriods(QWidget):
 
         self.setObjectName('tab_actor_plan_periods')
 
+        signal_handling.handler_actor_plan_period.signal_update_app_in_app_tab_widget.connect(self.update_actor_plan_period)
+        signal_handling.handler_actor_plan_period.signal_reload_app_notes_in_app_tab_widget.connect(self.reload_actor_plan_period_notes)
+
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.actor_plan_periods = self.plan_period.actor_plan_periods
         self.pers_id__actor_pp = {
@@ -896,25 +899,40 @@ class FrmTabActorPlanPeriods(QWidget):
         for widget in (self.layout_controllers.itemAt(i).widget() for i in range(self.layout_controllers.count())):
             widget.deleteLater()
 
-    def info_text_setup(self):
+    def notes_app_setup(self):
         self.te_notes_pp.textChanged.disconnect()
         self.te_notes_pp.clear()
         self.te_notes_pp.setText(self.pers_id__actor_pp[str(self.person_id)].notes)
         self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
+
+    def notes_person_setup(self):
         self.te_notes_actor.textChanged.disconnect()
         self.te_notes_actor.clear()
         self.te_notes_actor.setText(self.person.notes)
         self.te_notes_actor.textChanged.connect(self.save_info_person)
 
+    def info_text_setup(self):
+        self.notes_app_setup()
+        self.notes_person_setup()
+
     def save_info_actor_pp(self):
         updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
-            schemas.ActorPlanPeriodUpdate(id=self.pers_id__actor_pp[str(self.person_id)].id,
-                                          notes=self.te_notes_pp.toPlainText()))
+            schemas.ActorPlanPeriodUpdateNotes(id=self.pers_id__actor_pp[str(self.person_id)].id,
+                                               notes=self.te_notes_pp.toPlainText()))
         self.pers_id__actor_pp[str(updated_actor_plan_period.person.id)] = updated_actor_plan_period
 
     def save_info_person(self):
         self.person.notes = self.te_notes_actor.toPlainText()
         updated_actor = db_services.Person.update(self.person)
+
+    @Slot(schemas.ActorPlanPeriod)
+    def update_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriod):
+        self.pers_id__actor_pp[str(actor_plan_period.person.id)] = actor_plan_period
+
+    @Slot(UUID)
+    def reload_actor_plan_period_notes(self, person_id: UUID):
+        if person_id == self.person_id:
+            self.notes_app_setup()
 
 
 class FrmActorPlanPeriod(QWidget):
@@ -1465,8 +1483,10 @@ class FrmActorPlanPeriod(QWidget):
         controller = command_base_classes.ContrExecUndoRedo()
         actor_plan_period = actor_plan_period or self.actor_plan_period
         try:
-            avail_days_on_server = plan_api_handler.fetch_avail_days(
+            avail_days_on_server_and_notes = plan_api_handler.fetch_avail_days(
                 actor_plan_period.plan_period.id, actor_plan_period.person.id)
+            avail_days_on_server = avail_days_on_server_and_notes['avail_days']
+            notes = avail_days_on_server_and_notes['notes']
         except Exception as e:
             QMessageBox.critical(
                 self,
@@ -1510,6 +1530,13 @@ class FrmActorPlanPeriod(QWidget):
                 if reply == QMessageBox.StandardButton.No:
                     return
 
+            save_command_notes = actor_plan_period_commands.UpdateNotes(actor_plan_period.id, notes)
+            controller.execute(save_command_notes)
+
+            signal_handling.handler_actor_plan_period.update_app_in_app_tab_widget(save_command_notes.updated_actor_plan_period)
+            if actor_plan_period.id == self.actor_plan_period.id:
+                signal_handling.handler_actor_plan_period.reload_app_notes_in_app_tab_widget(actor_plan_period.person.id)
+
             for avail_day in actor_plan_period.avail_days:
                 delete_command = avail_day_commands.Delete(avail_day.id)
                 controller.execute(delete_command)
@@ -1527,10 +1554,11 @@ class FrmActorPlanPeriod(QWidget):
                                  if t.time_of_day_enum.abbreviation == abbreviation)
                     if actor_plan_period.id == self.actor_plan_period.id:
                         button_avail_day = self.set_button_avail_day_to_checked_and_configure(date, t_o_d)
-                    save_command = avail_day_commands.Create(
+                    save_command_avail_day = avail_day_commands.Create(
                         schemas.AvailDayCreate(date=date, actor_plan_period=actor_plan_period, time_of_day=t_o_d)
                     )
-                    controller.execute(save_command)
+                    controller.execute(save_command_avail_day)
+
             self.controller_avail_days.add_to_undo_stack(controller.get_undo_stack())
             QMessageBox.information(
                 self,
@@ -1551,6 +1579,9 @@ class FrmActorPlanPeriod(QWidget):
                     # todo: besser... send AvailDayButton Signal to uncheck:
                     self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day)
             controller.undo_all()
+            signal_handling.handler_actor_plan_period.update_app_in_app_tab_widget(actor_plan_period)
+            if actor_plan_period.id == self.actor_plan_period.id:
+                signal_handling.handler_actor_plan_period.reload_app_notes_in_app_tab_widget(actor_plan_period.person.id)
             QMessageBox.critical(
                 self,
                 self.tr('Available Days'),

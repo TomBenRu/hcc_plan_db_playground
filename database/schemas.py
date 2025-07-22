@@ -226,7 +226,7 @@ class ActorPlanPeriodCreate(BaseModel):
     person: Person
 
 
-class ActorPlanPeriodUpdate(BaseModel):
+class ActorPlanPeriodUpdateNotes(BaseModel):
     id: UUID
     notes: Optional[str] = None
 

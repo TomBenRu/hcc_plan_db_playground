@@ -1491,7 +1491,7 @@ class FrmActorPlanPeriod(QWidget):
         except Exception as e:
             QMessageBox.critical(
                 self,
-                self.tr('Available Days'),
+                self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
                 self.tr('The following error occurred while downloading available days:\n{error}').format(error=e)
             )
             return
@@ -1499,7 +1499,7 @@ class FrmActorPlanPeriod(QWidget):
             if not avail_days_on_server:
                 reply = QMessageBox.question(
                     self,
-                    self.tr('Available Days'),
+                    self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
                     self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
                            'Do you want to delete all available days from the planning mask?').format(
                         name=actor_plan_period.person.full_name,
@@ -1520,7 +1520,7 @@ class FrmActorPlanPeriod(QWidget):
             if avail_days:
                 reply = QMessageBox.question(
                     self,
-                    self.tr('Available Days'),
+                    self.tr('Available Days ({name})').format(name=actor_plan_period.person.full_name),
                     self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
                            'Do you want to delete these available days from the planning mask?').format(
                         name=actor_plan_period.person.full_name,
@@ -1565,7 +1565,7 @@ class FrmActorPlanPeriod(QWidget):
             self.controller_avail_days.add_to_undo_stack(controller.get_undo_stack())
             QMessageBox.information(
                 self,
-                self.tr('Available Days'),
+                self.tr('Available Days ({name})').format(name=actor_plan_period.person.full_name),
                 self.tr('Available days for {name} were successfully downloaded.').format(
                     name=actor_plan_period.person.full_name)
             )
@@ -1609,6 +1609,11 @@ class FrmActorPlanPeriod(QWidget):
             self.actor_plan_period.plan_period.id, maximal=True), key=lambda x: x.person.full_name)
         for actor_plan_period in actor_plan_periods:
             self.fetch_avail_days_from_api_for_one_employee(actor_plan_period)
+        QMessageBox.information(
+            self,
+            self.tr('Available Days'),
+            self.tr('Available days for all employees were successfully downloaded.')
+        )
 
     def remove_skills_from_every_avail_day(self):
         reply = QMessageBox.question(

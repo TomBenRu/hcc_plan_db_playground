@@ -1242,13 +1242,13 @@ class TblPlanStatistics(QTableWidget):
             if actor_plan_period and (max_fair_shifts := max_fair_shifts_of_app_ids.get(actor_plan_period.id)):
                 max_shifts, fair_shifts = max_fair_shifts
             else:
-                max_shifts, fair_shifts = 0, 0
-            self._create_item_dates_of_actor(c, requested, 'requested', actor_plan_period, name)
-            self._create_item_dates_of_actor(c, max_shifts, 'able', actor_plan_period, name)
-            self._create_item_dates_of_actor(c, fair_shifts, 'fair', actor_plan_period, name)
-            self._create_item_dates_of_actor(c, len(appointments), 'current', actor_plan_period, name)
+                max_shifts, fair_shifts = len(appointments), len(appointments)
+            self._create_item_datas_of_actor(c, requested, 'requested', actor_plan_period, name)
+            self._create_item_datas_of_actor(c, max_shifts, 'able', actor_plan_period, name)
+            self._create_item_datas_of_actor(c, fair_shifts, 'fair', actor_plan_period, name)
+            self._create_item_datas_of_actor(c, len(appointments), 'current', actor_plan_period, name)
 
-    def _create_item_dates_of_actor(self, column: int, num_dates: int | float,
+    def _create_item_datas_of_actor(self, column: int, num_dates: int | float,
                                     kind: Literal['requested', 'able', 'fair', 'current'],
                                     actor_plan_period: schemas.ActorPlanPeriod | None, full_name: str) -> None:
         # todo: actor_plan_period cachen

@@ -716,7 +716,7 @@ class FrmTabPlan(QWidget):
 
         self._generate_plan_data()
 
-        self._show_table_plan()
+        self._setup_table()
 
         self._setup_side_menu()
         self._setup_bottom_menu()
@@ -907,7 +907,7 @@ class FrmTabPlan(QWidget):
     def refresh_plan(self):
         self.table_plan.deleteLater()
         self._generate_plan_data()
-        self._show_table_plan()
+        self._setup_table()
         self.side_menu.raise_()
         self.bottom_menu.raise_()
 
@@ -983,14 +983,23 @@ class FrmTabPlan(QWidget):
                 curr_column += 1
         return column_assignments
 
-    def _show_table_plan(self):
+    def _setup_table(self):
         self.table_plan = QTableWidget()
         self.layout.addWidget(self.table_plan)
         num_rows = max(self.week_num_rows.values()) + 1
         num_cols = max(self.weekday_cols.values()) + 1
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
-        self.table_plan.setStyleSheet('background-color: #2d2d2d; color: white')
+        self.table_plan.setStyleSheet("""
+            QTableView {
+                background-color: #2d2d2d; 
+                color: white;
+            }
+            QTableView QTableCornerButton::section {
+                background-color: transparent;
+                border: none;
+            }
+        """)
 
         self.display_headers_week_day_names()
         self.display_headers_calender_weeks()
@@ -1010,7 +1019,9 @@ class FrmTabPlan(QWidget):
 
     def display_headers_calender_weeks(self):
         # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))
-        self.table_plan.setVerticalHeaderItem(0, QTableWidgetItem(''))
+        first_item = QTableWidgetItem('')
+        first_item.setBackground(QColor('#252525'))
+        self.table_plan.setVerticalHeaderItem(0, first_item)
         for week_num, i in self.week_num_rows.items():
             item = QTableWidgetItem(f'KW {week_num}')
             item.setBackground(vertical_header_colors[i % 2])
@@ -1249,9 +1260,20 @@ class TblPlanStatistics(QTableWidget):
             item.setBackground(vertical_header_statistics_color)
         self.setShowGrid(True)
         self.setGridStyle(Qt.PenStyle.SolidLine)
-        self.setStyleSheet("QTableView {gridline-color: black;}")
+        self.setStyleSheet("""
+            QTableView {
+                gridline-color: black;
+            }
+            QTableView QTableCornerButton::section {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         # self.setStyleSheet("QTableView::item { border: 1px solid blue; }")
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        
+        # Macht das obere rechte Eckfeld transparent
+        self.setCornerButtonEnabled(False)
 
     def _fill_in_table_cells(self):
         max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_all_from__plan_period_minimal(

@@ -26,7 +26,8 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.frm_notes import DlgAppointmentNotes
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
-    cell_backgrounds_statistics
+    cell_backgrounds_statistics, horizontal_header_statistics_color, horizontal_header_statistics_color_guest, \
+    vertical_header_statistics_color
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
@@ -1139,6 +1140,14 @@ class TblPlanStatistics(QTableWidget):
         if person_id := self.horizontalHeaderItem(column).data(Qt.ItemDataRole.UserRole):
             signal_handling.handler_plan_period_tabs.show_actor_plan_period(
                 self.frm_plan.plan.plan_period.id, person_id)
+        else:
+            # Das Hauptfenster hat wahrscheinlich neutraleres Styling.
+            # window() traversiert die Parent-Widget-Hierarchie nach oben und gibt das oberste Window-Widget zurück
+            # (normalerweise das Hauptfenster der Anwendung).
+            main_window = self.window()
+            QMessageBox.information(main_window, self.tr('Info'),
+                                    self.tr('No planning mask found for this person\n'
+                                            'Person has guest status.'))
 
     def _on_cell_clicked(self, row: int, column: int):
         item = self.item(row, column)
@@ -1222,12 +1231,22 @@ class TblPlanStatistics(QTableWidget):
             header_item = QTableWidgetItem(full_name)
             if actor_plan_period:
                 header_item.setData(Qt.ItemDataRole.UserRole, actor_plan_period.person.id)
+                header_item.setBackground(horizontal_header_statistics_color)
                 header_item.setToolTip(self.tr('Click:\nOpen planning mask for %s') % full_name)
+            else:
+                # Gast - andere Hintergrundfarbe für Items ohne UserRole-Daten
+                header_item.setBackground(horizontal_header_statistics_color_guest)  # Dunkelgrau für Gäste
+                header_item.setToolTip(self.tr('No planning mask found for this person\n'
+                                              'Person has guest status.'))
             self.setHorizontalHeaderItem(i, header_item)
         # for i in range(self.columnCount()):
         #     self.setColumnWidth(i, 100)
         self.setVerticalHeaderLabels((self.tr('desired'), self.tr('possible'),
                                       self.tr('fair'), self.tr('assigned')))
+        # Background-Color für Vertical-Header-Items
+        for i in range(self.rowCount()):
+            item = self.verticalHeaderItem(i)
+            item.setBackground(vertical_header_statistics_color)
         self.setShowGrid(True)
         self.setGridStyle(Qt.PenStyle.SolidLine)
         self.setStyleSheet("QTableView {gridline-color: black;}")

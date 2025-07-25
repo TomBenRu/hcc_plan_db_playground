@@ -6,8 +6,8 @@ Diese Richtlinien stellen sicher, dass alle Hilfe-Inhalte konsistent, benutzerfr
 
 ## HTML-Struktur und Standards
 
-### Basis-Template
-Alle Hilfe-Seiten verwenden das folgende Template-System:
+### Basis-Template für Browser-System
+Alle Hilfe-Seiten verwenden das folgende vereinfachte Template:
 
 ```html
 <!DOCTYPE html>
@@ -28,12 +28,13 @@ Alle Hilfe-Seiten verwenden das folgende Template-System:
     </div>
     
     <div class="help-footer">
-        <div class="related-links">{{related_links}}</div>
-        <div class="help-info">Version {{version}} | {{language}}</div>
+        <div class="help-info">HCC Plan Version {{version}} | {{language}}</div>
     </div>
 </body>
 </html>
 ```
+
+**Hinweis**: Da das System Browser-basiert ist, können alle Standard-HTML5-Features genutzt werden.
 
 ### HTML-Konventionen
 

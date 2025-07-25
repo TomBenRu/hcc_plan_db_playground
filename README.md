@@ -13,6 +13,7 @@ Ziel ist es, einen Einsatzplan über einen festgelegten Planungszeitraum automat
 - **Excel Export/Import** für Pläne und Verfügbarkeiten
 - **Benutzerauthentifizierung** mit JWT und bcrypt
 - **Mehrsprachige Unterstützung** (Deutsch/Englisch)
+- **Integriertes Hilfe-System** mit F1-Shortcuts und Browser-basierter Hilfe
 
 ## Technologien
 

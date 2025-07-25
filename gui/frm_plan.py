@@ -28,6 +28,7 @@ from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
     cell_backgrounds_statistics, horizontal_header_statistics_color, horizontal_header_statistics_color_guest, \
     vertical_header_statistics_color
+from help import get_help_manager, HelpIntegration
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
@@ -720,6 +721,9 @@ class FrmTabPlan(QWidget):
 
         self._setup_side_menu()
         self._setup_bottom_menu()
+        
+        # Hilfe-System Integration
+        self._setup_help_integration()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -752,6 +756,28 @@ class FrmTabPlan(QWidget):
         self.bottom_menu = side_menu.SlideInMenu(self, 215, 10, 'bottom', (20, 10, 20, 5))
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
+
+    def _setup_help_integration(self):
+        """Integriert das vereinfachte Hilfe-System in das Plan-Formular."""
+        try:
+            # Hilfe-System initialisieren falls noch nicht geschehen
+            help_manager = get_help_manager()
+            
+            if not help_manager:
+                from help import init_help_system
+                help_manager = init_help_system()
+            
+            if help_manager:
+                # Hilfe-Integration erstellen
+                help_integration = HelpIntegration(help_manager)
+                
+                # F1-Shortcut für Plan-Formular installieren
+                help_integration.setup_f1_shortcut(self, form_name="plan")
+            else:
+                logger.warning("Hilfe-System: Manager konnte nicht erstellt werden")
+                
+        except Exception as e:
+            logger.error(f"Hilfe-System Integration fehlgeschlagen: {e}")
 
     def _generate_plan_data(self):
         self.appointment_widget_width = self.general_settings.plan_settings.column_width_plan

@@ -220,7 +220,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 
                               self.tr('Help...'),
                               self.tr('Opens help in browser.'), 
-                              self.open_help, 'F1'),
+                              self.open_help),
             MenuToolbarAction(self, None, self.tr('Check for Updates...'),
                               self.tr('Checks if program updates are available.'), 
                               self.check_for_updates),

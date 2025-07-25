@@ -1,0 +1,340 @@
+/* HCC Plan Help System CSS */
+
+/* Reset und Basis-Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Layout-Container */
+.help-header {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    padding: 20px;
+    margin: -20px -20px 20px -20px;
+    border-radius: 0 0 8px 8px;
+}
+
+.help-header h1 {
+    font-size: 24px;
+    font-weight: 300;
+    margin-bottom: 5px;
+}
+
+.breadcrumb {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.breadcrumb a {
+    color: white;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.help-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    max-width: 900px;
+}
+
+.help-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Typografie */
+h1, h2, h3, h4 {
+    color: #2c3e50;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+h1 { font-size: 28px; margin-top: 0; }
+h2 { font-size: 22px; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; }
+h3 { font-size: 18px; color: #3498db; }
+h4 { font-size: 16px; }
+
+p {
+    margin-bottom: 15px;
+    text-align: justify;
+}
+
+/* Listen */
+ul, ol {
+    margin: 15px 0;
+    padding-left: 25px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+.feature-list li {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    list-style: none;
+    margin-left: -25px;
+    padding-left: 20px;
+}
+
+.feature-list li strong {
+    color: #2c3e50;
+}
+
+/* UI-Elemente hervorheben */
+.ui-element {
+    background: #e8f4f8;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-style: normal;
+    font-weight: 500;
+    color: #2980b9;
+    border: 1px solid #bde4f0;
+}
+
+/* Tastenkombinationen */
+kbd {
+    background: #f7f7f7;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 0 2px #fff inset;
+    color: #333;
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.4;
+    margin: 0 2px;
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+
+/* Code-Elemente */
+code {
+    background: #f4f4f4;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #e74c3c;
+}
+
+/* Tabellen für Shortcuts */
+.keyboard-shortcuts table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    background: white;
+}
+
+.keyboard-shortcuts td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+
+.keyboard-shortcuts td:first-child {
+    width: 120px;
+    font-weight: bold;
+}
+
+/* Info-Boxen */
+.tip-box, .warning-box {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 5px solid;
+}
+
+.tip-box {
+    background: #f0f9ff;
+    border-left-color: #3498db;
+    color: #2c3e50;
+}
+
+.tip-box h4 {
+    color: #2980b9;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.warning-box {
+    background: #fff3cd;
+    border-left-color: #f39c12;
+    color: #856404;
+}
+
+.warning-box h4 {
+    color: #e67e22;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+/* Links */
+a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+.related-links {
+    margin: 20px 0;
+}
+
+.related-links li {
+    margin-bottom: 10px;
+}
+
+.related-links a {
+    font-weight: 500;
+}
+
+/* Screenshots und Bilder */
+.screenshot {
+    text-align: center;
+    margin: 25px 0;
+    padding: 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.screenshot img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.caption {
+    font-style: italic;
+    color: #666;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .help-content {
+        padding: 20px;
+    }
+    
+    .help-header {
+        margin: -10px -10px 15px -10px;
+        padding: 15px;
+    }
+    
+    .help-header h1 {
+        font-size: 20px;
+    }
+    
+    .help-footer {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .keyboard-shortcuts td:first-child {
+        width: 100px;
+    }
+}
+
+/* Druckstile */
+@media print {
+    body {
+        background: white;
+        color: black;
+        font-size: 12px;
+    }
+    
+    .help-header {
+        background: #f0f0f0 !important;
+        color: black !important;
+        border: 1px solid #ccc;
+    }
+    
+    .help-content {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .tip-box, .warning-box {
+        border: 1px solid #ccc;
+        background: #f9f9f9 !important;
+    }
+    
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+    
+    .help-footer {
+        border-top: 1px solid #ccc;
+        margin-top: 20px;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .help-content {
+        border: 2px solid black;
+    }
+    
+    .ui-element {
+        border: 2px solid black;
+        background: yellow;
+        color: black;
+    }
+    
+    kbd {
+        border: 2px solid black;
+        background: white;
+        color: black;
+    }
+}

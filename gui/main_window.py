@@ -67,7 +67,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     """
     def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
-        logger.info(f'{"="*50}\nStarting hcc-plan')
 
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, screen_width-100, screen_height-100))
@@ -393,7 +392,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     @Slot(UUID)
     def _on_team_config_saved(self, team_id: UUID):
         """Handler für gespeicherte Team-Konfiguration"""
-        logger.info(f"Team-Konfiguration gespeichert: {team_id}")
+        pass
 
     @Slot(str, str)
     def _show_error_message(self, title: str, message: str):

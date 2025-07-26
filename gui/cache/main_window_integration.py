@@ -17,7 +17,7 @@ from gui.tab_manager import TabManager
 from tools.actions import MenuToolbarAction
 from configuration import team_start_config
 from gui.cache.performance_monitor import performance_monitor
-from database import db_services
+from database import db_services, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,6 @@ class TabCacheIntegration:
         """Initialisiert Cache-Integration für MainWindow"""
         self._setup_cache_monitoring()
         self._setup_cache_menu_actions()
-        logger.info("Tab-Cache Integration initialisiert")
     
     def _setup_cache_monitoring(self):
         """Richtet Cache-Monitoring und -Konfiguration ein"""
@@ -62,8 +61,6 @@ class TabCacheIntegration:
             # TabManager konfigurieren
             self.tab_manager.enable_cache(cache_enabled)
             self.tab_manager.update_cache_config(max_cached_teams, cache_expire_hours)
-            
-            logger.info(f"Cache-Konfiguration geladen: enabled={cache_enabled}, max_teams={max_cached_teams}")
             
         except Exception as e:
             logger.warning(f"Cache-Konfiguration konnte nicht geladen werden: {e}")
@@ -113,8 +110,6 @@ class TabCacheIntegration:
                 if action.menu():
                     available_menus.append(action.text())
             
-            logger.info(f"Verfügbare Menüs: {available_menus}")
-            
             # Extras-Menü suchen (verschiedene Varianten probieren)
             extras_menu = None
             
@@ -125,14 +120,12 @@ class TabCacheIntegration:
                 # Über objectName suchen
                 extras_menu = self.main_menu.findChild(QMenu, menu_name.replace('&', ''))
                 if extras_menu:
-                    logger.info(f"Extras-Menü gefunden über objectName: {menu_name}")
                     break
                 
                 # Über Text suchen
                 for action in self.main_menu.actions():
                     if action.menu() and action.text() == menu_name:
                         extras_menu = action.menu()
-                        logger.info(f"Extras-Menü gefunden über Text: {menu_name}")
                         break
                 
                 if extras_menu:
@@ -143,7 +136,6 @@ class TabCacheIntegration:
                 for action in self.main_menu.actions():
                     if action.menu() and 'xtra' in action.text().lower():
                         extras_menu = action.menu()
-                        logger.info(f"Extras-Menü gefunden via Textsuche: {action.text()}")
                         break
             
             if extras_menu:
@@ -160,8 +152,6 @@ class TabCacheIntegration:
                 cache_submenu.addAction(self.cache_actions['clear_cache'])
                 cache_submenu.addAction(self.cache_actions['toggle_cache'])
                 cache_submenu.addAction(self.cache_actions['cache_config'])
-                    
-                logger.info("Cache-Menü erfolgreich zu Extras-Menü hinzugefügt")
             else:
                 logger.warning("Extras-Menü nicht gefunden - Cache-Menü wird als eigenes Hauptmenü hinzugefügt")
                 
@@ -171,8 +161,6 @@ class TabCacheIntegration:
                 
                 for action in self.cache_actions.values():
                     cache_menu.addAction(action)
-                
-                logger.info("Cache-Menü als eigenes Hauptmenü hinzugefügt")
                 
         except Exception as e:
             logger.error(f"Fehler beim Erstellen des Cache-Menüs: {e}")
@@ -185,10 +173,7 @@ class TabCacheIntegration:
             # Cache-Events
             self.tab_manager.cache_hit.connect(self._on_cache_hit)
             self.tab_manager.cache_miss.connect(self._on_cache_miss)
-            self.tab_manager.cache_invalidated.connect(self._on_cache_invalidated)
             self.tab_manager.cache_stats_updated.connect(self._on_cache_stats_updated)
-            
-            logger.info("Cache-Signals erfolgreich verbunden")
             
         except Exception as e:
             logger.error(f"Fehler beim Verbinden der Cache-Signals: {e}")
@@ -202,18 +187,11 @@ class TabCacheIntegration:
             f"Team-Tabs aus Cache geladen: {plan_tabs} Pläne, {plan_period_tabs} Masken", 
             3000
         )
-        logger.info(f"Cache Hit für Team {team_id}: {plan_tabs}+{plan_period_tabs} Tabs")
     
     @Slot(UUID)
     def _on_cache_miss(self, team_id: UUID):
         """Handler für Cache-Fehlschlag"""
         self.statusBar().showMessage("Team-Tabs werden neu geladen...", 2000)
-        logger.info(f"Cache Miss für Team {team_id}")
-    
-    @Slot(UUID)
-    def _on_cache_invalidated(self, team_id: UUID):
-        """Handler für Cache-Invalidierung"""
-        logger.info(f"Cache invalidiert für Team {team_id}")
     
     @Slot(dict)
     def _on_cache_stats_updated(self, stats: dict):
@@ -542,7 +520,6 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
             config = team_start_config.curr_start_config_handler.get_start_config()
             setattr(config, key, value)
             team_start_config.curr_start_config_handler.save_config_to_file(config)
-            logger.info(f"Cache-Einstellung gespeichert: {key}={value}")
         except Exception as e:
             logger.warning(f"Cache-Einstellung '{key}' konnte nicht gespeichert werden: {e}")
     
@@ -559,7 +536,7 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
             
             # TabManager übernimmt das Session-Management (jetzt mit Caching und Performance-Monitoring)
             self.tab_manager.set_current_team(team)
-            self.curr_team = team
+            self.curr_team: schemas.TeamShow = team
             
             self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
             
@@ -586,8 +563,6 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
                     
                     self.statusBar().showMessage(status_message, 4000)
                     
-                    logger.info(f"Team-Wechsel erfolgreich: {team.name} ({elapsed:.3f}s, {'Cache Hit' if last_metric.cache_hit else 'Cache Miss'})")
-                    
         except Exception as e:
             logger.error(f"Fehler beim Team-Wechsel: {e}")
             self.statusBar().showMessage(f"❌ Fehler beim Team-Wechsel: {str(e)[:50]}...", 5000)
@@ -600,7 +575,6 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
                 # Aktuelle Tabs vor dem Schließen cachen
                 if self.tab_manager._cache_enabled:
                     self.tab_manager.save_team_config(self.curr_team.id)
-                    logger.info("Tabs vor Programmende gecacht")
                 else:
                     self.tab_manager.save_team_config(self.curr_team.id)
             

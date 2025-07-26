@@ -60,8 +60,6 @@ class TabCacheManager:
             'invalidations': 0,
             'evictions': 0
         }
-        
-        logger.info(f"TabCacheManager initialisiert: max_teams={max_cached_teams}, expire_hours={cache_expire_hours}")
     
     def store_team_tabs(self, team_id: UUID, plan_tabs: List[CachedTab], 
                        plan_period_tabs: List[CachedTab], tab_indices: Dict[str, int]) -> bool:
@@ -93,7 +91,6 @@ class TabCacheManager:
             self.cache[team_id] = team_cache
             
             total_tabs = team_cache.get_total_tabs()
-            logger.info(f"Team {team_id} gecacht: {total_tabs} Tabs")
             
             return True
             
@@ -137,8 +134,7 @@ class TabCacheManager:
         
         del self.cache[team_id]
         self.stats['invalidations'] += 1
-        
-        logger.info(f"Cache für Team {team_id} invalidiert")
+
         return True
     
     def invalidate_plan_cache(self, plan_id: UUID) -> List[UUID]:
@@ -207,8 +203,7 @@ class TabCacheManager:
             'invalidations': 0,
             'evictions': 0
         }
-        
-        logger.info(f"Kompletter Cache geleert: {count} Teams entfernt")
+
         return count
     
     def _cleanup_expired_cache(self) -> int:
@@ -309,8 +304,6 @@ class TabCacheManager:
             # Cache verkleinern falls nötig
             while len(self.cache) > max_cached_teams:
                 self._evict_oldest_team()
-            
-            logger.info(f"Max cached teams: {old_max} -> {max_cached_teams}")
         
         if cache_expire_hours is not None:
             old_expire = self.cache_expire_hours
@@ -318,5 +311,3 @@ class TabCacheManager:
             
             # Expired Einträge sofort bereinigen
             self._cleanup_expired_cache()
-            
-            logger.info(f"Cache expire hours: {old_expire} -> {cache_expire_hours}")

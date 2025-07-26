@@ -202,7 +202,6 @@ class TabManager(QObject):
             if success:
                 # Cache-Statistiken aktualisieren
                 self.cache_stats_updated.emit(self.cache_manager.get_cache_stats())
-                logger.info(f"Team {self.current_team.name} erfolgreich gecacht: {len(plan_tabs)} Pläne, {len(plan_period_tabs)} Masken")
             else:
                 logger.error(f"Fehler beim Cachen von Team {self.current_team.id}")
             
@@ -265,8 +264,6 @@ class TabManager(QObject):
             # Tab-Indizes wiederherstellen
             self._restore_cached_tab_indices(cached_team.tab_indices)
 
-            logger.info(f"Tabs für Team {cached_team.team_id} aus Cache wiederhergestellt")
-
         except Exception as e:
             logger.error(f"Fehler beim Cache-Restore: {e}")
             # Fallback auf normale Ladung
@@ -304,16 +301,12 @@ class TabManager(QObject):
         if not enabled and self._cache_enabled:
             # Cache leeren wenn deaktiviert
             cleared_count = self.cache_manager.clear_all_cache()
-            logger.info(f"Tab-Caching deaktiviert - {cleared_count} Teams aus Cache entfernt")
-        
         self._cache_enabled = enabled
-        logger.info(f"Tab-Caching {'aktiviert' if enabled else 'deaktiviert'}")
-    
+
     def clear_cache(self):
         """Leert den kompletten Tab-Cache"""
         cleared_count = self.cache_manager.clear_all_cache()
         self.cache_stats_updated.emit(self.cache_manager.get_cache_stats())
-        logger.info(f"Tab-Cache geleert - {cleared_count} Teams entfernt")
         return cleared_count
     
     def get_cache_stats(self) -> Dict[str, Any]:
@@ -355,9 +348,7 @@ class TabManager(QObject):
             tab_index = self.tabs_plans.addTab(new_widget, plan.name)
             self.tabs_plans.setTabToolTip(tab_index, 'Rechtsklick: weitere Aktionen')
             self.tabs_plans.setCurrentIndex(tab_index)
-            
             self.tab_opened.emit("plan", new_widget)
-            logger.info(f"Plan-Tab geöffnet: {plan.name}")
             return True
             
         except ValidationError:
@@ -419,8 +410,6 @@ class TabManager(QObject):
             
             self.tabs_planungsmasken.setCurrentIndex(tab_index)
             self.tab_opened.emit("plan_period", widget_pp_tab)
-            
-            logger.info(f"Planungsmasken-Tab geöffnet: {string_start} - {string_end}")
             return True
             
         except Exception as e:
@@ -668,7 +657,6 @@ class TabManager(QObject):
             
             start_config_handler.save_config_for_team(team_id, config)
             self.team_config_saved.emit(team_id)
-            logger.info(f"Team-Konfiguration gespeichert für Team {team_id}")
             
         except Exception as e:
             logger.error(f"Fehler beim Speichern der Team-Konfiguration: {e}")
@@ -699,8 +687,6 @@ class TabManager(QObject):
             self.tabs_planungsmasken.setCurrentIndex(config.current_index_planungsmasken_tabs)
             self.tabs_plans.setCurrentIndex(config.current_index_plans_tabs)
             self.tabs_left.setCurrentIndex(config.current_index_left_tabs)
-            
-            logger.info(f"Team-Konfiguration geladen für Team {team_id}")
             
         except Exception as e:
             logger.error(f"Fehler beim Laden der Team-Konfiguration: {e}")

@@ -74,8 +74,6 @@ class PerformanceMonitor:
         
         # Aktuelle Team-Wechsel (für Timing)
         self._active_switches: Dict[UUID, float] = {}
-        
-        logger.info(f"PerformanceMonitor initialisiert (max_metrics={max_metrics})")
     
     def start_team_switch(self, team_id: UUID, team_name: str) -> None:
         """Startet Performance-Messung für Team-Wechsel"""
@@ -117,8 +115,6 @@ class PerformanceMonitor:
         # Performance-Logging
         perf_emoji = self._get_performance_emoji(metric)
         cache_status = "Cache Hit" if cache_hit else "Cache Miss"
-        
-        logger.info(f"{perf_emoji} Team-Wechsel: {team_name} ({duration_ms:.1f}ms, {cache_status}, {tab_count} Tabs)")
         
         # Anomalie-Erkennung
         self._check_for_anomalies(metric)
@@ -307,7 +303,7 @@ class PerformanceMonitor:
         expected_hit_rate = cache_hits_recent / len(recent_metrics)
         
         if not metric.cache_hit and expected_hit_rate > 0.7:
-            logger.info(f"Unerwarteter Cache-Miss: {metric.team_name} (Hit-Rate normalerweise {expected_hit_rate:.1%})")
+            logger.warning(f"Unerwarteter Cache-Miss: {metric.team_name} (Hit-Rate normalerweise {expected_hit_rate:.1%})")
     
     def _get_performance_recommendation(self, trend: str, trend_percentage: float) -> str:
         """Gibt Performance-Empfehlungen basierend auf Trends"""
@@ -363,8 +359,7 @@ class PerformanceMonitor:
                         'performance_category': metric.performance_category,
                         'error': metric.error or ''
                     })
-            
-            logger.info(f"Performance-Metriken exportiert: {filepath} ({len(recent_switches)} Einträge)")
+
             return True
             
         except Exception as e:

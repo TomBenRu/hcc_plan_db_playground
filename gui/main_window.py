@@ -4,7 +4,7 @@ import os.path
 import sys
 from uuid import UUID
 
-from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool
+from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool, Qt
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog,
                                QApplication)
@@ -1004,7 +1004,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             return
         if DlgSendAppointmentsToGoogleCal(self, plan).exec():
             self.worker_general = WorkerGeneral(transfer, True, plan)
-            self.worker_general.signals.finished.connect(finished)
+            self.worker_general.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
             progressbar = DlgProgressInfinite(
                 self, 'Termine übertragen',
                 f'Termine des Teams {plan.plan_period.team.name}\n'

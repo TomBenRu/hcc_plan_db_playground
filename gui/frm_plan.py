@@ -832,8 +832,8 @@ class FrmTabPlan(QWidget):
                                              self.tr('Cancel'), signal_handling.handler_solver.cancel_solving)
         worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
         progress_bar.show()
-        worker.signals.finished.connect(self._update_statistics_finished)
-        worker.signals.finished.connect(progress_bar.deleteLater)
+        worker.signals.finished.connect(self._update_statistics_finished, Qt.ConnectionType.QueuedConnection)
+        worker.signals.finished.connect(progress_bar.deleteLater, Qt.ConnectionType.QueuedConnection)
         self.thread_pool.start(worker)
 
     @Slot(object, object)

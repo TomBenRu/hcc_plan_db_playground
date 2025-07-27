@@ -555,7 +555,7 @@ class AppointmentField(QWidget):
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
-        worker.signals.finished.connect(self.check_finished)
+        worker.signals.finished.connect(self.check_finished, Qt.ConnectionType.QueuedConnection)
         self.thread_pool.start(worker)
 
     @Slot(bool, list)

@@ -1,7 +1,7 @@
 import datetime
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Slot
+from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
@@ -201,7 +201,8 @@ class DlgCalculate(QDialog):
             self.spin_time_calculate_fair_distribution.value() // self.num_actor_plan_periods,
             self.spin_time_calculate_plan.value(),
         )
-        self.solver_thread.finished.connect(self.save_plan_to_db)
+        self.solver_thread.finished.connect(
+            self.save_plan_to_db, Qt.ConnectionType.QueuedConnection)
 
         # Start the solver thread
         self.solver_thread.start()
@@ -318,7 +319,8 @@ class DlgCalculate(QDialog):
             schedule_versions, max_shifts_per_app, fair_shifts_per_app,
             nr_versions_to_use, self.controller
         )
-        save_thread.finished.connect(self._collect_plan_ids)
+        save_thread.finished.connect(
+            self._collect_plan_ids, Qt.ConnectionType.QueuedConnection)
         save_thread.start()
 
     @Slot(list)

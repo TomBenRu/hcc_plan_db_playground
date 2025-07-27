@@ -14,7 +14,8 @@ class DlgProgressInfinite(QProgressDialog):
                  signal_for_label_text_update: Signal | None = None):
         super().__init__(label_text, cancel_button_text, 0, 0, parent)
         if signal_for_label_text_update:
-            signal_for_label_text_update.connect(self.update_label)
+            signal_for_label_text_update.connect(
+                self.update_label, Qt.ConnectionType.QueuedConnection)
         self.setWindowTitle(window_title)
         self.setWindowModality(Qt.WindowModality.WindowModal)
         # self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
@@ -38,7 +39,8 @@ class DlgProgressSteps(QProgressDialog):
         Der Process-Balken wird mit jedem empfangenen Signal um 100 / (maximum - minimum) % erhöht.
         """
         super().__init__(label_text, cancel_button_text, minimum, maximum, parent)
-        signal_handling.handler_solver.signal_progress.connect(self.update_progress)
+        signal_handling.handler_solver.signal_progress.connect(
+            self.update_progress, Qt.ConnectionType.QueuedConnection)
         self.setWindowTitle(window_title)
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.label_text = label_text

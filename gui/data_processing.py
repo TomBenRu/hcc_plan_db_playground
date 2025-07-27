@@ -2,7 +2,6 @@ import datetime
 from typing import Literal
 from uuid import UUID
 
-from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QWidget, QMessageBox
 from line_profiler_pycharm import profile
 
@@ -11,9 +10,7 @@ from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands, \
     event_group_commands
 from database import schemas, db_services
-from gui import concurrency, frm_event_planing_rules
-from gui.concurrency import general_worker
-from gui.custom_widgets.progress_bars import DlgProgressInfinite
+from gui import frm_event_planing_rules
 from gui.observer import signal_handling
 
 
@@ -23,12 +20,6 @@ class LocationPlanPeriodData:
         self.parent = parent
         self.location_plan_period = location_plan_period
         self.controller = controller
-        self.thread_pool = QThreadPool()
-        self.worker_save_event = None
-        self.progress_bar_save_event = DlgProgressInfinite(
-            parent, 'Terminänderung',
-            'Die Terminänderung wird in den vorhandenen Plänen gespeichert.',
-            'Abbruch')
 
     def reload_location_plan_period(self):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
@@ -138,18 +129,17 @@ class LocationPlanPeriodData:
                                     'Durch das Entfernen des Termins in bereits bestehenden Plänen muss die '
                                     'Spaltenreihenfolge der betreffenden Pläne zurückgesetzt werden.')
 
-        self.worker_save_event = general_worker.WorkerGeneral(
-            self._save_new_empty_appointment_in_plan_and_reset_columns,
-            False, event, existing_plans, mode
-        )
-        self.worker_save_event.signals.finished.connect(
-            lambda: signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(
+        # SYNCHRONE Ausführung - Kein Worker-Thread!
+        try:
+            self._save_new_empty_appointment_in_plan_and_reset_columns(event, existing_plans, mode)
+            
+            # GUI-Update synchron im Hauptthread
+            signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(
                 self.location_plan_period.plan_period.id
             )
-        )
-        self.worker_save_event.signals.finished.connect(self.progress_bar_save_event.close)
-        self.progress_bar_save_event.show()
-        self.thread_pool.start(self.worker_save_event)
+        except Exception as e:
+            QMessageBox.critical(self.parent, 'Fehler', 
+                               f'Fehler beim Aktualisieren der Pläne: {e}')
 
     def _save_new_empty_appointment_in_plan_and_reset_columns(self, event: schemas.EventShow,
                                                               plans: dict[str, UUID],

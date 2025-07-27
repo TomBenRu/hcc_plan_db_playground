@@ -2,66 +2,21 @@ import logging
 import os.path
 import platform
 import sys
-import time
 import traceback
-from datetime import datetime
 
 from PySide6.QtCore import Qt, QTranslator, QLocale
 from PySide6.QtGui import QIcon, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-def setup_crash_logging(log_file_path):
-    """Set up comprehensive crash logging with system information."""
-    
-    def log_system_info():
-        """Log system information for debugging context."""
-        logging.info("=== SYSTEM INFORMATION ===")
-        logging.info(f"Python version: {sys.version}")
-        logging.info(f"Platform: {platform.platform()}")
-        logging.info(f"Architecture: {platform.architecture()}")
-        logging.info(f"Processor: {platform.processor()}")
-        logging.info(f"PySide6 version: {getattr(sys.modules.get('PySide6', None), '__version__', 'Unknown')}")
-        logging.info("=" * 50)
-    
-    def handle_exception(exc_type, exc_value, exc_traceback):
-        """Handle uncaught exceptions with detailed logging."""
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
-            return
-        
-        logging.critical("=== UNHANDLED EXCEPTION ===")
-        logging.critical(f"Exception type: {exc_type.__name__}")
-        logging.critical(f"Exception value: {exc_value}")
-        logging.critical(f"Timestamp: {datetime.now().isoformat()}")
-        logging.critical("Stack trace:")
-        logging.critical(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-        logging.critical("=" * 50)
-        
-        # Show user-friendly error dialog
-        try:
-            QMessageBox.critical(None, "Application Error", 
-                               f"A critical error occurred:\n{exc_type.__name__}: {exc_value}\n\n"
-                               f"Details have been logged to: {log_file_path}")
-        except:
-            pass  # Avoid recursive errors if Qt is not available
-    
-    # Set up exception handler
-    sys.excepthook = handle_exception
-    log_system_info()
-
-def safe_execute(func, error_context="Operation", *args, **kwargs):
-    """Safely execute a function with error logging."""
-    try:
-        return func(*args, **kwargs)
-    except Exception as e:
-        logging.error(f"Error in {error_context}: {type(e).__name__}: {e}")
-        logging.error(f"Stack trace:\n{traceback.format_exc()}")
-        raise
+# Import the new modular logging system
+from tools.logging import setup_comprehensive_logging
+from tools.logging.crash_handler import safe_execute
 
 from configuration.general_settings import general_settings_handler
 from configuration.project_paths import curr_user_path_handler
 from gui.custom_widgets.splash_screen import SplashScreen
 from tools import proof_only_one_instance
+from tools.logging.logging_config import setup_crash_investigation_logging
 from tools.screen import Screen
 
 
@@ -113,27 +68,38 @@ def set_translator(app: QApplication):
     if app.translator.load(f'translations_{locale}', os.path.join(os.path.dirname(__file__), 'translations')):
         app.installTranslator(app.translator)
 
-# Initialize logging early
+# Initialize comprehensive logging system early
 if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
     os.makedirs(log_path)
 
 log_file_path = os.path.join(log_path, 'hcc-dispo.log')
 
-# Enhanced logging configuration
-logging.basicConfig(
-    filename=log_file_path, 
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d\n%(message)s\n',
-    filemode='a'  # Append mode to preserve crash logs
-)
-logging.Formatter.converter = time.gmtime
-
-# Set up crash logging immediately after basic logging config
-setup_crash_logging(log_file_path)
-
 logging.info("Application starting...")
 
 app = QApplication(sys.argv)
+
+# Set up comprehensive crash logging with app reference
+app_log_file = setup_comprehensive_logging(log_file_path, app)
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d\n%(message)s\n')
+root_logger = logging.getLogger(__name__)
+root_logger.setLevel(logging.INFO)
+# for handler in root_logger.handlers:
+#     handler.setLevel(logging.ERROR)
+
+# Emergency File-Handler hinzufügen
+emergency_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+emergency_handler.setLevel(logging.ERROR)
+emergency_handler.setFormatter(formatter)
+root_logger.addHandler(emergency_handler)
+logging.info("🔧 Emergency File-Handler hinzugefügt!")
+
+logging.info("DEBUG-Logging aktiviert für Signal-Debugging")
+
+# Crash Investigation Logging bei Bedarf aktivieren
+if enable_crash_investigation := False:
+    emergency_log = setup_crash_investigation_logging(log_path)
+    logging.info(f"Emergency crash logging: {emergency_log}")
 safe_execute(app.setWindowIcon, "Setting window icon", 
              QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
 safe_execute(set_translator, "Setting translator", app)
@@ -172,34 +138,7 @@ except Exception as e:
 
 safe_execute(app.setStyle, "Setting app style", 'Fusion')
 
-def qt_message_handler(mode, context, message):
-    """Handle Qt internal messages and log them."""
-    mode_map = {
-        0: "DEBUG",    # QtDebugMsg
-        1: "WARNING",  # QtWarningMsg  
-        2: "CRITICAL", # QtCriticalMsg
-        3: "FATAL",    # QtFatalMsg
-        4: "INFO"      # QtInfoMsg
-    }
-    
-    level_name = mode_map.get(mode, "UNKNOWN")
-    log_message = f"Qt {level_name}: {message}"
-    
-    if context.file:
-        log_message += f" (File: {context.file}:{context.line})"
-    
-    if mode <= 1:  # Debug/Warning
-        logging.warning(log_message)
-    elif mode == 2:  # Critical
-        logging.error(log_message)
-    elif mode == 3:  # Fatal
-        logging.critical(log_message)
-    else:  # Info
-        logging.info(log_message)
-
-# Install Qt message handler after creating QApplication
-from PySide6.QtCore import qInstallMessageHandler
-qInstallMessageHandler(qt_message_handler)
+# Note: Qt message handler is now handled by the comprehensive logging system
 
 try:
     from gui.main_window import MainWindow

@@ -132,6 +132,10 @@
   {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/employment_statistics/dashboard/template.html;employment_statistics/dashboard/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/help/content;help/content/"
   }
  ],
  "nonPyinstallerOptions": {

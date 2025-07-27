@@ -4,6 +4,7 @@ Performance-Monitoring für Tab-Cache System
 """
 
 import logging
+from tools.logging.debug_helpers import debug_thread_safe, CriticalSectionLogger, log_thread_safety_warning
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta

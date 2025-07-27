@@ -1151,7 +1151,6 @@ class FrmActorPlanPeriod(QWidget):
         return
 
     def create_time_of_day_button(self, date: datetime.date, time_of_day: schemas.TimeOfDay) -> ButtonAvailDay:
-        # sourcery skip: inline-immediately-returned-variable
         button = ButtonAvailDay(self, date, time_of_day, 24, self.actor_plan_period, self.save_avail_day)
         return button
 

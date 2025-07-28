@@ -1102,7 +1102,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     f'{error_text}')
 
         self.worker_general = WorkerGeneral(synchronize, True)
-        self.worker_general.signals.finished.connect(finished)
+        self.worker_general.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         progressbar = DlgProgressInfinite(self, 'Kalendersynchronisation',
                                           'Google-Kalender werden heruntergeladen...', 'Abbruch')
         progressbar.show()

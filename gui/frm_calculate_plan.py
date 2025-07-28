@@ -123,7 +123,8 @@ class DlgCalculate(QDialog):
     def __init__(self, parent: QWidget, team_id: UUID):
         super().__init__(parent)
 
-        signal_handling.handler_solver.signal_cancel_solving.connect(self.quit_solver_tread)
+        signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit(),
+                                                                     Qt.ConnectionType.QueuedConnection)
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
@@ -206,10 +207,6 @@ class DlgCalculate(QDialog):
 
         # Start the solver thread
         self.solver_thread.start()
-
-    @Slot()
-    def quit_solver_tread(self):
-        solver_main.solver_quit()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

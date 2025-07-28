@@ -857,7 +857,7 @@ class TeamLocationAssign:
                     assignment_db = None
             else:
                 for assignment in all_assignments_db:
-                    if assignment.start <= date and (assignment.end > date or assignment.end is None):
+                    if assignment.start <= date and (assignment.end is None or assignment.end > date):
                         assignment_db = assignment
                         break
                 else:

@@ -567,7 +567,7 @@ class WidgetLocationsOfWork(QWidget):
         self.table_locations.setSortingEnabled(True)
 
     def create_location(self):
-        dlg = FrmLocationCreate(self, self.project_id)
+        dlg = DlgLocationCreate(self, self.project_id)
         dlg.exec()
         self.refresh_table()
 
@@ -579,7 +579,7 @@ class WidgetLocationsOfWork(QWidget):
                                         'Click on the corresponding row.'))
             return
         location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
-        dlg = FrmLocationModify(self, self.project_id, location_id)
+        dlg = DlgLocationModify(self, self.project_id, location_id)
         if dlg.exec():
             self.refresh_table()
 
@@ -662,7 +662,7 @@ class TableLocationsOfWork(QTableWidget):
         return ''
 
 
-class FrmLocationData(QDialog):
+class DlgLocationData(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
@@ -707,7 +707,7 @@ class FrmLocationData(QDialog):
         super().reject()
 
 
-class FrmLocationCreate(FrmLocationData):
+class DlgLocationCreate(DlgLocationData):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent, project_id=project_id)
 
@@ -715,7 +715,7 @@ class FrmLocationCreate(FrmLocationData):
         self.layout.addWidget(self.button_box)
 
 
-class FrmLocationModify(FrmLocationData):
+class DlgLocationModify(DlgLocationData):
     def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
         super().__init__(parent, project_id=project_id)
 

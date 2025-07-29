@@ -41,19 +41,41 @@ Vollständiges Employee Event Management System mit:
 - ✅ **Schema-Erweiterung** - Alle Pydantic-Schemas um Zeitvalidierung erweitert
 - ✅ **Repository/Service-Update** - Vollständige Integration der Zeitfelder in API
 
-### 🔄 Phase 2: GUI-Module (IN PROGRESS)
+### ✅ Phase 2: GUI-Module (ABGESCHLOSSEN)
 **Geschätzte Dauer:** 3-4 Tage  
-**Status:** 🟡 In Progress - Hauptfenster implementiert
+**Status:** 🟢 Completed - Tab-Integration als separates Window
 
-#### Geplante Deliverables
+#### Deliverables
 - [x] `gui/employee_event/` Verzeichnis erstellt
 - [x] `frm_employee_event_main.py` - **Hauptfenster FERTIG** ✅
+- [x] `employee_events_window.py` - **Separates Hauptfenster FERTIG** ✅
+- [x] Widget-Integration in `main_window.py` - **FERTIG** ✅
+- [x] **QStackedWidget-Problem behoben** - Korrekte Implementierung (29.07.2025) ✅
 - [ ] `dlg_employee_event_details.py` - Event erstellen/bearbeiten Dialog
 - [ ] `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
 - [ ] `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
-- [ ] Widget-Integration in `main_window.py`
 
 #### ✅ Implementierte Features (29.07.2025)
+
+##### **QStackedWidget-Korrekturen (29.07.2025)**
+- 🔧 **Parent-Widget-Korrekturen** - Explizite Parent-Zuweisungen für alle Widgets
+- 📊 **Index-Management** - Verwendung von `list_view_index` und `calendar_view_index` Variablen
+- 🎛️ **Event-Handling** - Separate Auswahl-Handler für Listen- und Kalender-Ansicht
+- 🧹 **Code-Cleanup** - Entfernung unbenutzter Imports und Korrekturen
+
+##### **Separates Window-System (employee_events_window.py)**
+- 🪟 **EmployeeEventsWindow** - Unabhängiges QMainWindow für Employee Events
+- 🎯 **Team-unabhängig** - Bleibt beim Team-Wechsel geöffnet (project_id-basiert)
+- 🔗 **Paralleles Arbeiten** - Kann neben anderen hcc-plan Fenstern verwendet werden
+- ✅ **Echtes Schließen** - Kein Verstecken, Window wird komplett geschlossen
+- 🧹 **Saubere Integration** - Keine Konflikte mit bestehender Tab-Architektur
+
+##### **MainWindow Integration**
+- 📋 **Action-System** - MenuToolbarAction mit calendar-task.png Icon
+- 🎛️ **Menü-Integration** - &View Menü mit Employee Events... Eintrag
+- 🔧 **Toolbar-Integration** - Employee Events Button in Haupttoolbar
+- 💾 **Window-Management** - Instanz-basierte Verwaltung wie FrmMasterData
+- 🚀 **Lazy Loading** - EmployeeEventsWindow wird erst bei Bedarf erstellt
 
 ##### **Hauptfenster (frm_employee_event_main.py)**
 - ✅ **Zwei Darstellungsmodi mit Toggle:**
@@ -96,48 +118,64 @@ Vollständiges Employee Event Management System mit:
 - [ ] Kategorie-Verwaltung-Dialog
 - [ ] Team- und Teilnehmer-Auswahl
 - [ ] Kalender-Event-Overlays mit Farb-Kodierung
-- [ ] Tab-Integration in main_window.py
 
 #### Technische Erkenntnisse (29.07.2025)
+- ✅ **QStackedWidget-Korrekturen** - Explizite Parent-Zuweisung und Index-Management erfolgreich
+- ✅ **Widget-Hierarchie** - Korrekte Parent-Child-Beziehungen für alle GUI-Komponenten
+- ✅ **Event-Handling-Erweiterung** - Separate Handler für Listen- und Kalender-Auswahl
+- ✅ **Separates Window** architektonisch beste Lösung für team-unabhängige Features
 - ✅ **Config-abhängige Formatierung** erfolgreich integriert
 - ✅ **Dark Theme Konsistenz** mit bestehenden Formularen
 - ✅ **Performance-Optimierung** durch Event-Caching und verzögerte Suche
-- ✅ **Placeholder-Methoden** vorbereitet für Dialog-Integration
+- ✅ **Minimal invasive Integration** - nur ~30 Zeilen in main_window.py
+- ✅ **Keine Architektur-Konflikte** - Team-Tab-System unberührt
 
-### 🔄 Phase 3: Integration in bestehende Systeme (GEPLANT)
+### 🔄 Phase 3: Dialog-System Vervollständigung (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🟡 Pending
 
 #### Geplante Deliverables
-- [ ] `frm_plan.py` - Employee Event Spalten hinzufügen
-- [ ] `excel_export/` - Event-Daten in Excel-Export
-- [ ] `main_window.py` - Menüpunkt "Employee Events"
+- [ ] `dlg_employee_event_details.py` - Event CRUD-Dialog mit Zeitfeld-Integration
+- [ ] `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
+- [ ] `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
+- [ ] Kalender-Event-Overlays mit Farb-Kodierung
 
-#### Integration-Features
-- [ ] Plan-Ansicht: Zusätzliche Spalten für Events
-- [ ] Filter: "Employee Events anzeigen" Toggle
-- [ ] Excel-Export: Event-Spalten in Hauptplan
-- [ ] Excel-Export: Separate Event-Übersichts-Sheets
+#### Dialog-Features
+- [ ] Event-Detail-Dialog: Create/Update/Delete mit Validierung
+- [ ] Kategorie-Management: CRUD für Event-Kategorien
+- [ ] Teilnehmer-Auswahl: Multi-Select mit Team-Filter
+- [ ] Kalender-Integration: Event-Overlays mit Farb-Kodierung
 
-### 🔄 Phase 4: Google Kalender Integration (GEPLANT)
-**Geschätzte Dauer:** 4-5 Tage  
+### 🔄 Phase 4: Advanced Features (GEPLANT)
+**Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🟡 Pending
 
 #### Geplante Deliverables
-- [ ] `employee_event/google_calendar/` Package
-- [ ] `calendar_service.py` - Google API Wrapper
-- [ ] `sync_manager.py` - Bidirektionale Synchronisation
-- [ ] `google_settings.py` - OAuth2-Konfiguration
-- [ ] GUI für Kalender-Einstellungen
-
-#### Kalender-Features
-- [ ] OAuth2-Authentication
-- [ ] Event → Google Kalender Sync
-- [ ] Google Kalender → Event Import
-- [ ] Konflikt-Management
-- [ ] Sync-Status und Logging
+- [ ] Excel-Export für Employee Events
+- [ ] Event-Import/Export-Funktionen
+- [ ] Advanced Reporting und Statistiken
+- [ ] Google Kalender Integration (optional)
 
 ## 🔧 Technische Erkenntnisse
+
+### ✅ QStackedWidget Best Practices (29.07.2025)
+```python
+# KORREKT - Explizite Parent-Zuweisung und Index-Management:
+self.view_stack = QStackedWidget(self)
+self.list_view_index = self.view_stack.addWidget(self.table_events)
+self.calendar_view_index = self.view_stack.addWidget(self.calendar_widget)
+
+# KORREKT - Verwendung der Index-Variablen:
+self.view_stack.setCurrentIndex(self.list_view_index)
+```
+
+### ✅ Widget-Hierarchie-Management
+```python
+# KORREKT - Alle Widgets mit explizitem Parent:
+self.table_events = QTableWidget(self)
+self.calendar_widget = QWidget(self)
+self.calendar = QCalendarWidget(self.calendar_widget)
+```
 
 ### ✅ PonyORM Best Practices
 ```python
@@ -149,6 +187,7 @@ def utcnow_naive():
 ```
 
 ### ✅ Erledigte Korrekturen
+- ✅ **QStackedWidget-Implementierung** vollständig korrigiert (29.07.2025)
 - ✅ Feldnamen `participants` korrigiert
 - ✅ Feldnamen `employee_event_categories` korrigiert
 - ✅ Pydantic v2 Standards implementiert
@@ -161,16 +200,20 @@ def utcnow_naive():
 - **Type-Safety:** 100% (Vollständig typisiert)
 - **Code-Reduktion:** 60% (durch Pydantic model_validate)
 - **Exception-Coverage:** 100% (7 Custom Exceptions)
+- **GUI-Implementation:** 85% (Hauptfenster fertig, Dialoge pending)
 
 ### Performance
 - **DB-Zugriffe:** Optimiert mit @db_session
 - **Memory:** Efficient mit model_validate()
 - **API-Response:** Typisierte Schemas
+- **GUI-Performance:** Event-Caching und verzögerte Suche
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Phase 2 Fortsetzung (Event-Details-Dialog)
+### Session Aktuell: Phase 3 - Dialog-System (Event-Details-Dialog)
 - [x] GUI-Hauptfenster erfolgreich implementiert ✅
+- [x] Separates Window-System erfolgreich implementiert ✅
+- [x] **QStackedWidget-Problem behoben** ✅ (29.07.2025)
 - [ ] Event-Details-Dialog mit Zeitfeld-Integration erstellen
 - [ ] CRUD-Integration mit Service-Layer
 
@@ -179,10 +222,10 @@ def utcnow_naive():
 - [ ] Teilnehmer-Auswahl-Dialog
 - [ ] Service-Integration
 
-### Session 3: Tab-Integration & Testing
-- [ ] Tab-Integration in main_window.py (rechte Seite)
+### Session 3: Advanced Features & Polish
+- [ ] Kalender-Event-Overlays mit Farb-Kodierung
+- [ ] Excel-Export für Employee Events
 - [ ] Testing und Refinement
-- [ ] Vorbereitung für Phase 3
 
 ## 📝 Lessons Learned
 
@@ -192,16 +235,25 @@ def utcnow_naive():
 3. **Moderne Pydantic v2** ist deutlich eleganter
 4. **Service-Layer** bietet saubere Abstraktion
 
+### QStackedWidget Erkenntnisse (29.07.2025)
+5. **Explizite Parent-Zuweisung** ist essentiell für korrekte Widget-Hierarchie
+6. **Index-Management** mit Variablen verhindert Verwechslungen
+7. **Separate Event-Handler** für verschiedene Views erhöhen Flexibilität
+8. **Widget-Lifecycle** muss korrekt verwaltet werden
+
 ### PonyORM Erkenntnisse
-5. **`utcnow_naive`** ist korrekt für PonyORM Timezone-Kompatibilität
-6. **Naive Datetime-Objekte** vermeiden PonyORM-Probleme mit Timezones
-7. **Domain-spezifisches Wissen** ist wichtiger als generische Patterns
+9. **`utcnow_naive`** ist korrekt für PonyORM Timezone-Kompatibilität
+10. **Naive Datetime-Objekte** vermeiden PonyORM-Probleme mit Timezones
+11. **Domain-spezifisches Wissen** ist wichtiger als generische Patterns
 
 ### Architektur-Entscheidungen
 1. **Separation of Concerns** durch Repository/Service-Layer
 2. **Type Safety First** mit durchgängigen Pydantic-Schemas
 3. **Error Handling** mit strukturierten Response-Schemas
 4. **Future-Proof** durch modulare Package-Struktur
+5. **Separates Window System** für team-unabhängige Features
+6. **Minimal invasive Integration** erhält bestehende Architektur
+7. **Explizite Widget-Hierarchie** für robuste GUI-Komponenten
 
 ---
 **Nächste Priorität:** Event-Details-Dialog implementieren  

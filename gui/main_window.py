@@ -65,11 +65,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     Tab-Management (Öffnen/Schließen/Navigation) wird vollständig vom
     TabManager mit intelligentem Caching übernommen.
     """
+
     def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
 
         self.setWindowTitle('hcc-plan')
-        self.setGeometry(QRect(0, 0, screen_width-100, screen_height-100))
+        self.setGeometry(QRect(0, 0, screen_width - 100, screen_height - 100))
 
         # db_services.Project.create('Humor Hilft Heilen')
 
@@ -119,24 +120,24 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Creates lists where employees can enter their blocked dates.'),
                               self.sheets_for_availables),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'download-mac-os.png'),
-                              self.tr('Import Data from Online API...'), 
+                              self.tr('Import Data from Online API...'),
                               self.tr('Import data from API'),
                               self.import_from_plan_api),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'),
                               self.tr('Export Plan to Excel...'),
-                              self.tr('Exports the active plan to an Excel file'), 
+                              self.tr('Exports the active plan to an Excel file'),
                               self.plan_export_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
                               self.tr('Open Excel Export Folder'),
                               self.tr('Shows current plans and availabilities in Explorer.'),
                               self.lookup_for_excel_plan_folder),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'cross-script.png'),
                               self.tr('Exit Program'),
                               None, self.exit,
                               'Alt+F4'),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'),
                               self.tr('Master Data...'),
-                              self.tr('Edit master data of employees and work locations.'), 
+                              self.tr('Edit master data of employees and work locations.'),
                               self.master_data),
             MenuToolbarAction(self, None, self.tr('Show Plans'), None, self.show_plans),
             MenuToolbarAction(self, None, self.tr('Show Masks'), None, self.show_masks),
@@ -146,22 +147,22 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.export_avail_days_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'chart.png'),
                               self.tr('Employee Assignments Overview'),
-                              self.tr('Shows an overview of all employee assignments.'), 
+                              self.tr('Shows an overview of all employee assignments.'),
                               self.statistics),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document-attribute-p.png'),
                               self.tr('Create Assignment Plans...'),
                               self.tr('Create one or more assignment plans for a specific period.'),
                               self.calculate_plans),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'),
                               self.tr('Plan Information...'),
-                              self.tr('Create or modify planning information.'), 
+                              self.tr('Create or modify planning information.'),
                               self.plan_infos),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'),
-                              self.tr('Settings for Plan Creation...'), 
+                              self.tr('Settings for Plan Creation...'),
                               self.tr('Settings for plan calculation.'),
                               self.plan_calculation_settings),
             MenuToolbarAction(self, None, self.tr('Excel Output Folder...'),
-                              self.tr('Set folder for Excel file output'), 
+                              self.tr('Set folder for Excel file output'),
                               self.determine_excel_output_folder),
             MenuToolbarAction(self, None, self.tr('Open Log File'),
                               self.tr('Open log file'),
@@ -172,7 +173,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, None, self.tr('Events from Plan to Events Mask...'),
                               self.tr('Transfer appointments from active plan to facilities planning mask.'),
                               self.apply_events__plan_to_mask),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'mail-send.png'),
                               self.tr('Send custom Mails...'),
                               self.tr('Send custom emails.'),
                               self.send_custom_emails),
@@ -191,45 +192,49 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, None, self.tr('Email Configuration...'),
                               self.tr('Configure email settings.'),
                               self.show_email_config_dialog),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'),
                               self.tr('Transfer Appointments'),
                               self.tr('Transfer appointments from active plan to Google Calendar'),
                               self.plan_events_to_google_calendar),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--plus.png'),
                               self.tr('Create Google Calendar'),
-                              self.tr('Create a new Google Calendar'), 
+                              self.tr('Create a new Google Calendar'),
                               self.create_google_calendar),
             MenuToolbarAction(self, None, self.tr('Synchronize Local Calendar List'),
                               self.tr('Synchronizes the local calendar list with available online Google calendars'),
                               self.synchronize_google_calenders),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-blue.png'),
                               self.tr('Open Google Calendar...'),
-                              self.tr('Opens Google Calendar in browser'), 
+                              self.tr('Opens Google Calendar in browser'),
                               self.open_google_calendar),
-            MenuToolbarAction(self, None, self.tr('Import Google API Credentials...'), 
+            MenuToolbarAction(self, None, self.tr('Import Google API Credentials...'),
                               self.tr('Import Credentials of a Google Calendar for this team from JSON file.'),
                               self.import_google_api_credentials),
-            MenuToolbarAction(self, None, self.tr('Upgrade...'), 
-                              self.tr('To extend "hcc-plan"'), 
+            MenuToolbarAction(self, None, self.tr('Upgrade...'),
+                              self.tr('To extend "hcc-plan"'),
                               self.upgrade_hcc_plan),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear--pencil.png'),
-                              self.tr('General Program Settings'), 
+                              self.tr('General Program Settings'),
                               self.tr('General program settings.'),
                               self.general_setting),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'book-question.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'book-question.png'),
                               self.tr('Help...'),
-                              self.tr('Opens help in browser.'), 
+                              self.tr('Opens help in browser.'),
                               self.open_help),
             MenuToolbarAction(self, None, self.tr('Check for Updates...'),
-                              self.tr('Checks if program updates are available.'), 
+                              self.tr('Checks if program updates are available.'),
                               self.check_for_updates),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'), 
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'information-italic.png'),
                               self.tr('About...'),
-                              self.tr('Information about the program'), 
+                              self.tr('Information about the program'),
                               self.about_hcc_plan),
             MenuToolbarAction(self, None, self.tr('Show DB Structure...'),
                               self.tr('Shows the database structure.'),
-                              self.show_db_structure)
+                              self.show_db_structure),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-task.png'),
+                              self.tr('Employee Events...'),
+                              self.tr('Manage employee events and activities.'),
+                              self.show_employee_events_window)
         }
         self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
@@ -239,47 +244,51 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.actions['plan_export_to_excel'],
             self.actions['export_avail_days_to_excel'],
             self.actions['lookup_for_excel_plan_folder'], None,
-            self.actions['master_data'], None,
+            self.actions['master_data'],
+            self.actions['show_employee_events_window'], None,
             self.actions['exit']
         ]
         self.menu_actions = {
             self.tr('&File'): [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
-                       self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
-                       self.actions['import_from_plan_api'], None,
-                       {
-                           self.tr('Export'): [self.actions['plan_export_to_excel'],
-                                           self.actions['export_avail_days_to_excel']]
-                        },
-                       self.actions['lookup_for_excel_plan_folder'],
-                       None, self.actions['exit']],
-            self.tr('&Teams'): [{self.tr('Edit Teams'): [self.put_teams_to__teams_edit_menu]}, None, self._put_clients_to_menu,
-                          None, self.actions['master_data']],
+                               self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
+                               self.actions['import_from_plan_api'], None,
+                               {
+                                   self.tr('Export'): [self.actions['plan_export_to_excel'],
+                                                       self.actions['export_avail_days_to_excel']]
+                               },
+                               self.actions['lookup_for_excel_plan_folder'],
+                               None, self.actions['exit']],
+            self.tr('&Teams'): [{self.tr('Edit Teams'): [self.put_teams_to__teams_edit_menu]}, None,
+                                self._put_clients_to_menu,
+                                None, self.actions['master_data']],
             self.tr('&View'): [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
-                         self.actions['statistics']],
+                               self.actions['statistics'], None,
+                               self.actions['show_employee_events_window']],
             self.tr('&Schedule'): [self.actions['calculate_plans'], self.actions['plan_infos'],
-                           self.actions['plan_excel_configs'], None,
-                           self.actions['open_plan'], self.actions['plan_save'],
-                           self.actions['plans_of_team_delete_prep_deletes'], None,
-                           self.actions['apply_events__plan_to_mask']
-                           ],
+                                   self.actions['plan_excel_configs'], None,
+                                   self.actions['open_plan'], self.actions['plan_save'],
+                                   self.actions['plans_of_team_delete_prep_deletes'], None,
+                                   self.actions['apply_events__plan_to_mask']
+                                   ],
             self.tr('&Emails'): [self.actions['send_custom_emails'],
                                  self.actions['send_bulk_email'],
                                  # self.actions['send_plan_notifications'],
                                  # self.actions['send_availability_requests'],
                                  None, self.actions['show_email_config_dialog']],
-            self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'], self.actions['open_google_calendar'],
-                                 None, self.actions['create_google_calendar'],
-                                 self.actions['synchronize_google_calenders'],
-                                 None, self.actions['import_google_api_credentials']],
+            self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'],
+                                          self.actions['open_google_calendar'],
+                                          None, self.actions['create_google_calendar'],
+                                          self.actions['synchronize_google_calenders'],
+                                          None, self.actions['import_google_api_credentials']],
             self.tr('E&xtras'): [self.actions['upgrade_hcc_plan'], None,
-                        self.actions['general_setting'],
-                        self.actions['settings_project'],
-                        self.actions['plan_calculation_settings'], None,
-                        self.actions['determine_excel_output_folder'], None,
-                        self.actions['open_log_file']],
+                                 self.actions['general_setting'],
+                                 self.actions['settings_project'],
+                                 self.actions['plan_calculation_settings'], None,
+                                 self.actions['determine_excel_output_folder'], None,
+                                 self.actions['open_log_file']],
             self.tr('&Help'): [self.actions['open_help'], None, self.actions['check_for_updates'], None,
-                       self.actions['about_hcc_plan'], None,
-                       {self.tr('Expert Mode'): [self.actions['show_db_structure']]}]
+                               self.actions['about_hcc_plan'], None,
+                               {self.tr('Expert Mode'): [self.actions['show_db_structure']]}]
         }
 
         self.toolbar = MainToolBar('Main Toolbar', self.toolbar_actions, icon_size=16)
@@ -310,27 +319,28 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.tabs_left.addTab(self.tabs_plans, self.tr('Schedules'))
 
         # === TAB MANAGER INTEGRATION ===
-        
+
         # TabManager instanziieren
         self.tab_manager = TabManager(
-            self, 
-            self.controller, 
+            self,
+            self.controller,
             self.global_update_plan_tabs_progress_manager
         )
-        
+
         # TabBars an TabManager übergeben
         self.tab_manager.initialize_tabs(
             self.tabs_left,
-            self.tabs_planungsmasken, 
+            self.tabs_planungsmasken,
             self.tabs_plans
         )
-        
+
         # TabManager Signals verbinden
         self._connect_tab_manager_signals()
-        
+
         # === ENDE TAB MANAGER INTEGRATION ===
 
         self.frm_master_data = None
+        self.employee_events_window = None  # Employee Events Window Instance
 
         self._activate_signals()
 
@@ -346,19 +356,19 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def _connect_tab_manager_signals(self):
         """Verbindet TabManager-Signals mit entsprechenden MainWindow-Methoden"""
-        
+
         # Tab-Events
         self.tab_manager.tab_opened.connect(self._on_tab_opened)
         self.tab_manager.tab_closed.connect(self._on_tab_closed)
         self.tab_manager.tab_activated.connect(self._on_tab_activated)
-        
+
         # Config-Events
         self.tab_manager.team_config_saved.connect(self._on_team_config_saved)
-        
+
         # UI-Update Events
         self.tab_manager.menu_toolbar_update_needed.connect(self._update_menu_toolbar_for_tab_type)
         self.tab_manager.status_message.connect(self.statusBar().showMessage)
-        
+
         # Error-Events
         self.tab_manager.error_occurred.connect(self._show_error_message)
 
@@ -404,7 +414,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         """Aktualisiert Menü/Toolbar basierend auf aktivem Tab-Typ"""
         menu_plan: QMenu = self.main_menu.findChild(QMenu, self.tr('Schedule'))
         file_menu_name = self.tr('File')
-        
+
         if tab_type == 'masks':
             menu_plan.setDisabled(True)
             self.actions['show_masks'].setChecked(True)
@@ -427,7 +437,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 self.actions['calculate_plans'],
                 self.actions['new_plan_period']
             )
-            
+
         elif tab_type == 'plans':
             menu_plan.setEnabled(True)
             self.actions['show_plans'].setChecked(True)
@@ -508,7 +518,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst ein Team auswählen.')
             return
-        
+
         # TabManager übernimmt die komplette Logik
         self.tab_manager.current_team = self.curr_team  # Team setzen
         self.tab_manager.open_plan_from_dialog()
@@ -540,7 +550,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def settings_project(self):
         dlg = DlgSettingsProject(self, self.project_id)
         dlg.exec()
-
 
     def edit_team(self, team: schemas.Team):
         ...
@@ -585,7 +594,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not plan_widget:
             QMessageBox.critical(self, 'Excel-Einstellungen', 'Sie müssen zuerst einen Plan öffnen.')
             return
-            
+
         team = plan_widget.plan.plan_period.team
         dlg = frm_excel_settings.DlgExcelExportSettings(
             self, plan_widget.plan.excel_export_settings, team)
@@ -625,6 +634,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def plan_save(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
+
         def generate_name_suggestion(plan: schemas.PlanShow):
             return f'{plan.plan_period.team.name} {plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
 
@@ -670,7 +680,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not active_widget:
             QMessageBox.critical(self, 'Plan speichern', 'Sie müssen zuerst einen Plan öffnen.')
             return
-            
+
         new_name_suggestion = generate_name_suggestion(active_widget.plan)
 
         if new_name_suggestion_is_same_as_plan_name(new_name_suggestion, active_widget):
@@ -695,7 +705,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 QMessageBox.information(self, 'Plan Excel-Export',
                                         f'Plan wurde erfolgreich unter\n{excel_output_path}\nexportiert.')
                 signal_handling.handler_excel_export.signal_finished.disconnect()
-                reply = QMessageBox.question(self, 'Plan Excel-Export', 'Soll die Excel-Datei jetzt geöffnet werden?',)
+                reply = QMessageBox.question(self, 'Plan Excel-Export',
+                                             'Soll die Excel-Datei jetzt geöffnet werden?', )
                 if reply == QMessageBox.StandardButton.Yes:
                     try:
                         open_file_or_folder.open_file_or_folder(excel_output_path)
@@ -721,7 +732,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if dlg.exec():
             widget.reload_plan()
 
-            excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period), f'{widget.plan.name}.xlsx')
+            excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period),
+                                             f'{widget.plan.name}.xlsx')
             create_dir_if_not_exist(excel_output_path)
             export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path,
                                                        dlg.note_in_empty_fields, dlg.note_in_employee_fields)
@@ -763,9 +775,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not (output_folder := path_handler.get_config().excel_output_path):
             output_folder = 'excel_output'
         excel_output_path = os.path.join(
-                output_folder, plan_period.team.name,
-                f"{plan_period.start.strftime('%d.%m.%y')}-"
-                f"{plan_period.end.strftime('%d.%m.%y')}")
+            output_folder, plan_period.team.name,
+            f"{plan_period.start.strftime('%d.%m.%y')}-"
+            f"{plan_period.end.strftime('%d.%m.%y')}")
         return excel_output_path
 
     def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
@@ -801,16 +813,16 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):
         """Refactored: Nutzt TabManager vollständig"""
         self.show_masks()  # UI-Koordination bleibt in MainWindow
-        
+
         # TabManager übernimmt alles Tab-bezogene
         self.tab_manager.current_team = self.curr_team if self.curr_team else None
         self.tab_manager.show_location_plan_period_mask(plan_period_id, location_id)
 
-    @Slot(UUID, UUID)  
+    @Slot(UUID, UUID)
     def _show_actor_plan_period_mask(self, plan_period_id: UUID, person_id: UUID):
         """Refactored: Nutzt TabManager vollständig"""
         self.show_masks()  # UI-Koordination bleibt in MainWindow
-        
+
         # TabManager übernimmt alles Tab-bezogene
         self.tab_manager.current_team = self.curr_team if self.curr_team else None
         self.tab_manager.show_actor_plan_period_mask(plan_period_id, person_id)
@@ -820,10 +832,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not self.curr_team:
             QMessageBox.critical(self, 'Planungsmasken', 'Sie müssen zuerst ein Team auswählen.')
             return
-        
+
         # Team an TabManager setzen
         self.tab_manager.current_team = self.curr_team
-        
+
         if plan_period_id:
             # Direktes Öffnen
             self.tab_manager.open_plan_period_tab(plan_period_id)
@@ -858,6 +870,16 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.frm_master_data.activateWindow()
         self.frm_master_data.showNormal()
 
+    def show_employee_events_window(self):
+        """Öffnet Employee Events in separatem Fenster."""
+        if self.employee_events_window is None:
+            from .employee_events_window import EmployeeEventsWindow
+            self.employee_events_window = EmployeeEventsWindow(self, self.project_id)
+
+        self.employee_events_window.show()
+        self.employee_events_window.activateWindow()
+        self.employee_events_window.raise_()
+
     def show_plans(self):
         """Refactored: Delegiert an TabManager"""
         self.tab_manager.show_plans()
@@ -868,6 +890,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def export_avail_days_to_excel(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
+
         def create_dir_if_not_exist(path: str):
             dir_path = path.rsplit(os.sep, 1)[0]
             if not os.path.exists(dir_path):
@@ -882,7 +905,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         elif self.tab_manager.current_tab_type == 'masks':
             curr_plan_widget = self.tab_manager.current_plan_period_widget
             if not curr_plan_widget:
-                QMessageBox.critical(self, 'Verfügbarkeiten exportieren', 'Sie müssen zuerst eine Planungsperiode öffnen.')
+                QMessageBox.critical(self, 'Verfügbarkeiten exportieren',
+                                     'Sie müssen zuerst eine Planungsperiode öffnen.')
                 return
             plan_period = db_services.PlanPeriod.get(curr_plan_widget.plan_period_id)
         else:
@@ -893,7 +917,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             f'Verfügbarkeiten {plan_period.team.name} {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
         )
         create_dir_if_not_exist(excel_output_path)
-        exporter =avail_days_to_xlsx.ExportToXlsx(self, plan_period.id, excel_output_path)
+        exporter = avail_days_to_xlsx.ExportToXlsx(self, plan_period.id, excel_output_path)
         try:
             exporter.execute()
         except FileCreateError as e:
@@ -906,7 +930,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def statistics(self):
         """Öffnet den Employment Statistics Dialog"""
         from gui.employment_statistics import EmploymentStatisticsDialog
-        
+
         dlg = EmploymentStatisticsDialog(self)
         dlg.exec()
 
@@ -932,7 +956,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not curr_plan_widget:
             QMessageBox.critical(self, 'Plan-Informationen', 'Sie müssen zuerst einen Plan öffnen.')
             return
-            
+
         curr_plan: schemas.PlanShow = curr_plan_widget.plan
         dlg = DlgPlanPeriodNotes(self, curr_plan)
         if dlg.exec():
@@ -976,6 +1000,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def plan_events_to_google_calendar(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
+
         def transfer(plan: schemas.PlanShow):
             try:
                 transfer_appointments_with_batch_requests(plan)
@@ -1125,8 +1150,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             QMessageBox.information(self, 'Google API Credentials importieren',
                                     'Die Google API Credentials wurden erfolgreich importiert.')
 
-
-
     def upgrade_hcc_plan(self):
         ...
 
@@ -1168,13 +1191,14 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def restore_tabs(self):
         """Refactored: Delegiert an TabManager"""
         self.tab_manager.restore_startup_tabs()
-        
+
         # Window-Title setzen wenn Team geladen wurde
         if self.tab_manager.current_team:
             self.curr_team = self.tab_manager.current_team
             self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
             # Actions-Menu aktualisieren falls vorhanden
-            if hasattr(self, 'actions_teams_in_clients_menu') and self.curr_team.id in self.actions_teams_in_clients_menu:
+            if hasattr(self,
+                       'actions_teams_in_clients_menu') and self.curr_team.id in self.actions_teams_in_clients_menu:
                 self.actions_teams_in_clients_menu[self.curr_team.id].setChecked(True)
 
     def exit(self):
@@ -1184,7 +1208,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         """Erweiterte Close-Event Behandlung mit Cache-Management"""
         # Nutze erweiterte Cache-Behandlung
         self.enhanced_close_event(event)
-        
+
         # Original closeEvent aufrufen
         super().closeEvent(event)
 
@@ -1208,7 +1232,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             # ✅ FIX: Read models.py content and embed it directly in template
             with open(models_path, 'r', encoding='utf-8') as f:
                 models_content = f.read()
-            
+
             # Template laden und rendern
             with open(template_path, 'r', encoding='utf-8') as f:
                 template = Template(f.read())
@@ -1221,8 +1245,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             )
 
             # ✅ FIX: Use temporary file instead of data URL (Windows length limit)
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', 
-                                           delete=False, encoding='utf-8') as f:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html',
+                                             delete=False, encoding='utf-8') as f:
                 f.write(rendered_html)
                 temp_path = f.name
 

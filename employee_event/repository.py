@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pony.orm import db_session, select, count
 
-from database.models import EmployeeEvent, EmployeeEventCategory, Person, Team, Project
+from database.models import EmployeeEvent, EmployeeEventCategory, Person, Team, Project, utcnow_naive
 from .schemas import (
     EventSchema,
     EventDetailSchema, 
@@ -66,7 +66,7 @@ class EmployeeEventRepository:
             )
         
         # Event erstellen
-        now = datetime.now()
+        now = utcnow_naive()
         event = EmployeeEvent(
             title=create_data.title,
             description=create_data.description,
@@ -82,7 +82,7 @@ class EmployeeEventRepository:
                 project=project
             )
             if category:
-                event.employee_event_categorys.add(category)
+                event.employee_event_categories.add(category)
         
         # Teams zuordnen
         if create_data.team_names:
@@ -96,7 +96,7 @@ class EmployeeEventRepository:
             for username in create_data.participant_usernames:
                 person = Person.get(username=username, project=project)
                 if person:
-                    event.partitipants.add(person)
+                    event.participants.add(person)
         
         return EmployeeEventRepository._event_to_detail_schema(event)
     
@@ -188,7 +188,7 @@ class EmployeeEventRepository:
             )
         
         events = select(e for e in EmployeeEvent 
-                       if person in e.partitipants and e.prep_delete is None)[:]
+                       if person in e.participants and e.prep_delete is None)[:]
         
         return [EmployeeEventRepository._event_to_detail_schema(event) for event in events]
     
@@ -221,16 +221,16 @@ class EmployeeEventRepository:
         
         if update_data.category_name is not None:
             # Alte Kategorien entfernen
-            event.employee_event_categorys.clear()
+            event.employee_event_categories.clear()
             # Neue Kategorie hinzufügen
             category = EmployeeEventCategory.get(
                 name=update_data.category_name,
                 project=event.project
             )
             if category:
-                event.employee_event_categorys.add(category)
+                event.employee_event_categories.add(category)
         
-        event.last_modified = datetime.now()
+        event.last_modified = utcnow_naive()
         
         return EmployeeEventRepository._event_to_detail_schema(event)
     
@@ -253,7 +253,7 @@ class EmployeeEventRepository:
         if not event or event.prep_delete:
             raise EmployeeEventNotFoundError(event_id=str(event_id))
         
-        event.prep_delete = datetime.now()
+        event.prep_delete = utcnow_naive()
         return True
     
     # Employee Event Category Operations
@@ -283,7 +283,7 @@ class EmployeeEventRepository:
             )
         
         # Kategorie erstellen
-        now = datetime.now()
+        now = utcnow_naive()
         category = EmployeeEventCategory(
             name=create_data.name,
             description=create_data.description or "",
@@ -367,7 +367,7 @@ class EmployeeEventRepository:
         if update_data.description is not None:
             category.description = update_data.description
         
-        category.last_modified = datetime.now()
+        category.last_modified = utcnow_naive()
         
         return EmployeeEventRepository._category_to_schema(category)
     
@@ -392,7 +392,7 @@ class EmployeeEventRepository:
                 message=f"Kategorie mit ID {category_id} nicht gefunden"
             )
         
-        category.prep_delete = datetime.now()
+        category.prep_delete = utcnow_naive()
         return True
     
     # Statistiken
@@ -419,7 +419,7 @@ class EmployeeEventRepository:
         total_categories = count(c for c in EmployeeEventCategory 
                                if c.project == project and c.prep_delete is None)
         events_with_categories = count(e for e in EmployeeEvent 
-                                     if e.project == project and e.prep_delete is None and e.employee_event_categorys)
+                                     if e.project == project and e.prep_delete is None and e.employee_event_categories)
         events_without_categories = total_events - events_with_categories
         
         # Erweiterte Statistiken
@@ -437,10 +437,10 @@ class EmployeeEventRepository:
                 team_event_counts[team.name] = team_event_counts.get(team.name, 0) + 1
             
             # Teilnehmer-Zählungen
-            for participant in event.partitipants:
+            for participant in event.participants:
                 participant_event_counts[participant.username] = participant_event_counts.get(participant.username, 0) + 1
             
-            total_participants += len(event.partitipants)
+            total_participants += len(event.participants)
         
         # Most active ermitteln
         most_active_team = max(team_event_counts.items(), key=lambda x: x[1]) if team_event_counts else None
@@ -451,7 +451,7 @@ class EmployeeEventRepository:
                           if c.project == project and c.prep_delete is None)[:]
         category_distribution = {}
         for category in categories:
-            category_distribution[category.name] = len([e for e in events if category in e.employee_event_categorys])
+            category_distribution[category.name] = len([e for e in events if category in e.employee_event_categories])
         
         return StatisticsSchema(
             total_events=total_events,
@@ -479,10 +479,10 @@ class EmployeeEventRepository:
             'last_modified': event.last_modified,
             'project_id': event.project.id,
             'project_name': event.project.name,
-            'categories': [cat.name for cat in event.employee_event_categorys],
+            'categories': [cat.name for cat in event.employee_event_categories],
             'teams': [team.name for team in event.teams],
-            'participants': [person.username for person in event.partitipants],
-            'participant_count': len(event.partitipants),
+            'participants': [person.username for person in event.participants],
+            'participant_count': len(event.participants),
             'team_count': len(event.teams)
         }
         return EventDetailSchema.model_validate(event_data)

@@ -796,7 +796,6 @@ class EmployeeEvent(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     title = Required(str, 40)
     description = Required(str)
-    category = Optional(str)
     created_at = Required(datetime.datetime, default=utcnow_naive)
     last_modified = Required(datetime.datetime, default=utcnow_naive)
     prep_delete = Optional(datetime.datetime, default=utcnow_naive)

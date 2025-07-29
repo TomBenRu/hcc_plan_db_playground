@@ -16,6 +16,8 @@ class EventSchema(BaseModel):
     id: UUID
     title: str = Field(..., max_length=40, description="Titel des Events")
     description: str = Field(..., description="Beschreibung des Events")
+    start: datetime = Field(..., description="Start-Zeitpunkt des Events")
+    end: datetime = Field(..., description="End-Zeitpunkt des Events")
     created_at: datetime
     last_modified: datetime
     project_id: UUID
@@ -30,6 +32,11 @@ class EventDetailSchema(EventSchema):
     participants: List[str] = Field(default_factory=list, description="Benutzernamen der Teilnehmer")
     participant_count: int = Field(default=0, description="Anzahl Teilnehmer")
     team_count: int = Field(default=0, description="Anzahl Teams")
+    duration_hours: float = Field(default=0.0, description="Dauer in Stunden")
+    start_date: str = Field(default="", description="Start-Datum formatiert")
+    start_time: str = Field(default="", description="Start-Zeit formatiert")
+    end_date: str = Field(default="", description="End-Datum formatiert")
+    end_time: str = Field(default="", description="End-Zeit formatiert")
 
 
 class CreateEventSchema(BaseModel):
@@ -37,6 +44,8 @@ class CreateEventSchema(BaseModel):
     
     title: str = Field(..., min_length=1, max_length=40, description="Titel des Events")
     description: str = Field(..., description="Beschreibung des Events")
+    start: datetime = Field(..., description="Start-Zeitpunkt des Events")
+    end: datetime = Field(..., description="End-Zeitpunkt des Events")
     project_id: UUID = Field(..., description="ID des zugehörigen Projekts")
     category_name: Optional[str] = Field(None, max_length=40, description="Name der Event-Kategorie")
     team_names: Optional[List[str]] = Field(default_factory=list, description="Namen der zugeordneten Teams")
@@ -51,6 +60,12 @@ class CreateEventSchema(BaseModel):
     @field_validator('description')
     def description_cleanup(cls, v):
         return v.strip() if v else ""
+    
+    @field_validator('end')
+    def end_after_start(cls, v, info):
+        if 'start' in info.data and v <= info.data['start']:
+            raise ValueError('End-Zeitpunkt muss nach Start-Zeitpunkt liegen')
+        return v
 
 
 class UpdateEventSchema(BaseModel):
@@ -58,6 +73,8 @@ class UpdateEventSchema(BaseModel):
     
     title: Optional[str] = Field(None, min_length=1, max_length=40, description="Neuer Titel")
     description: Optional[str] = Field(None, description="Neue Beschreibung")
+    start: Optional[datetime] = Field(None, description="Neuer Start-Zeitpunkt")
+    end: Optional[datetime] = Field(None, description="Neuer End-Zeitpunkt")
     category_name: Optional[str] = Field(None, max_length=40, description="Name der neuen Kategorie")
     
     @field_validator('title')
@@ -69,6 +86,13 @@ class UpdateEventSchema(BaseModel):
     @field_validator('description')
     def description_cleanup(cls, v):
         return v.strip() if v else None
+    
+    @field_validator('end')
+    def end_after_start(cls, v, info):
+        if v is not None and 'start' in info.data and info.data['start'] is not None:
+            if v <= info.data['start']:
+                raise ValueError('End-Zeitpunkt muss nach Start-Zeitpunkt liegen')
+        return v
 
 
 class EventListSchema(BaseModel):

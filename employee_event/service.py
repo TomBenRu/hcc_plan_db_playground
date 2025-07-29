@@ -5,6 +5,7 @@ Stellt eine saubere Business Logic API bereit, die nur noch mit
 typsicheren Pydantic-Schemas arbeitet.
 """
 
+from datetime import datetime
 from typing import List, Optional, Union
 from uuid import UUID
 
@@ -52,6 +53,8 @@ class EmployeeEventService:
         self,
         title: str,
         description: str,
+        start: datetime,
+        end: datetime,
         project_id: UUID,
         category_name: Optional[str] = None,
         team_names: Optional[List[str]] = None,
@@ -63,6 +66,8 @@ class EmployeeEventService:
         Args:
             title: Titel des Events
             description: Beschreibung des Events
+            start: Start-Zeitpunkt des Events
+            end: End-Zeitpunkt des Events
             project_id: ID des zugehörigen Projekts
             category_name: Optional - Name der Event-Kategorie
             team_names: Optional - Liste der zugeordneten Team-Namen
@@ -76,6 +81,8 @@ class EmployeeEventService:
             create_data = CreateEventSchema(
                 title=title,
                 description=description,
+                start=start,
+                end=end,
                 project_id=project_id,
                 category_name=category_name,
                 team_names=team_names or [],
@@ -219,6 +226,8 @@ class EmployeeEventService:
         event_id: UUID,
         title: Optional[str] = None,
         description: Optional[str] = None,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
         category_name: Optional[str] = None
     ) -> Union[EventDetailSchema, ErrorResponseSchema]:
         """
@@ -228,6 +237,8 @@ class EmployeeEventService:
             event_id: ID des zu aktualisierenden Events
             title: Neuer Titel (optional)
             description: Neue Beschreibung (optional)
+            start: Neuer Start-Zeitpunkt (optional)
+            end: Neuer End-Zeitpunkt (optional)
             category_name: Name der neuen Kategorie (optional)
             
         Returns:
@@ -238,6 +249,8 @@ class EmployeeEventService:
             update_data = UpdateEventSchema(
                 title=title,
                 description=description,
+                start=start,
+                end=end,
                 category_name=category_name
             )
             

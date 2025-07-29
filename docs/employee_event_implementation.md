@@ -4,7 +4,7 @@
 
 Das Employee Event Management System verwaltet Unternehmensveranstaltungen wie Fortbildungen, Meetings, Onlinekonferenzen etc. für das hcc_plan_db_playground Projekt.
 
-**Status: ✅ Phase 1 abgeschlossen (Kern-Module)**
+**Status: ✅ Phase 1 abgeschlossen (Kern-Module) | 🔄 Phase 2 in Arbeit (GUI-Module)**
 
 ## Architektur
 
@@ -35,6 +35,8 @@ class EmployeeEvent(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     title = Required(str, 40)
     description = Required(str)
+    start = Required(datetime)        # NEU: Start-Zeitpunkt
+    end = Required(datetime)          # NEU: End-Zeitpunkt  
     created_at = Required(datetime)
     last_modified = Required(datetime) 
     prep_delete = Optional(datetime)  # Soft Delete
@@ -69,10 +71,10 @@ class EmployeeEventCategory(db.Entity):
 - `get_statistics(UUID) → StatisticsSchema`
 
 ### Service Layer (Business Logic)
-- `create_event(...) → EventDetailSchema | ErrorResponseSchema`
+- `create_event(title, description, start, end, project_id, ...) → EventDetailSchema | ErrorResponseSchema`
 - `get_event(UUID) → EventDetailSchema | ErrorResponseSchema`
 - `get_all_events(project_id?) → EventListSchema`
-- `update_event(...) → EventDetailSchema | ErrorResponseSchema`
+- `update_event(event_id, title?, description?, start?, end?, ...) → EventDetailSchema | ErrorResponseSchema`
 - `delete_event(UUID) → SuccessResponseSchema | ErrorResponseSchema`
 
 ## Pydantic v2 Standards
@@ -129,16 +131,62 @@ def utcnow_naive():
 - **Team- und Teilnehmer-Management**
 - **Statistische Auswertungen**
 - **Performance-optimierte DB-Zugriffe**
+- **Zeitfelder-Integration** (start/end datetime mit Validierung)
+- **GUI-Hauptfenster** mit Listen- und Kalenderansicht ✅
 
-### 🔄 Geplant (Phase 2-4)
-- **GUI-Module** (frm_employee_event_management.py etc.)
+### 🔄 In Arbeit (Phase 2)
+- **Event-Detail-Dialog** (frm_employee_event_details.py)
+- **Kategorie-Verwaltung** (dlg_employee_event_categories.py)
+- **Teilnehmer-Auswahl** (dlg_participant_selection.py)
+- **Tab-Integration** in main_window.py
+
+### 🔄 Geplant (Phase 3-4)
 - **Plan-Ansicht Integration** (Extra Spalten für Events)
 - **Excel-Export Integration**
 - **Google Kalender Synchronisation**
 
+## GUI-Module (Phase 2)
+
+### Hauptfenster (frm_employee_event_main.py) ✅
+```python
+class FrmEmployeeEventMain(QWidget):
+    """
+    Hauptfenster für Employee Event Management.
+    
+    Features:
+    - Toggle zwischen Listen- und Kalenderansicht
+    - Filter für Teams, Kategorien, Freitextsuche
+    - CRUD-Operationen für Events
+    - Config-abhängige Datums/Zeit-Formatierung
+    """
+```
+
+#### Zwei Darstellungsmodi:
+- **📋 Listenansicht**: Tabelle mit Spalten `Datum | Zeitspanne | Name | Kategorie | Teams | Teilnehmer`
+- **📅 Kalenderansicht**: QCalendarWidget + Event-Panel für ausgewähltes Datum
+
+#### Filter-System:
+- **Team-Filter**: Dropdown mit allen verfügbaren Teams  
+- **Kategorie-Filter**: Multi-Select für Event-Kategorien
+- **Freitextsuche**: In Titel und Beschreibung (300ms Verzögerung)
+- **Filter zurücksetzen** + Live-Status-Anzeige
+
+#### Config-Integration:
+```python
+# Formatierung respektiert User-Einstellungen
+formatted_date = date_to_string(event.start.date())
+formatted_time = time_to_string(event.start.time())
+```
+
+### Noch zu implementieren:
+- `dlg_employee_event_details.py` - Event erstellen/bearbeiten Dialog
+- `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog  
+- `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
+
 ## Test Möglichkeiten
 
 ```python
+from datetime import datetime
 from employee_event import create_service, CreateEventSchema
 from uuid import uuid4
 
@@ -146,6 +194,8 @@ service = create_service()
 result = service.create_event(
     title="Test Event",
     description="Test Description",
+    start=datetime(2025, 8, 1, 9, 0),   # 1. August 2025, 9:00
+    end=datetime(2025, 8, 1, 17, 0),    # 1. August 2025, 17:00
     project_id=uuid4()  # Ihre Projekt-ID
 )
 # result ist EventDetailSchema oder ErrorResponseSchema!
@@ -155,16 +205,17 @@ result = service.create_event(
 
 - **v1.0.0** - Ursprüngliche Implementierung
 - **v2.0.0** - Pydantic v2 Refactoring + Repository Pattern
-- **v2.0.1** - Feldnamen-Korrekturen (participants, employee_event_categories)
+- **v2.0.1** - Feldnamen-Korrekturen (participants, employee_event_categories)  
+- **v2.1.0** - **Zeitfelder-Integration**: start/end datetime Felder hinzugefügt (29.07.2025)
+- **v2.2.0** - **GUI-Hauptfenster**: frm_employee_event_main.py implementiert (29.07.2025)
 
 ## Nächste Schritte
 
-1. **models.py korrigieren** - `prep_delete` Default entfernen
-2. **Phase 2 starten** - GUI-Module implementieren
-3. **Integration testen** - Mit bestehender hcc_plan Anwendung
-4. **Plan-Ansicht erweitern** - Employee Event Spalten hinzufügen
+1. **Phase 2 starten** - GUI-Module mit Listenansicht und Monatskalender implementieren
+2. **Integration testen** - Mit bestehender hcc_plan Anwendung  
+3. **Tab-Integration** - Rechter Tab für Employee Event Management hinzufügen
 
 ---
 **Entwickelt von:** Thomas & Claude  
 **Letzte Aktualisierung:** 29.07.2025  
-**Status:** Production Ready (Phase 1)
+**Status:** Phase 2 in Arbeit - Hauptfenster implementiert

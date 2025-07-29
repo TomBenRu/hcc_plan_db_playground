@@ -800,7 +800,7 @@ class EmployeeEvent(db.Entity):
     end = Required(datetime.datetime)
     created_at = Required(datetime.datetime, default=utcnow_naive)
     last_modified = Required(datetime.datetime, default=utcnow_naive)
-    prep_delete = Optional(datetime.datetime, default=utcnow_naive)
+    prep_delete = Optional(datetime.datetime)
     employee_event_categories = Set('EmployeeEventCategory')
     project = Required(Project)
     teams = Set(Team)
@@ -813,7 +813,7 @@ class EmployeeEventCategory(db.Entity):
     description = Optional(str)
     created_at = Required(datetime.datetime, default=utcnow_naive)
     last_modified = Required(datetime.datetime, default=utcnow_naive)
-    prep_delete = Optional(datetime.datetime, default=utcnow_naive)
+    prep_delete = Optional(datetime.datetime)
     employee_events = Set(EmployeeEvent)
     project = Required(Project)
 

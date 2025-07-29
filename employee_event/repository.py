@@ -70,6 +70,8 @@ class EmployeeEventRepository:
         event = EmployeeEvent(
             title=create_data.title,
             description=create_data.description,
+            start=create_data.start,
+            end=create_data.end,
             project=project,
             created_at=now,
             last_modified=now
@@ -218,6 +220,12 @@ class EmployeeEventRepository:
         
         if update_data.description is not None:
             event.description = update_data.description
+        
+        if update_data.start is not None:
+            event.start = update_data.start
+        
+        if update_data.end is not None:
+            event.end = update_data.end
         
         if update_data.category_name is not None:
             # Alte Kategorien entfernen
@@ -470,11 +478,16 @@ class EmployeeEventRepository:
     @staticmethod
     def _event_to_detail_schema(event: EmployeeEvent) -> EventDetailSchema:
         """Konvertiert EmployeeEvent zu EventDetailSchema mit model_validate."""
+        # Dauer berechnen
+        duration_hours = (event.end - event.start).total_seconds() / 3600
+        
         # Erweitere das Event-Objekt um die benötigten Felder
         event_data = {
             'id': event.id,
             'title': event.title,
             'description': event.description,
+            'start': event.start,
+            'end': event.end,
             'created_at': event.created_at,
             'last_modified': event.last_modified,
             'project_id': event.project.id,
@@ -483,7 +496,12 @@ class EmployeeEventRepository:
             'teams': [team.name for team in event.teams],
             'participants': [person.username for person in event.participants],
             'participant_count': len(event.participants),
-            'team_count': len(event.teams)
+            'team_count': len(event.teams),
+            'duration_hours': round(duration_hours, 2),
+            'start_date': event.start.strftime('%d.%m.%Y'),
+            'start_time': event.start.strftime('%H:%M'),
+            'end_date': event.end.strftime('%d.%m.%Y'),
+            'end_time': event.end.strftime('%H:%M')
         }
         return EventDetailSchema.model_validate(event_data)
     

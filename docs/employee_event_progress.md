@@ -20,7 +20,7 @@ Vollständiges Employee Event Management System mit:
 - [x] `repository.py` - Typsichere Datenbankzugriffe
 - [x] `service.py` - Business Logic API
 - [x] `schemas/` - Vollständige Pydantic v2 Schemas
-  - [x] `event_schemas.py` - Event-spezifische Schemas
+  - [x] `event_schemas.py` - Event-spezifische Schemas (inkl. start/end Zeitfelder)
   - [x] `category_schemas.py` - Category-spezifische Schemas  
   - [x] `common_schemas.py` - Response/Statistics-Schemas
 
@@ -31,30 +31,78 @@ Vollständiges Employee Event Management System mit:
 - ✅ Performance-optimierte DB-Zugriffe
 - ✅ Exception-Handling auf allen Ebenen
 - ✅ Soft-Delete-Unterstützung
+- ✅ **NEU: Zeitfelder-Integration** - start/end datetime Felder mit Validierung
 
 #### Korrekturen (29.07.2025)
 - ✅ Feldnamen korrigiert: `participants` (statt `partitipants`)
 - ✅ Feldnamen korrigiert: `employee_event_categories` (statt `employee_event_categorys`)
 - ✅ Entferntes `category` String-Feld berücksichtigt
+- ✅ **NEU: Zeitfelder hinzugefügt** - `start` und `end` datetime Felder implementiert (29.07.2025)
+- ✅ **Schema-Erweiterung** - Alle Pydantic-Schemas um Zeitvalidierung erweitert
+- ✅ **Repository/Service-Update** - Vollständige Integration der Zeitfelder in API
 
-### 🔄 Phase 2: GUI-Module (GEPLANT)
+### 🔄 Phase 2: GUI-Module (IN PROGRESS)
 **Geschätzte Dauer:** 3-4 Tage  
-**Status:** 🟡 Pending
+**Status:** 🟡 In Progress - Hauptfenster implementiert
 
 #### Geplante Deliverables
-- [ ] `gui/employee_event/` Verzeichnis
-- [ ] `frm_employee_event_management.py` - Hauptfenster
-- [ ] `frm_employee_event_details.py` - Event erstellen/bearbeiten
-- [ ] `frm_employee_event_categories.py` - Kategorie-Verwaltung
-- [ ] `dlg_participant_selection.py` - Teilnehmer auswählen
+- [x] `gui/employee_event/` Verzeichnis erstellt
+- [x] `frm_employee_event_main.py` - **Hauptfenster FERTIG** ✅
+- [ ] `dlg_employee_event_details.py` - Event erstellen/bearbeiten Dialog
+- [ ] `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
+- [ ] `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
 - [ ] Widget-Integration in `main_window.py`
 
-#### GUI-Features
-- [ ] Event-Liste mit Filter/Suche
-- [ ] Event-Detail-Dialog
-- [ ] Kategorie-Verwaltung
+#### ✅ Implementierte Features (29.07.2025)
+
+##### **Hauptfenster (frm_employee_event_main.py)**
+- ✅ **Zwei Darstellungsmodi mit Toggle:**
+  - 📋 **Listenansicht** - Tabelle sortiert nach Datum
+  - 📅 **Monatskalenderansicht** - QCalendarWidget + Event-Panel
+  - Smart Toggle-Buttons mit aktivem/inaktivem Styling
+
+- ✅ **Spalten-Design (Listenansicht):**
+  - `Datum | Zeitspanne | Name | Kategorie | Teams | Teilnehmer`
+  - Config-abhängige Datums/Zeit-Formatierung
+  - Sortierung nach Datum (Standard)
+
+- ✅ **Filter-System:**
+  - Team-Filter: Dropdown mit allen verfügbaren Teams
+  - Kategorie-Filter: Multi-Select für Event-Kategorien
+  - Freitextsuche: In Titel und Beschreibung (300ms Verzögerung)
+  - Filter zurücksetzen Button + Live-Status-Anzeige
+
+- ✅ **Aktions-Buttons:**
+  - `Neues Event`, `Bearbeiten`, `Löschen`, `Kategorien verwalten`
+  - Smart Enable/Disable basierend auf Event-Auswahl
+  - Delete-Bestätigungen mit Event-Details
+
+- ✅ **Service-Integration:**
+  - EmployeeEventService für CRUD-Operationen
+  - Error-Handling mit ErrorResponseSchema
+  - Event-Caching für Performance-Optimierung
+
+- ✅ **Config-Integration:**
+  - `helper_functions.date_to_string()` / `time_to_string()`
+  - QLocale-Einstellungen aus general_settings_handler
+  - Config-abhängige Darstellung in allen Views
+
+- ✅ **Signals & Communication:**
+  - `event_selected` / `event_modified` für externe Integration
+  - Vollständiges internes Event-Handling
+
+#### GUI-Features (Noch zu implementieren)
+- [ ] Event-Detail-Dialog für CRUD-Operationen
+- [ ] Kategorie-Verwaltung-Dialog
 - [ ] Team- und Teilnehmer-Auswahl
-- [ ] CRUD-Operationen über Service-Layer
+- [ ] Kalender-Event-Overlays mit Farb-Kodierung
+- [ ] Tab-Integration in main_window.py
+
+#### Technische Erkenntnisse (29.07.2025)
+- ✅ **Config-abhängige Formatierung** erfolgreich integriert
+- ✅ **Dark Theme Konsistenz** mit bestehenden Formularen
+- ✅ **Performance-Optimierung** durch Event-Caching und verzögerte Suche
+- ✅ **Placeholder-Methoden** vorbereitet für Dialog-Integration
 
 ### 🔄 Phase 3: Integration in bestehende Systeme (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
@@ -121,20 +169,20 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session 1: Phase 2 Vorbereitung
-- [ ] GUI-Architektur planen
-- [ ] Widget-Design spezifizieren
-- [ ] Service-Integration vorbereiten
+### Session Aktuell: Phase 2 Fortsetzung (Event-Details-Dialog)
+- [x] GUI-Hauptfenster erfolgreich implementiert ✅
+- [ ] Event-Details-Dialog mit Zeitfeld-Integration erstellen
+- [ ] CRUD-Integration mit Service-Layer
 
-### Session 2: GUI-Implementation  
-- [ ] Hauptfenster erstellen
-- [ ] Event-Details-Dialog
+### Session 2: Kategorie-Management & Teilnehmer-Auswahl
+- [ ] Kategorie-Verwaltung-Dialog
+- [ ] Teilnehmer-Auswahl-Dialog
 - [ ] Service-Integration
 
-### Session 3: Plan-Integration
-- [ ] frm_plan.py erweitern
-- [ ] Excel-Export anpassen
+### Session 3: Tab-Integration & Testing
+- [ ] Tab-Integration in main_window.py (rechte Seite)
 - [ ] Testing und Refinement
+- [ ] Vorbereitung für Phase 3
 
 ## 📝 Lessons Learned
 
@@ -156,6 +204,6 @@ def utcnow_naive():
 4. **Future-Proof** durch modulare Package-Struktur
 
 ---
-**Nächste Priorität:** Phase 2 GUI-Module starten  
+**Nächste Priorität:** Event-Details-Dialog implementieren  
 **Letzte Aktualisierung:** 29.07.2025  
 **Bearbeitet von:** Thomas & Claude

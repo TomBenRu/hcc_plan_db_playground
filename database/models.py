@@ -58,6 +58,7 @@ class Person(db.Entity):
     flags = Set('Flag')
     skills = Set('Skill')
     combination_locations_possibles = Set('CombinationLocationsPossible')
+    employee_events = Set('EmployeeEvent')
 
     composite_key(f_name, l_name, project)
 
@@ -117,6 +118,8 @@ class Project(db.Entity):
     #  Kann aufgehoben werden durch entsprechendes CombinationLocationsPossible
     # todo: same_cast_on_same_location_at_same_day: bool (auch in Team PlanPeriod und ActorPlanPeriod)
     #  Kann aufgehoben werden durch eine entsprechende CastRule oder ein entsprechendes FixedCast
+    employee_events = Set('EmployeeEvent')
+    employee_event_categories = Set('EmployeeEventCategory')
 
     def before_insert(self):
         self.excel_export_settings = ExcelExportSettings()
@@ -142,6 +145,7 @@ class Team(db.Entity):
     plan_periods = Set('PlanPeriod')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     excel_export_settings = Optional('ExcelExportSettings')
+    employee_events = Set('EmployeeEvent')
 
     composite_key(project, name)
 
@@ -786,6 +790,31 @@ class ExcelExportSettings(db.Entity):
     project = Optional(Project)
     teams = Set(Team)
     plans = Set(Plan)
+
+
+class EmployeeEvent(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    title = Required(str, 40)
+    description = Required(str)
+    category = Optional(str)
+    created_at = Required(datetime.datetime, default=utcnow_naive)
+    last_modified = Required(datetime.datetime, default=utcnow_naive)
+    prep_delete = Optional(datetime.datetime, default=utcnow_naive)
+    employee_event_categories = Set('EmployeeEventCategory')
+    project = Required(Project)
+    teams = Set(Team)
+    participants = Set(Person)
+
+
+class EmployeeEventCategory(db.Entity):
+    id = PrimaryKey(UUID, auto=True)
+    name = Required(str, 40)
+    description = Optional(str)
+    created_at = Required(datetime.datetime, default=utcnow_naive)
+    last_modified = Required(datetime.datetime, default=utcnow_naive)
+    prep_delete = Optional(datetime.datetime, default=utcnow_naive)
+    employee_events = Set(EmployeeEvent)
+    project = Required(Project)
 
 
 #  noch zu implementieren

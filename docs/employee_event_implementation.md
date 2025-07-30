@@ -178,9 +178,19 @@ formatted_date = date_to_string(event.start.date())
 formatted_time = time_to_string(event.start.time())
 ```
 
+### Implementiert:
+- ~~`dlg_employee_event_details.py` - Event erstellen/bearbeiten Dialog~~ **✅ FERTIG (30.07.2025)**
+  - ✅ **Widget-Höhen-Korrektur**: Alle Date-Time-Widgets einheitlich 25px hoch (setFixedHeight)
+  - ✅ **Layout-Optimierungen**: Kompakteres Design mit 0px Padding und größerem Dialog
+  - ✅ **Code-Cleanup**: Entfernung überflüssiger Validierungs-Logik
+- ~~`dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog~~ **✅ FERTIG (30.07.2025)**
+  - ✅ **CRUD-Operationen**: Vollständige Kategorie-Verwaltung mit Create/Read/Update/Delete
+  - ✅ **Usage-Tracking**: Anzeige wie viele Events jede Kategorie verwendet
+  - ✅ **Auto-Save-System**: Verzögerte Speicherung bei Eingaben (1s Timer)
+  - ✅ **Dialog-Integration**: Nahtlose Verbindung mit Event-Details-Dialog
+  - ✅ **Dark Theme**: Konsistentes Design mit anderen Projektdialogen
+
 ### Noch zu implementieren:
-- `dlg_employee_event_details.py` - Event erstellen/bearbeiten Dialog
-- `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog  
 - `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
 
 ## Test Möglichkeiten
@@ -208,14 +218,19 @@ result = service.create_event(
 - **v2.0.1** - Feldnamen-Korrekturen (participants, employee_event_categories)  
 - **v2.1.0** - **Zeitfelder-Integration**: start/end datetime Felder hinzugefügt (29.07.2025)
 - **v2.2.0** - **GUI-Hauptfenster**: frm_employee_event_main.py implementiert (29.07.2025)
+- **v2.3.0** - **Event-Details-Dialog**: dlg_employee_event_details.py komplett implementiert (30.07.2025)
+- **v2.3.1** - **Widget-Höhen-Korrektur**: Alle Date-Time-Widgets einheitlich 35px hoch (30.07.2025)
+- **v2.4.0** - **Kategorie-Management-Dialog**: dlg_employee_event_categories.py komplett implementiert (30.07.2025)
 
 ## Nächste Schritte
 
-1. **Phase 2 starten** - GUI-Module mit Listenansicht und Monatskalender implementieren
-2. **Integration testen** - Mit bestehender hcc_plan Anwendung  
-3. **Tab-Integration** - Rechter Tab für Employee Event Management hinzufügen
+1. **Phase 2 abschließen** - Verbleibende Dialoge implementieren:
+   - `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
+   - `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
+2. **Integration testen** - Event-Details-Dialog mit Hauptfenster testen
+3. **Phase 3 starten** - Plan-Ansicht Integration für Event-Anzeige
 
 ---
 **Entwickelt von:** Thomas & Claude  
-**Letzte Aktualisierung:** 29.07.2025  
-**Status:** Phase 2 in Arbeit - Hauptfenster implementiert
+**Letzte Aktualisierung:** 30.07.2025  
+**Status:** Event-Details-Dialog komplett fertig inkl. Widget-Höhen-Korrekturen

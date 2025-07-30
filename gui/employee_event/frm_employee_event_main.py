@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView,
     QCalendarWidget, QPushButton, QLineEdit, QGroupBox,
     QAbstractItemView, QMessageBox,
-    QStackedWidget
+    QStackedWidget, QDialog
 )
 
 from configuration.general_settings import general_settings_handler
@@ -832,22 +832,36 @@ class FrmEmployeeEventMain(QWidget):
             return next((e for e in self.filtered_events if e.id == event_id), None)
         return None
 
-    # Placeholder-Methoden für Event-Aktionen
-    # Diese werden in separaten Dialogen implementiert
+    # Event-Aktionen mit Dialog-Integration
 
     def _create_new_event(self):
         """Öffnet Dialog für neues Event."""
-        # TODO: Implementierung mit dlg_employee_event_details.py
-        QMessageBox.information(self, self.tr("New Event"),
-                                self.tr("Event creation dialog will be implemented next."))
+        from gui.employee_event.dlg_employee_event_details import DlgEmployeeEventDetails
+        
+        dialog = DlgEmployeeEventDetails(self, self.project_id)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Events neu laden nach erfolgreichem Erstellen
+            self.refresh_events()
+            logger.info("New event created successfully")
 
     def _edit_selected_event(self):
         """Öffnet Dialog für Event-Bearbeitung."""
         event = self.get_selected_event()
-        if event:
-            # TODO: Implementierung mit dlg_employee_event_details.py
-            QMessageBox.information(self, self.tr("Edit Event"),
-                                    self.tr(f"Edit dialog for '{event.title}' will be implemented next."))
+        if not event:
+            QMessageBox.warning(self, self.tr("No Selection"), 
+                              self.tr("Please select an event to edit."))
+            return
+            
+        from gui.employee_event.dlg_employee_event_details import DlgEmployeeEventDetails
+        
+        dialog = DlgEmployeeEventDetails(self, self.project_id, event.id)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Events neu laden nach erfolgreichem Update
+            self.refresh_events()
+            self.event_modified.emit(event.id)
+            logger.info(f"Event {event.id} updated successfully")
 
     def _delete_selected_event(self):
         """Löscht das ausgewählte Event."""

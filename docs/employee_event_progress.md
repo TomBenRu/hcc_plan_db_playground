@@ -151,32 +151,48 @@ Vollständiges Employee Event Management System mit:
 - ✅ **Minimal invasive Integration** - nur ~30 Zeilen in main_window.py
 - ✅ **Keine Architektur-Konflikte** - Team-Tab-System unberührt
 
-### 🔄 Phase 3: Dialog-System Vervollständigung (IN ARBEIT)
+### 🔄 Phase 3: Dialog-System Vervollständigung (NAHEZU ABGESCHLOSSEN)
 **Geschätzte Dauer:** 2-3 Tage  
-**Status:** 🟡 In Progress - Event-Details-Dialog abgeschlossen
+**Status:** 🟢 95% Complete - Nur Teilnehmer-Dialog fehlt
 
-#### Geplante Deliverables
-- [x] `dlg_employee_event_details.py` - **Event CRUD-Dialog mit Zeitfeld-Integration FERTIG** ✅ (30.07.2025)
-- [ ] `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
+#### ✅ Abgeschlossene Deliverables (30.07.2025)
+- [x] `dlg_employee_event_details.py` - **Event CRUD-Dialog mit Zeitfeld-Integration FERTIG** ✅ 
+- [x] `dlg_employee_event_categories.py` - **Kategorie-Verwaltung Dialog FERTIG** ✅
+- [x] **Dialog-Integration** - Vollständige Verbindung zwischen allen Dialogen ✅
+- [x] **Hauptfenster-Integration** - "Manage Categories" Button mit Dialog verbunden ✅
+
+#### Verbleibendes Deliverable  
 - [ ] `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
-- [ ] Kalender-Event-Overlays mit Farb-Kodierung
+- [ ] Kalender-Event-Overlays mit Farb-Kodierung (optional)
 
-#### ✅ Implementierte Dialog-Features (30.07.2025)
-- **Modal Dialog-System** - Konsistent mit bestehenden Dialogen der Anwendung
-- **Vollständige CRUD-Operationen** - Create, Read, Update, Delete für Events
-- **Zeitfeld-Integration** - QDateTimeEdit mit automatischer Validierung
-- **Service-Layer-Integration** - Direkte Nutzung des EmployeeEventService
-- **Error-Handling** - Strukturierte Fehlerbehandlung mit ErrorResponseSchema
-- **Dark Theme Konsistenz** - Styling passend zur Hauptanwendung
-- **Benutzerfreundlichkeit** - Intuitive Form-Validierung und Feedback
+### 🔄 Phase 4: Commands-Integration & Production-Ready (GEPLANT)
+**Geschätzte Dauer:** 2-3 Tage  
+**Status:** 🔵 Planned
 
-#### Dialog-Features (Noch zu implementieren)
-- [ ] Event-Detail-Dialog: Create/Update/Delete mit Validierung
-- [ ] Kategorie-Management: CRUD für Event-Kategorien
-- [ ] Teilnehmer-Auswahl: Multi-Select mit Team-Filter
-- [ ] Kalender-Integration: Event-Overlays mit Farb-Kodierung
+#### ⚠️ WICHTIG: Commands-Pattern für DB-Operationen
 
-### 🔄 Phase 4: Advanced Features (GEPLANT)
+**Aktueller Status:** Service-Integration (temporär für funktionsfähige GUI)  
+**Erforderlich:** Commands-Integration für Production-System
+
+#### Geplante Commands-Deliverables
+- [ ] **`commands/employee_events_commands.py`** - Command-Klassen für alle CRUD-Operationen  
+- [ ] **Service-to-Commands Migration** - Ersetzen direkter Service-Calls durch Commands
+- [ ] **Command-Manager-Integration** - Einbindung in bestehende Command-Infrastruktur
+- [ ] **Undo/Redo-GUI-Integration** - Buttons in Dialogen und Hauptfenster
+- [ ] **Transaktionale Sicherheit** - Rollback bei Fehlern, Audit-Trail
+
+#### Commands-Pattern Beispiel
+```python
+# AKTUELL (Phase 1-3): Direkte Service-Calls
+result = self.service.create_event(title, description, start, end, ...)
+
+# ZUKÜNFTIG (Phase 4): Commands für Undo/Redo
+command = employee_events_commands.CreateEvent(title, description, start, end, project_id, ...)
+result = self.command_manager.execute(command)
+# Undo/Redo verfügbar: self.command_manager.undo()
+```
+
+### 🔄 Phase 5: Advanced Features (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🟡 Pending
 
@@ -241,20 +257,28 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Phase 3 - Dialog-System (Event-Details-Dialog) ✅ ABGESCHLOSSEN
+### Session Aktuell: Phase 3 - Dialog-System ✅ NAHEZU ABGESCHLOSSEN
 - [x] GUI-Hauptfenster erfolgreich implementiert ✅
 - [x] Separates Window-System erfolgreich implementiert ✅
 - [x] **QStackedWidget-Problem behoben** ✅ (29.07.2025)
 - [x] **Event-Details-Dialog mit Zeitfeld-Integration erstellt** ✅ (30.07.2025)
 - [x] **Widget-Höhen-Korrekturen durchgeführt** ✅ (30.07.2025)
 - [x] **CRUD-Integration mit Service-Layer** ✅ (30.07.2025)
+- [x] **Kategorie-Management-Dialog implementiert** ✅ (30.07.2025)
+- [x] **Hauptfenster-Integration** - "Manage Categories" Button verbunden ✅ (30.07.2025)
 
-### Session 2: Kategorie-Management & Teilnehmer-Auswahl
-- [ ] Kategorie-Verwaltung-Dialog
-- [ ] Teilnehmer-Auswahl-Dialog
-- [ ] Service-Integration
+### Session 2: Teilnehmer-Dialog & Commands-Vorbereitung
+- [ ] `dlg_participant_selection.py` - Teilnehmer-Auswahl-Dialog
+- [ ] Commands-Pattern Dokumentation vervollständigen
+- [ ] Phase 3 final abschließen
 
-### Session 3: Advanced Features & Polish
+### Session 3: Commands-Integration (Production-Ready)
+- [ ] `commands/employee_events_commands.py` implementieren
+- [ ] Service → Commands Migration durchführen
+- [ ] Undo/Redo-Funktionalität integrieren
+- [ ] Transaktionale Sicherheit testen
+
+### Session 4: Advanced Features & Polish
 - [ ] Kalender-Event-Overlays mit Farb-Kodierung
 - [ ] Excel-Export für Employee Events
 - [ ] Testing und Refinement
@@ -288,6 +312,6 @@ def utcnow_naive():
 7. **Explizite Widget-Hierarchie** für robuste GUI-Komponenten
 
 ---
-**Nächste Priorität:** Event-Details-Dialog implementieren  
-**Letzte Aktualisierung:** 29.07.2025  
+**Nächste Priorität:** Teilnehmer-Auswahl-Dialog + Commands-Integration  
+**Letzte Aktualisierung:** 30.07.2025  
 **Bearbeitet von:** Thomas & Claude

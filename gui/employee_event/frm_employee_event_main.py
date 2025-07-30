@@ -901,6 +901,41 @@ class FrmEmployeeEventMain(QWidget):
 
     def _manage_categories(self):
         """Öffnet Dialog für Kategorie-Management."""
-        # TODO: Implementierung mit dlg_employee_event_categories.py
-        QMessageBox.information(self, self.tr("Manage Categories"),
-                                self.tr("Category management dialog will be implemented next."))
+        from gui.employee_event.dlg_employee_event_categories import DlgEmployeeEventCategories
+        
+        dialog = DlgEmployeeEventCategories(self, self.project_id)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Kategorien-Filter neu laden nach möglichen Änderungen
+            self._refresh_category_filter()
+            logger.info("Category management completed")
+
+    def _refresh_category_filter(self):
+        """Aktualisiert den Kategorie-Filter nach Änderungen."""
+        try:
+            # Aktuelle Auswahl merken
+            current_selection = self.combo_category_filter.currentData()
+            
+            # Events neu laden um aktualisierte Kategorien zu erhalten
+            event_list = self.service.get_all_events(self.project_id)
+            categories = set()
+            for event in event_list.events:
+                categories.update(event.categories)
+            
+            # Kategorie-Filter neu befüllen
+            self.combo_category_filter.clear()
+            self.combo_category_filter.addItem(self.tr("All Categories"), None)
+            for category in sorted(categories):
+                self.combo_category_filter.addItem(category, category)
+            
+            # Vorherige Auswahl wiederherstellen wenn möglich
+            if current_selection:
+                for i in range(self.combo_category_filter.count()):
+                    if self.combo_category_filter.itemData(i) == current_selection:
+                        self.combo_category_filter.setCurrentIndex(i)
+                        break
+                        
+        except Exception as e:
+            logger.error(f"Error refreshing category filter: {e}")
+
+    # TODO: Commands-Integration für schreibende DB-Operationen

@@ -6,6 +6,65 @@ Das Employee Event Management System verwaltet Unternehmensveranstaltungen wie F
 
 **Status: ✅ Phase 1 abgeschlossen (Kern-Module) | 🔄 Phase 2 in Arbeit (GUI-Module)**
 
+## Commands-Pattern für Undo/Redo-Funktionalität
+
+### ⚠️ Wichtiger Architektur-Hinweis
+
+**Für schreibende Datenbankoperationen müssen Commands verwendet werden!**
+
+Das hcc_plan_db_playground Projekt nutzt ein Command-Pattern im `commands/` Verzeichnis für alle schreibenden DB-Operationen. Dies ermöglicht:
+- **Undo/Redo-Funktionalität** 
+- **Rollback bei Fehlern**
+- **Transaktionale Sicherheit**
+- **Audit-Trail für Änderungen**
+
+### 🔧 Aktuelle Service-Integration (Temporär)
+
+```python
+# AKTUELL (Phase 1-2): Direkte Service-Calls
+result = self.service.create_event(title, description, start, end, ...)
+result = self.service.update_event(event_id, title, description, ...)
+result = self.service.delete_event(event_id)
+```
+
+### 🎯 Zukünftige Commands-Integration (Phase 3)
+
+```python
+# ZUKÜNFTIG: Commands für alle schreibenden Operationen
+import employee_events_commands
+
+# Event erstellen
+command = employee_events_commands.CreateEvent(title, description, start, end, project_id, ...)
+result = self.command_manager.execute(command)
+
+# Event aktualisieren  
+command = employee_events_commands.UpdateEvent(event_id, title=new_title, description=new_description, ...)
+result = self.command_manager.execute(command)
+
+# Event löschen
+command = employee_events_commands.DeleteEvent(event_id)
+result = self.command_manager.execute(command)
+
+# Undo/Redo verfügbar
+self.command_manager.undo()  # Letzte Aktion rückgängig
+self.command_manager.redo()  # Aktion wiederholen
+```
+
+### 📋 TODO: Commands-Implementierung (Phase 3)
+
+- [ ] **`commands/employee_events_commands.py`** - Command-Klassen für alle CRUD-Operationen
+- [ ] **Service-to-Commands Migration** - Ersetzen direkter Service-Calls durch Commands
+- [ ] **GUI-Integration** - Undo/Redo-Buttons in Dialogen und Hauptfenster
+- [ ] **Command-Manager-Integration** - Einbindung in bestehende Command-Infrastruktur
+
+### 🔄 Migration-Reihenfolge
+
+1. **Phase 1-2 (AKTUELL):** Service-Integration für funktionsfähige GUI
+2. **Phase 3:** Commands-Implementation für Production-Ready-System  
+3. **Phase 4:** Undo/Redo-UI-Integration
+
+---
+
 ## Architektur
 
 ### Modern Pydantic v2 Pattern
@@ -221,16 +280,21 @@ result = service.create_event(
 - **v2.3.0** - **Event-Details-Dialog**: dlg_employee_event_details.py komplett implementiert (30.07.2025)
 - **v2.3.1** - **Widget-Höhen-Korrektur**: Alle Date-Time-Widgets einheitlich 35px hoch (30.07.2025)
 - **v2.4.0** - **Kategorie-Management-Dialog**: dlg_employee_event_categories.py komplett implementiert (30.07.2025)
+- **v2.4.1** - **Hauptfenster-Integration**: "Manage Categories" Button mit Dialog verbunden (30.07.2025)
+- **v2.4.2** - **Commands-Pattern Dokumentation**: Wichtige Architektur-Hinweise für Production-System (30.07.2025)
 
 ## Nächste Schritte
 
-1. **Phase 2 abschließen** - Verbleibende Dialoge implementieren:
-   - `dlg_employee_event_categories.py` - Kategorie-Verwaltung Dialog
+1. **Phase 3 abschließen** - Letzten Dialog implementieren:
    - `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
-2. **Integration testen** - Event-Details-Dialog mit Hauptfenster testen
-3. **Phase 3 starten** - Plan-Ansicht Integration für Event-Anzeige
+2. **Commands-Integration** - Production-Ready-System mit Undo/Redo:
+   - `commands/employee_event_commands.py` - Command-Klassen implementieren
+   - Service → Commands Migration durchführen
+3. **Testing** - Vollständige Funktionalität testen
+
+⚠️ **WICHTIG:** Für Production-System muss Commands-Pattern implementiert werden!
 
 ---
 **Entwickelt von:** Thomas & Claude  
 **Letzte Aktualisierung:** 30.07.2025  
-**Status:** Event-Details-Dialog komplett fertig inkl. Widget-Höhen-Korrekturen
+**Status:** Phase 3 nahezu abgeschlossen - Commands-Integration für Production erforderlich

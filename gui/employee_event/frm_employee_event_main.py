@@ -483,7 +483,7 @@ class FrmEmployeeEventMain(QWidget):
         """Initialisiert die Daten-Caches."""
         # Teams laden
         try:
-            self.teams_cache = db_services.Team.get_all_from_project(self.project_id)
+            self.teams_cache = db_services.Team.get_all_from__project(self.project_id)
 
             # Team-Filter befüllen
             self.combo_team_filter.addItem(self.tr("All Teams"), None)

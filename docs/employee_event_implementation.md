@@ -248,9 +248,13 @@ formatted_time = time_to_string(event.start.time())
   - ✅ **Auto-Save-System**: Verzögerte Speicherung bei Eingaben (1s Timer)
   - ✅ **Dialog-Integration**: Nahtlose Verbindung mit Event-Details-Dialog
   - ✅ **Dark Theme**: Konsistentes Design mit anderen Projektdialogen
-
-### Noch zu implementieren:
-- `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
+- ~~`dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog~~ **✅ FERTIG (30.07.2025)**
+  - ✅ **Multi-Select-Interface**: Drag & Drop zwischen verfügbaren und ausgewählten Personen
+  - ✅ **Team-Filter**: Filter nach Teams für bessere Übersicht
+  - ✅ **Freitextsuche**: Suche in Namen mit 300ms Verzögerung
+  - ✅ **Transfer-Buttons**: Add/Remove einzeln oder alle auf einmal (➤ ⏩ ◀ ⏪)
+  - ✅ **Split-Layout**: Verfügbare | Transfer-Buttons | Ausgewählte (40%-20%-40%)
+  - ✅ **Integration**: Vollständige Verbindung mit Event-Details-Dialog
 
 ## Test Möglichkeiten
 
@@ -282,6 +286,8 @@ result = service.create_event(
 - **v2.4.0** - **Kategorie-Management-Dialog**: dlg_employee_event_categories.py komplett implementiert (30.07.2025)
 - **v2.4.1** - **Hauptfenster-Integration**: "Manage Categories" Button mit Dialog verbunden (30.07.2025)
 - **v2.4.2** - **Commands-Pattern Dokumentation**: Wichtige Architektur-Hinweise für Production-System (30.07.2025)
+- **v2.5.0** - **Teilnehmer-Auswahl-Dialog**: dlg_participant_selection.py komplett implementiert (30.07.2025)
+- **v2.5.1** - **Teilnehmer-Integration**: Automatische Übernahme vorhandener Teilnehmer beim Öffnen des Auswahl-Dialogs (30.07.2025)
 
 ## Nächste Schritte
 
@@ -297,4 +303,4 @@ result = service.create_event(
 ---
 **Entwickelt von:** Thomas & Claude  
 **Letzte Aktualisierung:** 30.07.2025  
-**Status:** Phase 3 nahezu abgeschlossen - Commands-Integration für Production erforderlich
+**Status:** Phase 1-3 vollständig abgeschlossen - Commands-Integration für Production erforderlich

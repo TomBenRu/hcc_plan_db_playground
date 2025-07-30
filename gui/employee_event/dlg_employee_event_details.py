@@ -51,6 +51,7 @@ class DlgEmployeeEventDetails(QDialog):
         self.current_event: Optional[EventDetailSchema] = None
         self.teams_cache: List[schemas.Team] = []
         self.categories_cache: List[str] = []
+        self._current_participants: List[str] = []  # Cache für Teilnehmer
         
         # Modus-Bestimmung
         self.is_edit_mode = event_id is not None
@@ -502,7 +503,7 @@ class DlgEmployeeEventDetails(QDialog):
         """Lädt die notwendigen Daten (Teams, Kategorien)."""
         try:
             # Teams laden
-            self.teams_cache = db_services.Team.get_all_from_project(self.project_id)
+            self.teams_cache = db_services.Team.get_all_from__project(self.project_id)
             
             # Team-Dropdown befüllen
             self.combo_teams.addItem(self.tr("No team selected"), None)
@@ -602,7 +603,8 @@ class DlgEmployeeEventDetails(QDialog):
                         self.combo_categories.setCurrentIndex(i)
                         break
             
-            # Teilnehmer-Anzeige
+            # Teilnehmer-Anzeige und Cache
+            self._current_participants = result.participants.copy() if result.participants else []
             if result.participants:
                 participants_text = f"{len(result.participants)} participants selected"
                 self.le_participants.setText(participants_text)
@@ -698,7 +700,7 @@ class DlgEmployeeEventDetails(QDialog):
                     project_id=self.project_id,
                     categories=selected_categories,
                     teams=selected_teams,
-                    participants=[]  # TODO: Participants-Integration
+                    participants=self._current_participants
                 )
                 
                 if isinstance(result, ErrorResponseSchema):
@@ -719,7 +721,7 @@ class DlgEmployeeEventDetails(QDialog):
                     end=end_dt,
                     categories=selected_categories,
                     teams=selected_teams,
-                    participants=[]  # TODO: Participants-Integration
+                    participants=self._current_participants
                 )
                 
                 if isinstance(result, ErrorResponseSchema):
@@ -854,5 +856,33 @@ class DlgEmployeeEventDetails(QDialog):
 
     def _select_participants(self):
         """Öffnet Teilnehmer-Auswahl-Dialog."""
-        QMessageBox.information(self, self.tr("Participants"), 
-                              self.tr("Participant selection will be implemented next."))
+        from gui.employee_event.dlg_participant_selection import DlgParticipantSelection
+        
+        # Aktuell ausgewählte Teilnehmer ermitteln
+        current_participants = []
+        
+        # Im Edit-Modus: Teilnehmer aus dem geladenen Event extrahieren
+        if self.is_edit_mode and self.current_event and self.current_event.participants:
+            current_participants = self.current_event.participants.copy()
+        
+        # Zusätzlich: Falls Teilnehmer im UI-Feld angezeigt werden, diese auch berücksichtigen
+        elif (hasattr(self, '_current_participants') and self._current_participants):
+            current_participants = self._current_participants.copy()
+        
+        # Teilnehmer-Dialog öffnen
+        dlg = DlgParticipantSelection(self, self.project_id, current_participants)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            # Ausgewählte Teilnehmer übernehmen
+            selected_participants = dlg.get_selected_participants()
+            self._current_participants = selected_participants  # Cache für spätere Aufrufe
+            self._update_participants_display(selected_participants)
+
+    def _update_participants_display(self, participants: List[str]):
+        """Aktualisiert die Anzeige der ausgewählten Teilnehmer."""
+        if participants:
+            count_text = self.tr(f"{len(participants)} participants selected")
+            self.le_participants.setText(count_text)
+            self.le_participants.setToolTip(", ".join(participants))
+        else:
+            self.le_participants.setText(self.tr("No participants selected"))
+            self.le_participants.setToolTip("")

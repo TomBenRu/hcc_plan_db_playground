@@ -239,6 +239,8 @@ class DlgParticipantSelection(QDialog):
         self.list_available = QListWidget()
         self.list_available.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.list_available.setDragDropMode(QListWidget.DragDropMode.DragOnly)
+        self.list_available.setSortingEnabled(True)
+        self.list_available.sortItems(Qt.SortOrder.AscendingOrder)
         self.list_available.setMinimumHeight(300)
         available_layout.addWidget(self.list_available)
 
@@ -328,6 +330,8 @@ class DlgParticipantSelection(QDialog):
         self.list_selected = QListWidget()
         self.list_selected.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.list_selected.setDragDropMode(QListWidget.DragDropMode.DropOnly)
+        self.list_selected.setSortingEnabled(True)
+        self.list_selected.sortItems(Qt.SortOrder.AscendingOrder)
         self.list_selected.setMinimumHeight(300)
         selected_layout.addWidget(self.list_selected)
 

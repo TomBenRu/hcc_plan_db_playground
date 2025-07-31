@@ -809,7 +809,7 @@ class EmployeeEvent(db.Entity):
 
 class EmployeeEventCategory(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    name = Required(str, 40)
+    name = Required(str, 40, unique=True)
     description = Optional(str)
     created_at = Required(datetime.datetime, default=utcnow_naive)
     last_modified = Required(datetime.datetime, default=utcnow_naive)

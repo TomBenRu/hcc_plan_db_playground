@@ -22,9 +22,9 @@ Das hcc_plan_db_playground Projekt nutzt ein Command-Pattern im `commands/` Verz
 
 ```python
 # AKTUELL (Phase 1-2): Direkte Service-Calls
-result = self.service.create_event(title, description, start, end, ...)
-result = self.service.update_event(event_id, title, description, ...)
-result = self.service.delete_event(event_id)
+result = self.db_service.create_event(title, description, start, end, ...)
+result = self.db_service.update_event(event_id, title, description, ...)
+result = self.db_service.delete_event(event_id)
 ```
 
 ### 🎯 Zukünftige Commands-Integration (Phase 3)

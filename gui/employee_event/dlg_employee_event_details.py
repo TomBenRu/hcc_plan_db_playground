@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
+from employee_event.schemas import event_and_category_schemas
 from employee_event import EmployeeEventService, EventDetailSchema, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
@@ -45,13 +46,15 @@ class DlgEmployeeEventDetails(QDialog):
         
         self.project_id = project_id
         self.event_id = event_id
-        self.service = EmployeeEventService()
+        self.db_service = EmployeeEventService()
         
         # Daten-Cache
         self.current_event: Optional[EventDetailSchema] = None
         self.teams_cache: List[schemas.Team] = []
         self.categories_cache: List[str] = []
-        self._current_participants: List[str] = []  # Cache für Teilnehmer
+        self.persons_cache: list[schemas.Person] = []
+        self._current_participants: List[schemas.Person] = []  # Cache für Teilnehmer
+        # self._current_participants: List[UUID] = []äää  # Cache für Teilnehmer-IDs
         
         # Modus-Bestimmung
         self.is_edit_mode = event_id is not None
@@ -504,24 +507,22 @@ class DlgEmployeeEventDetails(QDialog):
         try:
             # Teams laden
             self.teams_cache = db_services.Team.get_all_from__project(self.project_id)
+
+            # Persons laden
+            self.persons_cache = db_services.Person.get_all_from__project(self.project_id)
             
             # Team-Dropdown befüllen
-            self.combo_teams.addItem(self.tr("No team selected"), None)
+            self.combo_teams.addItem(self.tr("All teams"), None)
             for team in self.teams_cache:
                 self.combo_teams.addItem(team.name, team.id)
 
-            # Kategorien laden (aus bestehenden Events)
-            event_list = self.service.get_all_events(self.project_id)
-            categories = set()
-            for event in event_list.events:
-                categories.update(event.categories)
-            
-            self.categories_cache = sorted(list(categories))
+            # Kategorien laden
+            self.categories_cache = self.db_service.get_all_categories_by_project(self.project_id)
             
             # Kategorie-Dropdown befüllen
             self.combo_categories.addItem(self.tr("No category"), None)
             for category in self.categories_cache:
-                self.combo_categories.addItem(category, category)
+                self.combo_categories.addItem(category.name, category.id)
 
         except Exception as e:
             logger.error(f"Error loading data: {e}")
@@ -564,7 +565,7 @@ class DlgEmployeeEventDetails(QDialog):
     def _load_event(self):
         """Lädt das Event im Edit-Modus."""
         try:
-            result = self.service.get_event(self.event_id)
+            result = self.db_service.get_event(self.event_id)
             
             if isinstance(result, ErrorResponseSchema):
                 QMessageBox.critical(self, self.tr("Error"), 
@@ -589,26 +590,22 @@ class DlgEmployeeEventDetails(QDialog):
             
             # Teams (erste Team auswählen wenn vorhanden)
             if result.teams:
-                team_name = result.teams[0]  # Vereinfachung für jetzt
-                for i in range(self.combo_teams.count()):
-                    if self.combo_teams.itemText(i) == team_name:
-                        self.combo_teams.setCurrentIndex(i)
-                        break
+                team = result.teams[0]  # Vereinfachung für jetzt
+                self.combo_teams.setCurrentIndex(self.combo_teams.findData(team.id))
+            else:
+                self.combo_teams.setCurrentIndex(0)
             
             # Kategorien (erste Kategorie auswählen wenn vorhanden)
             if result.categories:
                 category = result.categories[0]  # Vereinfachung für jetzt
-                for i in range(self.combo_categories.count()):
-                    if self.combo_categories.itemText(i) == category:
-                        self.combo_categories.setCurrentIndex(i)
-                        break
+                self.combo_categories.setCurrentIndex(self.combo_categories.findData(category.id))
             
             # Teilnehmer-Anzeige und Cache
-            self._current_participants = result.participants.copy() if result.participants else []
+            self._current_participants = result.participants.copy()
             if result.participants:
                 participants_text = f"{len(result.participants)} participants selected"
                 self.le_participants.setText(participants_text)
-                self.le_participants.setToolTip(", ".join(result.participants))
+                self.le_participants.setToolTip(", ".join([p.full_name for p in result.participants]))
 
             logger.info(f"Event loaded successfully: {result.title}")
             
@@ -680,10 +677,7 @@ class DlgEmployeeEventDetails(QDialog):
             end_dt = datetime.combine(end_date, end_time)
             
             # Teams und Kategorien
-            selected_teams = []
-            if self.combo_teams.currentData():
-                team_name = self.combo_teams.currentText()
-                selected_teams = [team_name]
+            selected_team_ids = [self.combo_teams.currentData() or t.id for t in self.teams_cache]
             
             selected_categories = []
             if self.combo_categories.currentData():
@@ -692,16 +686,17 @@ class DlgEmployeeEventDetails(QDialog):
             
             if self.is_new_mode or (self.is_edit_mode and self.chk_save_as_new.isChecked()):
                 # Neues Event erstellen
-                result = self.service.create_event(
+                new_event = event_and_category_schemas.EventCreateSchema(
                     title=title,
                     description=description,
                     start=start_dt,
                     end=end_dt,
                     project_id=self.project_id,
-                    categories=selected_categories,
-                    teams=selected_teams,
-                    participants=self._current_participants
+                    category_ids=[category.id for category in selected_categories],
+                    team_ids=selected_team_ids,
+                    participant_ids=[participant.id for participant in self._current_participants]
                 )
+                result = self.db_service.create_event(new_event)
                 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
@@ -712,17 +707,19 @@ class DlgEmployeeEventDetails(QDialog):
                                       self.tr(f"Event '{title}' was created successfully."))
                 
             else:
-                # Bestehendes Event aktualisieren
-                result = self.service.update_event(
-                    event_id=self.event_id,
+                # Update-Daten zusammenstellen
+                update_data = event_and_category_schemas.EventUpdateSchema(
+                    id=self.event_id,
                     title=title,
                     description=description,
                     start=start_dt,
                     end=end_dt,
-                    categories=selected_categories,
-                    teams=selected_teams,
-                    participants=self._current_participants
+                    category_ids=[category.id for category in selected_categories],
+                    team_ids=selected_team_ids,
+                    participant_ids=[participant.id for participant in self._current_participants]
                 )
+                # Bestehendes Event aktualisieren
+                result = self.db_service.update_event(update_data)
                 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
@@ -758,7 +755,7 @@ class DlgEmployeeEventDetails(QDialog):
         
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                result = self.service.delete_event(self.event_id)
+                result = self.db_service.delete_event(self.event_id)
                 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
@@ -827,18 +824,15 @@ class DlgEmployeeEventDetails(QDialog):
             current_selection = self.combo_categories.currentData()
             
             # Kategorien neu laden
-            event_list = self.service.get_all_events(self.project_id)
-            categories = set()
-            for event in event_list.events:
-                categories.update(event.categories)
+            categories = self.db_service.get_all_categories_by_project(self.project_id)
             
-            self.categories_cache = sorted(list(categories))
+            self.categories_cache = sorted(categories, key=lambda c: c.name)
             
             # Combo-Box neu befüllen
             self.combo_categories.clear()
             self.combo_categories.addItem(self.tr("No category"), None)
             for category in self.categories_cache:
-                self.combo_categories.addItem(category, category)
+                self.combo_categories.addItem(category.name, category.id)
             
             # Vorherige Auswahl wiederherstellen wenn möglich
             if current_selection and current_selection in self.categories_cache:
@@ -847,12 +841,12 @@ class DlgEmployeeEventDetails(QDialog):
         except Exception as e:
             logger.error(f"Error refreshing categories: {e}")
 
-    def _set_selected_category(self, category_name: str):
+    def _set_selected_category(self, category_id: UUID):
         """Setzt die ausgewählte Kategorie im Dropdown."""
-        for i in range(self.combo_categories.count()):
-            if self.combo_categories.itemData(i) == category_name:
-                self.combo_categories.setCurrentIndex(i)
-                break
+        if self.combo_categories.findData(category_id) >= 0:
+            self.combo_categories.setCurrentIndex(self.combo_categories.findData(category_id))
+        else:
+            self.combo_categories.setCurrentIndex(0)
 
     def _select_participants(self):
         """Öffnet Teilnehmer-Auswahl-Dialog."""
@@ -866,23 +860,24 @@ class DlgEmployeeEventDetails(QDialog):
             current_participants = self.current_event.participants.copy()
         
         # Zusätzlich: Falls Teilnehmer im UI-Feld angezeigt werden, diese auch berücksichtigen
-        elif (hasattr(self, '_current_participants') and self._current_participants):
-            current_participants = self._current_participants.copy()
+        elif hasattr(self, '_current_participants') and self._current_participants:
+            current_participants: list[schemas.Person] = self._current_participants.copy()
         
         # Teilnehmer-Dialog öffnen
         dlg = DlgParticipantSelection(self, self.project_id, self.date_start.date().toPython(), current_participants)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             # Ausgewählte Teilnehmer übernehmen
             selected_participants = dlg.get_selected_participants()
-            self._current_participants = selected_participants  # Cache für spätere Aufrufe
-            self._update_participants_display(selected_participants)
+            self._current_participants = [p for p in self.persons_cache if p.id in selected_participants]  # Cache für spätere Aufrufe
+            self._update_participants_display(self._current_participants)
 
-    def _update_participants_display(self, participants: List[str]):
+    def _update_participants_display(self, participants: List[schemas.Person]):
         """Aktualisiert die Anzeige der ausgewählten Teilnehmer."""
         if participants:
             count_text = self.tr(f"{len(participants)} participants selected")
             self.le_participants.setText(count_text)
-            self.le_participants.setToolTip(", ".join(participants))
+            self.le_participants.setToolTip(", ".join(p.full_name for p
+                                                      in sorted(participants, key=lambda p: p.full_name)))
         else:
             self.le_participants.setText(self.tr("No participants selected"))
             self.le_participants.setToolTip("")

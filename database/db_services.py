@@ -199,8 +199,10 @@ class Team:
 
     @classmethod
     @db_session
-    def get_all_from__project(cls, project_id: UUID) -> list[schemas.TeamShow]:
+    def get_all_from__project(cls, project_id: UUID, minimal: bool = False) -> list[schemas.TeamShow | tuple[str, UUID]]:
         if project_in_db := models.Project.get_for_update(lambda p: p.id == project_id):
+            if minimal:
+                return [(t.name, t.id) for t in project_in_db.teams]
             return [schemas.TeamShow.model_validate(t) for t in project_in_db.teams]
         else:
             return []
@@ -283,10 +285,17 @@ class Person:
 
     @classmethod
     @db_session
-    def get_all_from__project(cls, project_id: UUID) -> list[schemas.PersonShow]:
+    def get_all_from__project(cls, project_id: UUID, minimal: bool = False) -> list[schemas.PersonShow | tuple[str, UUID]]:
+        """
+        Wenn minimal == True:
+        Lediglich ein Dictionary mit person.full_name und person.id wird zurückgegeben.
+        Wenn minimal == False:
+        Eine Liste aller Personen als schemas.PersonShow wird zurückgegeben.
+        """
         project_in_db = models.Project.get_for_update(id=project_id)
         persons_in_db = models.Person.select(lambda p: p.project == project_in_db and not p.prep_delete)
-        return [schemas.PersonShow.model_validate(p) for p in persons_in_db]
+        return ([(p.full_name, p.id) for p in persons_in_db] if minimal
+                else [schemas.PersonShow.model_validate(p) for p in persons_in_db])
 
     @classmethod
     @db_session

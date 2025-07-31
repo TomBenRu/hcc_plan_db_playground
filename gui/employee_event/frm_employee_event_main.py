@@ -483,12 +483,13 @@ class FrmEmployeeEventMain(QWidget):
         """Initialisiert die Daten-Caches."""
         # Teams laden
         try:
-            self.teams_cache = db_services.Team.get_all_from__project(self.project_id)
+            self.teams_cache = {t_id: t_name for t_name, t_id
+                                in db_services.Team.get_all_from__project(self.project_id, minimal=True)}
 
             # Team-Filter befüllen
             self.combo_team_filter.addItem(self.tr("All Teams"), None)
-            for team in self.teams_cache:
-                self.combo_team_filter.addItem(team.name, team.id)
+            for team_id, team_name in self.teams_cache.items():
+                self.combo_team_filter.addItem(team_name, team_id)
 
         except Exception as e:
             logger.error(f"Error loading teams: {e}")
@@ -595,8 +596,7 @@ class FrmEmployeeEventMain(QWidget):
             self.lb_status.setText(self.tr("Loading events..."))
 
             # Events vom Service laden
-            event_list = self.service.get_all_events(self.project_id)
-            self.events_cache = event_list.events
+            self.events_cache = self.service.get_all_events(self.project_id)
 
             # Kategorien-Cache aktualisieren
             categories = set()
@@ -713,12 +713,12 @@ class FrmEmployeeEventMain(QWidget):
             self.table_events.setItem(row, 2, title_item)
 
             # Kategorie
-            categories = ", ".join(event.categories) if event.categories else self.tr("No category")
+            categories = ", ".join(sorted(c.name for c in event.categories)) if event.categories else self.tr("No category")
             category_item = QTableWidgetItem(categories)
             self.table_events.setItem(row, 3, category_item)
 
             # Teams
-            teams = ", ".join(event.teams) if event.teams else self.tr("No teams")
+            teams = ", ".join(sorted(t.name for t in event.teams)) if event.teams else self.tr("No teams")
             teams_item = QTableWidgetItem(teams)
             self.table_events.setItem(row, 4, teams_item)
 
@@ -726,7 +726,7 @@ class FrmEmployeeEventMain(QWidget):
             participants_item = QTableWidgetItem(str(event.participant_count))
             participants_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if event.participants:
-                participants_item.setToolTip(", ".join(event.participants))
+                participants_item.setToolTip(", ".join(sorted(p.full_name for p in event.participants)))
             self.table_events.setItem(row, 5, participants_item)
 
     def _update_calendar_view(self):

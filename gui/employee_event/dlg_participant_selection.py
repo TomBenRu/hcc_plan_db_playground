@@ -35,7 +35,17 @@ class DlgParticipantSelection(QDialog):
     - Ausgewählte Teilnehmer-Übersicht
     """
 
-    def __init__(self, parent: QWidget, project_id: UUID, start_date: datetime.date, selected_participants: Optional[List[str]] = None):
+    def __init__(self, parent: QWidget, project_id: UUID, start_date: datetime.date,
+                 selected_participants: Optional[List[schemas.Person]] = None):
+        """
+        Initialisiert den Dialog.
+
+        Args:
+            parent: Übergeordnetes Widget
+            project_id: ID des Projekts
+            start_date: Startdatum des Events (datetime.date)
+            selected_participants: Optional, vorausgewählte Teilnehmer als Liste von (full_name, person_id)
+        """
         super().__init__(parent=parent)
         
         self.project_id = project_id
@@ -48,7 +58,7 @@ class DlgParticipantSelection(QDialog):
         self.filtered_persons: List[schemas.PersonShow] = []
         
         # Return-Wert für aufrufenden Dialog
-        self.selected_participants_result: List[str] = []
+        self.selected_participants_result: set[UUID] = []
         
         self._setup_ui()
         self._setup_data()
@@ -57,7 +67,7 @@ class DlgParticipantSelection(QDialog):
         
         # Vorausgewählte Teilnehmer setzen
         if self.selected_participants:
-            self._set_selected_participants(self.selected_participants)
+            self._set_selected_participants()
             
         logger.info(f"Participant Selection Dialog initialized for project {project_id}")
 
@@ -424,9 +434,8 @@ class DlgParticipantSelection(QDialog):
     def _load_participants(self):
         """Lädt alle verfügbaren Personen."""
         try:
-            # Personen aus der Datenbank laden (ohne soft-deleted)
-            self.persons_cache = [p for p in db_services.Person.get_all_from__project(self.project_id) 
-                                 if not p.prep_delete]
+            # Personen aus der Datenbank laden
+            self.persons_cache = db_services.Person.get_all_from__project(self.project_id)
             
             # Filter anwenden
             self._apply_filters()
@@ -447,8 +456,6 @@ class DlgParticipantSelection(QDialog):
         team_id = self.combo_team_filter.currentData()
         if team_id:
             team_name = self.combo_team_filter.currentText()
-            # Hier sollten wir die aktuellen Team-Zuordnungen prüfen
-            # Für die Einfachheit nehmen wir erstmal alle Personen
             filtered = [p for p in filtered if team_id in
                         [taa.team.id for taa in p.team_actor_assigns if not taa.end or taa.end > datetime.date.today()]]
             filter_info.append(f"Team: {team_name}")
@@ -459,7 +466,7 @@ class DlgParticipantSelection(QDialog):
             filtered = [p for p in filtered
                         if (search_text in p.f_name.lower() or
                             search_text in p.l_name.lower() or
-                            search_text in f"{p.f_name} {p.l_name}".lower())]
+                            search_text in f"{p.full_name}".lower())]
             filter_info.append(f"Search: '{search_text}'")
 
         self.filtered_persons = filtered
@@ -499,24 +506,13 @@ class DlgParticipantSelection(QDialog):
         """Aktualisiert die Liste verfügbarer Personen."""
         self.list_available.clear()
         
-        # Bereits ausgewählte Teilnehmer ausschließen
-        selected_names = set(self._get_selected_participant_names())
-        
         for person in self.filtered_persons:
-            full_name = f"{person.f_name} {person.l_name}"
-            if full_name not in selected_names:
-                item = QListWidgetItem(full_name)
+            if person.id not in [self.list_selected.item(i).data(Qt.ItemDataRole.UserRole)
+                                 for i in range(self.list_selected.count())]:
+                item = QListWidgetItem(person.full_name)
                 item.setData(Qt.ItemDataRole.UserRole, person.id)
-                item.setToolTip(f"{full_name}\nEmail: {person.email}")
+                item.setToolTip(f"{person.full_name}\nEmail: {person.email}")
                 self.list_available.addItem(item)
-
-    def _get_selected_participant_names(self) -> List[str]:
-        """Gibt die Namen der ausgewählten Teilnehmer zurück."""
-        names = []
-        for i in range(self.list_selected.count()):
-            item = self.list_selected.item(i)
-            names.append(item.text())
-        return names
 
     def _update_counts(self):
         """Aktualisiert die Count-Labels."""
@@ -594,25 +590,17 @@ class DlgParticipantSelection(QDialog):
         self._update_counts()
         self._update_button_states()
 
-    def _set_selected_participants(self, participant_names: List[str]):
+    def _set_selected_participants(self):
         """Setzt die vorausgewählten Teilnehmer."""
         # Bereits vorhandene Auswahl löschen
         self.list_selected.clear()
         
         # Teilnehmer zu ausgewählten hinzufügen
-        for name in participant_names:
-            # Person in der Cache suchen
-            person = None
-            for p in self.persons_cache:
-                if f"{p.f_name} {p.l_name}" == name:
-                    person = p
-                    break
-            
-            if person:
-                item = QListWidgetItem(name)
-                item.setData(Qt.ItemDataRole.UserRole, person.id)
-                item.setToolTip(f"{name}\nEmail: {person.email}")
-                self.list_selected.addItem(item)
+        for person in self.selected_participants:
+            item = QListWidgetItem(person.full_name)
+            item.setData(Qt.ItemDataRole.UserRole, person.id)
+            item.setToolTip(f"{person.full_name}\nEmail: {person.email}")
+            self.list_selected.addItem(item)
         
         # Listen aktualisieren
         self._update_available_list()
@@ -621,9 +609,12 @@ class DlgParticipantSelection(QDialog):
 
     def _select_and_close(self):
         """Sammelt die ausgewählten Teilnehmer und schließt den Dialog."""
-        self.selected_participants_result = self._get_selected_participant_names()
+        self.selected_participants_result = {
+            self.list_selected.item(i).data(Qt.ItemDataRole.UserRole)
+            for i in range(self.list_selected.count())
+        }
         self.accept()
 
-    def get_selected_participants(self) -> List[str]:
+    def get_selected_participants(self) -> set[UUID]:
         """Gibt die ausgewählten Teilnehmer zurück."""
         return self.selected_participants_result

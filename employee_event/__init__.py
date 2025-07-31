@@ -14,8 +14,7 @@ Architektur:
 Pony ORM Entity → Repository → Pydantic Schema → Service → Pydantic Schema → GUI
 """
 
-from .repository import EmployeeEventRepository
-from .service import EmployeeEventService
+from .db_service import EmployeeEventService
 from .exceptions import (
     EmployeeEventError,
     EmployeeEventNotFoundError,
@@ -31,15 +30,14 @@ from .schemas import (
     # Event Schemas
     EventSchema,
     EventDetailSchema,
-    CreateEventSchema,
-    UpdateEventSchema,
-    EventListSchema,
+    EventCreateSchema,
+    EventUpdateSchema,
     
     # Category Schemas
     CategorySchema,
-    CreateCategorySchema,
-    UpdateCategorySchema,
-    CategoryListSchema,
+    CategoryCreateSchema,
+    CategoryUpdateSchema,
+    CategoryDetailSchema,
     
     # Common Schemas
     SuccessResponseSchema,
@@ -52,7 +50,6 @@ __author__ = "Thomas"
 
 __all__ = [
     # Core Classes
-    "EmployeeEventRepository",
     "EmployeeEventService",
     
     # Exceptions
@@ -67,37 +64,17 @@ __all__ = [
     # Event Schemas
     "EventSchema",
     "EventDetailSchema",
-    "CreateEventSchema",
-    "UpdateEventSchema",
-    "EventListSchema",
+    "EventCreateSchema",
+    "EventUpdateSchema",
     
     # Category Schemas
     "CategorySchema",
-    "CreateCategorySchema",
-    "UpdateCategorySchema", 
-    "CategoryListSchema",
+    "CategoryCreateSchema",
+    "CategoryUpdateSchema",
+    "CategoryDetailSchema",
     
     # Common Schemas
     "SuccessResponseSchema",
     "ErrorResponseSchema",
     "StatisticsSchema"
 ]
-
-# Convenience imports für einfache Nutzung
-def create_service() -> EmployeeEventService:
-    """
-    Erstellt eine neue EmployeeEventService-Instanz.
-    
-    Returns:
-        EmployeeEventService: Service-Instanz
-    """
-    return EmployeeEventService()
-
-def create_repository() -> EmployeeEventRepository:
-    """
-    Erstellt eine neue EmployeeEventRepository-Instanz.
-    
-    Returns:
-        EmployeeEventRepository: Repository-Instanz
-    """
-    return EmployeeEventRepository()

@@ -186,9 +186,10 @@ Vollständiges Employee Event Management System mit:
 - [ ] **Transaktionale Sicherheit** - Rollback bei Fehlern, Audit-Trail
 
 #### Commands-Pattern Beispiel
+
 ```python
 # AKTUELL (Phase 1-3): Direkte Service-Calls
-result = self.service.create_event(title, description, start, end, ...)
+result = self.db_service.create_event(title, description, start, end, ...)
 
 # ZUKÜNFTIG (Phase 4): Commands für Undo/Redo
 command = employee_events_commands.CreateEvent(title, description, start, end, project_id, ...)

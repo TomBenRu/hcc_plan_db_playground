@@ -4,7 +4,7 @@ Dialog für Teilnehmer-Auswahl bei Employee Events.
 Ermöglicht Multi-Select für Personen aus Teams mit Filter-Funktionalität
 und intuitivem Drag & Drop Interface.
 """
-
+import datetime
 import logging
 from typing import List, Optional, Set
 from uuid import UUID
@@ -35,10 +35,11 @@ class DlgParticipantSelection(QDialog):
     - Ausgewählte Teilnehmer-Übersicht
     """
 
-    def __init__(self, parent: QWidget, project_id: UUID, selected_participants: Optional[List[str]] = None):
+    def __init__(self, parent: QWidget, project_id: UUID, start_date: datetime.date, selected_participants: Optional[List[str]] = None):
         super().__init__(parent=parent)
         
         self.project_id = project_id
+        self.start_date = start_date
         self.selected_participants = selected_participants or []
         
         # Daten-Cache
@@ -448,6 +449,8 @@ class DlgParticipantSelection(QDialog):
             team_name = self.combo_team_filter.currentText()
             # Hier sollten wir die aktuellen Team-Zuordnungen prüfen
             # Für die Einfachheit nehmen wir erstmal alle Personen
+            filtered = [p for p in filtered if team_id in
+                        [taa.team.id for taa in p.team_actor_assigns if not taa.end or taa.end > datetime.date.today()]]
             filter_info.append(f"Team: {team_name}")
 
         # Name-Filter

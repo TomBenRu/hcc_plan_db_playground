@@ -870,7 +870,7 @@ class DlgEmployeeEventDetails(QDialog):
             current_participants = self._current_participants.copy()
         
         # Teilnehmer-Dialog öffnen
-        dlg = DlgParticipantSelection(self, self.project_id, current_participants)
+        dlg = DlgParticipantSelection(self, self.project_id, self.date_start.date().toPython(), current_participants)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             # Ausgewählte Teilnehmer übernehmen
             selected_participants = dlg.get_selected_participants()

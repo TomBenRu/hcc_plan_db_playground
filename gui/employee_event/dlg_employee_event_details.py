@@ -604,8 +604,8 @@ class DlgEmployeeEventDetails(QDialog):
                 self.combo_teams.setCurrentIndex(self.combo_teams.findData("no_teams"))
             
             # Kategorien (erste Kategorie auswählen wenn vorhanden)
-            if result.categories:
-                category = result.categories[0]  # Vereinfachung für jetzt
+            if result.employee_event_categories:
+                category = result.employee_event_categories[0]  # Vereinfachung für jetzt
                 self.combo_categories.setCurrentIndex(self.combo_categories.findData(category.id))
             
             # Teilnehmer-Anzeige und Cache
@@ -692,11 +692,6 @@ class DlgEmployeeEventDetails(QDialog):
             else:
                 selected_team_ids = [self.combo_teams.currentData()]
             
-            selected_categories = []
-            if self.combo_categories.currentData():
-                category = self.combo_categories.currentData()
-                selected_categories = [category]
-            
             if self.is_new_mode or (self.is_edit_mode and self.chk_save_as_new.isChecked()):
                 # Neues Event erstellen
                 new_event = employee_event_schemas.EventCreate(
@@ -705,7 +700,7 @@ class DlgEmployeeEventDetails(QDialog):
                     start=start_dt,
                     end=end_dt,
                     project_id=self.project_id,
-                    category_ids=[category.id for category in selected_categories],
+                    category_ids=[self.combo_categories.currentData()],
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
@@ -728,7 +723,7 @@ class DlgEmployeeEventDetails(QDialog):
                     description=description,
                     start=start_dt,
                     end=end_dt,
-                    category_ids=[category.id for category in selected_categories],
+                    category_ids=[self.combo_categories.currentData()],
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )

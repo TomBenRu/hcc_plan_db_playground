@@ -37,7 +37,7 @@ class Event(BaseModel):
 class EventDetail(Event):
     """Detailliertes Schema für Employee Events mit Beziehungen."""
     
-    categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
+    employee_event_categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
     teams: List[schemas.Team] = Field(default_factory=list, description="Zugeordnete Teams")
     participants: List[schemas.Person] = Field(default_factory=list, description="Teilnehmer")
 

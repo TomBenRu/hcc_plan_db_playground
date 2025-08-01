@@ -54,8 +54,8 @@ class DlgEmployeeEventCategories(QDialog):
         self.selected_category_result: CategoryDetail | None = None
         
         self._setup_ui()
-        self._setup_connections()
         self._load_categories()
+        self._setup_connections()
         
         # Vorausgewählte Kategorie setzen
         if selected_category_id:
@@ -307,18 +307,18 @@ class DlgEmployeeEventCategories(QDialog):
         self.layout.addWidget(self.button_box)
 
     def _setup_connections(self):
-        """Verbindet alle Signals und Slots."""
+        """Verbindet nur Dialog-Buttons und Aktions-Buttons - NICHT die Liste."""
         # Dialog-Buttons
         self.button_box.accepted.connect(self._select_and_close)
         self.button_box.rejected.connect(self.reject)
-
-        # Kategorien-Liste
-        self.list_categories.currentItemChanged.connect(self._on_category_selected)
 
         # Aktions-Buttons
         self.btn_new_category.clicked.connect(self._new_category)
         self.btn_delete_category.clicked.connect(self._delete_category)
         self.btn_save_category.clicked.connect(self._save_category)
+
+        # Liste-Verbindung
+        self.list_categories.itemClicked.connect(self._on_category_clicked)
 
     def _load_categories(self):
         """Lädt alle Kategorien für das Projekt."""
@@ -357,21 +357,20 @@ class DlgEmployeeEventCategories(QDialog):
             item.setFlags(Qt.ItemFlag.NoItemFlags)  # Nicht auswählbar
             item.setData(Qt.ItemDataRole.UserRole, None)
             self.list_categories.addItem(item)
-            return
+        else:
+            for category in self.categories_data:
+                usage_count = self.category_usage[category.name]
 
-        for category in self.categories_data:
-            usage_count = self.category_usage[category.name]
+                # Display-Text mit Usage-Info
+                if usage_count > 0:
+                    display_text = f"{category.name} ({usage_count} events)"
+                else:
+                    display_text = f"{category.name} (unused)"
 
-            # Display-Text mit Usage-Info
-            if usage_count > 0:
-                display_text = f"{category.name} ({usage_count} events)"
-            else:
-                display_text = f"{category.name} (unused)"
-
-            item = QListWidgetItem(display_text)
-            item.setData(Qt.ItemDataRole.UserRole, category)
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.list_categories.addItem(item)
+                item = QListWidgetItem(display_text)
+                item.setData(Qt.ItemDataRole.UserRole, category)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.list_categories.addItem(item)
 
     def _select_category_by_id(self, category_id: UUID):
         """Wählt eine Kategorie in der Liste aus."""
@@ -379,24 +378,26 @@ class DlgEmployeeEventCategories(QDialog):
             item = self.list_categories.item(i)
             item_data = item.data(Qt.ItemDataRole.UserRole)
             if item_data and item_data.id == category_id:
+                # Bei programmatischer Auswahl müssen wir sowohl klick-Handler als auch UI aktualisieren
                 self.list_categories.setCurrentItem(item)
+                self._on_category_clicked(item)  # Explizit aufrufen für Details-Aktivierung
                 break
 
-    def _on_category_selected(self, current_item: QListWidgetItem, previous_item):
-        """Reagiert auf Kategorie-Auswahl."""
-        print("Current Item:", current_item)
-        print("Previous Item:", previous_item)
-        print(f'{self.current_category=}')
-        if not current_item:
+    def _on_category_clicked(self, clicked_item: QListWidgetItem):
+        """Reagiert auf Kategorie-Klick - funktioniert immer, auch beim ersten Klick."""
+        if not clicked_item:
             self._set_details_enabled(False)
             return
             
-        category_text = current_item.text()
+        category_text = clicked_item.text()
         if not category_text:  # Placeholder-Item
             self._set_details_enabled(False)
             return
         
-        self.current_category = current_item.data(Qt.ItemDataRole.UserRole)
+        # Item explizit als current setzen (für visuelle Konsistenz)
+        self.list_categories.setCurrentItem(clicked_item)
+        
+        self.current_category = clicked_item.data(Qt.ItemDataRole.UserRole)
         self._load_category_details(self.current_category)
         self._set_details_enabled(True)
 

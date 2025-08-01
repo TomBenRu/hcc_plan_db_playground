@@ -295,6 +295,48 @@ self.calendar_view_index = self.view_stack.addWidget(self.calendar_widget)
 self.view_stack.setCurrentIndex(self.list_view_index)
 ```
 
+### ✅ Qt-Signal Best Practices (02.08.2025)
+
+#### Qt List Widget Signal-Problem und -Lösung
+**Problem:** QListWidget wählt automatisch das erste Item beim Befüllen aus
+```python
+# Problematisches Signal
+self.list_categories.currentItemChanged.connect(self._on_category_selected)
+# → Wird beim Laden automatisch ausgelöst
+# → Erstes Item wird visuell "current" aber löst beim Klick kein Signal aus
+```
+
+**Root Cause:** 
+- Qt wählt automatisch das erste Item als "current" aus nach dem Befüllen
+- `currentItemChanged` wird nur ausgelöst wenn sich die Auswahl **ändert**
+- User kann erstes Item nicht direkt auswählen (bereits "current")
+
+**Lösung:** `itemClicked` Signal statt `currentItemChanged`
+```python
+# Korrekte Lösung
+self.list_categories.itemClicked.connect(self._on_category_clicked)
+# → Wird bei JEDEM Klick ausgelöst, unabhängig vom current-Status
+# → Erstes Item ist sofort auswählbar
+```
+
+**Alternative Ansätze (weniger elegant):**
+```python
+# Option 1: blockSignals() - kompliziert und unvollständig
+self.list_categories.blockSignals(True)
+# ... items hinzufügen
+self.list_categories.blockSignals(False)
+
+# Option 2: Initialization Flag - funktioniert, aber mehr Code
+if not self._initialization_complete:
+    return
+
+# Option 3: Previous-Item-Check - Workaround mit UX-Problem
+if previous_item is None and current_item is not None:
+    return  # Ignoriere automatische Auswahl
+```
+
+**Lesson Learned:** Bei Listen wo User jederzeit auf Items klicken können sollen, ist `itemClicked` oft die bessere Wahl als `currentItemChanged`!
+
 ### ✅ Widget-Hierarchie-Management
 ```python
 # KORREKT - Alle Widgets mit explizitem Parent:
@@ -393,7 +435,7 @@ def utcnow_naive():
 
 ---
 **Nächste Priorität:** Commands-Integration optional für Undo/Redo-Funktionalität  
-**Letzte Aktualisierung:** 01.08.2025  
+**Letzte Aktualisierung:** 02.08.2025  
 **Bearbeitet von:** Thomas & Claude
 
 🎉 **Phase 1-4 vollständig abgeschlossen! Moderne, elegante Architektur ohne Over-Engineering.**

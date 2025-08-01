@@ -652,7 +652,7 @@ class FrmEmployeeEventMain(QWidget):
         category_data = self.combo_category_filter.currentData()
         if isinstance(category_data, UUID):
             category_name = self.combo_category_filter.currentText()
-            filtered = [e for e in filtered if category_data in {c.id for c in e.categories}]
+            filtered = [e for e in filtered if category_data in {c.id for c in e.employee_event_categories}]
             filter_info.append(f"Category: {category_name}")
         else:
             filter_info.append(f"Category: All")
@@ -732,7 +732,8 @@ class FrmEmployeeEventMain(QWidget):
             self.table_events.setItem(row, 2, title_item)
 
             # Kategorie
-            categories = ", ".join(sorted(c.name for c in event.categories)) if event.categories else self.tr("No category")
+            categories = (", ".join(sorted(c.name for c in event.employee_event_categories))
+                          if event.employee_event_categories else self.tr("No category"))
             category_item = QTableWidgetItem(categories)
             # Deaktiviere die Editierbarkeit des Items
             category_item.setFlags(category_item.flags() & ~Qt.ItemFlag.ItemIsEditable)

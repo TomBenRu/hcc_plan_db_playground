@@ -46,7 +46,7 @@ from .schemas import (
 )
 
 # Commands für Undo/Redo-Funktionalität (Optional)
-from .db_commands import employee_event_commands
+from .db_commands import event_commands
 
 __version__ = "2.0.0"
 __author__ = "Thomas"
@@ -82,5 +82,5 @@ __all__ = [
     "StatisticsSchema",
 
     # Commands (Optional)
-    "employee_event_commands"
+    "event_commands.py"
 ]

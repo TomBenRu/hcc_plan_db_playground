@@ -23,9 +23,11 @@ from PySide6.QtWidgets import (
     QStackedWidget, QDialog
 )
 
+from commands import command_base_classes
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
+from employee_event.db_commands import event_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
 
@@ -51,6 +53,7 @@ class FrmEmployeeEventMain(QWidget):
         super().__init__(parent=parent)
 
         self.project_id = project_id
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.service = EmployeeEventService()
         self.current_view_mode = "list"  # "list" oder "calendar"
 
@@ -875,6 +878,7 @@ class FrmEmployeeEventMain(QWidget):
             self.refresh_events()
             self.event_modified.emit(event.id)
             logger.info(f"Event {event.id} updated successfully")
+            self.controller.add_to_undo_stack(dialog.controller.get_undo_stack())
 
     def _delete_selected_event(self):
         """Löscht das ausgewählte Event."""
@@ -894,7 +898,9 @@ class FrmEmployeeEventMain(QWidget):
 
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                result = self.service.delete_event(event.id)
+                command = event_commands.Delete(event.id)
+                self.controller.execute(command)
+                result = command.result
 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"),

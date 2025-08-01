@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from commands import command_base_classes
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
-from employee_event.db_commands import employee_event_commands
+from employee_event.db_commands import event_commands
 from employee_event.schemas import employee_event_schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -708,7 +708,7 @@ class DlgEmployeeEventDetails(QDialog):
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
-                command = employee_event_commands.Create(new_event)
+                command = event_commands.Create(new_event)
                 self.controller.execute(command)
                 
                 if isinstance(command.result, ErrorResponseSchema):
@@ -732,7 +732,7 @@ class DlgEmployeeEventDetails(QDialog):
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
                 # Bestehendes Event aktualisieren
-                command = employee_event_commands.Update(update_data)
+                command = event_commands.Update(update_data)
                 self.controller.execute(command)
                 
                 if isinstance(command.result, ErrorResponseSchema):

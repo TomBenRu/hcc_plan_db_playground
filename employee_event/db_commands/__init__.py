@@ -1,5 +1,5 @@
-from . import employee_event_commands
+from . import event_commands
 
 __all__ = [
-    "employee_event_commands"
+    "event_commands.py"
 ]

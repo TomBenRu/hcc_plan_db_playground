@@ -1,5 +1,7 @@
+from uuid import UUID
+
 from commands.command_base_classes import Command
-from employee_event import EventCreate, EventDetail, EventUpdate, ErrorResponseSchema
+from employee_event import EventCreate, EventDetail, EventUpdate, ErrorResponseSchema, SuccessResponseSchema
 from employee_event import db_service
 
 
@@ -47,4 +49,20 @@ class Update(Command):
 
 
 class Delete(Command):
-    pass
+    def __init__(self, event_id: UUID):
+        self.db_services = db_service.EmployeeEventService()
+        self.event_id = event_id
+        self.result: SuccessResponseSchema | ErrorResponseSchema | None = None
+
+    def execute(self):
+        self.result = self.db_services.delete_event(self.event_id)
+
+    def undo(self):
+        if isinstance(self.result, EventDetail):
+            self.db_services.undelete_event(self.event_id)
+        else:
+            raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+    def redo(self):
+        if isinstance(self.result, EventDetail):
+            self.db_services.delete_event(self.event_id)

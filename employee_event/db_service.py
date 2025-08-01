@@ -112,19 +112,20 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_all_events(self, project_id: Optional[UUID] = None) -> list[EventDetail]:
+    def get_all_events(self, project_id: UUID, include_prep_delete: bool = False) -> list[EventDetail]:
         """
         Holt alle Employee Events, optional gefiltert nach Projekt.
         
         Args:
-            project_id: Optional - Nur Events dieses Projekts
+            project_id: Nur Events dieses Projekts
             
         Returns:
             list[EventDetail]: Liste aller Events
         """
         events = models.EmployeeEvent.select()
-        if project_id:
-            events = events.filter(lambda e: e.project.id == project_id)
+        events = events.filter(lambda e: e.project.id == project_id)
+        if not include_prep_delete:
+            events = events.filter(lambda e: not e.prep_delete)
 
         return [EventDetail.model_validate(event) for event in events]
     
@@ -132,7 +133,8 @@ class EmployeeEventService:
     def get_events_by_team_name(
         self, 
         team_name: str, 
-        project_id: UUID
+        project_id: UUID,
+        include_prep_delete: bool = False
     ) -> list[EventDetail] | ErrorResponseSchema:
         """
         Holt alle Employee Events eines Teams anhand des Team-Namens.
@@ -140,6 +142,7 @@ class EmployeeEventService:
         Args:
             team_name: Name des Teams
             project_id: ID des Projekts
+            include_prep_delete: Optional - True, um gelöschte Events einzutragen
             
         Returns:
             Union[list[EventDetail], ErrorResponseSchema]: Events oder Fehler
@@ -160,6 +163,8 @@ class EmployeeEventService:
                 )
             
             events_db = models.EmployeeEvent.select().filter(lambda e: team_db in e.teams)
+            if not include_prep_delete:
+                events_db = events_db.filter(lambda e: not e.prep_delete)
             return [EventDetail.model_validate(event) for event in events_db]
             
         except Exception as e:
@@ -229,7 +234,7 @@ class EmployeeEventService:
             )
     
     @db_session
-    def delete_event(self, event_id: UUID) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
+    def delete_event(self, event_id: UUID, soft_delete: bool = True) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
         """
         Löscht ein Employee Event.
         
@@ -243,8 +248,11 @@ class EmployeeEventService:
             # Event-Titel für Meldung holen
             event_db = models.EmployeeEvent.get(id=event_id)
             title = event_db.title
-            
-            event_db.prep_delete = utcnow_naive()
+
+            if soft_delete:
+                event_db.prep_delete = utcnow_naive()
+            else:
+                event_db.delete()
 
             return SuccessResponseSchema(
                 message=f"Employee Event '{title}' erfolgreich gelöscht",
@@ -335,12 +343,12 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_all_categories_by_project(self, project_id: UUID) -> list[Category]:
+    def get_all_categories_by_project(self, project_id: UUID, include_prep_delete: bool = False) -> list[Category]:
         """
         Holt alle Employee Event Categories, optional gefiltert nach Projekt.
         
         Args:
-            project_id: Optional - Nur Kategorien dieses Projekts
+            project_id: Nur Kategorien dieses Projekts
             
         Returns:
             list[Category]: Liste aller Kategorien
@@ -354,6 +362,8 @@ class EmployeeEventService:
                     "Projekt nicht gefunden"
                 )
             categories_db = models.EmployeeEventCategory.select().filter(lambda c: c.project == project_db)
+            if not include_prep_delete:
+                categories_db = categories_db.filter(lambda c: not c.prep_delete)
 
             return [Category.model_validate(category) for category in categories_db]
             
@@ -361,7 +371,7 @@ class EmployeeEventService:
             return []
     
     @db_session
-    def update_category(category_data: CategoryUpdate) -> Union[Category, ErrorResponseSchema]:
+    def update_category(self, category_data: CategoryUpdate) -> Union[Category, ErrorResponseSchema]:
         """
         Aktualisiert eine Employee Event Category.
         
@@ -401,12 +411,13 @@ class EmployeeEventService:
             )
     
     @db_session
-    def delete_category(self, category_id: UUID) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
+    def delete_category(self, category_id: UUID, soft_delete: bool = True) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
         """
         Löscht eine Employee Event Category.
         
         Args:
             category_id: ID der zu löschenden Kategorie
+            soft_delete: Optional - True, um Soft-Delete zu verwenden
             
         Returns:
             Union[SuccessResponseSchema, ErrorResponseSchema]: Erfolg oder Fehler
@@ -416,7 +427,10 @@ class EmployeeEventService:
             category_db = models.EmployeeEventCategory.get(id=category_id)
             name = category_db.name
 
-            category_db.prep_delete = utcnow_naive()
+            if soft_delete:
+                category_db.prep_delete = utcnow_naive()
+            else:
+                category_db.delete()
             return SuccessResponseSchema(
                 message=f"Employee Event Category '{name}' erfolgreich gelöscht",
                 data={"category_id": str(category_id), "name": name}
@@ -434,29 +448,7 @@ class EmployeeEventService:
                 message=f"Fehler beim Löschen der Employee Event Category",
                 details=str(e)
             )
-    
-    # Statistiken und Reports
-    
-    def get_statistics(self, project_id: UUID) -> Union[StatisticsSchema, ErrorResponseSchema]:
-        """
-        Holt Statistiken zu Employee Events eines Projekts.
-        
-        Args:
-            project_id: ID des Projekts
-            
-        Returns:
-            Union[StatisticsSchema, ErrorResponseSchema]: Statistiken oder Fehler
-        """
-        try:
-            return self.repository.get_statistics(project_id)
-            
-        except Exception as e:
-            return ErrorResponseSchema(
-                error=type(e).__name__,
-                message=f"Fehler beim Laden der Statistiken",
-                details=str(e)
-            )
-    
+
     # Private Helper Methods
     
     @db_session

@@ -20,6 +20,7 @@ from .schemas import (
     Category,
     CategoryCreate,
     CategoryUpdate,
+    CategoryDetail,
     StatisticsSchema,
     SuccessResponseSchema,
     ErrorResponseSchema
@@ -306,6 +307,34 @@ class EmployeeEventService:
     # Employee Event Category Operations
     
     @db_session
+    def get_category(self, category_id: UUID) -> Union[CategoryDetail, ErrorResponseSchema]:
+        """
+        Holt Details zu einer Employee Event Category.
+
+        Args:
+            category_id: ID der Kategorie
+
+        Returns:
+            Union[CategoryDetail, ErrorResponseSchema]: Kategorie oder Fehler
+        """
+        try:
+            category_db = models.EmployeeEventCategory.get(id=category_id)
+            return CategoryDetail.model_validate(category_db)
+
+        except EmployeeEventCategoryError as e:
+            return ErrorResponseSchema(
+                error="CategoryNotFound",
+                message=f"Employee Event Category nicht gefunden",
+                details=str(e)
+            )
+        except Exception as e:
+            return ErrorResponseSchema(
+                error=type(e).__name__,
+                message=f"Fehler beim Laden der Employee Event Category",
+                details=str(e)
+            )
+
+    @db_session
     def create_category(self, category_create: CategoryCreate) -> Union[Category, ErrorResponseSchema]:
         """
         Erstellt eine neue Employee Event Category.
@@ -349,6 +378,7 @@ class EmployeeEventService:
         
         Args:
             project_id: Nur Kategorien dieses Projekts
+            include_prep_delete: Optional - True, um gelöschte Kategorien einzutragen
             
         Returns:
             list[Category]: Liste aller Kategorien
@@ -446,6 +476,37 @@ class EmployeeEventService:
             return ErrorResponseSchema(
                 error=type(e).__name__,
                 message=f"Fehler beim Löschen der Employee Event Category",
+                details=str(e)
+            )
+    @db_session
+    def undelete_category(self, category_id: UUID) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
+        """
+        Wiederherstellung einer gelöschten Employee Event Category.
+
+        Args:
+            category_id: ID der zu wiederherstellenden Kategorie
+
+        Returns:
+            Union[SuccessResponseSchema, ErrorResponseSchema]: Erfolg oder Fehler
+        """
+        try:
+            category_db = models.EmployeeEventCategory.get(id=category_id)
+            category_db.prep_delete = None
+            return SuccessResponseSchema(
+                message=f"Employee Event Category '{category_db.name}' erfolgreich wiederhergestellt",
+                data={"category_id": str(category_id), "name": category_db.name}
+            )
+
+        except EmployeeEventCategoryError as e:
+            return ErrorResponseSchema(
+                error="CategoryNotFound",
+                message=f"Employee Event Category nicht gefunden",
+                details=str(e)
+            )
+        except Exception as e:
+            return ErrorResponseSchema(
+                error=type(e).__name__,
+                message=f"Fehler beim Wiederherstellen der Employee Event Category",
                 details=str(e)
             )
 

@@ -165,6 +165,7 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     """Schema für das Aktualisieren von Employee Event Categories."""
 
+    id: UUID
     name: Optional[str] = Field(None, min_length=1, max_length=40, description="Neuer Name")
     description: Optional[str] = Field(None, description="Neue Beschreibung")
 

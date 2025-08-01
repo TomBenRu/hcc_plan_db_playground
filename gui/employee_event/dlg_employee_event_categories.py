@@ -17,7 +17,9 @@ from PySide6.QtWidgets import (
     QFormLayout, QFrame
 )
 
-from employee_event import EmployeeEventService, ErrorResponseSchema
+from commands import command_base_classes
+from employee_event import EmployeeEventService, ErrorResponseSchema, CategoryDetail, CategoryCreate, CategoryUpdate
+from employee_event.db_commands import category_commands
 
 logger = logging.getLogger(__name__)
 
@@ -34,27 +36,30 @@ class DlgEmployeeEventCategories(QDialog):
     - Service-Layer-Integration
     """
 
-    def __init__(self, parent: QWidget, project_id: UUID, selected_category: Optional[str] = None):
+    def __init__(self, parent: QWidget, project_id: UUID, selected_category_id: Optional[UUID] = None):
         super().__init__(parent=parent)
-        
+
         self.project_id = project_id
-        self.selected_category = selected_category
+        self.selected_category_id = selected_category_id
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
         self.service = EmployeeEventService()
         
         # Daten-Cache
-        self.categories_data = {}  # {category_name: usage_count}
-        self.current_category = None
+        self.categories_data: list[CategoryDetail] = []
+        self.category_usage: dict[str, int] = {}
+        self.current_category: CategoryDetail | None = None
         
         # Return-Wert für aufrufenden Dialog
-        self.selected_category_result = None
+        self.selected_category_result: CategoryDetail | None = None
         
         self._setup_ui()
         self._setup_connections()
         self._load_categories()
         
         # Vorausgewählte Kategorie setzen
-        if selected_category:
-            self._select_category_by_name(selected_category)
+        if selected_category_id:
+            self._select_category_by_id(selected_category_id)
             
         logger.info(f"Employee Event Categories Dialog initialized for project {project_id}")
 
@@ -315,27 +320,22 @@ class DlgEmployeeEventCategories(QDialog):
         self.btn_delete_category.clicked.connect(self._delete_category)
         self.btn_save_category.clicked.connect(self._save_category)
 
-        # Auto-Save bei Eingaben (mit Verzögerung)
-        self.save_timer = QTimer()
-        self.save_timer.setSingleShot(True)
-        self.save_timer.timeout.connect(self._auto_save_category)
-        
-        self.le_category_name.textChanged.connect(self._on_details_changed)
-        self.te_category_description.textChanged.connect(self._on_details_changed)
-
     def _load_categories(self):
         """Lädt alle Kategorien für das Projekt."""
         try:
             # Events laden um Usage-Count zu berechnen
             event_list = self.service.get_all_events(self.project_id)
+
+            self.categories_data = sorted(
+                self.service.get_all_categories_by_project(self.project_id),
+                key=lambda c: c.name
+            )
             
             # Usage-Count pro Kategorie berechnen
-            category_usage = {}
-            for event in event_list.events:
+            self.category_usage = {c.name: 0 for c in self.categories_data}
+            for event in event_list:
                 for category in event.categories:
-                    category_usage[category] = category_usage.get(category, 0) + 1
-            
-            self.categories_data = category_usage
+                    self.category_usage[category.name] += 1
             
             # Liste aktualisieren
             self._refresh_categories_list()
@@ -358,53 +358,58 @@ class DlgEmployeeEventCategories(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, None)
             self.list_categories.addItem(item)
             return
-        
-        # Kategorien alphabetisch sortiert
-        for category_name in sorted(self.categories_data.keys()):
-            usage_count = self.categories_data[category_name]
-            
+
+        for category in self.categories_data:
+            usage_count = self.category_usage[category.name]
+
             # Display-Text mit Usage-Info
             if usage_count > 0:
-                display_text = f"{category_name} ({usage_count} events)"
+                display_text = f"{category.name} ({usage_count} events)"
             else:
-                display_text = f"{category_name} (unused)"
-            
+                display_text = f"{category.name} (unused)"
+
             item = QListWidgetItem(display_text)
-            item.setData(Qt.ItemDataRole.UserRole, category_name)
+            item.setData(Qt.ItemDataRole.UserRole, category)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.list_categories.addItem(item)
 
-    def _select_category_by_name(self, category_name: str):
+    def _select_category_by_id(self, category_id: UUID):
         """Wählt eine Kategorie in der Liste aus."""
         for i in range(self.list_categories.count()):
             item = self.list_categories.item(i)
-            if item.data(Qt.ItemDataRole.UserRole) == category_name:
+            item_data = item.data(Qt.ItemDataRole.UserRole)
+            if item_data and item_data.id == category_id:
                 self.list_categories.setCurrentItem(item)
                 break
 
-    def _on_category_selected(self, current_item, previous_item):
+    def _on_category_selected(self, current_item: QListWidgetItem, previous_item):
         """Reagiert auf Kategorie-Auswahl."""
+        print("Current Item:", current_item)
+        print("Previous Item:", previous_item)
+        print(f'{self.current_category=}')
         if not current_item:
             self._set_details_enabled(False)
             return
             
-        category_name = current_item.data(Qt.ItemDataRole.UserRole)
-        if not category_name:  # Placeholder-Item
+        category_text = current_item.text()
+        if not category_text:  # Placeholder-Item
             self._set_details_enabled(False)
             return
         
-        self.current_category = category_name
-        self._load_category_details(category_name)
+        self.current_category = current_item.data(Qt.ItemDataRole.UserRole)
+        self._load_category_details(self.current_category)
         self._set_details_enabled(True)
 
-    def _load_category_details(self, category_name: str):
+    def _load_category_details(self, category: CategoryDetail):
         """Lädt die Details einer Kategorie."""
         try:
             # Für jetzt: Nur Name (da wir keine Beschreibung in der aktuellen Implementierung haben)
-            self.le_category_name.setText(category_name)
-            self.te_category_description.clear()  # TODO: Beschreibung aus DB laden wenn implementiert
+            self.le_category_name.setText(category.name)
+            self.te_category_description.clear()
+            self.te_category_description.append(category.description)
             
             # Usage-Info anzeigen
-            usage_count = self.categories_data.get(category_name, 0)
+            usage_count = self.category_usage.get(category.name, 0)
             if usage_count > 0:
                 usage_text = self.tr(f"This category is used in {usage_count} event(s).")
                 if usage_count > 0:
@@ -431,22 +436,25 @@ class DlgEmployeeEventCategories(QDialog):
 
     def _new_category(self):
         """Erstellt eine neue Kategorie."""
-        # Neue Kategorie in Liste hinzufügen (temporär)
-        new_name = self.tr("New Category")
-        counter = 1
-        while new_name in self.categories_data:
-            new_name = f"{self.tr('New Category')} {counter}"
-            counter += 1
-        
-        # Temporär zu Daten hinzufügen
-        self.categories_data[new_name] = 0
-        
-        # Liste aktualisieren und neue Kategorie auswählen
-        self._refresh_categories_list()
-        self._select_category_by_name(new_name)
+        # # Neue Kategorie in Liste hinzufügen (temporär)
+        # new_name = self.tr("New Category")
+        # counter = 1
+        # while new_name in self.categories_data:
+        #     new_name = f"{self.tr('New Category')} {counter}"
+        #     counter += 1
+        #
+        # # Temporär zu Daten hinzufügen
+        # self.categories_data[new_name] = 0
+        #
+        # # Liste aktualisieren und neue Kategorie auswählen
+        # self._refresh_categories_list()
+        # self._select_category_by_id(new_name)
         
         # Fokus auf Name-Feld für sofortige Bearbeitung
-        self.le_category_name.selectAll()
+        self.current_category = None
+        self.list_categories.clearSelection()
+        self._set_details_enabled(True)
+        self.le_category_name.clear()
         self.le_category_name.setFocus()
 
     def _delete_category(self):
@@ -495,18 +503,7 @@ class DlgEmployeeEventCategories(QDialog):
 
     def _save_category(self):
         """Speichert die aktuelle Kategorie."""
-        self._auto_save_category()
 
-    def _on_details_changed(self):
-        """Reagiert auf Änderungen in den Details-Feldern."""
-        # Verzögertes Auto-Save starten
-        self.save_timer.start(1000)  # 1 Sekunde Verzögerung
-
-    def _auto_save_category(self):
-        """Automatisches Speichern der Kategorie."""
-        if not self.current_category:
-            return
-        
         new_name = self.le_category_name.text().strip()
         if not new_name:
             QMessageBox.warning(self, self.tr("Validation Error"), 
@@ -514,24 +511,53 @@ class DlgEmployeeEventCategories(QDialog):
             return
         
         try:
-            # Name geändert?
-            if new_name != self.current_category:
-                # Name-Änderung in lokalen Daten
-                if self.current_category in self.categories_data:
-                    usage_count = self.categories_data[self.current_category]
-                    del self.categories_data[self.current_category]
-                    self.categories_data[new_name] = usage_count
-                
-                self.current_category = new_name
-                
-                # Liste aktualisieren
+            # falls eine neue Kategorie erstellt werden soll
+            if not self.current_category:
+                if new_name in [c.name for c in self.categories_data]:
+                    QMessageBox.warning(self, self.tr("Validation Error"),
+                                      self.tr("A category with this name already exists."))
+                    return
+                category_create = CategoryCreate(
+                    name=new_name,
+                    description=self.te_category_description.toPlainText().strip(),
+                    project_id=self.project_id
+                )
+                command = category_commands.Create(category_create)
+                self.controller.execute(command)
+
+                if isinstance(command.result, ErrorResponseSchema):
+                    QMessageBox.critical(self, self.tr("Error"),
+                                       self.tr(f"Could not create category: {command.result.message}"))
+                    return
+
+                self.categories_data.append(command.result)
+                self.category_usage[new_name] = 0
                 self._refresh_categories_list()
-                self._select_category_by_name(new_name)
+                self._select_category_by_id(command.result.id)
             
-            # TODO: Service-Method für Kategorie-Update implementieren
-            # description = self.te_category_description.toPlainText().strip()
-            
-            logger.info(f"Category saved: {new_name}")
+                logger.info(f"Category saved: {new_name}")
+
+            else:
+                # falls eine bestehende Kategorie aktualisiert werden soll
+                category_update = CategoryUpdate(
+                    id=self.current_category.id,
+                    name=new_name,
+                    description=self.te_category_description.toPlainText().strip()
+                )
+                command = category_commands.Update(category_update)
+                self.controller.execute(command)
+
+                if isinstance(command.result, ErrorResponseSchema):
+                    QMessageBox.critical(self, self.tr("Error"),
+                                       self.tr(f"Could not update category: {command.result.message}"))
+                    return
+
+                index = [c.id for c in self.categories_data].index(self.current_category.id)
+                old_name = self.categories_data[index].name
+                self.category_usage[new_name] = self.category_usage.pop(old_name)
+                self.categories_data[index] = command.result
+                self._refresh_categories_list()
+                self._select_category_by_id(command.result.id)
             
         except Exception as e:
             logger.error(f"Error saving category: {e}")
@@ -548,6 +574,10 @@ class DlgEmployeeEventCategories(QDialog):
         
         self.accept()
 
-    def get_selected_category(self) -> Optional[str]:
+    def get_selected_category(self) -> Optional[CategoryDetail]:
         """Gibt die ausgewählte Kategorie zurück."""
         return self.selected_category_result
+
+    def reject(self, /):
+        self.controller.undo_all()
+        super().reject()

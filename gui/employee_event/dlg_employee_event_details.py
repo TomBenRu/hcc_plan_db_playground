@@ -522,7 +522,8 @@ class DlgEmployeeEventDetails(QDialog):
             self.combo_teams.addItem("No teams", "no_teams")
 
             # Kategorien laden
-            self.categories_cache = self.db_service.get_all_categories_by_project(self.project_id)
+            self.categories_cache = sorted(self.db_service.get_all_categories_by_project(self.project_id),
+                                           key=lambda c: c.name)
             
             # Kategorie-Dropdown befüllen
             self.combo_categories.addItem(self.tr("No category"), None)
@@ -816,20 +817,19 @@ class DlgEmployeeEventDetails(QDialog):
         from gui.employee_event.dlg_employee_event_categories import DlgEmployeeEventCategories
         
         # Aktuell ausgewählte Kategorie ermitteln
-        current_category = None
-        if self.combo_categories.currentData():
-            current_category = self.combo_categories.currentData()
+        current_category = self.combo_categories.currentData()
         
         # Kategorie-Dialog öffnen
         dlg = DlgEmployeeEventCategories(self, self.project_id, current_category)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             # Kategorien-Liste aktualisieren
             self._refresh_categories_list()
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             
             # Ausgewählte Kategorie setzen
             selected_category = dlg.get_selected_category()
             if selected_category:
-                self._set_selected_category(selected_category)
+                self._set_selected_category(selected_category.id)
 
     def _refresh_categories_list(self):
         """Aktualisiert die Kategorien-Liste nach Änderungen."""

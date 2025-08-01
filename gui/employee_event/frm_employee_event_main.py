@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
-from employee_event import EmployeeEventService, EventDetailSchema, ErrorResponseSchema
+from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
 
@@ -55,8 +55,8 @@ class FrmEmployeeEventMain(QWidget):
         self.current_view_mode = "list"  # "list" oder "calendar"
 
         # Daten-Cache
-        self.events_cache: List[EventDetailSchema] = []
-        self.filtered_events: List[EventDetailSchema] = []
+        self.events_cache: List[EventDetail] = []
+        self.filtered_events: List[EventDetail] = []
         self.teams_cache: List[schemas.Team] = []
         self.categories_cache: List[str] = []
 
@@ -232,7 +232,7 @@ class FrmEmployeeEventMain(QWidget):
             self.tr("Date"),
             self.tr("Time"),
             self.tr("Title"),
-            self.tr("Category"),
+            self.tr("Categories"),
             self.tr("Teams"),
             self.tr("Participants")
         ]
@@ -243,7 +243,8 @@ class FrmEmployeeEventMain(QWidget):
         # Header-Styling
         header = self.table_events.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)  # Title-Spalte dehnbar
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         header.setStyleSheet("""
             QHeaderView::section {
                 background-color: #006d6d;
@@ -271,7 +272,7 @@ class FrmEmployeeEventMain(QWidget):
                 background-color: #353535;
             }
             QTableWidget::item:selected {
-                background-color: #006d6d;
+                background-color: #003535;
                 color: white;
             }
         """)
@@ -699,27 +700,37 @@ class FrmEmployeeEventMain(QWidget):
             # Datum (mit Config-Formatierung)
             date_item = QTableWidgetItem(date_to_string(event.start.date()))
             date_item.setData(Qt.ItemDataRole.UserRole, event.id)
+            # Deaktiviere die Editierbarkeit des Items
+            date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 0, date_item)
 
             # Zeitspanne (mit Config-Formatierung)
             start_time = time_to_string(event.start.time())
             end_time = time_to_string(event.end.time())
             time_item = QTableWidgetItem(f"{start_time} - {end_time}")
+            # Deaktiviere die Editierbarkeit des Items
+            time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 1, time_item)
 
             # Titel
             title_item = QTableWidgetItem(event.title)
             title_item.setToolTip(event.description)
+            # Deaktiviere die Editierbarkeit des Items
+            title_item.setFlags(title_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 2, title_item)
 
             # Kategorie
             categories = ", ".join(sorted(c.name for c in event.categories)) if event.categories else self.tr("No category")
             category_item = QTableWidgetItem(categories)
+            # Deaktiviere die Editierbarkeit des Items
+            category_item.setFlags(category_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 3, category_item)
 
             # Teams
             teams = ", ".join(sorted(t.name for t in event.teams)) if event.teams else self.tr("No teams")
             teams_item = QTableWidgetItem(teams)
+            # Deaktiviere die Editierbarkeit des Items
+            teams_item.setFlags(teams_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 4, teams_item)
 
             # Teilnehmer-Anzahl
@@ -727,6 +738,8 @@ class FrmEmployeeEventMain(QWidget):
             participants_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if event.participants:
                 participants_item.setToolTip(", ".join(sorted(p.full_name for p in event.participants)))
+            # Deaktiviere die Editierbarkeit des Items
+            participants_item.setFlags(participants_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self.table_events.setItem(row, 5, participants_item)
 
     def _update_calendar_view(self):
@@ -825,7 +838,7 @@ class FrmEmployeeEventMain(QWidget):
 
         return None
 
-    def get_selected_event(self) -> Optional[EventDetailSchema]:
+    def get_selected_event(self) -> Optional[EventDetail]:
         """Gibt das aktuell ausgewählte Event zurück."""
         event_id = self.get_selected_event_id()
         if event_id:

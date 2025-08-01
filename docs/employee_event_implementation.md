@@ -67,22 +67,25 @@ self.command_manager.redo()  # Aktion wiederholen
 
 ## Architektur
 
-### Modern Pydantic v2 Pattern
+### Moderne Schema-driven Pattern (überarbeitet)
 ```
-Pony ORM Entity → Repository → Pydantic Schema → Service → Pydantic Schema → GUI
+Pony ORM Entity → Pydantic Schema → Service → Pydantic Schema → GUI
 ```
+
+**⚠️ Repository Pattern entfernt** - War Over-Engineering bei PonyORM
 
 ### Verzeichnisstruktur
 ```
 employee_event/
 ├── __init__.py               # Package-Exports
 ├── exceptions.py             # Custom Exception-Klassen (7 Exceptions)
-├── repository.py             # Datenbankzugriff mit Pydantic-Returns
-├── service.py               # Business Logic API
+├── db_service.py            # Service-Layer mit direkter PonyORM-Integration
+├── db_commands/             # Commands für Undo/Redo (in Entwicklung)
+│   ├── __init__.py
+│   └── employee_event_commands.py
 └── schemas/                 # Pydantic v2 Schemas
     ├── __init__.py          # Schema-Exports
-    ├── event_schemas.py     # Event-spezifische Schemas
-    ├── category_schemas.py  # Category-spezifische Schemas
+    ├── event_and_category_schemas.py  # Event & Category Schemas
     └── common_schemas.py    # Response/Statistics-Schemas
 ```
 
@@ -120,21 +123,14 @@ class EmployeeEventCategory(db.Entity):
 
 ## API Overview
 
-### Repository Layer (Typsicher)
-- `create_event(CreateEventSchema) → EventDetailSchema`
-- `get_event(UUID) → EventDetailSchema` 
+### Service Layer (Direkte PonyORM Integration)
+- `create_event(EventCreateSchema) → EventDetailSchema | ErrorResponseSchema`
+- `get_event(UUID) → EventDetailSchema | ErrorResponseSchema` 
 - `get_all_events(project_id?) → List[EventDetailSchema]`
-- `update_event(UUID, UpdateEventSchema) → EventDetailSchema`
-- `delete_event(UUID) → bool`
-- `create_category(CreateCategorySchema) → CategorySchema`
-- `get_statistics(UUID) → StatisticsSchema`
-
-### Service Layer (Business Logic)
-- `create_event(title, description, start, end, project_id, ...) → EventDetailSchema | ErrorResponseSchema`
-- `get_event(UUID) → EventDetailSchema | ErrorResponseSchema`
-- `get_all_events(project_id?) → EventListSchema`
-- `update_event(event_id, title?, description?, start?, end?, ...) → EventDetailSchema | ErrorResponseSchema`
+- `update_event(EventUpdateSchema) → EventDetailSchema | ErrorResponseSchema`
 - `delete_event(UUID) → SuccessResponseSchema | ErrorResponseSchema`
+- `create_category(CategoryCreateSchema) → CategorySchema | ErrorResponseSchema`
+- `get_all_categories_by_project(UUID) → List[CategorySchema]`
 
 ## Pydantic v2 Standards
 
@@ -159,6 +155,43 @@ event_data = {
     'categories': [cat.name for cat in event.employee_event_categories]
 }
 return EventDetailSchema.model_validate(event_data)
+```
+
+## Architektur-Entscheidungen
+
+### ✅ Repository Pattern entfernt (v2.6.0)
+**Problem:** Over-Engineering - PonyORM ist bereits eine perfekte Abstraktion  
+**Lösung:** Direkte Service → PonyORM Integration mit Pydantic Schemas
+
+**Vorher (Over-Engineering):**
+```
+Database → PonyORM → Repository → Service → GUI
+```
+
+**Jetzt (Elegant):**
+```
+Database → PonyORM → Service → GUI
+```
+
+**Vorteile der neuen Architektur:**
+- **Weniger Code** = weniger Bugs
+- **Bessere Performance** - keine unnötigen Mapping-Ebenen
+- **Modernere Patterns** - Schema-driven Design
+- **Direkte PonyORM-Integration** - nutzt alle ORM-Features optimal
+
+### ✅ Schema-driven Service API
+```python
+# Modern: Schema-basierte API
+def create_event(self, event_create: EventCreateSchema) -> Union[EventDetailSchema, ErrorResponseSchema]:
+    project_db = models.Project.get(id=event_create.project_id)
+    event_db = models.EmployeeEvent(
+        title=event_create.title,
+        description=event_create.description,
+        start=event_create.start,
+        end=event_create.end,
+        project=project_db
+    )
+    return EventDetailSchema.model_validate(event_db)
 ```
 
 ## Implementierung-Details
@@ -288,6 +321,11 @@ result = service.create_event(
 - **v2.4.2** - **Commands-Pattern Dokumentation**: Wichtige Architektur-Hinweise für Production-System (30.07.2025)
 - **v2.5.0** - **Teilnehmer-Auswahl-Dialog**: dlg_participant_selection.py komplett implementiert (30.07.2025)
 - **v2.5.1** - **Teilnehmer-Integration**: Automatische Übernahme vorhandener Teilnehmer beim Öffnen des Auswahl-Dialogs (30.07.2025)
+- **v2.6.0** - **Architektur-Refactoring**: Repository Pattern entfernt, Schema-driven Service API (01.08.2025)
+  - ✅ **Over-Engineering eliminiert** - Direkte Service ↔ PonyORM Integration
+  - ✅ **Schema-basierte APIs** - EventCreateSchema, EventUpdateSchema, CategoryCreateSchema
+  - ✅ **Performance-Verbesserung** - Weniger Abstraktionsebenen
+  - ✅ **Commands-Pattern vorbereitet** - db_commands/ Struktur für Undo/Redo
 
 ## Nächste Schritte
 

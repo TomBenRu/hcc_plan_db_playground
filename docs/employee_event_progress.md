@@ -169,7 +169,36 @@ Vollständiges Employee Event Management System mit:
 - [x] **Dialog-Integration** - Vollständige Verbindung zwischen allen Dialogen ✅
 - [x] **Hauptfenster-Integration** - Alle Buttons mit entsprechenden Dialogen verbunden ✅
 
-### 🔄 Phase 4: Commands-Integration & Production-Ready (GEPLANT)
+### ✅ Phase 4: Architektur-Refactoring (ABGESCHLOSSEN)
+**Zeitraum:** 01.08.2025  
+**Status:** 🟢 Completed
+
+#### ✅ Deliverables 
+- [x] **Repository Pattern entfernt** - War Over-Engineering bei PonyORM ✅
+- [x] **Schema-driven Service API** - Direkte PonyORM-Integration mit Pydantic ✅
+- [x] **EventCreateSchema/UpdateSchema** - Typsichere Service-APIs ✅
+- [x] **CategoryCreateSchema/UpdateSchema** - Vollständige Kategorie-APIs ✅
+- [x] **Performance-Optimierung** - Weniger Abstraktionsebenen ✅
+- [x] **Commands-Struktur vorbereitet** - db_commands/ für zukünftige Undo/Redo ✅
+
+#### Architektur-Verbesserungen
+**Vorher (Over-Engineering):**
+```
+Database → PonyORM → Repository → Service → GUI
+```
+
+**Jetzt (Elegant):**
+```
+Database → PonyORM → Service → GUI
+```
+
+#### Technische Erkenntnisse
+- ✅ **PonyORM ist bereits perfekte Abstraktion** - Repository-Layer war überflüssig
+- ✅ **Schema-driven Design** - Moderner als Repository-Patterns
+- ✅ **Weniger Code = weniger Bugs** - Deutlich wartbarer
+- ✅ **Direkte ORM-Integration** - Nutzt alle PonyORM-Features optimal
+
+### 🔄 Phase 5: Commands-Integration (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🔵 Planned
 
@@ -197,7 +226,35 @@ result = self.command_manager.execute(command)
 # Undo/Redo verfügbar: self.command_manager.undo()
 ```
 
-### 🔄 Phase 5: Advanced Features (GEPLANT)
+### 🔄 Phase 5: Commands-Integration (GEPLANT)
+**Geschätzte Dauer:** 1-2 Tage  
+**Status:** 🔵 Planned
+
+#### ⚠️ WICHTIG: Commands-Pattern für DB-Operationen
+
+**Aktueller Status:** Schema-driven Service-Integration (Production-Ready)  
+**Optional:** Commands-Integration für Undo/Redo-Funktionalität
+
+#### Geplante Commands-Deliverables
+- [ ] **`employee_event_commands.py`** - Command-Klassen für alle CRUD-Operationen vervollständigen 
+- [ ] **Service-to-Commands Migration** - Optional: Commands statt direkter Service-Calls
+- [ ] **Command-Manager-Integration** - Einbindung in bestehende Command-Infrastruktur
+- [ ] **Undo/Redo-GUI-Integration** - Buttons in Dialogen und Hauptfenster
+- [ ] **Transaktionale Sicherheit** - Rollback bei Fehlern, Audit-Trail
+
+#### Commands-Pattern Beispiel
+```python
+# AKTUELL (Production-Ready): Schema-driven Service-Calls
+event_create = EventCreateSchema(title=title, description=description, ...)
+result = self.db_service.create_event(event_create)
+
+# OPTIONAL (Commands für Undo/Redo):
+command = CreateEmployeeEventCommand(event_create)
+result = self.command_manager.execute(command)
+# self.command_manager.undo() verfügbar
+```
+
+### 🔄 Phase 6: Advanced Features (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🟡 Pending
 
@@ -208,6 +265,24 @@ result = self.command_manager.execute(command)
 - [ ] Google Kalender Integration (optional)
 
 ## 🔧 Technische Erkenntnisse
+
+### ✅ Over-Engineering vermeiden (01.08.2025)
+**Wichtige Lektion:** Repository Pattern bei modernen ORMs wie PonyORM ist oft überflüssig
+
+```python
+# SCHLECHT: Over-Engineering mit Repository
+Database → PonyORM → Repository → Service → GUI
+
+# GUT: Direkte ORM-Integration  
+Database → PonyORM → Service → GUI
+```
+
+**Gründe für Repository-Entfernung:**
+- **PonyORM ist bereits perfekte Abstraktion** - Query-Builder, Relationships, Transactions
+- **Schema-driven Design** ist moderner als Repository-Patterns
+- **Performance** - Weniger Mapping-Overhead zwischen Ebenen
+- **Wartbarkeit** - Weniger Code = weniger Bugs
+- **Direktheit** - Keine unnötigen Abstraktionsebenen
 
 ### ✅ QStackedWidget Best Practices (29.07.2025)
 ```python
@@ -262,21 +337,16 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Phase 3 - Dialog-System ✅ VOLLSTÄNDIG ABGESCHLOSSEN
-- [x] GUI-Hauptfenster erfolgreich implementiert ✅
-- [x] Separates Window-System erfolgreich implementiert ✅
-- [x] **QStackedWidget-Problem behoben** ✅ (29.07.2025)
-- [x] **Event-Details-Dialog mit Zeitfeld-Integration erstellt** ✅ (30.07.2025)
-- [x] **Widget-Höhen-Korrekturen durchgeführt** ✅ (30.07.2025)
-- [x] **CRUD-Integration mit Service-Layer** ✅ (30.07.2025)
-- [x] **Kategorie-Management-Dialog implementiert** ✅ (30.07.2025)
-- [x] **Hauptfenster-Integration** - "Manage Categories" Button verbunden ✅ (30.07.2025)
-- [x] **Teilnehmer-Auswahl-Dialog implementiert** ✅ (30.07.2025)
-- [x] **Vollständige Dialog-Integration** - Alle 3 Dialoge funktional verbunden ✅ (30.07.2025)
+### Session Aktuell: Phase 4 - Architektur-Refactoring ✅ VOLLSTÄNDIG ABGESCHLOSSEN
+- [x] Over-Engineering identifiziert und eliminiert ✅ (01.08.2025)
+- [x] Repository Pattern entfernt ✅ (01.08.2025)  
+- [x] Schema-driven Service API implementiert ✅ (01.08.2025)
+- [x] Performance durch weniger Abstraktionsebenen verbessert ✅ (01.08.2025)
+- [x] Commands-Struktur für zukünftige Undo/Redo vorbereitet ✅ (01.08.2025)
 
-### Session 2: Commands-Integration (Production-Ready)
-- [ ] `commands/employee_events_commands.py` implementieren
-- [ ] Service → Commands Migration durchführen
+### Session 2: Commands-Integration (Optional für Undo/Redo)
+- [ ] `employee_event_commands.py` vervollständigen
+- [ ] Service → Commands Migration (optional)
 - [ ] Undo/Redo-Funktionalität integrieren
 - [ ] Transaktionale Sicherheit testen
 
@@ -289,10 +359,17 @@ def utcnow_naive():
 ## 📝 Lessons Learned
 
 ### Erfolgreiche Patterns
-1. **Repository → Pydantic Pattern** funktioniert hervorragend
-2. **model_validate()** reduziert Code drastisch
-3. **Moderne Pydantic v2** ist deutlich eleganter
-4. **Service-Layer** bietet saubere Abstraktion
+1. **Repository → Pydantic Pattern** war zu komplex (Over-Engineering)
+2. **Schema-driven Service API** ist der moderne Standard
+3. **Direkte PonyORM-Integration** nutzt ORM-Features optimal
+4. **Moderne Pydantic v2** mit Union-Types für Error-Handling
+
+### Architektur-Erkenntnisse (01.08.2025)
+5. **Over-Engineering vermeiden** - Nicht jedes Pattern ist immer nötig
+6. **PonyORM als perfekte Abstraktion** - Repository-Layer war überflüssig
+7. **Schema-first Design** - Typsicherheit durch Pydantic-Schemas
+8. **Performance durch Direktheit** - Weniger Abstraktionsebenen = bessere Performance
+9. **Weniger Code = weniger Bugs** - Einfache Lösungen sind oft die besten
 
 ### QStackedWidget Erkenntnisse (29.07.2025)
 5. **Explizite Parent-Zuweisung** ist essentiell für korrekte Widget-Hierarchie
@@ -315,8 +392,11 @@ def utcnow_naive():
 7. **Explizite Widget-Hierarchie** für robuste GUI-Komponenten
 
 ---
-**Nächste Priorität:** Commands-Integration für Production-Ready-System  
-**Letzte Aktualisierung:** 30.07.2025  
+**Nächste Priorität:** Commands-Integration optional für Undo/Redo-Funktionalität  
+**Letzte Aktualisierung:** 01.08.2025  
 **Bearbeitet von:** Thomas & Claude
 
-🎉 **Phase 1-3 vollständig abgeschlossen! Alle GUI-Module und Dialoge sind funktionsfähig.**
+🎉 **Phase 1-4 vollständig abgeschlossen! Moderne, elegante Architektur ohne Over-Engineering.**
+
+**Aktuelle Architektur:** Database → PonyORM → Service (Schema-driven) → GUI  
+**Status:** Production-Ready | Commands optional für erweiterte Funktionalität

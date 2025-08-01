@@ -5,15 +5,15 @@ Enthält alle Datenstrukturen für typsichere API-Kommunikation
 zwischen Repository, Service und GUI-Layer.
 """
 
-from .event_and_category_schemas import (
-    EventSchema,
-    EventCreateSchema,
-    EventUpdateSchema,
-    EventDetailSchema,
-    CategorySchema,
-    CategoryCreateSchema,
-    CategoryUpdateSchema,
-    CategoryDetailSchema
+from .employee_event_schemas import (
+    Event,
+    EventCreate,
+    EventUpdate,
+    EventDetail,
+    Category,
+    CategoryCreate,
+    CategoryUpdate,
+    CategoryDetail
 )
 
 from .common_schemas import (
@@ -24,16 +24,16 @@ from .common_schemas import (
 
 __all__ = [
     # Event Schemas
-    "EventSchema",
-    "EventCreateSchema",
-    "EventUpdateSchema",
-    "EventDetailSchema",
+    "Event",
+    "EventCreate",
+    "EventUpdate",
+    "EventDetail",
     
     # Category Schemas
-    "CategorySchema",
-    "CategoryCreateSchema",
-    "CategoryUpdateSchema",
-    "CategoryDetailSchema",
+    "Category",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryDetail",
     
     # Common Schemas
     "SuccessResponseSchema",

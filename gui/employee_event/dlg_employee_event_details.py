@@ -18,10 +18,12 @@ from PySide6.QtWidgets import (
     QDialogButtonBox, QMessageBox, QPushButton, QCheckBox
 )
 
+from commands import command_base_classes
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
-from employee_event.schemas import event_and_category_schemas
-from employee_event import EmployeeEventService, EventDetailSchema, ErrorResponseSchema
+from employee_event.db_commands import employee_event_commands
+from employee_event.schemas import employee_event_schemas
+from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
 
@@ -47,9 +49,11 @@ class DlgEmployeeEventDetails(QDialog):
         self.project_id = project_id
         self.event_id = event_id
         self.db_service = EmployeeEventService()
+
+        self.controller = command_base_classes.ContrExecUndoRedo()
         
         # Daten-Cache
-        self.current_event: Optional[EventDetailSchema] = None
+        self.current_event: Optional[EventDetail] = None
         self.teams_cache: List[schemas.Team] = []
         self.categories_cache: List[str] = []
         self.persons_cache: list[schemas.Person] = []
@@ -512,9 +516,10 @@ class DlgEmployeeEventDetails(QDialog):
             self.persons_cache = db_services.Person.get_all_from__project(self.project_id)
             
             # Team-Dropdown befüllen
-            self.combo_teams.addItem(self.tr("All teams"), None)
+            self.combo_teams.addItem(self.tr("All teams"), "all_teams")
             for team in self.teams_cache:
                 self.combo_teams.addItem(team.name, team.id)
+            self.combo_teams.addItem("No teams", "no_teams")
 
             # Kategorien laden
             self.categories_cache = self.db_service.get_all_categories_by_project(self.project_id)
@@ -589,11 +594,13 @@ class DlgEmployeeEventDetails(QDialog):
             self._update_end_minimums()
             
             # Teams (erste Team auswählen wenn vorhanden)
-            if result.teams:
-                team = result.teams[0]  # Vereinfachung für jetzt
+            if len(result.teams) == 1:
+                team = result.teams[0]
                 self.combo_teams.setCurrentIndex(self.combo_teams.findData(team.id))
+            elif len(result.teams) == len(self.teams_cache):  # Vereinfachung für jetzt
+                self.combo_teams.setCurrentIndex(self.combo_teams.findData("all_teams"))
             else:
-                self.combo_teams.setCurrentIndex(0)
+                self.combo_teams.setCurrentIndex(self.combo_teams.findData("no_teams"))
             
             # Kategorien (erste Kategorie auswählen wenn vorhanden)
             if result.categories:
@@ -677,7 +684,12 @@ class DlgEmployeeEventDetails(QDialog):
             end_dt = datetime.combine(end_date, end_time)
             
             # Teams und Kategorien
-            selected_team_ids = [self.combo_teams.currentData() or t.id for t in self.teams_cache]
+            if self.combo_teams.currentData() == "all_teams":
+                selected_team_ids = [t.id for t in self.teams_cache]
+            elif self.combo_teams.currentData() == "no_teams":
+                selected_team_ids = []
+            else:
+                selected_team_ids = [self.combo_teams.currentData()]
             
             selected_categories = []
             if self.combo_categories.currentData():
@@ -686,7 +698,7 @@ class DlgEmployeeEventDetails(QDialog):
             
             if self.is_new_mode or (self.is_edit_mode and self.chk_save_as_new.isChecked()):
                 # Neues Event erstellen
-                new_event = event_and_category_schemas.EventCreateSchema(
+                new_event = employee_event_schemas.EventCreate(
                     title=title,
                     description=description,
                     start=start_dt,
@@ -696,11 +708,12 @@ class DlgEmployeeEventDetails(QDialog):
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
-                result = self.db_service.create_event(new_event)
+                command = employee_event_commands.Create(new_event)
+                self.controller.execute(command)
                 
-                if isinstance(result, ErrorResponseSchema):
+                if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
-                                       self.tr(f"Could not create event: {result.message}"))
+                                       self.tr(f"Could not create event: {command.result.message}"))
                     return
                 
                 QMessageBox.information(self, self.tr("Success"), 
@@ -708,7 +721,7 @@ class DlgEmployeeEventDetails(QDialog):
                 
             else:
                 # Update-Daten zusammenstellen
-                update_data = event_and_category_schemas.EventUpdateSchema(
+                update_data = employee_event_schemas.EventUpdate(
                     id=self.event_id,
                     title=title,
                     description=description,
@@ -719,11 +732,12 @@ class DlgEmployeeEventDetails(QDialog):
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
                 # Bestehendes Event aktualisieren
-                result = self.db_service.update_event(update_data)
+                command = employee_event_commands.Update(update_data)
+                self.controller.execute(command)
                 
-                if isinstance(result, ErrorResponseSchema):
+                if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
-                                       self.tr(f"Could not update event: {result.message}"))
+                                       self.tr(f"Could not update event: {command.result.message}"))
                     return
                 
                 QMessageBox.information(self, self.tr("Success"), 

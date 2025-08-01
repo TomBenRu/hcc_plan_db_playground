@@ -28,22 +28,25 @@ from .exceptions import (
 # Import wichtiger Schemas für externe Nutzung
 from .schemas import (
     # Event Schemas
-    EventSchema,
-    EventDetailSchema,
-    EventCreateSchema,
-    EventUpdateSchema,
+    Event,
+    EventDetail,
+    EventCreate,
+    EventUpdate,
     
     # Category Schemas
-    CategorySchema,
-    CategoryCreateSchema,
-    CategoryUpdateSchema,
-    CategoryDetailSchema,
+    Category,
+    CategoryCreate,
+    CategoryUpdate,
+    CategoryDetail,
     
     # Common Schemas
     SuccessResponseSchema,
     ErrorResponseSchema,
     StatisticsSchema
 )
+
+# Commands für Undo/Redo-Funktionalität (Optional)
+from .db_commands import employee_event_commands
 
 __version__ = "2.0.0"
 __author__ = "Thomas"
@@ -62,19 +65,22 @@ __all__ = [
     "EmployeeEventDateError",
     
     # Event Schemas
-    "EventSchema",
-    "EventDetailSchema",
-    "EventCreateSchema",
-    "EventUpdateSchema",
+    "Event",
+    "EventDetail",
+    "EventCreate",
+    "EventUpdate",
     
     # Category Schemas
-    "CategorySchema",
-    "CategoryCreateSchema",
-    "CategoryUpdateSchema",
-    "CategoryDetailSchema",
+    "Category",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryDetail",
     
     # Common Schemas
     "SuccessResponseSchema",
     "ErrorResponseSchema",
-    "StatisticsSchema"
+    "StatisticsSchema",
+
+    # Commands (Optional)
+    "employee_event_commands"
 ]

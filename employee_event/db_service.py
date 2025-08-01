@@ -14,12 +14,12 @@ from pony.orm import db_session
 from database import models
 from database.models import Team, Person, Project, utcnow_naive
 from .schemas import (
-    EventDetailSchema,
-    EventCreateSchema,
-    EventUpdateSchema,
-    CategorySchema,
-    CategoryCreateSchema,
-    CategoryUpdateSchema,
+    EventDetail,
+    EventCreate,
+    EventUpdate,
+    Category,
+    CategoryCreate,
+    CategoryUpdate,
     StatisticsSchema,
     SuccessResponseSchema,
     ErrorResponseSchema
@@ -48,7 +48,7 @@ class EmployeeEventService:
     # Employee Event Operations
     
     @db_session
-    def create_event(self, event_create: EventCreateSchema) -> Union[EventDetailSchema, ErrorResponseSchema]:
+    def create_event(self, event_create: EventCreate) -> Union[EventDetail, ErrorResponseSchema]:
         """
         Erstellt ein neues Employee Event.
         
@@ -56,7 +56,7 @@ class EmployeeEventService:
             event_create: Pydantic-Schema mit Event-Daten
             
         Returns:
-            Union[EventDetailSchema, ErrorResponseSchema]: Event oder Fehler
+            Union[EventDetail, ErrorResponseSchema]: Event oder Fehler
         """
         try:
             project_db = models.Project.get(id=event_create.project_id)
@@ -74,7 +74,7 @@ class EmployeeEventService:
                 teams=teams_db,
                 participants=participants_db
             )
-            return EventDetailSchema.model_validate(event_db)
+            return EventDetail.model_validate(event_db)
             
         except Exception as e:
             return ErrorResponseSchema(
@@ -84,7 +84,7 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_event(self, event_id: UUID) -> Union[EventDetailSchema, ErrorResponseSchema]:
+    def get_event(self, event_id: UUID) -> Union[EventDetail, ErrorResponseSchema]:
         """
         Holt Details zu einem Employee Event.
         
@@ -92,11 +92,11 @@ class EmployeeEventService:
             event_id: ID des Events
             
         Returns:
-            Union[EventDetailSchema, ErrorResponseSchema]: Event oder Fehler
+            Union[EventDetail, ErrorResponseSchema]: Event oder Fehler
         """
         try:
             event_db = models.EmployeeEvent.get(id=event_id)
-            return EventDetailSchema.model_validate(event_db)
+            return EventDetail.model_validate(event_db)
             
         except EmployeeEventNotFoundError as e:
             return ErrorResponseSchema(
@@ -112,7 +112,7 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_all_events(self, project_id: Optional[UUID] = None) -> list[EventDetailSchema]:
+    def get_all_events(self, project_id: Optional[UUID] = None) -> list[EventDetail]:
         """
         Holt alle Employee Events, optional gefiltert nach Projekt.
         
@@ -120,20 +120,20 @@ class EmployeeEventService:
             project_id: Optional - Nur Events dieses Projekts
             
         Returns:
-            list[EventDetailSchema]: Liste aller Events
+            list[EventDetail]: Liste aller Events
         """
         events = models.EmployeeEvent.select()
         if project_id:
             events = events.filter(lambda e: e.project.id == project_id)
 
-        return [EventDetailSchema.model_validate(event) for event in events]
+        return [EventDetail.model_validate(event) for event in events]
     
     @db_session
     def get_events_by_team_name(
         self, 
         team_name: str, 
         project_id: UUID
-    ) -> list[EventDetailSchema] | ErrorResponseSchema:
+    ) -> list[EventDetail] | ErrorResponseSchema:
         """
         Holt alle Employee Events eines Teams anhand des Team-Namens.
         
@@ -142,7 +142,7 @@ class EmployeeEventService:
             project_id: ID des Projekts
             
         Returns:
-            Union[list[EventDetailSchema], ErrorResponseSchema]: Events oder Fehler
+            Union[list[EventDetail], ErrorResponseSchema]: Events oder Fehler
         """
         try:
             # Team ermitteln
@@ -160,7 +160,7 @@ class EmployeeEventService:
                 )
             
             events_db = models.EmployeeEvent.select().filter(lambda e: team_db in e.teams)
-            return [EventDetailSchema.model_validate(event) for event in events_db]
+            return [EventDetail.model_validate(event) for event in events_db]
             
         except Exception as e:
             return ErrorResponseSchema(
@@ -170,7 +170,7 @@ class EmployeeEventService:
             )
     
     @db_session
-    def update_event(self, event_update_data: EventUpdateSchema) -> Union[EventDetailSchema, ErrorResponseSchema]:
+    def update_event(self, event_update_data: EventUpdate) -> Union[EventDetail, ErrorResponseSchema]:
         """
         Aktualisiert ein Employee Event.
         
@@ -178,7 +178,7 @@ class EmployeeEventService:
             event_update_data: Pydantic-Schema mit Update-Daten
             
         Returns:
-            Union[EventDetailSchema, ErrorResponseSchema]: Event oder Fehler
+            Union[EventDetail, ErrorResponseSchema]: Event oder Fehler
         """
         try:
             event_db = models.EmployeeEvent.get(id=event_update_data.id)
@@ -213,7 +213,7 @@ class EmployeeEventService:
                     if person_db:
                         event_db.participants.add(person_db)
             
-            return EventDetailSchema.model_validate(event_db)
+            return EventDetail.model_validate(event_db)
             
         except EmployeeEventNotFoundError as e:
             return ErrorResponseSchema(
@@ -263,11 +263,42 @@ class EmployeeEventService:
                 message=f"Fehler beim Löschen des Employee Events",
                 details=str(e)
             )
+    @db_session
+    def undelete_event(self, event_id: UUID) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
+        """
+        Wiederherstellung eines gelöschten Employee Events.
+
+        Args:
+            event_id: ID des zu wiederherstellenden Events
+
+        Returns:
+            Union[SuccessResponseSchema, ErrorResponseSchema]: Erfolg oder Fehler
+        """
+        try:
+            event_db = models.EmployeeEvent.get(id=event_id)
+            event_db.prep_delete = None
+            return SuccessResponseSchema(
+                message=f"Employee Event '{event_db.title}' erfolgreich wiederhergestellt",
+                data={"event_id": str(event_id), "title": event_db.title}
+            )
+
+        except EmployeeEventNotFoundError as e:
+            return ErrorResponseSchema(
+                error="EventNotFound",
+                message=f"Employee Event nicht gefunden",
+                details=str(e)
+            )
+        except Exception as e:
+            return ErrorResponseSchema(
+                error=type(e).__name__,
+                message=f"Fehler beim Wiederherstellen des Employee Events",
+                details=str(e)
+            )
     
     # Employee Event Category Operations
     
     @db_session
-    def create_category(self,category_create: CategoryCreateSchema) -> Union[CategorySchema, ErrorResponseSchema]:
+    def create_category(self, category_create: CategoryCreate) -> Union[Category, ErrorResponseSchema]:
         """
         Erstellt eine neue Employee Event Category.
         
@@ -275,7 +306,7 @@ class EmployeeEventService:
             category_create: Pydantic-Schema mit Kategorie-Daten
             
         Returns:
-            Union[CategorySchema, ErrorResponseSchema]: Kategorie oder Fehler
+            Union[Category, ErrorResponseSchema]: Kategorie oder Fehler
         """
         try:
             # Erstelle CreateCategorySchema
@@ -294,7 +325,7 @@ class EmployeeEventService:
                 project=project_db
             )
             
-            return CategorySchema.model_validate(category_db)
+            return Category.model_validate(category_db)
             
         except Exception as e:
             return ErrorResponseSchema(
@@ -304,7 +335,7 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_all_categories_by_project(self, project_id: UUID) -> list[CategorySchema]:
+    def get_all_categories_by_project(self, project_id: UUID) -> list[Category]:
         """
         Holt alle Employee Event Categories, optional gefiltert nach Projekt.
         
@@ -312,7 +343,7 @@ class EmployeeEventService:
             project_id: Optional - Nur Kategorien dieses Projekts
             
         Returns:
-            list[CategorySchema]: Liste aller Kategorien
+            list[Category]: Liste aller Kategorien
         """
         try:
             project_db = models.Project.get(id=project_id)
@@ -324,13 +355,13 @@ class EmployeeEventService:
                 )
             categories_db = models.EmployeeEventCategory.select().filter(lambda c: c.project == project_db)
 
-            return [CategorySchema.model_validate(category) for category in categories_db]
+            return [Category.model_validate(category) for category in categories_db]
             
         except Exception as e:
             return []
     
     @db_session
-    def update_category(category_data: CategoryUpdateSchema) -> Union[CategorySchema, ErrorResponseSchema]:
+    def update_category(category_data: CategoryUpdate) -> Union[Category, ErrorResponseSchema]:
         """
         Aktualisiert eine Employee Event Category.
         
@@ -338,7 +369,7 @@ class EmployeeEventService:
             category_data: Pydantic-Schema mit Update-Daten
             
         Returns:
-            Union[CategorySchema, ErrorResponseSchema]: Kategorie oder Fehler
+            Union[Category, ErrorResponseSchema]: Kategorie oder Fehler
         """
         try:
             # Erstelle UpdateCategorySchema
@@ -354,7 +385,7 @@ class EmployeeEventService:
             if category_data.description is not None:
                 category_db.description = category_data.description
             
-            return CategorySchema.model_validate(category_db)
+            return Category.model_validate(category_db)
             
         except EmployeeEventCategoryError as e:
             return ErrorResponseSchema(

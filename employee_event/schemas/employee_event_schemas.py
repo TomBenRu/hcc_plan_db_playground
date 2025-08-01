@@ -19,7 +19,7 @@ class ProjectMinimal(BaseModel):
     id: UUID
     name: str
 
-class EventSchema(BaseModel):
+class Event(BaseModel):
     """Basis-Schema für Employee Events."""
     
     model_config = ConfigDict(from_attributes=True)
@@ -34,10 +34,10 @@ class EventSchema(BaseModel):
     project: ProjectMinimal
 
 
-class EventDetailSchema(EventSchema):
+class EventDetail(Event):
     """Detailliertes Schema für Employee Events mit Beziehungen."""
     
-    categories: List['CategorySchema'] = Field(default_factory=list, description="Zugeordnete Kategorien")
+    categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
     teams: List[schemas.Team] = Field(default_factory=list, description="Zugeordnete Teams")
     participants: List[schemas.Person] = Field(default_factory=list, description="Teilnehmer")
 
@@ -78,7 +78,7 @@ class EventDetailSchema(EventSchema):
         return (self.end - self.start).total_seconds() / 3600
 
 
-class EventCreateSchema(BaseModel):
+class EventCreate(BaseModel):
     """Schema für das Erstellen neuer Employee Events."""
     
     title: str = Field(..., min_length=1, max_length=40, description="Titel des Events")
@@ -107,8 +107,9 @@ class EventCreateSchema(BaseModel):
         return v
 
 
-class EventUpdateSchema(BaseModel):
+class EventUpdate(BaseModel):
     """Schema für das Aktualisieren von Employee Events."""
+    model_config = ConfigDict(from_attributes=True)
     
     id: UUID
     title: Optional[str] = Field(None, min_length=1, max_length=40, description="Neuer Titel")
@@ -136,8 +137,14 @@ class EventUpdateSchema(BaseModel):
                 raise ValueError('End-Zeitpunkt muss nach Start-Zeitpunkt liegen')
         return v
 
+    @field_validator('category_ids', 'team_ids', 'participant_ids')
+    def models_to_ids(cls, v):
+        if v is not None:
+            return [t.id if isinstance(t, BaseModel) else t for t in v]
+        return None
 
-class CategorySchema(BaseModel):
+
+class Category(BaseModel):
     """Basis-Schema für Employee Event Categories."""
 
     model_config = ConfigDict(from_attributes=True)
@@ -147,7 +154,7 @@ class CategorySchema(BaseModel):
     description: Optional[str] = Field(None, description="Beschreibung der Kategorie")
 
 
-class CategoryCreateSchema(BaseModel):
+class CategoryCreate(BaseModel):
     """Schema für das Erstellen neuer Employee Event Categories."""
 
     name: str = Field(..., min_length=1, max_length=40, description="Name der Kategorie")
@@ -155,20 +162,20 @@ class CategoryCreateSchema(BaseModel):
     project_id: UUID = Field(..., description="ID des zugehörigen Projekts")
 
 
-class CategoryUpdateSchema(BaseModel):
+class CategoryUpdate(BaseModel):
     """Schema für das Aktualisieren von Employee Event Categories."""
 
     name: Optional[str] = Field(None, min_length=1, max_length=40, description="Neuer Name")
     description: Optional[str] = Field(None, description="Neue Beschreibung")
 
 
-class CategoryDetailSchema(CategorySchema):
+class CategoryDetail(Category):
     model_config = ConfigDict(from_attributes=True)
 
     created_at: datetime
     last_modified: datetime
     project: ProjectMinimal
-    employee_events: list[EventSchema] = Field(default_factory=list)
+    employee_events: list[Event] = Field(default_factory=list)
 
     @field_validator('employee_events')
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension

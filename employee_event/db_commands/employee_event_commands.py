@@ -1,0 +1,50 @@
+from commands.command_base_classes import Command
+from employee_event import EventCreate, EventDetail, EventUpdate, ErrorResponseSchema
+from employee_event import db_service
+
+
+class Create(Command):
+    def __init__(self, event_create: EventCreate):
+        self.db_services = db_service.EmployeeEventService()
+        self.event_create = event_create.model_copy()
+        self.result: EventDetail | ErrorResponseSchema | None = None
+
+    def execute(self):
+        self.result = self.db_services.create_event(self.event_create)
+
+    def undo(self):
+        if isinstance(self.result, EventDetail):
+            self.db_services.delete_event(self.created_event.id)
+        else:
+            raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+    def redo(self):
+        if isinstance(self.result, EventDetail):
+            self.result = self.db_services.undelete_event(self.result.id)
+
+
+
+class Update(Command):
+    def __init__(self, event_update: EventUpdate):
+        self.db_services = db_service.EmployeeEventService()
+        self.event_update = event_update.model_copy()
+        self.result: EventDetail | ErrorResponseSchema | None = None
+        self.old_event: EventDetail = self.db_services.get_event(self.event_update.id)
+
+    def execute(self):
+        self.result = self.db_services.update_event(self.event_update)
+
+    def undo(self):
+        if isinstance(self.result, EventDetail):
+            event_update = EventUpdate.model_validate(self.old_event)
+            self.db_services.update_event(event_update)
+        else:
+            raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
+
+    def redo(self):
+        if isinstance(self.result, EventDetail):
+            self.db_services.update_event(self.event_update)
+
+
+class Delete(Command):
+    pass

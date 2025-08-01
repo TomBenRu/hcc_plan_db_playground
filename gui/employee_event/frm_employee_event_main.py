@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 from commands import command_base_classes
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
-from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
+from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema, Category
 from employee_event.db_commands import event_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
@@ -61,7 +61,7 @@ class FrmEmployeeEventMain(QWidget):
         self.events_cache: List[EventDetail] = []
         self.filtered_events: List[EventDetail] = []
         self.teams_cache: List[schemas.Team] = []
-        self.categories_cache: List[str] = []
+        self.categories_cache: List[Category] = []
 
         self._setup_ui()
         self._setup_data()
@@ -485,8 +485,9 @@ class FrmEmployeeEventMain(QWidget):
 
     def _setup_data(self):
         """Initialisiert die Daten-Caches."""
-        # Teams laden
+
         try:
+            # Teams laden
             self.teams_cache = {t_id: t_name for t_name, t_id
                                 in db_services.Team.get_all_from__project(self.project_id, minimal=True)}
 
@@ -499,8 +500,19 @@ class FrmEmployeeEventMain(QWidget):
             logger.error(f"Error loading teams: {e}")
             self.teams_cache = []
 
-        # Kategorien werden beim ersten Event-Load gefüllt
-        self.combo_category_filter.addItem(self.tr("All Categories"), None)
+        try:
+            # Kategorien laden
+            self.categories_cache = sorted(self.service.get_all_categories_by_project(self.project_id),
+                                           key=lambda c: c.name)
+            self.combo_category_filter.addItem(self.tr("All Categories"), None)
+
+            # Kategorien-Filter befüllen
+            for category in self.categories_cache:
+                self.combo_category_filter.addItem(category.name, category.id)
+
+        except Exception as e:
+            logger.error(f"Error loading categories: {e}")
+            self.categories_cache = []
 
     def _setup_connections(self):
         """Verbindet alle Signals und Slots."""
@@ -596,24 +608,12 @@ class FrmEmployeeEventMain(QWidget):
 
     def refresh_events(self):
         """Lädt alle Events neu vom Service."""
+
+        # Events vom Service laden
+        self.events_cache = sorted(self.service.get_all_events(self.project_id),
+                                   key=lambda e: e.start)
         try:
             self.lb_status.setText(self.tr("Loading events..."))
-
-            # Events vom Service laden
-            self.events_cache = self.service.get_all_events(self.project_id)
-
-            # Kategorien-Cache aktualisieren
-            categories = set()
-            for event in self.events_cache:
-                categories.update(event.categories)
-
-            # Kategorie-Filter aktualisieren falls neue Kategorien
-            current_categories = {self.combo_category_filter.itemText(i)
-                                  for i in range(1, self.combo_category_filter.count())}
-            new_categories = categories - current_categories
-
-            for category in sorted(new_categories):
-                self.combo_category_filter.addItem(category, category)
 
             # Filter anwenden und Views aktualisieren
             self._apply_filters()
@@ -636,17 +636,26 @@ class FrmEmployeeEventMain(QWidget):
         filter_info = []
 
         # Team-Filter
-        team_id = self.combo_team_filter.currentData()
+        team_data = self.combo_team_filter.currentData()
+        if isinstance(team_data, UUID):
+            team_id = team_data
+        else:
+            team_id = None
         if team_id:
             team_name = self.combo_team_filter.currentText()
-            filtered = [e for e in filtered if team_name in e.teams]
+            filtered = [e for e in filtered if team_id in {t.id for t in e.teams}]
             filter_info.append(f"Team: {team_name}")
+        else:
+            filter_info.append(f"Team: All")
 
         # Kategorie-Filter
-        category = self.combo_category_filter.currentData()
-        if category:
-            filtered = [e for e in filtered if category in e.categories]
-            filter_info.append(f"Category: {category}")
+        category_data = self.combo_category_filter.currentData()
+        if isinstance(category_data, UUID):
+            category_name = self.combo_category_filter.currentText()
+            filtered = [e for e in filtered if category_data in {c.id for c in e.categories}]
+            filter_info.append(f"Category: {category_name}")
+        else:
+            filter_info.append(f"Category: All")
 
         # Suchtext-Filter
         search_text = self.le_search.text().strip().lower()
@@ -934,27 +943,21 @@ class FrmEmployeeEventMain(QWidget):
         try:
             # Aktuelle Auswahl merken
             current_selection = self.combo_category_filter.currentData()
-            
-            # Events neu laden um aktualisierte Kategorien zu erhalten
-            event_list = self.service.get_all_events(self.project_id)
-            categories = set()
-            for event in event_list.events:
-                categories.update(event.categories)
+
+            # Categories neu laden
+            self.categories_cache = sorted(self.service.get_all_categories_by_project(self.project_id),
+                                           key=lambda c: c.name)
             
             # Kategorie-Filter neu befüllen
             self.combo_category_filter.clear()
             self.combo_category_filter.addItem(self.tr("All Categories"), None)
-            for category in sorted(categories):
-                self.combo_category_filter.addItem(category, category)
+            for category in self.categories_cache:
+                self.combo_category_filter.addItem(category.name, category.id)
             
             # Vorherige Auswahl wiederherstellen wenn möglich
-            if current_selection:
-                for i in range(self.combo_category_filter.count()):
-                    if self.combo_category_filter.itemData(i) == current_selection:
-                        self.combo_category_filter.setCurrentIndex(i)
-                        break
+            self.combo_category_filter.setCurrentIndex(
+                self.combo_category_filter.findData(current_selection) if current_selection else 0
+            )
                         
         except Exception as e:
             logger.error(f"Error refreshing category filter: {e}")
-
-    # TODO: Commands-Integration für schreibende DB-Operationen

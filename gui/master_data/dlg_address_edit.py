@@ -231,6 +231,7 @@ class DlgAddressEdit(QDialog):
     def _create_address_schema(self) -> schemas.AddressCreate:
         """Create AddressCreate schema from form data."""
         return schemas.AddressCreate(
+            project_id=self.project_id,
             street=self.le_street.text().strip(),
             postal_code=self.le_postal_code.text().strip(),
             city=self.le_city.text().strip()
@@ -259,7 +260,7 @@ class DlgAddressEdit(QDialog):
                 
             self.accept()
             
-        except Exception as e:
+        except ZeroDivisionError as e:
             QMessageBox.critical(self, "Fehler", f"Adresse konnte nicht gespeichert werden:\n{str(e)}")
     
     def _create_address(self):
@@ -267,7 +268,7 @@ class DlgAddressEdit(QDialog):
         address_create = self._create_address_schema()
         
         # Execute command
-        command = address_commands.Create(address_create, self.project_id)
+        command = address_commands.Create(address_create)
         self.command_controller.execute(command)
         
         # Store result

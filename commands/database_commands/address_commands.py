@@ -7,13 +7,12 @@ from commands.command_base_classes import Command
 class Create(Command):
     """Command to create a new address."""
     
-    def __init__(self, address: schemas.AddressCreate, project_id: UUID):
+    def __init__(self, address: schemas.AddressCreate):
         self.address = address
-        self.project_id = project_id
         self.created_address: schemas.Address | None = None
 
     def execute(self):
-        self.created_address = db_services.Address.create(self.address, self.project_id)
+        self.created_address = db_services.Address.create(self.address)
 
     def undo(self):
         if self.created_address:
@@ -21,7 +20,7 @@ class Create(Command):
 
     def redo(self):
         if self.created_address:
-            db_services.Address.create(self.address, self.project_id, self.created_address.id)
+            db_services.Address.undelete(self.created_address.id)
 
 
 class Update(Command):

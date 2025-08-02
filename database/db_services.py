@@ -1186,7 +1186,11 @@ class Address:
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, address: schemas.AddressCreate) -> schemas.Address:
         log_function_info(cls)
-        address_db = models.Address(street=address.street, postal_code=address.postal_code, city=address.city)
+        project_db = models.Project.get_for_update(id=address.project_id)
+        address_db = models.Address(project=project_db,
+                                    street=address.street,
+                                    postal_code=address.postal_code,
+                                    city=address.city)
         return schemas.Address.model_validate(address_db)
 
     @classmethod

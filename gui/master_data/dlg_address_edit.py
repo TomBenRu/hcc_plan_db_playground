@@ -90,16 +90,16 @@ class DlgAddressEdit(QDialog):
         
         # Form fields
         self.le_street = QLineEdit()
-        self.le_street.setPlaceholderText("z.B. Musterstraße 123")
+        self.le_street.setPlaceholderText(self.tr("e.g. Sample Street 123"))
         self.le_postal_code = QLineEdit()
-        self.le_postal_code.setPlaceholderText("z.B. 12345")
+        self.le_postal_code.setPlaceholderText(self.tr("e.g. 12345"))
         self.le_city = QLineEdit()
-        self.le_city.setPlaceholderText("z.B. Berlin")
+        self.le_city.setPlaceholderText(self.tr("e.g. Berlin"))
         
         # Add to form
-        form_layout.addRow("Straße:", self.le_street)
-        form_layout.addRow("Postleitzahl:", self.le_postal_code)
-        form_layout.addRow("Stadt:", self.le_city)
+        form_layout.addRow(self.tr("Street:"), self.le_street)
+        form_layout.addRow(self.tr("Postal Code:"), self.le_postal_code)
+        form_layout.addRow(self.tr("City:"), self.le_city)
         
         main_layout.addWidget(form_frame)
         
@@ -107,10 +107,10 @@ class DlgAddressEdit(QDialog):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)
         
-        self.btn_save = QPushButton("Speichern")
+        self.btn_save = QPushButton(self.tr("Save"))
         self.btn_save.setDefault(True)
-        self.btn_delete = QPushButton("Löschen")
-        self.btn_cancel = QPushButton("Abbrechen")
+        self.btn_delete = QPushButton(self.tr("Delete"))
+        self.btn_cancel = QPushButton(self.tr("Cancel"))
         
         button_layout.addWidget(self.btn_save)
         button_layout.addWidget(self.btn_delete)
@@ -195,34 +195,34 @@ class DlgAddressEdit(QDialog):
             self.le_city.setText(self.address_data.city)
             
         except Exception as e:
-            QMessageBox.critical(self, "Fehler", f"Adresse konnte nicht geladen werden:\n{str(e)}")
+            QMessageBox.critical(self, self.tr("Error"), self.tr("Address could not be loaded:\n{error}").format(error=str(e)))
             self.reject()
     
     def _update_ui_for_mode(self):
         """Update UI elements based on create/edit mode."""
         if self.is_edit_mode:
-            self.setWindowTitle("Adresse bearbeiten")
-            self.lbl_title.setText("Adresse bearbeiten")
+            self.setWindowTitle(self.tr("Edit Address"))
+            self.lbl_title.setText(self.tr("Edit Address"))
             self.btn_delete.setVisible(True)
         else:
-            self.setWindowTitle("Neue Adresse")
-            self.lbl_title.setText("Neue Adresse erstellen")
+            self.setWindowTitle(self.tr("New Address"))
+            self.lbl_title.setText(self.tr("Create New Address"))
             self.btn_delete.setVisible(False)
     
     def _validate_input(self) -> bool:
         """Validate user input."""
         if not self.le_street.text().strip():
-            QMessageBox.warning(self, "Eingabefehler", "Bitte geben Sie eine Straße ein.")
+            QMessageBox.warning(self, self.tr("Input Error"), self.tr("Please enter a street."))
             self.le_street.setFocus()
             return False
         
         if not self.le_postal_code.text().strip():
-            QMessageBox.warning(self, "Eingabefehler", "Bitte geben Sie eine Postleitzahl ein.")
+            QMessageBox.warning(self, self.tr("Input Error"), self.tr("Please enter a postal code."))
             self.le_postal_code.setFocus()
             return False
         
         if not self.le_city.text().strip():
-            QMessageBox.warning(self, "Eingabefehler", "Bitte geben Sie eine Stadt ein.")
+            QMessageBox.warning(self, self.tr("Input Error"), self.tr("Please enter a city."))
             self.le_city.setFocus()
             return False
         
@@ -261,7 +261,7 @@ class DlgAddressEdit(QDialog):
             self.accept()
             
         except Exception as e:
-            QMessageBox.critical(self, "Fehler", f"Adresse konnte nicht gespeichert werden:\n{str(e)}")
+            QMessageBox.critical(self, self.tr("Error"), self.tr("Address could not be saved:\n{error}").format(error=str(e)))
     
     def _create_address(self):
         """Create a new address."""
@@ -299,10 +299,11 @@ class DlgAddressEdit(QDialog):
         # Confirmation dialog
         reply = QMessageBox.question(
             self, 
-            "Adresse löschen",
-            f"Möchten Sie die Adresse wirklich löschen?\n\n"
-            f"Straße: {self.address_data.street}\n"
-            f"Stadt: {self.address_data.city}",
+            self.tr("Delete Address"),
+            self.tr("Do you really want to delete the address?\n\nStreet: {street}\nCity: {city}").format(
+                street=self.address_data.street,
+                city=self.address_data.city
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -319,7 +320,7 @@ class DlgAddressEdit(QDialog):
                 self.accept()
                 
             except Exception as e:
-                QMessageBox.critical(self, "Fehler", f"Adresse konnte nicht gelöscht werden:\n{str(e)}")
+                QMessageBox.critical(self, self.tr("Error"), self.tr("Address could not be deleted:\n{error}").format(error=str(e)))
     
     def get_result(self) -> Optional[UUID]:
         """

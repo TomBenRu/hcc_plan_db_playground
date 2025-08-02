@@ -406,7 +406,7 @@ class DlgParticipantSelection(QDialog):
         except Exception as e:
             logger.error(f"Error loading teams: {e}")
             QMessageBox.warning(self, self.tr("Warning"), 
-                              self.tr(f"Could not load teams: {str(e)}"))
+                              self.tr("Could not load teams: {error}").format(error=str(e)))
 
     def _setup_connections(self):
         """Verbindet alle Signals und Slots."""
@@ -445,7 +445,7 @@ class DlgParticipantSelection(QDialog):
         except Exception as e:
             logger.error(f"Error loading persons: {e}")
             QMessageBox.warning(self, self.tr("Warning"), 
-                              self.tr(f"Could not load persons: {str(e)}"))
+                              self.tr("Could not load persons: {error}").format(error=str(e)))
 
     def _apply_filters(self):
         """Wendet alle aktiven Filter an."""
@@ -458,7 +458,7 @@ class DlgParticipantSelection(QDialog):
             team_name = self.combo_team_filter.currentText()
             filtered = [p for p in filtered if team_id in
                         [taa.team.id for taa in p.team_actor_assigns if not taa.end or taa.end > datetime.date.today()]]
-            filter_info.append(f"Team: {team_name}")
+            filter_info.append(self.tr("Team: {team_name}").format(team_name=team_name))
 
         # Name-Filter
         search_text = self.le_search.text().strip().lower()
@@ -467,18 +467,21 @@ class DlgParticipantSelection(QDialog):
                         if (search_text in p.f_name.lower() or
                             search_text in p.l_name.lower() or
                             search_text in f"{p.full_name}".lower())]
-            filter_info.append(f"Search: '{search_text}'")
+            filter_info.append(self.tr("Search: '{search_text}'").format(search_text=search_text))
 
         self.filtered_persons = filtered
 
         # Filter-Status anzeigen
         if filter_info:
             self.lb_filter_status.setText(
-                self.tr(f"Active filters: {', '.join(filter_info)} | {len(filtered)} people")
+                self.tr("Active filters: {filters} | {count} people").format(
+                    filters=', '.join(filter_info),
+                    count=len(filtered)
+                )
             )
         else:
             self.lb_filter_status.setText(
-                self.tr(f"No filters | {len(filtered)} people")
+                self.tr("No filters | {count} people").format(count=len(filtered))
             )
 
         # Listen aktualisieren
@@ -511,7 +514,7 @@ class DlgParticipantSelection(QDialog):
                                  for i in range(self.list_selected.count())]:
                 item = QListWidgetItem(person.full_name)
                 item.setData(Qt.ItemDataRole.UserRole, person.id)
-                item.setToolTip(f"{person.full_name}\nEmail: {person.email}")
+                item.setToolTip(self.tr("{name}\nEmail: {email}").format(name=person.full_name, email=person.email))
                 self.list_available.addItem(item)
 
     def _update_counts(self):
@@ -519,8 +522,8 @@ class DlgParticipantSelection(QDialog):
         available_count = self.list_available.count()
         selected_count = self.list_selected.count()
         
-        self.lb_available_count.setText(self.tr(f"{available_count} people available"))
-        self.lb_selected_count.setText(self.tr(f"{selected_count} participants selected"))
+        self.lb_available_count.setText(self.tr("{count} people available").format(count=available_count))
+        self.lb_selected_count.setText(self.tr("{count} participants selected").format(count=selected_count))
 
     def _update_button_states(self):
         """Aktualisiert den aktiviert/deaktiviert-Status der Transfer-Buttons."""
@@ -599,7 +602,7 @@ class DlgParticipantSelection(QDialog):
         for person in self.selected_participants:
             item = QListWidgetItem(person.full_name)
             item.setData(Qt.ItemDataRole.UserRole, person.id)
-            item.setToolTip(f"{person.full_name}\nEmail: {person.email}")
+            item.setToolTip(self.tr("{name}\nEmail: {email}").format(name=person.full_name, email=person.email))
             self.list_selected.addItem(item)
         
         # Listen aktualisieren

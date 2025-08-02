@@ -1,11 +1,11 @@
 """
-Hauptfenster für Employee Event Management.
+Main window for Employee Event Management.
 
-Stellt zwei Darstellungsmodi bereit:
-- Listenansicht (sortiert nach Datum)  
-- Monatskalenderansicht
+Provides two display modes:
+- List view (sorted by date)  
+- Monthly calendar view
 
-Mit Filter-System für Teams, Kategorien und Freitextsuche.
+With filter system for teams, categories and free text search.
 """
 import datetime
 import logging
@@ -36,18 +36,18 @@ logger = logging.getLogger(__name__)
 
 class FrmEmployeeEventMain(QWidget):
     """
-    Hauptfenster für Employee Event Management.
+    Main window for Employee Event Management.
     
     Features:
-    - Toggle zwischen Listen- und Kalenderansicht
-    - Filter für Teams, Kategorien, Freitextsuche
-    - CRUD-Operationen für Events
-    - Config-abhängige Datums/Zeit-Formatierung
+    - Toggle between list and calendar view
+    - Filter for teams, categories, free text search
+    - CRUD operations for events
+    - Config-dependent date/time formatting
     """
 
-    # Signals für externe Kommunikation
-    event_selected = Signal(UUID)  # Event-ID ausgewählt
-    event_modified = Signal(UUID)  # Event wurde geändert
+    # Signals for external communication
+    event_selected = Signal(UUID)  # Event ID selected
+    event_modified = Signal(UUID)  # Event was modified
 
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent=parent)
@@ -55,9 +55,9 @@ class FrmEmployeeEventMain(QWidget):
         self.project_id = project_id
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.service = EmployeeEventService()
-        self.current_view_mode = "list"  # "list" oder "calendar"
+        self.current_view_mode = "list"  # "list" or "calendar"
 
-        # Daten-Cache
+        # Data cache
         self.events_cache: List[EventDetail] = []
         self.filtered_events: List[EventDetail] = []
         self.teams_cache: List[schemas.Team] = []
@@ -67,17 +67,17 @@ class FrmEmployeeEventMain(QWidget):
         self._setup_data()
         self._setup_connections()
 
-        # Initial-Load
+        # Initial load
         self.refresh_events()
 
         logger.info(f"Employee Event Main Window initialized for project {project_id}")
 
     def _setup_ui(self):
-        """Erstellt das komplette UI-Layout."""
+        """Creates the complete UI layout."""
         self.setObjectName("FrmEmployeeEventMain")
         self.setMinimumSize(800, 600)
 
-        # Haupt-Layout
+        # Main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(10)
@@ -626,15 +626,15 @@ class FrmEmployeeEventMain(QWidget):
 
             # Status aktualisieren
             count = len(self.events_cache)
-            self.lb_status.setText(self.tr(f"Loaded {count} events"))
+            self.lb_status.setText(self.tr("Loaded {count} events").format(count=count))
 
             logger.info(f"Refreshed {count} events")
 
         except Exception as e:
-            logger.error(f"Error refreshing events: {e}")
+            logger.error("Error refreshing events: {error}".format(error=e))
             self.lb_status.setText(self.tr("Error loading events"))
             QMessageBox.critical(self, self.tr("Error"),
-                                 self.tr(f"Could not load events: {str(e)}"))
+                                 self.tr("Could not load events: {error}").format(error=e))
 
     def _apply_filters(self):
         """Wendet alle aktiven Filter an."""
@@ -650,18 +650,18 @@ class FrmEmployeeEventMain(QWidget):
         if team_id:
             team_name = self.combo_team_filter.currentText()
             filtered = [e for e in filtered if team_id in {t.id for t in e.teams}]
-            filter_info.append(f"Team: {team_name}")
+            filter_info.append(self.tr("Team: {team_name}").format(team_name=team_name))
         else:
-            filter_info.append(f"Team: All")
+            filter_info.append(self.tr("Team: All"))
 
         # Kategorie-Filter
         category_data = self.combo_category_filter.currentData()
         if isinstance(category_data, UUID):
             category_name = self.combo_category_filter.currentText()
             filtered = [e for e in filtered if category_data in {c.id for c in e.employee_event_categories}]
-            filter_info.append(f"Category: {category_name}")
+            filter_info.append(self.tr("Category: {category_name}").format(category_name=category_name))
         else:
-            filter_info.append(f"Category: All")
+            filter_info.append(self.tr("Category: All"))
 
         # Suchtext-Filter
         search_text = self.le_search.text().strip().lower()
@@ -669,18 +669,19 @@ class FrmEmployeeEventMain(QWidget):
             filtered = [e for e in filtered
                         if (search_text in e.title.lower() or
                             search_text in e.description.lower())]
-            filter_info.append(f"Search: '{search_text}'")
+            filter_info.append(self.tr("Search: '{search_text}'").format(search_text=search_text))
 
         self.filtered_events = filtered
 
         # Filter-Status anzeigen
         if filter_info:
             self.lb_filter_status.setText(
-                self.tr(f"Active filters: {', '.join(filter_info)} | {len(filtered)} events")
+                self.tr("Active filters: {filters} | {count} events").format(
+                    filters=', '.join(filter_info), count=len(filtered))
             )
         else:
             self.lb_filter_status.setText(
-                self.tr(f"No filters | {len(filtered)} events")
+                self.tr("No filters | {count} events").format(count=len(filtered))
             )
 
         # Views aktualisieren
@@ -782,7 +783,8 @@ class FrmEmployeeEventMain(QWidget):
         formatted_date = date_to_string(selected_date)
         count = len(events_on_date)
         self.lb_calendar_date.setText(
-            self.tr(f"{formatted_date} - {count} events")
+            self.tr("{formatted_date} - {count} events").format(
+                formatted_date=formatted_date, count=count)
         )
 
         # Event-Liste aktualisieren
@@ -800,11 +802,11 @@ class FrmEmployeeEventMain(QWidget):
                 if selected_date == event.start.date():
                     # Erster Tag: "ab HH:mm"
                     start_time = time_to_string(event.start.time())
-                    time_text = self.tr(f"from {start_time}")
+                    time_text = self.tr("from {start_time}").format(start_time=start_time)
                 elif selected_date == event.end.date():
                     # Letzter Tag: "bis HH:mm"
                     end_time = time_to_string(event.end.time())
-                    time_text = self.tr(f"until {end_time}")
+                    time_text = self.tr("until {end_time}").format(end_time=end_time)
                 else:
                     # Mittlerer Tag: "ganztägig"
                     time_text = self.tr("all day")
@@ -925,9 +927,13 @@ class FrmEmployeeEventMain(QWidget):
         # Bestätigung
         reply = QMessageBox.question(
             self, self.tr("Delete Event"),
-            self.tr(f"Are you sure you want to delete the event '{event.title}'?\n\n"
-                    f"Date: {date_to_string(event.start.date())}\n"
-                    f"Time: {time_to_string(event.start.time())} - {time_to_string(event.end.time())}"),
+            self.tr("Are you sure you want to delete the event '{event_title}'?\n\n"
+                    "Date: {event_date}\n"
+                    "Time: {start_time} - {end_time}").format(
+                event_title=event.title,
+                event_date=date_to_string(event.start.date()),
+                start_time=time_to_string(event.start.time()),
+                end_time=time_to_string(event.end.time())),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -940,10 +946,10 @@ class FrmEmployeeEventMain(QWidget):
 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"),
-                                         self.tr(f"Could not delete event: {result.message}"))
+                                         self.tr("Could not delete event: {error_message}").format(error_message=result.message))
                 else:
                     QMessageBox.information(self, self.tr("Success"),
-                                            self.tr(f"Event '{event.title}' was deleted successfully."))
+                                            self.tr("Event '{event_title}' was deleted successfully.").format(event_title=event.title))
 
                     # Events neu laden
                     self.refresh_events()
@@ -952,7 +958,7 @@ class FrmEmployeeEventMain(QWidget):
             except Exception as e:
                 logger.error(f"Error deleting event {event.id}: {e}")
                 QMessageBox.critical(self, self.tr("Error"),
-                                     self.tr(f"Unexpected error: {str(e)}"))
+                                     self.tr("Unexpected error: {error}").format(error=str(e)))
 
     def _manage_categories(self):
         """Öffnet Dialog für Kategorie-Management."""

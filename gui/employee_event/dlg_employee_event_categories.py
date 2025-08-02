@@ -133,8 +133,9 @@ class DlgEmployeeEventCategories(QDialog):
         # Icon + Titel
         icon_label = QLabel("🏷️")
         icon_label.setStyleSheet("font-size: 24px;")
-        
-        title_label = QLabel(f"<b>{self.tr('Event Categories')}</b><br><small>{self.tr('Manage categories for events')}</small>")
+        text_title_01 = self.tr("Event Categories")
+        text_title_02 = self.tr("Manage categories for events")
+        title_label = QLabel(f"<b>{text_title_01}</b><br><small>{text_title_02}</small>")
         title_label.setStyleSheet("color: white; font-size: 14px;")
         
         header_layout.addWidget(icon_label)
@@ -345,7 +346,7 @@ class DlgEmployeeEventCategories(QDialog):
         except Exception as e:
             logger.error(f"Error loading categories: {e}")
             QMessageBox.warning(self, self.tr("Warning"), 
-                              self.tr(f"Could not load categories: {str(e)}"))
+                              self.tr("Could not load categories: {error}").format(error=str(e)))
 
     def _refresh_categories_list(self):
         """Aktualisiert die Kategorien-Liste."""
@@ -363,9 +364,9 @@ class DlgEmployeeEventCategories(QDialog):
 
                 # Display-Text mit Usage-Info
                 if usage_count > 0:
-                    display_text = f"{category.name} ({usage_count} events)"
+                    display_text = self.tr("{name} ({count} events)").format(name=category.name, count=usage_count)
                 else:
-                    display_text = f"{category.name} (unused)"
+                    display_text = self.tr("{name} (unused)").format(name=category.name)
 
                 item = QListWidgetItem(display_text)
                 item.setData(Qt.ItemDataRole.UserRole, category)
@@ -412,7 +413,7 @@ class DlgEmployeeEventCategories(QDialog):
             # Usage-Info anzeigen
             usage_count = self.category_usage.get(category.name, 0)
             if usage_count > 0:
-                usage_text = self.tr(f"This category is used in {usage_count} event(s).")
+                usage_text = self.tr("This category is used in {count} event(s).").format(count=usage_count)
                 if usage_count > 0:
                     usage_text += f"\n{self.tr('Deleting this category will remove it from all events.')}"
             else:
@@ -468,15 +469,15 @@ class DlgEmployeeEventCategories(QDialog):
         # Bestätigung
         if usage_count > 0:
             message = self.tr(
-                f"Are you sure you want to delete the category '{self.current_category}'?\n\n"
-                f"This category is used in {usage_count} event(s) and will be removed from all of them.\n\n"
-                f"This action cannot be undone."
-            )
+                "Are you sure you want to delete the category '{name}'?\n\n"
+                "This category is used in {count} event(s) and will be removed from all of them.\n\n"
+                "This action cannot be undone."
+            ).format(name=self.current_category, count=usage_count)
         else:
             message = self.tr(
-                f"Are you sure you want to delete the category '{self.current_category}'?\n\n"
-                f"This action cannot be undone."
-            )
+                "Are you sure you want to delete the category '{name}'?\n\n"
+                "This action cannot be undone."
+            ).format(name=self.current_category)
         
         reply = QMessageBox.question(
             self, self.tr("Delete Category"), message,
@@ -495,12 +496,12 @@ class DlgEmployeeEventCategories(QDialog):
                 self._set_details_enabled(False)
                 
                 QMessageBox.information(self, self.tr("Success"), 
-                                      self.tr(f"Category '{self.current_category}' was deleted successfully."))
+                                      self.tr("Category '{name}' was deleted successfully.").format(name=self.current_category))
                 
             except Exception as e:
                 logger.error(f"Error deleting category: {e}")
                 QMessageBox.critical(self, self.tr("Error"), 
-                                   self.tr(f"Could not delete category: {str(e)}"))
+                                   self.tr("Could not delete category: {error}").format(error=str(e)))
 
     def _save_category(self):
         """Speichert die aktuelle Kategorie."""
@@ -528,7 +529,7 @@ class DlgEmployeeEventCategories(QDialog):
 
                 if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"),
-                                       self.tr(f"Could not create category: {command.result.message}"))
+                                       self.tr("Could not create category: {error}").format(error=command.result.message))
                     return
 
                 self.categories_data.append(command.result)
@@ -550,7 +551,7 @@ class DlgEmployeeEventCategories(QDialog):
 
                 if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"),
-                                       self.tr(f"Could not update category: {command.result.message}"))
+                                       self.tr("Could not update category: {error}").format(error=command.result.message))
                     return
 
                 index = [c.id for c in self.categories_data].index(self.current_category.id)
@@ -563,7 +564,7 @@ class DlgEmployeeEventCategories(QDialog):
         except Exception as e:
             logger.error(f"Error saving category: {e}")
             QMessageBox.critical(self, self.tr("Error"), 
-                               self.tr(f"Could not save category: {str(e)}"))
+                               self.tr("Could not save category: {error}").format(error=str(e)))
 
     def _select_and_close(self):
         """Wählt die aktuelle Kategorie aus und schließt den Dialog."""

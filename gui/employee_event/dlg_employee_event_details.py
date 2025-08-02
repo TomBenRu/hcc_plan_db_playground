@@ -591,7 +591,7 @@ class DlgEmployeeEventDetails(QDialog):
         except Exception as e:
             logger.error(f"Error loading data: {e}")
             QMessageBox.warning(self, self.tr("Warning"), 
-                              self.tr(f"Could not load all data: {str(e)}"))
+                              self.tr("Could not load all data: {error}").format(error=str(e)))
 
     def _setup_connections(self):
         """Verbindet alle Signals und Slots."""
@@ -640,7 +640,7 @@ class DlgEmployeeEventDetails(QDialog):
             
             if isinstance(result, ErrorResponseSchema):
                 QMessageBox.critical(self, self.tr("Error"), 
-                                   self.tr(f"Could not load event: {result.message}"))
+                                   self.tr("Could not load event: {error}").format(error=result.message))
                 self.reject()
                 return
                 
@@ -680,7 +680,7 @@ class DlgEmployeeEventDetails(QDialog):
             # Teilnehmer-Anzeige und Cache
             self._current_participants = result.participants.copy()
             if result.participants:
-                participants_text = f"{len(result.participants)} participants selected"
+                participants_text = self.tr("{count} participants selected").format(count=len(result.participants))
                 self.le_participants.setText(participants_text)
                 self.le_participants.setToolTip(", ".join([p.full_name for p in result.participants]))
 
@@ -689,7 +689,7 @@ class DlgEmployeeEventDetails(QDialog):
         except Exception as e:
             logger.error(f"Error loading event: {e}")
             QMessageBox.critical(self, self.tr("Error"), 
-                               self.tr(f"Unexpected error loading event: {str(e)}"))
+                               self.tr("Unexpected error loading event: {error}").format(error=str(e)))
             self.reject()
 
     def _on_start_datetime_changed(self):
@@ -821,11 +821,11 @@ class DlgEmployeeEventDetails(QDialog):
                 
                 if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
-                                       self.tr(f"Could not create event: {command.result.message}"))
+                                       self.tr("Could not create event: {error}").format(error=command.result.message))
                     return
                 
                 QMessageBox.information(self, self.tr("Success"), 
-                                      self.tr(f"Event '{title}' was created successfully."))
+                                      self.tr("Event '{title}' was created successfully.").format(title=title))
                 
             else:
                 # Update-Daten zusammenstellen
@@ -846,18 +846,18 @@ class DlgEmployeeEventDetails(QDialog):
                 
                 if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
-                                       self.tr(f"Could not update event: {command.result.message}"))
+                                       self.tr("Could not update event: {error}").format(error=command.result.message))
                     return
                 
                 QMessageBox.information(self, self.tr("Success"), 
-                                      self.tr(f"Event '{title}' was updated successfully."))
+                                      self.tr("Event '{title}' was updated successfully.").format(title=title))
             
             self.accept()
             
         except Exception as e:
             logger.error(f"Error saving event: {e}")
             QMessageBox.critical(self, self.tr("Error"), 
-                               self.tr(f"Unexpected error: {str(e)}"))
+                               self.tr("Unexpected error: {error}").format(error=str(e)))
 
     def _delete_event(self):
         """Löscht das Event."""
@@ -867,11 +867,15 @@ class DlgEmployeeEventDetails(QDialog):
         # Bestätigung
         reply = QMessageBox.question(
             self, self.tr("Delete Event"),
-            self.tr(f"Are you sure you want to delete the event '{self.current_event.title}'?\n\n"
-                    f"Date: {date_to_string(self.current_event.start.date())}\n"
-                    f"Time: {time_to_string(self.current_event.start.time())} - "
-                    f"{time_to_string(self.current_event.end.time())}\n\n"
-                    f"This action cannot be undone."),
+            self.tr("Are you sure you want to delete the event '{title}'?\n\n"
+                    "Date: {date}\n"
+                    "Time: {start_time} - {end_time}\n\n"
+                    "This action cannot be undone.").format(
+                        title=self.current_event.title,
+                        date=date_to_string(self.current_event.start.date()),
+                        start_time=time_to_string(self.current_event.start.time()),
+                        end_time=time_to_string(self.current_event.end.time())
+                    ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -882,18 +886,18 @@ class DlgEmployeeEventDetails(QDialog):
                 
                 if isinstance(result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 
-                                       self.tr(f"Could not delete event: {result.message}"))
+                                       self.tr("Could not delete event: {error}").format(error=result.message))
                     return
                 
                 QMessageBox.information(self, self.tr("Success"), 
-                                      self.tr(f"Event '{self.current_event.title}' was deleted successfully."))
+                                      self.tr("Event '{title}' was deleted successfully.").format(title=self.current_event.title))
                 
                 self.accept()
                 
             except Exception as e:
                 logger.error(f"Error deleting event: {e}")
                 QMessageBox.critical(self, self.tr("Error"), 
-                                   self.tr(f"Unexpected error: {str(e)}"))
+                                   self.tr("Unexpected error: {error}").format(error=str(e)))
 
     def _validate_form(self):
         """Validiert das Form."""
@@ -923,8 +927,13 @@ class DlgEmployeeEventDetails(QDialog):
         if end_datetime <= start_datetime:
             QMessageBox.warning(self, self.tr("Validation Error"), 
                               self.tr("End date and time must be after start date and time.\n\n"
-                                     f"Start: {date_to_string(start_date)} {time_to_string(start_time)}\n"
-                                     f"End: {date_to_string(end_date)} {time_to_string(end_time)}"))
+                                     "Start: {start_date} {start_time}\n"
+                                     "End: {end_date} {end_time}").format(
+                                         start_date=date_to_string(start_date),
+                                         start_time=time_to_string(start_time),
+                                         end_date=date_to_string(end_date),
+                                         end_time=time_to_string(end_time)
+                                     ))
             self.date_end.setFocus()
             return False
         
@@ -1013,7 +1022,7 @@ class DlgEmployeeEventDetails(QDialog):
     def _update_participants_display(self, participants: List[schemas.Person]):
         """Aktualisiert die Anzeige der ausgewählten Teilnehmer."""
         if participants:
-            count_text = self.tr(f"{len(participants)} participants selected")
+            count_text = self.tr("{count} participants selected").format(count=len(participants))
             self.le_participants.setText(count_text)
             self.le_participants.setToolTip(", ".join(p.full_name for p
                                                       in sorted(participants, key=lambda p: p.full_name)))
@@ -1044,7 +1053,7 @@ class DlgEmployeeEventDetails(QDialog):
         except Exception as e:
             logger.error(f"Error creating new address: {e}")
             QMessageBox.critical(self, self.tr("Error"), 
-                               self.tr(f"Could not create new address: {str(e)}"))
+                               self.tr("Could not create new address: {error}").format(error=str(e)))
 
     def _edit_address(self):
         """Öffnet Dialog zum Bearbeiten der ausgewählten Adresse."""
@@ -1076,7 +1085,7 @@ class DlgEmployeeEventDetails(QDialog):
         except Exception as e:
             logger.error(f"Error editing address: {e}")
             QMessageBox.critical(self, self.tr("Error"), 
-                               self.tr(f"Could not edit address: {str(e)}"))
+                               self.tr("Could not edit address: {error}").format(error=str(e)))
 
     def _on_address_selection_changed(self):
         """Reagiert auf Änderungen der Adress-Auswahl."""

@@ -424,7 +424,7 @@ class LocationOfWork(LocationOfWorkCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    address: 'Address'
+    address: Optional['Address'] = None
     notes: Optional[str]
     project: Project
     prep_delete: Optional[datetime.datetime]

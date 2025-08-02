@@ -398,11 +398,17 @@ class Person:
         log_function_info(cls)
         person_db = models.Person.get_for_update(id=person.id)
         if person_db.address:
-            address = Address.update(person.address)
+            if person.address:
+                address = Address.update(person.address)
+                person_db.address = models.Address.get_for_update(id=address.id)
+            else:
+                person_db.address = None
         else:
-            address = Address.create(
-                schemas.AddressCreate(**person.address.model_dump(include={'street', 'postal_code', 'city'})))
-        person_db.address = models.Address.get_for_update(id=address.id)
+            if person.address:
+                address = Address.create(
+                    schemas.AddressCreate(**person.address.model_dump(include={'street', 'postal_code', 'city'})))
+                person_db.address = models.Address.get_for_update(id=address.id)
+
         person_db.time_of_days.clear()
         for t_o_d in person.time_of_days:
             person_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
@@ -631,7 +637,10 @@ class LocationOfWork:
     def create(cls, location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
-        address_db = models.Address(**location.address.model_dump(), project=project_db)
+        if location.address:
+            address_db = models.Address(**location.address.model_dump(), project=project_db)
+        else:
+            address_db = None
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
         return schemas.LocationOfWork.model_validate(location_db)
 
@@ -644,12 +653,17 @@ class LocationOfWork:
         for t_o_d in location_of_work.time_of_days:
             location_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
         if location_db.address:
-            address = Address.update(location_of_work.address)
+            if location_of_work.address:
+                address = Address.update(location_of_work.address)
+                location_db.address = models.Address.get_for_update(id=address.id)
+            else:
+                location_db.address = None
         else:
-            address = Address.create(schemas.AddressCreate(street=location_of_work.address.street,
-                                                           postal_code=location_of_work.address.postal_code,
-                                                           city=location_of_work.address.city))
-        location_db.address = models.Address.get_for_update(id=address.id)
+            if location_of_work.address:
+                address = Address.create(schemas.AddressCreate(street=location_of_work.address.street,
+                                                               postal_code=location_of_work.address.postal_code,
+                                                               city=location_of_work.address.city))
+                location_db.address = models.Address.get_for_update(id=address.id)
         location_db.set(**location_of_work.model_dump(include={'name', 'nr_actors', 'fixed_cast'}))
 
         return schemas.LocationOfWorkShow.model_validate(location_db)
@@ -1161,9 +1175,11 @@ class Address:
 
     @classmethod
     @db_session
-    def get_all_from__project(cls, project_id: UUID) -> list[schemas.Address]:
+    def get_all_from__project(cls, project_id: UUID, include_prep_delete: bool = False) -> list[schemas.Address]:
         project_db = models.Project.get_for_update(id=project_id)
         addresses_db = models.Address.select(lambda a: a.project == project_db)
+        if not include_prep_delete:
+            addresses_db = addresses_db.filter(lambda a: not a.prep_delete)
         return [schemas.Address.model_validate(a) for a in addresses_db]
 
     @classmethod
@@ -1181,6 +1197,26 @@ class Address:
         # for key, val in address.model_dump(include={'street', 'postal_code', 'city'}).items():
         #     address_db.__setattr__(key, val)
         address_db.set(**address.model_dump(include={'street', 'postal_code', 'city'}))
+        return schemas.Address.model_validate(address_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def delete(cls, address_id: UUID, soft_delete: bool = True) -> schemas.Address | None:
+        log_function_info(cls)
+        address_db = models.Address.get_for_update(id=address_id)
+        if soft_delete:
+            address_db.prep_delete = utcnow_naive()
+            return schemas.Address.model_validate(address_db)
+        else:
+            address_db.delete()
+            return None
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def undelete(cls, address_id: UUID) -> schemas.Address:
+        log_function_info(cls)
+        address_db = models.Address.get_for_update(id=address_id)
+        address_db.prep_delete = None
         return schemas.Address.model_validate(address_db)
 
 

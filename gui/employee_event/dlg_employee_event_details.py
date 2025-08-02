@@ -191,9 +191,24 @@ class DlgEmployeeEventDetails(QDialog):
         self.combo_address = QComboBoxToFindData()
         self.combo_address.setPlaceholderText(self.tr("Select address..."))
         
-        self.btn_manage_address = QPushButton(self.tr("New..."))
-        self.btn_manage_address.setMaximumWidth(80)
-        self.btn_manage_address.setStyleSheet("""
+        self.btn_new_address = QPushButton(self.tr("New..."))
+        self.btn_new_address.setMaximumWidth(60)
+        self.btn_new_address.setStyleSheet("""
+            QPushButton {
+                background-color: #555555;
+                color: white;
+                border: 1px solid #666666;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #666666;
+            }
+        """)
+        
+        self.btn_edit_address = QPushButton(self.tr("Edit..."))
+        self.btn_edit_address.setMaximumWidth(60)
+        self.btn_edit_address.setStyleSheet("""
             QPushButton {
                 background-color: #555555;
                 color: white;
@@ -207,7 +222,8 @@ class DlgEmployeeEventDetails(QDialog):
         """)
         
         address_layout.addWidget(self.combo_address)
-        address_layout.addWidget(self.btn_manage_address)
+        address_layout.addWidget(self.btn_new_address)
+        address_layout.addWidget(self.btn_edit_address)
         
         form_layout.addRow(self.tr("Address:"), address_layout)
 
@@ -569,6 +585,9 @@ class DlgEmployeeEventDetails(QDialog):
             for category in self.categories_cache:
                 self.combo_categories.addItem(category.name, category.id)
 
+            # Initial address edit button state
+            self._on_address_selection_changed()
+
         except Exception as e:
             logger.error(f"Error loading data: {e}")
             QMessageBox.warning(self, self.tr("Warning"), 
@@ -590,7 +609,11 @@ class DlgEmployeeEventDetails(QDialog):
         # Placeholder-Connections für zukünftige Features
         self.btn_manage_categories.clicked.connect(self._manage_categories)
         self.btn_select_participants.clicked.connect(self._select_participants)
-        self.btn_manage_address.clicked.connect(self._manage_address)
+        self.btn_new_address.clicked.connect(self._new_address)
+        self.btn_edit_address.clicked.connect(self._edit_address)
+        
+        # Address combo change event for enabling/disabling edit button
+        self.combo_address.currentIndexChanged.connect(self._on_address_selection_changed)
 
         # Save-as-new Checkbox
         if self.is_edit_mode:
@@ -937,24 +960,79 @@ class DlgEmployeeEventDetails(QDialog):
             self.le_participants.setText(self.tr("No participants selected"))
             self.le_participants.setToolTip("")
 
-    def _manage_address(self):
-        """Öffnet Adress-Management-Dialog."""
+    def _new_address(self):
+        """Öffnet Dialog zum Erstellen einer neuen Adresse."""
         try:
-            from gui.master_data.address.dlg_address_edit import DlgAddressEdit
+            from gui.master_data.dlg_address_edit import DlgAddressEdit
             
             # Neuen Adress-Dialog öffnen
             dlg = DlgAddressEdit(self, self.project_id)
+            dlg.address_saved.connect(self._on_address_saved)
+            
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 # Adressen-Liste aktualisieren
                 self._refresh_addresses_list()
                 
                 # Neue Adresse auswählen
-                if hasattr(dlg, 'created_address_id') and dlg.created_address_id:
-                    self.combo_address.setCurrentIndex(self.combo_address.findData(dlg.created_address_id))
+                created_address_id = dlg.get_result()
+                if created_address_id:
+                    index = self.combo_address.findData(created_address_id)
+                    if index >= 0:
+                        self.combo_address.setCurrentIndex(index)
                     
-        except ImportError:
-            QMessageBox.information(self, self.tr("Info"), 
-                                  self.tr("Address management dialog not available yet."))
+        except Exception as e:
+            logger.error(f"Error creating new address: {e}")
+            QMessageBox.critical(self, self.tr("Error"), 
+                               self.tr(f"Could not create new address: {str(e)}"))
+
+    def _edit_address(self):
+        """Öffnet Dialog zum Bearbeiten der ausgewählten Adresse."""
+        try:
+            selected_address_id = self.combo_address.currentData()
+            if not selected_address_id:
+                QMessageBox.information(self, self.tr("Info"), 
+                                      self.tr("Please select an address to edit."))
+                return
+            
+            from gui.master_data.dlg_address_edit import DlgAddressEdit
+            
+            # Address bearbeiten Dialog öffnen
+            dlg = DlgAddressEdit(self, self.project_id, selected_address_id)
+            dlg.address_saved.connect(self._on_address_saved)
+            dlg.address_deleted.connect(self._on_address_deleted)
+            
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                # Adressen-Liste aktualisieren
+                self._refresh_addresses_list()
+                
+                # Updated Adresse auswählen (falls nicht gelöscht)
+                updated_address_id = dlg.get_result()
+                if updated_address_id:
+                    index = self.combo_address.findData(updated_address_id)
+                    if index >= 0:
+                        self.combo_address.setCurrentIndex(index)
+                    
+        except Exception as e:
+            logger.error(f"Error editing address: {e}")
+            QMessageBox.critical(self, self.tr("Error"), 
+                               self.tr(f"Could not edit address: {str(e)}"))
+
+    def _on_address_selection_changed(self):
+        """Reagiert auf Änderungen der Adress-Auswahl."""
+        # Edit-Button nur aktivieren wenn eine gültige Adresse ausgewählt ist
+        has_valid_address = self.combo_address.currentData() is not None
+        self.btn_edit_address.setEnabled(has_valid_address)
+
+    def _on_address_saved(self, address_id: UUID):
+        """Callback wenn eine Adresse gespeichert wurde."""
+        logger.info(f"Address saved: {address_id}")
+        # Refresh wird bereits in _new_address und _edit_address aufgerufen
+
+    def _on_address_deleted(self, address_id: UUID):
+        """Callback wenn eine Adresse gelöscht wurde."""
+        logger.info(f"Address deleted: {address_id}")
+        # Adresse-Auswahl zurücksetzen
+        self.combo_address.setCurrentIndex(0)  # "No address"
 
     def _refresh_addresses_list(self):
         """Aktualisiert die Adressen-Liste nach Änderungen."""
@@ -963,13 +1041,14 @@ class DlgEmployeeEventDetails(QDialog):
             current_selection = self.combo_address.currentData()
             
             # Adressen neu laden
-            self.addresses_cache = db_services.Address.get_all_from__project(self.project_id)
+            self.addresses_cache = sorted(db_services.Address.get_all_from__project(self.project_id),
+                                          key=lambda a: (a.city, a.street))
             
             # Combo-Box neu befüllen
             self.combo_address.clear()
             self.combo_address.addItem(self.tr("No address"), None)
             for address in self.addresses_cache:
-                display_text = f"{address.street} {address.house_number}, {address.city}"
+                display_text = f"{address.city}, {address.street}"
                 self.combo_address.addItem(display_text, address.id)
             
             # Vorherige Auswahl wiederherstellen wenn möglich

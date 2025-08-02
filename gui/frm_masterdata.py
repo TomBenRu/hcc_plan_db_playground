@@ -348,8 +348,14 @@ class DlgPersonCreate(DlgPersonData):
         self.layout.addWidget(self.button_box)
 
     def accept(self):
-        address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
-                                        city=self.le_city.text())
+        street = self.le_street.text().strip()
+        postal_code = self.le_postal_code.text().strip()
+        city = self.le_city.text().strip()
+        person_address_is_set = street or postal_code or city
+        if person_address_is_set:
+            address = schemas.AddressCreate(street=street, postal_code=postal_code, city=city)
+        else:
+            address = None
         person = schemas.PersonCreate(f_name=self.le_f_name.text(), l_name=self.le_l_name.text(),
                                       email=self.le_email.text(), gender=Gender[self.cb_gender.currentText()],
                                       phone_nr=self.le_phone_nr.text(), username=self.le_username.text(),
@@ -406,15 +412,22 @@ class DlgPersonModify(DlgPersonData):
         self.autofill()
 
     def accept(self):
+        street = self.le_street.text().strip()
+        postal_code = self.le_postal_code.text().strip()
+        city = self.le_city.text().strip()
+        person_address_is_set = street or postal_code or city
         self.person.f_name = self.le_f_name.text()
         self.person.l_name = self.le_l_name.text()
         self.person.email = self.le_email.text()
         self.person.gender = Gender[self.cb_gender.currentText()]
         self.person.phone_nr = self.le_phone_nr.text()
         self.person.requested_assignments = self.spin_num_requested_assignments.value()
-        self.person.address.street = self.le_street.text()
-        self.person.address.postal_code = self.le_postal_code.text()
-        self.person.address.city = self.le_city.text()
+        if person_address_is_set:
+            self.person.address.street = street
+            self.person.address.postal_code = postal_code
+            self.person.address.city = city
+        else:
+            self.person.address = None
 
         updated_person = db_services.Person.update(self.person)
         QMessageBox.information(self, self.tr('Person Update'),
@@ -439,6 +452,8 @@ class DlgPersonModify(DlgPersonData):
         self.le_phone_nr.setText(self.person.phone_nr)
 
     def fill_address_data(self):
+        if not self.person.address:
+            return
         self.le_street.setText(self.person.address.street)
         self.le_postal_code.setText(self.person.address.postal_code)
         self.le_city.setText(self.person.address.city)
@@ -694,8 +709,14 @@ class DlgLocationData(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def save_location(self):
-        address = schemas.AddressCreate(street=self.le_street.text(), postal_code=self.le_postal_code.text(),
-                                        city=self.le_city.text())
+        street = self.le_street.text().strip()
+        postal_code = self.le_postal_code.text().strip()
+        city = self.le_city.text().strip()
+        address_is_set = street or postal_code or city
+        if address_is_set:
+            address = schemas.AddressCreate(street=street, postal_code=postal_code, city=city)
+        else:
+            address = None
 
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
 
@@ -754,17 +775,25 @@ class DlgLocationModify(DlgLocationData):
 
     def _autofill_widgets(self):
         self.le_name.setText(self.location_of_work.name)
-        self.le_street.setText(self.location_of_work.address.street)
-        self.le_postal_code.setText(self.location_of_work.address.postal_code)
-        self.le_city.setText(self.location_of_work.address.city)
+        if self.location_of_work.address:
+            self.le_street.setText(self.location_of_work.address.street)
+            self.le_postal_code.setText(self.location_of_work.address.postal_code)
+            self.le_city.setText(self.location_of_work.address.city)
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
         self.fill_teams()
 
     def save_location(self):
+        street = self.le_street.text().strip()
+        postal_code = self.le_postal_code.text().strip()
+        city = self.le_city.text().strip()
+        address_is_set = street or postal_code or city
         self.location_of_work.name = self.le_name.text()
-        self.location_of_work.address.street = self.le_street.text()
-        self.location_of_work.address.postal_code = self.le_postal_code.text()
-        self.location_of_work.address.city = self.le_city.text()
+        if address_is_set:
+            self.location_of_work.address.street = street
+            self.location_of_work.address.postal_code = postal_code
+            self.location_of_work.address.city = city
+        else:
+            self.location_of_work.address = None
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
         updated_location = db_services.LocationOfWork.update(self.location_of_work)
         QMessageBox.information(self, self.tr('Location Update'),

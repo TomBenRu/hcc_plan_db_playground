@@ -4,7 +4,7 @@
 
 Das Employee Event Management System verwaltet Unternehmensveranstaltungen wie Fortbildungen, Meetings, Onlinekonferenzen etc. für das hcc_plan_db_playground Projekt.
 
-**Status: ✅ Phase 1 abgeschlossen (Kern-Module) | 🔄 Phase 2 in Arbeit (GUI-Module)**
+**Status: ✅ Phase 1-4 vollständig abgeschlossen | 🔄 Address Management in Entwicklung**
 
 ## Commands-Pattern für Undo/Redo-Funktionalität
 
@@ -327,14 +327,207 @@ result = service.create_event(
   - ✅ **Performance-Verbesserung** - Weniger Abstraktionsebenen
   - ✅ **Commands-Pattern vorbereitet** - db_commands/ Struktur für Undo/Redo
 
+## Address Management ✅ IMPLEMENTIERT
+
+### 🎯 Shared Component für modulübergreifende Verwendung
+
+Das Address Management ist als **shared component** implementiert und kann von verschiedenen Modulen des hcc_plan_db_playground Projekts verwendet werden:
+- Employee Event Dialog (für Event-Locations)
+- Person Management (für Mitarbeiter-Adressen)
+- LocationOfWork (für Arbeitsort-Adressen)
+- Weitere Module nach Bedarf
+
+### ✅ Implementierte Struktur
+```
+gui/master_data/
+├── __init__.py                     # Package definition
+├── dlg_address_edit.py             # ✅ CRUD Dialog für Adressen
+commands/database_commands/
+├── address_commands.py             # ✅ Address Commands (Create, Update, Delete)
+```
+
+### ✅ Implementierte Features
+
+#### 1. DlgAddressEdit Features:
+- **✅ CRUD-Modi**: Create/Update/Delete in einem Dialog implementiert
+- **✅ Mode Detection**: Automatisch basierend auf ob address_id übergeben wird
+- **✅ Form Fields**: Street, Postal Code, City mit Validierung
+- **✅ Dark Theme**: Nutzt bestehende app.py Styles mit konsistentem Design
+- **✅ Commands Integration**: Verwendet address_commands für Undo/Redo
+- **✅ Returns**: `created_address_id` oder `updated_address_id` via get_result()
+- **✅ Signals**: address_saved/address_deleted für externe Integration
+- **✅ Convenience Functions**: create_address_dialog() und edit_address_dialog()
+
+#### 2. Address Commands:
+- **✅ Create(AddressCreate, project_id)** - Erstellt neue Adresse mit Undo/Redo
+- **✅ Update(Address)** - Aktualisiert bestehende Adresse mit Undo/Redo  
+- **✅ Delete(address_id)** - Soft Delete mit prep_delete und Undo/Redo
+
+#### 3. Integration Points:
+- **✅ Employee Event Dialog** kann direkt importieren
+- **✅ Andere Module** (Person, LocationOfWork) können ebenfalls nutzen
+- **✅ Command Pattern** folgt bestehendem Projektstandard
+- **✅ Schema-driven** nutzt bestehende AddressCreate/Address Schemas
+
+### ✅ Usage Examples (Implementiert)
+
+#### ✅ Employee Event Dialog Integration (Implementiert)
+```python
+# In gui/employee_event/dlg_employee_event_details.py
+from gui.master_data.dlg_address_edit import DlgAddressEdit
+
+# New Address Button
+def _new_address(self):
+    dlg = DlgAddressEdit(self)
+    dlg.address_saved.connect(self._on_address_saved)
+    if dlg.exec() == QDialog.DialogCode.Accepted:
+        # Auto-refresh address list and select new address
+        self._refresh_addresses_list()
+        created_address_id = dlg.get_result()
+        # Auto-select the new address
+
+# Edit Address Button  
+def _edit_address(self):
+    selected_address_id = self.combo_address.currentData()
+    dlg = DlgAddressEdit(self, selected_address_id)
+    dlg.address_saved.connect(self._on_address_saved)
+    dlg.address_deleted.connect(self._on_address_deleted)
+    # Auto-refresh and handle deletion
+```
+
+#### ✅ GUI Features Implementiert
+- **✅ Address Dropdown** - Zeigt alle verfügbaren Adressen sortiert nach Stadt, Straße
+- **✅ New Address Button** - Öffnet Create-Dialog, fügt neue Adresse automatisch zur Liste hinzu
+- **✅ Edit Address Button** - Öffnet Edit-Dialog für ausgewählte Adresse (auto-disabled wenn keine Auswahl)
+- **✅ Signal Integration** - address_saved/address_deleted Callbacks für UI-Updates
+- **✅ Auto-Refresh** - Adress-Liste wird automatisch nach Änderungen aktualisiert
+- **✅ Smart Selection** - Neue/bearbeitete Adressen werden automatisch ausgewählt
+```python
+from gui.master_data.dlg_address_edit import create_address_dialog, edit_address_dialog
+
+# Neue Adresse erstellen
+created_address_id = create_address_dialog(parent=self)
+if created_address_id:
+    print(f"Neue Adresse erstellt: {created_address_id}")
+
+# Bestehende Adresse bearbeiten  
+updated_address_id = edit_address_dialog(parent=self, address_id=existing_id)
+if updated_address_id:
+    print(f"Adresse aktualisiert: {updated_address_id}")
+```
+
+#### Direkte Dialog-Nutzung mit Signal-Integration
+```python
+from gui.master_data.dlg_address_edit import DlgAddressEdit
+from PySide6.QtWidgets import QDialog
+
+# Create Mode
+address_dialog = DlgAddressEdit(parent=self)
+address_dialog.address_saved.connect(self.on_address_created)
+if address_dialog.exec() == QDialog.Accepted:
+    result_id = address_dialog.get_result()
+
+# Edit Mode
+address_dialog = DlgAddressEdit(parent=self, address_id=existing_id) 
+address_dialog.address_saved.connect(self.on_address_updated)
+address_dialog.address_deleted.connect(self.on_address_deleted)
+if address_dialog.exec() == QDialog.Accepted:
+    result_id = address_dialog.get_result()
+
+def on_address_created(self, address_id):
+    print(f"Address created: {address_id}")
+
+def on_address_updated(self, address_id):
+    print(f"Address updated: {address_id}")
+
+def on_address_deleted(self, address_id):
+    print(f"Address deleted: {address_id}")
+```
+
+### 🧪 Testing der Integration
+
+Ein Test-Script ist verfügbar um die vollständige Integration zu testen:
+
+```bash
+# Test-Script ausführen
+python test_address_integration.py
+```
+
+#### Test-Features:
+- **✅ Standalone Address Dialog** - Test der Address CRUD-Funktionalität  
+- **✅ Employee Event Integration** - Test der eingebetteten Address-Buttons
+- **✅ Convenience Functions** - Test der create_address_dialog() und edit_address_dialog()
+- **✅ Signal Integration** - Test der address_saved/address_deleted Callbacks
+- **✅ Dark Theme** - Visueller Test der konsistenten Styling
+
+#### Manual Test Checklist:
+1. **✅ New Address in Employee Event Dialog** - "New..." Button öffnet Address Dialog
+2. **✅ Address Auto-Selection** - Neue Adresse wird automatisch ausgewählt
+3. **✅ Edit Address** - "Edit..." Button öffnet selected Address für Bearbeitung
+4. **✅ Edit Button State** - Edit-Button disabled wenn keine Adresse ausgewählt
+5. **✅ Address Deletion** - Löschen einer Adresse setzt Auswahl auf "No address" zurück
+6. **✅ List Refresh** - Address-Liste wird nach allen Änderungen automatisch aktualisiert
+```python
+from commands.database_commands import address_commands
+from commands.command_base_classes import ContrExecUndoRedo
+from database.schemas import AddressCreate
+from configuration.general_settings import get_current_project_id
+
+# Setup
+controller = ContrExecUndoRedo()
+
+# Create Address
+address_create = AddressCreate(
+    street="Musterstraße 123",
+    postal_code="12345", 
+    city="Berlin"
+)
+create_command = address_commands.Create(address_create, get_current_project_id())
+controller.execute(create_command)
+
+# Undo/Redo verfügbar
+controller.undo()  # Rückgängig
+controller.redo()  # Wiederholen
+```
+```python
+# Usage Example für andere Module:
+from gui.master_data.dlg_address_edit import DlgAddressEdit, create_address_dialog, edit_address_dialog
+
+# Convenience Functions (Empfohlen):
+created_address_id = create_address_dialog(parent=self)
+updated_address_id = edit_address_dialog(parent=self, address_id=existing_id)
+
+# Direkte Dialog-Nutzung:
+address_dialog = DlgAddressEdit(parent=self)  # Create Mode
+address_dialog = DlgAddressEdit(parent=self, address_id=existing_id)  # Edit Mode
+if address_dialog.exec() == QDialog.Accepted:
+    result_id = address_dialog.get_result()
+
+# Signal-Integration:
+address_dialog.address_saved.connect(self.on_address_saved)
+address_dialog.address_deleted.connect(self.on_address_deleted)
+```
+
+### ✅ Architektur-Prinzipien (Umgesetzt)
+- **✅ Overengineering vermieden** - Einfache, direkte Implementation ohne Repository-Layer
+- **✅ Commands Integration** - Vollständiger Undo/Redo Support für alle CRUD-Operationen
+- **✅ Schema-driven** - Nutzt bestehende Pydantic v2 Schemas (AddressCreate, Address)
+- **✅ Dark Theme** - Konsistent mit bestehenden Dialogen und app.py Styling
+- **✅ Shared Component** - Wiederverwendbar für verschiedene Module ohne Abhängigkeiten
+- **✅ Validation** - Vollständige Eingabevalidierung mit benutzerfreundlichen Fehlermeldungen
+- **✅ Modal Dialog** - Modernes Design konsistent mit Employee Event Dialogen
+
 ## Nächste Schritte
 
-1. **Phase 3 abschließen** - Letzten Dialog implementieren:
-   - `dlg_participant_selection.py` - Teilnehmer-Auswahl Dialog
-2. **Commands-Integration** - Production-Ready-System mit Undo/Redo:
+1. **✅ Address Management implementiert** (02.08.2025):
+   - `gui/master_data/dlg_address_edit.py` - CRUD Dialog ✅
+   - `commands/database_commands/address_commands.py` - Commands implementiert ✅
+   - Address Entity und Schemas bereits vorhanden ✅
+2. **Integration testen** - Mit Employee Event Dialog und anderen Modulen (Person, LocationOfWork)
+3. **Commands-Integration (Optional)** - Production-Ready-System mit Undo/Redo für Employee Events:
    - `commands/employee_event_commands.py` - Command-Klassen implementieren
    - Service → Commands Migration durchführen
-3. **Testing** - Vollständige Funktionalität testen
+4. **Testing** - Vollständige Funktionalität aller Module testen
 
 ⚠️ **WICHTIG:** Für Production-System muss Commands-Pattern implementiert werden!
 

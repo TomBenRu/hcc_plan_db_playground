@@ -198,7 +198,37 @@ Database → PonyORM → Service → GUI
 - ✅ **Weniger Code = weniger Bugs** - Deutlich wartbarer
 - ✅ **Direkte ORM-Integration** - Nutzt alle PonyORM-Features optimal
 
-### 🔄 Phase 5: Commands-Integration (GEPLANT)
+### ✅ Phase 5: Address Management (ABGESCHLOSSEN)
+**Zeitraum:** 02.08.2025  
+**Status:** 🟢 Completed
+
+#### ✅ Abgeschlossene Deliverables
+- [x] **`gui/master_data/dlg_address_edit.py`** - CRUD Dialog für Adressen als shared component ✅
+- [x] **`commands/database_commands/address_commands.py`** - Address Commands (Create, Update, Delete) ✅
+- [x] **Mode Detection** - Create/Update/Delete basierend auf address_id Parameter ✅
+- [x] **Form Fields** - Street, Postal Code, City mit Validierung ✅
+- [x] **Commands Integration** - Undo/Redo Support für alle schreibenden Operationen ✅
+- [x] **Integration Points** - Verwendbar für Employee Event Dialog, Person Management, LocationOfWork ✅
+- [x] **Dark Theme** - Konsistentes Design mit bestehenden Dialogen ✅
+- [x] **Convenience Functions** - create_address_dialog() und edit_address_dialog() für einfache Nutzung ✅
+- [x] **Signal Integration** - address_saved/address_deleted Signals für externe Module ✅
+
+#### ✅ Implementierte Architektur-Prinzipien
+- **✅ Shared Component Design** - Wiederverwendbar für verschiedene Module ohne Abhängigkeiten
+- **✅ Commands Pattern** - Folgt bestehendem Command Pattern für vollständiges Undo/Redo
+- **✅ Schema-driven** - Nutzt bestehende Pydantic v2 Schemas (AddressCreate, Address)
+- **✅ Overengineering vermieden** - Einfache, direkte Implementation ohne Repository-Layer
+- **✅ Dark Theme Integration** - Nutzt bestehende app.py Styles mit konsistentem Design
+
+#### ✅ Technische Features
+- **✅ CRUD-Modi** - Create/Update/Delete in einem Dialog mit automatischer Mode Detection
+- **✅ Validation** - Vollständige Eingabevalidierung mit benutzerfreundlichen Fehlermeldungen
+- **✅ Error Handling** - Strukturiertes Exception-Handling mit QMessageBox-Integration
+- **✅ Modal Dialog** - Modernes Design konsistent mit Employee Event Dialogen
+- **✅ Return Values** - created_address_id oder updated_address_id via get_result()
+- **✅ Command Controller** - ContrExecUndoRedo für lokale Undo/Redo-Funktionalität
+
+### 🔄 Phase 6: Commands-Integration (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🔵 Planned
 
@@ -226,7 +256,37 @@ result = self.command_manager.execute(command)
 # Undo/Redo verfügbar: self.command_manager.undo()
 ```
 
-### 🔄 Phase 5: Commands-Integration (GEPLANT)
+### ✅ Phase 5: Address Management (ABGESCHLOSSEN)
+**Zeitraum:** 02.08.2025  
+**Status:** 🟢 Completed
+
+#### ✅ Abgeschlossene Deliverables
+- [x] **`gui/master_data/dlg_address_edit.py`** - CRUD Dialog für Adressen als shared component ✅
+- [x] **`commands/database_commands/address_commands.py`** - Address Commands (Create, Update, Delete) ✅
+- [x] **Mode Detection** - Create/Update/Delete basierend auf address_id Parameter ✅
+- [x] **Form Fields** - Street, Postal Code, City mit Validierung ✅
+- [x] **Commands Integration** - Undo/Redo Support für alle schreibenden Operationen ✅
+- [x] **Integration Points** - Verwendbar für Employee Event Dialog, Person Management, LocationOfWork ✅
+- [x] **Dark Theme** - Konsistentes Design mit bestehenden Dialogen ✅
+- [x] **Convenience Functions** - create_address_dialog() und edit_address_dialog() für einfache Nutzung ✅
+- [x] **Signal Integration** - address_saved/address_deleted Signals für externe Module ✅
+
+#### ✅ Implementierte Architektur-Prinzipien
+- **✅ Shared Component Design** - Wiederverwendbar für verschiedene Module ohne Abhängigkeiten
+- **✅ Commands Pattern** - Folgt bestehendem Command Pattern für vollständiges Undo/Redo
+- **✅ Schema-driven** - Nutzt bestehende Pydantic v2 Schemas (AddressCreate, Address)
+- **✅ Overengineering vermieden** - Einfache, direkte Implementation ohne Repository-Layer
+- **✅ Dark Theme Integration** - Nutzt bestehende app.py Styles mit konsistentem Design
+
+#### ✅ Technische Features
+- **✅ CRUD-Modi** - Create/Update/Delete in einem Dialog mit automatischer Mode Detection
+- **✅ Validation** - Vollständige Eingabevalidierung mit benutzerfreundlichen Fehlermeldungen
+- **✅ Error Handling** - Strukturiertes Exception-Handling mit QMessageBox-Integration
+- **✅ Modal Dialog** - Modernes Design konsistent mit Employee Event Dialogen
+- **✅ Return Values** - created_address_id oder updated_address_id via get_result()
+- **✅ Command Controller** - ContrExecUndoRedo für lokale Undo/Redo-Funktionalität
+
+### 🔄 Phase 6: Commands-Integration (GEPLANT)
 **Geschätzte Dauer:** 1-2 Tage  
 **Status:** 🔵 Planned
 
@@ -254,7 +314,7 @@ result = self.command_manager.execute(command)
 # self.command_manager.undo() verfügbar
 ```
 
-### 🔄 Phase 6: Advanced Features (GEPLANT)
+### 🔄 Phase 7: Advanced Features (GEPLANT)
 **Geschätzte Dauer:** 2-3 Tage  
 **Status:** 🟡 Pending
 
@@ -379,20 +439,37 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Phase 4 - Architektur-Refactoring ✅ VOLLSTÄNDIG ABGESCHLOSSEN
-- [x] Over-Engineering identifiziert und eliminiert ✅ (01.08.2025)
-- [x] Repository Pattern entfernt ✅ (01.08.2025)  
-- [x] Schema-driven Service API implementiert ✅ (01.08.2025)
-- [x] Performance durch weniger Abstraktionsebenen verbessert ✅ (01.08.2025)
-- [x] Commands-Struktur für zukünftige Undo/Redo vorbereitet ✅ (01.08.2025)
+## 🚀 Nächste Sessions
 
-### Session 2: Commands-Integration (Optional für Undo/Redo)
+## 🚀 Nächste Sessions
+
+### Session Aktuell: Phase 5 - Address Management ✅ VOLLSTÄNDIG ABGESCHLOSSEN
+- [x] `gui/master_data/dlg_address_edit.py` - CRUD Dialog als shared component implementiert ✅ (02.08.2025)
+- [x] `commands/database_commands/address_commands.py` - Address Commands implementiert ✅ (02.08.2025)
+- [x] Mode Detection (Create/Update/Delete) basierend auf Parametern ✅ (02.08.2025)
+- [x] Integration mit Employee Event Dialog als ersten Use Case ✅ (02.08.2025)
+- [x] Dark Theme und Schema-driven Design ✅ (02.08.2025)
+- [x] Convenience Functions und Signal Integration ✅ (02.08.2025)
+
+### Session 1: Employee Event Dialog Integration ✅ VOLLSTÄNDIG ABGESCHLOSSEN
+- [x] Import-Pfad korrigiert von falscher gui.master_data.address.dlg_address_edit ✅ (02.08.2025)
+- [x] New Address Button Funktionalität implementiert ✅ (02.08.2025)
+- [x] Edit Address Button hinzugefügt mit Smart Enable/Disable ✅ (02.08.2025)  
+- [x] Signal Integration für address_saved/address_deleted ✅ (02.08.2025)
+- [x] Auto-Refresh der Adress-Liste nach Änderungen ✅ (02.08.2025)
+- [x] Smart Selection - neue/bearbeitete Adressen werden automatisch ausgewählt ✅ (02.08.2025)
+- [x] Error Handling und Logging für alle Address-Operationen ✅ (02.08.2025)
+- [x] Test-Script test_address_integration.py erstellt ✅ (02.08.2025)
+
+### Session 2: Phase 6 - Commands-Integration (Optional für Undo/Redo)
 - [ ] `employee_event_commands.py` vervollständigen
 - [ ] Service → Commands Migration (optional)
 - [ ] Undo/Redo-Funktionalität integrieren
 - [ ] Transaktionale Sicherheit testen
 
-### Session 3: Advanced Features & Testing
+### Session 2: Advanced Features & Testing
+- [ ] Address Management Integration in Employee Event Dialog testen
+- [ ] Address Management Integration in andere Module (Person, LocationOfWork)
 - [ ] Kalender-Event-Overlays mit Farb-Kodierung
 - [ ] Excel-Export für Employee Events
 - [ ] Testing und Refinement

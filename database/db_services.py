@@ -1154,6 +1154,19 @@ class ExcelExportSettings:
 
 class Address:
     @classmethod
+    @db_session
+    def get(cls, address_id: UUID) -> schemas.Address:
+        address_db = models.Address.get_for_update(id=address_id)
+        return schemas.Address.model_validate(address_db)
+
+    @classmethod
+    @db_session
+    def get_all_from__project(cls, project_id: UUID) -> list[schemas.Address]:
+        project_db = models.Project.get_for_update(id=project_id)
+        addresses_db = models.Address.select(lambda a: a.project == project_db)
+        return [schemas.Address.model_validate(a) for a in addresses_db]
+
+    @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, address: schemas.AddressCreate) -> schemas.Address:
         log_function_info(cls)

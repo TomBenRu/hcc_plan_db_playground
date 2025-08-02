@@ -40,6 +40,7 @@ class EventDetail(Event):
     employee_event_categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
     teams: List[schemas.Team] = Field(default_factory=list, description="Zugeordnete Teams")
     participants: List[schemas.Person] = Field(default_factory=list, description="Teilnehmer")
+    address: Optional[schemas.Address] = Field(None, description="Zugeordnete Adresse")
 
     @property
     def participant_count(self):
@@ -86,6 +87,7 @@ class EventCreate(BaseModel):
     start: datetime = Field(..., description="Start-Zeitpunkt des Events")
     end: datetime = Field(..., description="End-Zeitpunkt des Events")
     project_id: UUID = Field(..., description="ID des zugehörigen Projekts")
+    address_id: Optional[UUID] = Field(None, description="ID der zugeordneten Adresse")
     category_ids: list[UUID] = Field(default_factory=list, description="IDs der zugeordneten Kategorien")
     team_ids: list[UUID] = Field(default_factory=list, description="IDs der zugeordneten Teams")
     participant_ids: list[UUID] = Field(default_factory=list, description="IDs der Teilnehmer")
@@ -116,6 +118,7 @@ class EventUpdate(BaseModel):
     description: Optional[str] = Field(None, description="Neue Beschreibung")
     start: Optional[datetime] = Field(None, description="Neuer Start-Zeitpunkt")
     end: Optional[datetime] = Field(None, description="Neuer End-Zeitpunkt")
+    address_id: Optional[UUID] = Field(None, description="ID der neuen Adresse")
     category_ids: Optional[list[UUID]] = Field(None, description="IDs der neuen Kategorien")
     team_ids: Optional[list[UUID]] = Field(None, description="IDs der neuen Teams")
     participant_ids: Optional[list[UUID]] = Field(None, description="IDs der neuen Teilnehmer")

@@ -442,6 +442,7 @@ class Address(db.Entity):
     prep_delete = Optional(datetime.datetime)
     persons = Set(Person)
     location_of_work = Optional(LocationOfWork)
+    employee_events = Set('EmployeeEvent')
 
     def before_update(self):
         self.last_modified = utcnow_naive()
@@ -805,6 +806,10 @@ class EmployeeEvent(db.Entity):
     project = Required(Project)
     teams = Set(Team)
     participants = Set(Person)
+    address = Optional(Address)
+
+    def before_update(self):
+        self.last_modified = utcnow_naive()
 
 
 class EmployeeEventCategory(db.Entity):
@@ -816,6 +821,9 @@ class EmployeeEventCategory(db.Entity):
     prep_delete = Optional(datetime.datetime)
     employee_events = Set(EmployeeEvent)
     project = Required(Project)
+
+    def before_update(self):
+        self.last_modified = utcnow_naive()
 
 
 #  noch zu implementieren

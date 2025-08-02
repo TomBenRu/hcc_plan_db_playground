@@ -55,8 +55,9 @@ class DlgEmployeeEventDetails(QDialog):
         # Daten-Cache
         self.current_event: Optional[EventDetail] = None
         self.teams_cache: List[schemas.Team] = []
-        self.categories_cache: List[str] = []
+        self.categories_cache: List[employee_event_schemas.Category] = []  # Korrigiert: CategoryDetail Objekte
         self.persons_cache: list[schemas.Person] = []
+        self.addresses_cache: list[schemas.Address] = []  # Cache für Adressen
         self._current_participants: List[schemas.Person] = []  # Cache für Teilnehmer
         # self._current_participants: List[UUID] = []äää  # Cache für Teilnehmer-IDs
         
@@ -181,6 +182,34 @@ class DlgEmployeeEventDetails(QDialog):
         self.te_description.setPlaceholderText(self.tr("Enter event description..."))
         self.te_description.setMaximumHeight(100)
         form_layout.addRow(self.tr("Description:"), self.te_description)
+
+        # Adresse
+        address_layout = QHBoxLayout()
+        address_layout.setContentsMargins(0, 0, 0, 0)
+        address_layout.setSpacing(5)
+        
+        self.combo_address = QComboBoxToFindData()
+        self.combo_address.setPlaceholderText(self.tr("Select address..."))
+        
+        self.btn_manage_address = QPushButton(self.tr("New..."))
+        self.btn_manage_address.setMaximumWidth(80)
+        self.btn_manage_address.setStyleSheet("""
+            QPushButton {
+                background-color: #555555;
+                color: white;
+                border: 1px solid #666666;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #666666;
+            }
+        """)
+        
+        address_layout.addWidget(self.combo_address)
+        address_layout.addWidget(self.btn_manage_address)
+        
+        form_layout.addRow(self.tr("Address:"), address_layout)
 
         self.layout.addWidget(form_group)
 
@@ -507,7 +536,7 @@ class DlgEmployeeEventDetails(QDialog):
         self.layout.addWidget(self.button_box)
 
     def _setup_data(self):
-        """Lädt die notwendigen Daten (Teams, Kategorien)."""
+        """Lädt die notwendigen Daten (Teams, Kategorien, Adressen)."""
         try:
             # Teams laden
             self.teams_cache = db_services.Team.get_all_from__project(self.project_id)
@@ -515,11 +544,21 @@ class DlgEmployeeEventDetails(QDialog):
             # Persons laden
             self.persons_cache = db_services.Person.get_all_from__project(self.project_id)
             
+            # Adressen laden
+            self.addresses_cache = sorted(db_services.Address.get_all_from__project(self.project_id),
+                                          key=lambda a: (a.city, a.street))
+            
             # Team-Dropdown befüllen
             self.combo_teams.addItem(self.tr("All teams"), "all_teams")
             for team in self.teams_cache:
                 self.combo_teams.addItem(team.name, team.id)
             self.combo_teams.addItem("No teams", "no_teams")
+
+            # Address-Dropdown befüllen
+            self.combo_address.addItem(self.tr("No address"), None)
+            for address in self.addresses_cache:
+                display_text = f"{address.city}, {address.street}"
+                self.combo_address.addItem(display_text, address.id)
 
             # Kategorien laden
             self.categories_cache = sorted(self.db_service.get_all_categories_by_project(self.project_id),
@@ -551,6 +590,7 @@ class DlgEmployeeEventDetails(QDialog):
         # Placeholder-Connections für zukünftige Features
         self.btn_manage_categories.clicked.connect(self._manage_categories)
         self.btn_select_participants.clicked.connect(self._select_participants)
+        self.btn_manage_address.clicked.connect(self._manage_address)
 
         # Save-as-new Checkbox
         if self.is_edit_mode:
@@ -593,6 +633,10 @@ class DlgEmployeeEventDetails(QDialog):
             
             # End-Minimums aktualisieren
             self._update_end_minimums()
+            
+            # Adresse setzen wenn vorhanden
+            if result.address:
+                self.combo_address.setCurrentIndex(self.combo_address.findData(result.address.id))
             
             # Teams (erste Team auswählen wenn vorhanden)
             if len(result.teams) == 1:
@@ -700,7 +744,8 @@ class DlgEmployeeEventDetails(QDialog):
                     start=start_dt,
                     end=end_dt,
                     project_id=self.project_id,
-                    category_ids=[self.combo_categories.currentData()],
+                    address_id=self.combo_address.currentData(),
+                    category_ids=[self.combo_categories.currentData()] if self.combo_categories.currentData() else [],
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
@@ -723,7 +768,8 @@ class DlgEmployeeEventDetails(QDialog):
                     description=description,
                     start=start_dt,
                     end=end_dt,
-                    category_ids=[self.combo_categories.currentData()],
+                    address_id=self.combo_address.currentData(),
+                    category_ids=[self.combo_categories.currentData()] if self.combo_categories.currentData() else [],
                     team_ids=selected_team_ids,
                     participant_ids=[participant.id for participant in self._current_participants]
                 )
@@ -890,3 +936,47 @@ class DlgEmployeeEventDetails(QDialog):
         else:
             self.le_participants.setText(self.tr("No participants selected"))
             self.le_participants.setToolTip("")
+
+    def _manage_address(self):
+        """Öffnet Adress-Management-Dialog."""
+        try:
+            from gui.master_data.address.dlg_address_edit import DlgAddressEdit
+            
+            # Neuen Adress-Dialog öffnen
+            dlg = DlgAddressEdit(self, self.project_id)
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                # Adressen-Liste aktualisieren
+                self._refresh_addresses_list()
+                
+                # Neue Adresse auswählen
+                if hasattr(dlg, 'created_address_id') and dlg.created_address_id:
+                    self.combo_address.setCurrentIndex(self.combo_address.findData(dlg.created_address_id))
+                    
+        except ImportError:
+            QMessageBox.information(self, self.tr("Info"), 
+                                  self.tr("Address management dialog not available yet."))
+
+    def _refresh_addresses_list(self):
+        """Aktualisiert die Adressen-Liste nach Änderungen."""
+        try:
+            # Aktuelle Auswahl merken
+            current_selection = self.combo_address.currentData()
+            
+            # Adressen neu laden
+            self.addresses_cache = db_services.Address.get_all_from__project(self.project_id)
+            
+            # Combo-Box neu befüllen
+            self.combo_address.clear()
+            self.combo_address.addItem(self.tr("No address"), None)
+            for address in self.addresses_cache:
+                display_text = f"{address.street} {address.house_number}, {address.city}"
+                self.combo_address.addItem(display_text, address.id)
+            
+            # Vorherige Auswahl wiederherstellen wenn möglich
+            if current_selection:
+                index = self.combo_address.findData(current_selection)
+                if index >= 0:
+                    self.combo_address.setCurrentIndex(index)
+                    
+        except Exception as e:
+            logger.error(f"Error refreshing addresses: {e}")

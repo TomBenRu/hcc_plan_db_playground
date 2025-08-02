@@ -64,6 +64,11 @@ class EmployeeEventService:
             categories_db = [models.EmployeeEventCategory.get(id=cat_id) for cat_id in event_create.category_ids]
             teams_db = [models.Team.get(id=team_id) for team_id in event_create.team_ids]
             participants_db = [models.Person.get(id=person_id) for person_id in event_create.participant_ids]
+            
+            # Adresse optional laden
+            address_db = None
+            if event_create.address_id:
+                address_db = models.Address.get(id=event_create.address_id)
 
             event_db = models.EmployeeEvent(
                 title=event_create.title,
@@ -71,6 +76,7 @@ class EmployeeEventService:
                 start=event_create.start,
                 end=event_create.end,
                 project=project_db,
+                address=address_db,
                 employee_event_categories=categories_db,
                 teams=teams_db,
                 participants=participants_db
@@ -200,6 +206,12 @@ class EmployeeEventService:
                 event_db.start = event_update_data.start
             if event_update_data.end is not None:
                 event_db.end = event_update_data.end
+            if event_update_data.address_id is not None:
+                if event_update_data.address_id:
+                    address_db = models.Address.get(id=event_update_data.address_id)
+                    event_db.address = address_db
+                else:
+                    event_db.address = None
             if event_update_data.category_ids is not None:
                 event_db.employee_event_categories.clear()
                 for cat_id in event_update_data.category_ids:

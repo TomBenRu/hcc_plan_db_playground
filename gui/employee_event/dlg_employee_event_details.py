@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
-from PySide6.QtCore import Qt, QDateTime, QDate, QTime
+from PySide6.QtCore import Qt, QDateTime, QDate, QTime, QLocale
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -238,6 +238,8 @@ class DlgEmployeeEventDetails(QDialog):
 
         # Datum/Zeit-Konfiguration basierend auf Settings
         date_format_settings = general_settings_handler.get_general_settings().date_format_settings
+        print(f"date_format_settings: {date_format_settings}")
+        print(f"date_format_settings.format: {date_format_settings.format}")
         
         # Datum-Format basierend auf Einstellungen bestimmen
         if date_format_settings.format == "DD.MM.YYYY":
@@ -262,6 +264,8 @@ class DlgEmployeeEventDetails(QDialog):
         # Start Datum
         self.date_start = QDateEdit()
         self.date_start.setDisplayFormat(date_display_format)
+        self.date_start.setLocale(QLocale(QLocale.Language(date_format_settings.language),
+                                          QLocale.Country(date_format_settings.country)))
         self.date_start.setCalendarPopup(True)
         self.date_start.setDate(QDate.currentDate())
         self.date_start.setMinimumWidth(120)
@@ -341,6 +345,8 @@ class DlgEmployeeEventDetails(QDialog):
         # End Datum
         self.date_end = QDateEdit()
         self.date_end.setDisplayFormat(date_display_format)  # Konsistentes Format wie Start-Datum
+        self.date_end.setLocale(QLocale(QLocale.Language(date_format_settings.language),
+                                          QLocale.Country(date_format_settings.country)))
         self.date_end.setCalendarPopup(True)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.setMinimumWidth(120)

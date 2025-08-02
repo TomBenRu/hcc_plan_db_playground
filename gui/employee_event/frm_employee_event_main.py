@@ -7,7 +7,7 @@ Stellt zwei Darstellungsmodi bereit:
 
 Mit Filter-System für Teams, Kategorien und Freitextsuche.
 """
-
+import datetime
 import logging
 from functools import partial
 from typing import List, Optional
@@ -230,10 +230,10 @@ class FrmEmployeeEventMain(QWidget):
         self.table_events.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table_events.setAlternatingRowColors(True)
 
-        # Spalten definieren: Datum | Zeitspanne | Name | Kategorie | Teams  
+        # Spalten definieren: Start | End | Name | Kategorie | Teams  
         columns = [
-            self.tr("Date"),
-            self.tr("Time"),
+            self.tr("Start"),
+            self.tr("End"),
             self.tr("Title"),
             self.tr("Categories"),
             self.tr("Teams"),
@@ -372,7 +372,7 @@ class FrmEmployeeEventMain(QWidget):
         self.list_calendar_events = QTableWidget()
         self.list_calendar_events.setColumnCount(3)
         self.list_calendar_events.setHorizontalHeaderLabels([
-            self.tr("Time"), self.tr("Title"), self.tr("Category")
+            self.tr("Time Span"), self.tr("Title"), self.tr("Category")
         ])
         
         # Kompakte Tabelle - maximale Höhe begrenzen
@@ -606,6 +606,12 @@ class FrmEmployeeEventMain(QWidget):
             self.btn_view_list.setStyleSheet(inactive_style)
             self.btn_view_calendar.setStyleSheet(active_style)
 
+    def _format_datetime_for_display(self, dt: datetime.datetime) -> str:
+        """Formatiert DateTime für die Anzeige in der Tabelle."""
+        date_str = date_to_string(dt.date())
+        time_str = time_to_string(dt.time())
+        return f"{date_str} {time_str}"
+
     def refresh_events(self):
         """Lädt alle Events neu vom Service."""
 
@@ -709,20 +715,20 @@ class FrmEmployeeEventMain(QWidget):
         sorted_events = sorted(self.filtered_events, key=lambda e: e.start)
 
         for row, event in enumerate(sorted_events):
-            # Datum (mit Config-Formatierung)
-            date_item = QTableWidgetItem(date_to_string(event.start.date()))
-            date_item.setData(Qt.ItemDataRole.UserRole, event.id)
+            # Start (Datum + Zeit)
+            start_text = self._format_datetime_for_display(event.start)
+            start_item = QTableWidgetItem(start_text)
+            start_item.setData(Qt.ItemDataRole.UserRole, event.id)
             # Deaktiviere die Editierbarkeit des Items
-            date_item.setFlags(date_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.table_events.setItem(row, 0, date_item)
+            start_item.setFlags(start_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table_events.setItem(row, 0, start_item)
 
-            # Zeitspanne (mit Config-Formatierung)
-            start_time = time_to_string(event.start.time())
-            end_time = time_to_string(event.end.time())
-            time_item = QTableWidgetItem(f"{start_time} - {end_time}")
+            # End (Datum + Zeit)
+            end_text = self._format_datetime_for_display(event.end)
+            end_item = QTableWidgetItem(end_text)
             # Deaktiviere die Editierbarkeit des Items
-            time_item.setFlags(time_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self.table_events.setItem(row, 1, time_item)
+            end_item.setFlags(end_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table_events.setItem(row, 1, end_item)
 
             # Titel
             title_item = QTableWidgetItem(event.title)
@@ -765,9 +771,12 @@ class FrmEmployeeEventMain(QWidget):
         """Reagiert auf Datums-Änderung im Kalender."""
         selected_date = self.calendar.selectedDate().toPython()
 
-        # Events für das ausgewählte Datum finden
-        events_on_date = [e for e in self.filtered_events
-                          if e.start.date() == selected_date]
+        # Events für das ausgewählte Datum finden (inklusive mehrtägige Events)
+        events_on_date = []
+        for event in self.filtered_events:
+            # Event ist relevant wenn das ausgewählte Datum zwischen Start und End liegt
+            if event.start.date() <= selected_date <= event.end.date():
+                events_on_date.append(event)
 
         # Header aktualisieren
         formatted_date = date_to_string(selected_date)
@@ -780,10 +789,27 @@ class FrmEmployeeEventMain(QWidget):
         self.list_calendar_events.setRowCount(count)
 
         for row, event in enumerate(sorted(events_on_date, key=lambda e: e.start.time())):
-            # Zeit
-            start_time = time_to_string(event.start.time())
-            end_time = time_to_string(event.end.time())
-            time_item = QTableWidgetItem(f"{start_time} - {end_time}")
+            # Zeit - Smart Display für eintägige vs. mehrtägige Events
+            if event.start.date() == event.end.date():
+                # Eintägiges Event: "HH:mm - HH:mm"
+                start_time = time_to_string(event.start.time())
+                end_time = time_to_string(event.end.time())
+                time_text = f"{start_time} - {end_time}"
+            else:
+                # Mehrtägiges Event: zeige relevante Zeit für den ausgewählten Tag
+                if selected_date == event.start.date():
+                    # Erster Tag: "ab HH:mm"
+                    start_time = time_to_string(event.start.time())
+                    time_text = self.tr(f"from {start_time}")
+                elif selected_date == event.end.date():
+                    # Letzter Tag: "bis HH:mm"
+                    end_time = time_to_string(event.end.time())
+                    time_text = self.tr(f"until {end_time}")
+                else:
+                    # Mittlerer Tag: "ganztägig"
+                    time_text = self.tr("all day")
+            
+            time_item = QTableWidgetItem(time_text)
             self.list_calendar_events.setItem(row, 0, time_item)
 
             # Titel
@@ -793,7 +819,7 @@ class FrmEmployeeEventMain(QWidget):
             self.list_calendar_events.setItem(row, 1, title_item)
 
             # Kategorie
-            categories = ", ".join(event.categories) if event.categories else self.tr("No category")
+            categories = ", ".join(c.name for c in event.employee_event_categories) if event.employee_event_categories else self.tr("No category")
             category_item = QTableWidgetItem(categories)
             self.list_calendar_events.setItem(row, 2, category_item)
 

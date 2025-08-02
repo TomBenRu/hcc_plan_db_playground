@@ -480,12 +480,13 @@ result = service.create_event(
   - ✅ **Commands Integration** - address_commands.py für Undo/Redo-Support
   - ✅ **Employee Event Integration** - New/Edit Address Buttons funktional
   - ✅ **Signal Integration** - address_saved/address_deleted für Auto-Refresh
-- **v2.8.0** - **Excel-Export**: Vollständige Excel-Export-Implementierung (02.08.2025)
-  - ✅ **`export_to_file/employee_events_to_xlsx.py`** - Professionelle Excel-Export-Klasse
-  - ✅ **Team- und Planperioden-Filterung** - Automatische Event-Filterung
-  - ✅ **Professional Formatting** - Dark Theme Farben, Spaltenbreiten, Summary-Statistiken
-  - ✅ **Integration-ready** - `integrate_employee_events_into_export()` für ExportToXlsx
-  - ✅ **Vollständige Event-Details** - Datum, Zeit, Titel, Beschreibung, Adresse, Kategorien, Teilnehmer
+- **v2.8.1** - **Mehrtägige Events Verbesserungen**: Verbesserungen für mehrtägige Events (02.08.2025)
+  - ✅ **Zeitvalidierung korrigiert** - End-DateTime muss immer nach Start-DateTime sein (komplette DateTime-Validierung)
+  - ✅ **Spalten-Design verbessert** - "Start" und "End" Spalten statt "Date" und "Time" für bessere mehrtägige Event-Darstellung  
+  - ✅ **Kalender-Ansicht erweitert** - Mehrtägige Events werden an allen relevanten Tagen angezeigt
+  - ✅ **Smart Display** - Intelligente Zeit-Anzeige: "ab HH:mm", "bis HH:mm", "ganztägig" je nach Tag
+  - ✅ **_on_end_datetime_changed()** - Neue Methode für automatische Zeit-Korrektur bei ungültigen Eingaben
+  - ✅ **Verbesserte Validierung** - Benutzerfreundliche Fehlermeldungen mit konkreten Start/End-Zeiten
 
 ## Address Management ✅ IMPLEMENTIERT
 

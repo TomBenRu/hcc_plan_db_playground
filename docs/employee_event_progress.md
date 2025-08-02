@@ -460,7 +460,15 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Excel-Export Integration ✅ IMPLEMENTATION COMPLETE
+### Session Aktuell: Mehrtägige Events Verbesserungen ✅ VOLLSTÄNDIG ABGESCHLOSSEN  
+- [x] **Zeitvalidierung korrigiert** - End-DateTime muss immer nach Start-DateTime sein ✅ (02.08.2025)
+- [x] **Spalten-Design verbessert** - "Start" und "End" Spalten statt "Date" und "Time" ✅ (02.08.2025)
+- [x] **Kalender-Ansicht erweitert** - Mehrtägige Events an allen relevanten Tagen angezeigt ✅ (02.08.2025)  
+- [x] **Smart Display implementiert** - "ab HH:mm", "bis HH:mm", "ganztägig" je nach Tag ✅ (02.08.2025)
+- [x] **Automatische Zeit-Korrektur** - _on_end_datetime_changed() für ungültige Eingaben ✅ (02.08.2025)
+- [x] **Verbesserte Validierung** - Benutzerfreundliche Fehlermeldungen mit Start/End-Details ✅ (02.08.2025)
+
+### Session 1: Excel-Export Integration
 - [x] **Excel-Export-Klasse erstellt** - `export_to_file/employee_events_to_xlsx.py` vollständig implementiert ✅ (02.08.2025)
 - [x] **Team- und Planperioden-Filterung** - Events automatisch nach aktueller Team/Zeitraum-Auswahl gefiltert ✅
 - [x] **Professional Worksheet** - Separate "Employee Events" Worksheet mit vollständiger Formatierung ✅
@@ -469,21 +477,9 @@ def utcnow_naive():
 - [x] **Integration-ready** - `integrate_employee_events_into_export()` für ExportToXlsx-Integration ✅
 
 #### Nächste Schritte für Excel-Export:
-- [ ] **ExportToXlsx-Integration** - Einbindung in bestehenden Plan-Export-Workflow
+- [ ] **ExportToXlsx-Integration** - Einbindung in bestehenden Plan-Export-Workflow  
 - [ ] **GUI-Button** - "Export Events" Button in Employee Events Hauptfenster
 - [ ] **Testing** - Vollständige Funktionalität mit echten Team-Daten testen
-
-### Session 1: ExportToXlsx-Integration
-- [ ] `export_to_file/export_to_xlsx.py` um Employee Events erweitern
-- [ ] Optional: Checkbox "Include Employee Events" in Export-Dialog
-- [ ] Employee Events Worksheet automatisch bei Plan-Export hinzufügen
-- [ ] Testing mit verschiedenen Teams und Planperioden
-
-### Session 2: GUI-Integration & Testing
-- [ ] Export-Button in `frm_employee_event_main.py` hinzufügen
-- [ ] Export-Dialog für Employee Events (optional: separate oder in bestehenden)
-- [ ] Vollständiges Testing mit echten Daten
-- [ ] Performance-Optimierungen falls nötig
 
 ## 📝 Lessons Learned
 

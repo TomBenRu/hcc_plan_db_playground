@@ -605,6 +605,8 @@ class DlgEmployeeEventDetails(QDialog):
         # DateTime-Validierung und Auto-Updates
         self.date_start.dateChanged.connect(self._on_start_datetime_changed)
         self.time_start.timeChanged.connect(self._on_start_datetime_changed)
+        self.date_end.dateChanged.connect(self._on_end_datetime_changed)
+        self.time_end.timeChanged.connect(self._on_end_datetime_changed)
 
         # Placeholder-Connections für zukünftige Features
         self.btn_manage_categories.clicked.connect(self._manage_categories)
@@ -727,9 +729,51 @@ class DlgEmployeeEventDetails(QDialog):
             # End-Zeit muss mindestens Start-Zeit + 1 Minute sein
             min_end_time = start_time.addSecs(60)  # 1 Minute später
             self.time_end.setMinimumTime(min_end_time)
+            
+            # Falls aktuelle End-Zeit < neue Minimum-Zeit, dann End-Zeit anpassen
+            current_end_time = self.time_end.time()
+            if current_end_time < min_end_time:
+                self.time_end.blockSignals(True)
+                self.time_end.setTime(min_end_time)
+                self.time_end.blockSignals(False)
         else:
             # Verschiedene Tage: End-Zeit hat keine Beschränkung
             self.time_end.setMinimumTime(QTime(0, 0))
+            
+    def _on_end_datetime_changed(self):
+        """Reagiert auf Änderungen der End-DateTime und validiert die komplette DateTime."""
+        # Komplette DateTime-Validierung für mehrtägige Events
+        start_date = self.date_start.date().toPython()
+        start_time = self.time_start.time().toPython()
+        end_date = self.date_end.date().toPython()
+        end_time = self.time_end.time().toPython()
+        
+        start_datetime = datetime.combine(start_date, start_time)
+        end_datetime = datetime.combine(end_date, end_time)
+        
+        # Wenn End-DateTime <= Start-DateTime, dann End-Zeit automatisch korrigieren
+        if end_datetime <= start_datetime:
+            # End-Zeit auf Start + 1 Stunde setzen (oder minimum 1 Minute bei gleichem Tag)
+            if end_date == start_date:
+                # Gleicher Tag: Minimum 1 Minute später
+                corrected_end = start_datetime + timedelta(minutes=1)
+            else:
+                # Verschiedene Tage: Dies sollte nicht passieren wenn End-Datum > Start-Datum
+                # Aber zur Sicherheit End-Zeit auf Start-Zeit + 1 Stunde setzen
+                corrected_end = start_datetime + timedelta(hours=1)
+            
+            # End-Felder korrigieren (ohne Signals auszulösen)
+            self.date_end.blockSignals(True)
+            self.time_end.blockSignals(True)
+            
+            self.date_end.setDate(QDate(corrected_end.date()))
+            self.time_end.setTime(QTime(corrected_end.hour, corrected_end.minute))
+            
+            self.date_end.blockSignals(False)
+            self.time_end.blockSignals(False)
+        
+        # Minimums aktualisieren für zukünftige Änderungen
+        self._update_end_minimums()
 
     def _save_event(self):
         """Speichert das Event."""
@@ -865,6 +909,23 @@ class DlgEmployeeEventDetails(QDialog):
             QMessageBox.warning(self, self.tr("Validation Error"), 
                               self.tr("Please enter an event description."))
             self.te_description.setFocus()
+            return False
+        
+        # DateTime-Validierung für mehrtägige Events
+        start_date = self.date_start.date().toPython()
+        start_time = self.time_start.time().toPython()
+        end_date = self.date_end.date().toPython()
+        end_time = self.time_end.time().toPython()
+        
+        start_datetime = datetime.combine(start_date, start_time)
+        end_datetime = datetime.combine(end_date, end_time)
+        
+        if end_datetime <= start_datetime:
+            QMessageBox.warning(self, self.tr("Validation Error"), 
+                              self.tr("End date and time must be after start date and time.\n\n"
+                                     f"Start: {date_to_string(start_date)} {time_to_string(start_time)}\n"
+                                     f"End: {date_to_string(end_date)} {time_to_string(end_time)}"))
+            self.date_end.setFocus()
             return False
         
         return True

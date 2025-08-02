@@ -467,6 +467,7 @@ def utcnow_naive():
 - [x] **Smart Display implementiert** - "ab HH:mm", "bis HH:mm", "ganztägig" je nach Tag ✅ (02.08.2025)
 - [x] **Automatische Zeit-Korrektur** - _on_end_datetime_changed() für ungültige Eingaben ✅ (02.08.2025)
 - [x] **Verbesserte Validierung** - Benutzerfreundliche Fehlermeldungen mit Start/End-Details ✅ (02.08.2025)
+- [x] **Excel-Export angepasst** - Spalten "Start"/"End" konsistent mit GUI, DateTime-Formatierung optimiert ✅ (02.08.2025)
 
 ### Session 1: Excel-Export Integration
 - [x] **Excel-Export-Klasse erstellt** - `export_to_file/employee_events_to_xlsx.py` vollständig implementiert ✅ (02.08.2025)

@@ -317,12 +317,12 @@ class EmployeeEventsExcelExporter:
 
 #### 3. Vollständige Event-Details
 ```
-Spalten: Date | Time | Title | Description | Address | Categories | Participants
+Spalten: Start | End | Title | Description | Address | Categories | Participants
 ```
 
 **Event-Datenextraktion:**
-- **Datum**: Formatiert nach Excel-Standard (dd.mm.yyyy)
-- **Zeit**: Zeitspanne "HH:mm - HH:mm" für Start-End-Zeit
+- **Start**: Vollständiges DateTime "DD.MM.YYYY HH:mm" für Start-Zeitpunkt
+- **End**: Vollständiges DateTime "DD.MM.YYYY HH:mm" für End-Zeitpunkt (besonders wichtig für mehrtägige Events)
 - **Titel**: Vollständiger Event-Titel
 - **Beschreibung**: Automatisch gekürzt bei >100 Zeichen
 - **Adresse**: "Straße, Stadt" Format aus Address-Entity
@@ -408,8 +408,8 @@ self.checkbox_include_events.setChecked(True)  # Default: aktiviert
 #### Spaltenbreiten (Optimiert für Lesbarkeit):
 ```python
 col_widths = {
-    'date': 12,          # Datum kompakt
-    'time': 15,          # Zeit mit Zeitspanne  
+    'start': 18,         # DateTime benötigt mehr Platz
+    'end': 18,           # DateTime benötigt mehr Platz  
     'title': 25,         # Event-Titel
     'description': 40,   # Beschreibung (breiteste Spalte)
     'address': 25,       # Adresse
@@ -487,6 +487,7 @@ result = service.create_event(
   - ✅ **Smart Display** - Intelligente Zeit-Anzeige: "ab HH:mm", "bis HH:mm", "ganztägig" je nach Tag
   - ✅ **_on_end_datetime_changed()** - Neue Methode für automatische Zeit-Korrektur bei ungültigen Eingaben
   - ✅ **Verbesserte Validierung** - Benutzerfreundliche Fehlermeldungen mit konkreten Start/End-Zeiten
+  - ✅ **Excel-Export angepasst** - Spalten "Start"/"End" konsistent mit GUI, optimierte DateTime-Formatierung
 
 ## Address Management ✅ IMPLEMENTIERT
 

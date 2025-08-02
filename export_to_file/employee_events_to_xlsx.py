@@ -8,7 +8,7 @@ Features:
 - Integrates Employee Events into existing Excel export
 - Filters events by team and planning period
 - Shows events in a separate worksheet
-- Includes event details: title, description, date/time, address, participants
+- Includes event details: title, description, start/end datetime, address, participants
 """
 
 import datetime
@@ -100,20 +100,12 @@ class EmployeeEventsExcelExporter:
             'valign': 'vcenter'
         })
         
-        self.format_date = self.workbook.add_format({
+        # DateTime format for Start/End columns
+        self.format_datetime = self.workbook.add_format({
             'font_size': 10,
             'border': 1,
             'align': 'center',
-            'valign': 'vcenter',
-            'num_format': 'dd.mm.yyyy'
-        })
-        
-        self.format_time = self.workbook.add_format({
-            'font_size': 10,
-            'border': 1,
-            'align': 'center',
-            'valign': 'vcenter',
-            'num_format': 'hh:mm'
+            'valign': 'vcenter'
         })
         
         # Alternating row formats
@@ -133,10 +125,19 @@ class EmployeeEventsExcelExporter:
             'bg_color': '#f0f0f0'
         })
         
+        # DateTime format alternating for Start/End columns
+        self.format_datetime_alt = self.workbook.add_format({
+            'font_size': 10,
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#f0f0f0'
+        })
+        
         # Column widths
         self.col_widths = {
-            'date': 12,
-            'time': 15,
+            'start': 18,           # DateTime braucht mehr Platz als nur Datum
+            'end': 18,             # DateTime braucht mehr Platz als nur Zeit
             'title': 25,
             'description': 40,
             'address': 25,
@@ -200,8 +201,8 @@ class EmployeeEventsExcelExporter:
     def _write_headers(self):
         """Write table headers."""
         headers = [
-            (QCoreApplication.translate("EmployeeEventsExcelExporter", "Date"), 'date'),
-            (QCoreApplication.translate("EmployeeEventsExcelExporter", "Time"), 'time'),
+            (QCoreApplication.translate("EmployeeEventsExcelExporter", "Start"), 'start'),
+            (QCoreApplication.translate("EmployeeEventsExcelExporter", "End"), 'end'),
             (QCoreApplication.translate("EmployeeEventsExcelExporter", "Title"), 'title'),
             (QCoreApplication.translate("EmployeeEventsExcelExporter", "Description"), 'description'),
             (QCoreApplication.translate("EmployeeEventsExcelExporter", "Address"), 'address'),
@@ -239,13 +240,15 @@ class EmployeeEventsExcelExporter:
             is_even = row_idx % 2 == 0
             format_data = self.format_data if is_even else self.format_data_alt
             format_center = self.format_data_center if is_even else self.format_data_center_alt
+            format_datetime = self.format_datetime if is_even else self.format_datetime_alt
             
-            # Date
-            self.worksheet.write_datetime(current_row, self.offset_x, event.start.date(), self.format_date)
+            # Start (DateTime)
+            start_text = f"{date_to_string(event.start.date())} {time_to_string(event.start.time())}"
+            self.worksheet.write(current_row, self.offset_x, start_text, format_datetime)
             
-            # Time
-            time_text = f"{time_to_string(event.start.time())} - {time_to_string(event.end.time())}"
-            self.worksheet.write(current_row, self.offset_x + 1, time_text, format_center)
+            # End (DateTime)  
+            end_text = f"{date_to_string(event.end.date())} {time_to_string(event.end.time())}"
+            self.worksheet.write(current_row, self.offset_x + 1, end_text, format_datetime)
             
             # Title
             self.worksheet.write(current_row, self.offset_x + 2, event.title, format_data)
@@ -300,9 +303,8 @@ class EmployeeEventsExcelExporter:
         # Event count
         self.worksheet.write(summary_start_row + 1, self.offset_x, 
                            QCoreApplication.translate(
-                               "EmployeeEventsExcelExporter", "Total Events: {number_of_events)}"
-                           )
-                             .format(len(self.employee_events)),
+                               "EmployeeEventsExcelExporter", "Total Events: {number_of_events}"
+                           ).format(number_of_events=len(self.employee_events)),
                              self.format_data)
         
         # Events by category

@@ -260,7 +260,7 @@ class DlgAddressEdit(QDialog):
                 
             self.accept()
             
-        except ZeroDivisionError as e:
+        except Exception as e:
             QMessageBox.critical(self, "Fehler", f"Adresse konnte nicht gespeichert werden:\n{str(e)}")
     
     def _create_address(self):

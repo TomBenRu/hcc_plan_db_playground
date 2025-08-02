@@ -314,13 +314,30 @@ result = self.command_manager.execute(command)
 # self.command_manager.undo() verfügbar
 ```
 
+### ✅ Phase 6: Excel-Export (NAHEZU ABGESCHLOSSEN)
+**Zeitraum:** 02.08.2025  
+**Status:** 🟢 Implementation Complete - Integration Pending
+
+#### ✅ Abgeschlossene Deliverables
+- [x] **`export_to_file/employee_events_to_xlsx.py`** - Vollständige Excel-Export-Implementierung ✅
+- [x] **EmployeeEventsExcelExporter** - Klasse für Employee Events Worksheet-Erstellung ✅
+- [x] **Team- und Planperioden-Filterung** - Events gefiltert nach Team und Zeitraum ✅
+- [x] **Vollständige Event-Details** - Datum, Zeit, Titel, Beschreibung, Adresse, Kategorien, Teilnehmer ✅
+- [x] **Professional Formatting** - Dark Theme Farben, Spaltenbreiten, Zeilenformatierung ✅
+- [x] **Summary-Statistiken** - Event-Anzahl und Kategorien-Aufschlüsselung ✅
+- [x] **Integration-ready** - `integrate_employee_events_into_export()` Convenience-Funktion ✅
+
+#### 🔄 Verbleibende Tasks
+- [ ] **Integration in bestehenden Export-Workflow** - Einbindung in ExportToXlsx-System
+- [ ] **GUI-Integration** - Export-Button in Employee Events Hauptfenster
+- [ ] **Testing** - Vollständige Funktionalität mit echten Daten testen
+
 ### 🔄 Phase 7: Advanced Features (GEPLANT)
-**Geschätzte Dauer:** 2-3 Tage  
+**Geschätzte Dauer:** 1-2 Tage  
 **Status:** 🟡 Pending
 
 #### Geplante Deliverables
-- [ ] Excel-Export für Employee Events
-- [ ] Event-Import/Export-Funktionen
+- [ ] Event-Import/Export-Funktionen (CSV/JSON)
 - [ ] Advanced Reporting und Statistiken
 - [ ] Google Kalender Integration (optional)
 
@@ -443,37 +460,30 @@ def utcnow_naive():
 
 ## 🚀 Nächste Sessions
 
-### Session Aktuell: Phase 5 - Address Management ✅ VOLLSTÄNDIG ABGESCHLOSSEN
-- [x] `gui/master_data/dlg_address_edit.py` - CRUD Dialog als shared component implementiert ✅ (02.08.2025)
-- [x] `commands/database_commands/address_commands.py` - Address Commands implementiert ✅ (02.08.2025)
-- [x] Mode Detection (Create/Update/Delete) basierend auf Parametern ✅ (02.08.2025)
-- [x] Integration mit Employee Event Dialog als ersten Use Case ✅ (02.08.2025)
-- [x] Dark Theme und Schema-driven Design ✅ (02.08.2025)
-- [x] Convenience Functions und Signal Integration ✅ (02.08.2025)
+### Session Aktuell: Excel-Export Integration ✅ IMPLEMENTATION COMPLETE
+- [x] **Excel-Export-Klasse erstellt** - `export_to_file/employee_events_to_xlsx.py` vollständig implementiert ✅ (02.08.2025)
+- [x] **Team- und Planperioden-Filterung** - Events automatisch nach aktueller Team/Zeitraum-Auswahl gefiltert ✅
+- [x] **Professional Worksheet** - Separate "Employee Events" Worksheet mit vollständiger Formatierung ✅
+- [x] **Alle Event-Details** - Datum, Zeit, Titel, Beschreibung, Adresse, Kategorien, Teilnehmer ✅
+- [x] **Summary-Statistiken** - Event-Anzahl und Kategorien-Aufschlüsselung implementiert ✅
+- [x] **Integration-ready** - `integrate_employee_events_into_export()` für ExportToXlsx-Integration ✅
 
-### Session 1: Employee Event Dialog Integration ✅ VOLLSTÄNDIG ABGESCHLOSSEN
-- [x] Import-Pfad korrigiert von falscher gui.master_data.address.dlg_address_edit ✅ (02.08.2025)
-- [x] New Address Button Funktionalität implementiert ✅ (02.08.2025)
-- [x] Edit Address Button hinzugefügt mit Smart Enable/Disable ✅ (02.08.2025)  
-- [x] Signal Integration für address_saved/address_deleted ✅ (02.08.2025)
-- [x] Auto-Refresh der Adress-Liste nach Änderungen ✅ (02.08.2025)
-- [x] Smart Selection - neue/bearbeitete Adressen werden automatisch ausgewählt ✅ (02.08.2025)
-- [x] Error Handling und Logging für alle Address-Operationen ✅ (02.08.2025)
-- [x] Test-Script test_address_integration.py erstellt ✅ (02.08.2025)
+#### Nächste Schritte für Excel-Export:
+- [ ] **ExportToXlsx-Integration** - Einbindung in bestehenden Plan-Export-Workflow
+- [ ] **GUI-Button** - "Export Events" Button in Employee Events Hauptfenster
+- [ ] **Testing** - Vollständige Funktionalität mit echten Team-Daten testen
 
-### Session 2: Phase 6 - Commands-Integration (Optional für Undo/Redo)
-- [ ] `employee_event_commands.py` vervollständigen
-- [ ] Service → Commands Migration (optional)
-- [ ] Undo/Redo-Funktionalität integrieren
-- [ ] Transaktionale Sicherheit testen
+### Session 1: ExportToXlsx-Integration
+- [ ] `export_to_file/export_to_xlsx.py` um Employee Events erweitern
+- [ ] Optional: Checkbox "Include Employee Events" in Export-Dialog
+- [ ] Employee Events Worksheet automatisch bei Plan-Export hinzufügen
+- [ ] Testing mit verschiedenen Teams und Planperioden
 
-### Session 2: Advanced Features & Testing
-- [ ] Address Management Integration in Employee Event Dialog testen
-- [ ] Address Management Integration in andere Module (Person, LocationOfWork)
-- [ ] Kalender-Event-Overlays mit Farb-Kodierung
-- [ ] Excel-Export für Employee Events
-- [ ] Testing und Refinement
-- [ ] Performance-Optimierungen
+### Session 2: GUI-Integration & Testing
+- [ ] Export-Button in `frm_employee_event_main.py` hinzufügen
+- [ ] Export-Dialog für Employee Events (optional: separate oder in bestehenden)
+- [ ] Vollständiges Testing mit echten Daten
+- [ ] Performance-Optimierungen falls nötig
 
 ## 📝 Lessons Learned
 

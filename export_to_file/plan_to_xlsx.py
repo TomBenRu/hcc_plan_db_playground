@@ -11,6 +11,7 @@ from xlsxwriter.exceptions import FileCreateError
 
 from configuration import project_paths
 from database import db_services, schemas
+from export_to_file.employee_events_to_xlsx import integrate_employee_events_into_export
 from gui import frm_plan
 from gui.observer import signal_handling
 from tools.helper_functions import get_appointments_of_actors_from_plan
@@ -383,6 +384,19 @@ class ExportToXlsx:
         self._write_title_and_creation_date()
         self._write_notes()
         self._write_scheduling_overview()
+        
+        # NEW: Integrate Employee Events
+        try:
+            employee_events_count = integrate_employee_events_into_export(
+                self.workbook, 
+                self.tab_plan.plan.plan_period.team, 
+                self.tab_plan.plan.plan_period,
+                self.tab_plan.plan.excel_export_settings
+            )
+            print(f"✅ Integrated {employee_events_count} Employee Events into Excel export")
+        except Exception as e:
+            print(f"⚠️ Error integrating Employee Events: {e}")
+            # Continue with normal export even if Employee Events fail
 
         while True:
             success = True

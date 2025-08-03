@@ -19,12 +19,12 @@ from PySide6.QtWidgets import (
 )
 
 from commands import command_base_classes
-from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 from employee_event.db_commands import event_commands
 from employee_event.schemas import employee_event_schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from gui.custom_widgets.custom_date_edit import DateEditLocale, TimeEditLocale
 from tools.helper_functions import date_to_string, time_to_string
 
 logger = logging.getLogger(__name__)
@@ -235,21 +235,6 @@ class DlgEmployeeEventDetails(QDialog):
         datetime_layout = QFormLayout(datetime_group)
         datetime_layout.setContentsMargins(15, 15, 15, 30)
         datetime_layout.setSpacing(15)
-
-        # Datum/Zeit-Konfiguration basierend auf Settings
-        date_format_settings = general_settings_handler.get_general_settings().date_format_settings
-        print(f"date_format_settings: {date_format_settings}")
-        print(f"date_format_settings.format: {date_format_settings.format}")
-        
-        # Datum-Format basierend auf Einstellungen bestimmen
-        if date_format_settings.format == "DD.MM.YYYY":
-            date_display_format = "dd.MM.yyyy"
-        elif date_format_settings.format == "MM/DD/YYYY":
-            date_display_format = "MM/dd/yyyy"
-        elif date_format_settings.format == "YYYY-MM-DD":
-            date_display_format = "yyyy-MM-dd"
-        else:
-            date_display_format = "dd.MM.yyyy"  # Fallback
         
         # === START SECTION ===
         start_label = QLabel(self.tr("Start:"))
@@ -261,13 +246,11 @@ class DlgEmployeeEventDetails(QDialog):
         start_layout.setContentsMargins(0, 0, 0, 0)
         start_layout.setSpacing(10)
         
-        # Start Datum
-        self.date_start = QDateEdit()
-        self.date_start.setDisplayFormat(date_display_format)
-        self.date_start.setLocale(QLocale(QLocale.Language(date_format_settings.language),
-                                          QLocale.Country(date_format_settings.country)))
-        self.date_start.setCalendarPopup(True)
-        self.date_start.setDate(QDate.currentDate())
+        # Start Datum - mit Custom Widget
+        now = datetime.now()
+        next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        
+        self.date_start = DateEditLocale()
         self.date_start.setMinimumWidth(120)
         self.date_start.setFixedHeight(25)
         self.date_start.setStyleSheet("""
@@ -301,13 +284,8 @@ class DlgEmployeeEventDetails(QDialog):
             }
         """)
         
-        # Start Zeit
-        self.time_start = QTimeEdit()
-        self.time_start.setDisplayFormat("hh:mm")
-        # Default: Nächste volle Stunde
-        now = datetime.now()
-        next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-        self.time_start.setTime(QTime(next_hour.hour, next_hour.minute))
+        # Start Zeit - mit Custom Widget
+        self.time_start = TimeEditLocale(time=QTime(next_hour.hour, next_hour.minute))
         self.time_start.setMinimumWidth(100)
         self.time_start.setFixedHeight(25)
         self.time_start.setStyleSheet("""
@@ -342,13 +320,8 @@ class DlgEmployeeEventDetails(QDialog):
         end_layout.setContentsMargins(0, 0, 0, 0)
         end_layout.setSpacing(10)
         
-        # End Datum
-        self.date_end = QDateEdit()
-        self.date_end.setDisplayFormat(date_display_format)  # Konsistentes Format wie Start-Datum
-        self.date_end.setLocale(QLocale(QLocale.Language(date_format_settings.language),
-                                          QLocale.Country(date_format_settings.country)))
-        self.date_end.setCalendarPopup(True)
-        self.date_end.setDate(QDate.currentDate())
+        # End Datum - mit Custom Widget
+        self.date_end = DateEditLocale()
         self.date_end.setMinimumWidth(120)
         self.date_end.setFixedHeight(25)
         self.date_end.setStyleSheet("""
@@ -382,12 +355,9 @@ class DlgEmployeeEventDetails(QDialog):
             }
         """)
         
-        # End Zeit
-        self.time_end = QTimeEdit()
-        self.time_end.setDisplayFormat("hh:mm")
-        # Default: Start + 1 Stunde
+        # End Zeit - mit Custom Widget
         end_time = next_hour + timedelta(hours=1)
-        self.time_end.setTime(QTime(end_time.hour, end_time.minute))
+        self.time_end = TimeEditLocale(time=QTime(end_time.hour, end_time.minute))
         self.time_end.setMinimumWidth(100)
         self.time_end.setFixedHeight(25)
         self.time_end.setStyleSheet("""

@@ -21,6 +21,7 @@ from gui import widget_styles
 from gui.concurrency import general_worker
 from gui.concurrency.general_worker import WorkerGetMaxFairShifts
 from gui.custom_widgets import side_menu
+from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, GlobalUpdatePlanTabsProgressManager, DlgProgressSteps
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.frm_notes import DlgAppointmentNotes
@@ -268,11 +269,7 @@ class DlgMoveAppointment(QDialog):
             self.appointment.event.time_of_day.name
         ))
         self.layout_head.addWidget(self.lb_description)
-        self.calendar_select_date = QCalendarWidget()
-        if lang := general_settings_handler.get_general_settings().language:
-            self.calendar_select_date.setLocale(QLocale(lang))  # lang ist 'en', 'de', etc.
-        else:
-            self.calendar_select_date.setLocale(QLocale.system())  # Fallback auf Systemsprache
+        self.calendar_select_date = CalendarLocale()
         self.calendar_select_date.setSelectedDate(datetime_date_to_qdate(self.appointment.event.date))
         self.calendar_select_date.setMinimumDate(datetime_date_to_qdate(self.plan_period.start))
         self.calendar_select_date.setMaximumDate(datetime_date_to_qdate(self.plan_period.end))

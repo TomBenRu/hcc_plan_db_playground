@@ -9,11 +9,36 @@ import logging
 from typing import Optional
 
 from PySide6.QtCore import QDate, QTime, QLocale
-from PySide6.QtWidgets import QDateEdit, QTimeEdit
+from PySide6.QtWidgets import QDateEdit, QTimeEdit, QCalendarWidget
 
 from configuration.general_settings import general_settings_handler
 
 logger = logging.getLogger(__name__)
+
+
+class CalendarLocale(QCalendarWidget):
+    """
+    QCalendarWidget mit automatischer Locale-Konfiguration.
+
+    Konfiguriert automatisch das Datumsformat und die Locale basierend
+    auf den general_settings. Vereinfacht die Verwendung von QCalendarWidget
+    in verschiedenen Teilen der Anwendung.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        try:
+            # General Settings laden
+            date_format_settings = general_settings_handler.get_general_settings().date_format_settings
+
+            # QLocale erstellen
+            locale = QLocale(
+                QLocale.Language(date_format_settings.language),
+                QLocale.Country(date_format_settings.country)
+            )
+            self.setLocale(locale)
+        except Exception as e:
+            logger.error(f"Error initializing CalendarLocale: {e}")
 
 
 class DateEditLocale(QDateEdit):
@@ -54,8 +79,6 @@ class DateEditLocale(QDateEdit):
                 self.setDate(date)
             else:
                 self.setDate(QDate.currentDate())
-                
-            logger.debug(f"DateEditLocale initialized with format: {date_display_format}")
             
         except Exception as e:
             logger.error(f"Error initializing DateEditLocale: {e}")
@@ -86,8 +109,6 @@ class TimeEditLocale(QTimeEdit):
                 self.setTime(time)
             else:
                 self.setTime(QTime.currentTime())
-                
-            logger.debug("TimeEditLocale initialized with 24h format")
             
         except Exception as e:
             logger.error(f"Error initializing TimeEditLocale: {e}")

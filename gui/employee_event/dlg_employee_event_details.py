@@ -24,7 +24,7 @@ from employee_event.db_commands import event_commands
 from employee_event.schemas import employee_event_schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
-from gui.custom_widgets.custom_date_edit import DateEditLocale, TimeEditLocale
+from gui.custom_widgets.custom_date_and_time_edit import DateEditLocale, TimeEditLocale
 from tools.helper_functions import date_to_string, time_to_string
 
 logger = logging.getLogger(__name__)

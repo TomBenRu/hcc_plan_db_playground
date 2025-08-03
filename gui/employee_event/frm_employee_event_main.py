@@ -28,6 +28,7 @@ from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema, Category
 from employee_event.db_commands import event_commands
+from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
 
@@ -298,7 +299,7 @@ class FrmEmployeeEventMain(QWidget):
         calendar_layout.setSpacing(15)
 
         # QCalendarWidget für Basis-Funktionalität (nimmt den meisten Platz ein)
-        self.calendar = QCalendarWidget(self.calendar_widget)
+        self.calendar = CalendarLocale(self.calendar_widget)
 
         # Kalender-Konfiguration basierend auf User-Settings
         date_format_settings = general_settings_handler.get_general_settings().date_format_settings

@@ -3,6 +3,8 @@ import datetime
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QDialogButtonBox, QWidget
 
+from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
+
 
 class TeamAssignmentDateDialog(QDialog):
     def __init__(self, parent: QWidget, current_date: datetime.date | None = None):
@@ -16,7 +18,7 @@ class TeamAssignmentDateDialog(QDialog):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        self.calendar = QCalendarWidget()
+        self.calendar = CalendarLocale()
         layout.addWidget(self.calendar)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         if self.current_date:

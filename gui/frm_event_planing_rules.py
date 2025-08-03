@@ -15,6 +15,7 @@ from commands import command_base_classes
 from configuration.event_planing_rules import current_event_planning_rules_handler, EventPlanningRules, PlanningRules
 from database import db_services
 from gui import frm_cast_rule
+from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.schemas import RulesData, Rules
 from tools import helper_functions
@@ -116,7 +117,7 @@ class DlgFirstDay(QDialog):
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
-        self.calendar = QCalendarWidget()
+        self.calendar = CalendarLocale()
         self.calendar.setMinimumDate(QDate(self.start_date.year, self.start_date.month, self.start_date.day))
         self.calendar.setMaximumDate(QDate(self.end_date.year, self.end_date.month, self.end_date.day))
         self.calendar.setSelectedDate(QDate(self.current_date.year, self.current_date.month, self.current_date.day))

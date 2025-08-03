@@ -866,17 +866,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def master_data(self):
         if self.frm_master_data is None:
             self.frm_master_data = FrmMasterData(project_id=self.project_id)
-            self.frm_master_data.show()
+        self.frm_master_data.raise_()
         self.frm_master_data.activateWindow()
         self.frm_master_data.showNormal()
 
     def show_employee_events_window(self):
-        """Öffnet Employee Events in separatem Fenster."""
+        """Öffnett Employee Events in separatem Fenster."""
         if self.employee_events_window is None:
             from .employee_events_window import EmployeeEventsWindow
             self.employee_events_window = EmployeeEventsWindow(self, self.project_id)
 
-        self.employee_events_window.show()
+        self.employee_events_window.showNormal()
         self.employee_events_window.activateWindow()
         self.employee_events_window.raise_()
 

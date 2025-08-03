@@ -31,6 +31,8 @@ class FrmMasterData(QWidget):
         super().__init__()
         self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)
+        # Bestehende Flags auslesen und das "StaysOnTopHint" Flag hinzufügen.
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
         self.project_id = project_id
 

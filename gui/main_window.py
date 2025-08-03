@@ -1159,7 +1159,57 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             ...
 
     def open_help(self):
-        print('Hilfe...')
+        """
+        Öffnet das Hilfe-System im Browser.
+        
+        Nutzt das vorhandene Help-System mit Fallback-Mechanismen für
+        optimale Benutzerfreundlichkeit.
+        """
+        try:
+            # Help-System importieren
+            from help import get_help_manager, init_help_system
+            
+            # Help Manager abrufen oder initialisieren
+            help_manager = get_help_manager()
+            if not help_manager:
+                help_manager = init_help_system()
+            
+            # Hilfe anzeigen wenn verfügbar
+            if help_manager and help_manager.is_help_available():
+                success = help_manager.show_main_help()
+                if success:
+                    logger.info("Hilfe-System erfolgreich geöffnet")
+                    return
+                else:
+                    logger.warning("Hilfe konnte nicht im Browser geöffnet werden")
+            
+            # Fallback-Information für Benutzer
+            QMessageBox.information(
+                self, 
+                self.tr("Hilfe"), 
+                self.tr("Die Hilfe-Dokumentation wird geladen...\n\n"
+                       "Falls die Hilfe nicht automatisch öffnet, finden Sie "
+                       "die Dokumentation im help/content/de/ Verzeichnis des Projekts.")
+            )
+            
+        except ImportError as e:
+            logger.error(f"Help-System konnte nicht importiert werden: {e}")
+            QMessageBox.information(
+                self, 
+                self.tr("Hilfe"), 
+                self.tr("Das Hilfe-System ist momentan nicht verfügbar.\n\n"
+                       "Bitte konsultieren Sie die README.md oder "
+                       "wenden Sie sich an den Support.")
+            )
+            
+        except Exception as e:
+            logger.error(f"Unerwarteter Fehler beim Öffnen der Hilfe: {e}")
+            QMessageBox.warning(
+                self, 
+                self.tr("Hilfe"), 
+                self.tr("Beim Öffnen der Hilfe ist ein Fehler aufgetreten.\n\n"
+                       "Versuchen Sie es erneut oder kontaktieren Sie den Support.")
+            )
 
     def import_from_plan_api(self):
         dlg = DlgRemoteAccessPlanApi(self, self.project_id)

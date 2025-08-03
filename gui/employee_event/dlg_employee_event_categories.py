@@ -335,7 +335,7 @@ class DlgEmployeeEventCategories(QDialog):
             # Usage-Count pro Kategorie berechnen
             self.category_usage = {c.name: 0 for c in self.categories_data}
             for event in event_list:
-                for category in event.categories:
+                for category in event.employee_event_categories:
                     self.category_usage[category.name] += 1
             
             # Liste aktualisieren

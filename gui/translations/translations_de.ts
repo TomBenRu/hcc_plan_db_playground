@@ -1371,7 +1371,7 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="249"/>
         <source>💾 Save Category</source>
-        <translation>z.B. Kategorie speichern</translation>
+        <translation>💾 Kategorie speichern</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="284"/>
@@ -1386,22 +1386,22 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="349"/>
         <source>Could not load categories: {error}</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>Kategorien konnten nicht geladen werden: {error}</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="357"/>
         <source>No categories found</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>Keine Kategorien gefunden</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="367"/>
         <source>{name} ({count} events)</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>{name} ({count} Events)</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="369"/>
         <source>{name} (unused)</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>{name} (ungenutzt)</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_employee_event_categories.py" line="416"/>
@@ -2856,7 +2856,7 @@ die Planungsmasken geöffnet werden sollen.</translation>
     <message>
         <location filename="../employee_event/dlg_participant_selection.py" line="461"/>
         <source>Team: {team_name}</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>Team: {team_name}</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_participant_selection.py" line="470"/>
@@ -2878,7 +2878,7 @@ die Planungsmasken geöffnet werden sollen.</translation>
         <location filename="../employee_event/dlg_participant_selection.py" line="605"/>
         <source>{name}
 Email: {email}</source>
-        <translation>z.B. Musterstraße 123</translation>
+        <translation>Email: {email}</translation>
     </message>
     <message>
         <location filename="../employee_event/dlg_participant_selection.py" line="525"/>

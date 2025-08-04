@@ -44,8 +44,13 @@ class DlgPlanToXLSX(QDialog):
             self.tr('Enter notes in fields with assignments'))
         self.check_notes_in_employee_fields.setChecked(False)
 
+        self.check_include_employee_events = QCheckBox(
+            self.tr('Include employee events'))
+        self.check_include_employee_events.setChecked(True)
+
         self.layout_body.addWidget(self.check_notes_in_empty_fields)
         self.layout_body.addWidget(self.check_notes_in_employee_fields)
+        self.layout_body.addWidget(self.check_include_employee_events)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No)
@@ -63,3 +68,7 @@ class DlgPlanToXLSX(QDialog):
     @property
     def note_in_employee_fields(self):
         return self.check_notes_in_employee_fields.isChecked()
+
+    @property
+    def include_employee_events(self):
+        return self.check_include_employee_events.isChecked()

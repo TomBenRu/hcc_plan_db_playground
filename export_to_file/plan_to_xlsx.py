@@ -19,12 +19,13 @@ from tools.helper_functions import get_appointments_of_actors_from_plan
 
 class ExportToXlsx:
     def __init__(self, parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str,
-                 note_in_empty_fields: bool, note_in_employee_fields: bool):
+                 note_in_empty_fields: bool, note_in_employee_fields: bool, include_employee_events: bool = True):
         self.parent = parent
         self.tab_plan = tab_plan
         self.excel_output_path = output_path
         self.note_in_empty_fields = note_in_empty_fields
         self.note_in_employee_fields = note_in_employee_fields
+        self.include_employee_events = include_employee_events
 
         self.offset_x = 0
         self.offset_y = 3
@@ -386,17 +387,18 @@ class ExportToXlsx:
         self._write_scheduling_overview()
         
         # NEW: Integrate Employee Events
-        try:
-            employee_events_count = integrate_employee_events_into_export(
-                self.workbook, 
-                self.tab_plan.plan.plan_period.team, 
-                self.tab_plan.plan.plan_period,
-                self.tab_plan.plan.excel_export_settings
-            )
-            print(f"✅ Integrated {employee_events_count} Employee Events into Excel export")
-        except Exception as e:
-            print(f"⚠️ Error integrating Employee Events: {e}")
-            # Continue with normal export even if Employee Events fail
+        if self.include_employee_events:
+            try:
+                employee_events_count = integrate_employee_events_into_export(
+                    self.workbook,
+                    self.tab_plan.plan.plan_period.team,
+                    self.tab_plan.plan.plan_period,
+                    self.tab_plan.plan.excel_export_settings
+                )
+                print(f"✅ Integrated {employee_events_count} Employee Events into Excel export")
+            except Exception as e:
+                print(f"⚠️ Error integrating Employee Events: {e}")
+                # Continue with normal export even if Employee Events fail
 
         while True:
             success = True
@@ -416,3 +418,10 @@ class ExportToXlsx:
             break
 
         signal_handling.handler_excel_export.finished(success)
+
+
+def export_plan_to_xlsx(parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str,
+                      note_in_empty_fields: bool, note_in_employee_fields: bool, include_employee_events: bool = True):
+    exporter = ExportToXlsx(parent, tab_plan, output_path, note_in_empty_fields, note_in_employee_fields,
+                            include_employee_events)
+    exporter.execute()

@@ -736,9 +736,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period),
                                              f'{widget.plan.name}.xlsx')
             create_dir_if_not_exist(excel_output_path)
-            export_to_file = plan_to_xlsx.ExportToXlsx(self, widget, excel_output_path,
-                                                       dlg.note_in_empty_fields, dlg.note_in_employee_fields)
-            export_to_file.execute()
+
+            plan_to_xlsx.export_plan_to_xlsx(self, widget, excel_output_path,
+                                             dlg.note_in_empty_fields, dlg.note_in_employee_fields,
+                                             dlg.include_employee_events)
 
     def lookup_for_excel_plan_folder(self):
         """Minimal angepasst: Nutzt TabManager Properties"""

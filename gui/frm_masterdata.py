@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QFormLayout, QHeaderView, QFileDialog
+    QFormLayout, QHeaderView, QFileDialog, QMainWindow
 
 from gui.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas, schemas_plan_api
@@ -26,22 +26,25 @@ from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 
-class FrmMasterData(QWidget):
+class FrmMasterData(QMainWindow):
     def __init__(self, project_id: UUID):
         super().__init__()
         self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)
         # Bestehende Flags auslesen und das "StaysOnTopHint" Flag hinzufügen.
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
         self.project_id = project_id
 
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
 
-        self.tab_bar = TabBar(self, 'north', 12, 20, 200, False, False,
+        self.layout = QVBoxLayout()
+        self.central_widget.setLayout(self.layout)
+
+        self.tab_bar = TabBar(self.central_widget, 'north', 12, 20, 200, False, False,
                               None, 'tabbar_masterdata')
-        self.layout.addWidget(self.tab_bar)
+        # self.layout.addWidget(self.tab_bar)
 
         self.widget_persons = WidgetPerson(project_id)
 

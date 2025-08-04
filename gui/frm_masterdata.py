@@ -332,6 +332,8 @@ class DlgPersonData(QDialog):
         self.le_street = QLineEdit()
         self.le_postal_code = QLineEdit()
         self.le_city = QLineEdit()
+        self.le_descriptive_name = QLineEdit()
+        self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "John Doe"'))
 
         self.group_person_data_layout.addRow(self.tr('First Name'), self.le_f_name)
         self.group_person_data_layout.addRow(self.tr('Last Name'), self.le_l_name)
@@ -343,6 +345,7 @@ class DlgPersonData(QDialog):
         self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
         self.group_address_data_layout.addRow(self.tr('ZIP'), self.le_postal_code)
         self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
+        self.group_address_data_layout.addRow(self.tr('Descriptive Name'), self.le_descriptive_name)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -361,9 +364,10 @@ class DlgPersonCreate(DlgPersonData):
         street = self.le_street.text().strip()
         postal_code = self.le_postal_code.text().strip()
         city = self.le_city.text().strip()
-        person_address_is_set = street or postal_code or city
+        descriptive_name = self.le_descriptive_name.text().strip()
+        person_address_is_set = street or postal_code or city or descriptive_name
         if person_address_is_set:
-            address = schemas.AddressCreate(street=street, postal_code=postal_code, city=city)
+            address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
         else:
             address = None
         person = schemas.PersonCreate(f_name=self.le_f_name.text(), l_name=self.le_l_name.text(),
@@ -425,7 +429,8 @@ class DlgPersonModify(DlgPersonData):
         street = self.le_street.text().strip()
         postal_code = self.le_postal_code.text().strip()
         city = self.le_city.text().strip()
-        person_address_is_set = street or postal_code or city
+        descriptive_name = self.le_descriptive_name.text().strip()
+        person_address_is_set = street or postal_code or city or descriptive_name
         self.person.f_name = self.le_f_name.text()
         self.person.l_name = self.le_l_name.text()
         self.person.email = self.le_email.text()
@@ -436,6 +441,7 @@ class DlgPersonModify(DlgPersonData):
             self.person.address.street = street
             self.person.address.postal_code = postal_code
             self.person.address.city = city
+            self.person.address.name = descriptive_name
         else:
             self.person.address = None
 
@@ -467,6 +473,7 @@ class DlgPersonModify(DlgPersonData):
         self.le_street.setText(self.person.address.street)
         self.le_postal_code.setText(self.person.address.postal_code)
         self.le_city.setText(self.person.address.city)
+        self.le_descriptive_name.setText(self.person.address.name or '')
 
     def fill_requested_assignm(self):
         self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
@@ -708,11 +715,14 @@ class DlgLocationData(QDialog):
         self.le_street = QLineEdit()
         self.le_postal_code = QLineEdit()
         self.le_city = QLineEdit()
+        self.le_descriptive_name = QLineEdit()
+        self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "Clinic XYZ"'))
 
         self.group_location_data_layout.addRow(self.tr('Name'), self.le_name)
         self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
         self.group_address_data_layout.addRow(self.tr('ZIP Code'), self.le_postal_code)
         self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
+        self.group_address_data_layout.addRow(self.tr('Descriptive Name'), self.le_descriptive_name)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.save_location)
@@ -722,9 +732,10 @@ class DlgLocationData(QDialog):
         street = self.le_street.text().strip()
         postal_code = self.le_postal_code.text().strip()
         city = self.le_city.text().strip()
-        address_is_set = street or postal_code or city
+        descriptive_name = self.le_descriptive_name.text().strip()
+        address_is_set = street or postal_code or city or descriptive_name
         if address_is_set:
-            address = schemas.AddressCreate(street=street, postal_code=postal_code, city=city)
+            address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
         else:
             address = None
 
@@ -789,6 +800,7 @@ class DlgLocationModify(DlgLocationData):
             self.le_street.setText(self.location_of_work.address.street)
             self.le_postal_code.setText(self.location_of_work.address.postal_code)
             self.le_city.setText(self.location_of_work.address.city)
+            self.le_descriptive_name.setText(self.location_of_work.address.name or '')
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
         self.fill_teams()
 
@@ -796,12 +808,17 @@ class DlgLocationModify(DlgLocationData):
         street = self.le_street.text().strip()
         postal_code = self.le_postal_code.text().strip()
         city = self.le_city.text().strip()
-        address_is_set = street or postal_code or city
-        self.location_of_work.name = self.le_name.text()
+        descriptive_name = self.le_descriptive_name.text().strip()
+
+        address_is_set = street or postal_code or city or descriptive_name
+
+        self.location_of_work.name = self.le_name.text().strip()
         if address_is_set:
             self.location_of_work.address.street = street
             self.location_of_work.address.postal_code = postal_code
             self.location_of_work.address.city = city
+            self.location_of_work.address.name = descriptive_name
+
         else:
             self.location_of_work.address = None
         self.location_of_work.nr_actors = self.spin_nr_actors.value()

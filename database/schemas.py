@@ -484,6 +484,7 @@ class TeamLocationAssignShow(TeamLocationAssign):
 
 
 class AddressCreate(BaseModel):
+    name: Optional[str] = None
     project_id: UUID
     street: str = ''
     postal_code: str = ''
@@ -494,6 +495,7 @@ class Address(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    name: Optional[str]
     street: str
     postal_code: str
     city: str

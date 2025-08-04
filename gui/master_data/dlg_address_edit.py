@@ -95,11 +95,14 @@ class DlgAddressEdit(QDialog):
         self.le_postal_code.setPlaceholderText(self.tr("e.g. 12345"))
         self.le_city = QLineEdit()
         self.le_city.setPlaceholderText(self.tr("e.g. Berlin"))
+        self.le_descriptive_name = QLineEdit()
+        self.le_descriptive_name.setPlaceholderText(self.tr("Optional, e.g. 'Clinic XYZ'"))
         
         # Add to form
         form_layout.addRow(self.tr("Street:"), self.le_street)
         form_layout.addRow(self.tr("Postal Code:"), self.le_postal_code)
         form_layout.addRow(self.tr("City:"), self.le_city)
+        form_layout.addRow(self.tr("Descriptive Name:"), self.le_descriptive_name)
         
         main_layout.addWidget(form_frame)
         
@@ -193,6 +196,7 @@ class DlgAddressEdit(QDialog):
             self.le_street.setText(self.address_data.street)
             self.le_postal_code.setText(self.address_data.postal_code)
             self.le_city.setText(self.address_data.city)
+            self.le_descriptive_name.setText(self.address_data.name or '')
             
         except Exception as e:
             QMessageBox.critical(self, self.tr("Error"), self.tr("Address could not be loaded:\n{error}").format(error=str(e)))
@@ -234,7 +238,8 @@ class DlgAddressEdit(QDialog):
             project_id=self.project_id,
             street=self.le_street.text().strip(),
             postal_code=self.le_postal_code.text().strip(),
-            city=self.le_city.text().strip()
+            city=self.le_city.text().strip(),
+            name=self.le_descriptive_name.text().strip() or ''
         )
     
     def _create_address_update_schema(self) -> schemas.Address:
@@ -244,7 +249,8 @@ class DlgAddressEdit(QDialog):
             street=self.le_street.text().strip(),
             postal_code=self.le_postal_code.text().strip(),
             city=self.le_city.text().strip(),
-            project=self.address_data.project
+            project=self.address_data.project,
+            name=self.le_descriptive_name.text().strip() or ''
         )
     
     def _on_save_clicked(self):

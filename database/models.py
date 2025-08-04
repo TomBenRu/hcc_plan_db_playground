@@ -433,6 +433,7 @@ class TeamLocationAssign(db.Entity):
 class Address(db.Entity):
     """Adressen ohne Zugehörigkeit können in regelmäßigen Abständen gelöscht werden."""
     id = PrimaryKey(UUID, auto=True)
+    name = Optional(str, 50, nullable=True)  # Optionaler Name für die Adresse, z.B. "Klinik XYZ"
     street = Required(str, 50)
     postal_code = Required(str, 20)
     city = Required(str, 40)

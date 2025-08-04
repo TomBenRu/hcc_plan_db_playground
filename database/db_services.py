@@ -344,7 +344,7 @@ class Person:
         log_function_info(cls)
         project_in_db = models.Project.get_for_update(id=project_id)
         if person.address:
-            address_in_db = models.Address(**person.address.model_dump(), project=project_in_db)
+            address_in_db = models.Address(**person.address.model_dump(exclude={'project_id'}), project=project_in_db)
         else:
             address_in_db = None
         hashed_password = hash_psw(person.password)
@@ -638,7 +638,7 @@ class LocationOfWork:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=project_id)
         if location.address:
-            address_db = models.Address(**location.address.model_dump(), project=project_db)
+            address_db = models.Address(**location.address.model_dump(exclude={'project_id'}), project=project_db)
         else:
             address_db = None
         location_db = models.LocationOfWork(name=location.name, project=project_db, address=address_db)
@@ -660,7 +660,8 @@ class LocationOfWork:
                 location_db.address = None
         else:
             if location_of_work.address:
-                address = Address.create(schemas.AddressCreate(street=location_of_work.address.street,
+                address = Address.create(schemas.AddressCreate(name=location_of_work.address.name,
+                                                               street=location_of_work.address.street,
                                                                postal_code=location_of_work.address.postal_code,
                                                                city=location_of_work.address.city))
                 location_db.address = models.Address.get_for_update(id=address.id)
@@ -1190,7 +1191,8 @@ class Address:
         address_db = models.Address(project=project_db,
                                     street=address.street,
                                     postal_code=address.postal_code,
-                                    city=address.city)
+                                    city=address.city,
+                                    name=address.name)
         return schemas.Address.model_validate(address_db)
 
     @classmethod
@@ -1198,9 +1200,7 @@ class Address:
     def update(cls, address: schemas.Address) -> schemas.Address:
         log_function_info(cls)
         address_db = models.Address.get_for_update(lambda a: a.id == address.id)
-        # for key, val in address.model_dump(include={'street', 'postal_code', 'city'}).items():
-        #     address_db.__setattr__(key, val)
-        address_db.set(**address.model_dump(include={'street', 'postal_code', 'city'}))
+        address_db.set(**address.model_dump(include={'name', 'street', 'postal_code', 'city'}))
         return schemas.Address.model_validate(address_db)
 
     @classmethod

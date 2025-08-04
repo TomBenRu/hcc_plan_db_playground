@@ -192,7 +192,7 @@ class DlgEmployeeEventDetails(QDialog):
         self.combo_address.setPlaceholderText(self.tr("Select address..."))
         
         self.btn_new_address = QPushButton(self.tr("New..."))
-        self.btn_new_address.setMaximumWidth(60)
+        self.btn_new_address.setMaximumWidth(100)
         self.btn_new_address.setStyleSheet("""
             QPushButton {
                 background-color: #555555;
@@ -207,7 +207,7 @@ class DlgEmployeeEventDetails(QDialog):
         """)
         
         self.btn_edit_address = QPushButton(self.tr("Edit..."))
-        self.btn_edit_address.setMaximumWidth(60)
+        self.btn_edit_address.setMaximumWidth(100)
         self.btn_edit_address.setStyleSheet("""
             QPushButton {
                 background-color: #555555;
@@ -549,7 +549,8 @@ class DlgEmployeeEventDetails(QDialog):
             # Address-Dropdown befüllen
             self.combo_address.addItem(self.tr("No address"), None)
             for address in self.addresses_cache:
-                display_text = f"{address.city}, {address.street}"
+                name = f', ({address.name})' if address.name else ''
+                display_text = f"{address.city}, {address.street}{name}"
                 self.combo_address.addItem(display_text, address.id)
 
             # Kategorien laden
@@ -1094,7 +1095,8 @@ class DlgEmployeeEventDetails(QDialog):
             self.combo_address.clear()
             self.combo_address.addItem(self.tr("No address"), None)
             for address in self.addresses_cache:
-                display_text = f"{address.city}, {address.street}"
+                name = f', ({address.name})' if address.name else ''
+                display_text = f"{address.city}, {address.street}{name}"
                 self.combo_address.addItem(display_text, address.id)
             
             # Vorherige Auswahl wiederherstellen wenn möglich

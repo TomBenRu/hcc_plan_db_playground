@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Plan-Berechnung - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="berechnung, automatisch, solver, planung, optimierung">
+    <meta name="description" content="Hilfe für die automatische Plan-Berechnung in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Plan-Berechnung</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Plan-Berechnung</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die automatische Plan-Berechnung erstellt optimierte Einsatzpläne basierend auf Verfügbarkeiten, Qualifikationen und Präferenzen. Das System nutzt fortschrittliche Optimierungsalgorithmen, um faire und effiziente Planungen zu generieren.</p>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Automatische Optimierung</strong> - KI-basierte Planerstellung</li>
+            <li><strong>Mehrere Vorschläge</strong> - Verschiedene Planungsalternativen</li>
+            <li><strong>Faire Verteilung</strong> - Gleichmäßige Arbeitslasten</li>
+            <li><strong>Konflikt-Erkennung</strong> - Automatische Problemidentifikation</li>
+            <li><strong>Anpassbare Parameter</strong> - Berechnungszeiten konfigurieren</li>
+        </ul>
+        
+        <h2>Plan-Berechnung starten</h2>
+        <ol>
+            <li>Öffnen Sie die Plan-Berechnung über das Hauptmenü</li>
+            <li>Das Fenster zeigt: "Schedule Creation [Team-Name]"</li>
+            <li>Konfigurieren Sie die Parameter (siehe unten)</li>
+            <li>Klicken Sie auf <em class="ui-element">OK</em> zum Start</li>
+            <li>Überwachen Sie den Fortschritt im Progress-Dialog</li>
+            <li>Wählen Sie die gewünschten Pläne aus den Ergebnissen aus</li>
+        </ol>
+        
+        <h2>Parameter-Konfiguration</h2>
+        
+        <h3>Period and Count (Zeitraum und Anzahl)</h3>
+        <ul>
+            <li><strong>Planning Period</strong> - Wählen Sie den zu planenden Zeitraum:
+                <ul>
+                    <li>Dropdown zeigt verfügbare Planungsperioden</li>
+                    <li>Format: "DD.MM.YY - DD.MM.YY"</li>
+                    <li>Nur Perioden mit Terminen sind verfügbar</li>
+                </ul>
+            </li>
+            <li><strong>Number of Planning Proposals</strong> - Anzahl der zu erstellenden Planvarianten:
+                <ul>
+                    <li>Minimum: 1 Plan</li>
+                    <li>Empfohlen: 3-5 Pläne für bessere Auswahl</li>
+                    <li>Mehr Pläne = längere Berechnungszeit</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <h3>Calculation Times (Berechnungszeiten in Sekunden)</h3>
+        <p>Diese Parameter steuern, wie lange der Algorithmus für verschiedene Optimierungsschritte arbeitet:</p>
+        
+        <ul>
+            <li><strong>Max. Time for Preprocessing</strong> - Vorberechnungen:
+                <ul>
+                    <li>Standard: 20 Sekunden</li>
+                    <li>Minimum: 5 Sekunden</li>
+                    <li>Berechnet maximale Schichten pro Mitarbeiter</li>
+                </ul>
+            </li>
+            <li><strong>Max. Time for Fair Distribution Calculation</strong> - Faire Verteilung:
+                <ul>
+                    <li>Automatisch berechnet: Anzahl Mitarbeiter × 50 Sekunden</li>
+                    <li>Minimum: Anzahl Mitarbeiter × 5 Sekunden</li>
+                    <li>Optimiert die Arbeitslasten-Verteilung</li>
+                </ul>
+            </li>
+            <li><strong>Max. Time for Plan Calculation</strong> - Hauptberechnung:
+                <ul>
+                    <li>Standard: 60 Sekunden</li>
+                    <li>Minimum: 5 Sekunden</li>
+                    <li>Erstellt die finalen Planvorschläge</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <div class="tip-box">
+            <h4>💡 Zeitoptimierung</h4>
+            <p>Längere Berechnungszeiten führen meist zu besseren Ergebnissen. Für komplexe Planungen empfehlen wir mindestens 120 Sekunden für die Hauptberechnung.</p>
+        </div>
+        
+        <h2>Berechnungsvorgang</h2>
+        
+        <h3>Phasen der Berechnung</h3>
+        <ol>
+            <li><strong>Validierung</strong> - Prüfung der Eingabedaten</li>
+            <li><strong>Preprocessing</strong> - Vorberechnungen und Datenaufbereitung</li>
+            <li><strong>Fair Distribution</strong> - Berechnung fairer Arbeitszeiten</li>
+            <li><strong>Plan Generation</strong> - Erstellung der Planvorschläge</li>
+            <li><strong>Validation</strong> - Überprüfung auf Konflikte</li>
+            <li><strong>Saving</strong> - Speicherung der ausgewählten Pläne</li>
+        </ol>
+        
+        <h3>Progress-Dialog</h3>
+        <p>Während der Berechnung zeigt ein Fortschritts-Dialog:</p>
+        <ul>
+            <li><strong>Aktuelle Phase</strong> - Was gerade berechnet wird</li>
+            <li><strong>Fortschrittsbalken</strong> - Geschätzter Gesamtfortschritt</li>
+            <li><strong>Zeitanzeige</strong> - Verstrichene und geschätzte Restzeit</li>
+            <li><strong>Cancel-Button</strong> - Berechnung abbrechen</li>
+        </ul>
+        
+        <div class="warning-box">
+            <h4>⚠️ Berechnung abbrechen</h4>
+            <p>Ein Abbruch verwirft alle bisherigen Ergebnisse. Lassen Sie komplexe Berechnungen nach Möglichkeit vollständig durchlaufen.</p>
+        </div>
+        
+        <h2>Ergebnisse und Auswahl</h2>
+        
+        <h3>Erfolgreiche Berechnung</h3>
+        <p>Nach erfolgreicher Berechnung erhalten Sie:</p>
+        <ul>
+            <li><strong>Mehrere Planvorschläge</strong> - Je nach konfigurierter Anzahl</li>
+            <li><strong>Auswahl-Dialog</strong> - Bestimmen Sie, wie viele Pläne gespeichert werden</li>
+            <li><strong>Automatische Benennung</strong> - Pläne erhalten eindeutige Namen</li>
+            <li><strong>Statistiken</strong> - Informationen über Arbeitslasten</li>
+        </ul>
+        
+        <h3>Plan-Auswahl</h3>
+        <ol>
+            <li>Dialog zeigt: "A total of X plans have been calculated"</li>
+            <li>Wählen Sie die gewünschte Anzahl zu speichernder Pläne</li>
+            <li>Standard: Alle berechneten Pläne speichern</li>
+            <li>Bestätigen Sie mit <em class="ui-element">OK</em></li>
+            <li>Die Pläne werden automatisch gespeichert</li>
+        </ol>
+        
+        <h3>Plan-Benennung</h3>
+        <p>Pläne erhalten automatisch Namen im Format:</p>
+        <ul>
+            <li><strong>Format:</strong> "DD.MM.YY-DD.MM.YY (01)", "DD.MM.YY-DD.MM.YY (02)", etc.</li>
+            <li><strong>Basis:</strong> Start- und Enddatum der Planungsperiode</li>
+            <li><strong>Nummerierung:</strong> Aufsteigende Nummern für Eindeutigkeit</li>
+            <li><strong>Konflikte:</strong> System verhindert Namenskonflikte automatisch</li>
+        </ul>
+        
+        <h2>Fehlerbehebung</h2>
+        
+        <h3>Häufige Fehlermeldungen</h3>
+        
+        <h4>❓ "Please select a period first"</h4>
+        <p><strong>Lösung:</strong> Wählen Sie eine Planungsperiode aus dem Dropdown-Menü aus.</p>
+        
+        <h4>❓ "No plans can be created for the period"</h4>
+        <p><strong>Lösung:</strong> Die gewählte Periode enthält keine Termine. Erstellen Sie zuerst Termine in der Planungsansicht.</p>
+        
+        <h4>❓ "No solutions were found"</h4>
+        <p><strong>Ursachen und Lösungen:</strong></p>
+        <ul>
+            <li><strong>Zu wenig Zeit:</strong> Erhöhen Sie die Berechnungszeiten</li>
+            <li><strong>Unmögliche Anforderungen:</strong> Prüfen Sie Verfügbarkeiten und Qualifikationen</li>
+            <li><strong>Konflikte:</strong> Überprüfen Sie Fixed Cast und Skill-Anforderungen</li>
+        </ul>
+        
+        <h4>❓ "Fixed cast conflicts found"</h4>
+        <p><strong>Lösung:</strong> Die angezeigten Termine haben widersprüchliche Besetzungsanforderungen. Korrigieren Sie die Fixed Cast-Einstellungen.</p>
+        
+        <h4>❓ "Skill conflicts found"</h4>
+        <p><strong>Lösung:</strong> Nicht genügend Mitarbeiter mit den erforderlichen Qualifikationen verfügbar. Erweitern Sie das Team oder reduzieren Sie die Anforderungen.</p>
+        
+        <h2>Optimierungsstrategien</h2>
+        
+        <h3>Bessere Ergebnisse erzielen</h3>
+        <ul>
+            <li><strong>Vollständige Stammdaten:</strong> Alle Mitarbeiter und Qualifikationen pflegen</li>
+            <li><strong>Realistische Verfügbarkeiten:</strong> Korrekte Arbeitszeiten definieren</li>
+            <li><strong>Ausreichend Personal:</strong> Mehr Mitarbeiter als Mindestbesetzung</li>
+            <li><strong>Flexible Anforderungen:</strong> Nicht zu strenge Fixed Cast-Regeln</li>
+            <li><strong>Längere Berechnungszeiten:</strong> Besonders bei komplexen Planungen</li>
+        </ul>
+        
+        <h3>Performance-Tipps</h3>
+        <ul>
+            <li><strong>Kleinere Perioden:</strong> Teilen Sie große Zeiträume auf</li>
+            <li><strong>Weniger Varianten:</strong> Beginnen Sie mit 2-3 Planvorschlägen</li>
+            <li><strong>Schrittweise Optimierung:</strong> Erst Grundplan, dann Verfeinerung</li>
+            <li><strong>Zwischenspeichern:</strong> Speichern Sie gute Teilergebnisse</li>
+        </ul>
+        
+        <h2>Integration mit anderen Modulen</h2>
+        
+        <h3>Voraussetzungen</h3>
+        <ul>
+            <li><strong>Stammdaten:</strong> Vollständige Mitarbeiter-Datenbank</li>
+            <li><strong>Teams:</strong> Konfiguriertes Team mit Zuordnungen</li>
+            <li><strong>Planungsperiode:</strong> Definierte Zeiträume mit Terminen</li>
+            <li><strong>Verfügbarkeiten:</strong> Eingetragene Arbeitszeiten</li>
+        </ul>
+        
+        <h3>Nachbearbeitung</h3>
+        <ul>
+            <li><strong>Plan-Ansicht:</strong> Berechnete Pläne kontrollieren und anpassen</li>
+            <li><strong>Export:</strong> Pläne in externe Systeme übertragen</li>
+            <li><strong>Kalender:</strong> Termine synchronisieren</li>
+            <li><strong>Statistiken:</strong> Arbeitslasten analysieren</li>
+        </ul>
+        
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Batch-Berechnung</h3>
+        <p>Für wiederkehrende Planungen:</p>
+        <ol>
+            <li>Speichern Sie bewährte Parameter-Sets</li>
+            <li>Nutzen Sie ähnliche Zeitkonfigurationen</li>
+            <li>Automatisieren Sie wiederkehrende Muster</li>
+        </ol>
+        
+        <h3>Qualitätskontrolle</h3>
+        <p>Nach der Berechnung prüfen:</p>
+        <ul>
+            <li><strong>Arbeitslasten:</strong> Sind die Stunden fair verteilt?</li>
+            <li><strong>Qualifikationen:</strong> Sind alle Skills abgedeckt?</li>
+            <li><strong>Präferenzen:</strong> Wurden Wünsche berücksichtigt?</li>
+            <li><strong>Konflikte:</strong> Gibt es noch Überschneidungen?</li>
+        </ul>
+        
+        <h2>Tastenkombinationen</h2>
+        <div class="keyboard-shortcuts">
+            <table>
+                <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
+                <tr><td><kbd>Enter</kbd></td><td>Berechnung starten</td></tr>
+                <tr><td><kbd>Escape</kbd></td><td>Dialog abbrechen</td></tr>
+                <tr><td><kbd>Tab</kbd></td><td>Zwischen Feldern wechseln</td></tr>
+                <tr><td><kbd>Ctrl+C</kbd></td><td>Berechnung abbrechen</td></tr>
+            </table>
+        </div>
+        
+        <h2>Weiterführende Hilfe</h2>
+        <ul class="related-links">
+            <li><a href="plan.html">Plan-Formular</a> - Berechnete Pläne bearbeiten</li>
+            <li><a href="masterdata.html">Stammdaten</a> - Mitarbeiter und Qualifikationen</li>
+            <li><a href="team.html">Team-Verwaltung</a> - Teams für Berechnung konfigurieren</li>
+            <li><a href="../advanced/customization.html">Erweiterte Einstellungen</a> - Algorithmus-Parameter</li>
+        </ul>
+    </div>
+    
+    <div class="help-footer">
+        <div class="related-links">
+            <a href="../index.html">← Zurück zur Haupthilfe</a>
+        </div>
+        <div class="help-info">Version 1.0 | Deutsch</div>
+    </div>
+</body>
+</html>

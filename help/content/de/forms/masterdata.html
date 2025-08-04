@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Stammdaten - HCC Plan Hilfe</title>
     <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="stammdaten, mitarbeiter, standorte, personen, facilities">
+    <meta name="description" content="Hilfe für die Stammdaten-Verwaltung in HCC Plan">
 </head>
 <body>
     <div class="help-header">
@@ -13,19 +15,174 @@
     
     <div class="help-content">
         <h2>Übersicht</h2>
-        <p>In den Stammdaten verwalten Sie alle grundlegenden Informationen für Ihr Planungssystem.</p>
+        <p>In den Stammdaten verwalten Sie alle grundlegenden Informationen für Ihr Planungssystem. Dies ist die zentrale Stelle für die Verwaltung von Mitarbeitern und Arbeitsstandorten.</p>
         
-        <h2>Funktionen</h2>
+        <h2>Hauptbereiche</h2>
+        <p>Die Stammdaten sind in zwei Hauptbereiche unterteilt:</p>
         <ul class="feature-list">
-            <li><strong>Personen verwalten</strong> - Mitarbeiter und ihre Daten pflegen</li>
-            <li><strong>Standorte verwalten</strong> - Arbeitsplätze und Adressen konfigurieren</li>
-            <li><strong>Skills verwalten</strong> - Fähigkeiten und Qualifikationen definieren</li>
+            <li><strong>Employees (Mitarbeiter)</strong> - Verwaltung aller Personen und deren Daten</li>
+            <li><strong>Facilities (Einrichtungen)</strong> - Verwaltung aller Arbeitsstandorte und Adressen</li>
         </ul>
         
+        <h2>Mitarbeiter-Management</h2>
+        
+        <h3>Neuen Mitarbeiter anlegen</h3>
+        <ol>
+            <li>Wechseln Sie zum Tab <em class="ui-element">Employees</em></li>
+            <li>Klicken Sie auf <em class="ui-element">Create Person</em></li>
+            <li>Füllen Sie die Personaldetails aus:
+                <ul>
+                    <li><strong>Vorname</strong> - Vorname des Mitarbeiters</li>
+                    <li><strong>Nachname</strong> - Nachname des Mitarbeiters</li>
+                    <li><strong>Benutzername</strong> - Eindeutiger Login-Name</li>
+                    <li><strong>E-Mail</strong> - Kontakt-E-Mail-Adresse</li>
+                    <li><strong>Telefon</strong> - Telefonnummer</li>
+                    <li><strong>Adresse</strong> - Wohnadresse</li>
+                </ul>
+            </li>
+            <li>Speichern Sie mit <em class="ui-element">OK</em></li>
+        </ol>
+        
+        <h3>Mitarbeiter aus Excel importieren</h3>
+        <ol>
+            <li>Bereiten Sie eine Excel-Datei vor mit den Spalten:
+                <ul>
+                    <li><strong>First name</strong> (Vorname)</li>
+                    <li><strong>Last name</strong> (Nachname)</li>
+                    <li><strong>username</strong> (Benutzername)</li>
+                </ul>
+            </li>
+            <li>Klicken Sie auf <em class="ui-element">Import People from XLSX</em></li>
+            <li>Wählen Sie Ihre Excel-Datei aus</li>
+            <li>Überprüfen Sie die Importvorschau</li>
+            <li>Bestätigen Sie den Import</li>
+        </ol>
+        
         <div class="tip-box">
-            <h4>💡 Tipp</h4>
-            <p>Pflegen Sie die Stammdaten sorgfältig - sie sind die Basis für alle Planungen.</p>
+            <h4>💡 Excel-Import Tipp</h4>
+            <p>Stellen Sie sicher, dass die Spaltenüberschriften exakt "First name", "Last name" und "username" lauten. Weitere Spalten werden ignoriert.</p>
         </div>
+        
+        <h3>Mitarbeiter bearbeiten</h3>
+        <ol>
+            <li>Wählen Sie einen Mitarbeiter aus der Liste</li>
+            <li>Doppelklicken Sie auf den Eintrag ODER</li>
+            <li>Klicken Sie auf <em class="ui-element">Edit Person</em></li>
+            <li>Nehmen Sie die gewünschten Änderungen vor</li>
+            <li>Speichern Sie mit <em class="ui-element">OK</em></li>
+        </ol>
+        
+        <h3>Mitarbeiter löschen</h3>
+        <ol>
+            <li>Wählen Sie einen Mitarbeiter aus der Liste</li>
+            <li>Klicken Sie auf <em class="ui-element">Delete Person</em></li>
+            <li>Bestätigen Sie die Löschung im Dialog</li>
+        </ol>
+        
+        <div class="warning-box">
+            <h4>⚠️ Warnung beim Löschen</h4>
+            <p>Das Löschen von Mitarbeitern kann sich auf bestehende Planungen auswirken. Prüfen Sie vorher, ob der Mitarbeiter in aktuellen Plänen verwendet wird.</p>
+        </div>
+        
+        <h2>Einrichtungen-Management</h2>
+        
+        <h3>Neue Einrichtung anlegen</h3>
+        <ol>
+            <li>Wechseln Sie zum Tab <em class="ui-element">Facilities</em></li>
+            <li>Klicken Sie auf <em class="ui-element">Create Location</em></li>
+            <li>Füllen Sie die Standortdetails aus:
+                <ul>
+                    <li><strong>Name</strong> - Bezeichnung der Einrichtung</li>
+                    <li><strong>Adresse</strong> - Vollständige Anschrift</li>
+                    <li><strong>Stadt</strong> - Ort der Einrichtung</li>
+                    <li><strong>Postleitzahl</strong> - PLZ</li>
+                    <li><strong>Kontaktdaten</strong> - Telefon/E-Mail der Einrichtung</li>
+                </ul>
+            </li>
+            <li>Speichern Sie mit <em class="ui-element">OK</em></li>
+        </ol>
+        
+        <h3>Einrichtung bearbeiten</h3>
+        <ol>
+            <li>Wählen Sie eine Einrichtung aus der Liste</li>
+            <li>Doppelklicken Sie auf den Eintrag ODER</li>
+            <li>Klicken Sie auf <em class="ui-element">Edit Location</em></li>
+            <li>Nehmen Sie die gewünschten Änderungen vor</li>
+            <li>Speichern Sie mit <em class="ui-element">OK</em></li>
+        </ol>
+        
+        <h2>Wichtige Bedienelemente</h2>
+        
+        <h3>Mitarbeiter-Tab Funktionen</h3>
+        <ul>
+            <li><strong>Create Person</strong> - Neuen Mitarbeiter anlegen</li>
+            <li><strong>Import People from XLSX</strong> - Mitarbeiter aus Excel-Datei importieren</li>
+            <li><strong>Edit Person</strong> - Ausgewählten Mitarbeiter bearbeiten</li>
+            <li><strong>Delete Person</strong> - Ausgewählten Mitarbeiter löschen</li>
+        </ul>
+        
+        <h3>Einrichtungen-Tab Funktionen</h3>
+        <ul>
+            <li><strong>Create Location</strong> - Neue Einrichtung anlegen</li>
+            <li><strong>Edit Location</strong> - Ausgewählte Einrichtung bearbeiten</li>
+            <li><strong>Delete Location</strong> - Ausgewählte Einrichtung löschen</li>
+            <li><strong>Location Settings</strong> - Erweiterte Standort-Konfiguration</li>
+        </ul>
+        
+        <h2>Listen-Navigation</h2>
+        <p>Beide Tabs zeigen die Daten in Tabellenform an:</p>
+        <ul>
+            <li><strong>Sortierung</strong> - Klicken Sie auf Spaltenüberschriften zum Sortieren</li>
+            <li><strong>Suche</strong> - Nutzen Sie die Suchfunktion über der Tabelle</li>
+            <li><strong>Auswahl</strong> - Klicken Sie auf eine Zeile zur Auswahl</li>
+            <li><strong>Bearbeitung</strong> - Doppelklick öffnet den Bearbeitungsdialog</li>
+        </ul>
+        
+        <h2>Tastenkombinationen</h2>
+        <div class="keyboard-shortcuts">
+            <table>
+                <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
+                <tr><td><kbd>Ctrl+N</kbd></td><td>Neuen Eintrag erstellen</td></tr>
+                <tr><td><kbd>Delete</kbd></td><td>Ausgewählten Eintrag löschen</td></tr>
+                <tr><td><kbd>Enter</kbd></td><td>Ausgewählten Eintrag bearbeiten</td></tr>
+                <tr><td><kbd>F5</kbd></td><td>Liste aktualisieren</td></tr>
+                <tr><td><kbd>Ctrl+F</kbd></td><td>Suche öffnen</td></tr>
+            </table>
+        </div>
+        
+        <h2>Häufige Probleme und Lösungen</h2>
+        
+        <h3>❓ Excel-Import funktioniert nicht</h3>
+        <p><strong>Lösung:</strong> Überprüfen Sie die Spaltenüberschriften. Sie müssen exakt "First name", "Last name" und "username" lauten (englisch).</p>
+        
+        <h3>❓ Mitarbeiter kann nicht gelöscht werden</h3>
+        <p><strong>Lösung:</strong> Der Mitarbeiter ist möglicherweise in aktiven Plänen zugewiesen. Entfernen Sie zuerst alle Planungszuweisungen.</p>
+        
+        <h3>❓ Doppelte Benutzernamen</h3>
+        <p><strong>Lösung:</strong> Benutzernamen müssen eindeutig sein. Verwenden Sie z.B. Kombinationen aus Vor- und Nachname oder fügen Sie Nummern hinzu.</p>
+        
+        <h3>❓ Einrichtung wird in Plänen nicht angezeigt</h3>
+        <p><strong>Lösung:</strong> Überprüfen Sie, ob die Einrichtung korrekt angelegt und aktiviert ist. Kontrollieren Sie auch die Adressdaten.</p>
+        
+        <div class="tip-box">
+            <h4>💡 Best Practice</h4>
+            <p>Legen Sie zuerst alle Mitarbeiter und Einrichtungen an, bevor Sie mit der Planung beginnen. Dies erleichtert die spätere Terminzuordnung erheblich.</p>
+        </div>
+        
+        <h2>Datenqualität</h2>
+        <p>Achten Sie auf vollständige und korrekte Daten:</p>
+        <ul>
+            <li><strong>Mitarbeiter:</strong> Vollständige Namen, eindeutige Benutzernamen, aktuelle Kontaktdaten</li>
+            <li><strong>Einrichtungen:</strong> Korrekte Adressen, Postleitzahlen, Kontaktinformationen</li>
+            <li><strong>Regelmäßige Pflege:</strong> Aktualisieren Sie Daten bei Änderungen sofort</li>
+        </ul>
+        
+        <h2>Weiterführende Hilfe</h2>
+        <ul class="related-links">
+            <li><a href="plan.html">Plan-Formular</a> - Planungen mit Stammdaten erstellen</li>
+            <li><a href="team.html">Team-Verwaltung</a> - Mitarbeiter zu Teams zuordnen</li>
+            <li><a href="../advanced/import-export.html">Import/Export</a> - Datenübertragung</li>
+        </ul>
     </div>
     
     <div class="help-footer">

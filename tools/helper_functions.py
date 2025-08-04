@@ -1,4 +1,5 @@
 import datetime
+import logging
 from collections import defaultdict
 from itertools import zip_longest
 from typing import Literal
@@ -10,6 +11,8 @@ from line_profiler_pycharm import profile
 
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
+
+logger = logging.getLogger(__name__)
 
 # date_to_string cache:
 _locale_cache = {}
@@ -217,6 +220,34 @@ def time_to_string(time: datetime.time, curr_country: QLocale.Country | None = N
         QLocale.Language(curr_language)
     )
     return locale.toString(QTime(time.hour, time.minute), QLocale.FormatType(curr_format))
+
+
+def setup_form_help(form_widget, form_name: str) -> bool:
+    """
+    Richtet standardmäßig Hilfe für ein Formular ein.
+    
+    Args:
+        form_widget: Das QWidget/QMainWindow Formular
+        form_name: Name des Formulars für die Hilfe-Seite
+        
+    Returns:
+        bool: True wenn Help-Integration erfolgreich, False bei Fehlern
+    """
+    try:
+        from help import get_help_manager, HelpIntegration
+        help_manager = get_help_manager()
+        
+        if not help_manager:
+            from help import init_help_system
+            help_manager = init_help_system()
+        
+        if help_manager:
+            help_integration = HelpIntegration(help_manager)
+            help_integration.setup_f1_shortcut(form_widget, form_name=form_name)
+            return True
+    except Exception as e:
+        logger.debug(f"Help-Integration für {form_name} fehlgeschlagen: {e}")
+    return False
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import datetime
 import functools
 import os
 from functools import partial
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from PySide6.QtCore import Qt, QCoreApplication
@@ -25,14 +26,15 @@ from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
+if TYPE_CHECKING:
+    from .main_window import MainWindow
+
 
 class FrmMasterData(QMainWindow):
-    def __init__(self, project_id: UUID):
-        super().__init__()
+    def __init__(self, parent: 'MainWindow', project_id: UUID):
+        super().__init__(parent)
         self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)
-        # Bestehende Flags auslesen und das "StaysOnTopHint" Flag hinzufügen.
-        # self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
         self.project_id = project_id
 

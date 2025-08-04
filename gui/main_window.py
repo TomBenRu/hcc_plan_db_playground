@@ -865,7 +865,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def master_data(self):
         if self.frm_master_data is None:
-            self.frm_master_data = FrmMasterData(project_id=self.project_id)
+            self.frm_master_data = FrmMasterData(self, project_id=self.project_id)
         self.frm_master_data.raise_()
         self.frm_master_data.activateWindow()
         self.frm_master_data.showNormal()

@@ -46,7 +46,6 @@ class FrmMasterData(QMainWindow):
 
         self.tab_bar = TabBar(self.central_widget, 'north', 12, 20, 200, False, False,
                               None, 'tabbar_masterdata')
-        # self.layout.addWidget(self.tab_bar)
 
         self.widget_persons = WidgetPerson(project_id)
 

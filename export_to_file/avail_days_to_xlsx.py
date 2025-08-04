@@ -201,3 +201,9 @@ class ExportToXlsx:
 
         self.workbook.close()
 
+
+def export_avail_days_to_xlsx(parent: QWidget, plan_period_id: UUID, output_path: str):
+    """Export the availabilities of a plan period to an Excel file."""
+    exporter = ExportToXlsx(parent, plan_period_id, output_path)
+    exporter.execute()
+

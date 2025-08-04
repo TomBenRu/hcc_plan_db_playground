@@ -61,6 +61,7 @@ class EmployeeEventsExcelExporter:
         self.worksheet.set_landscape()
         self.worksheet.set_paper(9)
         self.worksheet.set_margins(0.4, 0.4, 0.4, 0.4)
+        self.worksheet.fit_to_pages(1, 1)
         
     def _define_formats(self):
         """Define cell formats for Employee Events."""

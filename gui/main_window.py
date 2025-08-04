@@ -17,6 +17,7 @@ from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
 from export_to_file import plan_to_xlsx, avail_days_to_xlsx
+from export_to_file.avail_days_to_xlsx import export_avail_days_to_xlsx
 from google_calendar_api.add_access import add_or_update_access_to_calendar
 from google_calendar_api.authenticate import save_credentials
 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
@@ -917,9 +918,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             f'Verfügbarkeiten {plan_period.team.name} {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
         )
         create_dir_if_not_exist(excel_output_path)
-        exporter = avail_days_to_xlsx.ExportToXlsx(self, plan_period.id, excel_output_path)
         try:
-            exporter.execute()
+            export_avail_days_to_xlsx(self, plan_period.id, excel_output_path)
         except FileCreateError as e:
             QMessageBox.critical(self, 'Verfügbarkeiten exportieren',
                                  f'Fehler beim Erstellen der Excel-Datei:\n{e}')

@@ -7,11 +7,15 @@ from pony.orm import TransactionIntegrityError
 
 from database import schemas, db_services
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools.helper_functions import setup_form_help
 
 
 class FrmTeam(QDialog):
     def __init__(self, parent: QWidget, project: schemas.ProjectShow, team: schemas.TeamShow | None):
         super().__init__(parent=parent)
+        
+        # Help-System Integration
+        setup_form_help(self, "team")
 
         self.setWindowTitle(self.tr('Team'))
 

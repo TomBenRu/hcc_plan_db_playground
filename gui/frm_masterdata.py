@@ -21,7 +21,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
     location_plan_period_commands, event_group_commands
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -33,6 +33,10 @@ if TYPE_CHECKING:
 class FrmMasterData(QMainWindow):
     def __init__(self, parent: 'MainWindow', project_id: UUID):
         super().__init__(parent)
+        
+        # Help-System Integration
+        setup_form_help(self, "masterdata")
+        
         self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)
 

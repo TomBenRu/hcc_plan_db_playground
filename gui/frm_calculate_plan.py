@@ -13,7 +13,7 @@ from database import db_services, schemas
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
 from sat_solver import solver_main
-from tools.helper_functions import generate_fixed_cast_clear_text, time_to_string, date_to_string
+from tools.helper_functions import generate_fixed_cast_clear_text, time_to_string, date_to_string, setup_form_help
 
 
 class DlgAskNrPlansToSave(QDialog):
@@ -123,7 +123,10 @@ class DlgCalculate(QDialog):
     def __init__(self, parent: QWidget, team_id: UUID):
         super().__init__(parent)
 
-        signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit(),
+        # Help-System Integration
+        setup_form_help(self, "calculate_plan")
+
+        signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit,
                                                                      Qt.ConnectionType.QueuedConnection)
 
         self.team_id = team_id

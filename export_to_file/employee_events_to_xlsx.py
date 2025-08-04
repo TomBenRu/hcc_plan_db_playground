@@ -296,12 +296,14 @@ class EmployeeEventsExcelExporter:
         summary_start_row = self.offset_y + 4 + len(self.employee_events) + 2
         
         # Summary title
-        self.worksheet.write(summary_start_row, self.offset_x,
+        self.worksheet.merge_range(summary_start_row, self.offset_x,
+                                   summary_start_row, self.offset_x + 1,
                              QCoreApplication.translate("EmployeeEventsExcelExporter", "Summary:"),
                              self.format_header)
         
         # Event count
-        self.worksheet.write(summary_start_row + 1, self.offset_x, 
+        self.worksheet.merge_range(summary_start_row + 1, self.offset_x,
+                                   summary_start_row + 1, self.offset_x + 1,
                            QCoreApplication.translate(
                                "EmployeeEventsExcelExporter", "Total Events: {number_of_events}"
                            ).format(number_of_events=len(self.employee_events)),
@@ -317,11 +319,13 @@ class EmployeeEventsExcelExporter:
                 else:
                     category_counts["No Category"] = category_counts.get("No Category", 0) + 1
             
-            self.worksheet.write(summary_start_row + 2, self.offset_x,
+            self.worksheet.merge_range(summary_start_row + 2, self.offset_x,
+                                       summary_start_row + 2, self.offset_x + 1,
                                  QCoreApplication.translate("EmployeeEventsExcelExporter", "Events by Category:"),
                                  self.format_data)
             for idx, (cat_name, count) in enumerate(sorted(category_counts.items())):
-                self.worksheet.write(summary_start_row + 3 + idx, self.offset_x, 
+                self.worksheet.merge_range(summary_start_row + 3 + idx, self.offset_x,
+                                           summary_start_row + 3 + idx, self.offset_x + 1,
                                    f"  • {cat_name}: {count}", self.format_data)
     
     def execute(self):

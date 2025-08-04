@@ -264,7 +264,8 @@ class EmployeeEventsExcelExporter:
             # Address
             address_text = ""
             if event.address:
-                address_text = f"{event.address.street}, {event.address.city}"
+                name = f', ({event.address.name})' if event.address.name else ''
+                address_text = f"{event.address.street}, {event.address.city}{name}"
             self.worksheet.write(current_row, self.offset_x + 4, address_text, format_data)
             
             # Categories

@@ -21,3 +21,9 @@ class DelayedTimerSingleShot(QObject):
     def _execute(self):
         self._function(*self._args, **self._kwargs)
 
+    def isActive(self):
+        return self._timer.isActive()
+
+    def stop(self):
+        self._timer.stop()
+

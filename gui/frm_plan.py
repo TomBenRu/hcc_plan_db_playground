@@ -783,7 +783,7 @@ class FrmTabPlan(QWidget):
         self.progress_bar.show()
 
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
-        worker.signals.finished.connect(self._check_finished)
+        worker.signals.finished.connect(self._check_finished, Qt.ConnectionType.QueuedConnection)
         self.thread_pool.start(worker)
 
     @Slot(bool, list)

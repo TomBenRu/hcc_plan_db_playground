@@ -19,6 +19,10 @@ from tools import proof_only_one_instance
 from tools.logging.logging_config import setup_crash_investigation_logging
 from tools.screen import Screen
 
+import faulthandler
+
+faulthandler.enable()
+
 
 def is_windows_dark_mode():
     import winreg

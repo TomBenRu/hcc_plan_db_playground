@@ -21,7 +21,7 @@ from tools.screen import Screen
 
 import faulthandler
 
-faulthandler.enable()
+# faulthandler.enable()
 
 
 def is_windows_dark_mode():

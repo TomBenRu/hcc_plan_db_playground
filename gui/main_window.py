@@ -1187,29 +1187,28 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             # Fallback-Information für Benutzer
             QMessageBox.information(
                 self, 
-                self.tr("Hilfe"), 
-                self.tr("Die Hilfe-Dokumentation wird geladen...\n\n"
-                       "Falls die Hilfe nicht automatisch öffnet, finden Sie "
-                       "die Dokumentation im help/content/de/ Verzeichnis des Projekts.")
+                self.tr("Help"),
+                self.tr("Loading help documentation...\n\n"
+                       "If the help does not open automatically, you can find "
+                       "the documentation in help/content/de/ directory of the project.")
             )
             
         except ImportError as e:
             logger.error(f"Help-System konnte nicht importiert werden: {e}")
             QMessageBox.information(
                 self, 
-                self.tr("Hilfe"), 
-                self.tr("Das Hilfe-System ist momentan nicht verfügbar.\n\n"
-                       "Bitte konsultieren Sie die README.md oder "
-                       "wenden Sie sich an den Support.")
+                self.tr("Help"),
+                self.tr("Help system is not available at the moment.\n\n"
+                       "Please check the README.md or contact support.")
             )
             
         except Exception as e:
             logger.error(f"Unerwarteter Fehler beim Öffnen der Hilfe: {e}")
             QMessageBox.warning(
                 self, 
-                self.tr("Hilfe"), 
-                self.tr("Beim Öffnen der Hilfe ist ein Fehler aufgetreten.\n\n"
-                       "Versuchen Sie es erneut oder kontaktieren Sie den Support.")
+                self.tr("Help"),
+                self.tr("An error occurred while opening the help.\n\n"
+                       "Try again later or contact support.")
             )
 
     def import_from_plan_api(self):

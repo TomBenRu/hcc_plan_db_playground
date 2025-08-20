@@ -7,10 +7,10 @@ from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
-    QMenu, QSpinBox, QWidgetAction
+    QMenu, QSpinBox, QWidgetAction, QDialog
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
@@ -144,19 +144,60 @@ class ButtonEvent(QPushButton):
             self.context_menu.addAction(MenuToolbarAction(self, None, text, None, slot))
 
     def add_spin_box_num_employees(self):
-        container_spin_box_num_employees = QWidget()
-        layout_container = QHBoxLayout(container_spin_box_num_employees)
-        lb_num_employees = QLabel(self.tr('Num Employees:'))
-        self.spin_box_num_employees = QSpinBox()
-        self.spin_box_num_employees.setRange(0, 100)
-        self.spin_box_num_employees.setValue(self.get_curr_event().cast_group.nr_actors)
-        layout_container.addWidget(lb_num_employees)
-        layout_container.addWidget(self.spin_box_num_employees)
-        self.spin_box_num_employees.valueChanged.connect(self.change_num_employees)
-        self.action_num_employees = QWidgetAction(self.context_menu)
-        self.action_num_employees.setObjectName('Num Employees')
-        self.action_num_employees.setDefaultWidget(container_spin_box_num_employees)
+        # Threading-sichere Lösung: Standard QAction mit Dialog statt QWidgetAction
+        current_num = self.get_curr_event().cast_group.nr_actors
+        action_text = self.tr(f'Mitarbeiter: {current_num}')
+
+        self.action_num_employees = MenuToolbarAction(self, None, action_text, None, self.show_num_employees_dialog)
         self.context_menu.addAction(self.action_num_employees)
+
+    def show_num_employees_dialog(self):
+        """Zeigt Dialog zur Änderung der Mitarbeiteranzahl."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QSpinBox, QLabel, QPushButton
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr('Anzahl Mitarbeiter'))
+        dialog.setModal(True)
+        dialog.resize(300, 120)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # SpinBox-Container
+        spin_layout = QHBoxLayout()
+        label = QLabel(self.tr('Anzahl Mitarbeiter:'))
+        spin_box = QSpinBox()
+        spin_box.setRange(0, 100)
+        spin_box.setValue(self.get_curr_event().cast_group.nr_actors)
+        
+        spin_layout.addWidget(label)
+        spin_layout.addWidget(spin_box)
+        layout.addLayout(spin_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton(self.tr('OK'))
+        cancel_button = QPushButton(self.tr('Abbrechen'))
+        
+        ok_button.clicked.connect(lambda: self.apply_num_employees_change(spin_box.value(), dialog))
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def apply_num_employees_change(self, new_value: int, dialog: QDialog):
+        """Wendet Änderung der Mitarbeiteranzahl an und schließt Dialog."""
+        self.change_num_employees(new_value)
+        
+        # Context-Menu-Text sofort aktualisieren (zusätzlich zum Signal-Update)
+        if self.action_num_employees:
+            new_text = self.tr(f'Mitarbeiter: {new_value}')
+            self.action_num_employees.setText(new_text)
+            self.set_tooltip()
+        
+        dialog.accept()
 
     @Slot(object)
     def update_num_employees(self, data: signal_handling.DataEventUpdateNumEmployees):
@@ -166,16 +207,20 @@ class ButtonEvent(QPushButton):
                 and data.location_plan_period_id != self.location_plan_period.id):
             return
         event = self.get_curr_event()
-        if event:
-            self.spin_box_num_employees.blockSignals(True)
-            self.spin_box_num_employees.setValue(event.cast_group.nr_actors)
-            self.spin_box_num_employees.blockSignals(False)
+        if event and self.action_num_employees:
+            # Action-Text mit neuer Anzahl aktualisieren
+            new_text = self.tr(f'Mitarbeiter: {event.cast_group.nr_actors}')
+            self.action_num_employees.setText(new_text)
 
-    def change_num_employees(self):
+    def change_num_employees(self, new_value: int = None):
         event = self.get_curr_event()
         cast_group = event.cast_group
+        
+        # Wenn new_value gegeben, verwende diesen, sonst Fallback (sollte nicht passieren)
+        value = new_value if new_value is not None else cast_group.nr_actors
+        
         self.controller.execute(
-            cast_group_commands.UpdateNrActors(cast_group.id, self.spin_box_num_employees.value()))
+            cast_group_commands.UpdateNrActors(cast_group.id, value))
 
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
         self.location_plan_period = location_plan_period
@@ -282,15 +327,19 @@ class ButtonEvent(QPushButton):
 
 
     def set_tooltip(self):
+        event = self.get_curr_event()
+        num_employees = event.cast_group.nr_actors if event else self.location_plan_period.nr_actors
         self.setToolTip(
             self.tr('Right click:\n'
                    'Change time span for time of day "{time_of_day}" on {date}.\n'
-                   'Currently: {name} ({start}-{end})').format(
+                   'Currently: {name} ({start}-{end})\n'
+                    'Number of employees: {num_employees}').format(
                 time_of_day=self.time_of_day.time_of_day_enum.name,
                 date=date_to_string(self.date),
                 name=self.time_of_day.name,
                 start=time_to_string(self.time_of_day.start),
-                end=time_to_string(self.time_of_day.end)
+                end=time_to_string(self.time_of_day.end),
+                num_employees=num_employees
             )
         )
 

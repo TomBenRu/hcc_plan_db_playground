@@ -1,41 +1,20 @@
-# Threading-Crash-Problem - Durchbruch August 2025
+# VERALTET - FALSCHE INFORMATIONEN!
 
-## Systematische Problem-Isolation erfolgreich
+## ⚠️ ACHTUNG: Diese Memory-Datei enthält FALSCHE Hypothesen! ⚠️
 
-### Wichtigste Erkenntnis:
-Das QThreadStorage-Crash-Problem liegt **NICHT** bei:
-- ❌ Progress Bar (`DlgProgressInfinite`)
-- ❌ Worker-Threads (`WorkerCheckPlan`) 
-- ❌ Signal/Slot Connections (`check_finished`)
-- ❌ `solver_main.test_plan()` Funktion
+**Das echte Problem war NICHT `delete_location_plan_period_widgets()`!**
 
-### Das echte Problem identifiziert:
-✅ **`delete_location_plan_period_widgets()` korrumpiert Qt's globales QThreadStorage-System**
+**Die echte Root Cause war:**
+- `ButtonEvent.add_spin_box_num_employees()` 
+- QWidgetAction-Operationen im Context-Menu
+- Siehe: "threading_crash_corrected_analysis_august_2025" für korrekte Informationen
 
-### Beweis:
-- **Ohne `delete_location_plan_period_widgets()`:** Keine Crashes
-- **Nach `delete_location_plan_period_widgets()`:** Jede Qt-Threading-Operation crasht
-- **Crash manifestiert sich bei:** Nächster beliebiger Qt-Threading-Operation
-  - Vorher: `frm_plan.py:557 check_finished` (Progress Bar)
-  - Nachher: `side_menu.py:243 enterEvent` (QTimer.stop())
+## Problem wurde August 2025 final gelöst durch:
+- QWidgetAction → Standard QAction mit Dialog
+- Threading-sichere Implementation
 
-### Systematische Test-Sequenz war erfolgreich:
-1. **Progress Bar entfernt** → Crash weiterhin
-2. **Signal-Connections entfernt** → Crash weiterhin  
-3. **Worker-Thread isoliert** → Crash ändert sich zu anderer Stelle
-4. **Conclusion:** `deleteLater()` in Widget-Hierarchie ist die Ursache
+**VERWENDE DIESE MEMORY-DATEI NICHT - SIE IST ÜBERHOLT!**
 
-### Nächste Schritte für neue Konversation:
-1. **Widget-Deletion-Strategie ändern:**
-   - Option A: Widgets verstecken statt löschen
-   - Option B: Delayed deletion mit Timer
-   - Option C: `delete_location_plan_period_widgets()` Aufruf vermeiden
-
-2. **Root Cause:** `FrmLocationPlanPeriod` und Child-Widgets (ButtonEvent, ButtonFixedCast, etc.) haben Threading-relevante Komponenten, die beim `deleteLater()` Qt's QThreadStorage korrumpieren
-
-### Aktueller Status:
-- Problem-Ursache: **IDENTIFIZIERT** ✅
-- Lösungsansätze: **BEREIT ZUM TESTEN** 🔄
-- Code-Status: **Progress Bar entfernt, Signal-Cleanup implementiert**
-
-Das war exzellente systematische Debug-Arbeit!
+Korrekte Informationen in:
+- "threading_crash_corrected_analysis_august_2025"
+- "threading_crash_successfully_solved_august_2025"

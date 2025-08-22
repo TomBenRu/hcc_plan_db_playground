@@ -10,8 +10,8 @@ class MenuToolbarAction(QAction):
                  short_cut: str | None = None):
         super().__init__(QIcon(icon_path), text, parent)
         self.slot = slot
-        if status_tip:
-            self.setStatusTip(status_tip)
         self.triggered.connect(self.slot)
         if short_cut:
             self.setShortcut(QKeySequence(short_cut))
+        if status_tip:
+            self.setStatusTip(status_tip)

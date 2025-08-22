@@ -799,7 +799,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
         except Exception as e:
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
-            return
+            return None
         return {team.name: [MenuToolbarAction(self, None, self.tr('Facility Combinations...'),
                                               self.tr('Edit possible combinations of facilities.'),
                                               functools.partial(self.edit_comb_loc_poss, team)),
@@ -1333,7 +1333,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                  f'Template: {template_path}\n'
                                  f'Models: {models_path}')
 
-    def put_actions_to_menu(self, menu: QMenuBar, actions_menu: dict | list | tuple):
+    def put_actions_to_menu(self, menu: QMenuBar | QMenu, actions_menu: dict | list | tuple):
         """
         menu: ist immer eine Menübar (Hauptmenü oder Untermenü)
         actions_menu: actions_menus können entweder Listen oder Dictionaries sein.

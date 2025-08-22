@@ -1,39 +1,22 @@
-# Threading-Crash-Problem - Lösung August 2025
+# VERALTET - FALSCHE LÖSUNG!
 
-## Gelöstes Problem
-Der intermittierende Crash mit Exit Code `-1073740791 (0xC0000409)` beim Plan-Check nach Ansichtswechsel wurde behoben.
+## ⚠️ ACHTUNG: Diese Memory-Datei beschreibt eine FALSCHE Lösung! ⚠️
 
-## Root Cause
-Die bereits implementierten `cleanup()` Methoden in `FrmTabPlan` und `AppointmentField` wurden bei kritischen Tab-Wechseln nicht aufgerufen, was zu Race Conditions zwischen alten und neuen Worker-Threads führte.
+**Tab-Manager-Cleanup war NICHT die Lösung für das Threading-Crash-Problem!**
 
-## Implementierte Lösung
+**Das echte Problem war:**
+- `ButtonEvent.add_spin_box_num_employees()` QWidgetAction-Operationen
+- NICHT Tab-Manager-bezogene Widget-Cleanup-Operationen
 
-### 1. gui/tab_manager.py - _on_left_tabs_changed()
-- Cleanup wird jetzt sowohl beim Wechsel zu Masken ALS AUCH beim Zurückwechseln zu Plans aufgerufen
-- Dies verhindert Race Conditions nach Änderungen in den Planungsmasken
+## Echte Lösung (August 2025):
+- QWidgetAction → Standard QAction mit Dialog
+- Context-Menu zeigt "Mitarbeiter: X"
+- Threading-sicher implementiert
 
-### 2. gui/tab_manager.py - _close_all_visible_tabs()
-- Cleanup wird jetzt VOR dem Trennen der Widgets vom TabBar aufgerufen
-- Wichtig für Tab-Caching-Szenarien
+**VERWENDE DIESE MEMORY-DATEI NICHT - SIE IST ÜBERHOLT!**
 
-### 3. Bereits vorhandene cleanup() Methoden
-Die folgenden Methoden waren bereits implementiert und werden jetzt korrekt aufgerufen:
-- `FrmTabPlan.cleanup()`: Stoppt Worker, schließt Progress-Bar, wartet auf Thread-Pool
-- `AppointmentField.cleanup()`: Stoppt Worker, Timer und Progress-Bar
-- `FrmTabPlan._check_plan()`: Speichert Worker als Instanzvariable
-- `FrmTabPlan._check_finished()`: Cleared Worker-Referenz und Progress-Bar
+Korrekte Informationen in:
+- "threading_crash_corrected_analysis_august_2025" 
+- "threading_crash_successfully_solved_august_2025"
 
-## Test-Szenario
-1. Planansicht öffnen
-2. Zu Planungsmasken wechseln
-3. Neue LocationPlanPeriod auswählen
-4. Zurück zur Planansicht wechseln
-5. Plan überprüfen → Kein Crash mehr
-
-## Wichtige Erkenntnisse
-- Das Problem lag nicht im fehlenden Cleanup-Code, sondern darin, dass er nicht aufgerufen wurde
-- Tab-Wechsel sind kritische Punkte für Thread-Management
-- Qt's `deleteLater()` und Thread-Pool `waitForDone()` sind essentiell für sauberes Cleanup
-
-## Status: GELÖST
-Die Lösung ist minimal-invasiv und nutzt die vorhandene Infrastruktur optimal.
+Die Tab-Manager-Änderungen in dieser Memory-Datei sind möglicherweise unnötig und sollten überprüft werden.

@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayou
                                QDialogButtonBox, QPushButton, QCheckBox, QMessageBox, QHBoxLayout)
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QDate, QSize
-from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from configuration.event_planing_rules import current_event_planning_rules_handler, EventPlanningRules, PlanningRules

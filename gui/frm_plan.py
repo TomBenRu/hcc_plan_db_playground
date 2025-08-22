@@ -10,7 +10,6 @@ from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
                                QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame)
-from line_profiler_pycharm import profile
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand

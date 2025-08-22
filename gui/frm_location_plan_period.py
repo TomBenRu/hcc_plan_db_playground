@@ -26,7 +26,6 @@ from commands.database_commands import event_commands, cast_group_commands, even
     location_plan_period_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
-from line_profiler_pycharm import profile
 
 from tools.helper_functions import time_to_string, date_to_string
 

@@ -7,8 +7,6 @@ from uuid import UUID
 
 from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
 
-from line_profiler_pycharm import profile
-
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 

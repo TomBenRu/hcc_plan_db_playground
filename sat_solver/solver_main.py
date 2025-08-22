@@ -11,7 +11,6 @@ from datetime import date
 from typing import Generator, Tuple, List, Any, Dict
 from uuid import UUID
 
-from line_profiler_pycharm import profile
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar

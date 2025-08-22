@@ -12,7 +12,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
-from line_profiler_pycharm import profile
 from pydantic_core._pydantic_core import ValidationError
 
 from database import schemas, db_services, schemas_plan_api

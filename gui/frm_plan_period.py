@@ -5,7 +5,6 @@ from uuid import UUID
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton, QTextEdit
-from line_profiler_pycharm import profile
 
 from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas

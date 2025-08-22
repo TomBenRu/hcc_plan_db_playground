@@ -3,7 +3,6 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
-from line_profiler_pycharm import profile
 
 import gui.schemas
 from commands import command_base_classes

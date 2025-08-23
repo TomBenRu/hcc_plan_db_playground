@@ -266,7 +266,7 @@ class RequiredAvailDayGroups(db.Entity):
 
 class AvailDay(db.Entity):
     """Kann mehreren Appointments des gleichen Plans zugeteilt werden, falls Events kombinierbar sind.
-Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
+    Immer auch Appointments in unterschiedlichen Plänen zuteilbar."""
     id = PrimaryKey(UUID, auto=True)
     date = Required(datetime.date)
     created_at = Required(datetime.datetime, default=utcnow_naive)
@@ -462,7 +462,7 @@ class Event(db.Entity):
     time_of_day = Required(TimeOfDay, reverse='events')
     time_of_days = Set(TimeOfDay, reverse='events_defaults')
     skill_groups = Set('SkillGroup')
-    appointment = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
+    appointments = Set('Appointment')  # unterschiedliche Appointments in unterschiedlichen Plänen.
     flags = Set('Flag')  # auch um Event als Urlaub zu markieren.
     event_group = Required('EventGroup')
     cast_group = Required('CastGroup')

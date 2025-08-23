@@ -267,7 +267,8 @@ class TreeWidget(QTreeWidget):
 
         self.nr_main_groups = 0
 
-        self.curr_item: QTreeWidgetItem | None = None
+        # Variable für Drag-and-Drop Items
+        self.drag_items: list[QTreeWidgetItem] = []
 
         self.setup_tree()
         self.expand_all()
@@ -275,14 +276,13 @@ class TreeWidget(QTreeWidget):
         self.setItemDelegate(ChildZebraDelegate(parent=self))
 
     def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
-        self.curr_item = items[0]
+        # Speichere alle ausgewählten Items für Multi-Selection-Drag-and-Drop
+        self.drag_items = list(items)
         return super().mimeData(items)
 
-    def send_signal_to_date_object(self, parent_group_nr: int, item: QTreeWidgetItem = None):
-        # Verwende das übergebene Item oder fallback auf self.curr_item (für Drag & Drop)
-        target_item = item if item is not None else self.curr_item
-        
-        if target_item and (date_object := target_item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)):
+    def send_signal_to_date_object(self, parent_group_nr: int, item: QTreeWidgetItem):
+        """Sendet Signal für Gruppen-Änderung an das Date-Object eines Items"""
+        if item and (date_object := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)):
             signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
                 signal_handling.DataGroupMode(True,
                                               date_object.date,
@@ -292,21 +292,59 @@ class TreeWidget(QTreeWidget):
 
     def dropEvent(self, event: QDropEvent) -> None:
         item_to_move_to = self.itemAt(event.position().toPoint())
-        previous_parent = self.curr_item.parent()
+        
+        # Verwende gespeicherte drag_items oder fallback auf aktuell ausgewählte Items
+        items_to_move = self.drag_items if hasattr(self, 'drag_items') and self.drag_items else self.selectedItems()
+        
+        if not items_to_move:
+            event.ignore()
+            return
+        
+        # Validierung: Prüfen ob Ziel ein Event ist
         if item_to_move_to and item_to_move_to.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
             event.ignore()
-        else:
-            super().dropEvent(event)
-            new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
-                                   if item_to_move_to else 0)
-
-            self.send_signal_to_date_object(new_parent_group_nr)
-
-            self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole,
-                                   new_parent_group_nr)
-            self.expandAll()
-            for i in range(self.columnCount()): self.resizeColumnToContents(i)
-            self.slot_item_moved(self.curr_item, item_to_move_to, previous_parent)
+            return
+        
+        # Validierung: Items können nicht in sich selbst oder ihre eigenen Kinder verschoben werden
+        if item_to_move_to and item_to_move_to in items_to_move:
+            event.ignore()
+            return
+        
+        # Validierung: Items können nicht in ihre eigenen Kinder verschoben werden
+        if item_to_move_to:
+            for item in items_to_move:
+                if self._is_child_of(item_to_move_to, item):
+                    event.ignore()
+                    return
+        
+        # WICHTIG: Previous_parent Werte VOR super().dropEvent() sammeln
+        previous_parents = [(item, item.parent()) for item in items_to_move]
+        
+        # Drop-Event akzeptieren
+        super().dropEvent(event)
+        
+        # Neue Parent-Gruppennummer ermitteln
+        new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                               if item_to_move_to else 0)
+        
+        # Für jedes Item die Verschiebung durchführen
+        for item, previous_parent in previous_parents:
+            # Signal an Date-Object senden
+            self.send_signal_to_date_object(new_parent_group_nr, item)
+            
+            # Parent-Gruppennummer aktualisieren
+            item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
+            
+            # Item-moved Callback aufrufen
+            self.slot_item_moved(item, item_to_move_to, previous_parent)
+        
+        # Tree nach dem Drop aktualisieren
+        self.expandAll()
+        for i in range(self.columnCount()): 
+            self.resizeColumnToContents(i)
+        
+        # Drag-Items zurücksetzen
+        self.drag_items = []
 
     def setup_tree(self):
         def add_children(parent: QTreeWidgetItem, parent_group: schemas.CastGroupShow):
@@ -368,43 +406,43 @@ class TreeWidget(QTreeWidget):
         selected_items = self.selectedItems()
         if len(selected_items) < 1:
             return  # Kontextmenü nur bei ausgewählten Items
-        
+
         # Kontextmenü nur für Items anzeigen, die verschoben werden können
         # (nicht für die Hauptgruppe/Root)
-        valid_items = [item for item in selected_items if item.parent() is not None or 
+        valid_items = [item for item in selected_items if item.parent() is not None or
                       item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole) is not None]
-        
+
         if len(valid_items) < len(selected_items):
             # Wenn nicht alle Items verschiebbar sind, verwende nur die gültigen
             selected_items = valid_items
             if len(selected_items) < 1:
                 return
-        
+
         menu = QMenu(self)
-        
+
         # Action: In neue Gruppe verschieben
         action_new_group = menu.addAction(self.tr("In neue Gruppe verschieben"))
         action_new_group.triggered.connect(lambda: self.move_selected_items_to_new_group(selected_items))
-        
+
         # Submenu: In bestehende Gruppe verschieben
         submenu_existing = menu.addMenu(self.tr("In bestehende Gruppe verschieben"))
         self.populate_existing_groups_menu(submenu_existing, selected_items)
-        
+
         # Menü an der Klickposition anzeigen
         menu.exec(self.mapToGlobal(position))
-    
+
     def populate_existing_groups_menu(self, menu: QMenu, selected_items: list[QTreeWidgetItem]):
         """Füllt das Submenu mit verfügbaren Zielgruppen"""
         # Hauptgruppe (Root) als Option
         action_root = menu.addAction(self.tr("Hauptgruppe"))
         action_root.triggered.connect(lambda: self.move_selected_items_to_group(selected_items, None))
-        
+
         menu.addSeparator()
-        
+
         # Alle verfügbaren Gruppen durchgehen
         self._add_group_items_to_menu(menu, self.invisibleRootItem(), selected_items, "")
-    
-    def _add_group_items_to_menu(self, menu: QMenu, parent_item: QTreeWidgetItem, 
+
+    def _add_group_items_to_menu(self, menu: QMenu, parent_item: QTreeWidgetItem,
                                 selected_items: list[QTreeWidgetItem], prefix: str):
         """Rekursiv alle Gruppen zum Menü hinzufügen (aber nicht die ausgewählten Items selbst)"""
         for i in range(parent_item.childCount()):
@@ -417,42 +455,42 @@ class TreeWidget(QTreeWidget):
                     action_text = f"{prefix}Gruppe {group_nr:02d}"
                     action = menu.addAction(action_text)
                     action.triggered.connect(lambda checked, item=child: self.move_selected_items_to_group(selected_items, item))
-                    
+
                     # Rekursiv Untergruppen hinzufügen
                     self._add_group_items_to_menu(menu, child, selected_items, prefix + "  ")
-    
+
     def move_selected_items_to_new_group(self, selected_items: list[QTreeWidgetItem]):
         """Verschiebt alle ausgewählten Items in eine neue Gruppe"""
         # Neue Gruppe über Slot erstellen und direkt das Item erhalten
         new_group_item = self.slot_add_group()
-        
+
         if new_group_item:
             # Alle ausgewählten Items in die neue Gruppe verschieben
             self.move_selected_items_to_group(selected_items, new_group_item)
-    
+
     def move_selected_items_to_group(self, selected_items: list[QTreeWidgetItem], target_group: QTreeWidgetItem | None):
         """Verschiebt alle ausgewählten Items in die angegebene Gruppe"""
         # Validierung: Items können nicht in sich selbst oder ihre eigenen Kinder verschoben werden
         if target_group and target_group in selected_items:
             return
-        
+
         # Validierung: Items können nicht in ihre eigenen Kinder verschoben werden
         if target_group:
             for item in selected_items:
                 if self._is_child_of(target_group, item):
                     return
-        
+
         # Für jedes ausgewählte Item die bestehende item_moved Logik verwenden
         for item in selected_items:
             previous_parent = item.parent()
-            
+
             # Item aus dem Tree entfernen
             if previous_parent:
                 previous_parent.removeChild(item)
             else:
                 index = self.indexOfTopLevelItem(item)
                 self.takeTopLevelItem(index)
-            
+
             # Item zur Zielgruppe hinzufügen
             if target_group:
                 target_group.addChild(item)
@@ -460,22 +498,22 @@ class TreeWidget(QTreeWidget):
             else:
                 self.addTopLevelItem(item)
                 target_group_nr = 0
-            
+
             # Parent-Gruppe-Nummer im Item aktualisieren
             item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, target_group_nr)
-            
+
             # Signal senden (nur für events)
             if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
                 self.send_signal_to_date_object(target_group_nr, item)
-            
+
             # Bestehende item_moved Logik aufrufen
             self.slot_item_moved(item, target_group, previous_parent)
-        
+
         # Tree aktualisieren
         self.expandAll()
-        for i in range(self.columnCount()): 
+        for i in range(self.columnCount()):
             self.resizeColumnToContents(i)
-    
+
     def _is_child_of(self, potential_child: QTreeWidgetItem, potential_parent: QTreeWidgetItem) -> bool:
         """Prüft, ob potential_child ein Nachfahre von potential_parent ist"""
         current = potential_child.parent()
@@ -848,6 +886,7 @@ class DlgCastGroups(QDialog):
                                                                           Qt.ItemDataRole.UserRole)
             self.controller.execute(cast_group_commands.RemoveFromParent(object_to_move.id, previous_object.id))
 
+        # SetNewParent IMMER ausführen - auch für Root-Gruppe
         new_parent_id = obj_to_move_to.id if obj_to_move_to else None
         if new_parent_id:
             self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id, new_parent_id))

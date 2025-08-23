@@ -302,7 +302,8 @@ class TreeWidget(QTreeWidget):
 
         self.nr_main_groups = 0
 
-        self.curr_item: QTreeWidgetItem | None = None
+        # Variable für Drag-and-Drop Items
+        self.drag_items: list[QTreeWidgetItem] = []
 
         self.setup_tree()
         self.expand_all()
@@ -310,14 +311,13 @@ class TreeWidget(QTreeWidget):
         self.setItemDelegate(ChildZebraDelegate(parent=self))
 
     def mimeData(self, items: Sequence[QTreeWidgetItem]) -> QtCore.QMimeData:
-        self.curr_item = items[0]
+        # Speichere alle ausgewählten Items für Multi-Selection-Drag-and-Drop
+        self.drag_items = list(items)
         return super().mimeData(items)
 
-    def send_signal_to_date_object(self, parent_group_nr: int, item: QTreeWidgetItem = None):
-        # Verwende das übergebene Item oder fallback auf self.curr_item (für Drag & Drop)
-        target_item = item if item is not None else self.curr_item
-        
-        if target_item and (date_object := target_item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole)):
+    def send_signal_to_date_object(self, parent_group_nr: int, item: QTreeWidgetItem):
+        """Sendet Signal für Gruppen-Änderung an das Date-Object eines Items"""
+        if item and (date_object := item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole)):
             self.builder.signal_handler_change__object_with_groups__group_mode(
                 signal_handling.DataGroupMode(True,
                                               date_object.date,
@@ -331,20 +331,59 @@ class TreeWidget(QTreeWidget):
 
     def dropEvent(self, event: QDropEvent) -> None:
         item_to_move_to = self.itemAt(event.position().toPoint())
-        previous_parent = self.curr_item.parent()
+        
+        # Verwende gespeicherte drag_items oder fallback auf aktuell ausgewählte Items
+        items_to_move = self.drag_items if hasattr(self, 'drag_items') and self.drag_items else self.selectedItems()
+        
+        if not items_to_move:
+            event.ignore()
+            return
+        
+        # Validierung: Prüfen ob Ziel ein Date-Object ist
         if item_to_move_to and item_to_move_to.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole):
             event.ignore()
-        else:
-            super().dropEvent(event)
-            new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
-                                   if item_to_move_to else 0)
-
-            self.send_signal_to_date_object(new_parent_group_nr)
-
-            self.curr_item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
-            self.expandAll()
-            for i in range(self.columnCount()): self.resizeColumnToContents(i)
-            self.slot_item_moved(self.curr_item, item_to_move_to, previous_parent)
+            return
+        
+        # Validierung: Items können nicht in sich selbst oder ihre eigenen Kinder verschoben werden
+        if item_to_move_to and item_to_move_to in items_to_move:
+            event.ignore()
+            return
+        
+        # Validierung: Items können nicht in ihre eigenen Kinder verschoben werden
+        if item_to_move_to:
+            for item in items_to_move:
+                if self._is_child_of(item_to_move_to, item):
+                    event.ignore()
+                    return
+        
+        # WICHTIG: Previous_parent Werte VOR super().dropEvent() sammeln
+        previous_parents = [(item, item.parent()) for item in items_to_move]
+        
+        # Drop-Event akzeptieren
+        super().dropEvent(event)
+        
+        # Neue Parent-Gruppennummer ermitteln
+        new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                               if item_to_move_to else 0)
+        
+        # Für jedes Item die Verschiebung durchführen
+        for item, previous_parent in previous_parents:
+            # Signal an Date-Object senden
+            self.send_signal_to_date_object(new_parent_group_nr, item)
+            
+            # Parent-Gruppennummer aktualisieren
+            item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
+            
+            # Item-moved Callback aufrufen
+            self.slot_item_moved(item, item_to_move_to, previous_parent)
+        
+        # Tree nach dem Drop aktualisieren
+        self.expandAll()
+        for i in range(self.columnCount()): 
+            self.resizeColumnToContents(i)
+        
+        # Drag-Items zurücksetzen
+        self.drag_items = []
 
     def setup_tree(self):
         def add_children(parent: QTreeWidgetItem, parent_group: group_type):
@@ -791,7 +830,6 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
         if not self.required_avail_day_widgets_are_available:
             return
         max_required = self.builder.get_max_value_num_required_avail_day_groups(self.group)
-        print(f'{max_required=}')
         if max_required < 2:
             self.chk_num_required_avail_day_groups.setChecked(False)
             self.chk_num_required_avail_day_groups.setDisabled(True)

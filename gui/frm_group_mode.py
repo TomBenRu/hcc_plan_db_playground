@@ -19,7 +19,7 @@ from gui import widget_styles
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.observer import signal_handling
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 from tools.screen import Screen
 
 
@@ -638,6 +638,17 @@ class DlgGroupProperties(QDialog):
         self.sliders_variation_weights = {}
 
         self.setup_sliders()
+        
+        # Help-System Integration (nur wenn nicht überschrieben)
+        self._setup_help_system()
+
+    def _setup_help_system(self):
+        """Setup Help-System (kann von Child-Klassen überschrieben werden)"""
+        setup_form_help(self, "group_properties")
+
+    def _setup_help_system(self):
+        """Setup Help-System (kann von Child-Klassen überschrieben werden)"""
+        setup_form_help(self, "group_properties")
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -731,6 +742,10 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
             self._setup_required_avail_day_groups_widgets()
             self.setup_required_avail_day_groups_widget_values()
             self.required_avail_day_widgets_are_available = True
+
+    def _setup_help_system(self):
+        """Setup Help-System für erweiterte Verfügbarkeits-Features"""
+        setup_form_help(self, "group_properties_avail_day")
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         super().chk_none_toggled(checked, clicked)
@@ -927,6 +942,9 @@ class DlgGroupMode(QDialog):
 
         self.setWindowTitle(self.tr('Group Mode'))
         self.resize(400, 400)
+
+        # Help-System Integration
+        setup_form_help(self, "group_mode")
 
         self.builder = builder
         self.controller = command_base_classes.ContrExecUndoRedo()

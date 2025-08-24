@@ -1,0 +1,215 @@
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Gruppeneigenschaften - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="gruppeneigenschaften, gruppen, prioritäten, anzahl, variation weight">
+    <meta name="description" content="Hilfe für die Gruppeneigenschaften zur Konfiguration von Gruppenanzahl und Prioritäten">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Gruppeneigenschaften</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Gruppeneigenschaften</div>
+    </div>
+    
+    <div class="help-content">
+
+        <section id="overview">
+            <h2>🎯 Übersicht</h2>
+            <p>Der Dialog <strong>Gruppeneigenschaften</strong> ermöglicht die Konfiguration wichtiger Parameter für die Gruppen- und Terminplanung. Hier legen Sie fest, wie viele untergeordnete Gruppen oder Termine aus einer übergeordneten Gruppe verwendet werden sollen und wie diese priorisiert werden.</p>
+            
+            <div class="tip-box">
+                <strong>💡 Kernfunktion:</strong> Kontrolliert die Anzahl und Gewichtung von Untergruppen/Terminen bei der automatischen Planung.
+            </div>
+        </section>
+
+        <section id="main-functions">
+            <h2>🔧 Hauptfunktionen</h2>
+            <ul class="feature-list">
+                <li><strong>Anzahl-Steuerung:</strong> Bestimmung wie viele untergeordnete Elemente verwendet werden</li>
+                <li><strong>Automatik-Option:</strong> "Alle untergeordneten Elemente" für dynamische Auswahl</li>
+                <li><strong>Prioritäts-Gewichtung:</strong> Variation Weight für jedes untergeordnete Element</li>
+                <li><strong>Flexible Anpassung:</strong> Slider-basierte Einstellung für präzise Kontrolle</li>
+                <li><strong>Undo/Redo:</strong> Vollständige Rückgängigmachen-Funktionalität</li>
+            </ul>
+        </section>
+
+        <section id="basic-usage">
+            <h2>📋 Grundlegende Bedienung</h2>
+            
+            <h3>Anzahl der untergeordneten Elemente festlegen:</h3>
+            <ol>
+                <li><strong>Slider verwenden:</strong> Ziehen Sie den Anzahl-Slider auf die gewünschte Anzahl</li>
+                <li><strong>Automatik aktivieren:</strong> Markieren Sie "Alle untergeordneten Elemente" für dynamische Auswahl</li>
+                <li><strong>Wert überprüfen:</strong> Der aktuelle Wert wird rechts neben dem Slider angezeigt</li>
+            </ol>
+
+            <h3>Prioritäten einstellen:</h3>
+            <ol>
+                <li><strong>Element auswählen:</strong> Jedes untergeordnete Element hat einen eigenen Prioritäts-Slider</li>
+                <li><strong>Gewichtung anpassen:</strong> Bewegen Sie den Slider zwischen den Gewichtungs-Stufen</li>
+                <li><strong>Feedback beachten:</strong> Die Beschriftung zeigt die aktuelle Priorität an</li>
+            </ol>
+        </section>
+
+        <section id="controls">
+            <h2>🖱️ Bedienelemente im Detail</h2>
+
+            <h3>Anzahl der untergeordneten Gruppen/Termine:</h3>
+            <div class="control-group">
+                <h4>Count-Slider</h4>
+                <p><strong>Funktion:</strong> Bestimmt die exakte Anzahl der zu verwendenden untergeordneten Elemente</p>
+                <p><strong>Bereich:</strong> 1 bis Anzahl der verfügbaren untergeordneten Elemente</p>
+                <p><strong>Interaktion:</strong> Klicken oder Ziehen für Wertänderung</p>
+            </div>
+
+            <div class="control-group">
+                <h4>"Alle untergeordneten Elemente" Checkbox</h4>
+                <p><strong>Funktion:</strong> Aktiviert automatische Verwendung aller verfügbaren Elemente</p>
+                <p><strong>Effekt:</strong> Deaktiviert den Count-Slider und setzt Anzahl dynamisch</p>
+                <p><strong>Anwendung:</strong> Ideal für flexible Planungsszenarien</p>
+            </div>
+
+            <h3>Prioritäten der untergeordneten Gruppen/Termine:</h3>
+            <div class="control-group">
+                <h4>Variation Weight Slider</h4>
+                <p><strong>Gewichtungs-Stufen:</strong></p>
+                <ul>
+                    <li><strong>0:</strong> Niedrige Priorität - wird seltener verwendet</li>
+                    <li><strong>1:</strong> Normale Priorität - Standard-Gewichtung</li>
+                    <li><strong>2:</strong> Hohe Priorität - wird bevorzugt verwendet</li>
+                </ul>
+                <p><strong>Scroll-Area:</strong> Bei vielen untergeordneten Elementen verfügbar</p>
+            </div>
+
+            <h3>Dialog-Steuerung:</h3>
+            <div class="control-group">
+                <h4>Speichern/Abbrechen</h4>
+                <p><strong>Speichern:</strong> Übernimmt alle Änderungen in die Planung</p>
+                <p><strong>Abbrechen:</strong> Verwirft alle Änderungen und stellt ursprüngliche Werte wieder her</p>
+                <p><strong>Undo-System:</strong> Automatische Rückgängigmachung bei Abbruch</p>
+            </div>
+        </section>
+
+        <section id="workflows">
+            <h2>🔄 Typische Workflows</h2>
+
+            <h3>Workflow 1: Begrenzte Gruppenauswahl konfigurieren</h3>
+            <ol>
+                <li>Öffnen Sie die Gruppeneigenschaften für eine übergeordnete Gruppe</li>
+                <li>Stellen Sie den Count-Slider auf die gewünschte maximale Anzahl</li>
+                <li>Passen Sie die Variation Weights der untergeordneten Elemente an</li>
+                <li>Setzen Sie bevorzugte Elemente auf hohe Priorität (2)</li>
+                <li>Speichern Sie die Einstellungen</li>
+            </ol>
+
+            <h3>Workflow 2: Dynamische Vollauswahl</h3>
+            <ol>
+                <li>Aktivieren Sie "Alle untergeordneten Elemente"</li>
+                <li>Konfigurieren Sie die Prioritäten für optimale Verteilung</li>
+                <li>Wichtige Elemente: Hohe Priorität (2)</li>
+                <li>Standard-Elemente: Normale Priorität (1)</li>
+                <li>Backup-Elemente: Niedrige Priorität (0)</li>
+                <li>Speichern Sie die Konfiguration</li>
+            </ol>
+
+            <h3>Workflow 3: Prioritäten-Balancing</h3>
+            <ol>
+                <li>Analysieren Sie die aktuelle Verteilung der untergeordneten Elemente</li>
+                <li>Identifizieren Sie über- oder unterrepräsentierte Gruppen/Termine</li>
+                <li>Passen Sie die Variation Weights entsprechend an</li>
+                <li>Überprüfen Sie die Auswirkungen durch Testplanung</li>
+                <li>Verfeinern Sie bei Bedarf die Gewichtungen</li>
+            </ol>
+        </section>
+
+        <section id="keyboard">
+            <h2>⌨️ Tastaturkürzel</h2>
+            <div class="keyboard-shortcuts">
+                <p><kbd>F1</kbd> - Diese Hilfe anzeigen</p>
+                <p><kbd>Enter</kbd> - Änderungen speichern und Dialog schließen</p>
+                <p><kbd>Esc</kbd> - Dialog abbrechen (alle Änderungen verwerfen)</p>
+                <p><kbd>Tab</kbd> - Zwischen Bedienelementen wechseln</p>
+                <p><kbd>Leertaste</kbd> - Checkbox umschalten</p>
+                <p><kbd>Pfeiltasten</kbd> - Slider-Werte anpassen</p>
+            </div>
+        </section>
+
+        <section id="troubleshooting">
+            <h2>🔧 Häufige Probleme & Lösungen</h2>
+
+            <h3>Problem: Slider reagiert nicht</h3>
+            <p><strong>Ursache:</strong> "Alle untergeordneten Elemente" ist aktiviert</p>
+            <p><strong>Lösung:</strong> Deaktivieren Sie die Checkbox für manuelle Anzahl-Kontrolle</p>
+
+            <h3>Problem: Keine untergeordneten Elemente sichtbar</h3>
+            <p><strong>Ursache:</strong> Gruppe hat keine untergeordneten Gruppen oder Termine</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die Gruppenstruktur im Hauptfenster</p>
+
+            <h3>Problem: Änderungen werden nicht übernommen</h3>
+            <p><strong>Ursache:</strong> Dialog wurde abgebrochen statt gespeichert</p>
+            <p><strong>Lösung:</strong> Verwenden Sie "Speichern" statt "Abbrechen" oder Esc</p>
+
+            <h3>Problem: Prioritäten scheinen keine Wirkung zu haben</h3>
+            <p><strong>Ursache:</strong> Alle Elemente haben dieselbe Gewichtung</p>
+            <p><strong>Lösung:</strong> Differenzieren Sie die Variation Weights deutlicher</p>
+        </section>
+
+        <section id="tips">
+            <h2>💡 Tipps & Best Practices</h2>
+
+            <div class="tip-box">
+                <h4>🎯 Effiziente Prioritäts-Verteilung</h4>
+                <ul>
+                    <li><strong>Hohe Priorität (2):</strong> Maximal 20-30% der Elemente</li>
+                    <li><strong>Normale Priorität (1):</strong> 50-60% der Elemente</li>
+                    <li><strong>Niedrige Priorität (0):</strong> 20-30% für Flexibilität</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>🔄 Planungs-Optimierung</h4>
+                <ul>
+                    <li>Testen Sie verschiedene Anzahl-Einstellungen für optimale Abdeckung</li>
+                    <li>Berücksichtigen Sie saisonale Schwankungen bei der Gewichtung</li>
+                    <li>Verwenden Sie "Alle Elemente" für maximale Flexibilität</li>
+                    <li>Dokumentieren Sie bewährte Einstellungen für wiederkehrende Planungen</li>
+                </ul>
+            </div>
+
+            <div class="tip-box">
+                <h4>⚡ Effizienz-Tipps</h4>
+                <ul>
+                    <li>Ändern Sie mehrere Prioritäten vor dem Speichern (Batch-Update)</li>
+                    <li>Nutzen Sie die Scroll-Area bei vielen untergeordneten Elementen</li>
+                    <li>Testen Sie Einstellungen mit kleinen Gruppen vor Vollproduktion</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="related">
+            <h2>🔗 Verwandte Funktionen</h2>
+            <ul>
+                <li><strong><a href="group_mode.html">Gruppenmodus</a>:</strong> Hauptfenster für Gruppenverwaltung</li>
+                <li><strong><a href="actor_plan_period.html">Mitarbeiterplanung</a>:</strong> Verfügbarkeitsplanung für Personen</li>
+                <li><strong><a href="location_plan_period.html">Standortplanung</a>:</strong> Event-Planung mit Cast-Management</li>
+                <li><strong><a href="team.html">Team-Verwaltung</a>:</strong> Grundlegende Team-Konfiguration</li>
+            </ul>
+        </section>
+
+        <section id="technical">
+            <h2>🔧 Technische Details</h2>
+            <p><strong>Dialog-Klasse:</strong> <code>DlgGroupProperties</code></p>
+            <p><strong>Hilfe-Aufruf:</strong> F1-Taste im Dialog</p>
+            <p><strong>Parent-Fenster:</strong> Gruppenmodus-Hauptfenster</p>
+            <p><strong>Datenmodell:</strong> Tree-basierte Gruppenhierarchie</p>
+            
+            <div class="tip-box">
+                <h4>🔧 Support</h4>
+                <p>Bei technischen Problemen wenden Sie sich an das Development-Team. 
+                   Halten Sie Informationen über die betroffene Gruppe und die gewünschte Konfiguration bereit.</p>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

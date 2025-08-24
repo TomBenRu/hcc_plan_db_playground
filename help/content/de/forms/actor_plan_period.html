@@ -1,0 +1,254 @@
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Verfügbarkeitsplanung - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="verfügbarkeit, planungsperiode, mitarbeiter, zeiten, standorte">
+    <meta name="description" content="Hilfe für die Verfügbarkeitsplanung von Mitarbeitern in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Verfügbarkeitsplanung</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Verfügbarkeitsplanung</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die Verfügbarkeitsplanung ist das Herzstück der Mitarbeiterplanung. Hier legen Sie fest, wann welche Mitarbeiter verfügbar sind, und konfigurieren deren Arbeitszeiten, Standortpräferenzen und Fähigkeiten für jeden Tag der Planungsperiode.</p>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Mitarbeiter-Auswahl</strong> - Wählen Sie den zu planenden Mitarbeiter aus der Liste</li>
+            <li><strong>Verfügbarkeitsplanung</strong> - Markieren Sie verfügbare Tage und Zeiten</li>
+            <li><strong>Standort-Konfiguration</strong> - Setzen Sie Präferenzen für Arbeitsstandorte</li>
+            <li><strong>Skill-Management</strong> - Verwalten Sie Fähigkeiten für spezifische Tage</li>
+            <li><strong>API-Integration</strong> - Importieren Sie Verfügbarkeiten aus externen Systemen</li>
+        </ul>
+        
+        <h2>Verfügbarkeiten festlegen</h2>
+        
+        <h3>Grundlegende Bedienung</h3>
+        <ol>
+            <li>Wählen Sie einen <strong>Mitarbeiter</strong> aus der linken Tabelle</li>
+            <li>Klicken Sie die gewünschten <strong>Tageszeiten</strong> an (z.B. Morgen, Nachmittag)</li>
+            <li>Aktivierte Zeiten werden farblich hervorgehoben</li>
+            <li>Konfigurieren Sie bei Bedarf spezielle Einstellungen über die Buttons unter dem Kalender</li>
+        </ol>
+
+        <h3>Tageszeit-Buttons</h3>
+        <p>Die Tageszeit-Buttons repräsentieren die Standard-Arbeitszeiten:</p>
+        <ul class="feature-list">
+            <li><strong>Klicken</strong> - Verfügbarkeit für diese Tageszeit aktivieren/deaktivieren</li>
+            <li><strong>Rechtsklick</strong> - Zeitraum für diese Tageszeit anpassen</li>
+            <li><strong>Farbkodierung</strong> - Verschiedene Farben zeigen den Status an</li>
+        </ul>
+
+        <div class="tip-box">
+            <h4>💡 Tipp: Gruppenmodus</h4>
+            <p>Verwenden Sie den <strong>Gruppenmodus</strong> um mehrere Tage gleichzeitig zu bearbeiten. Dies ist besonders praktisch für wiederkehrende Verfügbarkeitsmuster.</p>
+        </div>
+        
+        <h2>Erweiterte Konfiguration</h2>
+        
+        <h3>Standort-Kombinationen</h3>
+        <p>Legen Sie fest, an welchen Standort-Kombinationen der Mitarbeiter arbeiten kann:</p>
+        <ul class="feature-list">
+            <li><strong>Pro Tag</strong> - Klicken Sie auf den entsprechenden Button unter dem Kalender</li>
+            <li><strong>Für alle Tage</strong> - Nutzen Sie "Location Combinations" im Seitenmenü</li>
+            <li><strong>Reset</strong> - "Location Combinations → Reset" setzt auf Standardwerte zurück</li>
+        </ul>
+
+        <h3>Standort-Präferenzen</h3>
+        <p>Bewerten Sie die Präferenz des Mitarbeiters für verschiedene Arbeitsstandorte:</p>
+        <ul class="feature-list">
+            <li><strong>Bewertungsskala</strong> - 1 (niedrig) bis 10 (hoch)</li>
+            <li><strong>Standard</strong> - Wert 1 bedeutet neutrale/Standard-Präferenz</li>
+            <li><strong>Pro Tag anpassen</strong> - Klicken Sie auf den entsprechenden Button</li>
+            <li><strong>Reset</strong> - "Location Prefs → Reset" für Standardwerte</li>
+        </ul>
+
+        <h3>Partner/Standort-Präferenzen</h3>
+        <p>Konfigurieren Sie Präferenzen für die Zusammenarbeit mit anderen Mitarbeitern an bestimmten Standorten:</p>
+        <ul class="feature-list">
+            <li><strong>Partner-Auswahl</strong> - Wählen Sie bevorzugte Arbeitspartner</li>
+            <li><strong>Standort-spezifisch</strong> - Verschiedene Präferenzen je Standort</li>
+            <li><strong>Bewertungssystem</strong> - Ähnlich wie Standort-Präferenzen</li>
+        </ul>
+
+        <h3>Skill-Management</h3>
+        <p>Verwalten Sie die Fähigkeiten des Mitarbeiters für spezifische Tage:</p>
+        <ul class="feature-list">
+            <li><strong>Pro Tag</strong> - Klicken Sie auf den Skill-Button des entsprechenden Tages</li>
+            <li><strong>Standard</strong> - Mitarbeiter startet mit seinen Standard-Fähigkeiten</li>
+            <li><strong>Anpassen</strong> - Fügen Sie tagesspezifische Skills hinzu oder entfernen Sie welche</li>
+            <li><strong>Reset alle</strong> - "Skills" Menü für globale Änderungen</li>
+        </ul>
+        
+        <h2>Seitenmenü-Funktionen</h2>
+        
+        <h3>Requested Assignments</h3>
+        <p>Legen Sie fest, wie viele Einsätze der Mitarbeiter in dieser Periode haben soll:</p>
+        <ul class="feature-list">
+            <li><strong>Anzahl</strong> - Gewünschte Anzahl von Einsätzen</li>
+            <li><strong>Required</strong> - Sind diese Einsätze verpflichtend?</li>
+            <li><strong>Planungsrelevanz</strong> - Beeinflusst die automatische Planung</li>
+        </ul>
+
+        <h3>Times of Day</h3>
+        <p>Verwalten Sie die Standard-Arbeitszeiten für diesen Mitarbeiter:</p>
+        <ul class="feature-list">
+            <li><strong>Neue Zeiten</strong> - Hinzufügen spezifischer Arbeitszeiten</li>
+            <li><strong>Zeiten bearbeiten</strong> - Start- und Endzeiten anpassen</li>
+            <li><strong>Entfernen</strong> - Nicht benötigte Zeiten löschen</li>
+        </ul>
+
+        <h3>API-Integration</h3>
+        <p>Importieren Sie Verfügbarkeiten aus externen Systemen:</p>
+        <ul class="feature-list">
+            <li><strong>Einzelner Mitarbeiter</strong> - "Fetch for this employee"</li>
+            <li><strong>Alle Mitarbeiter</strong> - "Fetch for all employees"</li>
+            <li><strong>Überschreibung</strong> - Bestehende Daten werden ersetzt</li>
+        </ul>
+        
+        <h2>Workflow-Beispiele</h2>
+        
+        <h3>Neuen Mitarbeiter komplett einrichten</h3>
+        <ol>
+            <li>Mitarbeiter aus der linken Liste auswählen</li>
+            <li><strong>Times of Day</strong> - Arbeitszeiten festlegen</li>
+            <li><strong>Requested Assignments</strong> - Gewünschte Einsätze definieren</li>
+            <li><strong>Verfügbarkeiten markieren</strong> - Tage anklicken</li>
+            <li><strong>Standort-Präferenzen setzen</strong> - Location Preferences konfigurieren</li>
+            <li><strong>Skills zuweisen</strong> - Fähigkeiten für spezielle Tage anpassen</li>
+        </ol>
+
+        <h3>Schnelle Verfügbarkeits-Planung</h3>
+        <ol>
+            <li>Mitarbeiter auswählen</li>
+            <li><strong>API-Import nutzen</strong> - Falls externe Daten verfügbar</li>
+            <li><strong>Manuell nachbearbeiten</strong> - Spezielle Tage anpassen</li>
+            <li><strong>Gruppenmodus verwenden</strong> - Für wiederkehrende Muster</li>
+        </ol>
+
+        <h3>Bulk-Operationen</h3>
+        <ol>
+            <li><strong>Reset Time Input Field</strong> - Alle Zeiten auf Standard zurücksetzen</li>
+            <li><strong>Location Combinations → Reset</strong> - Alle Standort-Kombinationen zurücksetzen</li>
+            <li><strong>Skills → Reset Skills</strong> - Alle Skills auf Mitarbeiter-Standard</li>
+            <li><strong>Skills → Remove Skill</strong> - Alle Skills entfernen</li>
+        </ol>
+        
+        <h2>Bedienelemente im Detail</h2>
+        
+        <h3>Kalender-Ansicht</h3>
+        <ul class="feature-list">
+            <li><strong>Monats-Header</strong> - Zeigt Monate der Planungsperiode</li>
+            <li><strong>Tagesnummern</strong> - Datum des jeweiligen Tages</li>
+            <li><strong>Wochentage</strong> - Wochenenden sind farblich hervorgehoben</li>
+            <li><strong>Zeit-Buttons</strong> - Klickbar für Verfügbarkeits-Aktivierung</li>
+            <li><strong>Konfigurations-Buttons</strong> - Unter jedem Tag für erweiterte Einstellungen</li>
+        </ul>
+
+        <h3>Konfigurations-Buttons (unter Kalender)</h3>
+        <ul class="feature-list">
+            <li><strong>Location Combinations</strong> - Quadratischer Button für Standort-Kombinationen</li>
+            <li><strong>Location Preferences</strong> - Button für Standort-Präferenzen</li>
+            <li><strong>Partner/Location Prefs</strong> - Button für Partner-Standort-Präferenzen</li>
+            <li><strong>Skills</strong> - Button für tagesspezifische Fähigkeiten</li>
+        </ul>
+
+        <div class="tip-box">
+            <h4>💡 Farbkodierung der Konfigurations-Buttons</h4>
+            <ul>
+                <li><strong>Standard-Farbe</strong> - Keine Verfügbarkeit an diesem Tag</li>
+                <li><strong>Grün</strong> - Einstellungen entsprechen den Standard-Werten</li>
+                <li><strong>Gelb/Orange</strong> - Einstellungen weichen von Standard-Werten ab</li>
+            </ul>
+        </div>
+        
+        <h2>Notizen und Informationen</h2>
+        
+        <h3>Planungszeitraum-Notizen</h3>
+        <p>Im unteren Bereich finden Sie zwei Textfelder:</p>
+        <ul class="feature-list">
+            <li><strong>Infos zum Planungszeitraum der Person</strong> - Spezifische Notizen für diese Planungsperiode</li>
+            <li><strong>Infos zur Person</strong> - Allgemeine Notizen zum Mitarbeiter</li>
+        </ul>
+
+        <h3>Automatische Speicherung</h3>
+        <p>Alle Änderungen in den Notiz-Feldern werden automatisch gespeichert, sobald Sie das Feld verlassen oder zu einem anderen Mitarbeiter wechseln.</p>
+        
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</li>
+                <li><strong>Enter</strong> - Verfügbarkeits-Button aktivieren (wenn fokussiert)</li>
+                <li><strong>Rechtsklick</strong> - Kontextmenü für Zeit-Anpassungen</li>
+            </ul>
+        </div>
+        
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <h3>Buttons sind deaktiviert</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Zeit-Buttons oder Konfigurations-Buttons sind ausgegraut.</p>
+            <p><strong>Ursache:</strong> Der Mitarbeiter ist an diesem Tag nicht dem entsprechenden Team zugeordnet.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie die Team-Zuordnung in den <a href="team.html">Team-Einstellungen</a>.</p>
+        </div>
+
+        <h3>Zeit-Standards fehlen</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Fehlermeldung "No default time-of-day values are defined".</p>
+            <p><strong>Lösung:</strong> Definieren Sie Standard-Arbeitszeiten über "Times of Day..." im Seitenmenü.</p>
+        </div>
+
+        <h3>Gruppenmodus-Konflikte</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Fehlermeldung beim Löschen von Verfügbarkeiten in Gruppen.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie den Gruppenmodus-Dialog zur Bereinigung der Gruppenstruktur.</p>
+        </div>
+
+        <h3>API-Import schlägt fehl</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Fehler beim Import von Verfügbarkeiten über die API.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie die Netzwerkverbindung und API-Konfiguration. Versuchen Sie einen manuellen Import.</p>
+        </div>
+        
+        <h2>Tipps für effiziente Planung</h2>
+        
+        <div class="tip-box">
+            <h4>🚀 Best Practices</h4>
+            <ul>
+                <li><strong>API zuerst</strong> - Nutzen Sie den API-Import für Basis-Verfügbarkeiten</li>
+                <li><strong>Templates verwenden</strong> - Kopieren Sie Konfigurationen zwischen ähnlichen Mitarbeitern</li>
+                <li><strong>Gruppenmodus nutzen</strong> - Für wiederkehrende Muster und Bulk-Operationen</li>
+                <li><strong>Reset-Funktionen</strong> - Bei Fehlern auf Standardwerte zurücksetzen</li>
+                <li><strong>Notizen pflegen</strong> - Dokumentieren Sie besondere Umstände in den Notiz-Feldern</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Zeitersparende Tricks</h4>
+            <ul>
+                <li><strong>Seitenmenü</strong> - Alle wichtigen Funktionen direkt zugänglich</li>
+                <li><strong>Bulk-Reset</strong> - Nutzen Sie die Reset-Buttons für schnelle Korrekturen</li>
+                <li><strong>Rechtsklick-Menüs</strong> - Schnelle Zeit-Anpassungen direkt am Button</li>
+                <li><strong>Wochenend-Erkennung</strong> - Automatische Hervorhebung von Samstag/Sonntag</li>
+            </ul>
+        </div>
+        
+        <h2>Verwandte Funktionen</h2>
+        <p>Diese Funktionen arbeiten eng mit der Verfügbarkeitsplanung zusammen:</p>
+        <ul class="feature-list">
+            <li><a href="team.html">Team-Verwaltung</a> - Team-Zuordnungen und Mitglieder</li>
+            <li><a href="masterdata.html">Stammdaten</a> - Mitarbeiter-Grunddaten und Standorte</li>
+            <li><a href="plan.html">Plan-Ansicht</a> - Ergebnis der Verfügbarkeitsplanung</li>
+            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Automatische Planung basierend auf Verfügbarkeiten</li>
+        </ul>
+        
+        <h2>Support</h2>
+        <p>Bei weiteren Fragen zur Verfügbarkeitsplanung wenden Sie sich an den technischen Support oder konsultieren Sie die Projektdokumentation.</p>
+    </div>
+</body>
+</html>

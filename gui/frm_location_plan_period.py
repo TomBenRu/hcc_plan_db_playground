@@ -27,7 +27,7 @@ from commands.database_commands import event_commands, cast_group_commands, even
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
-from tools.helper_functions import time_to_string, date_to_string
+from tools.helper_functions import time_to_string, date_to_string, setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -721,6 +721,9 @@ class FrmTabLocationPlanPeriods(QWidget):
         super().__init__(parent=parent)
 
         self.setObjectName('tab_location_plan_periods')
+
+        # Help-System Integration
+        setup_form_help(self, "location_plan_period")
 
         signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 

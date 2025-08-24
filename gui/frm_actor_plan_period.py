@@ -27,7 +27,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
-from tools.helper_functions import date_to_string, time_to_string
+from tools.helper_functions import date_to_string, time_to_string, setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -819,6 +819,9 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout_notes_actor.addWidget(self.te_notes_actor)
 
         self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
+
+        # Help-System Integration
+        setup_form_help(self, "actor_plan_period")
 
         # Die Planungsmaske der alphabetisch 1. Person wird als erstes angezeigt
         self.data_setup(None, None,

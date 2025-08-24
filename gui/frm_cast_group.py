@@ -22,7 +22,7 @@ from gui.frm_fixed_cast import DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 from tools import custom_validators
 from gui.widget_styles.tree_widgets import ChildZebraDelegate
-from tools.helper_functions import generate_fixed_cast_clear_text, date_to_string
+from tools.helper_functions import generate_fixed_cast_clear_text, date_to_string, setup_form_help
 from tools.screen import Screen
 
 TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR = 0
@@ -621,6 +621,9 @@ class DlgGroupProperties(QDialog):
 
         self.setup_widgets()
 
+        # F1 Help Integration
+        setup_form_help(self, "cast_group_properties")
+
     def reject(self) -> None:
         self.controller.undo_all()
         super().reject()
@@ -841,6 +844,9 @@ class DlgCastGroups(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
+
+        # F1 Help Integration
+        setup_form_help(self, "cast_groups")
 
     def add_group(self):
         create_command = cast_group_commands.Create(self.plan_period.id)

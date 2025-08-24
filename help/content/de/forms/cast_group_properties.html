@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Cast-Gruppen-Eigenschaften - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="Cast-Gruppen-Eigenschaften, Fixed Cast, Cast-Regeln, Anzahl Akteure, Besetzungsregeln">
+    <meta name="description" content="Hilfe zur detaillierten Konfiguration von Cast-Gruppen-Eigenschaften in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Cast-Gruppen-Eigenschaften</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Cast-Gruppen-Eigenschaften</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Cast-Gruppen-Eigenschaften-Dialog ermöglicht die detaillierte Konfiguration einzelner Cast-Gruppen. Sie können Fixed Cast definieren, Cast-Regeln festlegen, die Anzahl der Akteure bestimmen und die Striktheit der Regelbefolgung einstellen.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul>
+            <li><strong>Fixed Cast Management:</strong> Definition fester Besetzungen für Gruppen</li>
+            <li><strong>Cast-Regeln:</strong> Anwendung vorhandener oder benutzerdefinierter Casting-Regeln</li>
+            <li><strong>Akteur-Anzahl:</strong> Festlegung der benötigten Anzahl von Darstellern</li>
+            <li><strong>Regel-Striktheit:</strong> Kontrolle über die Flexibilität der Regelbefolgung</li>
+            <li><strong>Child-Synchronisation:</strong> Übertragung von Eigenschaften auf Unter-Gruppen</li>
+            <li><strong>Konsistenz-Warnungen:</strong> Automatische Erkennung von Konflikten</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <h3>Fixed Cast bearbeiten</h3>
+        <ol>
+            <li>Klicken Sie auf <strong>"Bearbeiten..."</strong> neben "Fixed Cast"</li>
+            <li>Wählen Sie die gewünschten Akteure im Cast-Builder</li>
+            <li>Bestätigen Sie die Auswahl</li>
+            <li>Das System zeigt die Besetzung als Klartext an</li>
+        </ol>
+
+        <h3>Cast-Regeln konfigurieren</h3>
+        <ol>
+            <li><strong>Vorhandene Regel:</strong> Wählen Sie aus der Dropdown-Liste</li>
+            <li><strong>Benutzerdefiniert:</strong> Geben Sie eine eigene Regel ein</li>
+            <li><strong>Neue Regel:</strong> Erstellen Sie eine neue wiederverwendbare Regel</li>
+            <li>Das System prüft automatisch auf Konflikte</li>
+        </ol>
+
+        <h2>Bedienelemente im Detail</h2>
+
+        <h3>Fixed Cast Bereich</h3>
+        <ul>
+            <li><strong>Bearbeiten-Button:</strong> Öffnet den Cast-Builder für die Auswahl</li>
+            <li><strong>Anzeige-Feld:</strong> Zeigt die aktuelle Besetzung in lesbarer Form</li>
+            <li><strong>Warnung:</strong> Informiert über Konflikte mit Unter-Gruppen</li>
+            <li><strong>Child-Korrektur:</strong> Dropdown-Menü für Synchronisation mit Unter-Gruppen</li>
+        </ul>
+
+        <h3>Cast-Regeln Bereich</h3>
+        <ul>
+            <li><strong>Regel-Dropdown:</strong> Auswahl aus vorhandenen Cast-Regeln</li>
+            <li><strong>Custom-Regel-Feld:</strong> Eingabe eigener Regeln (Großbuchstaben, Symbole: *, ~, -)</li>
+            <li><strong>Neue Regel:</strong> Button zum Erstellen wiederverwendbarer Regeln</li>
+            <li><strong>Regel-Warnung:</strong> Anzeige von Konflikten und Inkonsistenzen</li>
+        </ul>
+
+        <h3>Akteur-Anzahl Bereich</h3>
+        <ul>
+            <li><strong>Spin-Box:</strong> Numerische Eingabe der benötigten Akteur-Anzahl</li>
+            <li><strong>Warnung:</strong> Information über abweichende Child-Werte</li>
+            <li><strong>Child-Korrektur:</strong> Button zur Angleichung aller Unter-Gruppen</li>
+        </ul>
+
+        <h3>Regel-Striktheit</h3>
+        <ul>
+            <li><strong>Slider:</strong> 3 Stufen der Regel-Befolgung (0-2)</li>
+            <li><strong>Text-Anzeige:</strong> Klare Beschreibung der aktuellen Einstellung</li>
+            <li><strong>Auswirkung:</strong> Beeinflusst die Flexibilität beim Casting</li>
+        </ul>
+
+        <h2>Workflows</h2>
+
+        <h3>Cast-Gruppe vollständig konfigurieren</h3>
+        <ol>
+            <li>Öffnen Sie die Eigenschaften der gewünschten Gruppe</li>
+            <li><strong>Fixed Cast:</strong> Definieren Sie feste Besetzungen falls gewünscht</li>
+            <li><strong>Cast-Regel:</strong> Wählen Sie eine passende Regel oder erstellen Sie eine neue</li>
+            <li><strong>Akteur-Anzahl:</strong> Stellen Sie die benötigte Anzahl ein</li>
+            <li><strong>Striktheit:</strong> Bestimmen Sie die Flexibilität der Regeln</li>
+            <li>Prüfen Sie die Warnungen auf mögliche Konflikte</li>
+            <li>Speichern Sie die Konfiguration</li>
+        </ol>
+
+        <h3>Hierarchie-Eigenschaften synchronisieren</h3>
+        <ol>
+            <li>Konfigurieren Sie die Parent-Gruppe optimal</li>
+            <li>Nutzen Sie die <strong>"Child-Korrektur"</strong> Buttons für:</li>
+            <ul>
+                <li>Fixed Cast: "Untergeordnete Besetzungen löschen" oder "angleichen"</li>
+                <li>Akteur-Anzahl: "Anzahl der Child-Elemente korrigieren"</li>
+            </ul>
+            <li>Das System übernimmt die Werte für alle Unter-Gruppen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <ul>
+            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+            <li><strong>Tab:</strong> Navigation zwischen Eingabefeldern</li>
+            <li><strong>Ctrl+S:</strong> Speichern</li>
+            <li><strong>Esc:</strong> Dialog abbrechen</li>
+            <li><strong>F2:</strong> Cast-Builder öffnen (wenn Fixed Cast fokussiert)</li>
+        </ul>
+
+        <h2>Fehlerbehebung</h2>
+
+        <h3>Cast-Regel-Konflikte</h3>
+        <ul>
+            <li><strong>Fixed Cast Konflikt:</strong> Cast-Regel verhindert Fixed Cast - wählen Sie eines</li>
+            <li><strong>Child-Konflikt:</strong> Unter-Gruppen haben abweichende Regeln</li>
+            <li><strong>Lösung:</strong> Vereinheitlichen Sie die Regeln oder entfernen Sie Konflikte</li>
+        </ul>
+
+        <h3>Akteur-Anzahl-Warnungen</h3>
+        <ul>
+            <li><strong>Orange Warnung:</strong> Unter-Gruppen haben unterschiedliche Anzahlen</li>
+            <li><strong>Grün:</strong> Alle Werte sind konsistent</li>
+            <li><strong>Korrektur:</strong> Nutzen Sie den "Child-Korrektur" Button</li>
+        </ul>
+
+        <h3>Fixed Cast Probleme</h3>
+        <ul>
+            <li><strong>Zu wenige Akteure:</strong> Fixed Cast übersteigt verfügbare Anzahl</li>
+            <li><strong>Regel-Konflikt:</strong> Cast-Regel verhindert Fixed Cast</li>
+            <li><strong>Child-Abweichung:</strong> Unter-Gruppen haben andere Fixed Casts</li>
+        </ul>
+
+        <h2>Tipps & Best Practices</h2>
+
+        <h3>Cast-Regeln optimal nutzen</h3>
+        <ul>
+            <li><strong>Wiederverwendung:</strong> Erstellen Sie Regeln für häufige Patterns</li>
+            <li><strong>Hierarchie:</strong> Parent-Regeln sollten flexibler sein als Child-Regeln</li>
+            <li><strong>Dokumentation:</strong> Verwenden Sie aussagekräftige Regel-Namen</li>
+        </ul>
+
+        <h3>Performance-Optimierung</h3>
+        <ul>
+            <li><strong>Fixed Cast sparsam:</strong> Nur wo wirklich nötig definieren</li>
+            <li><strong>Regel-Komplexität:</strong> Einfache Regeln sind performanter</li>
+            <li><strong>Child-Synchronisation:</strong> Nutzen Sie Korrektur-Buttons für Batch-Updates</li>
+        </ul>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="cast_groups.html">Cast-Gruppen</a> - Haupt-Management für Cast-Gruppen</li>
+            <li><a href="group_mode.html">Gruppen-Modus</a> - Grundeinstellungen für Gruppierungen</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <ul>
+            <li><strong>Vererbung:</strong> Child-Properties überschreiben Parent-Properties</li>
+            <li><strong>Validierung:</strong> Echtzeit-Prüfung aller Eingaben</li>
+            <li><strong>Command-Pattern:</strong> Alle Änderungen über Undo-fähige Commands</li>
+            <li><strong>Konsistenz-Engine:</strong> Automatische Konflikt-Erkennung</li>
+        </ul>
+
+        <p><strong>Support:</strong> Bei Problemen mit Cast-Gruppen-Eigenschaften überprüfen Sie zunächst die Konsistenz-Warnungen. Komplexe Regel-Konflikte können durch Vereinfachung der Hierarchie gelöst werden.</p>
+    </div>
+</body>
+</html>

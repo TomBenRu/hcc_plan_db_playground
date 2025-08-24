@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Cast-Gruppen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="Cast-Gruppen, Gruppen-Management, Besetzung, Cast, Gruppierung, Hierarchie">
+    <meta name="description" content="Hilfe zur Verwaltung von Cast-Gruppen und deren hierarchischer Struktur in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Cast-Gruppen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Cast-Gruppen</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Cast-Gruppen-Dialog ermöglicht die hierarchische Verwaltung von Besetzungsgruppen. Sie können Gruppen erstellen, organisieren und deren Struktur per Drag & Drop anpassen. Das System unterstützt mehrere Ebenen von Unter-Gruppen für komplexe Cast-Strukturen.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul>
+            <li><strong>Gruppen-Hierarchie:</strong> Tree-Ansicht aller Cast-Gruppen mit Parent-Child-Beziehungen</li>
+            <li><strong>Drag & Drop:</strong> Intuitive Neuorganisation durch Ziehen von Gruppen</li>
+            <li><strong>Gruppen-Erstellung:</strong> Schnelles Hinzufügen neuer Cast-Gruppen</li>
+            <li><strong>Gruppen-Löschung:</strong> Entfernen nicht benötigter Gruppen</li>
+            <li><strong>Eigenschaften-Bearbeitung:</strong> Direkter Zugriff auf Gruppen-Properties</li>
+            <li><strong>Konsistenz-Prüfung:</strong> Automatische Validierung der Gruppen-Struktur</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <h3>Neue Gruppe erstellen</h3>
+        <ol>
+            <li>Klicken Sie auf <strong>"Neue Gruppe"</strong></li>
+            <li>Die neue Gruppe wird automatisch im Tree erstellt</li>
+            <li>Die Gruppe kann sofort per Drag & Drop verschoben werden</li>
+            <li>Doppelklick öffnet die Eigenschaften-Bearbeitung</li>
+        </ol>
+
+        <h3>Gruppen organisieren</h3>
+        <ol>
+            <li><strong>Drag & Drop:</strong> Ziehen Sie Gruppen an neue Positionen</li>
+            <li><strong>Hierarchie:</strong> Ziehen Sie Gruppen auf andere Gruppen für Parent-Child-Beziehungen</li>
+            <li><strong>Reihung:</strong> Ändern Sie die Reihenfolge durch horizontales Verschieben</li>
+        </ol>
+
+        <h2>Bedienelemente im Detail</h2>
+
+        <h3>Tree-Widget (Haupt-Ansicht)</h3>
+        <ul>
+            <li><strong>Spalten:</strong> Titel, Location, Datum, Tageszeit, Anzahl Akteure, Fixed Cast, Regel, Strikt</li>
+            <li><strong>Doppelklick:</strong> Öffnet Eigenschaften-Dialog</li>
+            <li><strong>Auswahl:</strong> Einzelauswahl für Löschung und Bearbeitung</li>
+            <li><strong>Expansion:</strong> Hierarchie-Ebenen ein-/ausklappen</li>
+        </ul>
+
+        <h3>Aktions-Buttons</h3>
+        <ul>
+            <li><strong>Neue Gruppe:</strong> Erstellt eine neue Cast-Gruppe auf oberster Ebene</li>
+            <li><strong>Gruppe entfernen:</strong> Löscht die ausgewählte Gruppe (nur wenn leer)</li>
+            <li><strong>Speichern:</strong> Übernimmt alle Änderungen dauerhaft</li>
+            <li><strong>Abbrechen:</strong> Verwirft alle Änderungen (Undo-System)</li>
+        </ul>
+
+        <h2>Workflows</h2>
+
+        <h3>Neue Cast-Struktur aufbauen</h3>
+        <ol>
+            <li>Erstellen Sie Haupt-Gruppen mit <strong>"Neue Gruppe"</strong></li>
+            <li>Doppelklick auf Gruppe → Eigenschaften definieren</li>
+            <li>Erstellen Sie Unter-Gruppen und ziehen Sie diese auf Parent-Gruppen</li>
+            <li>Definieren Sie spezifische Fixed-Casts und Regeln je Ebene</li>
+            <li>Testen Sie die Struktur mit Konsistenz-Prüfung</li>
+        </ol>
+
+        <h3>Bestehende Struktur anpassen</h3>
+        <ol>
+            <li>Öffnen Sie die Cast-Gruppen-Ansicht</li>
+            <li>Verwenden Sie Drag & Drop für strukturelle Änderungen</li>
+            <li>Bearbeiten Sie Eigenschaften per Doppelklick</li>
+            <li>Entfernen Sie überflüssige Gruppen</li>
+            <li>System prüft automatisch auf Konsistenz</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <ul>
+            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+            <li><strong>Enter:</strong> Eigenschaften-Dialog öffnen (wenn Gruppe ausgewählt)</li>
+            <li><strong>Delete:</strong> Ausgewählte Gruppe entfernen</li>
+            <li><strong>Ctrl+S:</strong> Speichern</li>
+            <li><strong>Esc:</strong> Dialog abbrechen</li>
+        </ul>
+
+        <h2>Fehlerbehebung</h2>
+
+        <h3>Gruppe kann nicht gelöscht werden</h3>
+        <ul>
+            <li><strong>Ursache:</strong> Gruppe enthält noch Unter-Gruppen oder Events</li>
+            <li><strong>Lösung:</strong> Entfernen Sie zuerst alle Child-Elemente</li>
+            <li><strong>Alternativ:</strong> Verschieben Sie Child-Elemente zu anderen Groups</li>
+        </ul>
+
+        <h3>Struktur-Inkonsistenzen</h3>
+        <ul>
+            <li><strong>Solo-Children:</strong> Gruppen mit nur einem Child werden automatisch vereinfacht</li>
+            <li><strong>Unused Groups:</strong> Leere Gruppen werden beim Speichern entfernt</li>
+            <li><strong>Sichtbarkeits-Filter:</strong> System erweitert Ansicht bei Bedarf automatisch</li>
+        </ul>
+
+        <h3>Drag & Drop funktioniert nicht</h3>
+        <ul>
+            <li><strong>Prüfung:</strong> Ist die Ziel-Position gültig?</li>
+            <li><strong>Hierarchie:</strong> Events können nicht zu Groups mit anderen Events</li>
+            <li><strong>Refresh:</strong> Bei Problemen speichern und Dialog neu öffnen</li>
+        </ul>
+
+        <h2>Tipps & Best Practices</h2>
+
+        <h3>Effizienz-Tipps</h3>
+        <ul>
+            <li><strong>Batch-Bearbeitung:</strong> Definieren Sie Parent-Properties vor Child-Properties</li>
+            <li><strong>Templates:</strong> Nutzen Sie bewährte Gruppen-Strukturen als Vorlage</li>
+            <li><strong>Konsistenz:</strong> Prüfen Sie regelmäßig die Hierarchie-Logik</li>
+        </ul>
+
+        <h3>Strukturierungs-Empfehlungen</h3>
+        <ul>
+            <li><strong>Logische Gruppierung:</strong> Orientieren Sie sich an dramaturgischen Einheiten</li>
+            <li><strong>Flexibilität:</strong> Vermeiden Sie zu tiefe Hierarchien (max. 3-4 Ebenen)</li>
+            <li><strong>Benennung:</strong> Verwenden Sie aussagekräftige Gruppen-Namen</li>
+        </ul>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="group_properties.html">Gruppen-Eigenschaften</a> - Detaillierte Einstellungen für Cast-Gruppen</li>
+            <li><a href="group_mode.html">Gruppen-Modus</a> - Grundeinstellungen für Gruppierungen</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <ul>
+            <li><strong>Undo-System:</strong> Alle Aktionen sind rückgängig machbar</li>
+            <li><strong>Auto-Speichern:</strong> Änderungen werden beim "Speichern" permanent</li>
+            <li><strong>Konsistenz-Engine:</strong> Automatische Validierung der Gruppen-Logik</li>
+            <li><strong>Event-Integration:</strong> Seamlose Verbindung mit Event-Management</li>
+        </ul>
+
+        <p><strong>Support:</strong> Für technische Probleme mit Cast-Gruppen wenden Sie sich an den Support oder überprüfen Sie die Gruppen-Konsistenz im Eigenschaften-Dialog.</p>
+    </div>
+</body>
+</html>

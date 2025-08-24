@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Plan-Formular - HCC Plan Hilfe</title>
     <link rel="stylesheet" href="../styles/help.css">
-    <meta name="keywords" content="plan, planung, erstellen, formular, termine">
-    <meta name="description" content="Hilfe für das Plan-Formular in HCC Plan">
+    <meta name="keywords" content="plan, planung, planungsperiode, termine, veranstaltungen, personal, zuordnung, export, import">
+    <meta name="description" content="Hilfe für das Plan-Formular - das zentrale Tool zur Erstellung und Verwaltung von Planungsperioden in HCC Plan">
 </head>
 <body>
     <div class="help-header">
@@ -15,118 +15,235 @@
     
     <div class="help-content">
         <h2>Übersicht</h2>
-        <p>Das Plan-Formular ist das Herzstück der HCC Plan Anwendung. Hier erstellen, verwalten und bearbeiten Sie Ihre Planungsperioden und weisen Termine zu.</p>
-        
+        <p>Das Plan-Formular ist das zentrale Herzstück der HCC Plan Anwendung. Es ermöglicht die Erstellung, Verwaltung und Bearbeitung von Planungsperioden sowie die systematische Zuweisung von Terminen und Personal für optimale Ressourcenplanung.</p>
+
         <h2>Hauptfunktionen</h2>
         <ul class="feature-list">
-            <li><strong>Plan erstellen</strong> - Neue Planungsperioden anlegen</li>
-            <li><strong>Termine verwalten</strong> - Veranstaltungen planen und organisieren</li>
-            <li><strong>Personal zuordnen</strong> - Mitarbeiter zu Terminen zuweisen</li>
-            <li><strong>Verfügbarkeiten prüfen</strong> - Konflikte erkennen und lösen</li>
-            <li><strong>Export/Import</strong> - Daten mit externen Systemen austauschen</li>
+            <li><strong>Planungsperioden erstellen</strong> - Neue Plan-Zeiträume mit definierten Start- und Enddaten anlegen</li>
+            <li><strong>Termin-Management</strong> - Veranstaltungen, Events und Termine strukturiert planen und organisieren</li>
+            <li><strong>Personal-Zuordnung</strong> - Mitarbeiter optimal zu Terminen zuweisen unter Berücksichtigung von Verfügbarkeiten</li>
+            <li><strong>Konflikt-Erkennung</strong> - Automatische Identifikation von Verfügbarkeits- und Terminüberschneidungen</li>
+            <li><strong>Daten-Exchange</strong> - Export und Import von Planungsdaten in verschiedene Formate</li>
+            <li><strong>Echtzeit-Übersicht</strong> - Sofortige Visualisierung von Planungsstand und Auslastung</li>
         </ul>
-        
-        <h2>Neuen Plan erstellen</h2>
+
+        <h2>Grundbedienung</h2>
+
+        <h3>Neuen Plan erstellen</h3>
         <ol>
-            <li>Klicken Sie auf <em class="ui-element">Neuer Plan</em> in der Toolbar</li>
-            <li>Geben Sie einen aussagekräftigen Namen für den Plan ein</li>
-            <li>Wählen Sie die Planungsperiode (Start- und Enddatum)</li>
-            <li>Bestätigen Sie mit <kbd>Enter</kbd> oder <em class="ui-element">OK</em></li>
+            <li>Klicken Sie auf <strong>"Neuer Plan"</strong> in der Toolbar</li>
+            <li>Geben Sie einen aussagekräftigen Namen für die Planungsperiode ein</li>
+            <li>Wählen Sie die Planungsperiode mit Start- und Enddatum</li>
+            <li>Bestätigen Sie mit <strong>"OK"</strong> oder Enter-Taste</li>
         </ol>
-        
-        <div class="tip-box">
-            <h4>💡 Tipp</h4>
-            <p>Verwenden Sie aussagekräftige Namen wie "Sommersaison 2025" oder "Winterprogramm Q1" für bessere Übersicht.</p>
-        </div>
-        
-        <h2>Plan bearbeiten</h2>
-        <h3>Termine hinzufügen</h3>
+
+        <h3>Termine hinzufügen und verwalten</h3>
         <ol>
-            <li>Wählen Sie den gewünschten Plan aus</li>
-            <li>Klicken Sie auf <em class="ui-element">Termin hinzufügen</em></li>
-            <li>Füllen Sie die Termindetails aus:
-                <ul>
-                    <li><strong>Titel</strong> - Bezeichnung der Veranstaltung</li>
-                    <li><strong>Datum/Zeit</strong> - Wann findet der Termin statt</li>
-                    <li><strong>Ort</strong> - Wo findet der Termin statt</li>
-                    <li><strong>Beschreibung</strong> - Zusätzliche Informationen</li>
+            <li>Wählen Sie den gewünschten Plan aus der Liste</li>
+            <li>Klicken Sie auf <strong>"Termin hinzufügen"</strong></li>
+            <li>Füllen Sie die erforderlichen Termindetails aus:
+                <ul class="feature-list">
+                    <li><strong>Titel</strong> - Aussagekräftige Bezeichnung der Veranstaltung</li>
+                    <li><strong>Datum/Zeit</strong> - Präzise Termin-Zeitangaben</li>
+                    <li><strong>Ort</strong> - Veranstaltungsort oder Standort</li>
+                    <li><strong>Beschreibung</strong> - Zusätzliche wichtige Informationen</li>
                 </ul>
             </li>
-            <li>Speichern Sie mit <kbd>Ctrl+S</kbd> oder <em class="ui-element">Speichern</em></li>
+            <li>Speichern Sie mit <strong>"Speichern"</strong> oder Strg+S</li>
         </ol>
-        
+
         <h3>Personal zuweisen</h3>
         <ol>
-            <li>Wählen Sie einen Termin aus der Liste</li>
-            <li>Klicken Sie auf <em class="ui-element">Personal zuweisen</em></li>
-            <li>Wählen Sie verfügbare Mitarbeiter aus der Liste</li>
-            <li>Prüfen Sie Verfügbarkeitskonflikte (rot markiert)</li>
-            <li>Bestätigen Sie die Zuweisung</li>
+            <li>Wählen Sie einen Termin aus der Terminliste</li>
+            <li>Klicken Sie auf <strong>"Personal zuweisen"</strong></li>
+            <li>Wählen Sie verfügbare Mitarbeiter aus der Personalliste</li>
+            <li>Prüfen Sie Verfügbarkeitskonflikte (rot markierte Bereiche)</li>
+            <li>Bestätigen Sie die Zuweisung mit <strong>"Zuweisen"</strong></li>
         </ol>
-        
-        <h2>Wichtige Bedienelemente</h2>
-        
-        <h3>Toolbar-Funktionen</h3>
-        <ul>
-            <li><strong>Neuer Plan</strong> - Erstellt eine neue Planungsperiode</li>
-            <li><strong>Öffnen</strong> - Lädt einen bestehenden Plan</li>
-            <li><strong>Speichern</strong> - Speichert Änderungen (<kbd>Ctrl+S</kbd>)</li>
-            <li><strong>Drucken</strong> - Erstellt einen Ausdruck des Plans</li>
-            <li><strong>Export</strong> - Exportiert Daten in verschiedene Formate</li>
-        </ul>
-        
-        <h3>Kontextmenü</h3>
-        <p>Rechtsklick auf Termine oder Personen öffnet ein Kontextmenü mit zusätzlichen Optionen:</p>
-        <ul>
-            <li><strong>Bearbeiten</strong> - Termindetails ändern</li>
-            <li><strong>Duplizieren</strong> - Termin kopieren</li>
-            <li><strong>Löschen</strong> - Termin entfernen</li>
-            <li><strong>Verfügbarkeit prüfen</strong> - Konflikte anzeigen</li>
-        </ul>
-        
-        <h2>Tastenkombinationen</h2>
+
+        <h2>Tastaturkürzel</h2>
         <div class="keyboard-shortcuts">
-            <table>
-                <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
-                <tr><td><kbd>Ctrl+N</kbd></td><td>Neuen Plan erstellen</td></tr>
-                <tr><td><kbd>Ctrl+O</kbd></td><td>Plan öffnen</td></tr>
-                <tr><td><kbd>Ctrl+S</kbd></td><td>Plan speichern</td></tr>
-                <tr><td><kbd>Ctrl+P</kbd></td><td>Plan drucken</td></tr>
-                <tr><td><kbd>Delete</kbd></td><td>Ausgewählten Eintrag löschen</td></tr>
-                <tr><td><kbd>F5</kbd></td><td>Ansicht aktualisieren</td></tr>
-            </table>
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Strg+N</strong> - Neuen Plan erstellen</li>
+                <li><strong>Strg+O</strong> - Bestehenden Plan öffnen</li>
+                <li><strong>Strg+S</strong> - Aktuellen Plan speichern</li>
+                <li><strong>Strg+P</strong> - Plan drucken</li>
+                <li><strong>Entf</strong> - Ausgewählten Eintrag löschen</li>
+                <li><strong>F5</strong> - Planansicht aktualisieren</li>
+                <li><strong>Strg+Z</strong> - Letzte Aktion rückgängig machen</li>
+            </ul>
         </div>
-        
-        <h2>Häufige Probleme und Lösungen</h2>
-        
-        <h3>❓ Plan lässt sich nicht speichern</h3>
-        <p><strong>Lösung:</strong> Prüfen Sie, ob alle Pflichtfelder ausgefüllt sind und keine Datumskonflikte vorliegen.</p>
-        
-        <h3>❓ Mitarbeiter wird als "nicht verfügbar" angezeigt</h3>
-        <p><strong>Lösung:</strong> Überprüfen Sie die Verfügbarkeitszeiten des Mitarbeiters in den Stammdaten.</p>
-        
-        <h3>❓ Termine überschneiden sich</h3>
-        <p><strong>Lösung:</strong> Nutzen Sie die Konflikt-Anzeige (rote Markierungen) um Überschneidungen zu identifizieren und aufzulösen.</p>
-        
-        <div class="warning-box">
-            <h4>⚠️ Wichtiger Hinweis</h4>
-            <p>Speichern Sie Ihre Arbeit regelmäßig mit <kbd>Ctrl+S</kbd>. Ungespeicherte Änderungen gehen beim Schließen der Anwendung verloren.</p>
-        </div>
-        
-        <h2>Weiterführende Hilfe</h2>
-        <ul class="related-links">
-            <li><a href="masterdata.html">Stammdaten verwalten</a> - Personen und Orte konfigurieren</li>
-            <li><a href="team.html">Team-Verwaltung</a> - Teams organisieren</li>
-            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Automatische Optimierung</li>
-            <li><a href="calendar.html">Kalender-Integration</a> - Google Calendar synchronisieren</li>
+
+        <h2>Verwandte Funktionen</h2>
+        <p>Das Plan-Formular arbeitet eng mit anderen Planungskomponenten zusammen:</p>
+        <ul class="feature-list">
+            <li><a href="masterdata.html">Stammdaten-Verwaltung</a> - Verwaltung von Personen, Standorten und Grunddaten für die Planung</li>
+            <li><a href="team.html">Team-Management</a> - Organisation und Strukturierung von Arbeitsgruppen und Teams</li>
+            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Automatische Optimierung und Berechnung von Planungslösungen</li>
+            <li><a href="actor_plan_period.html">Verfügbarkeits-Planung</a> - Detaillierte Verwaltung von Mitarbeiter-Verfügbarkeiten</li>
+            <li><a href="location_plan_period.html">Standort-Planung</a> - Verwaltung standort-spezifischer Events und Termine</li>
         </ul>
-    </div>
-    
-    <div class="help-footer">
-        <div class="related-links">
-            <a href="../index.html">← Zurück zur Haupthilfe</a>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Das Plan-Formular wird in verschiedenen Planungsszenarien verwendet:</p>
+        <ul class="feature-list">
+            <li><strong>Event-Planung</strong> - Organisation von Veranstaltungen, Konzerten, Aufführungen</li>
+            <li><strong>Schichtplanung</strong> - Zuweisung von Personal zu verschiedenen Arbeitsschichten</li>
+            <li><strong>Projektmanagement</strong> - Planung und Koordination von zeitbasierten Projekten</li>
+            <li><strong>Ressourcen-Optimierung</strong> - Effiziente Auslastung von Personal und Einrichtungen</li>
+            <li><strong>Saisonale Planung</strong> - Langfristige Planung für Saisons oder wiederkehrende Zyklen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+
+        <h3>Toolbar-Funktionen</h3>
+        <ul class="feature-list">
+            <li><strong>"Neuer Plan"</strong> - Startet den Wizard zur Erstellung einer neuen Planungsperiode</li>
+            <li><strong>"Öffnen"</strong> - Lädt einen bestehenden Plan aus der Datenbank</li>
+            <li><strong>"Speichern"</strong> - Speichert alle aktuellen Änderungen permanent</li>
+            <li><strong>"Drucken"</strong> - Erstellt einen formatierten Ausdruck des aktuellen Plans</li>
+            <li><strong>"Export"</strong> - Exportiert Planungsdaten in Excel, PDF oder CSV-Format</li>
+            <li><strong>"Import"</strong> - Importiert externe Planungsdaten und Termine</li>
+        </ul>
+
+        <h3>Hauptansicht</h3>
+        <ul class="feature-list">
+            <li><strong>Plan-Liste</strong> - Übersicht aller verfügbaren Planungsperioden</li>
+            <li><strong>Termin-Grid</strong> - Detailansicht aller Termine mit Zeitraster</li>
+            <li><strong>Personal-Panel</strong> - Sidebar mit verfügbarem Personal und Zuweisungen</li>
+            <li><strong>Status-Bar</strong> - Aktuelle Planungsstatistiken und Konflikt-Hinweise</li>
+        </ul>
+
+        <h3>Kontextmenü</h3>
+        <p>Rechtsklick auf Termine oder Personal öffnet erweiterte Optionen:</p>
+        <ul class="feature-list">
+            <li><strong>"Bearbeiten"</strong> - Öffnet Detailansicht für Terminmodifikationen</li>
+            <li><strong>"Duplizieren"</strong> - Erstellt eine Kopie des ausgewählten Termins</li>
+            <li><strong>"Löschen"</strong> - Entfernt Termin nach Bestätigungsabfrage</li>
+            <li><strong>"Verfügbarkeit prüfen"</strong> - Zeigt Konflikte und Überschneidungen</li>
+            <li><strong>"In andere Gruppe verschieben"</strong> - Transfer zu anderer Planungseinheit</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>Veranstaltungsplanung erstellen</h3>
+        <ol>
+            <li><strong>Planungsperiode definieren</strong> - Erstellen Sie einen Plan für die gewünschte Veranstaltungszeit</li>
+            <li><strong>Kern-Events eingeben</strong> - Fügen Sie die wichtigsten Termine und Veranstaltungen hinzu</li>
+            <li><strong>Personal zuordnen</strong> - Weisen Sie qualifizierte Mitarbeiter zu den Events zu</li>
+            <li><strong>Konflikte lösen</strong> - Nutzen Sie die Konflikt-Anzeige zur Optimierung</li>
+            <li><strong>Plan finalisieren</strong> - Überprüfung und finale Freigabe der Planung</li>
+        </ol>
+
+        <h3>Wöchentliche Schichtplanung</h3>
+        <ol>
+            <li><strong>Wochenplan öffnen</strong> - Laden Sie die relevante Kalender-Woche</li>
+            <li><strong>Schicht-Templates nutzen</strong> - Verwenden Sie vordefinierte Schichtmuster</li>
+            <li><strong>Verfügbarkeiten abgleichen</strong> - Prüfen Sie Mitarbeiter-Verfügbarkeiten automatisch</li>
+            <li><strong>Auslastung optimieren</strong> - Balancieren Sie die Arbeitsverteilung gleichmäßig</li>
+            <li><strong>Änderungen kommunizieren</strong> - Export für Team-Benachrichtigungen</li>
+        </ol>
+
+        <h3>Langzeit-Projektplanung</h3>
+        <ol>
+            <li><strong>Projekt-Zeitrahmen festlegen</strong> - Definieren Sie Start- und Zieltermine</li>
+            <li><strong>Meilensteine planen</strong> - Setzen Sie wichtige Zwischen- und Endtermine</li>
+            <li><strong>Ressourcen reservieren</strong> - Blocken Sie notwendiges Personal frühzeitig</li>
+            <li><strong>Abhängigkeiten berücksichtigen</strong> - Planen Sie Termine in logischer Reihenfolge</li>
+            <li><strong>Monitoring einrichten</strong> - Regelmäßige Überprüfung des Planfortschritts</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <h3>Plan kann nicht gespeichert werden</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Speichern-Funktion ist deaktiviert oder wirft Fehlermeldung.</p>
+            <p><strong>Ursache:</strong> Unvollständige Pflichtfelder oder Datumskonflikte in der Planungsperiode.</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie alle Termindetails auf Vollständigkeit und korrigieren Sie überlappende Zeiträume. Achten Sie besonders auf Start-/Endzeiten.</p>
         </div>
-        <div class="help-info">Version 1.0 | Deutsch</div>
+
+        <h3>Mitarbeiter als "nicht verfügbar" markiert</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Qualifiziertes Personal wird in der Zuweisungsliste rot oder grau dargestellt.</p>
+            <p><strong>Ursache:</strong> Verfügbarkeitszeiten des Mitarbeiters kollidieren mit dem geplanten Termin.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie die Mitarbeiter-Verfügbarkeiten in der Stammdaten-Verwaltung oder wählen Sie alternative Termine/Personal.</p>
+        </div>
+
+        <h3>Termine überschneiden sich</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Mehrere Termine zur gleichen Zeit mit denselben Ressourcen geplant.</p>
+            <p><strong>Ursache:</strong> Doppelbelegung von Personal oder Räumen durch parallele Termine.</p>
+            <p><strong>Lösung:</strong> Nutzen Sie die Konflikt-Anzeige (rote Markierungen) zur Identifikation und verschieben Sie Termine oder ändern Sie Personal-Zuweisungen.</p>
+        </div>
+
+        <h3>Export/Import funktioniert nicht</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Datenexport bricht ab oder Import-Datei wird nicht erkannt.</p>
+            <p><strong>Ursache:</strong> Dateiformat-Inkompatibilität oder fehlerhafte Dateipfade.</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie das gewählte Exportformat und stellen Sie sicher, dass Import-Dateien dem erwarteten Schema entsprechen.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 Planungs-Strategien</h4>
+            <ul>
+                <li><strong>Früh planen</strong> - Erstellen Sie Pläne rechtzeitig, um Verfügbarkeitskonflikte zu minimieren</li>
+                <li><strong>Aussagekräftige Namen</strong> - Verwenden Sie beschreibende Plan-Namen wie "Sommerfestival 2025" statt "Plan_01"</li>
+                <li><strong>Puffer-Zeiten</strong> - Planen Sie Übergangszeiten zwischen Terminen für Auf- und Abbau</li>
+                <li><strong>Backup-Personal</strong> - Definieren Sie Ersatz-Mitarbeiter für kritische Positionen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Regelmäßig speichern</strong> - Nutzen Sie Strg+S häufig, um Datenverlust zu vermeiden</li>
+                <li><strong>Templates verwenden</strong> - Erstellen Sie Vorlagen für wiederkehrende Planungsszenarien</li>
+                <li><strong>Batch-Operationen</strong> - Bearbeiten Sie ähnliche Termine gemeinsam für mehr Effizienz</li>
+                <li><strong>Monitoring-Routine</strong> - Überprüfen Sie Pläne regelmäßig auf neue Konflikte</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Qualitäts-Sicherung</h4>
+            <ul>
+                <li><strong>Doppelte Prüfung</strong> - Lassen Sie wichtige Pläne von Kollegen gegenchecken</li>
+                <li><strong>Versionierung</strong> - Speichern Sie wichtige Plan-Versionen unter verschiedenen Namen</li>
+                <li><strong>Dokumentation</strong> - Notieren Sie besondere Planungsdetails in der Beschreibung</li>
+                <li><strong>Stakeholder informieren</strong> - Kommunizieren Sie Planänderungen rechtzeitig an Beteiligte</li>
+            </ul>
+        </div>
+
+        <h2>Technische Details</h2>
+
+        <h3>Datenmodell</h3>
+        <p>Das Plan-Formular arbeitet mit dem zentralen Planungsdatenmodell:</p>
+        <ul class="feature-list">
+            <li><strong>Plan-Entities</strong> - Planungsperioden mit Meta-Informationen</li>
+            <li><strong>Event-Objects</strong> - Einzelne Termine mit Zeit- und Ortsdaten</li>
+            <li><strong>Assignment-Relations</strong> - Verknüpfungen zwischen Personal und Terminen</li>
+            <li><strong>Availability-Constraints</strong> - Verfügbarkeits-Regeln und Einschränkungen</li>
+        </ul>
+
+        <h3>Import/Export Formate</h3>
+        <p>Unterstützte Dateiformate für den Datenaustausch:</p>
+        <ul class="feature-list">
+            <li><strong>Excel (.xlsx)</strong> - Für umfassende Planungsdaten mit Formatierung</li>
+            <li><strong>CSV (.csv)</strong> - Für einfachen Datenaustausch und Weiterverarbeitung</li>
+            <li><strong>PDF (.pdf)</strong> - Für professionelle Planausdrucke und Archivierung</li>
+            <li><strong>iCalendar (.ics)</strong> - Für Kalender-Integration und externe Synchronisation</li>
+        </ul>
+
+        <h3>Performance-Optimierung</h3>
+        <p>Das System ist für große Planungsvolumina optimiert:</p>
+        <ul class="feature-list">
+            <li><strong>Lazy Loading</strong> - Daten werden bei Bedarf nachgeladen</li>
+            <li><strong>Caching-Mechanismen</strong> - Häufig verwendete Daten werden zwischengespeichert</li>
+            <li><strong>Batch-Processing</strong> - Mehrere Änderungen werden gebündelt verarbeitet</li>
+            <li><strong>Indexierung</strong> - Datenbankindizes für schnelle Suchvorgänge</li>
+        </ul>
     </div>
 </body>
 </html>

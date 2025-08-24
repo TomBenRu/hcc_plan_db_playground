@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Team-Verwaltung - HCC Plan Hilfe</title>
     <link rel="stylesheet" href="../styles/help.css">
-    <meta name="keywords" content="team, verwaltung, dispatcher, excel, settings">
-    <meta name="description" content="Hilfe für die Team-Verwaltung in HCC Plan">
+    <meta name="keywords" content="team, verwaltung, arbeitsgruppen, dispatcher, excel, settings, organisation, teams, kopie">
+    <meta name="description" content="Hilfe für die Team-Verwaltung - Organisation und Konfiguration von Arbeitsgruppen und Teams in HCC Plan">
 </head>
 <body>
     <div class="help-header">
@@ -15,224 +15,313 @@
     
     <div class="help-content">
         <h2>Übersicht</h2>
-        <p>Die Team-Verwaltung ermöglicht es Ihnen, Arbeitsgruppen zu organisieren und zu konfigurieren. Teams sind die organisatorischen Einheiten, denen Mitarbeiter zugeordnet werden und für die Planungen erstellt werden.</p>
-        
+        <p>Die Team-Verwaltung ist das organisatorische Herzstück für die strukturierte Arbeitsgruppen-Organisation in HCC Plan. Sie ermöglicht die Erstellung, Konfiguration und Verwaltung von Teams als zentrale Organisationseinheiten, denen Mitarbeiter zugeordnet und für die spezifische Planungen erstellt werden. Teams bilden die Grundlage für eine systematische und effiziente Ressourcenplanung.</p>
+
         <h2>Hauptfunktionen</h2>
         <ul class="feature-list">
-            <li><strong>Teams erstellen</strong> - Neue Arbeitsgruppen anlegen</li>
-            <li><strong>Teams bearbeiten</strong> - Bestehende Teams modifizieren</li>
-            <li><strong>Dispatcher zuweisen</strong> - Verantwortliche Person festlegen</li>
-            <li><strong>Excel-Einstellungen</strong> - Export-Konfiguration verwalten</li>
-            <li><strong>Teams löschen</strong> - Nicht mehr benötigte Teams entfernen</li>
+            <li><strong>Team-Erstellung</strong> - Neue Arbeitsgruppen mit individuellen Konfigurationen und Eigenschaften anlegen</li>
+            <li><strong>Dispatcher-Management</strong> - Verantwortliche Personen als zentrale Ansprechpartner für Teams festlegen</li>
+            <li><strong>Excel-Konfiguration</strong> - Team-spezifische Export-Einstellungen und Farbschemas für professionelle Berichte</li>
+            <li><strong>Team-Duplikation</strong> - Effiziente Erstellung ähnlicher Teams durch Kopier- und Vorlagen-Funktionen</li>
+            <li><strong>Lifecycle-Management</strong> - Vollständige Verwaltung von Team-Erstellung bis -Archivierung</li>
+            <li><strong>Integration-Control</strong> - Zentrale Steuerung der Team-Integration mit anderen Planungsmodulen</li>
         </ul>
-        
-        <h2>Neues Team erstellen</h2>
+
+        <h2>Grundbedienung</h2>
+
+        <h3>Neues Team erstellen</h3>
         <ol>
-            <li>Öffnen Sie die Team-Verwaltung über das Hauptmenü</li>
-            <li>Geben Sie einen <strong>Team-Namen</strong> ein:
-                <ul>
-                    <li>Wählen Sie einen eindeutigen, aussagekräftigen Namen</li>
-                    <li>Z.B. "Sommersaison 2025", "Hauptteam", "Eventteam"</li>
+            <li>Öffnen Sie die Team-Verwaltung über das Hauptmenü oder entsprechende Navigation</li>
+            <li>Geben Sie einen aussagekräftigen <strong>Team-Namen</strong> ein:
+                <ul class="feature-list">
+                    <li><strong>Eindeutigkeit</strong> - Jeder Team-Name muss systemweit einzigartig sein</li>
+                    <li><strong>Beschreibend</strong> - Verwenden Sie sprechende Namen wie "Sommerfestival 2025" oder "IT-Support-Team"</li>
+                    <li><strong>Konsistent</strong> - Befolgen Sie einheitliche Naming-Conventions für bessere Organisation</li>
                 </ul>
             </li>
-            <li>Wählen Sie optional einen <strong>Dispatcher</strong> aus:
-                <ul>
-                    <li>Dropdown-Liste zeigt alle verfügbaren Mitarbeiter</li>
-                    <li>Dispatcher ist die verantwortliche Kontaktperson</li>
-                    <li>Kann auch auf "No Dispatcher" belassen werden</li>
+            <li>Wählen Sie optional einen <strong>Dispatcher</strong> aus der Dropdown-Liste:
+                <ul class="feature-list">
+                    <li><strong>Verfügbare Personen</strong> - Liste zeigt alle in Stammdaten erfassten Mitarbeiter</li>
+                    <li><strong>Verantwortlichkeit</strong> - Dispatcher fungiert als Haupt-Ansprechpartner und Koordinator</li>
+                    <li><strong>Flexibilität</strong> - Kann auf "No Dispatcher" belassen oder später geändert werden</li>
                 </ul>
             </li>
-            <li>Aktivieren Sie <em class="ui-element">Save as new team?</em></li>
-            <li>Bestätigen Sie mit <em class="ui-element">OK</em></li>
+            <li>Aktivieren Sie die Checkbox <strong>"Save as new team?"</strong></li>
+            <li>Bestätigen Sie die Erstellung mit <strong>"OK"</strong></li>
         </ol>
-        
-        <div class="tip-box">
-            <h4>💡 Team-Namen Tipp</h4>
-            <p>Verwenden Sie sprechende Namen, die den Zweck oder Zeitraum des Teams deutlich machen. Dies erleichtert die spätere Unterscheidung bei mehreren Teams.</p>
-        </div>
-        
-        <h2>Bestehendes Team bearbeiten</h2>
+
+        <h3>Bestehendes Team bearbeiten</h3>
         <ol>
-            <li>Wählen Sie das zu bearbeitende Team aus</li>
-            <li>Die aktuellen Daten werden automatisch geladen</li>
-            <li>Ändern Sie die gewünschten Felder:
-                <ul>
-                    <li><strong>Name</strong> - Team-Bezeichnung anpassen</li>
-                    <li><strong>Dispatcher</strong> - Verantwortliche Person ändern</li>
+            <li>Wählen Sie das zu bearbeitende Team aus der Team-Liste</li>
+            <li>Die aktuellen Team-Daten werden automatisch in die Formularfelder geladen</li>
+            <li>Nehmen Sie gewünschte Änderungen vor:
+                <ul class="feature-list">
+                    <li><strong>Name ändern</strong> - Team-Bezeichnung modifizieren (Eindeutigkeit beachten)</li>
+                    <li><strong>Dispatcher wechseln</strong> - Neue verantwortliche Person aus Dropdown auswählen</li>
+                    <li><strong>Excel-Einstellungen</strong> - Über "Change"-Button anpassen</li>
                 </ul>
             </li>
-            <li>Entscheiden Sie zwischen:
-                <ul>
-                    <li><strong>Bestehende Team ändern</strong> - Checkbox deaktiviert lassen</li>
-                    <li><strong>Als neues Team speichern</strong> - Checkbox aktivieren</li>
+            <li>Wählen Sie den Speicher-Modus:
+                <ul class="feature-list">
+                    <li><strong>Bestehende Team überschreiben</strong> - Checkbox <strong>deaktiviert</strong> lassen</li>
+                    <li><strong>Als neue Team-Kopie speichern</strong> - Checkbox <strong>aktivieren</strong></li>
                 </ul>
             </li>
-            <li>Bestätigen Sie mit <em class="ui-element">OK</em></li>
+            <li>Speichern Sie die Änderungen mit <strong>"OK"</strong></li>
         </ol>
-        
-        <h2>Dispatcher-Zuweisung</h2>
-        <p>Der Dispatcher ist die zentrale Ansprechperson für ein Team:</p>
-        <ul>
-            <li><strong>Auswahl:</strong> Dropdown-Menü mit allen Mitarbeitern aus den Stammdaten</li>
-            <li><strong>Funktion:</strong> Erhält Benachrichtigungen und koordiniert das Team</li>
-            <li><strong>Wechsel:</strong> Kann jederzeit geändert werden</li>
-            <li><strong>Optional:</strong> Ein Team kann auch ohne Dispatcher funktionieren</li>
-        </ul>
-        
-        <div class="tip-box">
-            <h4>💡 Dispatcher-Empfehlung</h4>
-            <p>Wählen Sie als Dispatcher eine Person, die regelmäßig verfügbar ist und Planungsverantwortung übernehmen kann.</p>
-        </div>
-        
-        <h2>Excel Export-Einstellungen</h2>
-        <p>Jedes Team kann individuelle Excel-Export-Einstellungen haben:</p>
-        
-        <h3>Einstellungen konfigurieren</h3>
+
+        <h3>Team-Duplikation nutzen</h3>
         <ol>
-            <li>Klicken Sie auf <em class="ui-element">Change</em> neben "Excel Settings"</li>
-            <li>Konfigurieren Sie die Farbschemas für verschiedene Elemente</li>
-            <li>Die Farbvorschau wird automatisch angezeigt</li>
-            <li>Speichern Sie die Konfiguration</li>
+            <li>Laden Sie ein bestehendes Team als Vorlage</li>
+            <li>Aktivieren Sie <strong>"Save as new team?"</strong></li>
+            <li>Ändern Sie den Team-Namen entsprechend dem neuen Zweck</li>
+            <li>Passen Sie Dispatcher und andere Einstellungen nach Bedarf an</li>
+            <li>Speichern Sie als neue, unabhängige Team-Einheit</li>
         </ol>
-        
-        <h3>Verfügbare Farbeinstellungen</h3>
-        <ul>
-            <li><strong>Header-Farben</strong> - Überschriften in Excel-Exporten</li>
-            <li><strong>Zellen-Farben</strong> - Verschiedene Datentypen</li>
-            <li><strong>Status-Farben</strong> - Verfügbarkeiten und Konflikte</li>
-            <li><strong>Team-Farben</strong> - Team-spezifische Kennzeichnung</li>
-        </ul>
-        
-        <div class="warning-box">
-            <h4>⚠️ Excel-Einstellungen Hinweis</h4>
-            <p>Excel-Einstellungen sind nur für bereits gespeicherte Teams verfügbar. Bei neuen Teams ist die Funktion deaktiviert.</p>
-        </div>
-        
-        <h2>Team als Kopie speichern</h2>
-        <p>Die Option "Save as new team?" ist nützlich für:</p>
-        <ul>
-            <li><strong>Saisonale Teams</strong> - Z.B. "Winterteam 2024" → "Winterteam 2025"</li>
-            <li><strong>Ähnliche Teams</strong> - Gleiche Grundkonfiguration, anderer Name</li>
-            <li><strong>Backup-Teams</strong> - Sicherheitskopie vor größeren Änderungen</li>
-            <li><strong>Experimente</strong> - Testen neuer Konfigurationen</li>
-        </ul>
-        
-        <h3>Unterschiede der Speicher-Modi</h3>
-        <table>
-            <tr>
-                <th>Bestehende Team ändern</th>
-                <th>Als neues Team speichern</th>
-            </tr>
-            <tr>
-                <td>Überschreibt das aktuelle Team</td>
-                <td>Erstellt eine neue Team-Kopie</td>
-            </tr>
-            <tr>
-                <td>Behält alle Planungshistorie</td>
-                <td>Startet mit leerer Historie</td>
-            </tr>
-            <tr>
-                <td>Schneller für kleine Änderungen</td>
-                <td>Sicherer für größere Umstellungen</td>
-            </tr>
-        </table>
-        
-        <h2>Team löschen</h2>
-        <ol>
-            <li>Wählen Sie das zu löschende Team aus</li>
-            <li>Klicken Sie auf <em class="ui-element">Delete</em></li>
-            <li>Bestätigen Sie die Löschung im Sicherheitsdialog</li>
-        </ol>
-        
-        <div class="warning-box">
-            <h4>⚠️ Warnung beim Löschen</h4>
-            <p>Das Löschen eines Teams entfernt auch alle zugehörigen Planungen und kann nicht rückgängig gemacht werden. Erstellen Sie vorher ein Backup!</p>
-        </div>
-        
-        <h2>Bedienelemente</h2>
-        
-        <h3>Formular-Felder</h3>
-        <ul>
-            <li><strong>Name</strong> - Eindeutige Team-Bezeichnung (Pflichtfeld)</li>
-            <li><strong>Dispatcher</strong> - Dropdown mit allen Mitarbeitern</li>
-            <li><strong>Excel Settings</strong> - Button für Export-Konfiguration</li>
-            <li><strong>Save as new team?</strong> - Checkbox für Kopiermodus</li>
-        </ul>
-        
-        <h3>Action-Buttons</h3>
-        <ul>
-            <li><strong>OK</strong> - Änderungen speichern und Dialog schließen</li>
-            <li><strong>Cancel</strong> - Abbrechen ohne Speichern</li>
-            <li><strong>Delete</strong> - Team unwiderruflich löschen</li>
-            <li><strong>Change</strong> - Excel-Einstellungen bearbeiten</li>
-        </ul>
-        
-        <h2>Tastenkombinationen</h2>
+
+        <h2>Tastaturkürzel</h2>
         <div class="keyboard-shortcuts">
-            <table>
-                <tr><td><kbd>F1</kbd></td><td>Diese Hilfe anzeigen</td></tr>
-                <tr><td><kbd>Enter</kbd></td><td>Team speichern (OK)</td></tr>
-                <tr><td><kbd>Escape</kbd></td><td>Dialog abbrechen</td></tr>
-                <tr><td><kbd>Tab</kbd></td><td>Zwischen Feldern wechseln</td></tr>
-                <tr><td><kbd>Space</kbd></td><td>Checkbox umschalten</td></tr>
-            </table>
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Enter</strong> - Team speichern und Dialog bestätigen</li>
+                <li><strong>Escape</strong> - Dialog abbrechen ohne Speichern</li>
+                <li><strong>Tab</strong> - Zwischen Formularfeldern navigieren</li>
+                <li><strong>Leertaste</strong> - Checkbox-Status umschalten</li>
+                <li><strong>Strg+N</strong> - Neues Team erstellen (falls verfügbar)</li>
+                <li><strong>Alt+D</strong> - Team löschen (falls verfügbar)</li>
+            </ul>
         </div>
-        
-        <h2>Workflow-Empfehlungen</h2>
-        
-        <h3>Neues Projekt starten</h3>
-        <ol>
-            <li>Legen Sie zunächst alle <a href="masterdata.html">Stammdaten</a> an</li>
-            <li>Erstellen Sie das Haupt-Team mit aussagekräftigem Namen</li>
-            <li>Weisen Sie einen erfahrenen Dispatcher zu</li>
-            <li>Konfigurieren Sie die Excel-Einstellungen nach Ihren Wünschen</li>
-            <li>Beginnen Sie mit der <a href="plan.html">Planung</a></li>
-        </ol>
-        
-        <h3>Saisonale Teams</h3>
-        <ol>
-            <li>Nutzen Sie das vorherige Team als Vorlage</li>
-            <li>Aktivieren Sie "Save as new team?"</li>
-            <li>Passen Sie den Namen an (z.B. Jahr, Saison)</li>
-            <li>Überprüfen Sie den Dispatcher (noch verfügbar?)</li>
-            <li>Excel-Einstellungen werden automatisch kopiert</li>
-        </ol>
-        
-        <h2>Häufige Probleme und Lösungen</h2>
-        
-        <h3>❓ Team-Name bereits vergeben</h3>
-        <p><strong>Lösung:</strong> Team-Namen müssen eindeutig sein. Fügen Sie z.B. das Jahr hinzu oder verwenden Sie einen beschreibenderen Namen.</p>
-        
-        <h3>❓ Dispatcher nicht in der Liste</h3>
-        <p><strong>Lösung:</strong> Die Person muss zuerst in den <a href="masterdata.html">Stammdaten</a> als Mitarbeiter angelegt werden.</p>
-        
-        <h3>❓ Excel-Einstellungen nicht verfügbar</h3>
-        <p><strong>Lösung:</strong> Speichern Sie das Team zuerst. Excel-Einstellungen sind nur für bereits gespeicherte Teams verfügbar.</p>
-        
-        <h3>❓ Team kann nicht gelöscht werden</h3>
-        <p><strong>Lösung:</strong> Möglicherweise sind noch aktive Planungen vorhanden. Entfernen Sie zuerst alle Zuordnungen oder archivieren Sie das Team.</p>
-        
-        <h2>Integration mit anderen Modulen</h2>
-        <ul>
-            <li><strong>Stammdaten:</strong> Mitarbeiter müssen in Stammdaten existieren</li>
-            <li><strong>Planung:</strong> Teams sind Basis für alle Planungsaktivitäten</li>
-            <li><strong>Export:</strong> Team-spezifische Excel-Konfigurationen</li>
-            <li><strong>Kalender:</strong> Team-Zuordnungen in Kalender-Exporten</li>
+
+        <h2>Verwandte Funktionen</h2>
+        <p>Die Team-Verwaltung ist eng mit anderen HCC Plan Komponenten integriert:</p>
+        <ul class="feature-list">
+            <li><a href="masterdata.html">Stammdaten-Verwaltung</a> - Mitarbeiterdaten für Dispatcher-Zuweisungen und Team-Mitgliedschaften</li>
+            <li><a href="plan.html">Plan-Formular</a> - Teams bilden die organisatorische Basis für alle Planungsaktivitäten</li>
+            <li><a href="actor_plan_period.html">Verfügbarkeits-Planung</a> - Team-spezifische Verwaltung von Mitarbeiter-Verfügbarkeiten</li>
+            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Teams als Berechnungsgrundlage für optimierte Planungslösungen</li>
         </ul>
-        
-        <h2>Weiterführende Hilfe</h2>
-        <ul class="related-links">
-            <li><a href="masterdata.html">Stammdaten</a> - Mitarbeiter für Teams verwalten</li>
-            <li><a href="plan.html">Plan-Formular</a> - Mit Teams planen</li>
-            <li><a href="../advanced/import-export.html">Import/Export</a> - Excel-Funktionen</li>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Die Team-Verwaltung wird in verschiedenen organisatorischen Strukturen eingesetzt:</p>
+        <ul class="feature-list">
+            <li><strong>Projekt-Teams</strong> - Temporäre Arbeitsgruppen für spezifische Projekte oder Veranstaltungen</li>
+            <li><strong>Abteilungs-Teams</strong> - Permanente organisatorische Einheiten wie IT, Marketing, oder Produktion</li>
+            <li><strong>Saison-Teams</strong> - Zeitlich begrenzte Teams für wiederkehrende saisonale Aktivitäten</li>
+            <li><strong>Standort-Teams</strong> - Geografisch organisierte Teams für verschiedene Betriebsstandorte</li>
+            <li><strong>Skill-Teams</strong> - Fachlich spezialisierte Gruppen basierend auf Qualifikationen und Expertise</li>
+            <li><strong>Schicht-Teams</strong> - Teams für verschiedene Arbeitsschichten und Zeitmodelle</li>
         </ul>
-    </div>
-    
-    <div class="help-footer">
-        <div class="related-links">
-            <a href="../index.html">← Zurück zur Haupthilfe</a>
+
+        <h2>Benutzeroberfläche</h2>
+
+        <h3>Formular-Komponenten</h3>
+        <ul class="feature-list">
+            <li><strong>Team-Name Feld</strong> - Textinput für eindeutige Team-Bezeichnung (Pflichtfeld, max. Zeichen beachten)</li>
+            <li><strong>Dispatcher Dropdown</strong> - Auswahlliste aller verfügbaren Mitarbeiter aus Stammdaten</li>
+            <li><strong>"Excel Settings" Button</strong> - Öffnet Konfigurationsdialog für Export-Einstellungen (nur bei gespeicherten Teams aktiv)</li>
+            <li><strong>"Save as new team?" Checkbox</strong> - Schaltet zwischen Überschreiben und Kopie-Erstellung um</li>
+        </ul>
+
+        <h3>Action-Controls</h3>
+        <ul class="feature-list">
+            <li><strong>"OK" Button</strong> - Speichert alle Änderungen und schließt Dialog (Validierung durchführen)</li>
+            <li><strong>"Cancel" Button</strong> - Verwirft alle Änderungen und schließt Dialog ohne Speichern</li>
+            <li><strong>"Delete" Button</strong> - Löscht ausgewähltes Team nach Bestätigungsabfrage (irreversibel)</li>
+            <li><strong>"Change" Button</strong> - Öffnet Excel-Konfigurationsdialog für erweiterte Export-Einstellungen</li>
+        </ul>
+
+        <h3>Team-Auswahl Interface</h3>
+        <ul class="feature-list">
+            <li><strong>Team-Liste</strong> - Dropdown oder Liste aller verfügbaren Teams im System</li>
+            <li><strong>Such-/Filterfunktion</strong> - Schnelles Auffinden spezifischer Teams bei größeren Organisationen</li>
+            <li><strong>Sortierung</strong> - Teams alphabetisch oder nach Erstellungsdatum organisiert</li>
+            <li><strong>Status-Indikatoren</strong> - Visuelle Hinweise auf Team-Status (aktiv, archiviert, etc.)</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>Saisonale Team-Organisation erstellen</h3>
+        <ol>
+            <li><strong>Basis-Team definieren</strong> - Erstellen Sie das Haupt-Team für die neue Saison mit aussagekräftigem Namen</li>
+            <li><strong>Dispatcher festlegen</strong> - Wählen Sie eine erfahrene Person als verantwortlichen Koordinator</li>
+            <li><strong>Excel-Template konfigurieren</strong> - Setzen Sie Farbschemas und Export-Optionen nach Ihren Standards</li>
+            <li><strong>Sub-Teams ableiten</strong> - Nutzen Sie "Save as new team?" für spezialisierte Unter-Teams</li>
+            <li><strong>Integration testen</strong> - Überprüfen Sie die Team-Funktionalität in Planungsmodulen</li>
+            <li><strong>Dokumentation erstellen</strong> - Notieren Sie Team-spezifische Besonderheiten und Workflows</li>
+        </ol>
+
+        <h3>Projekt-Team schnell aufsetzen</h3>
+        <ol>
+            <li><strong>Vorlage wählen</strong> - Laden Sie ein ähnliches bestehendes Team als Ausgangspunkt</li>
+            <li><strong>Namen anpassen</strong> - Ändern Sie Team-Name entsprechend dem neuen Projekt</li>
+            <li><strong>Projekt-Leiter zuweisen</strong> - Setzen Sie den Projekt-Leiter als Dispatcher</li>
+            <li><strong>Als Kopie speichern</strong> - Aktivieren Sie "Save as new team?" für unabhängige Team-Einheit</li>
+            <li><strong>Spezifische Anpassungen</strong> - Modifizieren Sie Excel-Einstellungen für Projekt-Anforderungen</li>
+        </ol>
+
+        <h3>Organisations-Restructuring durchführen</h3>
+        <ol>
+            <li><strong>Bestehende Struktur analysieren</strong> - Dokumentieren Sie aktuelle Team-Aufteilung und Abhängigkeiten</li>
+            <li><strong>Neue Teams vorbereiten</strong> - Erstellen Sie neue Team-Strukturen parallel zu bestehenden</li>
+            <li><strong>Dispatcher-Mapping</strong> - Planen Sie neue Verantwortlichkeiten und Ansprechpartner</li>
+            <li><strong>Schritt-für-Schritt Migration</strong> - Migrieren Sie Teams schrittweise zur Vermeidung von Planungsunterbrechungen</li>
+            <li><strong>Alte Teams archivieren</strong> - Bewahren Sie historische Teams für Referenz-Zwecke auf</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <h3>Team-Name bereits vergeben</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> System akzeptiert neuen Team-Namen nicht wegen Duplikat-Konflikt.</p>
+            <p><strong>Ursache:</strong> Team-Namen müssen systemweit eindeutig sein, auch bei archivierten Teams.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie spezifischere Namen mit Zusätzen wie Jahr, Abteilung oder Standort (z.B. "Marketing Team 2025" statt nur "Marketing Team").</p>
         </div>
-        <div class="help-info">Version 1.0 | Deutsch</div>
+
+        <h3>Dispatcher nicht in Auswahlliste</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Gewünschte Person erscheint nicht im Dispatcher-Dropdown.</p>
+            <p><strong>Ursache:</strong> Person ist nicht in Stammdaten als Mitarbeiter erfasst.</p>
+            <p><strong>Lösung:</strong> Wechseln Sie zu Stammdaten-Verwaltung und legen Sie die Person als Mitarbeiter an, bevor Sie sie als Dispatcher zuweisen.</p>
+        </div>
+
+        <h3>Excel-Einstellungen nicht verfügbar</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> "Change"-Button für Excel-Einstellungen ist deaktiviert oder funktioniert nicht.</p>
+            <p><strong>Ursache:</strong> Excel-Konfiguration ist nur für bereits gespeicherte Teams verfügbar.</p>
+            <p><strong>Lösung:</strong> Speichern Sie das Team zuerst mit "OK", laden Sie es dann erneut und konfigurieren Sie die Excel-Einstellungen.</p>
+        </div>
+
+        <h3>Team kann nicht gelöscht werden</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> "Delete"-Button ist deaktiviert oder Löschvorgang schlägt fehl.</p>
+            <p><strong>Ursache:</strong> Team ist noch in aktiven Planungen, Terminen oder anderen Modulen referenziert.</p>
+            <p><strong>Lösung:</strong> Entfernen Sie alle Zuordnungen des Teams aus Planungen und anderen Modulen, bevor Sie es löschen. Alternativ archivieren Sie das Team statt es zu löschen.</p>
+        </div>
+
+        <h3>Änderungen werden nicht gespeichert</h3>
+        <div class="warning-box">
+            <p><strong>Problem:</strong> Modifikationen gehen nach Dialog-Schließung verloren.</p>
+            <p><strong>Ursache:</strong> Dialog wurde mit "Cancel" geschlossen oder Validierungsfehler verhinderten Speicherung.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie ausschließlich "OK"-Button zum Speichern und achten Sie auf Fehlermeldungen bei der Validierung.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 Team-Organisation Strategien</h4>
+            <ul>
+                <li><strong>Konsistente Namensgebung</strong> - Entwickeln Sie ein einheitliches Schema für Team-Namen (z.B. "[Abteilung] [Zweck] [Jahr]")</li>
+                <li><strong>Qualifizierte Dispatcher</strong> - Wählen Sie als Dispatcher Personen mit Führungsverantwortung und guter Verfügbarkeit</li>
+                <li><strong>Dokumentation</strong> - Notieren Sie Team-Zweck und besondere Konfigurationen für spätere Referenz</li>
+                <li><strong>Regelmäßige Reviews</strong> - Überprüfen Sie Team-Strukturen quartalsweise auf Aktualität und Effizienz</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Optimierungen</h4>
+            <ul>
+                <li><strong>Template-Nutzung</strong> - Verwenden Sie bewährte Teams als Vorlagen für neue, ähnliche Strukturen</li>
+                <li><strong>Bulk-Operationen</strong> - Planen Sie Team-Erstellungen in Batches für konsistente Konfiguration</li>
+                <li><strong>Excel-Standardisierung</strong> - Definieren Sie Standard-Farbschemas für verschiedene Team-Typen</li>
+                <li><strong>Versionierung</strong> - Nutzen Sie Kopie-Funktion für Team-Versionsmanagement bei größeren Änderungen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Wartungs-Empfehlungen</h4>
+            <ul>
+                <li><strong>Lifecycle-Planung</strong> - Definieren Sie Richtlinien für Team-Erstellung, -Nutzung und -Archivierung</li>
+                <li><strong>Backup vor Änderungen</strong> - Erstellen Sie Team-Kopien vor größeren Strukturänderungen</li>
+                <li><strong>Integration-Tests</strong> - Überprüfen Sie neue Teams in allen relevanten Planungsmodulen</li>
+                <li><strong>Dispatcher-Verfügbarkeit</strong> - Stellen Sie sicher, dass Dispatcher-Personen aktuell und verfügbar sind</li>
+            </ul>
+        </div>
+
+        <h2>Dispatcher-Management</h2>
+
+        <h3>Rolle und Verantwortlichkeiten</h3>
+        <p>Der Dispatcher fungiert als zentrale Koordinationsstelle für Team-Aktivitäten:</p>
+        <ul class="feature-list">
+            <li><strong>Kommunikations-Hub</strong> - Erhält Benachrichtigungen und koordiniert team-interne Kommunikation</li>
+            <li><strong>Planungs-Verantwortung</strong> - Überwacht Team-spezifische Planungsaktivitäten und -entscheidungen</li>
+            <li><strong>Konflikt-Resolution</strong> - Erste Anlaufstelle für planungs-bezogene Probleme und Konflikte</li>
+            <li><strong>Qualitäts-Kontrolle</strong> - Überprüft und genehmigt Team-bezogene Planungsergebnisse</li>
+        </ul>
+
+        <h3>Dispatcher-Auswahl Kriterien</h3>
+        <ul class="feature-list">
+            <li><strong>Verfügbarkeit</strong> - Person sollte regelmäßig erreichbar und aktiv im System sein</li>
+            <li><strong>Kompetenz</strong> - Erfahrung mit HCC Plan System und Planungsverantwortung</li>
+            <li><strong>Autorität</strong> - Befugnis, Entscheidungen für das Team zu treffen</li>
+            <li><strong>Kommunikation</strong> - Gute Kommunikationsfähigkeiten für Team-Koordination</li>
+        </ul>
+
+        <h3>Dispatcher-Wechsel durchführen</h3>
+        <ol>
+            <li>Informieren Sie den aktuellen Dispatcher über den bevorstehenden Wechsel</li>
+            <li>Briefen Sie den neuen Dispatcher über Team-Besonderheiten und laufende Planungen</li>
+            <li>Führen Sie den Wechsel in der Team-Verwaltung durch</li>
+            <li>Testen Sie Benachrichtigungen und Kommunikation mit dem neuen Dispatcher</li>
+            <li>Dokumentieren Sie den Wechsel für Audit-Zwecke</li>
+        </ol>
+
+        <h2>Excel-Konfiguration im Detail</h2>
+
+        <h3>Verfügbare Konfigurationsoptionen</h3>
+        <ul class="feature-list">
+            <li><strong>Header-Styling</strong> - Farben und Formatierung für Spalten- und Zeilenüberschriften</li>
+            <li><strong>Daten-Farbschemas</strong> - Verschiedene Farben für unterschiedliche Datentypen und Status</li>
+            <li><strong>Konflikt-Kennzeichnung</strong> - Spezielle Hervorhebung für Planungskonflikte und Probleme</li>
+            <li><strong>Team-Branding</strong> - Team-spezifische Farben für Corporate Identity</li>
+            <li><strong>Status-Visualisierung</strong> - Farbkodierung für verschiedene Verfügbarkeits- und Zuweisungsstatus</li>
+        </ul>
+
+        <h3>Konfiguration anpassen</h3>
+        <ol>
+            <li>Stellen Sie sicher, dass das Team bereits gespeichert ist</li>
+            <li>Klicken Sie auf <strong>"Change"</strong> neben "Excel Settings"</li>
+            <li>Wählen Sie für jede Kategorie die gewünschten Farben aus</li>
+            <li>Nutzen Sie die Echtzeit-Vorschau zur Kontrolle der Farbkombinationen</li>
+            <li>Speichern Sie die Konfiguration und testen Sie sie mit einem Probe-Export</li>
+        </ol>
+
+        <h2>Technische Details</h2>
+
+        <h3>Datenmodell und Persistierung</h3>
+        <p>Teams werden in der HCC Plan Datenbank mit folgenden Eigenschaften gespeichert:</p>
+        <ul class="feature-list">
+            <li><strong>Team-Entity</strong> - Eindeutige ID, Name, Erstellungsdatum, Status-Informationen</li>
+            <li><strong>Dispatcher-Referenz</strong> - Foreign Key zur Person-Tabelle aus Stammdaten</li>
+            <li><strong>Excel-Settings-Blob</strong> - Serialisierte Konfigurationsdaten für Export-Einstellungen</li>
+            <li><strong>Audit-Trail</strong> - Vollständige Änderungshistorie für Compliance und Nachverfolgung</li>
+        </ul>
+
+        <h3>Team-Kopie Mechanismus</h3>
+        <p>Die "Save as new team?" Funktionalität arbeitet folgendermaßen:</p>
+        <ul class="feature-list">
+            <li><strong>Deep Copy</strong> - Vollständige Duplikation aller Team-Eigenschaften außer ID und Name</li>
+            <li><strong>Referenz-Erhaltung</strong> - Dispatcher-Referenz wird übernommen, wenn Person noch existiert</li>
+            <li><strong>Excel-Settings Transfer</strong> - Farbkonfigurationen werden 1:1 auf neues Team übertragen</li>
+            <li><strong>Independence</strong> - Neues Team ist völlig unabhängig vom Original-Team</li>
+        </ul>
+
+        <h3>Integration-APIs</h3>
+        <p>Teams sind über interne APIs mit anderen Modulen verknüpft:</p>
+        <ul class="feature-list">
+            <li><strong>Planning-API</strong> - Bereitstellung von Team-Informationen für Planungsmodul</li>
+            <li><strong>Export-API</strong> - Nutzung der Excel-Konfiguration für alle Export-Funktionen</li>
+            <li><strong>Notification-API</strong> - Dispatcher-Benachrichtigungen über Planungsänderungen</li>
+            <li><strong>Validation-API</strong> - Konsistenz-Checks bei Team-Löschungen und -Änderungen</li>
+        </ul>
+
+        <h3>Performance-Überlegungen</h3>
+        <p>Bei großen Organisationen mit vielen Teams beachten Sie:</p>
+        <ul class="feature-list">
+            <li><strong>Lazy Loading</strong> - Team-Listen werden bei Bedarf nachgeladen</li>
+            <li><strong>Caching</strong> - Häufig verwendete Team-Daten werden temporär zwischengespeichert</li>
+            <li><strong>Indexierung</strong> - Datenbank-Indizes für schnelle Team-Name und Dispatcher-Suchen</li>
+            <li><strong>Archivierung</strong> - Inaktive Teams können archiviert werden zur Performance-Optimierung</li>
+        </ul>
     </div>
 </body>
 </html>

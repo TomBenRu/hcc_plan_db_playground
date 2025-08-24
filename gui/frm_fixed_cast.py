@@ -22,7 +22,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, location_plan_period_commands, location_of_work_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
-from tools.helper_functions import backtranslate_eval_str, date_to_string
+from tools.helper_functions import backtranslate_eval_str, date_to_string, setup_form_help
 
 object_with_fixed_cast_type: TypeAlias = (schemas.LocationOfWorkShow |
                                           schemas.LocationPlanPeriodShow |
@@ -333,6 +333,9 @@ class DlgFixedCast(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
+
+        # F1 Help Integration
+        setup_form_help(self, "fixed_cast")
 
     def de_date__set_initial_value(self):
         if self.builder.fixed_date:

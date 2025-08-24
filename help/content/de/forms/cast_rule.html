@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Cast-Regel bearbeiten - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="Cast-Regel, Besetzungsregel, Regel erstellen, Regel bearbeiten, Cast-Pattern">
+    <meta name="description" content="Hilfe zum Erstellen und Bearbeiten von Cast-Regeln in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Cast-Regel bearbeiten</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Cast-Regel bearbeiten</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Cast-Regel-Dialog ermöglicht das Erstellen und Bearbeiten von wiederverwendbaren Besetzungsregeln. Mit Cast-Regeln können Sie definieren, wie sich die Besetzung über eine Serie von Terminen hinweg verhalten soll - von identischer Wiederholung bis hin zu bewusster Variation.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul>
+            <li><strong>Regel-Definition:</strong> Erstellung präziser Cast-Patterns mit Symbolen</li>
+            <li><strong>Automatische Vereinfachung:</strong> System optimiert Regeln für bessere Performance</li>
+            <li><strong>Wiederverwendbarkeit:</strong> Regeln können in mehreren Cast-Gruppen verwendet werden</li>
+            <li><strong>Validierung:</strong> Echtzeit-Prüfung auf Duplikate und Konflikte</li>
+            <li><strong>Pattern-Erkennung:</strong> Automatische Erkennung von sich wiederholenden Mustern</li>
+        </ul>
+
+        <h2>Cast-Regel-Symbole</h2>
+
+        <h3>Grundlegende Symbole</h3>
+        <ul>
+            <li><strong>* (Asterisk):</strong> Beliebige Besetzung - keine Einschränkungen</li>
+            <li><strong>~ (Tilde):</strong> Gleiche Besetzung wie beim vorherigen Termin</li>
+            <li><strong>- (Minus):</strong> Andere Besetzung als beim vorherigen Termin</li>
+        </ul>
+
+        <h3>Symbol-Bedeutung im Detail</h3>
+        <ul>
+            <li><strong>*:</strong> "Any Cast" - System wählt optimal verfügbare Akteure</li>
+            <li><strong>~:</strong> "Same Cast" - Exakt dieselben Personen wie zuvor</li>
+            <li><strong>-:</strong> "Different Cast" - Bewusst andere Personen als zuvor</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <h3>Neue Cast-Regel erstellen</h3>
+        <ol>
+            <li>Geben Sie einen <strong>aussagekräftigen Namen</strong> für die Regel ein</li>
+            <li>Definieren Sie das <strong>Cast-Pattern</strong> mit den Symbolen *, ~, -</li>
+            <li>System konvertiert automatisch zu <strong>Großbuchstaben</strong></li>
+            <li>Validierung prüft auf <strong>Duplikate und Konflikte</strong></li>
+            <li>Speichern Sie die Regel für <strong>Wiederverwendung</strong></li>
+        </ol>
+
+        <h3>Cast-Regel bearbeiten</h3>
+        <ol>
+            <li>Name und Pattern sind <strong>vorausgefüllt</strong> mit aktuellen Werten</li>
+            <li>Nehmen Sie gewünschte <strong>Änderungen</strong> vor</li>
+            <li>System prüft auf <strong>Konflikte mit anderen Regeln</strong></li>
+            <li>Speichern übernimmt die Änderungen für <strong>alle verwendenden Cast-Gruppen</strong></li>
+        </ol>
+
+        <h2>Pattern-Beispiele</h2>
+
+        <h3>Einfache Patterns</h3>
+        <ul>
+            <li><strong>"~":</strong> Immer dieselbe Besetzung für alle Termine</li>
+            <li><strong>"-":</strong> Immer andere Besetzung (maximale Variation)</li>
+            <li><strong>"*":</strong> Beliebige Besetzung (System entscheidet optimal)</li>
+        </ul>
+
+        <h3>Erweiterte Patterns</h3>
+        <ul>
+            <li><strong>"~-":</strong> Gleich, dann anders, dann wieder gleich, dann anders...</li>
+            <li><strong>"~~-":</strong> Zweimal gleich, dann anders, dann wieder zweimal gleich...</li>
+            <li><strong>"~--":</strong> Einmal gleich, dann zweimal anders, dann wiederholen</li>
+            <li><strong>"*~-":</strong> Beliebig, dann gleich, dann anders, dann wiederholen</li>
+        </ul>
+
+        <h3>Praktische Anwendungsfälle</h3>
+        <ul>
+            <li><strong>"Konstante Besetzung":</strong> "~" für durchgehend gleichen Cast</li>
+            <li><strong>"Wechselnde Teams":</strong> "~-" für abwechselnde Besetzung</li>
+            <li><strong>"Haupt + Ersatz":</strong> "~~-" für hauptsächlich gleichen Cast mit gelegentlicher Variation</li>
+            <li><strong>"Flexible Planung":</strong> "*" für System-optimierte Zuteilung</li>
+        </ul>
+
+        <h2>Bedienelemente im Detail</h2>
+
+        <h3>Name-Feld</h3>
+        <ul>
+            <li><strong>Eindeutigkeit:</strong> Name muss projektweise eindeutig sein</li>
+            <li><strong>Beschreibend:</strong> Verwenden Sie aussagekräftige Namen</li>
+            <li><strong>Beispiele:</strong> "Konstant", "Wechselnd", "Haupt-Ersatz", "Rotierend"</li>
+        </ul>
+
+        <h3>Cast-Regel-Feld</h3>
+        <ul>
+            <li><strong>Symbole:</strong> Nur *, ~, - sind erlaubt</li>
+            <li><strong>Großschreibung:</strong> System konvertiert automatisch</li>
+            <li><strong>Vereinfachung:</strong> Redundante Patterns werden automatisch optimiert</li>
+            <li><strong>Validierung:</strong> Echtzeit-Prüfung der Eingabe</li>
+        </ul>
+
+        <h2>Workflows</h2>
+
+        <h3>Standard-Regel für Projekt erstellen</h3>
+        <ol>
+            <li>Öffnen Sie den Dialog über <strong>"Neue Cast-Regel"</strong></li>
+            <li>Name: <strong>"Standard Rotation"</strong></li>
+            <li>Pattern: <strong>"~-"</strong> (abwechselnd gleich/anders)</li>
+            <li>Speichern Sie die Regel</li>
+            <li>Regel steht allen Cast-Gruppen zur Verfügung</li>
+        </ol>
+
+        <h3>Spezial-Regel für Event-Serie</h3>
+        <ol>
+            <li>Analysieren Sie die gewünschte <strong>Besetzungs-Logik</strong></li>
+            <li>Übersetzen Sie in <strong>Symbol-Pattern</strong></li>
+            <li>Testen Sie das Pattern gedanklich mit mehreren Terminen</li>
+            <li>Erstellen Sie die Regel mit <strong>beschreibendem Namen</strong></li>
+            <li>Wenden Sie die Regel auf entsprechende Cast-Gruppen an</li>
+        </ol>
+
+        <h2>Automatische Vereinfachung</h2>
+
+        <h3>Pattern-Optimierung</h3>
+        <ul>
+            <li><strong>"~~~" → "~":</strong> Wiederholungen werden erkannt und vereinfacht</li>
+            <li><strong>"*~*~" → "*~":</strong> Sich wiederholende Subsequenzen werden reduziert</li>
+            <li><strong>"***" → "*":</strong> Redundante Symbole werden entfernt</li>
+        </ul>
+
+        <h3>Null-Vereinfachung vermeiden</h3>
+        <ul>
+            <li><strong>"*" allein → None:</strong> Wird als "keine spezielle Regel" interpretiert</li>
+            <li><strong>Leere Patterns:</strong> Werden als ungültig erkannt</li>
+            <li><strong>System-Warnung:</strong> Bei problematischen Vereinfachungen</li>
+        </ul>
+
+        <h2>Tastaturkürzel</h2>
+        <ul>
+            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+            <li><strong>Tab:</strong> Zwischen Name und Cast-Regel wechseln</li>
+            <li><strong>Ctrl+A:</strong> Gesamten Text im aktiven Feld markieren</li>
+            <li><strong>Ctrl+S:</strong> Speichern</li>
+            <li><strong>Esc:</strong> Dialog abbrechen</li>
+        </ul>
+
+        <h2>Fehlerbehebung</h2>
+
+        <h3>Name bereits vorhanden</h3>
+        <ul>
+            <li><strong>Eindeutigkeit:</strong> Jeder Regel-Name muss projektweise eindeutig sein</li>
+            <li><strong>Lösung:</strong> Verwenden Sie beschreibende Zusätze (z.B. "Rotation_v2")</li>
+            <li><strong>Übersicht:</strong> Prüfen Sie bestehende Regel-Namen im Management-Dialog</li>
+        </ul>
+
+        <h3>Regel bereits vorhanden</h3>
+        <ul>
+            <li><strong>Pattern-Duplikate:</strong> Identische Regel existiert bereits</li>
+            <li><strong>Anzeige:</strong> System zeigt den Namen der existierenden Regel</li>
+            <li><strong>Lösung:</strong> Verwenden Sie die bestehende Regel oder definieren Sie ein anderes Pattern</li>
+        </ul>
+
+        <h3>Regel wird zu "None" vereinfacht</h3>
+        <ul>
+            <li><strong>Ursache:</strong> Pattern vereinfacht sich zu einem einfachen "*"</li>
+            <li><strong>Bedeutung:</strong> "Keine spezielle Regel" - beliebige Besetzung</li>
+            <li><strong>Lösung:</strong> Definieren Sie ein spezifischeres Pattern</li>
+        </ul>
+
+        <h2>Erweiterte Pattern-Logik</h2>
+
+        <h3>Wiederholungs-Erkennung</h3>
+        <ul>
+            <li><strong>Automatisch:</strong> System erkennt sich wiederholende Subsequenzen</li>
+            <li><strong>Optimierung:</strong> Lange Patterns werden auf kürzeste Form reduziert</li>
+            <li><strong>Beispiel:</strong> "~-~-~-" wird zu "~-" vereinfacht</li>
+        </ul>
+
+        <h3>Komplexe Szenarien</h3>
+        <ul>
+            <li><strong>Asymmetrische Rotation:</strong> "~~-" für 2:1 Verhältnis</li>
+            <li><strong>Gelegentliche Variation:</strong> "~~~~-" für seltene Änderungen</li>
+            <li><strong>Strukturierte Abwechslung:</strong> "~-~*" für gemischte Strategien</li>
+        </ul>
+
+        <h2>Integration mit Cast-System</h2>
+
+        <h3>Verwendung in Cast-Gruppen</h3>
+        <ul>
+            <li><strong>Regel-Auswahl:</strong> Gespeicherte Regeln erscheinen in Dropdown-Listen</li>
+            <li><strong>Überschreibung:</strong> Custom-Regeln können temporär überschreiben</li>
+            <li><strong>Vererbung:</strong> Child-Gruppen können Parent-Regeln übernehmen</li>
+        </ul>
+
+        <h3>Regel-Priorität</h3>
+        <ul>
+            <li><strong>1. Custom Rule:</strong> Direkt in Cast-Gruppe definiert</li>
+            <li><strong>2. Cast Rule:</strong> Aus diesem Dialog stammende Regel</li>
+            <li><strong>3. Parent Rule:</strong> Von übergeordneter Gruppe geerbt</li>
+        </ul>
+
+        <h2>Tipps & Best Practices</h2>
+
+        <h3>Regel-Design</h3>
+        <ul>
+            <li><strong>Einfachheit:</strong> Beginnen Sie mit einfachen Patterns</li>
+            <li><strong>Vorhersagbarkeit:</strong> Zu komplexe Patterns können verwirren</li>
+            <li><strong>Dokumentation:</strong> Verwenden Sie selbsterklärende Namen</li>
+        </ul>
+
+        <h3>Performance-Überlegungen</h3>
+        <ul>
+            <li><strong>Kurze Patterns:</strong> System muss weniger wiederholen</li>
+            <li><strong>Eindeutige Regeln:</strong> Vermeiden Sie übermäßig ähnliche Patterns</li>
+            <li><strong>Standard-Regeln:</strong> Erstellen Sie wiederverwendbare Basis-Patterns</li>
+        </ul>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="cast_rules.html">Cast-Regeln Management</a> - Übersicht und Verwaltung aller Regeln</li>
+            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Anwendung der Regeln</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <ul>
+            <li><strong>Pattern-Engine:</strong> Automatische Erkennung wiederholender Subsequenzen</li>
+            <li><strong>Validation-System:</strong> Echtzeit-Prüfung auf Duplikate und Konsistenz</li>
+            <li><strong>Command-Pattern:</strong> Undo-fähige Operationen</li>
+            <li><strong>String-Processing:</strong> Automatische Groß-/Kleinschreibung-Normalisierung</li>
+        </ul>
+
+        <p><strong>Support:</strong> Cast-Regeln sind der Schlüssel für effiziente und konsistente Besetzungsplanung. Beginnen Sie mit einfachen Patterns und erweitern Sie schrittweise basierend auf Ihren spezifischen Anforderungen.</p>
+    </div>
+</body>
+</html>

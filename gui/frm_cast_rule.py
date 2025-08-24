@@ -11,6 +11,7 @@ from commands.database_commands import cast_rule_commands
 from database.schemas import CastRuleShow
 from gui.custom_widgets.custom_line_edits import LineEditWithCustomFont
 from tools.custom_validators import LettersAndSymbolsValidator
+from tools.helper_functions import setup_form_help
 
 
 def simplify_cast_rule(cast_rule: str) -> str | None:
@@ -66,6 +67,9 @@ class DlgCastRule(QDialog):
         self.button_box.rejected.connect(self.reject)
 
         self.layout_foot.addWidget(self.button_box)
+
+        # F1 Help Integration
+        setup_form_help(self, "cast_rule")
 
     def _setup_data(self):
         self.text_rule_chars = self.tr(
@@ -237,6 +241,9 @@ class DlgCastRules(QDialog):
         self.layout_foot.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+
+        # F1 Help Integration
+        setup_form_help(self, "cast_rules")
 
     def _create_table(self) -> QTableWidget:
         table_widget = QTableWidget()

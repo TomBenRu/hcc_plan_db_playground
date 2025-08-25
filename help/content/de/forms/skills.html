@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Skill-Management - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="skills, fähigkeiten, wissen, qualifikationen, management, bearbeiten, hinzufügen, zuweisen">
+    <meta name="description" content="Hilfe für das Skill- und Wissensmanagement in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Skill-Management</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Skill-Management</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Das Skill-Management-System verwaltet <strong>individuelle Fähigkeiten von Personen</strong> in HCC Plan. Es besteht aus vier spezialisierten Dialogen für Projekt-Skills verwalten, einzelne Skills bearbeiten, Skills auswählen und Skills zuweisen.</p>
+        
+        <div class="tip-box">
+            <h4>🎯 Skills vs. Skill-Gruppen</h4>
+            <p><strong>Skills (diese Seite):</strong> Individuelle Fähigkeiten von Personen ("Person X kann schauspielern")<br>
+            <strong><a href="skill_groups.html">Skill-Gruppen</a>:</strong> Personalanforderungen für Orte/Events ("Wir brauchen 3 Schauspieler")</p>
+        </div>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Skill-Verwaltung</strong> - Erstellen, bearbeiten und löschen von Projekt-Skills</li>
+            <li><strong>Skill-Bearbeitung</strong> - Einzelne Skills mit Name und Beschreibung editieren</li>
+            <li><strong>Skill-Auswahl</strong> - Aus verfügbaren Projekt-Skills auswählen</li>
+            <li><strong>Skill-Zuweisung</strong> - Skills zu Personen oder Verfügbarkeiten zuweisen</li>
+            <li><strong>Soft-Delete System</strong> - Sichere Löschung mit Wiederherstellungs-Option</li>
+            <li><strong>Reset-Funktion</strong> - Zurücksetzen auf Person-Standard-Skills (nur Verfügbarkeiten)</li>
+        </ul>
+        
+        <h2>Die vier Dialog-Typen</h2>
+        
+        <h3>1. Skill-Verwaltung (Haupt-Dialog)</h3>
+        <p><strong>Zweck:</strong> Zentrale Verwaltung aller Skills eines Projekts</p>
+        <ul class="feature-list">
+            <li><strong>Skills-Tabelle</strong> - Zeigt Name, Beschreibung und Löschstatus</li>
+            <li><strong>Add Skill</strong> - Erstellt neue Skills über Bearbeitungs-Dialog</li>
+            <li><strong>Edit Skill</strong> - Bearbeitet ausgewählte Skills</li>
+            <li><strong>Delete Skill</strong> - Markiert Skills zur Löschung (reversibel)</li>
+            <li><strong>Undelete Skill</strong> - Stellt gelöschte Skills wieder her</li>
+            <li><strong>Show deleted skills</strong> - Checkbox zum Anzeigen gelöschter Skills</li>
+        </ul>
+
+        <h3>2. Skill-Bearbeitung (Einzelner Skill)</h3>
+        <p><strong>Zweck:</strong> Erstellen oder bearbeiten eines einzelnen Skills</p>
+        <ul class="feature-list">
+            <li><strong>Name-Feld</strong> - Kurze, prägnante Bezeichnung des Skills</li>
+            <li><strong>Beschreibungs-Feld</strong> - Detaillierte Erklärung des Wissensgebiets</li>
+            <li><strong>Dual-Modus</strong> - Funktioniert sowohl für neue als auch bestehende Skills</li>
+        </ul>
+
+        <h3>3. Skill-Auswahl (Projekt-Skills)</h3>
+        <p><strong>Zweck:</strong> Auswahl verfügbarer Skills für Zuweisungen</p>
+        <ul class="feature-list">
+            <li><strong>Projekt-Skills-Liste</strong> - Zeigt alle verfügbaren Skills des Projekts</li>
+            <li><strong>Intelligente Filterung</strong> - Blendet bereits zugewiesene Skills aus</li>
+            <li><strong>Sortierte Darstellung</strong> - Alphabetisch sortierte Skill-Liste</li>
+            <li><strong>Nur-Lese-Modus</strong> - Reine Auswahl-Funktionalität</li>
+        </ul>
+
+        <h3>4. Skill-Zuweisung (Personen/Verfügbarkeiten)</h3>
+        <p><strong>Zweck:</strong> Verwaltung von Skills für Personen oder spezifische Verfügbarkeiten</p>
+        <ul class="feature-list">
+            <li><strong>Kontext-sensitive Beschreibung</strong> - Unterschiedlich für Personen vs. Verfügbarkeiten</li>
+            <li><strong>Add Skill</strong> - Öffnet Skill-Auswahl-Dialog</li>
+            <li><strong>Remove Skill</strong> - Entfernt Skills von Person/Verfügbarkeit</li>
+            <li><strong>Reset Skills</strong> - Nur für Verfügbarkeiten: Zurück zu Person-Standard</li>
+            <li><strong>Zwei Modi</strong> - PersonShow (allgemeine Skills) und AvailDayShow (tagesspezifisch)</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Skills für ein Projekt verwalten</h3>
+        <ol>
+            <li>Öffnen Sie den <strong>Skills</strong>-Hauptdialog</li>
+            <li>Verwenden Sie <strong>Add Skill</strong> um neue Skills zu erstellen</li>
+            <li>Doppelklicken Sie auf Skills oder nutzen Sie <strong>Edit Skill</strong> zum Bearbeiten</li>
+            <li>Nutzen Sie <strong>Delete Skill</strong> für nicht mehr benötigte Skills</li>
+            <li>Aktivieren Sie <strong>Show deleted skills</strong> um gelöschte Skills zu sehen</li>
+        </ol>
+
+        <h3>Skills einer Person zuweisen</h3>
+        <ol>
+            <li>Öffnen Sie den Skill-Zuweisungs-Dialog für die gewünschte Person</li>
+            <li>Klicken Sie <strong>Add Skill</strong> um verfügbare Projekt-Skills anzuzeigen</li>
+            <li>Wählen Sie den gewünschten Skill aus der Liste</li>
+            <li>Bestätigen Sie mit <strong>OK</strong></li>
+            <li>Der Skill erscheint in der Person-Skills-Liste</li>
+        </ol>
+
+        <h3>Tagesspezifische Skills verwalten</h3>
+        <ol>
+            <li>Öffnen Sie den Skill-Dialog für eine spezifische Verfügbarkeit</li>
+            <li>Die Liste zeigt zunächst die Standard-Skills der Person</li>
+            <li>Entfernen Sie nicht verfügbare Skills mit <strong>Remove Skill</strong></li>
+            <li>Fügen Sie zusätzliche Skills mit <strong>Add Skill</strong> hinzu</li>
+            <li>Nutzen Sie <strong>Reset Skills</strong> um zu Person-Standard zurückzukehren</li>
+        </ol>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="skill_groups.html">Skill-Gruppen</a> - Für Personalanforderungen an Orten und Events (verwendet diese Skills)</li>
+            <li><a href="masterdata.html">Stammdaten</a> - Für Personen-Verwaltung und grundlegende Skill-Zuweisungen</li>
+            <li><a href="team.html">Team-Verwaltung</a> - Für teambasierte Skill-Anforderungen</li>
+            <li><a href="plan.html">Hauptplanung</a> - Für die Verwendung von Skills in der Planungslogik</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        
+        <h3>Verschiedene Anwendungsszenarien je Dialog</h3>
+        <ul>
+            <li><strong>Projektvorbereitung</strong> - Skill-Verwaltung für Definition aller benötigten Qualifikationen</li>
+            <li><strong>Personalverwaltung</strong> - Skill-Zuweisung für grundlegende Mitarbeiter-Qualifikationen</li>
+            <li><strong>Tagesplanung</strong> - Skill-Zuweisung für spezifische Verfügbarkeiten (z.B. Krankheit, Ausrüstung)</li>
+            <li><strong>Skill-Katalog</strong> - Skill-Auswahl für Zuweisungs-Workflows</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🎯 Szenario 1: Neues Projekt - Skill-Katalog erstellen</h3>
+        <p><strong>Dialog:</strong> Skill-Verwaltung. Definieren Sie alle Skills wie "Schauspiel", "Gesang", "Tanz", "Bühnentechnik". Jeder Skill erhält eine detaillierte Beschreibung der Anforderungen.</p>
+        
+        <h3>🎯 Szenario 2: Mitarbeiter einarbeiten - Skills zuweisen</h3>
+        <p><strong>Dialog:</strong> Skill-Zuweisung (Person). Neue Teammitglieder erhalten ihre Qualifikationen über den Zuweisungs-Dialog. Das System öffnet automatisch die Skill-Auswahl.</p>
+        
+        <h3>🎯 Szenario 3: Krankheitsfall - Tagesspezifische Anpassung</h3>
+        <p><strong>Dialog:</strong> Skill-Zuweisung (Verfügbarkeit). Ein Sänger hat Stimmprobleme und der "Gesang"-Skill wird für betroffene Tage entfernt. Reset-Funktion stellt später den Normalzustand wieder her.</p>
+
+        <h3>🎯 Szenario 4: Skill-Archivierung</h3>
+        <p><strong>Dialog:</strong> Skill-Verwaltung. Nicht mehr benötigte Skills werden gelöscht, bleiben aber über "Show deleted skills" verfügbar und können wiederhergestellt werden.</p>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Skill kann nicht endgültig gelöscht werden</h4>
+            <p><strong>Ursache:</strong> Der Skill wird noch von Personen oder Verfügbarkeiten verwendet</p>
+            <p><strong>Lösung:</strong> Entfernen Sie zuerst alle Zuweisungen über die Skill-Zuweisungs-Dialoge, dann erst endgültig löschen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Skill erscheint nicht in Auswahl-Liste</h4>
+            <p><strong>Ursache:</strong> Skill ist bereits zugewiesen und wird daher ausgeblendet</p>
+            <p><strong>Lösung:</strong> Das ist normale Funktionalität - nur noch nicht zugewiesene Skills werden angezeigt</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Reset Skills funktioniert nicht</h4>
+            <p><strong>Ursache:</strong> Reset-Funktion ist nur in Verfügbarkeits-Dialogen verfügbar, nicht bei Personen</p>
+            <p><strong>Lösung:</strong> Für Person-Skills nutzen Sie Remove/Add Skills manuell</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>💡 Dialog-Workflow verstehen</h4>
+            <p>Verwaltung → Bearbeitung → Auswahl → Zuweisung: Erstellen Sie Skills zentral, bearbeiten Sie sie einzeln, wählen Sie aus verfügbaren aus und weisen Sie sie spezifisch zu.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Skill-Hierarchie planen</h4>
+            <p>Definieren Sie im Verwaltungs-Dialog zunächst alle benötigten Skills, bevor Sie mit Zuweisungen beginnen. Eine gute Skill-Basis erleichtert die spätere Zuordnung.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Verfügbarkeits-Skills clever nutzen</h4>
+            <p>Nutzen Sie tagesspezifische Skills für Ausnahmen (Krankheit, fehlende Ausrüstung). Die Reset-Funktion macht Änderungen schnell rückgängig.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Soft-Delete für Flexibilität</h4>
+            <p>Löschen Sie Skills zunächst nur zur Markierung. Endgültige Löschung erst nach Sicherstellung, dass keine Abhängigkeiten bestehen.</p>
+        </div>
+
+        <h2>Dialog-spezifische Bedienung</h2>
+        
+        <h3>Skill-Verwaltung (Projekt-Ebene)</h3>
+        <ul>
+            <li><strong>Tabelle:</strong> 3 Spalten (Name, Beschreibung, Gelöscht-Status)</li>
+            <li><strong>Doppelklick:</strong> Öffnet Bearbeitungs-Dialog</li>
+            <li><strong>Show deleted skills:</strong> Checkbox für Anzeige gelöschter Skills</li>
+            <li><strong>4 Action-Buttons:</strong> Add, Edit, Delete, Undelete</li>
+        </ul>
+
+        <h3>Skill-Bearbeitung (Einzelner Skill)</h3>
+        <ul>
+            <li><strong>Name-Feld:</strong> Pflichtfeld für Skill-Bezeichnung</li>
+            <li><strong>Beschreibungs-Feld:</strong> Optionale Details zum Skill</li>
+            <li><strong>Adaptive Überschrift:</strong> "New Skill" oder "Edit Skill"</li>
+        </ul>
+
+        <h3>Skill-Auswahl (Projekt-Skills)</h3>
+        <ul>
+            <li><strong>Readonly-Tabelle:</strong> 2 Spalten (Name, Beschreibung)</li>
+            <li><strong>Intelligente Filterung:</strong> Bereits zugewiesene Skills ausgeblendet</li>
+            <li><strong>Einfache Auswahl:</strong> Klick + OK für Auswahl</li>
+        </ul>
+
+        <h3>Skill-Zuweisung (Personen/Verfügbarkeiten)</h3>
+        <ul>
+            <li><strong>Kontext-Anzeige:</strong> Unterschiedliche Beschreibung für Personen vs. Verfügbarkeiten</li>
+            <li><strong>Zugewiesene Skills:</strong> Tabelle der aktuell zugewiesenen Skills</li>
+            <li><strong>Add Skill:</strong> Öffnet Skill-Auswahl-Dialog</li>
+            <li><strong>Remove Skill:</strong> Entfernt Zuweisung</li>
+            <li><strong>Reset Skills:</strong> Nur bei Verfügbarkeiten - zurück zu Person-Standard</li>
+        </ul>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Zweistufiger Löschprozess</h3>
+        <p>Skills werden zunächst zur Löschung markiert (PrepDelete) und können über <strong>Undelete</strong> wiederhergestellt werden. Die endgültige Löschung erfolgt erst nach Bestätigung und nur bei nicht verwendeten Skills.</p>
+
+        <h3>Verfügbarkeits-spezifische Features</h3>
+        <p>Bei Verfügbarkeits-Skills steht zusätzlich <strong>Reset Skills</strong> zur Verfügung. Diese Funktion entfernt alle tagesspezifischen Skills und lädt die Standard-Skills der Person neu.</p>
+
+        <h3>Intelligente Skill-Filterung</h3>
+        <p>Der Skill-Auswahl-Dialog zeigt nur Skills an, die noch nicht zugewiesen sind. Dies verhindert Doppel-Zuweisungen und vereinfacht die Auswahl.</p>
+
+        <h2>Häufige Workflows</h2>
+        
+        <h3>🔄 Workflow 1: Neues Projekt Setup</h3>
+        <ol>
+            <li><strong>Skill-Verwaltung</strong> öffnen und alle benötigten Projekt-Skills definieren</li>
+            <li>Für jeden Skill <strong>Add Skill</strong> → Name und Beschreibung eingeben</li>
+            <li>Bei den <a href="masterdata.html">Stammdaten</a> Skills den Personen zuweisen</li>
+        </ol>
+
+        <h3>🔄 Workflow 2: Person-Skills anpassen</h3>
+        <ol>
+            <li>Person in Stammdaten auswählen → <strong>Skills</strong> öffnen</li>
+            <li><strong>Add Skill</strong> → Aus verfügbaren Projekt-Skills auswählen</li>
+            <li>Nicht zutreffende Skills mit <strong>Remove Skill</strong> entfernen</li>
+        </ol>
+
+        <h3>🔄 Workflow 3: Tagesspezifische Anpassungen</h3>
+        <ol>
+            <li>Verfügbarkeits-Dialog für spezifischen Tag öffnen</li>
+            <li>Bei Problemen: <strong>Remove Skill</strong> für betroffene Skills</li>
+            <li>Bei zusätzlichen Fähigkeiten: <strong>Add Skill</strong> für temporäre Skills</li>
+            <li>Bei Unsicherheit: <strong>Reset Skills</strong> für Neustart</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen (in allen Skill-Dialogen)</li>
+                <li><strong>Doppelklick</strong> - Skill bearbeiten (in Verwaltungs-Dialog)</li>
+                <li><strong>Enter</strong> - Aktion bestätigen / Dialog schließen</li>
+                <li><strong>Escape</strong> - Dialog ohne Änderungen schließen</li>
+                <li><strong>Tab</strong> - Zwischen Formularfeldern wechseln</li>
+                <li><strong>Del</strong> - Ausgewählten Skill löschen (in Verwaltungs-Dialog)</li>
+                <li><strong>Space</strong> - Checkbox umschalten (Show deleted skills)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

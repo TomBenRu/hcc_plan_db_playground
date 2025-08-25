@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Allgemeine Einstellungen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="allgemeine einstellungen, system einstellungen, sprache, spaltenbreite, datumsformat">
+    <meta name="description" content="Hilfe für Allgemeine Einstellungen in HCC Plan - System-weite Konfiguration">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Allgemeine Einstellungen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Allgemeine Einstellungen</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Die Allgemeinen Einstellungen ermöglichen die system-weite Konfiguration von HCC Plan. Diese Einstellungen wirken sich auf die gesamte Anwendung aus und werden erst nach einem Neustart wirksam.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Spaltenbreiten-Konfiguration</strong> - Anpassung der Spaltenbreiten für Zeitpläne und Statistiken</li>
+            <li><strong>Interface-Sprache</strong> - Auswahl der Benutzeroberflächen-Sprache</li>
+            <li><strong>Datums- und Zeitformat</strong> - Lokalisierung von Datums- und Zeitangaben</li>
+            <li><strong>Automatische Speicherung</strong> - Einstellungen werden persistent in Konfigurationsdatei gespeichert</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie die Allgemeinen Einstellungen über das <strong>Hauptmenü</strong></li>
+            <li>Passen Sie in der Gruppe <strong>"Pläne"</strong> die gewünschten Spaltenbreiten an:
+                <ul>
+                    <li><strong>Spaltenbreite Pläne</strong>: 100-500 Pixel für Zeitplan-Ansichten</li>
+                    <li><strong>Spaltenbreite Statistiken</strong>: 50-500 Pixel für Statistik-Ansichten</li>
+                </ul>
+            </li>
+            <li>Wählen Sie in der Gruppe <strong>"Interface Language"</strong> die gewünschte Sprache</li>
+            <li>Konfigurieren Sie in <strong>"Date and time format"</strong> das bevorzugte Datums- und Zeitformat</li>
+            <li>Klicken Sie auf <strong>"OK"</strong> um die Änderungen zu speichern</li>
+            <li><strong>Starten Sie HCC Plan neu</strong>, damit die Änderungen wirksam werden</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe anzeigen</li>
+                <li><strong>Enter</strong> - Einstellungen speichern (OK)</li>
+                <li><strong>Esc</strong> - Dialog ohne Speichern schließen (Abbrechen)</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="project_settings.html">Projekt-Einstellungen</a></strong> - Projektspezifische Konfigurationen</li>
+            <li><strong>Hauptmenü → Einstellungen</strong> - Weitere Konfigurationsmöglichkeiten</li>
+            <li><strong>Ansicht-Optionen</strong> - Temporäre Anzeigeeinstellungen ohne Neustart</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Die Allgemeinen Einstellungen werden verwendet für:</p>
+        <ul>
+            <li><strong>Ersteinrichtung</strong> - Grundkonfiguration nach Installation</li>
+            <li><strong>Arbeitsplatz-Anpassung</strong> - Optimierung auf Bildschirmgröße und Präferenzen</li>
+            <li><strong>Mehrsprachigkeit</strong> - Unterstützung verschiedener Benutzersprachen</li>
+            <li><strong>Lokalisierung</strong> - Anpassung an regionale Datums-/Zeitkonventionen</li>
+            <li><strong>Performance-Tuning</strong> - Optimierung der Spaltenbreiten für bessere Lesbarkeit</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <p>Der Dialog ist in drei Hauptbereiche gegliedert:</p>
+
+        <h3>Gruppe "Pläne"</h3>
+        <ul>
+            <li><strong>Spaltenbreite Pläne</strong>: SpinBox (100-500px) für Standard-Zeitplanansichten</li>
+            <li><strong>Spaltenbreite Statistiken</strong>: SpinBox (50-500px) für Statistik-Darstellungen</li>
+        </ul>
+
+        <h3>Gruppe "Interface Language"</h3>
+        <ul>
+            <li><strong>Sprache</strong>: ComboBox mit verfügbaren Sprachpaketen aus dem translations-Ordner</li>
+        </ul>
+
+        <h3>Gruppe "Date and time format"</h3>
+        <ul>
+            <li><strong>Locale Selector</strong>: Erweiterte Auswahl für regionale Datums- und Zeitformate</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <div class="tip-box">
+            <h4>💡 Optimale Spaltenbreiten</h4>
+            <p><strong>Kleine Bildschirme (≤1366px):</strong> Pläne 120px, Statistiken 80px<br>
+            <strong>Standard-Bildschirme (1920px):</strong> Pläne 150px, Statistiken 100px<br>
+            <strong>Große Bildschirme (≥2560px):</strong> Pläne 200px, Statistiken 120px</p>
+        </div>
+
+        <p><strong>Szenario 1 - Mehrsprachige Teams:</strong></p>
+        <ol>
+            <li>Jeder Nutzer wählt seine bevorzugte Interface-Sprache</li>
+            <li>Datums-/Zeitformate werden nach lokalen Konventionen angepasst</li>
+            <li>Spaltenbreiten werden arbeitsplatzspezifisch optimiert</li>
+        </ol>
+
+        <p><strong>Szenario 2 - Monitor-Migration:</strong></p>
+        <ol>
+            <li>Bei Wechsel auf anderen Monitor Spaltenbreiten anpassen</li>
+            <li>Optimale Werte für neue Auflösung testen</li>
+            <li>Einstellungen speichern und Anwendung neu starten</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: Änderungen werden nicht übernommen</h4>
+            <p><strong>Ursache:</strong> Neustart nach Änderungen vergessen</p>
+            <p><strong>Lösung:</strong> HCC Plan vollständig beenden und neu starten. Einstellungen werden erst nach Neustart wirksam.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Sprache nicht verfügbar</h4>
+            <p><strong>Ursache:</strong> Sprachpaket nicht installiert oder beschädigt</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie den translations-Ordner auf korrekte .qm-Dateien. Bei Bedarf Sprachpakete neu installieren.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Spalten zu schmal/breit nach Einstellung</h4>
+            <p><strong>Ursache:</strong> Einstellwerte nicht optimal für aktuellen Bildschirm</p>
+            <p><strong>Lösung:</strong> Einstellungen erneut öffnen und Werte schrittweise anpassen. Testen Sie verschiedene Werte zwischen 120-200px für Pläne.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Backup vor Änderungen:</strong> Notieren Sie sich bewährte Einstellwerte</li>
+                <li><strong>Schrittweise Anpassung:</strong> Ändern Sie nur eine Einstellung pro Neustart</li>
+                <li><strong>Team-Standards:</strong> Definieren Sie einheitliche Spaltenbreiten für Teams</li>
+                <li><strong>Monitor-Profile:</strong> Dokumentieren Sie optimale Werte für verschiedene Bildschirmgrößen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Quick-Setup</h4>
+            <p><strong>Neue Installation:</strong></p>
+            <ol>
+                <li>Sprache → Ihre bevorzugte Sprache auswählen</li>
+                <li>Spaltenbreite Pläne → 150px (Standard für die meisten Bildschirme)</li>
+                <li>Spaltenbreite Statistiken → 100px</li>
+                <li>Datumsformat → Nach regionalen Präferenzen</li>
+                <li>Neustart → Sofort durchführen für beste Erfahrung</li>
+            </ol>
+        </div>
+
+        <h2>Technische Details</h2>
+        <p>Die Einstellungen werden in einer TOML-Konfigurationsdatei gespeichert und beim Anwendungsstart geladen. Die Sprach-Unterstützung basiert auf Qt-Übersetzungsdateien (.qm) im translations-Verzeichnis. Änderungen an system-weiten Einstellungen erfordern einen Neustart, da sie beim Initialisierungsprozess der Anwendung geladen werden.</p>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Skill-Gruppen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="skill groups, skillgruppen, anforderungen, personalstärke, location, event, planning">
+    <meta name="description" content="Hilfe für Skill-Gruppen zur Definition von Personalanforderungen in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Skill-Gruppen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Skill-Gruppen</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Skill-Gruppen definieren <strong>Personalanforderungen</strong> für Orte und Events. Im Gegensatz zu individuellen Skills, die Fähigkeiten einzelner Personen beschreiben, legen Skill-Gruppen fest, wie viele Personen mit welchen Qualifikationen für bestimmte Locations oder Events benötigt werden.</p>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Anforderungs-Definition</strong> - Kombination aus Skill + benötigte Personenanzahl</li>
+            <li><strong>Location-basierte Gruppen</strong> - Skill-Anforderungen für Arbeitsorte</li>
+            <li><strong>Event-basierte Gruppen</strong> - Spezifische Anforderungen für einzelne Events</li>
+            <li><strong>Personalstärke-Planung</strong> - 1-100 Personen pro Skill definierbar</li>
+            <li><strong>Reset-Funktion</strong> - Event-Skills auf Location-Standard zurücksetzen</li>
+            <li><strong>Intelligente Skill-Auswahl</strong> - Automatische Filterung bereits verwendeter Skills</li>
+        </ul>
+        
+        <h2>Konzeptuelle Abgrenzung</h2>
+        <div class="tip-box">
+            <h4>🎯 Skills vs. Skill-Gruppen</h4>
+            <p><strong>Skills:</strong> "Person X kann schauspielern" (individuelle Fähigkeiten)<br>
+            <strong>Skill-Gruppen:</strong> "Wir brauchen 3 Schauspieler für diese Location" (Personalanforderungen)</p>
+        </div>
+        
+        <h2>Die zwei Dialog-Typen</h2>
+        
+        <h3>1. Skill-Gruppen-Verwaltung (Haupt-Dialog)</h3>
+        <p><strong>Zweck:</strong> Verwaltung aller Skill-Gruppen für eine Location oder ein Event</p>
+        <ul class="feature-list">
+            <li><strong>Skill-Gruppen-Tabelle</strong> - Zeigt Skill, Beschreibung und Personenanzahl</li>
+            <li><strong>New Skill Group</strong> - Erstellt neue Anforderungsgruppen</li>
+            <li><strong>Edit Skill Group</strong> - Bearbeitet bestehende Gruppen</li>
+            <li><strong>Remove Skill Group</strong> - Entfernt Anforderungen</li>
+            <li><strong>Reset</strong> - Nur bei Events: Zurück zu Location-Standard</li>
+            <li><strong>Kontext-sensitive Anzeige</strong> - Unterschiedlich für Locations vs. Events</li>
+        </ul>
+
+        <h3>2. Skill-Gruppe bearbeiten (Einzelne Gruppe)</h3>
+        <p><strong>Zweck:</strong> Definition einer einzelnen Skill-Anforderung</p>
+        <ul class="feature-list">
+            <li><strong>Skill-Auswahl</strong> - Dropdown mit allen verfügbaren Projekt-Skills</li>
+            <li><strong>Personenanzahl</strong> - Spinner für 1-100 benötigte Personen</li>
+            <li><strong>Intelligente Filterung</strong> - Bereits verwendete Skills ausgeblendet</li>
+            <li><strong>Dual-Modus</strong> - Für neue und bestehende Skill-Gruppen</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Skill-Gruppen für eine Location definieren</h3>
+        <ol>
+            <li>Öffnen Sie den <strong>Skill Groups</strong>-Dialog für die gewünschte Location</li>
+            <li>Klicken Sie <strong>New Skill Group</strong></li>
+            <li>Wählen Sie den benötigten <strong>Skill</strong> aus dem Dropdown</li>
+            <li>Stellen Sie die <strong>Anzahl Personen</strong> ein (1-100)</li>
+            <li>Bestätigen Sie mit <strong>OK</strong></li>
+            <li>Die neue Skill-Gruppe erscheint in der Tabelle</li>
+        </ol>
+
+        <h3>Event-spezifische Anpassungen</h3>
+        <ol>
+            <li>Öffnen Sie die Skill-Gruppen für ein spezifisches Event</li>
+            <li>Das System zeigt zunächst die Standard-Anforderungen der Location</li>
+            <li>Passen Sie Gruppen für dieses Event an (Add/Edit/Remove)</li>
+            <li>Nutzen Sie <strong>Reset</strong> um zu Location-Standard zurückzukehren</li>
+        </ol>
+
+        <h3>Bestehende Skill-Gruppen bearbeiten</h3>
+        <ol>
+            <li>Wählen Sie eine Skill-Gruppe in der Tabelle aus</li>
+            <li>Doppelklicken oder <strong>Edit Skill Group</strong> verwenden</li>
+            <li>Ändern Sie Skill oder Personenanzahl</li>
+            <li>Bestätigen Sie die Änderungen</li>
+        </ol>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="skills.html">Individual Skills</a> - Für die Definition der grundlegenden Skills, die in Gruppen verwendet werden</li>
+            <li><a href="masterdata.html">Stammdaten</a> - Für Location-Verwaltung und Event-Erstellung</li>
+            <li><a href="plan.html">Hauptplanung</a> - Für die Verwendung der Skill-Anforderungen in der Planungslogik</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        
+        <h3>Location-basierte Skill-Gruppen</h3>
+        <ul>
+            <li><strong>Theaterbühne:</strong> "3 Schauspieler, 2 Techniker, 1 Regisseur"</li>
+            <li><strong>Werkstatt:</strong> "2 Kostümschneider, 1 Requisiteur"</li>
+            <li><strong>Proberaum:</strong> "4 Musiker, 1 Dirigent"</li>
+        </ul>
+
+        <h3>Event-spezifische Anpassungen</h3>
+        <ul>
+            <li><strong>Premiere:</strong> Zusätzliche Techniker für komplexere Technik</li>
+            <li><strong>Kindervorstellung:</strong> Weniger Schauspieler, zusätzliche Betreuer</li>
+            <li><strong>Proben:</strong> Reduzierte Personalstärke im Vergleich zu Aufführungen</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🎯 Szenario 1: Neue Location - Standard-Anforderungen</h3>
+        <p>Für eine neue Probebühne werden die Standard-Anforderungen definiert: "2 Schauspieler", "1 Regisseur", "1 Techniker". Diese dienen als Basis für alle Events an diesem Ort.</p>
+        
+        <h3>🎯 Szenario 2: Spezial-Event - Angepasste Anforderungen</h3>
+        <p>Für eine Gala-Aufführung werden die Standard-Anforderungen einer Location überschrieben: Statt 2 Schauspieler werden 5 benötigt, zusätzlich 2 Extra-Techniker.</p>
+        
+        <h3>🎯 Szenario 3: Proben vs. Aufführung</h3>
+        <p>Proben-Events erhalten reduzierte Skill-Gruppen (1 statt 2 Techniker), während Aufführungs-Events die vollen Location-Anforderungen nutzen.</p>
+
+        <h3>🎯 Szenario 4: Personalplanung</h3>
+        <p>Das Planungssystem verwendet Skill-Gruppen, um automatisch zu berechnen, wie viele Personen mit welchen Qualifikationen für verschiedene Termine benötigt werden.</p>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Skill nicht in Auswahl verfügbar</h4>
+            <p><strong>Ursache:</strong> Skill ist bereits als Skill-Gruppe für diese Location/Event definiert</p>
+            <p><strong>Lösung:</strong> Jeder Skill kann nur einmal pro Location/Event als Gruppe verwendet werden</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Reset-Button nicht verfügbar</h4>
+            <p><strong>Ursache:</strong> Reset-Funktion ist nur für Events verfügbar, nicht für Locations</p>
+            <p><strong>Lösung:</strong> Locations definieren die Standard-Anforderungen - nur Events können auf diese zurückgesetzt werden</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Keine Skills zur Auswahl</h4>
+            <p><strong>Ursache:</strong> Alle verfügbaren Projekt-Skills sind bereits als Gruppen verwendet</p>
+            <p><strong>Lösung:</strong> Erstellen Sie zuerst neue Skills über die <a href="skills.html">Individual Skills</a> Verwaltung</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>💡 Location-First Approach</h4>
+            <p>Definieren Sie zunächst realistische Standard-Anforderungen für Locations. Event-spezifische Anpassungen sollten die Ausnahme sein, nicht die Regel.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Realistische Personenzahlen</h4>
+            <p>Berücksichtigen Sie die verfügbaren Ressourcen bei der Definition von Skill-Gruppen. Zu hohe Anforderungen können zu unlösbaren Planungsproblemen führen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Event-Vererbung nutzen</h4>
+            <p>Events erben automatisch die Skill-Gruppen ihrer Location. Nutzen Sie dies für konsistente Grundanforderungen und passen Sie nur bei Bedarf an.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Planungshierarchie verstehen</h4>
+            <p>Skills (Grundlage) → Skill-Gruppen (Anforderungen) → Planung (Automatische Zuweisung). Jede Ebene baut auf der vorherigen auf.</p>
+        </div>
+
+        <h2>Workflow-Integration</h2>
+        
+        <h3>🔄 Planungsvorbereitungs-Workflow</h3>
+        <ol>
+            <li><strong>Skills definieren:</strong> Über <a href="skills.html">Individual Skills</a> alle benötigten Qualifikationen erstellen</li>
+            <li><strong>Location-Anforderungen:</strong> Standard Skill-Gruppen für jeden Arbeitsort definieren</li>
+            <li><strong>Event-Anpassungen:</strong> Bei Bedarf spezifische Events mit angepassten Anforderungen</li>
+            <li><strong>Automatische Planung:</strong> System nutzt Skill-Gruppen für optimale Personalzuteilung</li>
+        </ol>
+
+        <h3>🔄 Location vs. Event Unterscheidung</h3>
+        <ul>
+            <li><strong>Location-Skill-Gruppen:</strong> Permanente Standard-Anforderungen</li>
+            <li><strong>Event-Skill-Gruppen:</strong> Temporäre, event-spezifische Anpassungen</li>
+            <li><strong>Vererbung:</strong> Events starten mit Location-Standards, können aber überschrieben werden</li>
+        </ul>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Unterschiedliche Update-Logik</h3>
+        <p><strong>Locations:</strong> Direkte Update-Commands für permanente Änderungen<br>
+        <strong>Events:</strong> Remove-Create-Add Sequenz für temporäre Anpassungen</p>
+
+        <h3>Automatische Filterung</h3>
+        <p>Das System verhindert automatisch Doppel-Definitionen: Jeder Skill kann nur einmal pro Location/Event als Gruppe verwendet werden.</p>
+
+        <h3>Kaskaden-Reset für Events</h3>
+        <p>Die Reset-Funktion entfernt alle event-spezifischen Skill-Gruppen und lädt die Standard-Gruppen der zugehörigen Location neu.</p>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Doppelklick</strong> - Skill-Gruppe bearbeiten (in Tabelle)</li>
+                <li><strong>Enter</strong> - Aktion bestätigen</li>
+                <li><strong>Escape</strong> - Dialog ohne Änderungen schließen</li>
+                <li><strong>Tab</strong> - Zwischen Elementen wechseln</li>
+                <li><strong>Del</strong> - Ausgewählte Skill-Gruppe entfernen</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

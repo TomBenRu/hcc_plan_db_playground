@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Tageszeit-Verwaltung - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="tageszeit, time of day, kategorien, standards, zeiten, planung, schedule">
+    <meta name="description" content="Hilfe für die umfassende Tageszeit-Verwaltung in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Tageszeit-Verwaltung</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Tageszeit-Verwaltung</div>
+    </div>
+    
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die Tageszeit-Verwaltung ist ein hierarchisches System zur Definition und Verwaltung von Arbeitszeiten in HCC Plan. Es ermöglicht die flexible Konfiguration von Tageszeiten auf verschiedenen Ebenen: Projekt, Person, Location und Planungsperioden.</p>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Hierarchische Struktur</strong> - Projekt → Person/Location → Planungsperioden</li>
+            <li><strong>Kategorien-System</strong> - Tageszeit-Kategorien (Morgen, Nachmittag, Abend) definieren</li>
+            <li><strong>Standard-System</strong> - Bestimmte Zeiten als Standards für Vererbung markieren</li>
+            <li><strong>Flexible Zeitdefinition</strong> - Start- und Endzeiten präzise festlegen</li>
+            <li><strong>Reset-Funktion</strong> - Zurücksetzen auf übergeordnete Standards</li>
+            <li><strong>Multi-Ebenen-Verwaltung</strong> - Verschiedene Dialoge für verschiedene Kontexte</li>
+        </ul>
+        
+        <h2>System-Architektur</h2>
+        <div class="tip-box">
+            <h4>🏗️ Hierarchische Vererbung</h4>
+            <p><strong>Projekt:</strong> Globale Tageszeit-Definitionen<br>
+            <strong>Person/Location:</strong> Spezifische Anpassungen<br>
+            <strong>Planungsperioden:</strong> Periodenbezogene Feinabstimmung</p>
+        </div>
+
+        <h2>Die drei Dialog-Systeme</h2>
+        
+        <h3>1. Tageszeit-Kategorien verwalten</h3>
+        <p><strong>Dialog:</strong> DlgTimeOfDayEnum</p>
+        <p><strong>Zweck:</strong> Definition der grundlegenden Kategorien wie "Morgen", "Nachmittag", "Abend"</p>
+        <ul class="feature-list">
+            <li><strong>Name</strong> - Vollständige Bezeichnung der Kategorie</li>
+            <li><strong>Abkürzung</strong> - Kurze Darstellung für UI</li>
+            <li><strong>Tagesreihenfolge</strong> - Numerische Sortierung im Tagesverlauf</li>
+            <li><strong>Neu-Modus</strong> - Erstellen neuer Kategorien</li>
+        </ul>
+
+        <h3>2. Einzelne Tageszeit bearbeiten</h3>
+        <p><strong>Dialog:</strong> DlgTimeOfDayEdit</p>
+        <p><strong>Zweck:</strong> Definition konkreter Arbeitszeiten innerhalb einer Kategorie</p>
+        <ul class="feature-list">
+            <li><strong>Name</strong> - Spezifische Bezeichnung (z.B. "Vormittagsprobe")</li>
+            <li><strong>Startzeit</strong> - Präzise Anfangszeit</li>
+            <li><strong>Endzeit</strong> - Präzise Endzeit</li>
+            <li><strong>Kategorie-Zuordnung</strong> - Auswahl der Tageszeit-Kategorie</li>
+            <li><strong>Standard-Option</strong> - Als Standard für Vererbung markieren</li>
+            <li><strong>Neu-Modus</strong> - Erstellen vs. Bearbeiten</li>
+        </ul>
+
+        <h3>3. Tageszeiten-Verwaltung (Multi-Kontext)</h3>
+        <p><strong>Dialog:</strong> DlgTimeOfDaysEditList + Builder-Pattern</p>
+        <p><strong>Zweck:</strong> Verwaltung aller Tageszeiten für verschiedene Entitäten</p>
+        <ul class="feature-list">
+            <li><strong>Kontext-adaptive UI</strong> - Unterschiedliche Funktionalität je nach Entität</li>
+            <li><strong>Tageszeiten-Tabelle</strong> - Name, Zeitspanne, Kategorie, Standard-Status</li>
+            <li><strong>New/Edit/Delete</strong> - Vollständige CRUD-Operationen</li>
+            <li><strong>Reset-Funktion</strong> - Zurück zu übergeordneten Standards (wo verfügbar)</li>
+            <li><strong>Automatische Sortierung</strong> - Nach Tageszeit-Index sortiert</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Tageszeit-Kategorien einrichten (Projekt-Ebene)</h3>
+        <ol>
+            <li>Öffnen Sie die Tageszeit-Kategorien-Verwaltung</li>
+            <li>Definieren Sie Grundkategorien: "Morgen", "Nachmittag", "Abend"</li>
+            <li>Vergeben Sie <strong>Abkürzungen</strong> (z.B. "VM", "NM", "AB")</li>
+            <li>Setzen Sie <strong>Tagesreihenfolge</strong> (1, 2, 3...)</li>
+            <li>Speichern Sie die Kategorien</li>
+        </ol>
+
+        <h3>Projekt-Tageszeiten definieren</h3>
+        <ol>
+            <li>Öffnen Sie die Tageszeiten-Verwaltung für das Projekt</li>
+            <li>Klicken Sie <strong>New...</strong> für neue Tageszeiten</li>
+            <li>Geben Sie einen aussagekräftigen <strong>Namen</strong> ein</li>
+            <li>Setzen Sie <strong>Start- und Endzeit</strong></li>
+            <li>Wählen Sie die passende <strong>Kategorie</strong></li>
+            <li>Markieren Sie wichtige Zeiten als <strong>Standard</strong></li>
+            <li>Speichern Sie mit <strong>OK</strong></li>
+        </ol>
+
+        <h3>Person-spezifische Anpassungen</h3>
+        <ol>
+            <li>Öffnen Sie Tageszeiten für eine spezifische Person</li>
+            <li>Das System zeigt zunächst Projekt-Standards</li>
+            <li>Passen Sie Zeiten für diese Person an (Edit/Delete)</li>
+            <li>Fügen Sie person-spezifische Zeiten hinzu (New)</li>
+            <li>Nutzen Sie <strong>Reset</strong> um zu Projekt-Standards zurückzukehren</li>
+        </ol>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="masterdata.html">Stammdaten</a> - Für Person- und Location-Verwaltung mit Tageszeit-Zuweisungen</li>
+            <li><a href="actor_plan_period.html">Actor Plan Period</a> - Für personenbezogene Planungsperioden</li>
+            <li><a href="location_plan_period.html">Location Plan Period</a> - Für locationbezogene Planungsperioden</li>
+            <li><a href="plan.html">Hauptplanung</a> - Für die Verwendung der Tageszeiten in der Terminplanung</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        
+        <h3>Verschiedene Verwendungsebenen</h3>
+        <ul>
+            <li><strong>Projekt-Ebene:</strong> Globale Tageszeit-Standards für das gesamte Projekt</li>
+            <li><strong>Person-Ebene:</strong> Individuelle Arbeitszeiten und Verfügbarkeiten</li>
+            <li><strong>Location-Ebene:</strong> Öffnungszeiten und verfügbare Zeiten von Arbeitsstätten</li>
+            <li><strong>Planungsperioden:</strong> Feinabstimmung für spezifische Zeiträume</li>
+        </ul>
+
+        <h3>Typische Anwendungsszenarien</h3>
+        <ul>
+            <li><strong>Theater-Projekt:</strong> "Vormittagsprobe 09:00-12:00", "Nachmittagsprobe 14:00-17:00", "Abendvorstellung 19:30-22:00"</li>
+            <li><strong>Workshop-Reihe:</strong> "Session 1 09:00-10:30", "Pause 10:30-11:00", "Session 2 11:00-12:30"</li>
+            <li><strong>Festival:</strong> "Aufbau 08:00-10:00", "Programm 10:00-18:00", "Abbau 18:00-20:00"</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🎯 Szenario 1: Neues Projekt Setup</h3>
+        <p>Zu Projektbeginn werden zunächst Kategorien definiert ("Probe", "Vorstellung", "Pause"), dann konkrete Zeiten ("Vormittagsprobe 09:00-12:00") zugeordnet und relevante als Standards markiert.</p>
+        
+        <h3>🎯 Szenario 2: Person mit besonderen Arbeitszeiten</h3>
+        <p>Ein Teilzeit-Mitarbeiter kann nur vormittags. Seine Person-Tageszeiten werden angepasst: Vormittags-Zeiten bleiben, Nachmittags/Abends werden entfernt.</p>
+        
+        <h3>🎯 Szenario 3: Location mit eingeschränkten Öffnungszeiten</h3>
+        <p>Eine Probebühne ist nur bis 20:00 verfügbar. Die Location-Tageszeiten werden entsprechend angepasst, späte Abendzeiten entfernt.</p>
+
+        <h3>🎯 Szenario 4: Planungsperiode mit Sonderregelung</h3>
+        <p>Während der Intensivproben-Woche gelten andere Zeiten. Die Planungsperioden-Tageszeiten werden temporär angepasst, nach der Woche über Reset zurückgesetzt.</p>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Tageszeit-Name bereits vorhanden</h4>
+            <p><strong>Ursache:</strong> Name-Duplikate sind pro Kontext nicht erlaubt</p>
+            <p><strong>Lösung:</strong> Verwenden Sie eindeutige, beschreibende Namen wie "Vormittagsprobe" statt nur "Probe"</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Tageszeit kann nicht ausgewählt werden</h4>
+            <p><strong>Ursache:</strong> Keine Tageszeit-Kategorien definiert</p>
+            <p><strong>Lösung:</strong> Erstellen Sie zuerst Kategorien über die Kategorien-Verwaltung, dann Tageszeiten</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Reset-Button nicht verfügbar</h4>
+            <p><strong>Ursache:</strong> Entität ist auf oberster Ebene (Projekt) oder hat keine übergeordneten Standards</p>
+            <p><strong>Lösung:</strong> Reset funktioniert nur bei Vererbungs-Hierarchien (Person/Location erben von Projekt)</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>💡 Kategorien zuerst definieren</h4>
+            <p>Beginnen Sie immer mit der Definition sinnvoller Tageszeit-Kategorien auf Projekt-Ebene. Diese strukturieren später alle konkreten Zeiten.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Standards strategisch setzen</h4>
+            <p>Markieren Sie häufig verwendete Tageszeiten als Standards. Diese werden automatisch an untergeordnete Entitäten vererbt und reduzieren den Konfigurationsaufwand.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Vererbung nutzen</h4>
+            <p>Definieren Sie realistische Standards auf Projekt-Ebene und passen Sie nur bei Bedarf auf Person/Location-Ebene an. Dies spart Zeit und sorgt für Konsistenz.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Hierarchie verstehen</h4>
+            <p>Projekt-Standards → Person/Location-Anpassungen → Planungsperioden-Feintuning. Jede Ebene kann die übergeordnete überschreiben.</p>
+        </div>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Tageszeiten-Verwaltung (Hauptdialog)</h3>
+        <ul>
+            <li><strong>Tageszeiten-Tabelle</strong> - Zeigt Name, Zeitspanne, Kategorie und Standard-Status</li>
+            <li><strong>New...</strong> - Öffnet Bearbeitungs-Dialog für neue Tageszeit</li>
+            <li><strong>Edit...</strong> - Bearbeitet ausgewählte Tageszeit</li>
+            <li><strong>Delete</strong> - Entfernt Tageszeit aus diesem Kontext</li>
+            <li><strong>Reset</strong> - Lädt übergeordnete Standards (wenn verfügbar)</li>
+        </ul>
+
+        <h3>Tageszeit-Bearbeitung</h3>
+        <ul>
+            <li><strong>Name-Feld</strong> - Beschreibende Bezeichnung</li>
+            <li><strong>Startzeit</strong> - Präzise Startzeit (Stunden:Minuten)</li>
+            <li><strong>Endzeit</strong> - Präzise Endzeit</li>
+            <li><strong>Kategorie-Dropdown</strong> - Auswahl der Tageszeit-Kategorie</li>
+            <li><strong>Standard-Checkbox</strong> - Als Standard für Vererbung markieren</li>
+            <li><strong>Neu-Modus</strong> - Checkbox für Erstellen vs. Bearbeiten</li>
+        </ul>
+
+        <h3>Kategorien-Verwaltung</h3>
+        <ul>
+            <li><strong>Name-Feld</strong> - Vollständige Kategoriebezeichnung</li>
+            <li><strong>Abkürzungs-Feld</strong> - Kurze Darstellung (max. 10 Zeichen)</li>
+            <li><strong>Tagesreihenfolge</strong> - Numerischer Index für chronologische Sortierung</li>
+        </ul>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Builder-Pattern für verschiedene Kontexte</h3>
+        <p>Das System verwendet ein flexibles Builder-Pattern, das für jeden Kontext (Projekt, Person, Location, Planungsperioden) automatisch die richtigen Commands und Vererbungsregeln konfiguriert.</p>
+
+        <h3>Intelligente Vererbung</h3>
+        <ul>
+            <li><strong>Projekt → Person:</strong> Person erbt Projekt-Standards, kann aber anpassen</li>
+            <li><strong>Projekt → Location:</strong> Location erbt Projekt-Standards</li>
+            <li><strong>Person → ActorPlanPeriod:</strong> Planungsperiode erbt Person-Einstellungen</li>
+            <li><strong>Location → LocationPlanPeriod:</strong> Planungsperiode erbt Location-Einstellungen</li>
+        </ul>
+
+        <h3>Standard-System</h3>
+        <p>Tageszeiten können als "Standards" markiert werden, wodurch sie automatisch an untergeordnete Entitäten vererbt werden. Dies reduziert den Konfigurationsaufwand erheblich.</p>
+
+        <h3>Automatische Bereinigung</h3>
+        <p>Das System führt automatisch eine Bereinigung nicht verwendeter Tageszeiten durch (<code>delete_unused</code>) beim Speichern oder Abbrechen.</p>
+
+        <h2>Workflow-Beispiele</h2>
+        
+        <h3>🔄 Komplett-Setup für neues Projekt</h3>
+        <ol>
+            <li><strong>Kategorien definieren:</strong> "Probe", "Vorstellung", "Pause", "Aufbau"</li>
+            <li><strong>Projekt-Standards:</strong> "Vormittagsprobe 09:00-12:00", "Abendvorstellung 19:30-22:00"</li>
+            <li><strong>Person-Anpassungen:</strong> Teilzeit-Kräfte nur Vormittags</li>
+            <li><strong>Location-Anpassungen:</strong> Externe Locations mit eingeschränkten Zeiten</li>
+            <li><strong>Planungsperioden:</strong> Intensive Probenwochen mit erweiterten Zeiten</li>
+        </ol>
+
+        <h3>🔄 Laufende Anpassungen</h3>
+        <ol>
+            <li><strong>Neue Anforderungen:</strong> Zusätzliche Tageszeiten für Sonder-Events</li>
+            <li><strong>Saisonale Änderungen:</strong> Anpassung an Sommer-/Winterzeiten</li>
+            <li><strong>Ausnahme-Behandlung:</strong> Temporäre Änderungen für bestimmte Perioden</li>
+            <li><strong>Zurücksetzung:</strong> Reset nach Sonderphasen zu normalen Standards</li>
+        </ol>
+
+        <h2>Häufige Anwendungsmuster</h2>
+        
+        <h3>Theater/Performance</h3>
+        <ul>
+            <li><strong>Kategorien:</strong> Probe, Vorstellung, Technik, Pause</li>
+            <li><strong>Zeiten:</strong> "Hauptprobe 18:00-21:00", "Vorstellung 19:30-22:00"</li>
+        </ul>
+
+        <h3>Workshop/Bildung</h3>
+        <ul>
+            <li><strong>Kategorien:</strong> Session, Pause, Lunch, Networking</li>
+            <li><strong>Zeiten:</strong> "Session 1 09:00-10:30", "Kaffeepause 10:30-11:00"</li>
+        </ul>
+
+        <h3>Festival/Event</h3>
+        <ul>
+            <li><strong>Kategorien:</strong> Aufbau, Programm, Pause, Abbau</li>
+            <li><strong>Zeiten:</strong> "Bühnenaufbau 08:00-10:00", "Hauptprogramm 15:00-18:00"</li>
+        </ul>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen (in allen Tageszeit-Dialogen)</li>
+                <li><strong>Doppelklick</strong> - Tageszeit bearbeiten (in Tabelle)</li>
+                <li><strong>Enter</strong> - Aktion bestätigen</li>
+                <li><strong>Escape</strong> - Dialog ohne Änderungen schließen</li>
+                <li><strong>Tab</strong> - Zwischen Formularfeldern wechseln</li>
+                <li><strong>Del</strong> - Ausgewählte Tageszeit löschen</li>
+                <li><strong>Ctrl+N</strong> - Neue Tageszeit erstellen</li>
+            </ul>
+        </div>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Builder-Pattern Implementation</h3>
+        <p>Das System verwendet ein abstraktes Builder-Pattern (<code>DlgTimeOfDayEditListBuilderABC</code>) mit spezialisierten Implementierungen für:</p>
+        <ul>
+            <li><strong>Project:</strong> Globale Projekt-Tageszeiten</li>
+            <li><strong>Person:</strong> Person-spezifische Arbeitszeiten</li>
+            <li><strong>Location:</strong> Location-spezifische Verfügbarkeiten</li>
+            <li><strong>ActorPlanPeriod:</strong> Planungsperioden-spezifische Anpassungen für Personen</li>
+            <li><strong>LocationPlanPeriod:</strong> Planungsperioden-spezifische Anpassungen für Locations</li>
+        </ul>
+
+        <h3>Command-Pattern Integration</h3>
+        <p>Jeder Builder konfiguriert automatisch die korrekten Commands für CRUD-Operationen in seinem spezifischen Kontext, inklusive Undo/Redo-Funktionalität.</p>
+    </div>
+</body>
+</html>

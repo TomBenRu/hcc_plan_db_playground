@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Notizen-System - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="notizen, notes, plan notizen, team notizen, event notizen, termin notizen, appointment notes">
+    <meta name="description" content="Hilfe für das Notizen-System in HCC Plan - Hierarchische Notizen-Verwaltung für alle Planungsebenen">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Notizen-System</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Notizen-System</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Das Notizen-System in HCC Plan ermöglicht die strukturierte Verwaltung von Informationen auf verschiedenen Planungsebenen. Von Team-weiten Hinweisen bis zu spezifischen Termin-Details können alle relevanten Informationen erfasst und automatisch weitergegeben werden.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Hierarchische Notizen-Struktur</strong> - Team → Planungsperiode → Event → Termin</li>
+            <li><strong>Automatische Vererbung</strong> - Notizen werden auf untergeordnete Ebenen kopiert</li>
+            <li><strong>Context-sensitive Dialoge</strong> - Angepasste Eingabeformulare je nach Notiz-Typ</li>
+            <li><strong>Reset-Funktionalität</strong> - Wiederherstellung von übergeordneten Notizen</li>
+            <li><strong>Export-Integration</strong> - Automatische Übernahme in generierte Zeitpläne und Excel-Dateien</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Notizen-Dialog über entsprechende Funktion öffnen (kontextabhängig):
+                <ul>
+                    <li><strong>Team-Notizen</strong>: Team-Verwaltung → "Notizen bearbeiten"</li>
+                    <li><strong>Plan-Notizen</strong>: Plan-Ansicht → "Plan-Informationen"</li>
+                    <li><strong>Event-Notizen</strong>: Event-Kontext → "Event-Notizen"</li>
+                    <li><strong>Termin-Notizen</strong>: Termin-Details → "Termin-Informationen"</li>
+                </ul>
+            </li>
+            <li>Relevante Informationen im <strong>Textfeld</strong> eingeben oder bearbeiten</li>
+            <li>Optional <strong>Reset-Funktion</strong> nutzen um übergeordnete Notizen zu übernehmen</li>
+            <li>Bei Plan-Notizen: Optional <strong>"Auch als Planungsperioden-Information speichern"</strong> aktivieren</li>
+            <li><strong>"OK"</strong> klicken zum Speichern oder <strong>"Abbrechen"</strong> zum Verwerfen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe anzeigen</li>
+                <li><strong>Ctrl+A</strong> - Gesamten Text auswählen</li>
+                <li><strong>Ctrl+C/V</strong> - Kopieren und Einfügen</li>
+                <li><strong>Enter</strong> - Neue Zeile im Textfeld</li>
+                <li><strong>Ctrl+Enter</strong> - Speichern (OK)</li>
+                <li><strong>Esc</strong> - Abbrechen ohne Speichern</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong>Team-Verwaltung</strong> - Grundlage für Team-Notizen</li>
+            <li><strong>Planungsperioden</strong> - Erben Team-Notizen automatisch</li>
+            <li><strong>Event-Verwaltung</strong> - Nutzt Plan- und Event-spezifische Notizen</li>
+            <li><strong>Excel-Export</strong> - Integriert alle Notiz-Ebenen</li>
+            <li><strong>Zeitplan-Generierung</strong> - Verwendet Plan- und Termin-Notizen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Das Notizen-System wird verwendet für:</p>
+        <ul>
+            <li><strong>Team-weite Informationen</strong> - Allgemeine Hinweise, Kontaktdaten, Besonderheiten</li>
+            <li><strong>Planungsperioden-Details</strong> - Spezifische Informationen für Zeitraum und Team-Kombination</li>
+            <li><strong>Event-Koordination</strong> - Logistische Details, Anweisungen, besondere Anforderungen</li>
+            <li><strong>Termin-spezifische Hinweise</strong> - Individuelle Notizen für Excel-Export</li>
+            <li><strong>Kommunikation</strong> - Informationsweitergabe zwischen Planungsebenen</li>
+        </ul>
+
+        <h2>Notiz-Typen im Detail</h2>
+
+        <h3>Team-Notizen (DlgTeamNotes)</h3>
+        <ul>
+            <li><strong>Zweck</strong>: Allgemeine Team-Informationen</li>
+            <li><strong>Vererbung</strong>: Werden automatisch zu neuen Planungsperioden kopiert</li>
+            <li><strong>Anwendung</strong>: Team-Kontakte, Standard-Anweisungen, wiederkehrende Hinweise</li>
+            <li><strong>Zugriff</strong>: Über Team-Verwaltung</li>
+        </ul>
+
+        <h3>Plan-Notizen (DlgPlanPeriodNotes)</h3>
+        <ul>
+            <li><strong>Zweck</strong>: Informationen für generierte Zeitpläne</li>
+            <li><strong>Features</strong>: Reset von Planungsperiode + Rückspeichern-Option</li>
+            <li><strong>Anwendung</strong>: Spezielle Anweisungen, Änderungen, wichtige Hinweise</li>
+            <li><strong>Export</strong>: Erscheinen in generierten Zeitplan-Dokumenten</li>
+        </ul>
+
+        <h3>Event-Notizen (DlgEventNotes)</h3>
+        <ul>
+            <li><strong>Zweck</strong>: Event-spezifische Informationen</li>
+            <li><strong>Features</strong>: Unterstützt Mehrfach-Events-Modus</li>
+            <li><strong>Vererbung</strong>: Werden zu verknüpften Terminen kopiert</li>
+            <li><strong>Anwendung</strong>: Logistik-Details, Besonderheiten, Koordinations-Infos</li>
+        </ul>
+
+        <h3>Termin-Notizen (DlgAppointmentNotes)</h3>
+        <ul>
+            <li><strong>Zweck</strong>: Individuelle Termin-Informationen</li>
+            <li><strong>Features</strong>: Reset von Planning Event + spezielle Darstellung</li>
+            <li><strong>Export</strong>: Werden in Excel-Dateien der Zeitpläne eingebunden</li>
+            <li><strong>Anwendung</strong>: Personen-spezifische Hinweise, Last-Minute-Änderungen</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <div class="tip-box">
+            <h4>💡 Informations-Kaskade</h4>
+            <p><strong>Effiziente Informationsweitergabe:</strong></p>
+            <ol>
+                <li><strong>Team-Ebene:</strong> "Kontakt Technik: Max Mustermann, Tel: 123-456"</li>
+                <li><strong>Plan-Ebene:</strong> "Besondere Anforderungen: Zusätzliche Sicherheit erforderlich"</li>
+                <li><strong>Event-Ebene:</strong> "Aufbau ab 8:00, Equipment-Check 9:30"</li>
+                <li><strong>Termin-Ebene:</strong> "Person A: Früh da für Setup, Person B: Nur Hauptevent"</li>
+            </ol>
+        </div>
+
+        <p><strong>Szenario 1 - Neues Projekt Setup:</strong></p>
+        <ol>
+            <li>Team-Notizen mit Standard-Informationen anlegen</li>
+            <li>Erste Planungsperiode erstellen → Team-Notizen werden übernommen</li>
+            <li>Plan-spezifische Ergänzungen hinzufügen</li>
+            <li>Events erstellen → Plan-Notizen als Basis nutzen</li>
+            <li>Termin-Details individuell anpassen</li>
+        </ol>
+
+        <p><strong>Szenario 2 - Last-Minute-Änderungen:</strong></p>
+        <ol>
+            <li>Termin-Notizen öffnen für betroffene Termine</li>
+            <li>Änderung eingeben: "ACHTUNG: Raum geändert auf B-204"</li>
+            <li>Speichern → Information erscheint in nächstem Excel-Export</li>
+            <li>Bei Bedarf auch Event-Notizen aktualisieren für zukünftige Termine</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: Notizen erscheinen nicht im Export</h4>
+            <p><strong>Ursache:</strong> Falsche Notiz-Ebene oder Export-Typ</p>
+            <p><strong>Lösung:</strong> Plan-Notizen für Zeitplan-Generation, Termin-Notizen für Excel-Export verwenden. Prüfen Sie, ob die richtige Notiz-Ebene verwendet wird.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Team-Notizen werden nicht vererbt</h4>
+            <p><strong>Ursache:</strong> Planungsperiode bereits vor Team-Notizen erstellt</p>
+            <p><strong>Lösung:</strong> Vererbung funktioniert nur bei NEU erstellten Planungsperioden. Bestehende Perioden manuell aktualisieren oder Reset-Funktion nutzen.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Text wird abgeschnitten</h4>
+            <p><strong>Ursache:</strong> Zu lange Notizen für bestimmte Export-Formate</p>
+            <p><strong>Lösung:</strong> Notizen kompakt formulieren. Bei Excel-Export beachten, dass Zellengröße begrenzt ist. Wichtigste Infos an den Anfang setzen.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Reset-Funktion funktioniert nicht</h4>
+            <p><strong>Ursache:</strong> Übergeordnete Notiz ist leer oder nicht vorhanden</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie, ob auf der übergeordneten Ebene (Planungsperiode/Event) tatsächlich Notizen vorhanden sind.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Hierarchie nutzen:</strong> Standard-Infos auf Team-Ebene, Spezifisches auf niedrigeren Ebenen</li>
+                <li><strong>Konsistente Struktur:</strong> Ähnliche Informationen immer in gleicher Reihenfolge</li>
+                <li><strong>Kurz und prägnant:</strong> Wichtigste Infos zuerst, Details optional</li>
+                <li><strong>Reset-Funktionen nutzen:</strong> Übergeordnete Notizen als Ausgangsbasis verwenden</li>
+                <li><strong>Export-Format bedenken:</strong> Notizen entsprechend der Ausgabe-Ziel formatieren</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Content-Struktur</h4>
+            <p><strong>Empfohlenes Format für Notizen:</strong></p>
+            <ul>
+                <li><strong>Team-Notizen:</strong> Kontakte | Standards | Besonderheiten</li>
+                <li><strong>Plan-Notizen:</strong> Änderungen | Wichtige Termine | Ansprechpartner</li>
+                <li><strong>Event-Notizen:</strong> Zeit/Ort Details | Equipment | Logistik</li>
+                <li><strong>Termin-Notizen:</strong> Person-spezifisch | Ausnahmen | Erinnerungen</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Mehrfach-Events-Modus</h3>
+        <p>Der Event-Notizen-Dialog kann im Mehrfach-Modus verwendet werden, um identische Notizen für mehrere Events gleichzeitig zu setzen. Dies ist besonders nützlich bei wiederkehrenden Events oder Event-Serien.</p>
+
+        <h3>Bidirektionale Speicherung</h3>
+        <p>Plan-Notizen bieten die Option "Auch als Planungsperioden-Information speichern", wodurch Änderungen sowohl für den spezifischen Plan als auch für die zugrunde liegende Planungsperiode gespeichert werden.</p>
+
+        <h3>Context-Aware Display</h3>
+        <p>Jeder Dialog zeigt relevante Kontext-Informationen (Datum, Zeit, Ort, Team) automatisch an, um die richtige Zuordnung der Notizen sicherzustellen.</p>
+
+        <h2>Technische Details</h2>
+        <p>Das Notizen-System basiert auf vier spezialisierten Dialog-Klassen, die jeweils mit entsprechenden Datenbank-Schemas arbeiten. Die automatische Vererbung erfolgt über Datenbank-Triggers und Cascade-Funktionen. Notizen werden als Plain-Text gespeichert und bei Export-Funktionen entsprechend formatiert. Die Reset-Funktionalität greift auf Parent-Objekte zu und aktualisiert den UI-State entsprechend.</p>
+
+    </div>
+</body>
+</html>

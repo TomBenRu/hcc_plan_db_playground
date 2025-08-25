@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Projekt-Einstellungen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="projekt einstellungen, projektdaten, teams, admin, tageszeiten, skills, cast rules, excel export">
+    <meta name="description" content="Hilfe für Projekt-Einstellungen in HCC Plan - Zentrale Konfiguration aller projektspezifischen Einstellungen">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Projekt-Einstellungen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Projekt-Einstellungen</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Die Projekt-Einstellungen sind die zentrale Anlaufstelle für die Konfiguration aller projektspezifischen Parameter. Hier verwalten Sie Projektdaten, Teams, Tageszeiten, Skills und Export-Einstellungen an einem Ort.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Projektdaten verwalten</strong> - Name und Admin-Zuweisungen ändern</li>
+            <li><strong>Team-Management</strong> - Teams erstellen, bearbeiten und löschen</li>
+            <li><strong>Tageszeiten-System</strong> - Hierarchische Zeitkategorien definieren</li>
+            <li><strong>Skills-Management</strong> - Individuelle Fähigkeiten für das Projekt</li>
+            <li><strong>Cast Rules</strong> - Projektspezifische Besetzungsregeln festlegen</li>
+            <li><strong>Excel-Export-Konfiguration</strong> - Farbschemas und Export-Parameter</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie die Projekt-Einstellungen über das <strong>Hauptmenü → Projekt → Einstellungen</strong></li>
+            <li>Der Dialog zeigt alle Konfigurationsbereiche in einer übersichtlichen Liste:
+                <ul>
+                    <li><strong>Name</strong>: Projektname bearbeiten → <strong>"Speichern"</strong></li>
+                    <li><strong>Teams</strong>: Team auswählen → <strong>"Neu/Bearbeiten/Löschen"</strong></li>
+                    <li><strong>Admin</strong>: Person auswählen → <strong>"Speichern"</strong></li>
+                    <li><strong>Times of Day</strong>: <strong>"Neu/Bearbeiten/Löschen"</strong> für Tageszeiten</li>
+                    <li><strong>Skills</strong>: <strong>"Neu/Bearbeiten/Löschen"</strong> für Fähigkeiten</li>
+                    <li><strong>Cast Rules</strong>: <strong>"Neu/Bearbeiten/Löschen"</strong> für Regeln</li>
+                    <li><strong>Excel Settings</strong>: Farbvorschau → <strong>"Bearbeiten"</strong></li>
+                </ul>
+            </li>
+            <li>Jede Änderung wird <strong>sofort in der Datenbank gespeichert</strong> und bestätigt</li>
+            <li>Der Dialog bleibt geöffnet für weitere Konfigurationen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe anzeigen</li>
+                <li><strong>Enter</strong> - Ausgewählte Aktion ausführen</li>
+                <li><strong>Esc</strong> - Dialog schließen</li>
+                <li><strong>Tab</strong> - Zwischen Bereichen wechseln</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="general_settings.html">Allgemeine Einstellungen</a></strong> - System-weite Konfiguration</li>
+            <li><strong><a href="skills.html">Skills</a></strong> - Detaillierte Fähigkeiten-Verwaltung</li>
+            <li><strong><a href="time_of_day.html">Time of Day</a></strong> - Tageszeiten-System im Detail</li>
+            <li><strong><a href="assign_to_team.html">Team-Zuweisungen</a></strong> - Personen zu Teams zuweisen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Die Projekt-Einstellungen werden verwendet für:</p>
+        <ul>
+            <li><strong>Projekt-Setup</strong> - Grundkonfiguration bei Projekt-Erstellung</li>
+            <li><strong>Laufende Anpassungen</strong> - Änderungen während des Projektverlaufs</li>
+            <li><strong>Team-Restructuring</strong> - Organisationsänderungen abbilden</li>
+            <li><strong>Admin-Wechsel</strong> - Projektverantwortlichkeit übertragen</li>
+            <li><strong>Export-Optimierung</strong> - Excel-Ausgabe anpassen</li>
+            <li><strong>Skill-Evolution</strong> - Neue Anforderungen definieren</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <p>Der Dialog ist als zentrale Schaltzentrale organisiert mit Grid-Layout:</p>
+
+        <h3>Projektdaten-Bereich</h3>
+        <ul>
+            <li><strong>Name</strong>: LineEdit + "Speichern"-Button für Projektname-Änderung</li>
+            <li><strong>Teams</strong>: ComboBox zur Auswahl + "Neu/Bearbeiten/Löschen"-Button</li>
+            <li><strong>Admin</strong>: ComboBox mit Projekt-Personen + "Speichern"-Button</li>
+            <li><strong>Times of Day</strong>: Direkt "Neu/Bearbeiten/Löschen"-Button (keine Auswahl)</li>
+            <li><strong>Time of Day Categories</strong>: ComboBox + "Neu/Bearbeiten/Löschen"-Button</li>
+            <li><strong>Skills</strong>: Direkt "Neu/Bearbeiten/Löschen"-Button</li>
+            <li><strong>Cast Rules</strong>: Direkt "Neu/Bearbeiten/Löschen"-Button</li>
+            <li><strong>Excel Settings</strong>: Farbvorschau-Widgets + "Bearbeiten"-Button</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <div class="tip-box">
+            <h4>💡 Projekt-Setup Workflow</h4>
+            <p><strong>Reihenfolge für neue Projekte:</strong></p>
+            <ol>
+                <li>Projektname festlegen und speichern</li>
+                <li>Teams definieren (Struktur aufbauen)</li>
+                <li>Admin zuweisen (Verantwortlichkeit klären)</li>
+                <li>Tageszeiten konfigurieren (Arbeitszeiten definieren)</li>
+                <li>Skills anlegen (Anforderungsprofile erstellen)</li>
+                <li>Cast Rules definieren (Besetzungslogik festlegen)</li>
+                <li>Excel-Farben anpassen (Corporate Design)</li>
+            </ol>
+        </div>
+
+        <p><strong>Szenario 1 - Team-Restructuring:</strong></p>
+        <ol>
+            <li>Teams-Bereich öffnen → "Neu/Bearbeiten/Löschen"</li>
+            <li>Bestehende Team-Struktur analysieren</li>
+            <li>Neue Teams anlegen oder bestehende umbenennen</li>
+            <li>Personen zwischen Teams verschieben</li>
+            <li>Änderungen bestätigen und Team-Listen aktualisieren</li>
+        </ol>
+
+        <p><strong>Szenario 2 - Admin-Wechsel:</strong></p>
+        <ol>
+            <li>Admin-ComboBox → neue Person auswählen</li>
+            <li>"Speichern" klicken</li>
+            <li>Bestätigung abwarten</li>
+            <li>Neue Admin-Rechte sind sofort aktiv</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: Admin kann nicht zugewiesen werden</h4>
+            <p><strong>Ursache:</strong> Person ist nicht Teil des Projekts</p>
+            <p><strong>Lösung:</strong> Person muss zuerst dem Projekt hinzugefügt werden über Personen-Verwaltung, bevor sie als Admin ausgewählt werden kann.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Teams können nicht gelöscht werden</h4>
+            <p><strong>Ursache:</strong> Team hat noch zugewiesene Personen oder Events</p>
+            <p><strong>Lösung:</strong> Vor Löschung alle Personen anderen Teams zuweisen und Events überprüfen. Team muss vollständig "leer" sein.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Tageszeiten-Änderungen wirken sich nicht aus</h4>
+            <p><strong>Ursache:</strong> Bestehende Events verwenden bereits definierte Zeiten</p>
+            <p><strong>Lösung:</strong> Tageszeiten-Änderungen betreffen nur neue Events. Bestehende Events müssen manuell angepasst werden.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Excel-Farben werden nicht übernommen</h4>
+            <p><strong>Ursache:</strong> Änderungen nicht gespeichert oder Cache-Problem</p>
+            <p><strong>Lösung:</strong> Excel-Settings erneut öffnen, Änderungen bestätigen, und neuen Export testen. Bei Bedarf Anwendung neu starten.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Zentrale Anlaufstelle nutzen:</strong> Alle projektspezifischen Änderungen hier durchführen</li>
+                <li><strong>Reihenfolge beachten:</strong> Grundstrukturen (Teams, Tageszeiten) vor Details (Skills, Rules)</li>
+                <li><strong>Backup vor großen Änderungen:</strong> Besonders bei Team-Restructuring</li>
+                <li><strong>Schrittweise Anpassungen:</strong> Nicht alle Bereiche gleichzeitig ändern</li>
+                <li><strong>Sofortige Bestätigung:</strong> Jede Änderung wird direkt gespeichert und bestätigt</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Quick-Access</h4>
+            <p><strong>Häufige Änderungen schnell durchführen:</strong></p>
+            <ul>
+                <li><strong>Admin wechseln:</strong> ComboBox → Person → Speichern (3 Klicks)</li>
+                <li><strong>Projektname ändern:</strong> LineEdit → Text → Speichern (direkt)</li>
+                <li><strong>Excel-Farben anpassen:</strong> Farbvorschau → Bearbeiten → Ändern</li>
+                <li><strong>Neue Teams:</strong> Teams-Button → Neues Team → Konfigurieren</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Sub-Dialog Integration</h3>
+        <p>Die Projekt-Einstellungen fungieren als Portal zu spezialisierten Dialogen:</p>
+        <ul>
+            <li><strong>FrmTeam</strong> - Vollständige Team-Verwaltung mit Personenzuordnung</li>
+            <li><strong>DlgEditSkills</strong> - Umfassende Skills-Definition und -kategorisierung</li>
+            <li><strong>DlgTimeOfDayEditList</strong> - Hierarchisches Tageszeiten-Management</li>
+            <li><strong>DlgCastRules</strong> - Komplexe Besetzungsregeln und -logik</li>
+            <li><strong>DlgExcelExportSettings</strong> - Detaillierte Export-Konfiguration</li>
+        </ul>
+
+        <h3>Datenbank-Integration</h3>
+        <ul>
+            <li><strong>Sofortige Persistierung</strong> - Alle Änderungen direkt in Datenbank</li>
+            <li><strong>Automatische Aktualisierung</strong> - UI refresht nach Änderungen</li>
+            <li><strong>Transaktionale Sicherheit</strong> - Rollback bei Sub-Dialog-Abbruch</li>
+            <li><strong>Referenzielle Integrität</strong> - Abhängigkeiten werden berücksichtigt</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <p>Der Dialog arbeitet mit einer Project-ID (UUID) und lädt alle projektspezifischen Daten aus der Datenbank. Jeder Konfigurationsbereich hat eigene Speicher-Logik und Validierung. Sub-Dialoge arbeiten mit eigenen Controllern und können bei Abbruch alle Änderungen rückgängig machen (Undo-Pattern). Die Excel-Einstellungen verwenden Farbwidgets für visuelle Vorschau und speichern Farbwerte als Hex-Codes in der ExcelExportSettings-Tabelle.</p>
+
+    </div>
+</body>
+</html>

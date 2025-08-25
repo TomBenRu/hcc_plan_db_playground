@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Neues Projekt erstellen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="projekt, erstellen, neu, database, initialisierung, setup">
+    <meta name="description" content="Hilfe für Neues Projekt erstellen in HCC Plan - Neue Projekte initialisieren und konfigurieren">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Neues Projekt erstellen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Neues Projekt erstellen</div>
+    </div>
+    <div class="help-content">
+        
+        <h2>Übersicht</h2>
+        <p>Die Funktion "Neues Projekt erstellen" ermöglicht es Ihnen, ein komplett neues HCC Plan Projekt zu initialisieren. Ein Projekt ist die oberste Organisationsebene und enthält alle Teams, Mitarbeiter, Skills und Planungsdaten.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Projekt-Initialisierung</strong> - Erstellt eine neue, leere Projekt-Datenbank</li>
+            <li><strong>Eindeutige Projektnamen</strong> - Verhindert Duplikate durch Namensvalidierung</li>
+            <li><strong>Database-Setup</strong> - Automatische Initialisierung aller notwendigen Datenbank-Strukturen</li>
+            <li><strong>Sofortige Verfügbarkeit</strong> - Neues Projekt ist sofort nach Erstellung verwendbar</li>
+            <li><strong>Standard-Konfiguration</strong> - Projekt startet mit optimalen Grundeinstellungen</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie das Hauptfenster von HCC Plan</li>
+            <li>Wählen Sie <strong>"Datei" → "Neues Projekt"</strong> aus dem Menü</li>
+            <li>Der Dialog "Neues Projekt erstellen" öffnet sich</li>
+            <li>Geben Sie einen <strong>eindeutigen Projektnamen</strong> ein:
+                <ul>
+                    <li>Verwenden Sie sprechende Namen (z.B. "Krankenhaus_Stadtmitte_2024")</li>
+                    <li>Vermeiden Sie Sonderzeichen und Leerzeichen am Anfang/Ende</li>
+                    <li>Der Name sollte das Projekt eindeutig identifizieren</li>
+                </ul>
+            </li>
+            <li>Klicken Sie auf <strong>"OK"</strong> um das Projekt zu erstellen</li>
+            <li>Das neue Projekt wird automatisch geladen und ist sofort verwendbar</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Projekt erstellen (OK-Button)</p>
+            <p><strong>Escape</strong> - Dialog abbrechen</p>
+            <p><strong>Ctrl+N</strong> - Neues Projekt (Hauptfenster-Shortcut)</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="project_settings.html">Projekt-Einstellungen</a> - Nach Erstellung das neue Projekt konfigurieren</li>
+            <li><a href="general_settings.html">Allgemeine Einstellungen</a> - System-weite Konfiguration für alle Projekte</li>
+            <li><a href="../features/database.html">Datenbank-Verwaltung</a> - Projekt-Datenbanken verwalten und sichern</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Neues Projekt erstellen wird verwendet für:</p>
+        <ul>
+            <li><strong>Neue Einrichtungen</strong> - Komplette neue Krankenhäuser oder Abteilungen</li>
+            <li><strong>Jahreswechsel</strong> - Neues Projekt für neues Planungsjahr</li>
+            <li><strong>Testumgebungen</strong> - Separates Projekt für Tests und Experimente</li>
+            <li><strong>Mandantentrennung</strong> - Verschiedene Organisationen getrennt verwalten</li>
+            <li><strong>Projekt-Archivierung</strong> - Altes Projekt abschließen, neues für Fortsetzung</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <h3>Dialog-Aufbau</h3>
+        <p>Der "Neues Projekt erstellen" Dialog ist bewusst einfach gehalten:</p>
+        <ul>
+            <li><strong>Beschreibungs-Label</strong> - "Geben Sie den Namen des neuen Projekts ein:"</li>
+            <li><strong>Projektname-Eingabefeld</strong> - Zentrales Eingabefeld für den Namen</li>
+            <li><strong>Button-Bereich</strong> - OK/Abbrechen-Buttons</li>
+        </ul>
+
+        <h3>Namens-Validierung</h3>
+        <p>Das System überprüft automatisch:</p>
+        <ul>
+            <li><strong>Eindeutigkeit</strong> - Projektname darf nicht bereits existieren</li>
+            <li><strong>Gültigkeit</strong> - Name muss für Dateisystem und Datenbank geeignet sein</li>
+            <li><strong>Länge</strong> - Angemessene Länge für Darstellung in der Benutzeroberfläche</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🏗️ Neue Einrichtung einrichten</h3>
+        <p>Bei der Einführung von HCC Plan in einer neuen Einrichtung:</p>
+        <ol>
+            <li>Projektname nach Schema: <strong>"[Einrichtungsname]_[Jahr]"</strong></li>
+            <li>Beispiel: "Krankenhaus_Mitte_2024" oder "Klinik_Nord_2025"</li>
+            <li>Nach Erstellung sofort <a href="project_settings.html">Projekt-Einstellungen</a> konfigurieren</li>
+            <li>Teams und Mitarbeiter über entsprechende Funktionen hinzufügen</li>
+        </ol>
+
+        <h3>📅 Jahreswechsel vorbereiten</h3>
+        <p>Für neues Planungsjahr bei bestehender Einrichtung:</p>
+        <ol>
+            <li>Projektname: <strong>"[Bestehendes Projekt]_2025"</strong></li>
+            <li>Beispiel: "Krankenhaus_Mitte_2025" (Fortsetzung von 2024)</li>
+            <li>Daten aus altem Projekt bei Bedarf kopieren/migrieren</li>
+            <li>Neue Planungsperioden für das Jahr anlegen</li>
+        </ol>
+
+        <h3>🧪 Test-Projekt für Experimente</h3>
+        <p>Für Tests und Experimente ohne Risiko:</p>
+        <ol>
+            <li>Projektname: <strong>"Test_[Zweck]_[Datum]"</strong></li>
+            <li>Beispiel: "Test_NeueAlgorithmen_Aug2024"</li>
+            <li>Experimentelle Einstellungen und Konfigurationen testen</li>
+            <li>Bei Erfolg Settings in Produktiv-Projekt übertragen</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>Problem: Projektname bereits vergeben</h4>
+            <p><strong>Ursache:</strong> Ein Projekt mit diesem Namen existiert bereits in der Datenbank</p>
+            <p><strong>Lösung:</strong> Wählen Sie einen anderen Namen oder fügen Sie eine Kennung hinzu (z.B. "_v2" oder das aktuelle Datum).</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Ungültiger Projektname</h4>
+            <p><strong>Ursache:</strong> Name enthält ungültige Zeichen oder ist leer</p>
+            <p><strong>Lösung:</strong> Verwenden Sie nur Buchstaben, Zahlen und Unterstriche. Vermeiden Sie Sonderzeichen wie / \ : * ? " < > |</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Projekt wird nicht erstellt</h4>
+            <p><strong>Ursache:</strong> Datenbank-Fehler oder fehlende Schreibrechte</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die Datenbank-Verbindung und stellen Sie sicher, dass HCC Plan mit ausreichenden Schreibrechten läuft.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Neues Projekt bleibt leer</h4>
+            <p><strong>Ursache:</strong> Normale Situation - neue Projekte starten ohne Daten</p>
+            <p><strong>Lösung:</strong> Konfigurieren Sie das Projekt über <a href="project_settings.html">Projekt-Einstellungen</a> und fügen Sie Teams über die entsprechenden Funktionen hinzu.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>💡 Konsistente Namenskonvention</h4>
+            <p>Entwickeln Sie eine einheitliche Namenskonvention für alle Projekte in Ihrer Organisation. Schema: "[Standort]_[Abteilung]_[Jahr]" macht Projekte leichter auffindbar.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Sofortige Konfiguration</h4>
+            <p>Konfigurieren Sie das neue Projekt sofort nach der Erstellung über die <a href="project_settings.html">Projekt-Einstellungen</a>. Dies verhindert Verwirrung und stellt sicher, dass alle benötigten Grunddaten vorhanden sind.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Backup vor Projekt-Erstellung</h4>
+            <p>Erstellen Sie ein Backup der aktuellen Datenbank bevor Sie neue Projekte anlegen, besonders in Produktionsumgebungen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ Projekt-Templates verwenden</h4>
+            <p>Für ähnliche Einrichtungen: Erstellen Sie zuerst ein "Template-Projekt" mit allen Standard-Teams und Skills, das Sie als Vorlage für neue Projekte verwenden können.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <p>Nach der Projekt-Erstellung stehen folgende Schritte typischerweise an:</p>
+        <ul>
+            <li><strong>Team-Setup</strong> - Hinzufügen von Abteilungen und Teams</li>
+            <li><strong>Mitarbeiter-Import</strong> - Personal-Daten importieren oder manuell anlegen</li>
+            <li><strong>Skills-Definition</strong> - Qualifikationen und Fähigkeiten definieren</li>
+            <li><strong>Planungsperioden</strong> - Zeiträume für die Schichtplanung festlegen</li>
+            <li><strong>Grundkonfiguration</strong> - Arbeitszeiten, Regeln und Vorlagen einrichten</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Die Projekt-Erstellung ist der erste Schritt beim Setup von HCC Plan für:</p>
+        <ul>
+            <li><strong>Neue Krankenhäuser</strong> - Komplettes Setup für neue Einrichtungen</li>
+            <li><strong>Neue Abteilungen</strong> - Separate Projekte für unabhängige Abteilungen</li>
+            <li><strong>Mandantentrennung</strong> - Verschiedene Organisationen getrennt verwalten</li>
+            <li><strong>Entwicklungsumgebungen</strong> - Test- und Entwicklungsprojekte</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🔄 Standard-Workflow Neue Einrichtung</h3>
+        <p>Komplettes Setup einer neuen Einrichtung:</p>
+        <ol>
+            <li><strong>Projekt erstellen</strong> mit sprechendem Namen</li>
+            <li><strong>Projekt-Einstellungen</strong> → Grundkonfiguration</li>
+            <li><strong>Teams hinzufügen</strong> → Organisationsstruktur</li>
+            <li><strong>Skills definieren</strong> → Qualifikationssystem</li>
+            <li><strong>Mitarbeiter importieren</strong> → Personal-Daten</li>
+            <li><strong>Erste Planungsperiode</strong> → Start der Schichtplanung</li>
+        </ol>
+
+        <h3>📚 Projekt-Migration und Kopie</h3>
+        <p>Für Übernahme bestehender Strukturen:</p>
+        <ol>
+            <li>Neues Projekt mit ähnlichem Namen erstellen</li>
+            <li>Relevante Daten aus bestehendem Projekt exportieren</li>
+            <li>Teams und Skills-Struktur übertragen</li>
+            <li>Mitarbeiter-Zuordnungen anpassen</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>Problem: "Projektname bereits vergeben" Fehlermeldung</h4>
+            <p><strong>Ursache:</strong> Ein Projekt mit diesem Namen existiert bereits</p>
+            <p><strong>Lösung:</strong> Verwenden Sie einen anderen Namen oder erweitern Sie den Namen um eine Kennung (z.B. "_2024", "_v2", "_Test").</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Projekt wird erstellt aber nicht geladen</h4>
+            <p><strong>Ursache:</strong> Datenbank-Initialisierung nicht vollständig oder Laden fehlgeschlagen</p>
+            <p><strong>Lösung:</strong> Starten Sie HCC Plan neu und versuchen Sie das Projekt über "Datei → Projekt öffnen" zu laden.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Leeres Projekt - keine Teams verfügbar</h4>
+            <p><strong>Ursache:</strong> Normale Situation - neue Projekte sind leer</p>
+            <p><strong>Lösung:</strong> Dies ist normal. Konfigurieren Sie das Projekt über <a href="project_settings.html">Projekt-Einstellungen</a> und fügen Teams über die Team-Verwaltung hinzu.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Kann nicht zwischen Projekten wechseln</h4>
+            <p><strong>Ursache:</strong> Ungespeicherte Änderungen oder aktive Dialoge</p>
+            <p><strong>Lösung:</strong> Speichern Sie alle Änderungen und schließen Sie offene Dialoge bevor Sie ein neues Projekt erstellen oder laden.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>💡 Sinnvolle Namenskonvention</h4>
+            <p>Verwenden Sie ein konsistentes Schema: "[Organisation]_[Standort]_[Jahr]" oder "[Abteilung]_[Zweck]_[Version]". Dies erleichtert die Verwaltung bei mehreren Projekten erheblich.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Sofortige Grundkonfiguration</h4>
+            <p>Wechseln Sie nach der Projekt-Erstellung sofort zu den <a href="project_settings.html">Projekt-Einstellungen</a> und konfigurieren Sie die wichtigsten Parameter. Ein gut konfiguriertes Projekt spart später viel Zeit.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Backup-Strategie planen</h4>
+            <p>Planen Sie von Anfang an eine Backup-Strategie für Ihr neues Projekt. Regelmäßige Sicherungen sind essentiell, besonders bei produktiven Planungsdaten.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ Template-Projekt nutzen</h4>
+            <p>Erstellen Sie ein "Template-Projekt" mit Standard-Teams, Skills und Konfigurationen. Bei neuen Projekten können Sie dann Strukturen aus dem Template kopieren statt alles neu aufzubauen.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <p>Nach der Projekt-Erstellung bietet HCC Plan verschiedene Wege zur weiteren Konfiguration:</p>
+        <ul>
+            <li><strong>Projekt-Einstellungen</strong> - Zentrale Konfiguration aller Projekt-Parameter</li>
+            <li><strong>Team-Management</strong> - Hierarchische Organisations-Strukturen aufbauen</li>
+            <li><strong>Skills-System</strong> - Qualifikationen und Kompetenzen definieren</li>
+            <li><strong>Import-Funktionen</strong> - Daten aus anderen Systemen übernehmen</li>
+            <li><strong>Template-System</strong> - Wiederverwendbare Konfigurationen erstellen</li>
+        </ul>
+
+        <h2>Nach der Projekt-Erstellung</h2>
+        <p>Typische nächste Schritte nach erfolgreicher Projekt-Erstellung:</p>
+        <ol>
+            <li><strong>Projekt-Einstellungen öffnen</strong> - Grundparameter konfigurieren</li>
+            <li><strong>Erstes Team hinzufügen</strong> - Organisationsstruktur beginnen</li>
+            <li><strong>Admin-Benutzer definieren</strong> - Zugriffsrechte festlegen</li>
+            <li><strong>Skills-Kategorien</strong> - Qualifikationssystem aufbauen</li>
+            <li><strong>Erste Planungsperiode</strong> - Zeitraum für initiale Planung definieren</li>
+        </ol>
+
+        <h2>Technische Details</h2>
+        <p>Die Projekt-Erstellung erfolgt über die <code>DlgCreateProject</code>-Klasse in <code>frm_create_project.py</code>. Die eigentliche Datenbank-Initialisierung wird durch <code>db_services.Project.create()</code> durchgeführt, das alle notwendigen Tabellen und Standard-Konfigurationen automatisch anlegt.</p>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Event-Planungsregeln - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="event, planning, rules, planungsregeln, termine, regeln, intervall, wiederkehr, cast">
+    <meta name="description" content="Hilfe für die Konfiguration von Event-Planungsregeln zur automatischen Erstellung wiederkehrender Termine in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Event-Planungsregeln</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Event-Planungsregeln</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Dialog <strong>"Event Planning Rules"</strong> ist das zentrale Werkzeug zur Definition automatischer Terminserien in HCC Plan. Mit diesem System können Sie komplexe, wiederkehrende Event-Strukturen für Standorte und Planungsperioden konfigurieren. Das Interface unterstützt multiple Regeln, verschiedene Tageszeiten, flexible Intervalle und intelligente Cast-Rule-Integration für eine vollautomatisierte Event-Erstellung.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Multi-Regel-System</strong> - Erstellung mehrerer parallel laufender Event-Serien mit individuellen Parametern</li>
+            <li><strong>Flexible Starttag-Definition</strong> - Wahl zwischen festen Datumsauswahl oder wochentagsbasierten Berechnungen</li>
+            <li><strong>Tageszeit-Integration</strong> - Auswahl aus verfügbaren Tageszeiten der Location-Plan-Period</li>
+            <li><strong>Intervall-Steuerung</strong> - Konfigurierbare Abstände zwischen Events (täglich, wöchentlich, monatlich)</li>
+            <li><strong>Wiederholungs-Management</strong> - Präzise Kontrolle über Anzahl und Häufigkeit der Events</li>
+            <li><strong>Cast-Rule-Integration</strong> - Automatische Mitarbeiter-Zuweisung über vordefinierte Cast-Regeln</li>
+            <li><strong>Same-Day-Grouping</strong> - Intelligente Gruppierung von Events am gleichen Tag</li>
+            <li><strong>Persistente Speicherung</strong> - Speichern und Wiederverwenden von Regel-Konfigurationen</li>
+            <li><strong>Validierung und Konflikt-Erkennung</strong> - Automatische Überprüfung auf zeitliche Überschneidungen</li>
+            <li><strong>Event-Override-Schutz</strong> - Warnung bei Überschreibung bestehender Events</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog öffnen</strong> - Zugriff über Planungsperioden-Verwaltung oder Location-Konfiguration</li>
+            <li><strong>Starttag-Modus wählen</strong>:
+                <ul>
+                    <li><strong>Festes Datum:</strong> Klicken Sie den Datum-Button zum Öffnen des Kalender-Dialogs</li>
+                    <li><strong>Wochentag-basiert:</strong> Wählen Sie Wochentag und "N-ter Tag"-Einstellung</li>
+                </ul>
+            </li>
+            <li><strong>Regel-Parameter konfigurieren</strong>:
+                <ul>
+                    <li>Wählen Sie <strong>"Time of Day"</strong> aus verfügbaren Optionen</li>
+                    <li>Setzen Sie <strong>"Interval"</strong> für Abstände zwischen Events (Tage)</li>
+                    <li>Definieren Sie <strong>"Repetitions"</strong> für Anzahl der Wiederholungen</li>
+                    <li>Bestimmen Sie <strong>"Possible Count"</strong> für tatsächlich zu erstellende Events</li>
+                </ul>
+            </li>
+            <li><strong>Optional: Zusätzliche Regeln hinzufügen</strong>:
+                <ul>
+                    <li>Klicken Sie <strong>"New Rule"</strong> für weitere Event-Serien</li>
+                    <li>Konfigurieren Sie jede Regel individuell</li>
+                    <li>Nutzen Sie X-Button zum Entfernen unerwünschter Regeln</li>
+                </ul>
+            </li>
+            <li><strong>Spezial-Optionen aktivieren</strong>:
+                <ul>
+                    <li><strong>"Same day selection"</strong> - Gruppiert alle Regeln auf gleiche Tage</li>
+                    <li><strong>"Rules for same day"</strong> - Wählt Cast-Rule für Events am gleichen Tag</li>
+                </ul>
+            </li>
+            <li><strong>Konfiguration speichern/anwenden</strong>:
+                <ul>
+                    <li><strong>"Save Rules"</strong> - Speichert Konfiguration für spätere Wiederverwendung</li>
+                    <li><strong>"Reset Rules"</strong> - Löscht alle Regeln und startet neu</li>
+                    <li><strong>"OK"</strong> - Wendet Regeln an und erstellt Events</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Regeln anwenden und Events erstellen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Tab</strong> - Zwischen Regel-Parametern wechseln</p>
+            <p><strong>Pfeil hoch/runter</strong> - Werte in SpinBoxen ändern</p>
+            <p><strong>Ctrl+S</strong> - Regeln speichern (falls unterstützt)</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="plan_period_create.html">Planungsperioden-Verwaltung</a></strong> - Grundlage für Event-Planungsregeln und Zeiträume</li>
+            <li><strong><a href="edit_appointment.html">Termin Bearbeiten</a></strong> - Nachbearbeitung der durch Regeln erstellten Events</li>
+            <li><strong><a href="first_day.html">Erster Tag</a></strong> - Kalender-Dialog zur Starttag-Auswahl</li>
+            <li><strong><a href="avail_at_day.html">Verfügbarkeit an Tag</a></strong> - Überprüfung der verfügbaren Mitarbeiter für geplante Events</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Event-Planungsregeln werden verwendet für:</p>
+        <ul>
+            <li><strong>Wiederkehrende Termine</strong> - Automatische Erstellung regelmäßiger Events (täglich, wöchentlich, monatlich)</li>
+            <li><strong>Saisonale Planungen</strong> - Komplexe Event-Strukturen für bestimmte Zeiträume</li>
+            <li><strong>Multi-Location-Management</strong> - Standardisierte Event-Erstellung über verschiedene Standorte</li>
+            <li><strong>Kapazitäts-Optimierung</strong> - Gleichmäßige Verteilung von Events über Planungsperioden</li>
+            <li><strong>Workflow-Automatisierung</strong> - Reduzierung manueller Planungsarbeit durch Regel-basierte Erstellung</li>
+            <li><strong>Template-basierte Planung</strong> - Wiederverwendung bewährter Event-Strukturen</li>
+            <li><strong>Cast-Integration</strong> - Automatische Mitarbeiter-Zuweisung über definierte Regeln</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+
+        <h3>Regel-Grid (Hauptbereich)</h3>
+        <ul>
+            <li><strong>Header-Zeile</strong> - Spalten-Überschriften mit farbigem Hintergrund (#00123a)</li>
+            <li><strong>Start-Spalte</strong> - "First Day" (Kalender-Button) oder "Start: Weekday, which one" (Widget)</li>
+            <li><strong>Time of Day-Spalte</strong> - Dropdown mit verfügbaren Tageszeiten der Location</li>
+            <li><strong>Interval-Spalte</strong> - SpinBox für Tage-Abstände zwischen Events (Minimum: 1)</li>
+            <li><strong>Repetitions-Spalte</strong> - SpinBox für Anzahl Wiederholungen (Minimum: 0)</li>
+            <li><strong>Possible Count-Spalte</strong> - SpinBox für tatsächlich zu erstellende Events</li>
+            <li><strong>Remove-Spalte</strong> - X-Button (Cross-Icon) zum Entfernen der Regel</li>
+        </ul>
+
+        <h3>Spezial-Regelbereich</h3>
+        <ul>
+            <li><strong>"Rules for events on the same day"</strong> - Label für Same-Day-Cast-Rules</li>
+            <li><strong>Cast-Rule-Dropdown</strong> - Auswahl aus verfügbaren Cast-Rules (mit FOAF-Icon)</li>
+            <li><strong>"New Day Rule" Button</strong> - Öffnet Cast-Rule-Erstellungs-Dialog</li>
+            <li><strong>"Same day selection for all rules" Checkbox</strong> - Aktiviert Event-Gruppierung</li>
+            <li><strong>Tooltip-Erklärung</strong> - Detaillierte Beschreibung der Same-Day-Funktionalität</li>
+        </ul>
+
+        <h3>Button-Bereich</h3>
+        <ul>
+            <li><strong>"New Rule" Button</strong> - Fügt neue Regel-Zeile zum Grid hinzu</li>
+            <li><strong>"Reset Rules" Button</strong> - Löscht alle Regeln, startet mit Default-Regel</li>
+            <li><strong>"Save Rules" Button</strong> - Speichert aktuelle Konfiguration für Location</li>
+            <li><strong>Standard Dialog-Buttons</strong> - OK zum Anwenden, Cancel zum Abbrechen</li>
+            <li><strong>Tooltip-Unterstützung</strong> - Erklärende Texte für komplexe Funktionen</li>
+        </ul>
+
+        <h3>Beschreibungsbereich</h3>
+        <ul>
+            <li><strong>Location-Context</strong> - Zeigt aktuellen Standort und Planungsperiode</li>
+            <li><strong>Konfigurations-Status</strong> - Information über geladene/gespeicherte Regeln</li>
+            <li><strong>Dynamic Updates</strong> - Beschreibung ändert sich basierend auf Regel-Konfiguration</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Typische Regel-Konfigurationen</h4>
+            <p><strong>Tägliche Events:</strong> Interval=1, Repetitions=6 (Woche), Possible Count=5 (Mo-Fr)</p>
+            <p><strong>Wöchentliche Termine:</strong> Start=Montag, Interval=7, Repetitions=4, Count=4 (monatlich)</p>
+            <p><strong>Multiple Tageszeiten:</strong> Regel 1: Morgen, Regel 2: Nachmittag, gleiche Intervalle</p>
+            <p><strong>Saisonale Events:</strong> Interval=14 (alle 2 Wochen), angepasst an Planungsperiode</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Workflow-Strategien</h4>
+            <p><strong>Template-First:</strong> Erstellen Sie bewährte Regel-Sets und speichern diese mit "Save Rules"</p>
+            <p><strong>Iterative Anpassung:</strong> Starten Sie mit einfachen Regeln, erweitern graduell</p>
+            <p><strong>Validation-Driven:</strong> Nutzen Sie die Regel-Validierung zur Fehlerverhinderung</p>
+            <p><strong>Cast-Integration:</strong> Definieren Sie Cast-Rules vor Event-Rules für optimale Automation</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: "Events with same time of day cannot be created twice on same day"</h4>
+            <p><strong>Ursache:</strong> Zwei Regeln versuchen Events zur gleichen Zeit am gleichen Tag zu erstellen.</p>
+            <p><strong>Lösung:</strong> Ändern Sie Time-of-Day-Einstellungen oder Intervalle um Überschneidungen zu vermeiden.</p>
+            
+            <h4>Problem: "Same day selection" Checkbox bleibt deaktiviert</h4>
+            <p><strong>Ursache:</strong> Regeln haben unterschiedliche Start-Tage, Intervalle oder Event-Anzahlen.</p>
+            <p><strong>Lösung:</strong> Harmonisieren Sie die Regel-Parameter - gleicher Start, gleiche Intervalle, gleiche Anzahl.</p>
+            
+            <h4>Problem: Repetitions-SpinBox begrenzt sich automatisch</h4>
+            <p><strong>Ursache:</strong> Events würden über das Ende der Planungsperiode hinausgehen.</p>
+            <p><strong>Lösung:</strong> Reduzieren Sie Interval oder starten früher, oder erweitern die Planungsperiode.</p>
+            
+            <h4>Problem: Gespeicherte Regeln laden nicht korrekt</h4>
+            <p><strong>Ursache:</strong> Time-of-Day-Konfiguration der Location hat sich geändert seit Speicherung.</p>
+            <p><strong>Lösung:</strong> System wählt automatisch nächste verfügbare Time-of-Day, Warnung wird angezeigt.</p>
+            
+            <h4>Problem: Cast-Rules werden nicht angewendet</h4>
+            <p><strong>Ursache:</strong> Cast-Rule ist nicht für das Projekt verfügbar oder wurde gelöscht.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie Cast-Rule-Verfügbarkeit oder erstellen neue mit "New Day Rule".</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Optimierung</h4>
+            <p><strong>Regel-Minimierung:</strong> Verwenden Sie möglichst wenige Regeln - komplexe Single-Rules sind oft besser als viele Simple-Rules.</p>
+            <p><strong>Template-System:</strong> Speichern Sie bewährte Konfigurationen und laden diese für ähnliche Standorte.</p>
+            <p><strong>Validierung früh:</strong> Testen Sie Regel-Konfigurationen mit kurzen Perioden bevor Sie sie auf lange Zeiträume anwenden.</p>
+            <p><strong>Cast-Rule-Vorbereitung:</strong> Definieren Sie Cast-Rules vor Event-Rules für seamless Integration.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Planungs-Strategien</h4>
+            <p><strong>Hierarchische Planung:</strong> Starten Sie mit Haupt-Events (wichtigste Zeit), fügen Neben-Events hinzu.</p>
+            <p><strong>Flexibilität bewahren:</strong> Lassen Sie Raum für manuelle Anpassungen - nicht jeden Event automatisieren.</p>
+            <p><strong>Seasonality berücksichtigen:</strong> Anpassung der Regeln an saisonale Schwankungen und Feiertage.</p>
+            <p><strong>Performance-Awareness:</strong> Sehr viele Events können System-Performance beeinträchtigen.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Multi-Regel-Koordination</h3>
+        <p>Das System unterstützt komplexe Regel-Interaktionen:</p>
+        <ul>
+            <li><strong>Same-Partial-Days-Logic</strong> - Automatische Erkennung kompatibler Regel-Sets</li>
+            <li><strong>Cross-Rule-Validation</strong> - Verhindert zeitliche Konflikte zwischen Regeln</li>
+            <li><strong>Dynamic UI-Updates</strong> - Checkbox-Stati ändern sich basierend auf Regel-Kompatibilität</li>
+            <li><strong>Intelligent Fallbacks</strong> - Automatische Anpassungen bei invaliden Konfigurationen</li>
+        </ul>
+
+        <h3>Datum-Berechnungs-Engine</h3>
+        <p>Flexible Starttag-Bestimmung mit zwei Modi:</p>
+        <ul>
+            <li><strong>Fixed-Date-Mode</strong> - Direkter Kalender-Zugriff mit Periode-Beschränkung</li>
+            <li><strong>Weekday-Calculation-Mode</strong> - N-ter-Wochentag-Algorithmus mit Fallback-Logic</li>
+            <li><strong>Period-Boundary-Enforcement</strong> - Automatische Beschränkung auf Planungsperioden-Grenzen</li>
+            <li><strong>Intelligent Date-Shifting</strong> - Automatische Anpassung bei unmöglichen Datum-Kombinationen</li>
+        </ul>
+
+        <h3>Cast-Rule-Integration-System</h3>
+        <p>Sophisticated Mitarbeiter-Zuweisungs-Mechanismus:</p>
+        <ul>
+            <li><strong>Project-Scoped-Rules</strong> - Nur projekt-relevante Cast-Rules werden angezeigt</li>
+            <li><strong>Dynamic Rule-Creation</strong> - In-Dialog-Erstellung neuer Cast-Rules</li>
+            <li><strong>Undo-Stack-Integration</strong> - Neue Cast-Rules werden in Undo-System integriert</li>
+            <li><strong>Icon-Based-Visualization</strong> - FOAF-Icons für Cast-Rule-Identifikation</li>
+        </ul>
+
+        <h3>Event-Lifecycle-Management</h3>
+        <p>Komplexe Event-Erstellungs- und Überschreibungs-Logik:</p>
+        <ul>
+            <li><strong>Conflict-Detection</strong> - Automatische Erkennung bestehender Events</li>
+            <li><strong>Override-Protection</strong> - Benutzer-Bestätigung vor Event-Löschung</li>
+            <li><strong>Plan-Integration-Awareness</strong> - Warnung bei bestehenden Plänen</li>
+            <li><strong>Batch-Event-Creation</strong> - Effiziente Masse-Erstellung von Event-Serien</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+
+        <h3>Datenstrukturen</h3>
+        <p>Das System verwendet sophisticated Data-Modeling:</p>
+        <ul>
+            <li><strong>RulesData Schema</strong> - first_day, time_of_day, interval, repeat, num_events</li>
+            <li><strong>Rules Container</strong> - rules_data Liste, cast_rule_at_same_day, same_partial_days_flag</li>
+            <li><strong>DefaultDict-Pattern</strong> - Dynamische Regel-Verwaltung mit automatischer Initialisierung</li>
+            <li><strong>EventPlanningRules Persistence</strong> - Database-backed Konfigurationsspeicherung</li>
+        </ul>
+
+        <h3>UI-Architecture</h3>
+        <p>Flexible, dynamische Benutzeroberfläche:</p>
+        <ul>
+            <li><strong>Grid-Layout-System</strong> - Dynamische Regel-Zeilen mit einheitlicher Spalten-Struktur</li>
+            <li><strong>Widget-Factory-Pattern</strong> - Regel-spezifische Widget-Erstellung über Factory-Methods</li>
+            <li><strong>Signal-Slot-Coordination</strong> - Complex Event-Handling zwischen UI-Komponenten</li>
+            <li><strong>Partial-Function-Binding</strong> - Rule-Index-spezifische Event-Handler</li>
+        </ul>
+
+        <h3>Validation und Constraint-System</h3>
+        <p>Umfassende Regel-Validierung:</p>
+        <ul>
+            <li><strong>Time-Conflict-Detection</strong> - Verhindert doppelte Events zur gleichen Zeit</li>
+            <li><strong>Period-Boundary-Checking</strong> - Events müssen innerhalb Planungsperiode liegen</li>
+            <li><strong>Logical-Consistency-Validation</strong> - Possible Count ≤ Repetitions + 1</li>
+            <li><strong>Cross-Rule-Compatibility</strong> - Same-Day-Grouping-Requirements</li>
+        </ul>
+
+        <h3>Command-Pattern-Integration</h3>
+        <p>Undo/Redo-System für komplexe Operations:</p>
+        <ul>
+            <li><strong>Controller-Based-Operations</strong> - ContrExecUndoRedo für Cast-Rule-Erstellung</li>
+            <li><strong>Stack-Merging</strong> - Integration von Sub-Dialog-Operations</li>
+            <li><strong>Rollback-Capability</strong> - Vollständige Rückgängigmachung bei Cancel</li>
+            <li><strong>Transactional-Integrity</strong> - Atomic Operations für Event-Erstellung</li>
+        </ul>
+    </div>
+</body>
+</html>

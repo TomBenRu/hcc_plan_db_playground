@@ -13,7 +13,7 @@ from database.special_schema_requests import get_locations_of_team_at_date, \
 from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
     actor_plan_period_commands, avail_day_group_commands
 from gui.frm_remote_access_plan_api import plan_api_handler
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 
 
 class DlgPlanPeriodCreate(QDialog):
@@ -31,6 +31,12 @@ class DlgPlanPeriodCreate(QDialog):
         self._setup_ui()
 
         self.fill_dispatchers()
+        
+        # Help-Integration
+        setup_form_help(self, "plan_period_create")
+        
+        # Help-Integration
+        setup_form_help(self, "plan_period_create")
 
     def _setup_ui(self):
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
@@ -235,6 +241,9 @@ class DlgPlanPeriodEdit(QDialog):
         self._setup_ui()
 
         self.fill_dispatchers()
+        
+        # Help-Integration
+        setup_form_help(self, "plan_period_create")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout()

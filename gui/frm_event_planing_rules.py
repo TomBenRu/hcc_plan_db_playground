@@ -18,7 +18,7 @@ from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.schemas import RulesData, Rules
 from tools import helper_functions
-from tools.helper_functions import n_th_weekday_of_period, date_to_string
+from tools.helper_functions import n_th_weekday_of_period, date_to_string, setup_form_help
 from tools.size_of_objects import total_size
 
 
@@ -113,6 +113,9 @@ class DlgFirstDay(QDialog):
         self.end_date = end_date
         self.current_date = current_date
         self._setup_ui()
+        
+        # Help-Integration
+        setup_form_help(self, "first_day")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -143,6 +146,9 @@ class DlgEventPlanningRules(QDialog):
 
         self._setup_data()
         self._setup_ui()
+        
+        # Help-Integration
+        setup_form_help(self, "event_planning_rules")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

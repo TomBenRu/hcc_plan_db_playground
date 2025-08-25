@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Tag des ersten Events - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="first, day, event, tag, kalender, calendar, datum, planungsperiode">
+    <meta name="description" content="Hilfe für die Auswahl des ersten Event-Tags über den Kalender-Dialog in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Tag des ersten Events</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Tag des ersten Events</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Dialog <strong>"Day of first Event"</strong> ermöglicht die präzise Auswahl des Starttermins für Event-Planungsregeln über eine intuitive Kalender-Schnittstelle. Als Teil des Event-Planungsregeln-Systems bietet dieser Dialog eine visuelle, datumsbasierte Alternative zur wochentagsbasierten Starttag-Berechnung und ist automatisch auf die Grenzen der aktuellen Planungsperiode beschränkt.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Visuelle Kalender-Auswahl</strong> - Intuitive Datumsauswahl über kalendarische Darstellung</li>
+            <li><strong>Planungsperioden-Beschränkung</strong> - Automatische Begrenzung auf Start- und End-Datum der Planungsperiode</li>
+            <li><strong>Lokalisierte Darstellung</strong> - Kalender-Widget mit lokalen Sprach- und Datumsformaten</li>
+            <li><strong>Current-Date-Highlighting</strong> - Vorauswahl des aktuell konfigurierten ersten Event-Tags</li>
+            <li><strong>Property-basierte Rückgabe</strong> - Saubere Datenkapselung über first_day Property</li>
+            <li><strong>Date-Validation</strong> - Nur gültige Termine innerhalb der Planungsperiode sind auswählbar</li>
+            <li><strong>Integration in Regel-Workflow</strong> - Nahtlose Einbindung in Event-Planungsregeln-System</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog wird automatisch geöffnet</strong> - Aufruf erfolgt über "First Day"-Button in Event-Planungsregeln</li>
+            <li><strong>Kalender-Kontext überprüfen</strong>:
+                <ul>
+                    <li>Grau markierte Bereiche sind außerhalb der Planungsperiode</li>
+                    <li>Verfügbare Termine sind weiß/farbig dargestellt</li>
+                    <li>Aktuell ausgewähltes Datum ist hervorgehoben</li>
+                </ul>
+            </li>
+            <li><strong>Neues Datum auswählen</strong>:
+                <ul>
+                    <li>Klicken Sie direkt auf gewünschtes Datum im Kalender</li>
+                    <li>Verwenden Sie Pfeil-Navigation für Monats-/Jahres-Wechsel</li>
+                    <li>Nur Termine innerhalb der Planungsperiode sind anklickbar</li>
+                </ul>
+            </li>
+            <li><strong>Auswahl bestätigen</strong>:
+                <ul>
+                    <li>Klicken Sie <strong>"OK"</strong> um das neue Datum zu übernehmen</li>
+                    <li>Das Event-Planungsregeln-System aktualisiert automatisch alle abhängigen Berechnungen</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Datum übernehmen und Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Pfeil-Tasten</strong> - Navigation zwischen Kalendertagen</p>
+            <p><strong>Seite hoch/runter</strong> - Monatswechsel vorwärts/rückwärts</p>
+            <p><strong>Strg + Seite hoch/runter</strong> - Jahreswechsel vorwärts/rückwärts</p>
+            <p><strong>Home</strong> - Sprung zum ersten Tag des Monats</p>
+            <p><strong>End</strong> - Sprung zum letzten Tag des Monats</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="event_planning_rules.html">Event-Planungsregeln</a></strong> - Hauptdialog für Event-Regeln mit Starttag-Konfiguration</li>
+            <li><strong><a href="first_day_weekday.html">Wochentag-basierter Starttag</a></strong> - Alternative Starttag-Definition über Wochentagsberechnung</li>
+            <li><strong><a href="plan_period_create.html">Planungsperioden-Verwaltung</a></strong> - Definition der Zeiträume die als Kalender-Grenzen verwendet werden</li>
+            <li><strong><a href="plan.html">Planungsübersicht</a></strong> - Ergebnis-Ansicht der durch Planungsregeln erstellten Events</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Der First-Day-Kalender wird verwendet für:</p>
+        <ul>
+            <li><strong>Präzise Event-Starttermine</strong> - Wenn ein spezifisches Datum als Startpunkt gewünscht ist</li>
+            <li><strong>Feiertags-/Ereignis-orientierte Planung</strong> - Events ab besonderen Terminen starten lassen</li>
+            <li><strong>Periodenbeginn-unabhängige Starts</strong> - Events müssen nicht zwingend am Periodenbeginn starten</li>
+            <li><strong>Visual-orientierte Planer</strong> - Benutzer die Kalender-Ansicht gegenüber Wochentags-Logik bevorzugen</li>
+            <li><strong>Deadline-orientierte Planung</strong> - Rückwärts von Endterminen geplante Event-Serien</li>
+            <li><strong>Kampagnen-Starts</strong> - Marketing-/Event-Kampagnen mit festen Startterminen</li>
+            <li><strong>Saison-Starts</strong> - Events die zu spezifischen saisonalen Terminen beginnen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <h3>Kalender-Widget</h3>
+        <ul>
+            <li><strong>Dialog-Titel</strong> - "Day of first Event" als klare Funktions-Bezeichnung</li>
+            <li><strong>CalendarLocale-Integration</strong> - Lokalisierte Kalender-Darstellung mit deutschen Monatsnamen</li>
+            <li><strong>Minimum-Date-Begrenzung</strong> - Grau markierte Bereiche vor Planungsperioden-Start</li>
+            <li><strong>Maximum-Date-Begrenzung</strong> - Grau markierte Bereiche nach Planungsperioden-Ende</li>
+            <li><strong>Selected-Date-Highlighting</strong> - Visuell hervorgehobenes aktuell ausgewähltes Datum</li>
+            <li><strong>Interaktive Navigation</strong> - Monat/Jahr-Wechsel über Pfeil-Buttons oder Tastatur</li>
+        </ul>
+
+        <h3>Navigation-Elemente</h3>
+        <ul>
+            <li><strong>Monat-Jahr-Anzeige</strong> - Aktuelle Kalender-Position im Header</li>
+            <li><strong>Navigation-Pfeile</strong> - Links/Rechts für Monatswechsel</li>
+            <li><strong>Wochentag-Header</strong> - Mo, Di, Mi... als Spalten-Überschriften</li>
+            <li><strong>Datum-Zellen</strong> - Klickbare Tage mit Status-spezifischer Formatierung</li>
+        </ul>
+
+        <h3>Status-Indikationen</h3>
+        <ul>
+            <li><strong>Verfügbare Termine</strong> - Normal formatierte, klickbare Datum-Zellen</li>
+            <li><strong>Außerhalb Periode</strong> - Grau/deaktivierte Darstellung für unerlaubte Termine</li>
+            <li><strong>Aktuell gewählt</strong> - Highlighted/farblich hervorgehobenes Datum</li>
+            <li><strong>Heute-Markierung</strong> - Besondere Formatierung des heutigen Datums (falls in Periode)</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Typische Nutzungsszenarien</h4>
+            <p><strong>Kampagnen-Start:</strong> Event-Serie beginnt zu Marketing-Launch am 15. des Monats</p>
+            <p><strong>Saison-Eröffnung:</strong> Events starten zur Eröffnung der Sommersaison am 1. Juni</p>
+            <p><strong>Post-Holiday-Planning:</strong> Events beginnen eine Woche nach Feiertagen</p>
+            <p><strong>Deadline-Rückwärtsplanung:</strong> Letzter möglicher Start um alle Events vor Periodenende zu schaffen</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Workflow-Integration</h4>
+            <p><strong>Rule-First-Approach:</strong> Definieren Sie andere Regel-Parameter vor dem Starttag für bessere Übersicht</p>
+            <p><strong>Visual-Validation:</strong> Nutzen Sie die Kalender-Ansicht zur visuellen Validation der geplanten Event-Verteilung</p>
+            <p><strong>Period-Awareness:</strong> Beachten Sie die verfügbaren Tage - sehr späte Starts können Event-Anzahl limitieren</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Gewünschtes Datum ist nicht anklickbar (grau)</h4>
+            <p><strong>Ursache:</strong> Das Datum liegt außerhalb der aktuellen Planungsperiode.</p>
+            <p><strong>Lösung:</strong> Erweitern Sie die Planungsperiode oder wählen Sie ein Datum innerhalb des verfügbaren Bereichs.</p>
+            
+            <h4>Problem: Zu wenig verfügbare Tage nach gewähltem Starttermin</h4>
+            <p><strong>Ursache:</strong> Sehr späte Start-Termine beschränken die Anzahl möglicher Event-Wiederholungen.</p>
+            <p><strong>Lösung:</strong> Wählen Sie früheren Starttermin oder reduzieren Sie Intervall/Repetitions in den Event-Regeln.</p>
+            
+            <h4>Problem: Kalender zeigt falschen Monat/Jahr</h4>
+            <p><strong>Ursache:</strong> Kalender öffnet mit current_date der Regel, nicht notwendigerweise aktueller Monat.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie Navigation-Pfeile oder Tastatur-Shortcuts zur gewünschten Periode.</p>
+            
+            <h4>Problem: Änderungen werden nicht übernommen</h4>
+            <p><strong>Ursache:</strong> Dialog wurde mit Cancel geschlossen oder ausgewähltes Datum liegt außerhalb gültiger Periode.</p>
+            <p><strong>Lösung:</strong> Stellen Sie sicher dass Sie OK klicken und ein gültiges Datum ausgewählt haben.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Strategien</h4>
+            <p><strong>Visual-First-Planning:</strong> Nutzen Sie Kalender-Ansicht für intuitive Datumsauswahl gegenüber abstrakter Wochentags-Berechnung.</p>
+            <p><strong>Buffer-Time-Planning:</strong> Wählen Sie Start-Termine mit ausreichend Puffer vor Planungsperioden-Ende.</p>
+            <p><strong>Holiday-Awareness:</strong> Berücksichtigen Sie Feiertage und Betriebspausen bei der Start-Terminwahl.</p>
+            <p><strong>Consistency-Checking:</strong> Validieren Sie die Auswirkungen der Datum-Änderung auf andere Regel-Parameter.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>CalendarLocale-Integration</h3>
+        <p>Sophisticated Lokalisierungs-Unterstützung:</p>
+        <ul>
+            <li><strong>Locale-spezifische Formatierung</strong> - Automatische Anpassung an System-Locale</li>
+            <li><strong>Monatsnamen-Lokalisierung</strong> - Deutsche Monatsnamen und Wochentags-Bezeichnungen</li>
+            <li><strong>Date-Format-Consistency</strong> - Konsistente Datumsdarstellung mit anderen System-Teilen</li>
+            <li><strong>Cultural-Calendar-Conventions</strong> - Beachtung lokaler Kalender-Konventionen (Wochenbeginn etc.)</li>
+        </ul>
+
+        <h3>Planungsperioden-Integration</h3>
+        <p>Intelligente Beschränkung auf gültige Zeiträume:</p>
+        <ul>
+            <li><strong>Dynamic-Range-Setting</strong> - Automatische Minimum/Maximum-Date-Konfiguration</li>
+            <li><strong>Visual-Boundary-Indication</strong> - Graue Darstellung ungültiger Termine</li>
+            <li><strong>Constraint-Enforcement</strong> - Verhindert Auswahl ungültiger Termine</li>
+            <li><strong>Period-Context-Awareness</strong> - Integration mit plan_period.start/end Daten</li>
+        </ul>
+
+        <h3>Event-Rules-System-Coordination</h3>
+        <p>Nahtlose Integration in Planungsregeln-Workflow:</p>
+        <ul>
+            <li><strong>Current-Date-Preservation</strong> - Kalender öffnet mit aktuell konfiguriertem Datum</li>
+            <li><strong>Return-Value-Integration</strong> - Property-basierte Rückgabe für Event-Rules-System</li>
+            <li><strong>Automatic-Recalculation-Trigger</strong> - Änderungen lösen Neuberechnung abhängiger Regel-Parameter aus</li>
+            <li><strong>Validation-Chain-Integration</strong> - Neue Termine werden in Regel-Validierung einbezogen</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Dialog-Parameter</h3>
+        <p>Der Dialog wird mit spezifischen Kontext-Parametern initialisiert:</p>
+        <ul>
+            <li><strong>start_date: datetime.date</strong> - Minimum-Datum (Planungsperioden-Start)</li>
+            <li><strong>end_date: datetime.date</strong> - Maximum-Datum (Planungsperioden-Ende)</li>
+            <li><strong>current_date: datetime.date</strong> - Aktuell konfiguriertes Datum (Pre-Selection)</li>
+        </ul>
+
+        <h3>QCalendarWidget-Configuration</h3>
+        <p>Kalenderfunktionalität über Qt's CalendarLocale:</p>
+        <ul>
+            <li><strong>setMinimumDate()</strong> - QDate-Konvertierung des Planungsperioden-Starts</li>
+            <li><strong>setMaximumDate()</strong> - QDate-Konvertierung des Planungsperioden-Endes</li>
+            <li><strong>setSelectedDate()</strong> - Pre-Selection des aktuellen Regel-Datums</li>
+            <li><strong>selectedDate().toPython()</strong> - Property-Rückgabe als Python datetime.date</li>
+        </ul>
+
+        <h3>Integration-Patterns</h3>
+        <p>Anbindung an Event-Planungsregeln-System:</p>
+        <ul>
+            <li><strong>Button-Triggered-Launch</strong> - Aufruf über First-Day-Button in Regel-Grid</li>
+            <li><strong>Rule-Index-Context</strong> - Dialog weiß, welche Regel er modifiziert</li>
+            <li><strong>Automatic-UI-Updates</strong> - Button-Text wird mit neuem Datum aktualisiert</li>
+            <li><strong>Cascade-Recalculation</strong> - Datum-Änderungen triggern Interval/Repetition-Neuberechnung</li>
+        </ul>
+
+        <h3>Date-Handling und Validation</h3>
+        <p>Robuste Datum-Verarbeitung:</p>
+        <ul>
+            <li><strong>Python-Qt-Date-Conversion</strong> - Seamless Konvertierung zwischen datetime.date und QDate</li>
+            <li><strong>Timezone-Agnostic-Handling</strong> - Reines Datumshandling ohne Zeitzonen-Komplexität</li>
+            <li><strong>Period-Boundary-Validation</strong> - Automatische Beschränkung auf erlaubte Datumsbereiche</li>
+            <li><strong>Null-Date-Handling</strong> - Robustes Verhalten bei ungültigen Datum-Konfigurationen</li>
+        </ul>
+    </div>
+</body>
+</html>

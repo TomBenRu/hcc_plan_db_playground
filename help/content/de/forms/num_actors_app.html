@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Mitarbeiteranzahl-Verwaltung - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="mitarbeiter, anzahl, event, actors, employees, kapazität, besetzung, standort, configuration, specific">
+    <meta name="description" content="Hilfe für die Verwaltung der Mitarbeiteranzahl - Standard-Konfiguration und event-spezifische Anpassungen in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Mitarbeiteranzahl-Verwaltung</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Mitarbeiteranzahl-Verwaltung</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Das Mitarbeiteranzahl-Management in HCC Plan bietet Ihnen zwei komplementäre Dialoge zur Festlegung der Personalbesetzung für Events. Der <strong>"Anzahl Mitarbeiter pro Event"</strong> Dialog konfiguriert Standard-Besetzungsstärken für Standorte, während der <strong>"Anzahl Mitarbeiter"</strong> Dialog event-spezifische Anpassungen für einzelne Termine ermöglicht. Diese zweistufige Architektur kombiniert strategische Planung mit operativer Flexibilität.</p>
+
+        <h2>Hauptfunktionen</h2>
+
+        <h3>Standard-Konfiguration (Anzahl Mitarbeiter pro Event)</h3>
+        <ul class="feature-list">
+            <li><strong>Kapazitäts-Konfiguration</strong> - Festlegung der Standard-Mitarbeiteranzahl pro Event für einen Standort</li>
+            <li><strong>Numerische Eingabe</strong> - Präzise Zahlen-Eingabe über SpinBox mit Minimum-Validierung</li>
+            <li><strong>Reset-Funktion</strong> - Zurücksetzen auf Facility-Standard-Werte mit einem Klick</li>
+            <li><strong>Planungsperioden-Integration</strong> - Einstellung gilt für die aktuelle Location-Plan-Period</li>
+            <li><strong>Cast-Group-Steuerung</strong> - Bestimmt automatisch die Anzahl verfügbarer Positionen bei der Terminbearbeitung</li>
+            <li><strong>Property-basierte Rückgabe</strong> - Saubere Datenkapselung über num_actors Property</li>
+        </ul>
+
+        <h3>Event-spezifische Anpassung (Anzahl Mitarbeiter)</h3>
+        <ul class="feature-list">
+            <li><strong>Event-Context-Anzeige</strong> - Zeigt Datum, Tageszeit und Standort des spezifischen Events</li>
+            <li><strong>Cast-Group-Override</strong> - Direkte Anpassung der Mitarbeiteranzahl für einzelne Termine</li>
+            <li><strong>Erweiterte Reichweite</strong> - Unterstützt 0-100 Mitarbeiter für große Events</li>
+            <li><strong>Current-Value-Display</strong> - Zeigt die aktuell konfigurierte Anzahl als Ausgangswert</li>
+            <li><strong>Sofortige Anwendung</strong> - Änderungen wirken sich unmittelbar auf das Cast-Management aus</li>
+            <li><strong>Methoden-basierte Rückgabe</strong> - Wert-Rückgabe über get_num_employees() Funktion</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+
+        <h3>Standard-Konfiguration verwenden</h3>
+        <ol>
+            <li><strong>Dialog öffnen</strong> - Zugriff über Standort-Konfiguration oder Planungsperioden-Verwaltung</li>
+            <li><strong>Aktuellen Wert überprüfen</strong> - Die SpinBox zeigt den aktuell konfigurierten Wert für die Location-Plan-Period</li>
+            <li><strong>Neue Standard-Anzahl eingeben</strong>:
+                <ul>
+                    <li>Klicken Sie in die <strong>"Anzahl Mitarbeiter"</strong> SpinBox</li>
+                    <li>Geben Sie eine Zahl ein (Minimum: 0)</li>
+                    <li>Oder verwenden Sie die Pfeil-Buttons für schrittweise Änderungen</li>
+                </ul>
+            </li>
+            <li><strong>Optional: Reset verwenden</strong>:
+                <ul>
+                    <li>Klicken Sie <strong>"Zurücksetzen"</strong> um auf Standort-Default-Wert zurückzukehren</li>
+                    <li>Diese setzt den Wert auf die in der Einrichtung definierte Standard-Besetzung</li>
+                </ul>
+            </li>
+            <li><strong>Änderungen speichern</strong> - Klicken Sie <strong>"OK"</strong> um die neue Standard-Mitarbeiteranzahl zu übernehmen</li>
+        </ol>
+
+        <h3>Event-spezifische Anpassung durchführen</h3>
+        <ol>
+            <li><strong>Event-Context prüfen</strong> - Der Dialog zeigt Datum, Tageszeit und Standort des Events zur Orientierung</li>
+            <li><strong>Aktuelle Besetzung überprüfen</strong> - Die SpinBox zeigt die momentane Cast-Group-Größe des Events</li>
+            <li><strong>Mitarbeiteranzahl anpassen</strong>:
+                <ul>
+                    <li>Klicken Sie in die <strong>"Anzahl Mitarbeiter"</strong> SpinBox</li>
+                    <li>Verwenden Sie den Wertebereich 0-100 für flexible Event-Größen</li>
+                    <li>Nutzen Sie Pfeil-Buttons oder direkte Eingabe</li>
+                </ul>
+            </li>
+            <li><strong>Änderung bestätigen</strong> - Klicken Sie <strong>"OK"</strong> um die event-spezifische Mitarbeiteranzahl zu übernehmen</li>
+            <li><strong>Cast-Management aktualisiert</strong> - Das System passt die Mitarbeiter-Positionen automatisch an</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Änderungen übernehmen und Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Pfeil hoch/runter</strong> - Wert in der SpinBox schrittweise ändern</p>
+            <p><strong>Ctrl+A</strong> - Gesamten Zahlenwert auswählen</p>
+            <p><strong>Tab</strong> - Zwischen UI-Elementen wechseln</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="edit_appointment.html">Termin Bearbeiten</a></strong> - Cast-Management verwendet die hier definierten Mitarbeiteranzahlen als Basis für Positionen</li>
+            <li><strong><a href="plan.html">Planungsübersicht</a></strong> - Hauptansicht zur Terminplanung und -verwaltung mit Event-Details</li>
+            <li><strong><a href="plan_period_create.html">Planungsperioden-Verwaltung</a></strong> - Verwaltung der Zeiträume, für die Standard-Einstellungen gelten</li>
+            <li><strong><a href="avail_at_day.html">Verfügbarkeit an Tag</a></strong> - Überprüfung der verfügbaren Mitarbeiter entsprechend der konfigurierten Anzahl</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Die zweistufige Mitarbeiteranzahl-Verwaltung wird verwendet für:</p>
+
+        <h3>Strategische Planung (Standard-Konfiguration)</h3>
+        <ul>
+            <li><strong>Standardisierte Events</strong> - Einheitliche Besetzung für regelmäßige Termine am gleichen Standort</li>
+            <li><strong>Kapazitäts-Planung</strong> - Vordefinition der benötigten Personalstärke pro Location</li>
+            <li><strong>Cast-Group-Dimensionierung</strong> - Automatische Bestimmung der Dropdown-Anzahl bei Terminbearbeitung</li>
+            <li><strong>Ressourcen-Budgetierung</strong> - Kalkulationsbasis für Personalkosten pro Event</li>
+            <li><strong>Planungs-Effizienz</strong> - Vorkonfiguration reduziert manuellen Aufwand bei Termin-Erstellung</li>
+        </ul>
+
+        <h3>Operative Anpassung (Event-spezifisch)</h3>
+        <ul>
+            <li><strong>Sonderveranstaltungen</strong> - Events mit abweichender Mitarbeiteranforderung vom Standard</li>
+            <li><strong>Saisonale Anpassungen</strong> - Erhöhung der Besetzung während Stoßzeiten</li>
+            <li><strong>VIP-Events</strong> - Zusätzliches Personal für besondere Termine</li>
+            <li><strong>Notfall-Reduzierung</strong> - Kurzfristige Anpassung bei Personalausfall</li>
+            <li><strong>Pilot-Events</strong> - Testen verschiedener Besetzungsstärken für neue Event-Typen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+
+        <h3>Standard-Konfiguration Dialog</h3>
+        <h4>Eingabe-Bereich</h4>
+        <ul>
+            <li><strong>Dialog-Titel</strong> - "Number of Employees per Event" als Funktions-Bezeichnung</li>
+            <li><strong>Erklärungstext</strong> - "Bitte geben Sie die Anzahl der Mitarbeiter pro Event ein"</li>
+            <li><strong>SpinBox "Number of employees"</strong> - Numerische Eingabe mit Pfeil-Buttons</li>
+            <li><strong>Minimum-Wert: 0</strong> - Events können auch ohne feste Mitarbeiter stattfinden</li>
+        </ul>
+
+        <h4>Funktions-Buttons</h4>
+        <ul>
+            <li><strong>"Reset" Button</strong> - Setzt Wert auf Facility-Default zurück</li>
+            <li><strong>Tooltip-Information</strong> - Erklärt, dass Reset auf Einrichtungs-Standardwert zurücksetzt</li>
+            <li><strong>ActionRole-Integration</strong> - Button ist neben OK/Cancel positioniert</li>
+            <li><strong>Standard Dialog-Buttons</strong> - OK zum Speichern, Cancel zum Verwerfen</li>
+        </ul>
+
+        <h3>Event-spezifischer Dialog</h3>
+        <h4>Event-Context-Anzeige</h4>
+        <ul>
+            <li><strong>Dialog-Titel</strong> - "Number of Employees" für spezifische Anpassung</li>
+            <li><strong>Event-Beschreibung</strong> - Zeigt formatierte Informationen:
+                <ul>
+                    <li>Datum des Events (lokalisiert)</li>
+                    <li>Tageszeit des Events</li>
+                    <li>Standort-Name mit Stadt</li>
+                </ul>
+            </li>
+            <li><strong>Kontext-Format</strong> - "Enter the number of employees for the event on [date] ([time]) in [location]:"</li>
+        </ul>
+
+        <h4>Eingabe-Kontrollen</h4>
+        <ul>
+            <li><strong>SpinBox "Number of employees"</strong> - Erweiterte Eingabe mit größerem Wertebereich</li>
+            <li><strong>Wertebereich: 0-100</strong> - Unterstützt auch sehr große Events</li>
+            <li><strong>Aktueller Wert</strong> - Initialisiert mit cast_group.nr_actors des Events</li>
+            <li><strong>Standard Dialog-Buttons</strong> - OK/Cancel für Bestätigung/Abbruch</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Workflow-Strategien</h4>
+            <p><strong>Standardisierung zuerst:</strong> Konfigurieren Sie realistische Standard-Werte für jeden Standort, um 80% der Events abzudecken.</p>
+            <p><strong>Situative Anpassung:</strong> Nutzen Sie event-spezifische Anpassung nur bei begründeten Abweichungen vom Standard.</p>
+            <p><strong>Saisonale Planung:</strong> Passen Sie Standards für Hauptsaisons an, verwenden Sie event-spezifische Anpassung für Ausnahmen.</p>
+            <p><strong>Pilot-Testing:</strong> Testen Sie neue Besetzungsstärken zunächst event-spezifisch, bevor Sie Standards ändern.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Typische Konfigurationsszenarien</h4>
+            <p><strong>Büro-Standort Standard:</strong> 2 (Moderator + Assistent) → Event-spezifisch: 1 (Einzelberatung) oder 4 (Großmeeting)</p>
+            <p><strong>Veranstaltungs-Location Standard:</strong> 5 (Full Service Team) → Event-spezifisch: 8 (VIP-Event) oder 3 (Kleine Veranstaltung)</p>
+            <p><strong>Workshop-Bereiche Standard:</strong> 3 (Trainer + 2 Assistenten) → Event-spezifisch: 6 (Großworkshop) oder 2 (Fokusgruppe)</p>
+            <p><strong>Beratungs-Räume Standard:</strong> 1 (Berater) → Event-spezifisch: 2 (Team-Beratung) oder 0 (Selbstservice)</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Standard vs. Event-spezifische Einstellung verwechselt</h4>
+            <p><strong>Ursache:</strong> Beide Dialoge sehen ähnlich aus, haben aber unterschiedliche Auswirkungen.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie den Dialog-Titel und Context - Standard-Dialog hat Reset-Button, Event-Dialog zeigt Event-Details.</p>
+            
+            <h4>Problem: Event-spezifische Änderung wirkt sich nicht aus</h4>
+            <p><strong>Ursache:</strong> Cast-Management wurde nach der Änderung nicht aktualisiert oder Dialog wurde abgebrochen.</p>
+            <p><strong>Lösung:</strong> Stellen Sie sicher, dass Sie "OK" geklickt haben und öffnen Sie das Cast-Management erneut.</p>
+            
+            <h4>Problem: Reset-Button fehlt im Event-Dialog</h4>
+            <p><strong>Ursache:</strong> Event-spezifischer Dialog hat keinen Reset, da er direkt auf Cast-Group wirkt.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie den Standard-Dialog zur Grundkonfiguration, den Event-Dialog nur für Anpassungen.</p>
+            
+            <h4>Problem: Sehr hohe Zahlen verlangsamen System</h4>
+            <p><strong>Ursache:</strong> Zu viele Mitarbeiter-Positionen erzeugen performance-intensive UI-Elemente.</p>
+            <p><strong>Lösung:</strong> Verwenden Sie realistische Werte - bei Events >20 Mitarbeitern alternative Organisationsformen prüfen.</p>
+            
+            <h4>Problem: Null-Wert macht Cast-Management unbrauchbar</h4>
+            <p><strong>Ursache:</strong> Bei 0 Mitarbeitern werden keine Positionen für Terminbearbeitung erstellt.</p>
+            <p><strong>Lösung:</strong> Setzen Sie mindestens 1, auch wenn Termine flexibel unbesetzt bleiben können.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Strategien</h4>
+            <p><strong>80/20-Regel anwenden:</strong> Standards sollten 80% der Events abdecken, nur 20% brauchen event-spezifische Anpassung.</p>
+            <p><strong>Konsistente Standort-Standards:</strong> Verschiedene Locations, verschiedene Standards - aber innerhalb einer Location konsistent bleiben.</p>
+            <p><strong>Dokumentation der Abweichungen:</strong> Event-spezifische Änderungen sollten begründet und dokumentiert werden.</p>
+            <p><strong>Regelmäßige Standard-Überprüfung:</strong> Wenn Sie häufig event-spezifische Anpassungen in die gleiche Richtung machen, Standards anpassen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Workflow-Optimierung</h4>
+            <p><strong>Standard zuerst definieren:</strong> Konfigurieren Sie alle Standort-Standards, bevor Sie mit operativer Planung beginnen.</p>
+            <p><strong>Event-Typen berücksichtigen:</strong> Verschiedene Event-Arten können verschiedene Standard-Besetzungen benötigen.</p>
+            <p><strong>Planungsperioden nutzen:</strong> Standards können sich zwischen Planungsperioden ändern (Saisonalität).</p>
+            <p><strong>Cast-Management als Kontrolle:</strong> Überprüfen Sie im Cast-Management, ob Ihre Mitarbeiteranzahl-Einstellungen praktikabel sind.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Location-Plan-Period Integration (Standard-Konfiguration)</h3>
+        <p>Die Standard-Mitarbeiteranzahl ist eng mit der Planungsperioden-Architektur verknüpft:</p>
+        <ul>
+            <li><strong>Period-spezifische Werte</strong> - Jede Location-Plan-Period kann individuelle Mitarbeiteranzahl haben</li>
+            <li><strong>Hierarchische Vererbung</strong> - Werte werden initial von Location-of-Work übernommen</li>
+            <li><strong>Überschreibbarkeit</strong> - Location-Plan-Period-Werte überschreiben Location-Defaults</li>
+            <li><strong>Persistente Speicherung</strong> - Änderungen werden in der Datenbank gespeichert</li>
+        </ul>
+
+        <h3>Cast-Group-Integration (Event-spezifisch)</h3>
+        <p>Event-spezifische Anpassungen wirken direkt auf das Cast-System:</p>
+        <ul>
+            <li><strong>Direkte Cast-Group-Manipulation</strong> - Ändert cast_group.nr_actors des Events</li>
+            <li><strong>Sofortige UI-Aktualisierung</strong> - Cast-Management reflektiert Änderungen unmittelbar</li>
+            <li><strong>Event-Context-Anzeige</strong> - Datum, Zeit und Location aus event.date, event.time_of_day, event.location_plan_period</li>
+            <li><strong>Flexible Reichweite</strong> - Unterstützt 0-100 Range für verschiedenste Event-Größen</li>
+        </ul>
+
+        <h3>Datenfluss und Return-Mechanismen</h3>
+        <p>Beide Dialoge verwenden unterschiedliche Datenrückgabe-Patterns:</p>
+        
+        <h4>Standard-Konfiguration</h4>
+        <ul>
+            <li><strong>Property-basierte Rückgabe</strong> - `num_actors` Property liefert finalen Wert</li>
+            <li><strong>SpinBox-Integration</strong> - Direkter Zugriff auf value() der GUI-Komponente</li>
+            <li><strong>Typisierte Rückgabe</strong> - Property garantiert int-Typ für weitere Verarbeitung</li>
+            <li><strong>Validation-Free</strong> - Keine zusätzliche Validierung nötig, da SpinBox bereits sicherstellt</li>
+        </ul>
+
+        <h4>Event-spezifische Anpassung</h4>
+        <ul>
+            <li><strong>Methoden-basierte Rückgabe</strong> - `get_num_employees()` Funktion für Wert-Extraktion</li>
+            <li><strong>Explizite Methode</strong> - Klarere Trennung zwischen UI-Zugriff und Business-Logik</li>
+            <li><strong>Range-Validation</strong> - SpinBox mit definiertem 0-100 Bereich</li>
+            <li><strong>Current-Value-Initialization</strong> - Initialisiert mit aktuellem cast_group.nr_actors Wert</li>
+        </ul>
+
+        <h3>System-Architecture-Integration</h3>
+        <p>Die Mitarbeiteranzahl-Verwaltung integriert sich in mehrere System-Bereiche:</p>
+        <ul>
+            <li><strong>Database-Services</strong> - LocationPlanPeriod und EventShow Schema-Integration</li>
+            <li><strong>Cast-Management</strong> - Direkte Auswirkung auf Cast-Group-Dimensionierung</li>
+            <li><strong>UI-Rendering</strong> - Bestimmt Anzahl der Dropdown-Listen in Terminbearbeitung</li>
+            <li><strong>Performance-Impact</strong> - Höhere Zahlen = mehr Database-Queries und Memory-Usage</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <h3>Dialog-Unterscheidung</h3>
+        <p>Beide Dialoge haben unterschiedliche technische Charakteristika:</p>
+        
+        <h4>DlgNumActorsApp (Standard-Konfiguration)</h4>
+        <ul>
+            <li><strong>Parameter:</strong> location_plan_period_id: UUID</li>
+            <li><strong>Window-Title:</strong> "Number of Employees per Event"</li>
+            <li><strong>Reset-Funktion:</strong> Verfügbar - setzt auf location_of_work.nr_actors</li>
+            <li><strong>Datenquelle:</strong> location_plan_period.nr_actors</li>
+            <li><strong>Rückgabe:</strong> Property num_actors -> int</li>
+        </ul>
+
+        <h4>DlgNumEmployeesEvent (Event-spezifisch)</h4>
+        <ul>
+            <li><strong>Parameter:</strong> event: schemas.EventShow</li>
+            <li><strong>Window-Title:</strong> "Number of Employees"</li>
+            <li><strong>Reset-Funktion:</strong> Nicht verfügbar</li>
+            <li><strong>Datenquelle:</strong> event.cast_group.nr_actors</li>
+            <li><strong>Rückgabe:</strong> Methode get_num_employees() -> int</li>
+        </ul>
+
+        <h3>Internationalization Support</h3>
+        <p>Beide Dialoge unterstützen Lokalisierung über Qt's tr() System:</p>
+        <ul>
+            <li><strong>Dialog-Titel:</strong> Lokalisierte Window-Titles über self.tr()</li>
+            <li><strong>UI-Labels:</strong> Alle Labels und Buttons unterstützen Übersetzungen</li>
+            <li><strong>Date-Formatting:</strong> Event-Dialog verwendet date_to_string() für lokalisierte Datumsanzeige</li>
+            <li><strong>Tooltip-Texte:</strong> Reset-Button-Tooltip lokalisiert über tr() System</li>
+        </ul>
+    </div>
+</body>
+</html>

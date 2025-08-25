@@ -118,6 +118,10 @@ class DlgPartnerLocationPrefsLocs(QDialog):
         self.setup_option_field()
         self.setup_values()
         self.connect_sliders_to_save()
+        
+        # Help-Integration
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "partner_location_prefs_locs")
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -224,6 +228,10 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         self.setup_option_field()
         self.setup_values()
         self.connect_sliders_to_save()
+        
+        # Help-Integration
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "partner_location_prefs_partner")
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -333,6 +341,10 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.timeout.connect(self.date_changed)
 
         self._setup_ui()
+        
+        # Help-Integration
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "partner_location_prefs")
 
         self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
 

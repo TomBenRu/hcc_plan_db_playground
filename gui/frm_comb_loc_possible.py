@@ -11,6 +11,7 @@ from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_assignment_of_person
 from commands import command_base_classes
+from tools.helper_functions import setup_form_help
 from commands.database_commands import team_commands
 from commands.database_commands import actor_plan_period_commands, person_commands, avail_day_commands, \
     comb_loc_possible_commands
@@ -54,6 +55,9 @@ class DlgNewCombLocPossible(QDialog):
         self.layout.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+        
+        # F1 Help Integration
+        setup_form_help(self, "new_comb_loc_possible")
 
     def check_changed(self, state: int):
         if state == Qt.CheckState.Checked:
@@ -121,6 +125,9 @@ class DlgCombLocPossibleEditList(QDialog):
         self.layout.addWidget(self.bt_delete, 3, 2)
         self.layout.addWidget(self.button_box, 4, 0, 1, 3)
         self.button_box.setCenterButtons(True)
+        
+        # F1 Help Integration
+        setup_form_help(self, "comb_loc_possible_edit_list")
 
     def set_new__locations__parent_model(self):
         date = self.de_date.date().toPython()

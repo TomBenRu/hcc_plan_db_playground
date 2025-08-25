@@ -31,7 +31,7 @@ from gui.widget_styles.plan_table import horizontal_header_colors, vertical_head
 from sat_solver import solver_main
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
-    time_to_string
+    time_to_string, setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,9 @@ class DlgAvailAtDay(QDialog):
 
         self._generate_data()
         self._setup_ui()
+        
+        # Help-Integration
+        setup_form_help(self, "avail_at_day")
 
     def _setup_ui(self):
         self.setStyleSheet('background-color: none')
@@ -130,6 +133,9 @@ class DlgGuest(QDialog):
         self.setWindowTitle(self.tr('Guest cast'))
 
         self._setup_layout()
+        
+        # Help-Integration
+        setup_form_help(self, "guest")
 
     def _setup_layout(self):
         self.layout = QVBoxLayout(self)
@@ -157,6 +163,9 @@ class DlgEditAppointment(QDialog):
         self._setup_layout()
         self._setup_data()
         self._setup_employee_combos()
+        
+        # Help-Integration
+        setup_form_help(self, "edit_appointment")
 
     def _setup_layout(self):
         self.setStyleSheet('background-color: none;')
@@ -245,6 +254,9 @@ class DlgMoveAppointment(QDialog):
 
         self._generate_data()
         self._setup_ui()
+        
+        # Help-Integration
+        setup_form_help(self, "move_appointment")
 
     def _setup_ui(self):
         self.setStyleSheet("background-color: none")

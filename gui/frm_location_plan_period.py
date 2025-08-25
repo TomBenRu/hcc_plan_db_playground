@@ -7,10 +7,10 @@ from uuid import UUID
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtGui import QIcon, QAction
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
-    QMenu, QSpinBox, QWidgetAction, QDialog, QFormLayout, QDialogButtonBox
+    QMenu, QSpinBox, QWidgetAction
 
 from database import schemas, db_services
 from database.special_schema_requests import get_curr_assignment_of_location
@@ -18,12 +18,12 @@ from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widge
     frm_event_planing_rules, frm_num_actors_app
 from gui.custom_widgets import side_menu
 from gui.frm_notes import DlgEventNotes
+from gui.frm_num_actors_app import DlgNumEmployeesEvent
 from gui.frm_skill_groups import DlgSkillGroups
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import event_commands, cast_group_commands, event_group_commands, \
-    location_plan_period_commands
+from commands.database_commands import event_commands, cast_group_commands, location_plan_period_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -44,46 +44,6 @@ def disconnect_event_button_signals():
         signal_handling.handler_location_plan_period.signal_change_location_plan_period_group_mode.disconnect()
     except Exception as e:
         print(f'Fehler in disconnect_event_button_signals: {e}')
-
-
-class DlgNumEmployees(QDialog):
-    def __init__(self, parent: QWidget, event: schemas.EventShow):
-        super().__init__(parent)
-        self.setWindowTitle(self.tr('Number of Employees'))
-
-        self.event = event
-        self._setup_ui()
-
-    def _setup_ui(self):
-        self.layout = QVBoxLayout(self)
-        self.layout.setSpacing(20)
-        self.layout_head = QVBoxLayout()
-        self.layout_body = QFormLayout()
-        self.layout_foot = QVBoxLayout()
-        self.layout.addLayout(self.layout_head)
-        self.layout.addLayout(self.layout_body)
-        self.layout.addLayout(self.layout_foot)
-        self.lb_description = QLabel(
-            self.tr('Enter the number of employees\n'
-                    'for the event on {date} ({time_of_day})\n'
-                    'in {location}:').format(
-                date=date_to_string(self.event.date),
-                time_of_day=self.event.time_of_day.name,
-                location=self.event.location_plan_period.location_of_work.name_an_city
-            )
-        )
-        self.layout_head.addWidget(self.lb_description)
-        self.spin_num_employees = QSpinBox()
-        self.spin_num_employees.setRange(0, 100)
-        self.spin_num_employees.setValue(self.event.cast_group.nr_actors)
-        self.layout_body.addRow(self.tr('Number of employees'), self.spin_num_employees)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        self.layout_foot.addWidget(self.button_box)
-
-    def get_num_employees(self) -> int:
-        return self.spin_num_employees.value()
 
 
 class ButtonEvent(QPushButton):
@@ -192,7 +152,7 @@ class ButtonEvent(QPushButton):
 
     def show_num_employees_dialog(self):
         """Zeigt Dialog zur Änderung der Mitarbeiteranzahl."""
-        dlg = DlgNumEmployees(self, self.get_curr_event())
+        dlg = DlgNumEmployeesEvent(self, self.get_curr_event())
         if dlg.exec():
             self.apply_num_employees_change(dlg.get_num_employees())
     

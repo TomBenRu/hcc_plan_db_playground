@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Tagesverfügbarkeit - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="verfügbarkeit, tagesübersicht, mitarbeiter, available, day, overview">
+    <meta name="description" content="Hilfe für die Tagesverfügbarkeit - Übersicht aller Mitarbeiter-Verfügbarkeiten an einem bestimmten Tag in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Tagesverfügbarkeit</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Tagesverfügbarkeit</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die <strong>"Tagesverfügbarkeit"</strong> zeigt Ihnen eine kompakte Übersicht aller Mitarbeiter und deren Verfügbarkeiten an einem ausgewählten Tag. Dies ist ein schreibgeschützter Informations-Dialog, der bei der Terminplanung hilft, schnell zu sehen, welche Mitarbeiter zu welchen Tageszeiten verfügbar sind.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Tagesübersicht</strong> - Vollständige Anzeige aller Mitarbeiter-Verfügbarkeiten für einen spezifischen Tag</li>
+            <li><strong>Zeitbasierte Gruppierung</strong> - Verfügbarkeitszeiten werden pro Mitarbeiter als Liste angezeigt</li>
+            <li><strong>Alphabetische Sortierung</strong> - Mitarbeiter nach Vollnamen sortiert für bessere Übersichtlichkeit</li>
+            <li><strong>Planungsperioden-Integration</strong> - Berücksichtigt nur Verfügbarkeiten der aktuellen Planungsperiode</li>
+            <li><strong>Wochentag-Information</strong> - Anzeige des Wochentags und formatiertem Datum</li>
+            <li><strong>Kompakte Darstellung</strong> - Alle Informationen auf einen Blick ohne Scrolling</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog-Information lesen</strong> - Überprüfen Sie die Kopfzeile mit Wochentag und Datum</li>
+            <li><strong>Mitarbeiter-Liste durchgehen</strong>:
+                <ul>
+                    <li>Jede Zeile zeigt einen Mitarbeiter-Namen (Vollname)</li>
+                    <li>Dahinter stehen die verfügbaren Tageszeiten (kommagetrennt)</li>
+                    <li>Leere Zeilen bedeuten: Mitarbeiter ist an diesem Tag nicht verfügbar</li>
+                </ul>
+            </li>
+            <li><strong>Verfügbarkeitszeiten interpretieren</strong>:
+                <ul>
+                    <li>Zeitnamen entsprechen den konfigurierten Tageszeiten (z.B. "Vormittag", "Nachmittag")</li>
+                    <li>Mehrere Zeiten bedeuten: Mitarbeiter ist zu mehreren Zeitslots verfügbar</li>
+                    <li>Chronologische Reihenfolge der Zeiten</li>
+                </ul>
+            </li>
+            <li><strong>Dialog schließen</strong> - Klicken Sie auf <strong>"OK"</strong> um zur Planungsansicht zurückzukehren</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog schließen</p>
+            <p><strong>Scrollrad</strong> - Bei vielen Mitarbeitern in der Liste scrollen</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="edit_appointment.html">Termin Bearbeiten</a></strong> - Mitarbeiter basierend auf Verfügbarkeit zu Terminen zuweisen</li>
+            <li><strong><a href="move_appointment.html">Termin Verschieben</a></strong> - Termine auf Tage mit besseren Verfügbarkeiten verlegen</li>
+            <li><strong><a href="plan.html">Planungsübersicht</a></strong> - Hauptansicht für Terminplanung und -verwaltung</li>
+            <li><strong><a href="plan_period_create.html">Planungsperioden-Verwaltung</a></strong> - Zeiträume verwalten, die die Verfügbarkeiten bestimmen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Die Tagesverfügbarkeit wird verwendet für:</p>
+        <ul>
+            <li><strong>Planungsvorschau</strong> - Vor dem Erstellen von Terminen die Verfügbarkeiten checken</li>
+            <li><strong>Kapazitätsplanung</strong> - Übersicht über die maximale Mitarbeiteranzahl pro Zeitslot</li>
+            <li><strong>Konflikt-Diagnose</strong> - Bei Terminproblemen schnell verfügbare Alternativen finden</li>
+            <li><strong>Ressourcen-Überblick</strong> - Tagesweise Einschätzung der verfügbaren Personalkapazität</li>
+            <li><strong>Planungsoptimierung</strong> - Identifikation von unter- oder überausgelasteten Tagen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <h3>Kopfbereich</h3>
+        <ul>
+            <li><strong>Datum-Information</strong> - Zeigt Wochentag (z.B. "Montag") und formatiertes Datum</li>
+            <li><strong>Kontext-Text</strong> - "Am [Wochentag], [Datum] stehen folgende Mitarbeiter zur Verfügung."</li>
+            <li><strong>Deutsche Lokalisierung</strong> - Wochentags-Namen in deutscher Sprache</li>
+        </ul>
+
+        <h3>Mitarbeiter-Übersicht</h3>
+        <ul>
+            <li><strong>GroupBox "Actors"</strong> - Dunkler Hintergrund (#2b2b2b) für bessere Lesbarkeit</li>
+            <li><strong>FormLayout-Struktur</strong> - Zeilen mit "Mitarbeitername:" und "Verfügbare Zeiten"</li>
+            <li><strong>Vollnamen-Anzeige</strong> - Vor- und Nachname der Mitarbeiter</li>
+            <li><strong>Kommagetrennte Zeiten</strong> - Alle verfügbaren Tageszeiten in einer Zeile</li>
+            <li><strong>Alphabetische Reihenfolge</strong> - Sortierung nach Mitarbeiter-Vollnamen</li>
+        </ul>
+
+        <h3>Verfügbarkeits-Darstellung</h3>
+        <ul>
+            <li><strong>Tageszeit-Namen</strong> - Verständliche Bezeichnungen (z.B. "Vormittag", "Abend")</li>
+            <li><strong>Chronologische Sortierung</strong> - Zeiten nach Time-Index geordnet</li>
+            <li><strong>Kompakte Liste</strong> - Mehrere Zeiten durch Komma getrennt</li>
+            <li><strong>Leere Einträge</strong> - Mitarbeiter ohne Verfügbarkeit werden nicht angezeigt</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Typische Nutzungsszenarien</h4>
+            <p><strong>Vor Termin-Erstellung:</strong> Verfügbarkeiten checken bevor Sie einen neuen Termin anlegen, um sicherzustellen, dass genug Personal da ist.</p>
+            <p><strong>Kapazitäts-Check:</strong> An wichtigen Tagen (Feiertage, Events) prüfen, wie viele Mitarbeiter zu welchen Zeiten verfügbar sind.</p>
+            <p><strong>Engpass-Identifikation:</strong> Tage mit wenig Verfügbarkeiten identifizieren und eventuell Termine verschieben.</p>
+            <p><strong>Optimierung:</strong> Unterausgelastete Tage finden und mehr Termine darauf planen.</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Dialog zeigt keine Mitarbeiter an</h4>
+            <p><strong>Ursache:</strong> Für den gewählten Tag sind keine Verfügbarkeiten in der Planungsperiode definiert.</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die Mitarbeiter-Verfügbarkeiten oder wählen Sie einen anderen Tag.</p>
+            
+            <h4>Problem: Mitarbeiter fehlen in der Liste</h4>
+            <p><strong>Ursache:</strong> Mitarbeiter haben keine Verfügbarkeit für diesen spezifischen Tag definiert.</p>
+            <p><strong>Lösung:</strong> Prüfen Sie die Verfügbarkeits-Einstellungen der Mitarbeiter oder deren Planungsperioden-Zugehörigkeit.</p>
+            
+            <h4>Problem: Tageszeiten sind unverständlich</h4>
+            <p><strong>Ursache:</strong> Tageszeit-Bezeichnungen sind nicht aussagekräftig konfiguriert.</p>
+            <p><strong>Lösung:</strong> Passen Sie in der System-Konfiguration die Tageszeit-Namen an (z.B. "09:00-12:00" statt "Slot1").</p>
+            
+            <h4>Problem: Datum ist falsch angezeigt</h4>
+            <p><strong>Ursache:</strong> System-Datum oder Planungsperioden-Einstellungen sind nicht korrekt.</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die System-Zeit und die Gültigkeit der aktuellen Planungsperiode.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <p><strong>Regelmäßiger Check:</strong> Nutzen Sie die Tagesverfügbarkeit täglich zur Planungsvorbereitung.</p>
+            <p><strong>Engpass-Planung:</strong> Identifizieren Sie Tage mit wenig Verfügbarkeit und planen Sie diese zuerst.</p>
+            <p><strong>Zeitslot-Optimierung:</strong> Achten Sie auf Zeitslots mit vielen verfügbaren Mitarbeitern für größere Events.</p>
+            <p><strong>Kombination mit anderen Views:</strong> Nutzen Sie diese Ansicht zusammen mit der Hauptplanungsansicht für optimale Ergebnisse.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <h3>Datenquellen und Filterung</h3>
+        <p>Die Tagesverfügbarkeit aggregiert Daten aus mehreren Systemkomponenten:</p>
+        <ul>
+            <li><strong>AvailDay-Entities</strong> - Grundlage sind die definierten Verfügbarkeitstage</li>
+            <li><strong>Planungsperioden-Filter</strong> - Nur Verfügbarkeiten der aktuellen Periode werden berücksichtigt</li>
+            <li><strong>Actor-Plan-Period Verknüpfung</strong> - Mitarbeiter müssen der Planungsperiode zugeordnet sein</li>
+            <li><strong>Time-Index-Sortierung</strong> - Tageszeiten werden chronologisch sortiert</li>
+        </ul>
+
+        <h3>Datenstruktur und Performance</h3>
+        <p>Der Dialog verwendet optimierte Datenstrukturen für bessere Performance:</p>
+        <ul>
+            <li><strong>DefaultDict-Aggregation</strong> - Effiziente Gruppierung von Mitarbeitern und Zeiten</li>
+            <li><strong>Sortierte Abfragen</strong> - Datenbank-Abfrage bereits nach Mitarbeiter-Name und Zeit-Index sortiert</li>
+            <li><strong>Einmalige Datenladung</strong> - Alle Daten werden beim Dialog-Start geladen</li>
+            <li><strong>Cached Weekday-Names</strong> - Deutsche Wochentags-Namen werden wiederverwendet</li>
+        </ul>
+
+        <h3>Integration mit Planungssystem</h3>
+        <p>Die Verfügbarkeitsansicht ist nahtlos in den Planungsworkflow integriert:</p>
+        <ul>
+            <li><strong>Kontext-sensitive Aufrufe</strong> - Dialog wird mit spezifischem Datum und Planungsperiode geöffnet</li>
+            <li><strong>Konsistente Datumsformatierung</strong> - Verwendet dieselben Formatierungs-Funktionen wie andere Dialoge</li>
+            <li><strong>Planungsperioden-Awareness</strong> - Respektiert die Grenzen der aktuellen Planungsperiode</li>
+            <li><strong>Multi-Time-Support</strong> - Unterstützt Mitarbeiter mit Verfügbarkeit zu mehreren Tageszeiten</li>
+        </ul>
+
+        <h3>Benutzerfreundlichkeit</h3>
+        <p>Der Dialog ist für maximale Benutzerfreundlichkeit optimiert:</p>
+        <ul>
+            <li><strong>Read-Only Design</strong> - Keine versehentlichen Änderungen möglich</li>
+            <li><strong>Kompakte Darstellung</strong> - Alle Informationen ohne Scrolling sichtbar</li>
+            <li><strong>Konsistente Styling</strong> - Dunkler Hintergrund für besseren Kontrast</li>
+            <li><strong>Einfache Navigation</strong> - Nur OK-Button, keine komplexe Bedienung nötig</li>
+        </ul>
+    </div>
+</body>
+</html>

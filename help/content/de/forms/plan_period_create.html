@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Planungsperioden-Verwaltung - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="planungsperiode, erstellen, team, planer, zeitraum, deadline, notizen">
+    <meta name="description" content="Hilfe für die Erstellung von Planungsperioden in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Planungsperioden-Verwaltung</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Planungsperioden-Verwaltung</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die <strong>"Planungsperioden-Verwaltung"</strong> umfasst sowohl das Erstellen neuer als auch das Bearbeiten bestehender Planungszeiträume für Teams. Eine Planungsperiode ist der grundlegende Zeitrahmen, in dem Termine, Verfügbarkeiten und Ressourcen für ein Team geplant werden.</p>
+        
+        <h3>Verfügbare Modi</h3>
+        <ul class="feature-list">
+            <li><strong>Erstellen-Modus</strong> - Neue Planungsperioden definieren und automatisch mit Server synchronisieren</li>
+            <li><strong>Bearbeiten-Modus</strong> - Bestehende Planungsperioden auswählen, ändern und löschen</li>
+        </ul>
+
+        <h2>Hauptfunktionen</h2>
+        
+        <h3>Gemeinsame Features (Erstellen + Bearbeiten)</h3>
+        <ul class="feature-list">
+            <li><strong>Team-basierte Planung</strong> - Zuweisung von Planungsperioden zu spezifischen Teams</li>
+            <li><strong>Planer-Auswahl</strong> - Bestimmung des verantwortlichen Planers für die Periode</li>
+            <li><strong>Flexible Zeitraumdefinition</strong> - Start-, End- und Deadline-Festlegung mit automatischer Validierung</li>
+            <li><strong>Duale Notizenfunktion</strong> - Interne Notizen und separate Notizen für das Online-Portal</li>
+            <li><strong>Erinnerungssystem</strong> - Optional automatische Benachrichtigungen</li>
+        </ul>
+        
+        <h3>Erstellen-spezifische Features</h3>
+        <ul class="feature-list">
+            <li><strong>Server-Synchronisation</strong> - Automatische Übertragung zum Online-Portal mit Fallback-Option</li>
+            <li><strong>Automatische Ressourcenerstellung</strong> - Locations und Akteure werden basierend auf Teamkonfiguration erstellt</li>
+        </ul>
+        
+        <h3>Bearbeiten-spezifische Features</h3>
+        <ul class="feature-list">
+            <li><strong>Planungsperioden-Auswahl</strong> - Dropdown zur Auswahl bestehender Perioden</li>
+            <li><strong>Lösch-Funktion</strong> - Bestehende Planungsperioden entfernen</li>
+            <li><strong>Team-Notizen kopieren</strong> - Button zum Zurücksetzen der Notizen aus Team-Einstellungen</li>
+            <li><strong>Intelligent Constraints</strong> - Datumsgrenzen basierend auf benachbarten Perioden</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Planungsperiode Erstellen</h3>
+        <ol>
+            <li><strong>Planer auswählen</strong> - Wählen Sie den verantwortlichen Planer aus der <strong>"Planer"</strong>-Dropdown-Liste</li>
+            <li><strong>Team festlegen</strong> - Bestimmen Sie das Team aus der <strong>"Team"</strong>-Auswahl (wird automatisch nach Planer-Auswahl gefiltert)</li>
+            <li><strong>Zeitraum definieren</strong>:
+                <ul>
+                    <li>Setzen Sie das <strong>"Start"</strong>-Datum der Planungsperiode</li>
+                    <li>Definieren Sie das <strong>"End"</strong>-Datum der Planungsperiode</li>
+                    <li>Bestimmen Sie die <strong>"Deadline"</strong> für die Terminplanung</li>
+                </ul>
+            </li>
+            <li><strong>Notizen hinzufügen</strong>:
+                <ul>
+                    <li>Tragen Sie interne <strong>"Notizen"</strong> für die Planungsverwaltung ein</li>
+                    <li>Verfassen Sie <strong>"Notizen im Online Portal"</strong> für Mitarbeiter-Sichtbarkeit</li>
+                </ul>
+            </li>
+            <li><strong>Erinnerung konfigurieren</strong> - Aktivieren Sie optional <strong>"Erinnerung senden?"</strong></li>
+            <li><strong>Speichern</strong> - Klicken Sie auf <strong>"Speichern"</strong> zum Erstellen der Planungsperiode</li>
+        </ol>
+        
+        <h3>Planungsperiode Bearbeiten</h3>
+        <ol>
+            <li><strong>Planer auswählen</strong> - Wählen Sie den Planer aus der <strong>"Planer auswählen"</strong>-Dropdown-Liste</li>
+            <li><strong>Team bestimmen</strong> - Wählen Sie das gewünschte Team aus <strong>"Team auswählen"</strong></li>
+            <li><strong>Planungsperiode wählen</strong> - Selektieren Sie die zu bearbeitende Periode aus <strong>"Planung auswählen"</strong></li>
+            <li><strong>Daten anpassen</strong>:
+                <ul>
+                    <li>Ändern Sie <strong>"Start"</strong>, <strong>"Ende"</strong> und <strong>"Deadline"</strong> nach Bedarf</li>
+                    <li>Beachten Sie die automatischen Datumsgrenzen basierend auf benachbarten Perioden</li>
+                </ul>
+            </li>
+            <li><strong>Notizen aktualisieren</strong>:
+                <ul>
+                    <li>Bearbeiten Sie die <strong>"Notizen"</strong> oder nutzen Sie <strong>"Aus Team-Notizen kopieren"</strong></li>
+                    <li>Aktualisieren Sie <strong>"API-Nachrichten an Mitarbeiter"</strong></li>
+                </ul>
+            </li>
+            <li><strong>Aktion wählen</strong>:
+                <ul>
+                    <li><strong>"Speichern"</strong> - Änderungen übernehmen</li>
+                    <li><strong>"Löschen"</strong> - Planungsperiode entfernen</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Planungsperiode speichern (wenn alle Pflichtfelder ausgefüllt)</p>
+            <p><strong>Escape</strong> - Dialog abbrechen</p>
+            <p><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="plan_period_edit.html">Planungsperiode Bearbeiten</a></strong> - Bestehende Planungsperioden ändern</li>
+            <li><strong><a href="plan.html">Planungsübersicht</a></strong> - Hauptplanungsansicht mit Terminen und Verfügbarkeiten</li>
+            <li><strong><a href="team_management.html">Team-Verwaltung</a></strong> - Teams und Planer konfigurieren</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Die Planungsperioden-Erstellung wird verwendet für:</p>
+        <ul>
+            <li><strong>Neue Planungszyklen</strong> - Start eines neuen Planungszeitraums für ein Team</li>
+            <li><strong>Saisonale Planung</strong> - Definition spezieller Zeiträume (z.B. Urlaubszeiten, Feiertage)</li>
+            <li><strong>Projekt-spezifische Perioden</strong> - Zeiträume für besondere Projekte oder Events</li>
+            <li><strong>Team-Reorganisation</strong> - Nach Änderungen in der Teamstruktur</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Gemeinsame UI-Elemente</h3>
+        <ul>
+            <li><strong>Planer-Dropdown</strong> - Zeigt alle berechtigten Planer mit Icons an</li>
+            <li><strong>Team-Dropdown</strong> - Dynamisch gefiltert basierend auf Planer-Auswahl</li>
+            <li><strong>Datum-Eingaben</strong> - Start, Ende und Deadline mit Kalenderpopup</li>
+            <li><strong>Notizen-Textfelder</strong> - Mehrzeilige Eingabe für interne und Portal-Notizen</li>
+            <li><strong>Erinnerungs-Checkbox</strong> - Aktivierung automatischer Benachrichtigungen</li>
+        </ul>
+        
+        <h3>Bearbeiten-spezifische UI-Elemente</h3>
+        <ul>
+            <li><strong>Planungsperioden-Dropdown</strong> - Auswahl bestehender Perioden (chronologisch sortiert)</li>
+            <li><strong>GroupBox "Planung auswählen"</strong> - Organisiert die Auswahlfelder für Planer/Team/Periode</li>
+            <li><strong>GroupBox "Planungsdaten"</strong> - Enthält alle Eingabefelder für die Bearbeitung</li>
+            <li><strong>"Aus Team-Notizen kopieren" Button</strong> - Setzt Notizen auf Team-Standard zurück</li>
+            <li><strong>"Löschen" Button</strong> - Entfernt die ausgewählte Planungsperiode</li>
+        </ul>
+
+        <h3>Automatische Validierungen</h3>
+        <ul>
+            <li><strong>Datumslogik</strong> - Start-Datum darf nicht nach End-Datum liegen</li>
+            <li><strong>Periodenfolge</strong> - Neue Periode muss nach der letzten bestehenden Periode beginnen</li>
+            <li><strong>Team-Pflicht</strong> - Ein Team muss ausgewählt werden vor dem Speichern</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Häufige Szenarien</h4>
+            <p><strong>Monatliche Planung:</strong> Erstellen Sie Planungsperioden für jeden Monat mit einer Woche Vorlaufzeit für die Deadline.</p>
+            <p><strong>Urlaubsperioden:</strong> Definieren Sie spezielle Perioden für Ferienszeiten mit angepassten Notizen für das Online-Portal.</p>
+            <p><strong>Projekt-Phasen:</strong> Nutzen Sie separate Planungsperioden für verschiedene Projektabschnitte mit entsprechenden internen Notizen.</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: "Sie müssen zuerst ein Team auswählen" Fehlermeldung</h4>
+            <p><strong>Ursache:</strong> Kein Team wurde vor dem Speichern ausgewählt.</p>
+            <p><strong>Lösung:</strong> Wählen Sie einen Planer aus, dann automatisch ein Team, bevor Sie speichern.</p>
+            
+            <h4>Problem: Datum kann nicht gesetzt werden</h4>
+            <p><strong>Ursache:</strong> Das gewählte Datum liegt vor der letzten bestehenden Planungsperiode.</p>
+            <p><strong>Lösung:</strong> Wählen Sie ein Start-Datum nach dem Ende der letzten Planungsperiode des Teams.</p>
+            
+            <h4>Problem: Server-Synchronisation fehlgeschlagen (nur Erstellen)</h4>
+            <p><strong>Ursache:</strong> Keine Internetverbindung oder Server-Problem.</p>
+            <p><strong>Lösung:</strong> Wählen Sie "Ja" für lokale Erstellung, synchronisieren Sie später manuell.</p>
+            
+            <h4>Problem: Eingabefelder sind deaktiviert (nur Bearbeiten)</h4>
+            <p><strong>Ursache:</strong> Keine Planungsperiode ausgewählt oder keine Perioden für das gewählte Team vorhanden.</p>
+            <p><strong>Lösung:</strong> Wählen Sie eine gültige Planungsperiode aus der Dropdown-Liste aus.</p>
+            
+            <h4>Problem: Datum lässt sich nicht ändern (nur Bearbeiten)</h4>
+            <p><strong>Ursache:</strong> Datumsgrenzen durch benachbarte Planungsperioden eingeschränkt.</p>
+            <p><strong>Lösung:</strong> Beachten Sie die Min/Max-Grenzen - Start muss nach vorheriger Periode, Ende vor nachfolgender Periode liegen.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <p><strong>Konsistente Zeiträume:</strong> Verwenden Sie gleichmäßige Planungsperioden (z.B. immer 4 Wochen) für bessere Übersichtlichkeit.</p>
+            <p><strong>Ausreichende Vorlaufzeit:</strong> Setzen Sie die Deadline mindestens eine Woche vor dem Start für rechtzeitige Planung.</p>
+            <p><strong>Klare Portal-Notizen:</strong> Schreiben Sie Notizen für das Online-Portal verständlich für alle Mitarbeiter.</p>
+            <p><strong>Erinnerungen nutzen:</strong> Aktivieren Sie Erinnerungen für kritische Planungsperioden.</p>
+            <p><strong>Vorsicht beim Bearbeiten:</strong> Änderungen an Start/Ende können bestehende Termine beeinflussen - prüfen Sie die Planungsübersicht.</p>
+            <p><strong>Team-Notizen nutzen:</strong> Verwenden Sie "Aus Team-Notizen kopieren" um konsistente Standardnotizen zu gewährleisten.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <h3>Automatische Ressourcenerstellung</h3>
+        <p>Nach erfolgreicher Erstellung werden automatisch folgende Objekte generiert:</p>
+        <ul>
+            <li><strong>Location-Plan-Perioden</strong> - Für alle dem Team zugewiesenen Standorte</li>
+            <li><strong>Actor-Plan-Perioden</strong> - Für alle Teammitglieder</li>
+            <li><strong>Event-Gruppen</strong> - Für Location-basierte Terminplanung</li>
+            <li><strong>Verfügbarkeits-Gruppen</strong> - Für Actor-basierte Verfügbarkeitsplanung</li>
+        </ul>
+
+        <h3>Server-Integration (nur Erstellen)</h3>
+        <p>Neu erstellte Planungsperioden werden automatisch an das Online-Portal übertragen:</p>
+        <ul>
+            <li><strong>Erfolgs-Bestätigung</strong> - Detaillierte Information über die erstellte Periode</li>
+            <li><strong>Fehler-Behandlung</strong> - Fallback-Option für lokale Erstellung bei Server-Problemen</li>
+            <li><strong>Rollback-Möglichkeit</strong> - Rückgängigmachung bei Übertragungsfehlern</li>
+        </ul>
+        
+        <h3>Edit-spezifische Features</h3>
+        <p>Beim Bearbeiten bestehender Planungsperioden:</p>
+        <ul>
+            <li><strong>Intelligente Datumsgrenzen</strong> - Min/Max-Werte basierend auf benachbarten Perioden</li>
+            <li><strong>Lokale Änderungen</strong> - Bearbeitungen werden nur lokal gespeichert (keine automatische Server-Synchronisation)</li>
+            <li><strong>Lösch-Sicherheit</strong> - Lösch-Button separat von Speichern/Abbrechen positioniert</li>
+            <li><strong>Team-Integration</strong> - Direkte Übernahme von Team-Notizen möglich</li>
+        </ul>
+    </div>
+</body>
+</html>

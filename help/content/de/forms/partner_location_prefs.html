@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Partner-Standort-Präferenzen - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="partner, location, preferences, präferenzen, standort, mitarbeiter, slider, score">
+    <meta name="description" content="Hilfe für die Verwaltung von Partner-Standort-Präferenzen zur Optimierung der Mitarbeiter-Zuweisung in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Partner-Standort-Präferenzen</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Partner-Standort-Präferenzen</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Dialog <strong>"Partner Preferences"</strong> ist das zentrale System zur Konfiguration von Mitarbeiter-Partner- und Standort-Präferenzen in HCC Plan. Dieses sophisticated Interface ermöglicht die fein-granulare Steuerung von Zuweisungsprioritäten über ein 5-stufiges Slider-System (0-4), kombiniert mit intelligenter Team- und Datums-Integration. Das System unterstützt sowohl globale Präferenz-Management als auch detaillierte Drill-Down-Dialoge für spezifische Partner-Standort-Kombinationen.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Dual-Group-Interface</strong> - Getrennte Scroll-Areas für Mitarbeiter- und Standort-Präferenzen</li>
+            <li><strong>5-Stufiges-Bewertungssystem</strong> - Slider von "nicht zuteilen" (0) bis "zwingend zuteilen" (4)</li>
+            <li><strong>Datumsbasierte Team-Kalkulation</strong> - Dynamische Partner/Standort-Listen basierend auf gewähltem Datum</li>
+            <li><strong>Drill-Down-Dialoge</strong> - Detaillierte Einzelkonfiguration über "Employees"/"Facilities"-Buttons</li>
+            <li><strong>Intelligente Score-Aggregation</strong> - Automatische Berechnung von Maximum-Werten bei Multi-Partner-Kombinationen</li>
+            <li><strong>Parent-Model-Integration</strong> - Vererbung und Reset-Optionen von übergeordneten Modellen</li>
+            <li><strong>Command-Pattern-Undo/Redo</strong> - Vollständige Rückgängigmachung komplexer Präferenz-Änderungen</li>
+            <li><strong>Adaptive UI-Sizing</strong> - Automatische Scroll-Area-Anpassung an Screen-Geometrie</li>
+            <li><strong>Real-time Validation</strong> - Sofortige Aktualisierung aller abhängigen UI-Elemente</li>
+            <li><strong>Cleanup-Automatisierung</strong> - Automatisches Entfernen ungenutzter Präferenz-Einträge</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog öffnen</strong> - Zugriff über Mitarbeiter-Management oder Cast-Konfiguration</li>
+            <li><strong>Datum für Team-Berechnung wählen</strong>:
+                <ul>
+                    <li>Setzen Sie das <strong>Datum</strong> über das DateEdit-Widget</li>
+                    <li>System berechnet automatisch verfügbare Partner und Standorte für dieses Datum</li>
+                    <li>Info-Label zeigt Team-Konsistenz über Planungsperiode an</li>
+                </ul>
+            </li>
+            <li><strong>Globale Präferenzen mit Slidern konfigurieren</strong>:
+                <ul>
+                    <li><strong>Mitarbeiter-Sektion:</strong> Slider für jeden Partner setzen (0-4 Skala)</li>
+                    <li><strong>Standort-Sektion:</strong> Slider für jeden Standort setzen (0-4 Skala)</li>
+                    <li>Label zeigt Slider-Wert als Text ("nicht zuteilen", "gerne zuteilen" etc.)</li>
+                </ul>
+            </li>
+            <li><strong>Detaillierte Konfiguration über Drill-Down</strong>:
+                <ul>
+                    <li><strong>"Employees" Button:</strong> Öffnet standort-spezifische Partner-Präferenzen</li>
+                    <li><strong>"Facilities" Button:</strong> Öffnet partner-spezifische Standort-Präferenzen</li>
+                    <li>Button-Farben zeigen Konsistenz-Status (alle gleich vs. gemischt)</li>
+                </ul>
+            </li>
+            <li><strong>Reset-Optionen nutzen</strong>:
+                <ul>
+                    <li><strong>Einzelnes Parent-Model:</strong> "Reset" setzt alle Werte auf "Normal" (2)</li>
+                    <li><strong>Parent-Model vorhanden:</strong> Dropdown mit "Reset to Normal" und "Values from parent model"</li>
+                </ul>
+            </li>
+            <li><strong>Änderungen speichern</strong>:
+                <ul>
+                    <li><strong>"Save"</strong> - Speichert alle Änderungen und entfernt ungenutzte Einträge</li>
+                    <li><strong>"Cancel"</strong> - Verwirft alle Änderungen über Undo-System</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Änderungen speichern und Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Tab</strong> - Zwischen Slider-Elementen wechseln</p>
+            <p><strong>Pfeil hoch/runter</strong> - Slider-Werte ändern (wenn fokussiert)</p>
+            <p><strong>Pfeil links/rechts</strong> - Slider-Werte ändern (wenn fokussiert)</p>
+            <p><strong>Seite hoch/runter</strong> - In Scroll-Areas navigieren</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="partner_location_prefs_locs.html">Standort-Präferenzen für Partner</a></strong> - Detaillierte Konfiguration aller Standorte für einen spezifischen Partner</li>
+            <li><strong><a href="partner_location_prefs_partner.html">Partner-Präferenzen für Standort</a></strong> - Detaillierte Konfiguration aller Partner für einen spezifischen Standort</li>
+            <li><strong><a href="edit_appointment.html">Termin Bearbeiten</a></strong> - Cast-Management nutzt diese Präferenzen für optimierte Mitarbeiter-Zuweisung</li>
+            <li><strong><a href="avail_at_day.html">Verfügbarkeit an Tag</a></strong> - Berücksichtigt Präferenz-Scores bei Verfügbarkeits-Darstellung</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Partner-Standort-Präferenzen werden verwendet für:</p>
+        <ul>
+            <li><strong>Optimierte Cast-Zuweisung</strong> - Automatische Berücksichtigung von Mitarbeiter-Präferenzen bei Terminplanung</li>
+            <li><strong>Teamwork-Optimierung</strong> - Förderung bewährter Partner-Kombinationen durch positive Scores</li>
+            <li><strong>Standort-spezifische Spezialisierung</strong> - Zuweisung erfahrener Mitarbeiter an vertraute Standorte</li>
+            <li><strong>Konflikt-Vermeidung</strong> - Verhinderung problematischer Partner-Kombinationen über negative Scores</li>
+            <li><strong>Effizienz-Steigerung</strong> - Reduzierung von Einarbeitungszeit durch optimierte Zuweisungen</li>
+            <li><strong>Qualitäts-Management</strong> - Sicherstellung hoher Service-Qualität durch bewährte Teams</li>
+            <li><strong>Mitarbeiter-Zufriedenheit</strong> - Berücksichtigung persönlicher Präferenzen und Arbeitsbeziehungen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+
+        <h3>Header-Bereich</h3>
+        <ul>
+            <li><strong>Dialog-Titel</strong> - "Partner Preferences" als Hauptfunktions-Bezeichnung</li>
+            <li><strong>Datum-Group</strong> - "Date" GroupBox mit DateEdit und Erklärungstext</li>
+            <li><strong>Info-Label</strong> - Dynamische Anzeige der Team-Konsistenz über Planungsperiode</li>
+            <li><strong>Warnung-Text</strong> - "Selection of employees and facilities may change at later date"</li>
+        </ul>
+
+        <h3>Dual-Group-Body</h3>
+        <h4>Mitarbeiter-Gruppe (Links)</h4>
+        <ul>
+            <li><strong>"Employees" GroupBox</strong> - Scroll-Area mit Partner-Präferenz-Slidern</li>
+            <li><strong>Grid-Layout:</strong> Name | "Facilities"-Button | Slider | Text-Label</li>
+            <li><strong>Partner-Namen</strong> - "Mit [Vorname] [Nachname]:" als Zeilen-Label</li>
+            <li><strong>"Facilities"-Buttons</strong> - Öffnen Drill-Down-Dialog für standort-spezifische Präferenzen</li>
+            <li><strong>Horizontal-Slider</strong> - 0-4 Range mit Tick-Marks, 200px Breite</li>
+            <li><strong>Text-Labels</strong> - Live-Update mit Slider-Wert-Beschreibung</li>
+        </ul>
+
+        <h4>Standort-Gruppe (Rechts)</h4>
+        <ul>
+            <li><strong>"Facilities" GroupBox</strong> - Scroll-Area mit Standort-Präferenz-Slidern</li>
+            <li><strong>Grid-Layout:</strong> Name | "Employees"-Button | Slider | Text-Label</li>
+            <li><strong>Standort-Namen</strong> - "In [Name] ([Stadt]):" als Zeilen-Label</li>
+            <li><strong>"Employees"-Buttons</strong> - Öffnen Drill-Down-Dialog für partner-spezifische Präferenzen</li>
+            <li><strong>Horizontal-Slider</strong> - 0-4 Range mit Tick-Marks, 200px Breite</li>
+            <li><strong>Text-Labels</strong> - Live-Update mit Slider-Wert-Beschreibung</li>
+        </ul>
+
+        <h3>Scroll-Area-Management</h3>
+        <ul>
+            <li><strong>Adaptive Sizing</strong> - Automatische Größenanpassung an Screen-Geometrie</li>
+            <li><strong>Scroll-Policies</strong> - Horizontal: AlwaysOff, Vertical: AsNeeded</li>
+            <li><strong>Maximum-Height-Limiting</strong> - Screen Height - 200/250px als Maximum</li>
+            <li><strong>Dynamic Content-Sizing</strong> - Widget-Größe basiert auf Anzahl Partner/Standorte</li>
+        </ul>
+
+        <h3>Button-Status und Styling</h3>
+        <ul>
+            <li><strong>Konsistenz-Indikation</strong>:
+                <ul>
+                    <li><strong>"All"-Status:</strong> Alle Partner/Standorte haben gleichen Score</li>
+                    <li><strong>"Some"-Status:</strong> Gemischte Scores für verschiedene Partner/Standorte</li>
+                </ul>
+            </li>
+            <li><strong>Color-Coding</strong> - PartnerLocPrefs.get_bg_color_text() für Hintergrundfarben</li>
+            <li><strong>Dynamic Text-Updates</strong> - Button-Text ändert sich basierend auf Konsistenz-Status</li>
+        </ul>
+
+        <h2>Slider-System und Bewertungsskala</h2>
+
+        <h3>5-Stufige Bewertungsskala</h3>
+        <div class="tip-box">
+            <h4>💡 Score-System (0-4)</h4>
+            <p><strong>0 - "nicht zuteilen":</strong> Partner/Standort-Kombination wird aktiv vermieden</p>
+            <p><strong>1 - "falls nötig zuteilen":</strong> Nur bei Personalmangel oder Notfall verwenden</p>
+            <p><strong>2 - "gerne zuteilen":</strong> Standard-Wert, neutrale Präferenz ohne Bevorzugung</p>
+            <p><strong>3 - "bevorzugt zuteilen":</strong> Bevorzugte Kombination, wird favorisiert</p>
+            <p><strong>4 - "zwingend zuteilen":</strong> Optimale Kombination, höchste Priorität</p>
+        </div>
+
+        <h3>Score-Berechnung und Aggregation</h3>
+        <ul>
+            <li><strong>Internal Storage</strong> - Scores werden als 0.0-2.0 float in Database gespeichert (value/2)</li>
+            <li><strong>UI Display</strong> - Anzeige als 0-4 Integer für bessere Benutzerfreundlichkeit</li>
+            <li><strong>Default-Handling</strong> - Fehlende Präferenzen werden als Score 1 ("gerne zuteilen") behandelt</li>
+            <li><strong>Maximum-Aggregation</strong> - Bei Multi-Partner-Slidern wird höchster Einzelwert angezeigt</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>🎯 Optimierungs-Strategien</h4>
+            <p><strong>Dream-Team-Förderung:</strong> Setzen Sie bewährte Partner-Kombinationen auf "bevorzugt" (3) oder "zwingend" (4)</p>
+            <p><strong>Standort-Expertise:</strong> Konfigurieren Sie erfahrene Mitarbeiter als "bevorzugt" für ihre Haupt-Standorte</p>
+            <p><strong>Konflikt-Vermeidung:</strong> Nutzen Sie "nicht zuteilen" (0) für problematische Kombinationen</p>
+            <p><strong>Flexible Reserves:</strong> Halten Sie einige Partner auf "falls nötig" (1) für Notfall-Situationen</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Workflow-Patterns</h4>
+            <p><strong>Datum-First-Approach:</strong> Wählen Sie repräsentatives Datum zur Bestimmung der verfügbaren Teams</p>
+            <p><strong>Global-to-Specific:</strong> Starten Sie mit globalen Slidern, verfeinern über Drill-Down-Dialoge</p>
+            <p><strong>Consistency-Monitoring:</strong> Beachten Sie Button-Farben zur Identifikation inkonsistenter Konfigurationen</p>
+            <p><strong>Parent-Model-Leverage:</strong> Nutzen Sie Parent-Model-Vererbung für effiziente Basis-Konfiguration</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Partner/Standorte werden nicht angezeigt</h4>
+            <p><strong>Ursache:</strong> Gewähltes Datum liegt außerhalb gültiger Team-Zuordnungen oder Person ist an diesem Tag nicht aktiv.</p>
+            <p><strong>Lösung:</strong> Wählen Sie ein anderes Datum innerhalb der aktiven Planungsperiode der Person.</p>
+            
+            <h4>Problem: "Not all days have same partners/facilities" Info-Meldung</h4>
+            <p><strong>Ursache:</strong> Team-Zusammensetzung ändert sich über die Planungsperiode, Union aller Optionen wird angezeigt.</p>
+            <p><strong>Lösung:</strong> Normal - System zeigt alle möglichen Kombinationen zur umfassenden Konfiguration.</p>
+            
+            <h4>Problem: Slider-Änderungen werden nicht gespeichert</h4>
+            <p><strong>Ursache:</strong> Updating_sliders-Flag verhindert rekursive Updates während automatischer Berechnungen.</p>
+            <p><strong>Lösung:</strong> Warten Sie bis UI-Updates abgeschlossen sind, dann erneut versuchen.</p>
+            
+            <h4>Problem: Reset-Button hat keine Wirkung</h4>
+            <p><strong>Ursache:</strong> Bei Parent-Model ist Reset ein Dropdown-Menu, kein direkter Button-Click.</p>
+            <p><strong>Lösung:</strong> Klicken Sie auf Pfeil neben Reset-Button und wählen gewünschte Reset-Option.</p>
+            
+            <h4>Problem: Dialog wird zu groß für Bildschirm</h4>
+            <p><strong>Ursache:</strong> Viele Partner/Standorte führen zu großen Scroll-Areas.</p>
+            <p><strong>Lösung:</strong> System repositioniert Dialog automatisch, Scroll-Areas haben Maximum-Height-Limits.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Optimierung</h4>
+            <p><strong>Strategic Scoring:</strong> Verwenden Sie Extremwerte (0,4) sparsam - meist reichen 1-3 für effektive Optimierung.</p>
+            <p><strong>Drill-Down-Efficiency:</strong> Nutzen Sie globale Slider für Basis-Konfiguration, Drill-Downs nur für Feintuning.</p>
+            <p><strong>Parent-Model-Leverage:</strong> Bei ähnlichen Rollen nutzen Sie Parent-Model-Vererbung statt kompletter Neukonfiguration.</p>
+            <p><strong>Validation-Driven:</strong> Beachten Sie Button-Farben zur Identifikation von Inkonsistenzen die Aufmerksamkeit brauchen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Qualitäts-Management</h4>
+            <p><strong>Balanced Approach:</strong> Vermeiden Sie zu restriktive Konfigurationen - System braucht Flexibilität für optimale Zuweisungen.</p>
+            <p><strong>Regular Reviews:</strong> Überprüfen Sie Präferenzen regelmäßig und anpassen basierend auf realer Performance.</p>
+            <p><strong>Team Feedback:</strong> Integrieren Sie Mitarbeiter-Feedback in Präferenz-Konfiguration für bessere Akzeptanz.</p>
+            <p><strong>Documentation:</strong> Dokumentieren Sie Gründe für Extremwerte (0,4) für spätere Nachvollziehbarkeit.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Dynamische Team-Berechnung</h3>
+        <p>Sophisticated Algorithmus für datums-basierte Team-Ermittlung:</p>
+        <ul>
+            <li><strong>team_at_date_factory()</strong> - Callback-Function für Team-Berechnung an spezifischem Datum</li>
+            <li><strong>Union-Algorithms</strong> - union_partners()/union_locations_of_work() für Period-übergreifende Optionen</li>
+            <li><strong>Validity-Checking</strong> - valid_days_of_actor Filter für Person-Team-Zuordnungs-Konsistenz</li>
+            <li><strong>Info-Text-Generation</strong> - Automatische Warnung bei Team-Inkonsistenzen über Planungsperiode</li>
+        </ul>
+
+        <h3>Command-Pattern-Integration</h3>
+        <p>Umfassendes Undo/Redo-System für komplexe Präferenz-Operations:</p>
+        <ul>
+            <li><strong>ContrExecUndoRedo-Controller</strong> - Zentrale Command-Verwaltung</li>
+            <li><strong>Factory-Pattern-Commands</strong> - factory_for_put_in_prefs/factory_for_remove_prefs</li>
+            <li><strong>Atomic-Operations</strong> - Remove + Create + Put-In als zusammenhängende Command-Sequence</li>
+            <li><strong>Rollback-on-Cancel</strong> - Vollständige Rückgängigmachung bei Dialog-Cancel</li>
+        </ul>
+
+        <h3>Multi-Model-Architecture</h3>
+        <p>Flexible Unterstützung verschiedener Model-Typen:</p>
+        <ul>
+            <li><strong>ModelWithPartnerLocPrefs Interface</strong> - Unterstützt Person, ActorPlanPeriod, AvailDay</li>
+            <li><strong>Factory-based-Reloading</strong> - factory_for_reload_curr_model für Type-safe Model-Updates</li>
+            <li><strong>Parent-Model-Inheritance</strong> - Optional Parent-Model für Default-Wert-Vererbung</li>
+            <li><strong>Type-specific-Command-Routing</strong> - Verschiedene Commands je Model-Type</li>
+        </ul>
+
+        <h3>Adaptive-UI-System</h3>
+        <p>Intelligente Benutzeroberflächen-Anpassung:</p>
+        <ul>
+            <li><strong>Screen-Geometry-Awareness</strong> - Automatische Dialog-Repositionierung bei Bildschirm-Overflow</li>
+            <li><strong>Dynamic-Scroll-Area-Sizing</strong> - Content-based Größenberechnung mit Maximum-Limits</li>
+            <li><strong>Responsive-Layout-Updates</strong> - update_scroll_areas_geometry für optimale Darstellung</li>
+            <li><strong>QTimer-based-Updates</strong> - Debounced UI-Updates für Performance-Optimierung</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+
+        <h3>Slider-Integration und Event-Handling</h3>
+        <p>Sophisticated Slider-Management mit SliderWithPressEvent:</p>
+        <ul>
+            <li><strong>Custom-Slider-Class</strong> - SliderWithPressEvent für erweiterte User-Interaction</li>
+            <li><strong>Value-Change-Debouncing</strong> - updating_sliders Flag verhindert rekursive Updates</li>
+            <li><strong>Partial-Function-Binding</strong> - functools.partial für Slider-spezifische Event-Handler</li>
+            <li><strong>Real-time-Text-Updates</strong> - show_slider_text für Live-Label-Updates</li>
+        </ul>
+
+        <h3>Data-Persistence und Command-Execution</h3>
+        <p>Komplexe Datenmanipulation über Command-Pattern:</p>
+        <ul>
+            <li><strong>ActorPartnerLocationPref-CRUD</strong> - Create/Remove/Put-In Command-Chains</li>
+            <li><strong>Score-Normalization</strong> - UI-Werte (0-4) zu DB-Werten (0.0-2.0) Konvertierung</li>
+            <li><strong>Cleanup-Automation</strong> - DeleteUnused Command für Garbage-Collection</li>
+            <li><strong>prep_delete-Pattern</strong> - Soft-Delete für transactional Integrity</li>
+        </ul>
+
+        <h3>Performance-Optimierung</h3>
+        <p>Effiziente Handling großer Datenmengen:</p>
+        <ul>
+            <li><strong>QTimer-based-Debouncing</strong> - 200ms Timer für Date-Change-Events</li>
+            <li><strong>Lazy-UI-Updates</strong> - Vollständige UI-Neuerstellung nur bei Datum-Änderungen</li>
+            <li><strong>Dictionary-based-Lookups</strong> - dict_partner_id__bt_slider_lb für O(1) Widget-Access</li>
+            <li><strong>Efficient-Data-Filtering</strong> - List-Comprehensions für Partner/Location-Filtering</li>
+        </ul>
+
+        <h3>Internationalization und Lokalisierung</h3>
+        <p>Umfassende Multi-Language-Unterstützung:</p>
+        <ul>
+            <li><strong>tr()-System</strong> - Alle UI-Texte über Qt's Translation-System</li>
+            <li><strong>SliderValToText-Class</strong> - Lokalisierte Slider-Wert-Beschreibungen</li>
+            <li><strong>Dynamic-Text-Generation</strong> - Formatierte Texte mit Platzhaltern für Namen/Orte</li>
+            <li><strong>Cultural-Adaptation</strong> - Date-Widgets mit lokalen Formaten</li>
+        </ul>
+    </div>
+</body>
+</html>

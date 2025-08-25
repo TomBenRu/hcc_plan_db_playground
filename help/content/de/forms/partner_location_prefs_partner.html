@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Partner-Präferenzen für Standort - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="partner, präferenzen, location, standort, employees, mitarbeiter, slider, drill-down">
+    <meta name="description" content="Hilfe für die detaillierte Konfiguration von Partner-Präferenzen für einen spezifischen Standort in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Partner-Präferenzen für Standort</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Partner-Präferenzen für Standort</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Dialog <strong>"Partner-Präferenzen für Standort"</strong> ermöglicht die detaillierte Konfiguration der Partner-Präferenzen für einen spezifischen Standort. Als Drill-Down-Dialog des Hauptsystems bietet er eine fokussierte Sicht auf alle verfügbaren Partner-Mitarbeiter und deren Bewertung in Bezug auf einen einzelnen Standort. Das System nutzt das gleiche 5-stufige Slider-System (0-4) mit Real-time-Updates und automatischer Command-Integration.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Standort-fokussierte Ansicht</strong> - Zeigt alle verfügbaren Partner für einen spezifischen Standort</li>
+            <li><strong>Grid-Layout-Interface</strong> - Übersichtliche Darstellung: Partner | Slider | Bewertungstext</li>
+            <li><strong>5-Stufiges Bewertungssystem</strong> - Identisch mit Hauptsystem (0-4 Skala)</li>
+            <li><strong>Real-time Score-Updates</strong> - Sofortige Speicherung bei Slider-Änderungen</li>
+            <li><strong>Automatic Command-Integration</strong> - Seamless Integration in Undo/Redo-System</li>
+            <li><strong>Dynamic Data-Reloading</strong> - Automatische Model-Aktualisierung nach jeder Änderung</li>
+            <li><strong>Partner Context-Display</strong> - Vor- und Nachname zur eindeutigen Identifikation</li>
+            <li><strong>Intelligent Default-Handling</strong> - Score 2 ("gerne zuteilen") als Standard für neue Einträge</li>
+            <li><strong>Command-Pattern-Undo</strong> - Vollständige Rückgängigmachung bei Dialog-Cancel</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog wird automatisch geöffnet</strong> - Aufruf über "Employees"-Button im Hauptdialog</li>
+            <li><strong>Standort-Kontext verstehen</strong>:
+                <ul>
+                    <li>Dialog zeigt alle Partner für den ausgewählten Standort</li>
+                    <li>Partner-Namen werden als "[Vorname] [Nachname]:" angezeigt</li>
+                    <li>Jeder Partner hat eigenen Slider und Bewertungstext</li>
+                </ul>
+            </li>
+            <li><strong>Partner-Präferenzen konfigurieren</strong>:
+                <ul>
+                    <li>Nutzen Sie <strong>Slider</strong> zur Bewertung jedes Partners (0-4)</li>
+                    <li>Slider-Position wird sofort als Text angezeigt</li>
+                    <li>Änderungen werden automatisch gespeichert</li>
+                </ul>
+            </li>
+            <li><strong>Bewertungsskala verstehen</strong>:
+                <ul>
+                    <li><strong>0:</strong> "nicht zuteilen" - Partner soll nicht an diesem Standort arbeiten</li>
+                    <li><strong>1:</strong> "falls nötig zuteilen" - Nur bei Personalmangel</li>
+                    <li><strong>2:</strong> "gerne zuteilen" - Standard-Wert, neutrale Präferenz</li>
+                    <li><strong>3:</strong> "bevorzugt zuteilen" - Partner arbeitet gerne an diesem Standort</li>
+                    <li><strong>4:</strong> "zwingend zuteilen" - Optimaler Partner für diesen Standort</li>
+                </ul>
+            </li>
+            <li><strong>Dialog beenden</strong>:
+                <ul>
+                    <li><strong>"Save"</strong> - Übernimmt alle Änderungen in Hauptdialog</li>
+                    <li><strong>"Cancel"</strong> - Verwirft alle Änderungen über Undo-System</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Hilfe für übergeordnetes System öffnen</p>
+            <p><strong>Enter</strong> - Änderungen übernehmen und Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Tab</strong> - Zwischen Slidern navigieren</p>
+            <p><strong>Pfeil hoch/runter</strong> - Slider-Werte ändern (wenn fokussiert)</p>
+            <p><strong>Pfeil links/rechts</strong> - Slider-Werte ändern (wenn fokussiert)</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="partner_location_prefs.html">Partner-Standort-Präferenzen</a></strong> - Übergeordneter Hauptdialog mit globaler Präferenz-Übersicht</li>
+            <li><strong><a href="partner_location_prefs_locs.html">Standort-Präferenzen für Partner</a></strong> - Umgekehrte Sicht: alle Standorte für einen spezifischen Partner</li>
+            <li><strong><a href="edit_appointment.html">Termin Bearbeiten</a></strong> - Cast-Management verwendet diese detaillierten Präferenz-Einstellungen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Der Partner-Drill-Down-Dialog wird verwendet für:</p>
+        <ul>
+            <li><strong>Standort-Team-Optimierung</strong> - Zusammenstellung des idealen Partner-Teams für spezifische Standorte</li>
+            <li><strong>Expertise-Matching</strong> - Zuweisung spezialisierter Partner zu anforderungsreichen Standorten</li>
+            <li><strong>Kunden-Präferenz-Berücksichtigung</strong> - Bevorzugung bestimmter Partner basierend auf Kunden-Feedback</li>
+            <li><strong>Konflikt-Management</strong> - Verhinderung problematischer Partner-Kombinationen an kritischen Standorten</li>
+            <li><strong>Training-Koordination</strong> - Zuweisung erfahrener Partner als Mentoren für neue Mitarbeiter</li>
+            <li><strong>Standort-spezifische Anforderungen</strong> - Berücksichtigung besonderer Standort-Eigenschaften</li>
+            <li><strong>Performance-Optimierung</strong> - Maximierung der Effizienz durch optimale Partner-Auswahl</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <h3>Dialog-Struktur</h3>
+        <ul>
+            <li><strong>Header-Bereich</strong> - Standort-Kontext und Erklärungstext</li>
+            <li><strong>Grid-Layout-Bereich</strong> - Hauptbereich mit Partner-Slider-Kombinationen</li>
+            <li><strong>Footer-Bereich</strong> - Save/Cancel Button-Box</li>
+        </ul>
+
+        <h3>Grid-Layout-Komponenten</h3>
+        <ul>
+            <li><strong>Spalte 0: Partner-Labels</strong>:
+                <ul>
+                    <li>Format: "[Vorname] [Nachname]:"</li>
+                    <li>QLabel mit Partner-Information zur eindeutigen Identifikation</li>
+                    <li>Sortierung nach Vorname + Nachname für konsistente Reihenfolge</li>
+                </ul>
+            </li>
+            <li><strong>Spalte 1: Präferenz-Slider</strong>:
+                <ul>
+                    <li>SliderWithPressEvent für erweiterte User-Interaction</li>
+                    <li>Horizontal-Orientierung mit 0-4 Range</li>
+                    <li>200px feste Breite für konsistente Darstellung</li>
+                    <li>TicksBelow für visuelle Value-Indication</li>
+                </ul>
+            </li>
+            <li><strong>Spalte 2: Bewertungstext</strong>:
+                <ul>
+                    <li>Dynamic Label mit aktueller Slider-Bewertung</li>
+                    <li>Real-time Updates über SliderValToText-System</li>
+                    <li>Lokalisierte Bewertungsbeschreibungen</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Data-Integration</h3>
+        <ul>
+            <li><strong>Partner-List-Input</strong> - all_partners Parameter mit verfügbaren Partnern</li>
+            <li><strong>Location-Context</strong> - location_id für Fokussierung auf spezifischen Standort</li>
+            <li><strong>Model-Integration</strong> - curr_model für Präferenz-Storage und -Retrieval</li>
+            <li><strong>Person-Context</strong> - person Parameter für Actor-Relationship-Establishment</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Typische Konfigurationsszenarien</h4>
+            <p><strong>High-End-Standort:</strong> Erfahrene Partner auf "zwingend" (4), Neue auf "falls nötig" (1)</p>
+            <p><strong>Training-Location:</strong> Mentoren auf "bevorzugt" (3), Trainees auf "gerne" (2)</p>
+            <p><strong>Kunden-spezifischer Standort:</strong> Kunden-Favoriten auf "bevorzugt" (3), Unbekannte auf "gerne" (2)</p>
+            <p><strong>Problematischer Standort:</strong> Problem-Solver auf "zwingend" (4), Sensible Partner auf "nicht zuteilen" (0)</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Team-Zusammenstellung-Strategien</h4>
+            <p><strong>Skill-Complementarity:</strong> Verschiedene Expertise-Bereiche optimal kombinieren</p>
+            <p><strong>Experience-Mix:</strong> Erfahrene und neue Partner balanced verteilen</p>
+            <p><strong>Communication-Fit:</strong> Partner mit guter Zusammenarbeit bevorzugen</p>
+            <p><strong>Flexibility-Reserve:</strong> Einige Partner auf niedrigeren Scores für Flexibilität</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Slider-Änderungen werden nicht sofort sichtbar im Hauptdialog</h4>
+            <p><strong>Ursache:</strong> Hauptdialog aktualisiert sich erst nach Dialog-Bestätigung mit "Save".</p>
+            <p><strong>Lösung:</strong> Normal - Änderungen werden erst bei Save committet und in Hauptdialog übernommen.</p>
+            
+            <h4>Problem: Standard-Wert 2 erscheint bei neuen Partnern</h4>
+            <p><strong>Ursache:</strong> System setzt Default-Score 2 ("gerne zuteilen") für alle nicht-konfigurierten Kombinationen.</p>
+            <p><strong>Lösung:</strong> Gewünschtes Verhalten - passen Sie Wert an falls andere Präferenz gewünscht.</p>
+            
+            <h4>Problem: Bestimmte Partner fehlen in Liste</h4>
+            <p><strong>Ursache:</strong> Partner-Liste basiert auf Team-Zuordnungen des gewählten Datums im Hauptdialog.</p>
+            <p><strong>Lösung:</strong> Passen Sie Datum im Hauptdialog an um alle gewünschten Partner zu sehen.</p>
+            
+            <h4>Problem: Alle Partner haben gleichen Score nach Reset</h4>
+            <p><strong>Ursache:</strong> Reset im Hauptdialog setzt alle Werte auf Default (2), betrifft alle Drill-Down-Dialoge.</p>
+            <p><strong>Lösung:</strong> Normal - konfigurieren Sie Partner individuell nach Reset.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Strategien</h4>
+            <p><strong>Role-Based-Grouping:</strong> Bewerten Sie Partner in funktionalen Gruppen (Seniors, Juniors, Specialists).</p>
+            <p><strong>Performance-History-Usage:</strong> Nutzen Sie historische Performance-Daten für objektive Bewertungen.</p>
+            <p><strong>Customer-Feedback-Integration:</strong> Berücksichtigen Sie Kunden-Präferenzen bei wichtigen Standorten.</p>
+            <p><strong>Balanced-Team-Approach:</strong> Vermeiden Sie Teams mit nur Extremwerten - Ausgewogenheit ist wichtig.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Standort-Optimierung</h4>
+            <p><strong>Standort-Charakteristika-Matching:</strong> Passen Sie Partner-Eigenschaften zu Standort-Anforderungen.</p>
+            <p><strong>Seasonal-Adaptation:</strong> Berücksichtigen Sie saisonale Schwankungen in Standort-Anforderungen.</p>
+            <p><strong>Equipment-Expertise:</strong> Bewerten Sie Partner basierend auf Standort-spezifischer Ausrüstungs-Kenntnis.</p>
+            <p><strong>Local-Knowledge:</strong> Bevorzugen Sie Partner mit lokaler Erfahrung für kritische Standorte.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Automatic Command-Integration</h3>
+        <p>Sophisticated Command-Pattern-Implementation:</p>
+        <ul>
+            <li><strong>Real-time Command-Execution</strong> - save_pref_loc() bei jeder Slider-Änderung</li>
+            <li><strong>Remove-Create-PutIn-Chain</strong> - Atomic Command-Sequence für Score-Updates</li>
+            <li><strong>Factory-Pattern-Commands</strong> - Type-safe Command-Creation über Factory-Functions</li>
+            <li><strong>Controller-Integration</strong> - Seamless Integration in parent Controller bei Save</li>
+        </ul>
+
+        <h3>Dynamic Data-Management</h3>
+        <p>Intelligent Data-Handling und -Synchronisation:</p>
+        <ul>
+            <li><strong>setup_data()</strong> - Extraktion standort-spezifischer Präferenzen aus curr_model</li>
+            <li><strong>Dictionary-Mapping</strong> - dict_partner_id__apl für effiziente Lookups</li>
+            <li><strong>Score-Conversion</strong> - UI-Values (0-4) zu DB-Values (0.0-2.0) Mapping</li>
+            <li><strong>Model-Reloading</strong> - factory_for_reload_curr_model für konsistente Updates</li>
+        </ul>
+
+        <h3>UI-State-Management</h3>
+        <p>Robuste Benutzeroberflächen-Verwaltung:</p>
+        <ul>
+            <li><strong>Slider-Dictionary-Management</strong> - dict_partner_id__slider für Widget-Zugriff</li>
+            <li><strong>Value-Setup-Logic</strong> - setup_values() für Initial-Configuration</li>
+            <li><strong>Text-Update-Coordination</strong> - show_slider_text() für Live-Label-Updates</li>
+            <li><strong>Connect-Logic</strong> - connect_sliders_to_save() für Event-Handler-Setup</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+
+        <h3>Dialog-Parameter und Initialization</h3>
+        <p>Constructor-Parameter für Dialog-Context:</p>
+        <ul>
+            <li><strong>person: schemas.PersonShow</strong> - Actor für den Präferenzen konfiguriert werden</li>
+            <li><strong>curr_model: schemas.ModelWithPartnerLocPrefs</strong> - Container für Präferenz-Storage</li>
+            <li><strong>location_id: UUID</strong> - ID des Standorts für den Partner-Präferenzen konfiguriert werden</li>
+            <li><strong>all_partners: list[schemas.Person]</strong> - Verfügbare Partner für Bewertung</li>
+        </ul>
+
+        <h3>Data-Structure-Management</h3>
+        <p>Effiziente Datenstrukturen für Performance:</p>
+        <ul>
+            <li><strong>apls_with_location: list[ActorPartnerLocationPref]</strong> - Standort-spezifische Präferenzen</li>
+            <li><strong>dict_partner_id__apl: dict[UUID, ActorPartnerLocationPref]</strong> - Partner-zu-Präferenz Mapping</li>
+            <li><strong>dict_partner_id__slider: dict[UUID, SliderWithPressEvent]</strong> - Partner-zu-UI-Widget Mapping</li>
+            <li><strong>dict_partner_id_score: dict[UUID, int]</strong> - Partner-zu-Score Mapping für Caching</li>
+        </ul>
+
+        <h3>Command-Execution-Flow</h3>
+        <p>Detaillierter Ablauf der Score-Update-Logic:</p>
+        <ul>
+            <li><strong>Remove-Phase</strong> - Entfernung existierender ActorPartnerLocationPref über factory_for_remove_prefs</li>
+            <li><strong>Create-Phase</strong> - Creation neuer Präferenz mit Updated Score (falls != 2)</li>
+            <li><strong>PutIn-Phase</strong> - Association der neuen Präferenz mit curr_model über factory_for_put_in_prefs</li>
+            <li><strong>Reload-Phase</strong> - Model-Refresh für konsistente UI-State</li>
+        </ul>
+
+        <h3>Partner-Filtering und -Sortierung</h3>
+        <p>Intelligent Partner-List-Management:</p>
+        <ul>
+            <li><strong>Location-Based-Filtering</strong> - Nur Partner die für gewählten Standort relevant sind</li>
+            <li><strong>Name-Based-Sorting</strong> - Alphabetische Sortierung nach f_name + l_name</li>
+            <li><strong>Team-Context-Awareness</strong> - Integration mit Team-Zuordnungen des gewählten Datums</li>
+            <li><strong>Self-Exclusion</strong> - Person selbst wird nicht in Partner-Liste angezeigt</li>
+        </ul>
+
+        <h3>Score-Calculation und Default-Handling</h3>
+        <p>Sophisticated Score-Management:</p>
+        <ul>
+            <li><strong>Default-Score-Logic</strong> - Nicht-existierende Präferenzen = Score 2</li>
+            <li><strong>UI-DB-Conversion</strong> - Slider-Values (0-4) zu Database-Values (0.0-2.0)</li>
+            <li><strong>Null-Score-Handling</strong> - Score 2 wird nicht persistent gespeichert (Default-Verhalten)</li>
+            <li><strong>Value-Initialization</strong> - setup_values() setzt korrekte Initial-Slider-Positionen</li>
+        </ul>
+    </div>
+</body>
+</html>

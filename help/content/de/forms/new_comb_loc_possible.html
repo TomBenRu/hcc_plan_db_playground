@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Neue Standort-Kombination - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="standort, kombination, facility, location, reisezeit, team, planung, arbeitsstätte">
+    <meta name="description" content="Hilfe für die Erstellung neuer Standort-Kombinationen in HCC Plan - Definition von Facility-Kombinationen mit Reisezeiten">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Neue Standort-Kombination</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Neue Standort-Kombination</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Mit diesem Dialog erstellen Sie neue Kombinationen von Arbeitsstätten (Standorten), die Ihr Team nutzen kann. Die Standort-Kombinationen ermöglichen es, Reisezeiten zwischen verschiedenen Facilities zu definieren und sicherzustellen, dass ausreichend Zeit für Ortswechsel eingeplant wird.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Facility-Auswahl:</strong> Wählen Sie aus den verfügbaren Standorten diejenigen aus, die kombiniert werden sollen</li>
+            <li><strong>Smart Selection Logic:</strong> Intelligente Auswahlbegrenzung - sobald Sie eine Kombination beginnen, werden andere Optionen entsprechend angepasst</li>
+            <li><strong>Reisezeit-Definition:</strong> Stellen Sie die benötigte Zeit für Ortswechsel zwischen den Standorten ein (Stunden und Minuten)</li>
+            <li><strong>Echtzeit-Validation:</strong> Automatische Überprüfung, dass mindestens zwei Standorte ausgewählt sind</li>
+            <li><strong>Stadtanzeige:</strong> Jeder Standort wird mit seinem Ort angezeigt für bessere Übersichtlichkeit</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie den Dialog über die entsprechende Funktion in der Standort-Kombinationen-Verwaltung</li>
+            <li><strong>Wählen Sie Standorte aus:</strong> Markieren Sie in der Sektion <strong>"Facilities"</strong> die gewünschten Arbeitsstätten durch Ankreuzen</li>
+            <li><strong>Beachten Sie die Smart Logic:</strong> Nach Auswahl der ersten beiden Standorte werden andere Optionen automatisch deaktiviert</li>
+            <li><strong>Reisezeit einstellen:</strong> Konfigurieren Sie in der Sektion <strong>"Time span between"</strong> die benötigte Zeit für Ortswechsel:
+                <ul>
+                    <li><strong>Stunden:</strong> 0 bis 12 Stunden</li>
+                    <li><strong>Minuten:</strong> 0 bis 55 Minuten in 5-Minuten-Schritten</li>
+                </ul>
+            </li>
+            <li>Klicken Sie <strong>"OK"</strong> um die neue Kombination zu erstellen oder <strong>"Abbrechen"</strong> um den Vorgang zu beenden</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+                <li><strong>Tab:</strong> Zwischen Eingabefeldern navigieren</li>
+                <li><strong>Leertaste:</strong> Checkbox an-/abwählen (bei fokussierter Checkbox)</li>
+                <li><strong>Enter:</strong> Dialog bestätigen (entspricht "OK")</li>
+                <li><strong>Escape:</strong> Dialog abbrechen</li>
+                <li><strong>Pfeiltasten:</strong> In SpinBoxes Werte ändern</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="comb_loc_possible_edit_list.html">Standort-Kombinationen bearbeiten</a></strong> - Verwaltung und Bearbeitung bestehender Kombinationen</li>
+            <li><strong><a href="team_management.html">Team-Verwaltung</a></strong> - Konfiguration von Teams und deren Zuordnungen</li>
+            <li><strong><a href="edit_appointment.html">Termine bearbeiten</a></strong> - Verwendung der Standort-Kombinationen bei der Terminplanung</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Standort-Kombinationen sind besonders wichtig für Teams, die an mehreren Arbeitsplätzen tätig sind. Sie ermöglichen eine realistische Planung durch Berücksichtigung von Reise- und Wechselzeiten zwischen verschiedenen Facilities.</p>
+
+        <p><strong>Typische Einsatzszenarien:</strong></p>
+        <ul>
+            <li><strong>Mobile Teams:</strong> Mitarbeiter, die zwischen verschiedenen Standorten wechseln</li>
+            <li><strong>Veranstaltungsplanung:</strong> Events, die mehrere Locations umfassen</li>
+            <li><strong>Außendienst:</strong> Teams mit wechselnden Arbeitsorten</li>
+            <li><strong>Projektarbeit:</strong> Temporäre Zuordnungen zu verschiedenen Standorten</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Facilities-Sektion</h3>
+        <p>Die obere Hälfte des Dialogs zeigt alle verfügbaren Arbeitsstätten als Liste von Checkboxen. Jede Checkbox zeigt den <strong>Standortnamen</strong> und die <strong>Stadt</strong> in Klammern für eine eindeutige Identifikation.</p>
+        <p><strong>Smart Selection Behavior:</strong> Das System implementiert eine intelligente Auswahllogik - sobald Sie Checkboxen auswählen, werden je nach Anzahl der Auswahlen andere Optionen entsprechend aktiviert oder deaktiviert.</p>
+
+        <h3>Time Span Between-Sektion</h3>
+        <p>Die untere Sektion enthält zwei SpinBox-Steuerelemente zur Zeitkonfiguration:</p>
+        <ul>
+            <li><strong>Stunden-SpinBox:</strong> Bereich von 0 bis 12 Stunden</li>
+            <li><strong>Minuten-SpinBox:</strong> Bereich von 0 bis 55 Minuten mit automatischen 5-Minuten-Schritten</li>
+        </ul>
+
+        <h3>Button-Leiste</h3>
+        <p>Standardisierte Dialog-Buttons zur Aktion-Kontrolle:</p>
+        <ul>
+            <li><strong>"OK":</strong> Erstellt die neue Kombination mit den gewählten Einstellungen</li>
+            <li><strong>"Abbrechen":</strong> Verwirft alle Änderungen und schließt den Dialog</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>🏢 Multi-Standort-Team</h3>
+        <p><strong>Szenario:</strong> Ein Serviceteam arbeitet zwischen Hauptbüro (Berlin) und Außenstelle (Potsdam)</p>
+        <p><strong>Konfiguration:</strong></p>
+        <ul>
+            <li>Facilities: "Hauptbüro (Berlin)" + "Außenstelle (Potsdam)" auswählen</li>
+            <li>Reisezeit: 1 Stunde 30 Minuten (für Fahrt + Puffer)</li>
+            <li>Ergebnis: System plant automatisch 90 Minuten Puffer zwischen Terminen an verschiedenen Standorten</li>
+        </ul>
+
+        <h3>🚀 Event-Management</h3>
+        <p><strong>Szenario:</strong> Veranstaltungsteam betreut Events in verschiedenen Venues</p>
+        <p><strong>Konfiguration:</strong></p>
+        <ul>
+            <li>Facilities: "Convention Center (Hamburg)" + "Stadtpark Arena (Hamburg)" auswählen</li>
+            <li>Reisezeit: 45 Minuten (für Transport + Setup-Puffer)</li>
+            <li>Ergebnis: Realistische Terminplanung mit ausreichend Zeit für Location-Wechsel</li>
+        </ul>
+
+        <h3>🎯 Projektteam-Rotation</h3>
+        <p><strong>Szenario:</strong> Consultants arbeiten bei verschiedenen Kunden</p>
+        <p><strong>Konfiguration:</strong></p>
+        <ul>
+            <li>Facilities: "Kunde A (München)" + "Kunde B (München)" auswählen</li>
+            <li>Reisezeit: 2 Stunden (für ausführliche Projektübergabe)</li>
+            <li>Ergebnis: Qualitätssicherung durch angemessene Wechselzeiten</li>
+        </ul>
+
+        <h2>Häufige Probleme &amp; Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: "Kann nur einen Standort auswählen"</h4>
+            <p><strong>Ursache:</strong> Sie haben bereits zwei Standorte ausgewählt und das System hat andere Optionen deaktiviert</p>
+            <p><strong>Lösung:</strong> Deaktivieren Sie zunächst eine der bereits ausgewählten Checkboxen, um andere Optionen wieder zu aktivieren</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Validation-Fehler beim Speichern"</h4>
+            <p><strong>Ursache:</strong> Es wurden weniger als zwei Standorte ausgewählt</p>
+            <p><strong>Lösung:</strong> Wählen Sie mindestens zwei verschiedene Arbeitsstätten aus - Kombinationen benötigen immer mindestens zwei Locations</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Keine Facilities verfügbar"</h4>
+            <p><strong>Ursache:</strong> Dem aktuellen Team sind keine oder nicht genügend Standorte zugeordnet</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die Team-Konfiguration und stellen Sie sicher, dass mindestens zwei Arbeitsstätten dem Team zugeordnet sind</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Unrealistische Reisezeiten"</h4>
+            <p><strong>Ursache:</strong> Zu kurze oder zu lange Zeitspannen zwischen Standorten konfiguriert</p>
+            <p><strong>Lösung:</strong> Berücksichtigen Sie realistische Fahrzeiten plus angemessene Pufferzeiten (normalerweise 15-30 Minuten zusätzlich)</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 Realistische Reisezeit-Kalkulation</h4>
+            <ul>
+                <li><strong>Fahrtzeit berechnen:</strong> Nutzen Sie Routenplaner für genaue Fahrtzeiten zwischen Standorten</li>
+                <li><strong>Pufferzeit einplanen:</strong> Addieren Sie 15-30 Minuten für unvorhergesehene Verzögerungen</li>
+                <li><strong>Setup-Zeit berücksichtigen:</strong> Bei Equipment-Transport zusätzliche Zeit für Auf-/Abbau einkalkulieren</li>
+                <li><strong>Spitzenzeiten beachten:</strong> Orientieren Sie sich an Verkehrsspitzen, nicht an verkehrsarmen Zeiten</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Effiziente Kombinationserstellung</h4>
+            <ul>
+                <li><strong>Geografische Nähe:</strong> Kombinieren Sie bevorzugt Standorte in ähnlichen Gebieten</li>
+                <li><strong>Häufigkeit berücksichtigen:</strong> Erstellen Sie Kombinationen für oft genutzte Standort-Paare</li>
+                <li><strong>Team-spezifisch planen:</strong> Verschiedene Teams haben unterschiedliche Reisezeiten (Auto vs. öffentliche Verkehrsmittel)</li>
+                <li><strong>Dokumentation:</strong> Notieren Sie sich die Grundlage Ihrer Zeitberechnungen für spätere Anpassungen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ Systematische Herangehensweise</h4>
+            <ul>
+                <li><strong>Prioritäten setzen:</strong> Beginnen Sie mit den wichtigsten/häufigsten Standort-Kombinationen</li>
+                <li><strong>Testen Sie zunächst:</strong> Erstellen Sie testweise eine Kombination und überprüfen Sie die Auswirkungen in der Terminplanung</li>
+                <li><strong>Iterative Verbesserung:</strong> Justieren Sie Reisezeiten basierend auf praktischen Erfahrungen</li>
+                <li><strong>Team-Feedback:</strong> Holen Sie Rückmeldungen von den Mitarbeitern ein, die tatsächlich zwischen den Standorten wechseln</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Integration in Planungsworkflows</h3>
+        <p>Standort-Kombinationen werden automatisch in verschiedene Planungsprozesse integriert:</p>
+        <ul>
+            <li><strong>Terminplanung:</strong> Bei der Erstellung von Terminen werden die definierten Reisezeiten automatisch berücksichtigt</li>
+            <li><strong>Konfliktprüfung:</strong> Das System erkennt automatisch Terminüberschneidungen unter Berücksichtigung der Reisezeiten</li>
+            <li><strong>Kapazitätsplanung:</strong> Verfügbare Arbeitszeit wird automatisch um Reisezeiten reduziert</li>
+        </ul>
+
+        <h3>Team-übergreifende Verwendung</h3>
+        <p>Einmal erstellte Kombinationen können je nach Konfiguration teamübergreifend genutzt werden:</p>
+        <ul>
+            <li><strong>Projekt-spezifisch:</strong> Kombinationen können projektweit für alle beteiligten Teams gelten</li>
+            <li><strong>Team-spezifisch:</strong> Verschiedene Teams können unterschiedliche Reisezeiten für dieselben Standorte haben</li>
+            <li><strong>Person-spezifisch:</strong> Individual-Anpassungen für spezielle Mitarbeiterbedürfnisse</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Datenmodell Integration</h3>
+        <p>Der Dialog arbeitet mit dem <strong>CombinationLocationsPossible</strong> Schema:</p>
+        <ul>
+            <li><strong>Locations:</strong> Referenzen zu LocationOfWork-Objekten</li>
+            <li><strong>Time Span:</strong> Zeitspanne als datetime.timedelta Objekt</li>
+            <li><strong>Project Binding:</strong> Zuordnung zu spezifischen Projekten</li>
+            <li><strong>Model Integration:</strong> Verwendung in ModelWithCombLocPossible Implementierungen</li>
+        </ul>
+
+        <h3>Command Pattern Implementation</h3>
+        <p>Die Erstellung neuer Kombinationen verwendet das Command Pattern für Undo/Redo-Funktionalität:</p>
+        <ul>
+            <li><strong>Create Command:</strong> comb_loc_possible_commands.Create für Datenerstellung</li>
+            <li><strong>Put-In Commands:</strong> Model-spezifische Zuordnungs-Commands</li>
+            <li><strong>Transaction Safety:</strong> Rollback-Mechanismus bei Fehlern</li>
+        </ul>
+
+        <h3>Smart Selection Logic</h3>
+        <p>Die intelligente Checkbox-Steuerung implementiert folgende Logik:</p>
+        <ul>
+            <li><strong>State Tracking:</strong> Überwachung der Anzahl ausgewählter Items</li>
+            <li><strong>Dynamic Enabling:</strong> Automatische Aktivierung/Deaktivierung basierend auf Auswahlzustand</li>
+            <li><strong>User Experience:</strong> Verhindert ungültige Auswahlkombinationen proaktiv</li>
+        </ul>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Termin Bearbeiten - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="termin, bearbeiten, besetzung, cast, mitarbeiter, zuweisen, event">
+    <meta name="description" content="Hilfe für die Bearbeitung von Terminzuweisungen und Cast-Management in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Termin Bearbeiten</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Termin Bearbeiten</div>
+    </div>
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Die Funktion <strong>"Termin Bearbeiten"</strong> ermöglicht es Ihnen, die Mitarbeiterzuweisung (Cast) für einen bestehenden Termin zu ändern. Sie können für jede erforderliche Position einen Mitarbeiter zuweisen, die Zuweisung ändern oder Gastpersonal hinzufügen.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Cast-Management</strong> - Zuweisung und Änderung von Mitarbeitern zu spezifischen Event-Positionen</li>
+            <li><strong>Verfügbarkeits-Filter</strong> - Anzeige nur der verfügbaren Mitarbeiter basierend auf Datum, Zeit und Standort</li>
+            <li><strong>Flexible Zuweisung</strong> - Optionen für "Nicht zugewiesen", reguläre Mitarbeiter oder Gäste</li>
+            <li><strong>Gast-Integration</strong> - Einfaches Hinzufügen und Benennen von Gastpersonal</li>
+            <li><strong>Kontext-Information</strong> - Vollständige Event-Details (Datum, Ort, Tageszeit) werden angezeigt</li>
+            <li><strong>Echtzeitvalidierung</strong> - Automatische Überprüfung der Mitarbeiter-Verfügbarkeit</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Event-Kontext prüfen</strong> - Überprüfen Sie die angezeigten Informationen zu Datum, Ort und Tageszeit</li>
+            <li><strong>Positionen durchgehen</strong> - Für jede Position ("Mitarbeiter 01", "Mitarbeiter 02", etc.) steht eine Dropdown-Liste zur Verfügung</li>
+            <li><strong>Mitarbeiter zuweisen</strong>:
+                <ul>
+                    <li>Wählen Sie <strong>"Nicht zugewiesen"</strong> um die Position frei zu lassen</li>
+                    <li>Wählen Sie einen <strong>verfügbaren Mitarbeiter</strong> aus der Liste</li>
+                    <li>Wählen Sie <strong>"Gast"</strong> um Gastpersonal hinzuzufügen</li>
+                </ul>
+            </li>
+            <li><strong>Gäste hinzufügen</strong>:
+                <ul>
+                    <li>Bei Auswahl von "Gast" öffnet sich automatisch ein Dialog</li>
+                    <li>Geben Sie den Namen des Gastes ein</li>
+                    <li>Bestätigen Sie mit <strong>"OK"</strong></li>
+                </ul>
+            </li>
+            <li><strong>Änderungen speichern</strong> - Klicken Sie auf <strong>"OK"</strong> um die neue Besetzung zu übernehmen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Enter</strong> - Änderungen übernehmen und Dialog schließen</p>
+            <p><strong>Escape</strong> - Dialog ohne Änderungen schließen</p>
+            <p><strong>Tab</strong> - Zwischen Dropdown-Listen wechseln</p>
+            <p><strong>Alt + Pfeil runter</strong> - Dropdown-Liste öffnen</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="move_appointment.html">Termin Verschieben</a></strong> - Termine zu anderen Zeiten oder Orten verschieben</li>
+            <li><strong><a href="guest.html">Gast hinzufügen</a></strong> - Detaillierte Gast-Verwaltung</li>
+            <li><strong><a href="plan.html">Planungsübersicht</a></strong> - Hauptansicht für Terminplanung und -verwaltung</li>
+            <li><strong><a href="avail_at_day.html">Tagesverfügbarkeit</a></strong> - Verfügbarkeiten der Mitarbeiter einsehen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Die Termin-Bearbeitung wird verwendet für:</p>
+        <ul>
+            <li><strong>Kurzfristige Änderungen</strong> - Mitarbeiter-Ausfälle oder spontane Verfügbarkeitsänderungen</li>
+            <li><strong>Optimierung der Besetzung</strong> - Bessere Verteilung der Mitarbeiter auf Events</li>
+            <li><strong>Gast-Integration</strong> - Externe Personen für spezielle Events einplanen</li>
+            <li><strong>Kapazitätsanpassung</strong> - Positionen temporär unbesetzt lassen oder zusätzlich besetzen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        <h3>Event-Information</h3>
+        <ul>
+            <li><strong>Kontext-Label</strong> - Zeigt Datum, Standort (mit Stadt) und Tageszeit des Events</li>
+            <li><strong>"Zuweisungen am:"</strong> - Vollständige Termindetails für bessere Orientierung</li>
+        </ul>
+
+        <h3>Mitarbeiter-Zuweisung</h3>
+        <ul>
+            <li><strong>GroupBox "Mitarbeiter"</strong> - Organisiert alle Zuteilungs-Dropdowns</li>
+            <li><strong>Position-Labels</strong> - "Mitarbeiter 01", "Mitarbeiter 02", etc. (basierend auf Cast-Group-Größe)</li>
+            <li><strong>Dropdown-Listen</strong> - Für jede Position eine separate Auswahlliste mit:
+                <ul>
+                    <li>Option "Nicht zugewiesen"</li>
+                    <li>Liste verfügbarer Mitarbeiter (Vor- und Nachname)</li>
+                    <li>Option "Gast" (öffnet Eingabe-Dialog)</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Verfügbarkeits-Logik</h3>
+        <ul>
+            <li><strong>Intelligente Filterung</strong> - Nur Mitarbeiter, die an dem Tag, zur Zeit und am Ort verfügbar sind</li>
+            <li><strong>Alphabetische Sortierung</strong> - Mitarbeiter nach Vornamen sortiert für bessere Übersichtlichkeit</li>
+            <li><strong>Aktuelle Zuweisungen</strong> - Bereits zugewiesene Mitarbeiter werden vorausgewählt</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        <div class="tip-box">
+            <h4>💡 Typische Szenarien</h4>
+            <p><strong>Krankmeldung:</strong> Mitarbeiter kurzfristig durch verfügbaren Kollegen ersetzen oder Position unbesetzt lassen.</p>
+            <p><strong>Überbuchung vermeiden:</strong> Verfügbare Mitarbeiter werden automatisch gefiltert, Doppelbuchungen sind nicht möglich.</p>
+            <p><strong>Gast-Event:</strong> Für besondere Events externes Personal über die "Gast"-Funktion hinzufügen.</p>
+            <p><strong>Kapazität reduzieren:</strong> Bei geringerer Nachfrage Positionen auf "Nicht zugewiesen" setzen.</p>
+        </div>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        <div class="warning-box">
+            <h4>Problem: Dropdown-Liste zeigt keine Mitarbeiter an</h4>
+            <p><strong>Ursache:</strong> Keine Mitarbeiter sind zum gewählten Termin an diesem Standort verfügbar.</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie Verfügbarkeiten der Mitarbeiter oder verwenden Sie "Gast"-Option.</p>
+            
+            <h4>Problem: "Gast"-Dialog öffnet sich nicht</h4>
+            <p><strong>Ursache:</strong> Technischer Fehler beim Dialog-Aufruf.</p>
+            <p><strong>Lösung:</strong> Wählen Sie zunächst einen anderen Eintrag, dann erneut "Gast" - oder Dialog neustarten.</p>
+            
+            <h4>Problem: Änderungen werden nicht übernommen</h4>
+            <p><strong>Ursache:</strong> Dialog wurde mit "Abbrechen" oder "X" geschlossen statt mit "OK".</p>
+            <p><strong>Lösung:</strong> Verwenden Sie immer "OK" um Änderungen zu speichern, "Abbrechen" verwirft alle Änderungen.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <p><strong>Verfügbarkeiten prüfen:</strong> Nutzen Sie die automatische Filterung - nicht verfügbare Mitarbeiter werden gar nicht angezeigt.</p>
+            <p><strong>Gast-Namen konsistent:</strong> Verwenden Sie einheitliche Namenskonventionen für Gäste (z.B. "Gast_Nachname").</p>
+            <p><strong>Nicht alle Positionen besetzen:</strong> Es ist normal, Positionen "Nicht zugewiesen" zu lassen wenn weniger Personal benötigt wird.</p>
+            <p><strong>Schnelle Änderungen:</strong> Für einfache Mitarbeiter-Tausche ist dieser Dialog effizienter als Termine zu löschen und neu zu erstellen.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <h3>Cast-Group Integration</h3>
+        <p>Die Anzahl der verfügbaren Positionen wird automatisch durch die Cast-Group des Events bestimmt:</p>
+        <ul>
+            <li><strong>Dynamische Positionsanzahl</strong> - Anzahl Dropdown-Listen entspricht der Cast-Group-Größe</li>
+            <li><strong>Rollenbasierte Zuweisung</strong> - Jede Position entspricht einer Rolle im Event-System</li>
+            <li><strong>Flexible Besetzung</strong> - Weniger Mitarbeiter als Positionen ist erlaubt</li>
+        </ul>
+
+        <h3>Verfügbarkeits-Engine</h3>
+        <p>Die intelligente Verfügbarkeitsprüfung berücksichtigt multiple Faktoren:</p>
+        <ul>
+            <li><strong>Datum & Zeit</strong> - Mitarbeiter müssen zur Event-Zeit verfügbar sein</li>
+            <li><strong>Standort-Präferenzen</strong> - Berücksichtigung der Location-Preferences</li>
+            <li><strong>Planungsperioden-Zugehörigkeit</strong> - Nur Mitarbeiter der aktuellen Planungsperiode</li>
+            <li><strong>Tageszeit-Kompatibilität</strong> - Abgleich mit Tageszeit-Einstellungen</li>
+        </ul>
+
+        <h3>Gast-System</h3>
+        <p>Das integrierte Gast-System ermöglicht flexibles Personal-Management:</p>
+        <ul>
+            <li><strong>On-demand Gäste</strong> - Gäste werden direkt im Dialog erstellt</li>
+            <li><strong>Namens-Management</strong> - Gast-Namen können nachträglich geändert werden</li>
+            <li><strong>UUID-basierte Erkennung</strong> - Technische Unterscheidung zwischen Mitarbeitern und Gästen</li>
+            <li><strong>Event-spezifische Gäste</strong> - Gäste sind an den jeweiligen Termin gebunden</li>
+        </ul>
+    </div>
+</body>
+</html>

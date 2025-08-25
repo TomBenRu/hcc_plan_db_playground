@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabe
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services
 from tools import custom_validators
+from tools.helper_functions import setup_form_help
 
 
 class CreateGoogleCalendar(QDialog):
@@ -19,6 +20,9 @@ class CreateGoogleCalendar(QDialog):
 
         self._setup_data()
         self._setup_ui()
+        
+        # F1 Help Integration
+        setup_form_help(self, "create_google_calendar")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

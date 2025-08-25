@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -26,191 +27,42 @@
             <li><strong>Planungsregeln</strong> - Automatisieren Sie die Event-Erstellung basierend auf Regeln</li>
         </ul>
         
-        <h2>Event-Planung</h2>
-        
-        <h3>Grundlegende Bedienung</h3>
+        <h2>Grundbedienung</h2>
         <ol>
             <li>Wählen Sie einen <strong>Standort</strong> aus der linken Tabelle</li>
             <li>Klicken Sie die gewünschten <strong>Event-Zeiten</strong> an (z.B. Morgen, Nachmittag)</li>
             <li>Aktivierte Events werden farblich hervorgehoben</li>
             <li>Konfigurieren Sie bei Bedarf Cast, Skills und Notizen über die Konfigurations-Buttons</li>
         </ol>
-
-        <h3>Event-Zeit-Buttons</h3>
-        <p>Die Zeit-Buttons repräsentieren mögliche Event-Zeiten am Standort:</p>
-        <ul class="feature-list">
-            <li><strong>Klicken</strong> - Event für diese Zeit aktivieren/deaktivieren</li>
-            <li><strong>Rechtsklick</strong> - Erweiterte Optionen (Zeit ändern, Skills, Cast, Flags, Notizen)</li>
-            <li><strong>Mitarbeiter-Anzahl</strong> - Erscheint im Kontextmenü nach Aktivierung</li>
-        </ul>
-
-        <div class="tip-box">
-            <h4>💡 Tipp: Kontextmenü-Funktionen</h4>
-            <p>Nach dem Rechtsklick auf einen aktiven Event-Button stehen folgende Optionen zur Verfügung:</p>
+        
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
             <ul>
-                <li><strong>Times of Day</strong> - Zeitraum für diesen Event anpassen</li>
-                <li><strong>Employees</strong> - Anzahl benötigter Mitarbeiter festlegen</li>
-                <li><strong>Skills</strong> - Erforderliche Fähigkeiten definieren</li>
-                <li><strong>Fixed Cast</strong> - Spezifische Mitarbeiter zuweisen</li>
-                <li><strong>Flags</strong> - Besondere Kennzeichnungen setzen</li>
-                <li><strong>Notes</strong> - Notizen zum Event hinzufügen</li>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</li>
+                <li><strong>Enter</strong> - Event-Button aktivieren (wenn fokussiert)</li>
+                <li><strong>Rechtsklick</strong> - Kontextmenü für Event-Konfiguration</li>
+                <li><strong>Escape</strong> - Gruppenmodus beenden</li>
             </ul>
         </div>
         
-        <h2>Cast-Verwaltung</h2>
-        
-        <h3>Mitarbeiter-Anzahl festlegen</h3>
-        <p>Bestimmen Sie, wie viele Mitarbeiter für Events benötigt werden:</p>
-        <ul class="feature-list">
-            <li><strong>Standard-Anzahl</strong> - Wird für alle neuen Events verwendet</li>
-            <li><strong>Event-spezifisch</strong> - Über Rechtsklick → "Employees" anpassbar</li>
-            <li><strong>Seitenmenü</strong> - "Cast Size" für globale Einstellungen</li>
-        </ul>
-
-        <h3>Fixed Cast</h3>
-        <p>Weisen Sie spezifische Mitarbeiter zu Events zu:</p>
-        <ul class="feature-list">
-            <li><strong>Pro Event</strong> - Rechtsklick → "Fixed Cast" für einzelne Events</li>
-            <li><strong>Pro Tag</strong> - Button unter dem Kalender für alle Events eines Tages</li>
-            <li><strong>Seitenmenü</strong> - "Fixed Cast" für planperioden-weite Einstellungen</li>
-            <li><strong>Reset</strong> - "Cast → Reset" setzt auf Standard-Werte zurück</li>
-        </ul>
-
-        <h3>Cast Groups für Planungsperiode</h3>
-        <p>Verwalten Sie Cast-Gruppen für die gesamte Planungsperiode:</p>
-        <ul class="feature-list">
-            <li><strong>Global bearbeiten</strong> - "Edit Cast and Cast Groups for Planning Period"</li>
-            <li><strong>Gruppen-Modi</strong> - "Switch to Fixed Cast Group Mode" für Bulk-Operationen</li>
-            <li><strong>Konsistenz</strong> - Automatische Synchronisation zwischen Events</li>
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="actor_plan_period.html">Verfügbarkeitsplanung</a> - Mitarbeiter-Verfügbarkeiten abstimmen</li>
+            <li><a href="team.html">Team-Verwaltung</a> - Team-Zuordnungen und Standorte verwalten</li>
+            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Automatische Zuweisung basierend auf Events</li>
         </ul>
         
-        <h2>Skill-Management</h2>
-        
-        <h3>Skills pro Event</h3>
-        <p>Definieren Sie erforderliche Fähigkeiten für Events:</p>
-        <ul class="feature-list">
-            <li><strong>Pro Event</strong> - Rechtsklick → "Skills" auf Event-Button</li>
-            <li><strong>Pro Tag</strong> - Skill-Button unter dem Kalender für alle Events eines Tages</li>
-            <li><strong>Standard-Skills</strong> - Basieren auf den Standard-Skills des Standorts</li>
-        </ul>
-
-        <h3>Bulk-Skill-Operationen</h3>
-        <p>Verwalten Sie Skills für alle Events der Planungsperiode:</p>
-        <ul class="feature-list">
-            <li><strong>"Skills" Menü</strong> - Dropdown-Menü mit globalen Optionen</li>
-            <li><strong>Remove Skills</strong> - Entfernt alle Skills von allen Events</li>
-            <li><strong>Reset Skills</strong> - Setzt alle Skills auf Standort-Standard zurück</li>
-        </ul>
-
-        <div class="tip-box">
-            <h4>💡 Skill-Farbkodierung</h4>
-            <ul>
-                <li><strong>Grün</strong> - Skills entsprechen Standort-Standard</li>
-                <li><strong>Gelb/Orange</strong> - Skills weichen vom Standard ab</li>
-                <li><strong>Grau</strong> - Keine Events an diesem Tag</li>
-            </ul>
-        </div>
-        
-        <h2>Seitenmenü-Funktionen</h2>
-        
-        <h3>Cast Size</h3>
-        <p>Legen Sie die Standard-Anzahl von Mitarbeitern für Events fest:</p>
-        <ul class="feature-list">
-            <li><strong>Standard-Wert</strong> - Wird für alle neuen Events verwendet</li>
-            <li><strong>Planungsperiode-weit</strong> - Gilt für alle Events an diesem Standort</li>
-            <li><strong>Anpassbar</strong> - Einzelne Events können davon abweichen</li>
-        </ul>
-
-        <h3>Set Events According to Rules</h3>
-        <p>Automatisieren Sie die Event-Erstellung basierend auf vordefinierten Regeln:</p>
-        <ul class="feature-list">
-            <li><strong>Planungsregeln</strong> - Definieren Sie wiederkehrende Muster</li>
-            <li><strong>Zeiträume</strong> - Automatische Event-Erstellung für Perioden</li>
-            <li><strong>Effizienz</strong> - Spart Zeit bei wiederkehrenden Events</li>
-        </ul>
-
-        <h3>Times of Day</h3>
-        <p>Verwalten Sie die verfügbaren Arbeitszeiten für diesen Standort:</p>
-        <ul class="feature-list">
-            <li><strong>Neue Zeiten</strong> - Hinzufügen spezifischer Event-Zeiten</li>
-            <li><strong>Zeiten bearbeiten</strong> - Start- und Endzeiten anpassen</li>
-            <li><strong>Standard-Zeiten</strong> - Definieren Sie wiederverwendbare Zeitslots</li>
-        </ul>
-
-        <h3>Reset Time of Day Input Field</h3>
-        <p>Setzen Sie alle Event-Zeiten auf die Standard-Werte der Planungsperiode zurück:</p>
-        <ul class="feature-list">
-            <li><strong>Bulk-Operation</strong> - Wirkt auf alle Events der Periode</li>
-            <li><strong>Zeitanpassungen</strong> - Verwirft individuelle Zeit-Anpassungen</li>
-            <li><strong>Standardisierung</strong> - Stellt Konsistenz wieder her</li>
+        <h2>Anwendungsbereich</h2>
+        <p>Die Standort-Planungsperioden werden verwendet für:</p>
+        <ul>
+            <li><strong>Event-Management</strong> - Planung von Veranstaltungen und Terminen an Standorten</li>
+            <li><strong>Ressourcen-Zuweisung</strong> - Bestimmung benötigter Mitarbeiter pro Event</li>
+            <li><strong>Skill-basierte Planung</strong> - Zuordnung qualifizierter Mitarbeiter</li>
+            <li><strong>Automatisierte Planung</strong> - Regelbasierte Event-Erstellung</li>
         </ul>
         
-        <h2>Notizen-System</h2>
-        
-        <h3>Event-Notizen</h3>
-        <p>Dokumentieren Sie wichtige Informationen zu Events:</p>
-        <ul class="feature-list">
-            <li><strong>Pro Event</strong> - Rechtsklick → "Notes" auf Event-Button</li>
-            <li><strong>Pro Tag</strong> - Notes-Button unter dem Kalender</li>
-            <li><strong>Konsistenz</strong> - Gleiche Notizen für alle Events eines Tages</li>
-        </ul>
-
-        <h3>Standort-Notizen</h3>
-        <p>Im unteren Bereich finden Sie zwei Notiz-Bereiche:</p>
-        <ul class="feature-list">
-            <li><strong>Planungsperiode-Notizen</strong> - Spezifisch für diese Planungsperiode am Standort</li>
-            <li><strong>Standort-Notizen</strong> - Allgemeine Informationen zum Standort</li>
-            <li><strong>Automatische Speicherung</strong> - Änderungen werden sofort gespeichert</li>
-        </ul>
-        
-        <h2>Gruppenmodi</h2>
-        
-        <h3>Event Group Mode</h3>
-        <p>Bearbeiten Sie mehrere Events gleichzeitig:</p>
-        <ul class="feature-list">
-            <li><strong>Aktivierung</strong> - "Switch to Group Mode" Button</li>
-            <li><strong>Gruppen-Erstellung</strong> - Wählen Sie zusammengehörige Events</li>
-            <li><strong>Bulk-Operationen</strong> - Änderungen wirken auf die gesamte Gruppe</li>
-            <li><strong>Effizienz</strong> - Spart Zeit bei wiederkehrenden Mustern</li>
-        </ul>
-
-        <h3>Fixed Cast Group Mode</h3>
-        <p>Verwalten Sie Cast-Zuweisungen in Gruppen:</p>
-        <ul class="feature-list">
-            <li><strong>Cast-Gruppen</strong> - Fassen Sie Events mit ähnlichem Cast zusammen</li>
-            <li><strong>Mitarbeiter-Zuweisungen</strong> - Effiziente Verwaltung von Zuordnungen</li>
-            <li><strong>Konsistenz</strong> - Gleiche Cast-Konfiguration für verwandte Events</li>
-        </ul>
-        
-        <h2>Workflow-Beispiele</h2>
-        
-        <h3>Neuen Standort komplett einrichten</h3>
-        <ol>
-            <li>Standort aus der linken Liste auswählen</li>
-            <li><strong>Cast Size</strong> - Standard-Mitarbeiteranzahl festlegen</li>
-            <li><strong>Times of Day</strong> - Verfügbare Event-Zeiten definieren</li>
-            <li><strong>Events planen</strong> - Gewünschte Termine anklicken</li>
-            <li><strong>Skills konfigurieren</strong> - Erforderliche Fähigkeiten festlegen</li>
-            <li><strong>Fixed Cast</strong> - Bei Bedarf spezifische Mitarbeiter zuweisen</li>
-        </ol>
-
-        <h3>Automatisierte Event-Erstellung</h3>
-        <ol>
-            <li>Standort auswählen</li>
-            <li><strong>"Set Events According to Rules"</strong> - Automatisierte Erstellung</li>
-            <li><strong>Planungsregeln definieren</strong> - Wiederkehrende Muster festlegen</li>
-            <li><strong>Bulk-Anpassungen</strong> - Nachträgliche Feinabstimmung über Gruppenmodi</li>
-        </ol>
-
-        <h3>Event-Konfiguration verfeinern</h3>
-        <ol>
-            <li>Events aktivieren</li>
-            <li><strong>Rechtsklick-Optionen nutzen</strong> - Skills, Cast, Flags, Notizen</li>
-            <li><strong>Tagesweise Konfiguration</strong> - Buttons unter dem Kalender</li>
-            <li><strong>Konsistenz prüfen</strong> - Farbkodierung der Konfigurations-Buttons beachten</li>
-        </ol>
-        
-        <h2>Bedienelemente im Detail</h2>
+        <h2>Benutzeroberfläche</h2>
         
         <h3>Kalender-Ansicht</h3>
         <ul class="feature-list">
@@ -219,6 +71,14 @@
             <li><strong>Wochentage</strong> - Wochenenden sind farblich hervorgehoben</li>
             <li><strong>Event-Buttons</strong> - Klickbar für Event-Aktivierung</li>
             <li><strong>Konfigurations-Buttons</strong> - Unter jedem Tag für erweiterte Einstellungen</li>
+        </ul>
+
+        <h3>Event-Zeit-Buttons</h3>
+        <p>Die Zeit-Buttons repräsentieren mögliche Event-Zeiten am Standort:</p>
+        <ul class="feature-list">
+            <li><strong>Klicken</strong> - Event für diese Zeit aktivieren/deaktivieren</li>
+            <li><strong>Rechtsklick</strong> - Erweiterte Optionen (Zeit ändern, Skills, Cast, Flags, Notizen)</li>
+            <li><strong>Mitarbeiter-Anzahl</strong> - Erscheint im Kontextmenü nach Aktivierung</li>
         </ul>
 
         <h3>Konfigurations-Buttons (unter Kalender)</h3>
@@ -236,113 +96,79 @@
                 <li><strong>Gelb/Orange</strong> - Einstellungen weichen von Standard-Werten ab</li>
             </ul>
         </div>
-        
-        <h2>Controller-Funktionen</h2>
-        
-        <h3>Group Mode (Event-Gruppen)</h3>
-        <p>Bearbeiten Sie mehrere Events als Gruppe:</p>
-        <ul class="feature-list">
-            <li><strong>Aktivierung</strong> - "Switch to Group Mode" verwandelt Events in Gruppen</li>
-            <li><strong>Gruppierung</strong> - Wählen Sie zusammengehörige Events aus</li>
-            <li><strong>Bulk-Änderungen</strong> - Änderungen wirken auf alle Events der Gruppe</li>
-            <li><strong>Nummerierung</strong> - Events werden mit Gruppennummern markiert</li>
-        </ul>
 
-        <h3>Fixed Cast Group Mode</h3>
-        <p>Verwalten Sie Cast-Zuweisungen in Gruppen:</p>
-        <ul class="feature-list">
-            <li><strong>Cast-Gruppen</strong> - Fassen Sie Events mit gleichem Cast zusammen</li>
-            <li><strong>Mitarbeiter-Pool</strong> - Effiziente Zuweisung von Mitarbeitern</li>
-            <li><strong>Planungsoptimierung</strong> - Bessere Ressourcennutzung</li>
-        </ul>
-        
-        <h2>Erweiterte Funktionen</h2>
-        
-        <h3>Planungsregeln</h3>
-        <p>Automatisieren Sie die Event-Erstellung:</p>
-        <ul class="feature-list">
-            <li><strong>Regel-basiert</strong> - Definieren Sie wiederkehrende Muster</li>
-            <li><strong>Zeiträume</strong> - Legen Sie Gültigkeitsbereiche fest</li>
-            <li><strong>Bedingungen</strong> - Berücksichtigen Sie spezielle Umstände</li>
-            <li><strong>Effizienz</strong> - Reduziert manuellen Aufwand erheblich</li>
-        </ul>
-
-        <h3>Flags und Kennzeichnungen</h3>
-        <p>Markieren Sie Events mit besonderen Eigenschaften:</p>
-        <ul class="feature-list">
-            <li><strong>Event-Typen</strong> - Kategorisieren Sie verschiedene Event-Arten</li>
-            <li><strong>Prioritäten</strong> - Kennzeichnen Sie wichtige Events</li>
-            <li><strong>Status-Indikatoren</strong> - Verfolgen Sie den Planungsfortschritt</li>
-        </ul>
-        
-        <h2>Reset-Funktionen</h2>
-        
-        <h3>Reset Time of Day Input Field</h3>
-        <p>Setzen Sie alle Event-Zeiten zurück:</p>
-        <ul class="feature-list">
-            <li><strong>Standard-Zeiten</strong> - Verwendet die Standard-Zeiten der Planungsperiode</li>
-            <li><strong>Alle Events</strong> - Wirkt auf alle Events des Standorts</li>
-            <li><strong>Bereinigung</strong> - Entfernt ungenutzte Zeit-Konfigurationen</li>
-        </ul>
-
-        <h3>Cast → Reset</h3>
-        <p>Setzen Sie Fixed Cast für alle Events zurück:</p>
-        <ul class="feature-list">
-            <li><strong>Standard-Cast</strong> - Verwendet den Standard-Cast der Planungsperiode</li>
-            <li><strong>Konsistenz</strong> - Stellt einheitliche Cast-Konfiguration her</li>
-            <li><strong>Bulk-Operation</strong> - Spart Zeit bei großen Änderungen</li>
-        </ul>
-
-        <h3>Skills-Reset</h3>
-        <p>Zwei Optionen für Skill-Zurücksetzung:</p>
-        <ul class="feature-list">
-            <li><strong>Remove Skills</strong> - Entfernt alle Skills komplett</li>
-            <li><strong>Reset Skills</strong> - Setzt auf Standort-Standard zurück</li>
-            <li><strong>Bestätigung</strong> - Sicherheitsabfrage vor Ausführung</li>
-        </ul>
-        
-        <h2>Tastaturkürzel</h2>
-        <div class="keyboard-shortcuts">
+        <div class="tip-box">
+            <h4>💡 Kontextmenü-Funktionen</h4>
+            <p>Nach dem Rechtsklick auf einen aktiven Event-Button stehen folgende Optionen zur Verfügung:</p>
             <ul>
-                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
-                <li><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</li>
-                <li><strong>Enter</strong> - Event-Button aktivieren (wenn fokussiert)</li>
-                <li><strong>Rechtsklick</strong> - Kontextmenü für Event-Konfiguration</li>
-                <li><strong>Escape</strong> - Gruppenmodus beenden</li>
+                <li><strong>Times of Day</strong> - Zeitraum für diesen Event anpassen</li>
+                <li><strong>Employees</strong> - Anzahl benötigter Mitarbeiter festlegen</li>
+                <li><strong>Skills</strong> - Erforderliche Fähigkeiten definieren</li>
+                <li><strong>Fixed Cast</strong> - Spezifische Mitarbeiter zuweisen</li>
+                <li><strong>Flags</strong> - Besondere Kennzeichnungen setzen</li>
+                <li><strong>Notes</strong> - Notizen zum Event hinzufügen</li>
             </ul>
         </div>
         
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>Neuen Standort komplett einrichten</h3>
+        <ol>
+            <li>Standort aus der linken Liste auswählen</li>
+            <li><strong>Cast Size</strong> - Standard-Mitarbeiteranzahl festlegen</li>
+            <li><strong>Times of Day</strong> - Verfügbare Event-Zeiten definieren</li>
+            <li><strong>Events planen</strong> - Gewünschte Termine anklicken</li>
+            <li><strong>Skills konfigurieren</strong> - Erforderliche Fähigkeiten festlegen</li>
+            <li><strong>Fixed Cast</strong> - Bei Bedarf spezifische Mitarbeiter zuweisen</li>
+        </ol>
+
+        <h3>Automatisierte Event-Erstellung</h3>
+        <ol>
+            <li>Standort auswählen</li>
+            <li><strong>Set Events According to Rules</strong> - Automatisierte Erstellung</li>
+            <li><strong>Planungsregeln definieren</strong> - Wiederkehrende Muster festlegen</li>
+            <li><strong>Bulk-Anpassungen</strong> - Nachträgliche Feinabstimmung über Gruppenmodi</li>
+        </ol>
+
+        <h3>Event-Konfiguration verfeinern</h3>
+        <ol>
+            <li>Events aktivieren</li>
+            <li><strong>Rechtsklick-Optionen nutzen</strong> - Skills, Cast, Flags, Notizen</li>
+            <li><strong>Tagesweise Konfiguration</strong> - Buttons unter dem Kalender</li>
+            <li><strong>Konsistenz prüfen</strong> - Farbkodierung der Konfigurations-Buttons beachten</li>
+        </ol>
+        
         <h2>Häufige Probleme & Lösungen</h2>
         
-        <h3>Buttons sind deaktiviert</h3>
         <div class="warning-box">
-            <p><strong>Problem:</strong> Event-Buttons oder Konfigurations-Buttons sind ausgegraut.</p>
-            <p><strong>Ursache:</strong> Der Standort ist an diesem Tag nicht dem entsprechenden Team zugeordnet.</p>
-            <p><strong>Lösung:</strong> Prüfen Sie die Team-Zuordnung in den <a href="team.html">Team-Einstellungen</a>.</p>
+            <h4>⚠️ Buttons sind deaktiviert</h4>
+            <p><strong>Problem:</strong> Event-Buttons oder Konfigurations-Buttons sind ausgegraut<br>
+            <strong>Ursache:</strong> Der Standort ist an diesem Tag nicht dem entsprechenden Team zugeordnet<br>
+            <strong>Lösung:</strong> Prüfen Sie die Team-Zuordnung in den <a href="team.html">Team-Einstellungen</a></p>
         </div>
 
-        <h3>Zeit-Standards fehlen</h3>
         <div class="warning-box">
-            <p><strong>Problem:</strong> Fehlermeldung "No time of day standards are defined".</p>
-            <p><strong>Lösung:</strong> Definieren Sie Standard-Event-Zeiten über "Times of Day..." im Seitenmenü.</p>
+            <h4>⚠️ Zeit-Standards fehlen</h4>
+            <p><strong>Problem:</strong> Fehlermeldung "No time of day standards are defined"<br>
+            <strong>Lösung:</strong> Definieren Sie Standard-Event-Zeiten über <strong>Times of Day...</strong> im Seitenmenü</p>
         </div>
 
-        <h3>Cast-Konfiguration inkonsistent</h3>
         <div class="warning-box">
-            <p><strong>Problem:</strong> Cast-Buttons zeigen unterschiedliche Farben obwohl gleiche Konfiguration gewünscht.</p>
-            <p><strong>Lösung:</strong> Verwenden Sie "Cast → Reset" oder den Fixed Cast Group Mode für Konsistenz.</p>
+            <h4>⚠️ Cast-Konfiguration inkonsistent</h4>
+            <p><strong>Problem:</strong> Cast-Buttons zeigen unterschiedliche Farben obwohl gleiche Konfiguration gewünscht<br>
+            <strong>Lösung:</strong> Verwenden Sie <strong>Cast → Reset</strong> oder den Fixed Cast Group Mode für Konsistenz</p>
         </div>
 
-        <h3>Gruppenmodus-Konflikte</h3>
         <div class="warning-box">
-            <p><strong>Problem:</strong> Events können nicht korrekt gruppiert werden.</p>
-            <p><strong>Lösung:</strong> Beenden Sie den Gruppenmodus mit Escape und starten Sie neu. Prüfen Sie, ob alle Events derselben Kategorie angehören.</p>
+            <h4>⚠️ Gruppenmodus-Konflikte</h4>
+            <p><strong>Problem:</strong> Events können nicht korrekt gruppiert werden<br>
+            <strong>Lösung:</strong> Beenden Sie den Gruppenmodus mit Escape und starten Sie neu. Prüfen Sie, ob alle Events derselben Kategorie angehören</p>
         </div>
         
-        <h2>Tipps für effiziente Planung</h2>
+        <h2>Best Practices</h2>
         
         <div class="tip-box">
-            <h4>🚀 Best Practices</h4>
+            <h4>🚀 Effiziente Planung</h4>
             <ul>
                 <li><strong>Planungsregeln nutzen</strong> - Automatisieren Sie wiederkehrende Events</li>
                 <li><strong>Standard-Konfigurationen</strong> - Definieren Sie sinnvolle Standard-Werte</li>
@@ -361,17 +187,132 @@
                 <li><strong>Cast Groups</strong> - Einmalige Konfiguration für mehrere Events</li>
             </ul>
         </div>
+
+        <div class="tip-box">
+            <h4>💡 Skill-Farbkodierung</h4>
+            <ul>
+                <li><strong>Grün</strong> - Skills entsprechen Standort-Standard</li>
+                <li><strong>Gelb/Orange</strong> - Skills weichen vom Standard ab</li>
+                <li><strong>Grau</strong> - Keine Events an diesem Tag</li>
+            </ul>
+        </div>
         
-        <h2>Verwandte Funktionen</h2>
-        <p>Diese Funktionen arbeiten eng mit der Standort-Planung zusammen:</p>
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Cast-Verwaltung</h3>
+        
+        <h4>Mitarbeiter-Anzahl festlegen</h4>
+        <p>Bestimmen Sie, wie viele Mitarbeiter für Events benötigt werden:</p>
         <ul class="feature-list">
-            <li><a href="group_mode.html">Gruppenmodus</a> - Event-Gruppen-Management</li>
-            <li><a href="group_properties.html">Gruppeneigenschaften</a> - Gruppenanzahl und Prioritäten</li>
-            <li><a href="actor_plan_period.html">Verfügbarkeitsplanung</a> - Mitarbeiter-Verfügbarkeiten</li>
-            <li><a href="team.html">Team-Verwaltung</a> - Team-Zuordnungen und Standorte</li>
-            <li><a href="masterdata.html">Stammdaten</a> - Standort-Grunddaten und Adressen</li>
-            <li><a href="plan.html">Plan-Ansicht</a> - Ergebnis der Event-Planung</li>
-            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Automatische Zuweisung basierend auf Events</li>
+            <li><strong>Standard-Anzahl</strong> - Wird für alle neuen Events verwendet</li>
+            <li><strong>Event-spezifisch</strong> - Über Rechtsklick → <strong>Employees</strong> anpassbar</li>
+            <li><strong>Seitenmenü</strong> - <strong>Cast Size</strong> für globale Einstellungen</li>
+        </ul>
+
+        <h4>Fixed Cast</h4>
+        <p>Weisen Sie spezifische Mitarbeiter zu Events zu:</p>
+        <ul class="feature-list">
+            <li><strong>Pro Event</strong> - Rechtsklick → <strong>Fixed Cast</strong> für einzelne Events</li>
+            <li><strong>Pro Tag</strong> - Button unter dem Kalender für alle Events eines Tages</li>
+            <li><strong>Seitenmenü</strong> - <strong>Fixed Cast</strong> für planperioden-weite Einstellungen</li>
+            <li><strong>Reset</strong> - <strong>Cast → Reset</strong> setzt auf Standard-Werte zurück</li>
+        </ul>
+
+        <h4>Cast Groups für Planungsperiode</h4>
+        <p>Verwalten Sie Cast-Gruppen für die gesamte Planungsperiode:</p>
+        <ul class="feature-list">
+            <li><strong>Global bearbeiten</strong> - <strong>Edit Cast and Cast Groups for Planning Period</strong></li>
+            <li><strong>Gruppen-Modi</strong> - <strong>Switch to Fixed Cast Group Mode</strong> für Bulk-Operationen</li>
+            <li><strong>Konsistenz</strong> - Automatische Synchronisation zwischen Events</li>
+        </ul>
+
+        <h3>Skill-Management</h3>
+        
+        <h4>Skills pro Event</h4>
+        <p>Definieren Sie erforderliche Fähigkeiten für Events:</p>
+        <ul class="feature-list">
+            <li><strong>Pro Event</strong> - Rechtsklick → <strong>Skills</strong> auf Event-Button</li>
+            <li><strong>Pro Tag</strong> - Skill-Button unter dem Kalender für alle Events eines Tages</li>
+            <li><strong>Standard-Skills</strong> - Basieren auf den Standard-Skills des Standorts</li>
+        </ul>
+
+        <h4>Bulk-Skill-Operationen</h4>
+        <p>Verwalten Sie Skills für alle Events der Planungsperiode:</p>
+        <ul class="feature-list">
+            <li><strong>Skills Menü</strong> - Dropdown-Menü mit globalen Optionen</li>
+            <li><strong>Remove Skills</strong> - Entfernt alle Skills von allen Events</li>
+            <li><strong>Reset Skills</strong> - Setzt alle Skills auf Standort-Standard zurück</li>
+        </ul>
+
+        <h3>Seitenmenü-Funktionen</h3>
+        
+        <h4>Cast Size</h4>
+        <p>Legen Sie die Standard-Anzahl von Mitarbeitern für Events fest:</p>
+        <ul class="feature-list">
+            <li><strong>Standard-Wert</strong> - Wird für alle neuen Events verwendet</li>
+            <li><strong>Planungsperiode-weit</strong> - Gilt für alle Events an diesem Standort</li>
+            <li><strong>Anpassbar</strong> - Einzelne Events können davon abweichen</li>
+        </ul>
+
+        <h4>Set Events According to Rules</h4>
+        <p>Automatisieren Sie die Event-Erstellung basierend auf vordefinierten Regeln:</p>
+        <ul class="feature-list">
+            <li><strong>Planungsregeln</strong> - Definieren Sie wiederkehrende Muster</li>
+            <li><strong>Zeiträume</strong> - Automatische Event-Erstellung für Perioden</li>
+            <li><strong>Effizienz</strong> - Spart Zeit bei wiederkehrenden Events</li>
+        </ul>
+
+        <h4>Times of Day</h4>
+        <p>Verwalten Sie die verfügbaren Arbeitszeiten für diesen Standort:</p>
+        <ul class="feature-list">
+            <li><strong>Neue Zeiten</strong> - Hinzufügen spezifischer Event-Zeiten</li>
+            <li><strong>Zeiten bearbeiten</strong> - Start- und Endzeiten anpassen</li>
+            <li><strong>Standard-Zeiten</strong> - Definieren Sie wiederverwendbare Zeitslots</li>
+        </ul>
+
+        <h4>Reset Time of Day Input Field</h4>
+        <p>Setzen Sie alle Event-Zeiten auf die Standard-Werte der Planungsperiode zurück:</p>
+        <ul class="feature-list">
+            <li><strong>Bulk-Operation</strong> - Wirkt auf alle Events der Periode</li>
+            <li><strong>Zeitanpassungen</strong> - Verwirft individuelle Zeit-Anpassungen</li>
+            <li><strong>Standardisierung</strong> - Stellt Konsistenz wieder her</li>
+        </ul>
+
+        <h3>Gruppenmodi</h3>
+        
+        <h4>Event Group Mode</h4>
+        <p>Bearbeiten Sie mehrere Events gleichzeitig:</p>
+        <ul class="feature-list">
+            <li><strong>Aktivierung</strong> - <strong>Switch to Group Mode</strong> Button</li>
+            <li><strong>Gruppen-Erstellung</strong> - Wählen Sie zusammengehörige Events</li>
+            <li><strong>Bulk-Operationen</strong> - Änderungen wirken auf die gesamte Gruppe</li>
+            <li><strong>Effizienz</strong> - Spart Zeit bei wiederkehrenden Mustern</li>
+        </ul>
+
+        <h4>Fixed Cast Group Mode</h4>
+        <p>Verwalten Sie Cast-Zuweisungen in Gruppen:</p>
+        <ul class="feature-list">
+            <li><strong>Cast-Gruppen</strong> - Fassen Sie Events mit ähnlichem Cast zusammen</li>
+            <li><strong>Mitarbeiter-Zuweisungen</strong> - Effiziente Verwaltung von Zuordnungen</li>
+            <li><strong>Konsistenz</strong> - Gleiche Cast-Konfiguration für verwandte Events</li>
+        </ul>
+
+        <h3>Notizen-System</h3>
+        
+        <h4>Event-Notizen</h4>
+        <p>Dokumentieren Sie wichtige Informationen zu Events:</p>
+        <ul class="feature-list">
+            <li><strong>Pro Event</strong> - Rechtsklick → <strong>Notes</strong> auf Event-Button</li>
+            <li><strong>Pro Tag</strong> - Notes-Button unter dem Kalender</li>
+            <li><strong>Konsistenz</strong> - Gleiche Notizen für alle Events eines Tages</li>
+        </ul>
+
+        <h4>Standort-Notizen</h4>
+        <p>Im unteren Bereich finden Sie zwei Notiz-Bereiche:</p>
+        <ul class="feature-list">
+            <li><strong>Planungsperiode-Notizen</strong> - Spezifisch für diese Planungsperiode am Standort</li>
+            <li><strong>Standort-Notizen</strong> - Allgemeine Informationen zum Standort</li>
+            <li><strong>Automatische Speicherung</strong> - Änderungen werden sofort gespeichert</li>
         </ul>
         
         <h2>Technische Details</h2>
@@ -393,9 +334,41 @@
             <li><strong>Validierung</strong> - Prüfung auf Konsistenz bei Änderungen</li>
             <li><strong>Rollback</strong> - Automatische Wiederherstellung bei Fehlern</li>
         </ul>
+
+        <h3>Reset-Funktionen</h3>
+        
+        <h4>Reset Time of Day Input Field</h4>
+        <p>Setzen Sie alle Event-Zeiten zurück:</p>
+        <ul class="feature-list">
+            <li><strong>Standard-Zeiten</strong> - Verwendet die Standard-Zeiten der Planungsperiode</li>
+            <li><strong>Alle Events</strong> - Wirkt auf alle Events des Standorts</li>
+            <li><strong>Bereinigung</strong> - Entfernt ungenutzte Zeit-Konfigurationen</li>
+        </ul>
+
+        <h4>Cast → Reset</h4>
+        <p>Setzen Sie Fixed Cast für alle Events zurück:</p>
+        <ul class="feature-list">
+            <li><strong>Standard-Cast</strong> - Verwendet den Standard-Cast der Planungsperiode</li>
+            <li><strong>Konsistenz</strong> - Stellt einheitliche Cast-Konfiguration her</li>
+            <li><strong>Bulk-Operation</strong> - Spart Zeit bei großen Änderungen</li>
+        </ul>
+
+        <h4>Skills-Reset</h4>
+        <p>Zwei Optionen für Skill-Zurücksetzung:</p>
+        <ul class="feature-list">
+            <li><strong>Remove Skills</strong> - Entfernt alle Skills komplett</li>
+            <li><strong>Reset Skills</strong> - Setzt auf Standort-Standard zurück</li>
+            <li><strong>Bestätigung</strong> - Sicherheitsabfrage vor Ausführung</li>
+        </ul>
         
         <h2>Support</h2>
-        <p>Bei weiteren Fragen zur Standort-Planung wenden Sie sich an den technischen Support oder konsultieren Sie die Projektdokumentation. Für komplexe Planungsszenarien steht auch die automatische Plan-Berechnung zur Verfügung.</p>
+        <p>Bei Problemen mit der Standort-Planung:</p>
+        <ul>
+            <li>Konsultieren Sie die verwandten Funktionen oben für spezifische Bereiche</li>
+            <li>Prüfen Sie Team-Zuordnungen bei deaktivierten Buttons</li>
+            <li>Nutzen Sie Reset-Funktionen bei inkonsistenten Konfigurationen</li>
+            <li>Verwenden Sie Gruppenmodi für komplexe Bulk-Operationen</li>
+        </ul>
     </div>
 </body>
 </html>

@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -16,13 +17,6 @@
         <h2>Übersicht</h2>
         <p>Der Gruppenmodus ist ein mächtiges Tool zur Organisation und Verwaltung von zusammengehörigen Terminen und Verfügbarkeiten. Er ermöglicht es, komplexe Planungsszenarien effizient zu verwalten, indem ähnliche Elemente in Gruppen zusammengefasst und gemeinsam bearbeitet werden.</p>
         
-        <h2>Anwendungsbereich</h2>
-        <p>Der Gruppenmodus wird in zwei Hauptbereichen verwendet:</p>
-        <ul class="feature-list">
-            <li><strong>Verfügbarkeitsplanung</strong> - Gruppierung von Mitarbeiter-Verfügbarkeiten (AvailDay Groups)</li>
-            <li><strong>Event-Planung</strong> - Gruppierung von Standort-Events (Event Groups)</li>
-        </ul>
-        
         <h2>Hauptfunktionen</h2>
         <ul class="feature-list">
             <li><strong>Hierarchische Gruppenstruktur</strong> - Erstellen Sie verschachtelte Gruppenebenen</li>
@@ -31,6 +25,56 @@
             <li><strong>Prioritäts-Management</strong> - Setzen Sie Gewichtungen für Gruppen</li>
             <li><strong>Anzahl-Kontrolle</strong> - Bestimmen Sie, wie viele Elemente aus einer Gruppe verwendet werden</li>
             <li><strong>Kontextmenüs</strong> - Schnelle Aktionen über Rechtsklick</li>
+        </ul>
+        
+        <h2>Grundbedienung</h2>
+        
+        <h3>Neue Gruppe erstellen</h3>
+        <ol>
+            <li>Klicken Sie auf <strong>New Group</strong></li>
+            <li>Eine neue Gruppe wird erstellt und im Tree angezeigt</li>
+            <li>Doppelklicken Sie auf die Gruppe, um deren Eigenschaften zu bearbeiten</li>
+        </ol>
+
+        <h3>Elemente zwischen Gruppen verschieben</h3>
+        <ol>
+            <li><strong>Einzelnes Element</strong> - Ziehen Sie das Element per Drag & Drop auf die Zielgruppe</li>
+            <li><strong>Mehrere Elemente</strong> - Wählen Sie mehrere Elemente aus (Strg+Klick) und verwenden Sie Drag & Drop</li>
+            <li><strong>Kontextmenü</strong> - Rechtsklick → <strong>In neue Gruppe verschieben</strong> oder <strong>In bestehende Gruppe verschieben</strong></li>
+        </ol>
+
+        <h3>Gruppeneigenschaften bearbeiten</h3>
+        <ol>
+            <li><strong>Doppelklick</strong> auf eine Gruppe öffnet den Eigenschaften-Dialog</li>
+            <li>Passen Sie die <strong>Anzahl</strong> der zu verwendenden Elemente an</li>
+            <li>Setzen Sie <strong>Prioritäten</strong> für Untergruppen</li>
+            <li>Konfigurieren Sie <strong>Mindestanforderungen</strong> (bei Verfügbarkeits-Gruppen)</li>
+        </ol>
+        
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Strg+Klick</strong> - Multi-Selection (mehrere Elemente auswählen)</li>
+                <li><strong>Shift+Klick</strong> - Bereich auswählen</li>
+                <li><strong>Enter</strong> - Eigenschaften-Dialog öffnen (auf Gruppen)</li>
+                <li><strong>Delete</strong> - Gruppe löschen (nur leere Gruppen)</li>
+                <li><strong>Escape</strong> - Dialog schließen ohne Speichern</li>
+            </ul>
+        </div>
+        
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="group_properties.html">Gruppeneigenschaften</a> - Konfiguration von Gruppenanzahl und Prioritäten</li>
+            <li><a href="group_properties_avail_day.html">Erweiterte Gruppeneigenschaften</a> - Mit Verfügbarkeits-Bedingungen</li>
+            <li><a href="actor_plan_period.html">Verfügbarkeitsplanung</a> - Aufruf über "Switch to Group Mode"</li>
+        </ul>
+        
+        <h2>Anwendungsbereich</h2>
+        <p>Der Gruppenmodus wird in zwei Hauptbereichen verwendet:</p>
+        <ul>
+            <li><strong>Verfügbarkeitsplanung</strong> - Gruppierung von Mitarbeiter-Verfügbarkeiten (AvailDay Groups)</li>
+            <li><strong>Event-Planung</strong> - Gruppierung von Standort-Events (Event Groups)</li>
         </ul>
         
         <h2>Benutzeroberfläche</h2>
@@ -51,30 +95,157 @@
             <li><strong>Remove Group</strong> - Löscht die ausgewählte Gruppe (nur leere Gruppen)</li>
             <li><strong>Save/Cancel</strong> - Speichern oder Verwerfen der Änderungen</li>
         </ul>
+
+        <h3>Farbkodierung</h3>
+        <ul class="feature-list">
+            <li><strong>Gruppen-Hintergrund</strong> - Spezielle Hintergrundfarbe für Gruppenelemente</li>
+            <li><strong>Datum-Spalte</strong> - Farblich hervorgehobene Datumsanzeige</li>
+            <li><strong>Zeit-Spalte</strong> - Farblich hervorgehobene Zeitanzeige</li>
+            <li><strong>Beschreibungs-Spalte</strong> - Unterscheidung zwischen Gruppen und Einzelelementen</li>
+        </ul>
         
-        <h2>Grundlegende Bedienung</h2>
+        <h2>Praktische Anwendungsfälle</h2>
         
-        <h3>Neue Gruppe erstellen</h3>
+        <h3>Schichtgruppen erstellen</h3>
         <ol>
-            <li>Klicken Sie auf <strong>"New Group"</strong></li>
-            <li>Eine neue Gruppe wird erstellt und im Tree angezeigt</li>
-            <li>Doppelklicken Sie auf die Gruppe, um deren Eigenschaften zu bearbeiten</li>
+            <li><strong>Gruppenmodus aktivieren</strong> - Über "Switch to Group Mode" im Hauptformular</li>
+            <li><strong>Neue Gruppe erstellen</strong> - <strong>New Group</strong> klicken</li>
+            <li><strong>Termine zuweisen</strong> - Passende Termine per Drag & Drop in die Gruppe ziehen</li>
+            <li><strong>Eigenschaften setzen</strong> - Doppelklick auf Gruppe für Konfiguration</li>
+            <li><strong>Weitere Gruppen</strong> - Wiederholen für verschiedene Schichttypen</li>
         </ol>
 
-        <h3>Elemente zwischen Gruppen verschieben</h3>
+        <h3>Wochenend-Verfügbarkeiten gruppieren</h3>
         <ol>
-            <li><strong>Einzelnes Element:</strong> Ziehen Sie das Element per Drag & Drop auf die Zielgruppe</li>
-            <li><strong>Mehrere Elemente:</strong> Wählen Sie mehrere Elemente aus (Strg+Klick) und verwenden Sie Drag & Drop oder Kontextmenü</li>
-            <li><strong>Kontextmenü:</strong> Rechtsklick → "In neue Gruppe verschieben" oder "In bestehende Gruppe verschieben"</li>
+            <li><strong>Wochenend-Termine auswählen</strong> - Strg+Klick für Multi-Selection</li>
+            <li><strong>Rechtsklick</strong> - <strong>In neue Gruppe verschieben</strong></li>
+            <li><strong>Priorität setzen</strong> - Doppelklick → Priorität auf "if necessary" (0)</li>
+            <li><strong>Anzahl begrenzen</strong> - Slider für maximale Anzahl Wochenend-Einsätze</li>
         </ol>
 
-        <h3>Gruppeneigenschaften bearbeiten</h3>
+        <h3>Standort-spezifische Anforderungen</h3>
         <ol>
-            <li><strong>Doppelklick</strong> auf eine Gruppe öffnet den Eigenschaften-Dialog</li>
-            <li>Passen Sie die <strong>Anzahl</strong> der zu verwendenden Elemente an</li>
-            <li>Setzen Sie <strong>Prioritäten</strong> für Untergruppen</li>
-            <li>Konfigurieren Sie <strong>Mindestanforderungen</strong> (bei Verfügbarkeits-Gruppen)</li>
+            <li><strong>Verfügbarkeits-Gruppe erstellen</strong> - Für bestimmte Mitarbeiter-Gruppe</li>
+            <li><strong>Mindestanforderungen aktivieren</strong> - <strong>Bedingung aktivieren</strong> Checkbox</li>
+            <li><strong>Standorte auswählen</strong> - <strong>Nur für bestimmte Einrichtungen</strong> aktivieren</li>
+            <li><strong>Mindestanzahl festlegen</strong> - Slider für minimale Zuweisungen</li>
         </ol>
+        
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>⚠️ Gruppe kann nicht gelöscht werden</h4>
+            <p><strong>Problem:</strong> <strong>Remove Group</strong> funktioniert nicht<br>
+            <strong>Ursache:</strong> Die Gruppe enthält noch Unterelemente<br>
+            <strong>Lösung:</strong> Verschieben Sie alle Unterelemente in andere Gruppen, bevor Sie die Gruppe löschen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Drag & Drop funktioniert nicht</h4>
+            <p><strong>Problem:</strong> Elemente lassen sich nicht verschieben<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Versuch, auf ein Einzelelement (nicht-Gruppe) zu droppen</li>
+                <li>Versuch, Element in sich selbst zu verschieben</li>
+                <li>Versuch, Gruppe in ihre eigenen Untergruppen zu verschieben</li>
+            </ul>
+            <p><strong>Lösung:</strong> Verwenden Sie gültige Drop-Ziele (andere Gruppen oder Hauptgruppe)</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Solo-Child Warnung</h4>
+            <p><strong>Problem:</strong> Fehlermeldung "At least one group has only one appointment"<br>
+            <strong>Ursache:</strong> Eine Gruppe enthält nur ein einziges Element<br>
+            <strong>Lösung:</strong> Fügen Sie weitere Elemente zur Gruppe hinzu oder verschieben Sie das einzelne Element in eine andere Gruppe</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Mindestanforderungen nicht verfügbar</h4>
+            <p><strong>Problem:</strong> Mindestanforderungen-Widgets sind deaktiviert<br>
+            <strong>Ursache:</strong> Nicht alle Unterelemente haben verfügbare Tage oder die Gruppe ist nicht geeignet<br>
+            <strong>Lösung:</strong> Stellen Sie sicher, dass alle Gruppenelemente gültige Verfügbarkeiten haben</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Dialog lässt sich nicht schließen</h4>
+            <p><strong>Problem:</strong> Dialog kann nicht mit <strong>Save</strong> geschlossen werden<br>
+            <strong>Ursache:</strong> Validierungsfehler in der Gruppenstruktur<br>
+            <strong>Lösung:</strong> Korrigieren Sie Solo-Child-Gruppen und leere Gruppen vor dem Speichern</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Änderungen gehen verloren</h4>
+            <p><strong>Problem:</strong> Änderungen werden nicht übernommen<br>
+            <strong>Ursache:</strong> Dialog wurde mit <strong>Cancel</strong> geschlossen oder Validierung fehlgeschlagen<br>
+            <strong>Lösung:</strong> Verwenden Sie <strong>Save</strong> zum Speichern oder korrigieren Sie Validierungsfehler</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Performance bei großen Gruppen</h4>
+            <p><strong>Problem:</strong> Langsame Reaktion bei vielen Elementen<br>
+            <strong>Lösung:</strong> Verwenden Sie kleinere Untergruppen und vermeiden Sie zu tiefe Hierarchien</p>
+        </div>
+        
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>🚀 Empfohlene Vorgehensweise</h4>
+            <ul>
+                <li><strong>Logische Struktur</strong> - Gruppieren Sie nach sinnvollen Kriterien (Zeit, Standort, Typ)</li>
+                <li><strong>Aussagekräftige Namen</strong> - Nutzen Sie die automatische Nummerierung und ergänzen Sie bei Bedarf Notizen</li>
+                <li><strong>Prioritäten durchdacht setzen</strong> - Verwenden Sie das dreistufige System strategisch</li>
+                <li><strong>Regelmäßige Bereinigung</strong> - Entfernen Sie ungenutzte Gruppen regelmäßig</li>
+                <li><strong>Testen vor Speichern</strong> - Überprüfen Sie die Gruppenstruktur vor dem Speichern</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Multi-Selection nutzen</strong> - Bearbeiten Sie mehrere Elemente gleichzeitig</li>
+                <li><strong>Kontextmenüs verwenden</strong> - Schnellere Bedienung als Drag & Drop</li>
+                <li><strong>Hierarchien planen</strong> - Denken Sie die Gruppenstruktur vorher durch</li>
+                <li><strong>Prioritäten standardisieren</strong> - Verwenden Sie konsistente Prioritäts-Schemata</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Prioritäts-Strategien</h4>
+            <ul>
+                <li><strong>Gleichmäßige Verteilung</strong> - Alle Elemente auf "preferred" (1)</li>
+                <li><strong>Bevorzugte Zeiten</strong> - Wichtige Termine auf "highly preferred" (2)</li>
+                <li><strong>Fallback-Optionen</strong> - Zusätzliche Verfügbarkeiten auf "if necessary" (0)</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🎯 Prioritäts-Verwendung</h4>
+            <ul>
+                <li><strong>"if necessary" (0)</strong> - Für Backup-Optionen und Notfall-Verfügbarkeiten</li>
+                <li><strong>"preferred" (1)</strong> - Für Standard-Verfügbarkeiten und normale Events</li>
+                <li><strong>"highly preferred" (2)</strong> - Für bevorzugte Zeiten und wichtige Events</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ Komplexe Strukturen</h4>
+            <ul>
+                <li><strong>Hierarchische Planung</strong> - Nutzen Sie mehrere Gruppenebenen für komplexe Szenarien</li>
+                <li><strong>Template-Gruppen</strong> - Erstellen Sie wiederverwendbare Gruppenstrukturen</li>
+                <li><strong>Conditional Logic</strong> - Kombinieren Sie Mindestanforderungen mit Prioritäten</li>
+                <li><strong>Saisonale Anpassungen</strong> - Verschiedene Gruppenstrukturen für verschiedene Zeiträume</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Workflow-Optimierung</h4>
+            <ul>
+                <li><strong>Vorbereitung</strong> - Planen Sie die Gruppenstruktur bevor Sie den Modus aktivieren</li>
+                <li><strong>Schrittweise Erstellung</strong> - Bauen Sie komplexe Strukturen schrittweise auf</li>
+                <li><strong>Testing</strong> - Testen Sie die Gruppenlogik mit kleinen Beispielen</li>
+                <li><strong>Dokumentation</strong> - Nutzen Sie Notizen zur Dokumentation komplexer Gruppierungen</li>
+            </ul>
+        </div>
         
         <h2>Erweiterte Funktionen</h2>
         
@@ -103,10 +274,10 @@
             <li><strong>Nur auf Gruppen</strong> - Termine/Verfügbarkeiten sind keine gültigen Drop-Ziele</li>
             <li><strong>Automatische Aktualisierung</strong> - Tree-Widget wird nach dem Drop automatisch aktualisiert</li>
         </ul>
+
+        <h3>Gruppeneigenschaften-Dialog</h3>
         
-        <h2>Gruppeneigenschaften-Dialog</h2>
-        
-        <h3>Anzahl-Steuerung</h3>
+        <h4>Anzahl-Steuerung</h4>
         <p>Bestimmen Sie, wie viele Elemente aus einer Gruppe verwendet werden:</p>
         <ul class="feature-list">
             <li><strong>Slider</strong> - Wählen Sie eine spezifische Anzahl (1 bis Anzahl Unterelemente)</li>
@@ -114,7 +285,7 @@
             <li><strong>Dynamische Anpassung</strong> - Maximalwert passt sich an verfügbare Elemente an</li>
         </ul>
 
-        <h3>Prioritäts-Gewichtung</h3>
+        <h4>Prioritäts-Gewichtung</h4>
         <p>Setzen Sie Prioritäten für Untergruppen und Einzelelemente:</p>
         <ul class="feature-list">
             <li><strong>0 - "if necessary"</strong> - Niedrige Priorität, nur bei Bedarf verwenden</li>
@@ -122,18 +293,9 @@
             <li><strong>2 - "highly preferred"</strong> - Hohe Priorität, vorrangige Verwendung</li>
         </ul>
 
-        <div class="tip-box">
-            <h4>💡 Prioritäts-Strategien</h4>
-            <ul>
-                <li><strong>Gleichmäßige Verteilung</strong> - Alle Elemente auf "preferred" (1)</li>
-                <li><strong>Bevorzugte Zeiten</strong> - Wichtige Termine auf "highly preferred" (2)</li>
-                <li><strong>Fallback-Optionen</strong> - Zusätzliche Verfügbarkeiten auf "if necessary" (0)</li>
-            </ul>
-        </div>
+        <h3>Verfügbarkeits-Gruppen (spezielle Funktionen)</h3>
         
-        <h2>Verfügbarkeits-Gruppen (spezielle Funktionen)</h2>
-        
-        <h3>Mindestanforderungen</h3>
+        <h4>Mindestanforderungen</h4>
         <p>Für Verfügbarkeits-Gruppen stehen zusätzliche Optionen zur Verfügung:</p>
         <ul class="feature-list">
             <li><strong>Mindestanzahl Zuweisungen</strong> - Legen Sie fest, wie viele Zuweisungen mindestens erfolgen müssen</li>
@@ -141,82 +303,20 @@
             <li><strong>"Bedingung aktivieren"</strong> - Ein/Ausschalten der Mindestanforderungen</li>
         </ul>
 
-        <h3>Standort-Auswahl</h3>
+        <h4>Standort-Auswahl</h4>
         <p>Konfigurieren Sie standort-spezifische Anforderungen:</p>
         <ul class="feature-list">
             <li><strong>Alle Standorte</strong> - Anforderung gilt für alle Arbeitsplätze</li>
-            <li><strong>Spezifische Standorte</strong> - Aktivieren Sie "Nur für bestimmte Einrichtungen"</li>
+            <li><strong>Spezifische Standorte</strong> - Aktivieren Sie <strong>Nur für bestimmte Einrichtungen</strong></li>
             <li><strong>Rechtsklick-Auswahl</strong> - Schnelle Einzelauswahl über Rechtsklick auf Checkbox</li>
         </ul>
-        
-        <h2>Workflow-Beispiele</h2>
-        
-        <h3>Schichtgruppen erstellen</h3>
-        <ol>
-            <li><strong>Gruppenmodus aktivieren</strong> - Über "Switch to Group Mode" im Hauptformular</li>
-            <li><strong>Neue Gruppe erstellen</strong> - "New Group" klicken</li>
-            <li><strong>Termine zuweisen</strong> - Passende Termine per Drag & Drop in die Gruppe ziehen</li>
-            <li><strong>Eigenschaften setzen</strong> - Doppelklick auf Gruppe für Konfiguration</li>
-            <li><strong>Weitere Gruppen</strong> - Wiederholen für verschiedene Schichttypen</li>
-        </ol>
 
-        <h3>Wochenend-Verfügbarkeiten gruppieren</h3>
-        <ol>
-            <li><strong>Wochenend-Termine auswählen</strong> - Strg+Klick für Multi-Selection</li>
-            <li><strong>Rechtsklick</strong> - "In neue Gruppe verschieben"</li>
-            <li><strong>Priorität setzen</strong> - Doppelklick → Priorität auf "if necessary" (0)</li>
-            <li><strong>Anzahl begrenzen</strong> - Slider für maximale Anzahl Wochenend-Einsätze</li>
-        </ol>
+        <h3>Erweiterte Steuerung</h3>
+        
+        <h4>Prioritäts-System</h4>
+        <p>Das dreistufige Prioritätssystem ermöglicht flexible Planungsstrategien mit optimaler Ressourcennutzung.</p>
 
-        <h3>Standort-spezifische Anforderungen</h3>
-        <ol>
-            <li><strong>Verfügbarkeits-Gruppe erstellen</strong> - Für bestimmte Mitarbeiter-Gruppe</li>
-            <li><strong>Mindestanforderungen aktivieren</strong> - "Bedingung aktivieren" Checkbox</li>
-            <li><strong>Standorte auswählen</strong> - "Nur für bestimmte Einrichtungen" aktivieren</li>
-            <li><strong>Mindestanzahl festlegen</strong> - Slider für minimale Zuweisungen</li>
-        </ol>
-        
-        <h2>Bedienelemente im Detail</h2>
-        
-        <h3>Tree-Widget Navigation</h3>
-        <ul class="feature-list">
-            <li><strong>Expand/Collapse</strong> - Klicken Sie auf die Pfeile zum Auf-/Zuklappen</li>
-            <li><strong>Sortierung</strong> - Klicken Sie auf Spaltenköpfe zum Sortieren</li>
-            <li><strong>Multi-Selection</strong> - Strg+Klick oder Shift+Klick für Mehrfachauswahl</li>
-            <li><strong>Doppelklick</strong> - Öffnet Eigenschaften-Dialog für Gruppen</li>
-        </ul>
-
-        <h3>Eigenschaften-Dialog</h3>
-        <ul class="feature-list">
-            <li><strong>Anzahl-Slider</strong> - Bestimmt, wie viele Unterelemente verwendet werden</li>
-            <li><strong>"Alle Elemente" Checkbox</strong> - Deaktiviert Anzahl-Begrenzung</li>
-            <li><strong>Prioritäts-Slider</strong> - Für jedes Unterelement einzeln konfigurierbar</li>
-            <li><strong>Scroll-Area</strong> - Bei vielen Unterelementen automatisch scrollbar</li>
-        </ul>
-
-        <h3>Farbkodierung</h3>
-        <ul class="feature-list">
-            <li><strong>Gruppen-Hintergrund</strong> - Spezielle Hintergrundfarbe für Gruppenelemente</li>
-            <li><strong>Datum-Spalte</strong> - Farblich hervorgehobene Datumsanzeige</li>
-            <li><strong>Zeit-Spalte</strong> - Farblich hervorgehobene Zeitanzeige</li>
-            <li><strong>Beschreibungs-Spalte</strong> - Unterscheidung zwischen Gruppen und Einzelelementen</li>
-        </ul>
-        
-        <h2>Erweiterte Steuerung</h2>
-        
-        <h3>Prioritäts-System</h3>
-        <p>Das dreistufige Prioritätssystem ermöglicht flexible Planungsstrategien:</p>
-        
-        <div class="tip-box">
-            <h4>🎯 Prioritäts-Verwendung</h4>
-            <ul>
-                <li><strong>"if necessary" (0)</strong> - Für Backup-Optionen und Notfall-Verfügbarkeiten</li>
-                <li><strong>"preferred" (1)</strong> - Für Standard-Verfügbarkeiten und normale Events</li>
-                <li><strong>"highly preferred" (2)</strong> - Für bevorzugte Zeiten und wichtige Events</li>
-            </ul>
-        </div>
-
-        <h3>Anzahl-Logik</h3>
+        <h4>Anzahl-Logik</h4>
         <p>Die Anzahl-Steuerung funktioniert folgendermaßen:</p>
         <ul class="feature-list">
             <li><strong>Begrenzte Anzahl</strong> - System wählt die besten X Elemente basierend auf Prioritäten</li>
@@ -225,17 +325,17 @@
             <li><strong>Prioritäts-basierte Auswahl</strong> - Höhere Prioritäten werden bevorzugt ausgewählt</li>
         </ul>
 
-        <h3>Mindestanforderungen (nur Verfügbarkeits-Gruppen)</h3>
+        <h4>Mindestanforderungen (nur Verfügbarkeits-Gruppen)</h4>
         <p>Spezielle Logik für Mitarbeiter-Verfügbarkeiten:</p>
         <ul class="feature-list">
             <li><strong>Mindestanzahl</strong> - Mitarbeiter müssen mindestens X Zuweisungen in dieser Gruppe haben</li>
             <li><strong>Standort-Filter</strong> - Anforderung gilt nur für ausgewählte Standorte</li>
             <li><strong>Planungslogik</strong> - Verhindert zu ungleichmäßige Verteilung von Zuweisungen</li>
         </ul>
+
+        <h3>Praktische Anwendungsszenarien</h3>
         
-        <h2>Praktische Anwendungsfälle</h2>
-        
-        <h3>Schicht-Management</h3>
+        <h4>Schicht-Management</h4>
         <p>Organisieren Sie verschiedene Schichttypen:</p>
         <ul class="feature-list">
             <li><strong>Früh-/Spät-/Nachtschichten</strong> - Separate Gruppen für verschiedene Schichtzeiten</li>
@@ -243,7 +343,7 @@
             <li><strong>Überstunden-Pool</strong> - Gruppe für zusätzliche Verfügbarkeiten</li>
         </ul>
 
-        <h3>Event-Kategorisierung</h3>
+        <h4>Event-Kategorisierung</h4>
         <p>Strukturieren Sie Events nach Typ oder Wichtigkeit:</p>
         <ul class="feature-list">
             <li><strong>Haupt-Events</strong> - Hohe Priorität, feste Anzahl</li>
@@ -251,83 +351,13 @@
             <li><strong>Optional-Events</strong> - Niedrige Priorität, nur bei verfügbaren Ressourcen</li>
         </ul>
 
-        <h3>Geografische Gruppierung</h3>
+        <h4>Geografische Gruppierung</h4>
         <p>Organisieren Sie nach Standorten:</p>
         <ul class="feature-list">
             <li><strong>Hauptstandorte</strong> - Hohe Priorität, Mindestanforderungen</li>
             <li><strong>Außenstellen</strong> - Flexible Handhabung</li>
             <li><strong>Mobile Einsätze</strong> - Separate Gruppe mit speziellen Regeln</li>
         </ul>
-        
-        <h2>Tastaturkürzel</h2>
-        <div class="keyboard-shortcuts">
-            <ul>
-                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
-                <li><strong>Strg+Klick</strong> - Multi-Selection (mehrere Elemente auswählen)</li>
-                <li><strong>Shift+Klick</strong> - Bereich auswählen</li>
-                <li><strong>Enter</strong> - Eigenschaften-Dialog öffnen (auf Gruppen)</li>
-                <li><strong>Delete</strong> - Gruppe löschen (nur leere Gruppen)</li>
-                <li><strong>Escape</strong> - Dialog schließen ohne Speichern</li>
-            </ul>
-        </div>
-        
-        <h2>Häufige Probleme & Lösungen</h2>
-        
-        <h3>Gruppe kann nicht gelöscht werden</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> "Remove Group" funktioniert nicht.</p>
-            <p><strong>Ursache:</strong> Die Gruppe enthält noch Unterelemente.</p>
-            <p><strong>Lösung:</strong> Verschieben Sie alle Unterelemente in andere Gruppen, bevor Sie die Gruppe löschen.</p>
-        </div>
-
-        <h3>Drag & Drop funktioniert nicht</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Elemente lassen sich nicht verschieben.</p>
-            <p><strong>Ursachen:</strong></p>
-            <ul>
-                <li>Versuch, auf ein Einzelelement (nicht-Gruppe) zu droppen</li>
-                <li>Versuch, Element in sich selbst zu verschieben</li>
-                <li>Versuch, Gruppe in ihre eigenen Untergruppen zu verschieben</li>
-            </ul>
-            <p><strong>Lösung:</strong> Verwenden Sie gültige Drop-Ziele (andere Gruppen oder Hauptgruppe).</p>
-        </div>
-
-        <h3>Solo-Child Warnung</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Fehlermeldung "At least one group has only one appointment".</p>
-            <p><strong>Ursache:</strong> Eine Gruppe enthält nur ein einziges Element.</p>
-            <p><strong>Lösung:</strong> Fügen Sie weitere Elemente zur Gruppe hinzu oder verschieben Sie das einzelne Element in eine andere Gruppe.</p>
-        </div>
-
-        <h3>Mindestanforderungen nicht verfügbar</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Mindestanforderungen-Widgets sind deaktiviert.</p>
-            <p><strong>Ursache:</strong> Nicht alle Unterelemente haben verfügbare Tage oder die Gruppe ist nicht geeignet.</p>
-            <p><strong>Lösung:</strong> Stellen Sie sicher, dass alle Gruppenelemente gültige Verfügbarkeiten haben.</p>
-        </div>
-        
-        <h2>Best Practices</h2>
-        
-        <div class="tip-box">
-            <h4>🚀 Empfohlene Vorgehensweise</h4>
-            <ul>
-                <li><strong>Logische Struktur</strong> - Gruppieren Sie nach sinnvollen Kriterien (Zeit, Standort, Typ)</li>
-                <li><strong>Aussagekräftige Namen</strong> - Nutzen Sie die automatische Nummerierung und ergänzen Sie bei Bedarf Notizen</li>
-                <li><strong>Prioritäten durchdacht setzen</strong> - Verwenden Sie das dreistufige System strategisch</li>
-                <li><strong>Regelmäßige Bereinigung</strong> - Entfernen Sie ungenutzte Gruppen regelmäßig</li>
-                <li><strong>Testen vor Speichern</strong> - Überprüfen Sie die Gruppenstruktur vor dem Speichern</li>
-            </ul>
-        </div>
-
-        <div class="tip-box">
-            <h4>⚡ Effizienz-Tipps</h4>
-            <ul>
-                <li><strong>Multi-Selection nutzen</strong> - Bearbeiten Sie mehrere Elemente gleichzeitig</li>
-                <li><strong>Kontextmenüs verwenden</strong> - Schnellere Bedienung als Drag & Drop</li>
-                <li><strong>Hierarchien planen</strong> - Denken Sie die Gruppenstruktur vorher durch</li>
-                <li><strong>Prioritäten standardisieren</strong> - Verwenden Sie konsistente Prioritäts-Schemata</li>
-            </ul>
-        </div>
         
         <h2>Technische Details</h2>
         
@@ -355,74 +385,33 @@
             <li><strong>Empty Group Cleanup</strong> - Automatisches Entfernen leerer Gruppen</li>
             <li><strong>Konsistenz-Prüfung</strong> - Überprüfung der Gruppenstruktur beim Speichern</li>
         </ul>
+
+        <h3>Tree-Widget Details</h3>
         
-        <h2>Verwandte Funktionen</h2>
-        <p>Der Gruppenmodus arbeitet eng mit anderen Planungskomponenten zusammen:</p>
+        <h4>Navigation</h4>
         <ul class="feature-list">
-            <li><a href="group_properties.html">Gruppeneigenschaften</a> - Konfiguration von Gruppenanzahl und Prioritäten</li>
-            <li><a href="group_properties_avail_day.html">Erweiterte Gruppeneigenschaften</a> - Mit Verfügbarkeits-Bedingungen</li>
-            <li><a href="actor_plan_period.html">Verfügbarkeitsplanung</a> - Aufruf über "Switch to Group Mode"</li>
-            <li><a href="location_plan_period.html">Standort-Planung</a> - Event-Gruppen-Management</li>
-            <li><a href="plan.html">Plan-Ansicht</a> - Ergebnis der Gruppierungs-Logik</li>
-            <li><a href="calculate_plan.html">Plan-Berechnung</a> - Berücksichtigt Gruppenprioritäten und -anforderungen</li>
+            <li><strong>Expand/Collapse</strong> - Klicken Sie auf die Pfeile zum Auf-/Zuklappen</li>
+            <li><strong>Sortierung</strong> - Klicken Sie auf Spaltenköpfe zum Sortieren</li>
+            <li><strong>Multi-Selection</strong> - Strg+Klick oder Shift+Klick für Mehrfachauswahl</li>
+            <li><strong>Doppelklick</strong> - Öffnet Eigenschaften-Dialog für Gruppen</li>
+        </ul>
+
+        <h4>Eigenschaften-Dialog</h4>
+        <ul class="feature-list">
+            <li><strong>Anzahl-Slider</strong> - Bestimmt, wie viele Unterelemente verwendet werden</li>
+            <li><strong>"Alle Elemente" Checkbox</strong> - Deaktiviert Anzahl-Begrenzung</li>
+            <li><strong>Prioritäts-Slider</strong> - Für jedes Unterelement einzeln konfigurierbar</li>
+            <li><strong>Scroll-Area</strong> - Bei vielen Unterelementen automatisch scrollbar</li>
         </ul>
         
-        <h2>Fehlerbehebung</h2>
-        
-        <h3>Dialog lässt sich nicht schließen</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Dialog kann nicht mit "Save" geschlossen werden.</p>
-            <p><strong>Ursache:</strong> Validierungsfehler in der Gruppenstruktur.</p>
-            <p><strong>Lösung:</strong> Korrigieren Sie Solo-Child-Gruppen und leere Gruppen vor dem Speichern.</p>
-        </div>
-
-        <h3>Änderungen gehen verloren</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Änderungen werden nicht übernommen.</p>
-            <p><strong>Ursache:</strong> Dialog wurde mit "Cancel" geschlossen oder Validierung fehlgeschlagen.</p>
-            <p><strong>Lösung:</strong> Verwenden Sie "Save" zum Speichern oder korrigieren Sie Validierungsfehler.</p>
-        </div>
-
-        <h3>Performance bei großen Gruppen</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Langsame Reaktion bei vielen Elementen.</p>
-            <p><strong>Lösung:</strong> Verwenden Sie kleinere Untergruppen und vermeiden Sie zu tiefe Hierarchien.</p>
-        </div>
-        
-        <h2>Tipps für fortgeschrittene Nutzung</h2>
-        
-        <div class="tip-box">
-            <h4>🏗️ Komplexe Strukturen</h4>
-            <ul>
-                <li><strong>Hierarchische Planung</strong> - Nutzen Sie mehrere Gruppenebenen für komplexe Szenarien</li>
-                <li><strong>Template-Gruppen</strong> - Erstellen Sie wiederverwendbare Gruppenstrukturen</li>
-                <li><strong>Conditional Logic</strong> - Kombinieren Sie Mindestanforderungen mit Prioritäten</li>
-                <li><strong>Saisonale Anpassungen</strong> - Verschiedene Gruppenstrukturen für verschiedene Zeiträume</li>
-            </ul>
-        </div>
-
-        <div class="tip-box">
-            <h4>🔄 Workflow-Optimierung</h4>
-            <ul>
-                <li><strong>Vorbereitung</strong> - Planen Sie die Gruppenstruktur bevor Sie den Modus aktivieren</li>
-                <li><strong>Schrittweise Erstellung</strong> - Bauen Sie komplexe Strukturen schrittweise auf</li>
-                <li><strong>Testing</strong> - Testen Sie die Gruppenlogik mit kleinen Beispielen</li>
-                <li><strong>Dokumentation</strong> - Nutzen Sie Notizen zur Dokumentation komplexer Gruppierungen</li>
-            </ul>
-        </div>
-        
         <h2>Support</h2>
-        <p>Der Gruppenmodus ist eine der komplexesten Funktionen in HCC Plan. Bei Problemen oder Fragen zu erweiterten Gruppierungsszenarien wenden Sie sich an den technischen Support oder konsultieren Sie die Projektdokumentation.</p>
-        
-        <div class="tip-box">
-            <h4>📚 Weiterführende Hilfe</h4>
-            <p>Für spezifische Anwendungsfälle des Gruppenmodus siehe auch:</p>
-            <ul>
-                <li><strong>Cast Groups</strong> - Spezielle Gruppierung für feste Besetzungen</li>
-                <li><strong>Event Planning Rules</strong> - Automatisierte Event-Erstellung</li>
-                <li><strong>Team Management</strong> - Team-spezifische Gruppierungsstrategien</li>
-            </ul>
-        </div>
+        <p>Bei Problemen mit dem Gruppenmodus:</p>
+        <ul>
+            <li>Prüfen Sie die Gruppenstruktur vor dem Speichern auf Solo-Child-Gruppen</li>
+            <li>Verwenden Sie gültige Drop-Ziele beim Drag & Drop</li>
+            <li>Testen Sie komplexe Gruppierungen mit kleinen Beispielen</li>
+            <li>Konsultieren Sie die verwandten Funktionen für spezifische Gruppeneigenschaften</li>
+        </ul>
     </div>
 </body>
 </html>

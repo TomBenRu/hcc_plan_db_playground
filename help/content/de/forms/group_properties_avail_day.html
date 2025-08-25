@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -13,418 +14,316 @@
     </div>
     
     <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Dialog <strong>Erweiterte Gruppeneigenschaften</strong> bietet alle Funktionen der Standard-Gruppeneigenschaften plus spezielle Verfügbarkeits-Bedingungen. Diese erweiterte Version ermöglicht es, Mindestanforderungen für Zuweisungen zu definieren und standortspezifische Bedingungen zu setzen.</p>
+        
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Standard-Gruppenfunktionen</strong> - Anzahl-Steuerung und Prioritäts-Gewichtung für untergeordnete Elemente</li>
+            <li><strong>Verfügbarkeits-Bedingungen</strong> - Mindestanzahl von Zuweisungen pro Mitarbeiter definieren</li>
+            <li><strong>Standortspezifische Bedingungen</strong> - Flexible Standort-Auswahl für Mindestanforderungen</li>
+            <li><strong>Rechtsklick-Schnellauswahl</strong> - Schnelle Einzelauswahl für Standorte</li>
+            <li><strong>Intelligente Anpassung</strong> - Automatische Maximalwert-Anpassung und Bedingungs-Validierung</li>
+        </ul>
+        
+        <h2>Grundbedienung</h2>
+        
+        <h3>Standard-Gruppenkonfiguration</h3>
+        <ol>
+            <li><strong>Anzahl festlegen</strong> - Slider für gewünschte Anzahl untergeordneter Elemente</li>
+            <li><strong>Automatik nutzen</strong> - <strong>Alle untergeordneten Elemente</strong> für dynamische Auswahl</li>
+            <li><strong>Prioritäten setzen</strong> - Variation Weight Slider für jedes Element anpassen</li>
+        </ol>
 
-        <section id="overview">
-            <h2>🎯 Übersicht</h2>
-            <p>Der Dialog <strong>Erweiterte Gruppeneigenschaften</strong> bietet alle Funktionen der Standard-Gruppeneigenschaften plus <strong>spezielle Verfügbarkeits-Bedingungen</strong>. Diese erweiterte Version ermöglicht es, Mindestanforderungen für Zuweisungen zu definieren und standortspezifische Bedingungen zu setzen.</p>
-            
-            <div class="tip-box">
-                <strong>💡 Erweiterte Funktion:</strong> Kontrolliert nicht nur Anzahl und Prioritäten, sondern auch Mindestanforderungen für Mitarbeiterzuweisungen basierend auf Verfügbarkeits-Tagen.
-            </div>
-
-            <div class="warning-box">
-                <strong>⚠️ Wichtig:</strong> Diese erweiterten Features sind nur verfügbar, wenn alle untergeordneten Elemente Verfügbarkeits-Daten haben.
-            </div>
-        </section>
-
-        <section id="main-functions">
-            <h2>🔧 Hauptfunktionen</h2>
-            <ul class="feature-list">
-                <li><strong>Standard-Gruppenfunktionen:</strong>
-                    <ul>
-                        <li>Anzahl-Steuerung für untergeordnete Elemente</li>
-                        <li>Automatik-Option für alle Elemente</li>
-                        <li>Prioritäts-Gewichtung (Variation Weight)</li>
-                    </ul>
-                </li>
-                <li><strong>Verfügbarkeits-Bedingungen:</strong>
-                    <ul>
-                        <li>Mindestanzahl von Zuweisungen pro Mitarbeiter</li>
-                        <li>Standortspezifische Bedingungen</li>
-                        <li>Flexible Standort-Auswahl</li>
-                        <li>Rechtsklick-Schnellauswahl für einzelne Standorte</li>
-                    </ul>
-                </li>
-                <li><strong>Intelligente Anpassung:</strong>
-                    <ul>
-                        <li>Automatische Deaktivierung bei ungeeigneten Daten</li>
-                        <li>Dynamische Maximalwert-Anpassung</li>
-                        <li>Bedingungs-Validierung</li>
-                    </ul>
-                </li>
-            </ul>
-        </section>
-
-        <section id="basic-usage">
-            <h2>📋 Grundlegende Bedienung</h2>
-            
-            <h3>Standard-Gruppenkonfiguration (wie Basis-Version):</h3>
-            <ol>
-                <li><strong>Anzahl festlegen:</strong> Slider für gewünschte Anzahl untergeordneter Elemente</li>
-                <li><strong>Automatik nutzen:</strong> "Alle untergeordneten Elemente" für dynamische Auswahl</li>
-                <li><strong>Prioritäten setzen:</strong> Variation Weight Slider für jedes Element anpassen</li>
-            </ol>
-
-            <h3>Verfügbarkeits-Bedingungen konfigurieren:</h3>
-            <ol>
-                <li><strong>Bedingung aktivieren:</strong> Markieren Sie "Bedingung aktivieren?"</li>
-                <li><strong>Mindestanzahl einstellen:</strong> Verwenden Sie den Mindestanzahl-Slider</li>
-                <li><strong>Standorte auswählen (optional):</strong>
-                    <ul>
-                        <li>Aktivieren Sie "Nur für bestimmte Einrichtungen aktivieren"</li>
-                        <li>Wählen Sie die gewünschten Standorte aus</li>
-                        <li>Rechtsklick für Einzelauswahl</li>
-                    </ul>
-                </li>
-                <li><strong>Einstellungen speichern</strong></li>
-            </ol>
-        </section>
-
-        <section id="advanced-features">
-            <h2>🚀 Erweiterte Verfügbarkeits-Features</h2>
-
-            <h3>Mindestanzahl von Zuweisungen:</h3>
-            <div class="control-group">
-                <p><strong>Zweck:</strong> Stellt sicher, dass Mitarbeiter nur zugewiesen werden, wenn sie eine Mindestanzahl von Zuweisungen erreichen</p>
-                <p><strong>Anwendung:</strong> Verhindert ineffiziente Einzelzuweisungen</p>
-                <p><strong>Bereich:</strong> 1 bis Maximum basierend auf verfügbaren Terminen</p>
-            </div>
-
-            <h3>Standortspezifische Bedingungen:</h3>
-            <div class="control-group">
-                <p><strong>Funktion:</strong> Bedingungen gelten nur für ausgewählte Einrichtungen</p>
-                <p><strong>Flexibilität:</strong> Verschiedene Standorte können unterschiedliche Anforderungen haben</p>
-                <p><strong>Rechtsklick-Feature:</strong> Schnelle Einzelauswahl eines Standorts</p>
-            </div>
-
-            <h3>Automatische Anpassungen:</h3>
-            <div class="control-group">
-                <p><strong>Intelligente Limits:</strong> Maximalwerte passen sich an verfügbare Termine an</p>
-                <p><strong>Bedingungs-Validierung:</strong> System prüft Machbarkeit der Einstellungen</p>
-                <p><strong>UI-Anpassung:</strong> Elemente werden bei Unverfügbarkeit deaktiviert</p>
-            </div>
-        </section>
-
-        <section id="controls">
-            <h2>🖱️ Bedienelemente im Detail</h2>
-
-            <h3>Standard-Steuerung (inherited):</h3>
-            <div class="control-group">
-                <h4>Anzahl untergeordneter Elemente</h4>
-                <p><strong>Count-Slider:</strong> Exakte Anzahl-Kontrolle</p>
-                <p><strong>"Alle Elemente" Checkbox:</strong> Dynamische Vollauswahl</p>
-                <p><strong>Variation Weight Slider:</strong> Prioritäts-Gewichtung (0=niedrig, 1=normal, 2=hoch)</p>
-            </div>
-
-            <h3>Verfügbarkeits-spezifische Steuerung:</h3>
-            <div class="control-group">
-                <h4>"Bedingung aktivieren?" Checkbox</h4>
-                <p><strong>Funktion:</strong> Aktiviert/deaktiviert Mindestanforderungen</p>
-                <p><strong>Verhalten:</strong> Schaltet zwischen normalem und bedingtem Modus um</p>
-                <p><strong>Abhängigkeit:</strong> Nur verfügbar bei geeigneten Daten</p>
-            </div>
-
-            <div class="control-group">
-                <h4>Mindestanzahl-Slider</h4>
-                <p><strong>Funktion:</strong> Definiert minimale Anzahl Zuweisungen pro Mitarbeiter</p>
-                <p><strong>Dynamischer Bereich:</strong> 1 bis berechnetes Maximum</p>
-                <p><strong>Aktualisierung:</strong> Passt sich an Anzahl-Änderungen an</p>
-            </div>
-
-            <div class="control-group">
-                <h4>"Nur für bestimmte Einrichtungen" Checkbox</h4>
-                <p><strong>Funktion:</strong> Aktiviert standortspezifische Bedingungen</p>
-                <p><strong>Effekt:</strong> Zeigt/versteckt Standort-Auswahl</p>
-            </div>
-
-            <div class="control-group">
-                <h4>Standort-Checkboxes</h4>
-                <p><strong>Multi-Selection:</strong> Mehrere Standorte gleichzeitig wählbar</p>
-                <p><strong>Rechtsklick:</strong> Schnelle Einzelauswahl</p>
-                <p><strong>Tooltip:</strong> Zeigt verfügbare Aktionen an</p>
-                <p><strong>Scroll-Area:</strong> Bei vielen Standorten verfügbar</p>
-            </div>
-        </section>
-
-        <section id="workflows">
-            <h2>🔄 Erweiterte Workflows</h2>
-
-            <h3>Workflow 1: Mindestanforderungen für alle Standorte</h3>
-            <ol>
-                <li>Öffnen Sie die Gruppeneigenschaften für eine Verfügbarkeits-Gruppe</li>
-                <li>Konfigurieren Sie Basis-Einstellungen (Anzahl, Prioritäten)</li>
-                <li>Aktivieren Sie "Bedingung aktivieren?"</li>
-                <li>Stellen Sie die Mindestanzahl ein (z.B. 3 Zuweisungen)</li>
-                <li>Lassen Sie Standort-Spezifikation deaktiviert (gilt für alle)</li>
-                <li>Speichern Sie die Konfiguration</li>
-            </ol>
-
-            <h3>Workflow 2: Standortspezifische Bedingungen</h3>
-            <ol>
-                <li>Aktivieren Sie die Verfügbarkeits-Bedingung</li>
-                <li>Aktivieren Sie "Nur für bestimmte Einrichtungen"</li>
-                <li>Wählen Sie die relevanten Standorte aus der Liste</li>
-                <li>Verwenden Sie Rechtsklick für schnelle Einzelauswahl</li>
-                <li>Justieren Sie die Mindestanzahl je nach Standort-Anforderungen</li>
-                <li>Testen Sie die Auswirkungen vor finaler Speicherung</li>
-            </ol>
-
-            <h3>Workflow 3: Optimierung bestehender Bedingungen</h3>
-            <ol>
-                <li>Analysieren Sie aktuelle Zuweisungs-Patterns</li>
-                <li>Identifizieren Sie Standorte mit Über-/Unterbesetzung</li>
-                <li>Passen Sie Mindestanforderungen entsprechend an</li>
-                <li>Modifizieren Sie Standort-Spezifikationen</li>
-                <li>Testen Sie mit verschiedenen Anzahl-Einstellungen</li>
-                <li>Dokumentieren Sie optimale Konfigurationen</li>
-            </ol>
-        </section>
-
-        <section id="keyboard">
-            <h2>⌨️ Tastaturkürzel</h2>
-            <div class="keyboard-shortcuts">
-                <p><kbd>F1</kbd> - Diese erweiterte Hilfe anzeigen</p>
-                <p><kbd>Enter</kbd> - Änderungen speichern und Dialog schließen</p>
-                <p><kbd>Esc</kbd> - Dialog abbrechen (alle Änderungen verwerfen)</p>
-                <p><kbd>Tab</kbd> - Zwischen allen Bedienelementen wechseln</p>
-                <p><kbd>Leertaste</kbd> - Checkbox umschalten (auch für Standorte)</p>
-                <p><kbd>Pfeiltasten</kbd> - Slider-Werte anpassen (Anzahl und Mindestanforderungen)</p>
-                <p><kbd>Strg+Click</kbd> - Multi-Selection bei Standorten</p>
-            </div>
-        </section>
-
-        <section id="troubleshooting">
-            <h2>🔧 Häufige Probleme & Lösungen</h2>
-
-            <h3>Problem: Verfügbarkeits-Features nicht verfügbar</h3>
-            <p><strong>Ursache:</strong> Nicht alle untergeordneten Elemente haben Verfügbarkeits-Daten</p>
-            <p><strong>Lösung:</strong> Überprüfen Sie, ob alle Termine mit Verfügbarkeits-Informationen verknüpft sind</p>
-
-            <h3>Problem: Mindestanzahl-Slider reagiert nicht</h3>
-            <p><strong>Ursache:</strong> "Bedingung aktivieren?" ist nicht markiert</p>
-            <p><strong>Lösung:</strong> Aktivieren Sie zuerst die Verfügbarkeits-Bedingung</p>
-
-            <h3>Problem: Standort-Auswahl nicht sichtbar</h3>
-            <p><strong>Ursache:</strong> "Nur für bestimmte Einrichtungen" ist deaktiviert</p>
-            <p><strong>Lösung:</strong> Aktivieren Sie die standortspezifische Bedingung</p>
-
-            <h3>Problem: Keine Standorte in der Liste</h3>
-            <p><strong>Ursache:</strong> Für die gewählten Termine sind keine Standorte definiert</p>
-            <p><strong>Lösung:</strong> Überprüfen Sie die Standort-Konfiguration für die betroffenen Termine</p>
-
-            <h3>Problem: Mindestanforderung zu hoch</h3>
-            <p><strong>Ursache:</strong> Wert überschreitet verfügbare Termine</p>
-            <p><strong>Lösung:</strong> System begrenzt automatisch auf maximum verfügbare Termine</p>
-
-            <h3>Problem: Änderungen werden nicht gespeichert</h3>
-            <p><strong>Ursache:</strong> Dialog wurde abgebrochen oder Validierung fehlgeschlagen</p>
-            <p><strong>Lösung:</strong> Überprüfen Sie alle Bedingungen und verwenden Sie "Speichern"</p>
-        </section>
-
-        <section id="tips">
-            <h2>💡 Tipps & Best Practices</h2>
-
-            <div class="tip-box">
-                <h4>🎯 Optimale Mindestanforderungen</h4>
-                <ul>
-                    <li><strong>Kleine Teams:</strong> Mindestanzahl 1-2 für Flexibilität</li>
-                    <li><strong>Große Teams:</strong> Mindestanzahl 3-5 für Effizienz</li>
-                    <li><strong>Kritische Termine:</strong> Höhere Mindestanforderungen für Stabilität</li>
-                    <li><strong>Backup-Planung:</strong> Niedrigere Anforderungen für Flexibilität</li>
-                </ul>
-            </div>
-
-            <div class="tip-box">
-                <h4>🏢 Standort-Management</h4>
-                <ul>
-                    <li><strong>Multi-Standort-Projekte:</strong> Nutzen Sie standortspezifische Bedingungen</li>
-                    <li><strong>Rechtsklick-Shortcut:</strong> Schnelle Einzelstandort-Auswahl</li>
-                    <li><strong>Alle auswählen:</strong> Entspricht der Deaktivierung standortspezifischer Bedingungen</li>
-                    <li><strong>Testing:</strong> Testen Sie Einstellungen pro Standort separat</li>
-                </ul>
-            </div>
-
-            <div class="tip-box">
-                <h4>⚡ Effizienz-Strategien</h4>
-                <ul>
-                    <li><strong>Batch-Konfiguration:</strong> Konfigurieren Sie alle Parameter vor dem Speichern</li>
-                    <li><strong>Template-Ansatz:</strong> Speichern Sie bewährte Konfigurationen als Referenz</li>
-                    <li><strong>Schrittweise Optimierung:</strong> Beginnen Sie mit einfachen Bedingungen</li>
-                    <li><strong>Monitoring:</strong> Überwachen Sie die Auswirkungen neuer Bedingungen</li>
-                </ul>
-            </div>
-
-            <div class="tip-box">
-                <h4>🔍 Fehlerdiagnose</h4>
-                <ul>
-                    <li><strong>Daten-Check:</strong> Überprüfen Sie Verfügbarkeits-Daten regelmäßig</li>
-                    <li><strong>Bedingungen testen:</strong> Nutzen Sie kleine Testgruppen</li>
-                    <li><strong>Standort-Verfügbarkeit:</strong> Prüfen Sie Standort-Termine-Zuordnungen</li>
-                    <li><strong>Performance:</strong> Komplexe Bedingungen können Planungszeit erhöhen</li>
-                </ul>
-            </div>
-        </section>
-
-        <section id="controls">
-            <h2>🖱️ Alle Bedienelemente</h2>
-
-            <h3>Standard-Gruppeneigenschaften:</h3>
-            <div class="control-group">
-                <h4>Anzahl untergeordneter Gruppen/Termine</h4>
-                <p><strong>Count-Slider:</strong> Bestimmt exakte Anzahl zu verwendender Elemente</p>
-                <p><strong>"Alle Elemente" Checkbox:</strong> Dynamische Vollauswahl</p>
-                <p><strong>Wert-Anzeige:</strong> Aktuelle Anzahl wird angezeigt</p>
-            </div>
-
-            <div class="control-group">
-                <h4>Prioritäten (Variation Weights)</h4>
-                <p><strong>Slider pro Element:</strong> Individuelle Prioritäts-Kontrolle</p>
-                <p><strong>Gewichtungs-Anzeige:</strong> Textuelle Beschreibung der aktuellen Priorität</p>
-                <p><strong>Scroll-Area:</strong> Unterstützt große Listen</p>
-            </div>
-
-            <h3>Erweiterte Verfügbarkeits-Steuerung:</h3>
-            <div class="control-group">
-                <h4>"Bedingung aktivieren?" Checkbox</h4>
-                <p><strong>Master-Switch:</strong> Aktiviert/deaktiviert alle Verfügbarkeits-Features</p>
-                <p><strong>UI-Update:</strong> Zeigt/versteckt Mindestanzahl-Slider</p>
-                <p><strong>Abhängigkeiten:</strong> Kontrolliert Verfügbarkeit anderer Bedingungen</p>
-            </div>
-
-            <div class="control-group">
-                <h4>Mindestanzahl-Slider</h4>
-                <p><strong>Dynamischer Bereich:</strong> 1 bis berechnetes Maximum</p>
-                <p><strong>Auto-Update:</strong> Passt sich an Anzahl-Änderungen an</p>
-                <p><strong>Wert-Anzeige:</strong> Zeigt aktuelle Mindestanforderung</p>
-                <p><strong>Tooltip:</strong> Erklärt Funktionsweise</p>
-            </div>
-
-            <div class="control-group">
-                <h4>"Nur für bestimmte Einrichtungen" Checkbox</h4>
-                <p><strong>Funktion:</strong> Aktiviert standortspezifische Bedingungen</p>
-                <p><strong>UI-Effekt:</strong> Zeigt/versteckt Standort-Liste</p>
-                <p><strong>Auto-Resize:</strong> Dialog passt Höhe automatisch an</p>
-            </div>
-
-            <div class="control-group">
-                <h4>Standort-Checkboxes</h4>
-                <p><strong>Multi-Selection:</strong> Beliebige Kombination wählbar</p>
-                <p><strong>Rechtsklick-Menü:</strong> "Nur [Standort] auswählen" - setzt alle anderen auf false</p>
-                <p><strong>Tooltip:</strong> Zeigt Rechtsklick-Funktion an</p>
-                <p><strong>Scroll-Unterstützung:</strong> Für große Standort-Listen</p>
-            </div>
-        </section>
-
-        <section id="workflows">
-            <h2>🔄 Komplexe Anwendungsszenarien</h2>
-
-            <h3>Szenario 1: Multi-Standort-Event mit Mindestanforderungen</h3>
-            <ol>
-                <li><strong>Situation:</strong> Event an 5 Standorten, jeder Mitarbeiter soll mindestens 3 Termine bekommen</li>
-                <li><strong>Konfiguration:</strong>
-                    <ul>
-                        <li>Alle untergeordneten Elemente aktivieren</li>
-                        <li>Mindestanzahl auf 3 setzen</li>
-                        <li>Standortspezifische Bedingungen deaktiviert (gilt für alle)</li>
-                        <li>Prioritäten je nach Standort-Wichtigkeit setzen</li>
-                    </ul>
-                </li>
-                <li><strong>Resultat:</strong> Effiziente Verteilung mit garantierten Mindestarbeitszeiten</li>
-            </ol>
-
-            <h3>Szenario 2: Kritische Standorte mit höheren Anforderungen</h3>
-            <ol>
-                <li><strong>Situation:</strong> Hauptstandort braucht erfahrenere Mitarbeiter (mehr Termine)</li>
-                <li><strong>Konfiguration:</strong>
-                    <ul>
-                        <li>Mindestanforderungen aktivieren</li>
-                        <li>Standortspezifische Bedingungen aktivieren</li>
-                        <li>Nur Hauptstandort auswählen (Rechtsklick)</li>
-                        <li>Höhere Mindestanzahl für Hauptstandort (z.B. 5)</li>
-                        <li>Hohe Priorität für wichtige Termine</li>
-                    </ul>
-                </li>
-                <li><strong>Resultat:</strong> Qualifizierte Mitarbeiter werden bevorzugt dem Hauptstandort zugewiesen</li>
-            </ol>
-
-            <h3>Szenario 3: Flexible Backup-Planung</h3>
-            <ol>
-                <li><strong>Situation:</strong> Backup-Gruppe für Ausfälle, niedrige Mindestanforderungen</li>
-                <li><strong>Konfiguration:</strong>
-                    <ul>
-                        <li>Begrenzte Anzahl untergeordneter Elemente (z.B. 50%)</li>
-                        <li>Niedrige Mindestanforderungen (1-2 Termine)</li>
-                        <li>Niedrige bis normale Prioritäten</li>
-                        <li>Standort-Flexibilität für alle Einrichtungen</li>
-                    </ul>
-                </li>
-                <li><strong>Resultat:</strong> Flexible Backup-Kapazität ohne Überplanungen</li>
-            </ol>
-        </section>
-
-        <section id="integration">
-            <h2>🔗 Integration mit anderen Modulen</h2>
-            
-            <h3>Verbindung zu Verfügbarkeitsplanung:</h3>
-            <p>Diese erweiterten Eigenschaften arbeiten eng mit der <a href="actor_plan_period.html">Mitarbeiterplanung</a> zusammen:</p>
+        <h3>Verfügbarkeits-Bedingungen konfigurieren</h3>
+        <ol>
+            <li><strong>Bedingung aktivieren</strong> - Markieren Sie <strong>Bedingung aktivieren?</strong></li>
+            <li><strong>Mindestanzahl einstellen</strong> - Verwenden Sie den Mindestanzahl-Slider</li>
+            <li><strong>Standorte auswählen (optional)</strong> - Aktivieren Sie <strong>Nur für bestimmte Einrichtungen aktivieren</strong></li>
+            <li><strong>Einstellungen speichern</strong></li>
+        </ol>
+        
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
             <ul>
-                <li><strong>Verfügbarkeits-Daten:</strong> Stammen aus der Mitarbeiterplanung</li>
-                <li><strong>Mindestanforderungen:</strong> Beeinflussen Zuweisungsalgorithmen</li>
-                <li><strong>Standort-Filter:</strong> Berücksichtigen Mitarbeiter-Standort-Präferenzen</li>
+                <li><strong>F1</strong> - Diese erweiterte Hilfe anzeigen</li>
+                <li><strong>Enter</strong> - Änderungen speichern und Dialog schließen</li>
+                <li><strong>Escape</strong> - Dialog abbrechen (alle Änderungen verwerfen)</li>
+                <li><strong>Tab</strong> - Zwischen allen Bedienelementen wechseln</li>
+                <li><strong>Leertaste</strong> - Checkbox umschalten (auch für Standorte)</li>
+                <li><strong>Pfeiltasten</strong> - Slider-Werte anpassen (Anzahl und Mindestanforderungen)</li>
+                <li><strong>Strg+Click</strong> - Multi-Selection bei Standorten</li>
             </ul>
+        </div>
+        
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="group_properties.html">Basis-Gruppeneigenschaften</a> - Standard-Version ohne Verfügbarkeits-Features</li>
+            <li><a href="actor_plan_period.html">Mitarbeiterplanung</a> - Verfügbarkeitsplanung für Personen (Datenquelle)</li>
+            <li><a href="location_plan_period.html">Standortplanung</a> - Event-Planung mit Cast-Management (Zielbereich)</li>
+        </ul>
+        
+        <h2>Anwendungsbereich</h2>
+        <p>Die erweiterten Gruppeneigenschaften werden verwendet für:</p>
+        <ul>
+            <li><strong>Mindestarbeitszeiten</strong> - Sicherstellung minimaler Zuweisungen pro Mitarbeiter</li>
+            <li><strong>Standort-optimierte Planung</strong> - Spezielle Bedingungen für verschiedene Arbeitsorte</li>
+            <li><strong>Effizienz-Optimierung</strong> - Vermeidung ineffizienter Einzelzuweisungen</li>
+            <li><strong>Flexible Ressourcen-Steuerung</strong> - Kombination aus automatischen und manuellen Bedingungen</li>
+        </ul>
+        
+        <h2>Benutzeroberfläche</h2>
 
-            <h3>Auswirkungen auf Event-Planung:</h3>
-            <p>Konfigurationen wirken sich direkt auf die <a href="location_plan_period.html">Standortplanung</a> aus:</p>
+        <h3>Standard-Steuerung</h3>
+        
+        <h4>Anzahl untergeordneter Elemente</h4>
+        <ul class="feature-list">
+            <li><strong>Count-Slider</strong> - Exakte Anzahl-Kontrolle</li>
+            <li><strong>"Alle Elemente" Checkbox</strong> - Dynamische Vollauswahl</li>
+            <li><strong>Variation Weight Slider</strong> - Prioritäts-Gewichtung (0=niedrig, 1=normal, 2=hoch)</li>
+        </ul>
+
+        <h3>Verfügbarkeits-spezifische Steuerung</h3>
+        
+        <h4>"Bedingung aktivieren?" Checkbox</h4>
+        <ul class="feature-list">
+            <li><strong>Master-Switch</strong> - Aktiviert/deaktiviert alle Verfügbarkeits-Features</li>
+            <li><strong>UI-Update</strong> - Zeigt/versteckt Mindestanzahl-Slider</li>
+            <li><strong>Abhängigkeiten</strong> - Kontrolliert Verfügbarkeit anderer Bedingungen</li>
+        </ul>
+
+        <h4>Mindestanzahl-Slider</h4>
+        <ul class="feature-list">
+            <li><strong>Dynamischer Bereich</strong> - 1 bis berechnetes Maximum</li>
+            <li><strong>Auto-Update</strong> - Passt sich an Anzahl-Änderungen an</li>
+            <li><strong>Wert-Anzeige</strong> - Zeigt aktuelle Mindestanforderung</li>
+        </ul>
+
+        <h4>"Nur für bestimmte Einrichtungen" Checkbox</h4>
+        <ul class="feature-list">
+            <li><strong>Funktion</strong> - Aktiviert standortspezifische Bedingungen</li>
+            <li><strong>UI-Effekt</strong> - Zeigt/versteckt Standort-Liste</li>
+            <li><strong>Auto-Resize</strong> - Dialog passt Höhe automatisch an</li>
+        </ul>
+
+        <h4>Standort-Checkboxes</h4>
+        <ul class="feature-list">
+            <li><strong>Multi-Selection</strong> - Beliebige Kombination wählbar</li>
+            <li><strong>Rechtsklick-Menü</strong> - "Nur [Standort] auswählen" setzt alle anderen auf false</li>
+            <li><strong>Scroll-Unterstützung</strong> - Für große Standort-Listen</li>
+        </ul>
+
+        <div class="tip-box">
+            <h4>💡 Erweiterte Funktion</h4>
+            <p>Kontrolliert nicht nur Anzahl und Prioritäten, sondern auch Mindestanforderungen für Mitarbeiterzuweisungen basierend auf Verfügbarkeits-Tagen.</p>
+        </div>
+        
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>Mindestanforderungen für alle Standorte</h3>
+        <ol>
+            <li>Öffnen Sie die Gruppeneigenschaften für eine Verfügbarkeits-Gruppe</li>
+            <li>Konfigurieren Sie Basis-Einstellungen (Anzahl, Prioritäten)</li>
+            <li>Aktivieren Sie <strong>Bedingung aktivieren?</strong></li>
+            <li>Stellen Sie die Mindestanzahl ein (z.B. 3 Zuweisungen)</li>
+            <li>Lassen Sie Standort-Spezifikation deaktiviert (gilt für alle)</li>
+            <li>Speichern Sie die Konfiguration</li>
+        </ol>
+
+        <h3>Standortspezifische Bedingungen</h3>
+        <ol>
+            <li>Aktivieren Sie die Verfügbarkeits-Bedingung</li>
+            <li>Aktivieren Sie <strong>Nur für bestimmte Einrichtungen</strong></li>
+            <li>Wählen Sie die relevanten Standorte aus der Liste</li>
+            <li>Verwenden Sie Rechtsklick für schnelle Einzelauswahl</li>
+            <li>Justieren Sie die Mindestanzahl je nach Standort-Anforderungen</li>
+            <li>Testen Sie die Auswirkungen vor finaler Speicherung</li>
+        </ol>
+
+        <h3>Flexible Backup-Planung</h3>
+        <ol>
+            <li>Begrenzte Anzahl untergeordneter Elemente (z.B. 50%)</li>
+            <li>Niedrige Mindestanforderungen (1-2 Termine)</li>
+            <li>Niedrige bis normale Prioritäten</li>
+            <li>Standort-Flexibilität für alle Einrichtungen</li>
+            <li>Flexible Backup-Kapazität ohne Überplanungen</li>
+        </ol>
+        
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>⚠️ Verfügbarkeits-Features nicht verfügbar</h4>
+            <p><strong>Problem:</strong> Erweiterte Features sind ausgegraut<br>
+            <strong>Ursache:</strong> Nicht alle untergeordneten Elemente haben Verfügbarkeits-Daten<br>
+            <strong>Lösung:</strong> Überprüfen Sie, ob alle Termine mit Verfügbarkeits-Informationen verknüpft sind</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Mindestanzahl-Slider reagiert nicht</h4>
+            <p><strong>Problem:</strong> Slider ist deaktiviert<br>
+            <strong>Ursache:</strong> <strong>Bedingung aktivieren?</strong> ist nicht markiert<br>
+            <strong>Lösung:</strong> Aktivieren Sie zuerst die Verfügbarkeits-Bedingung</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Standort-Auswahl nicht sichtbar</h4>
+            <p><strong>Problem:</strong> Standort-Liste wird nicht angezeigt<br>
+            <strong>Ursache:</strong> <strong>Nur für bestimmte Einrichtungen</strong> ist deaktiviert<br>
+            <strong>Lösung:</strong> Aktivieren Sie die standortspezifische Bedingung</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Keine Standorte in der Liste</h4>
+            <p><strong>Problem:</strong> Standort-Checkboxes fehlen<br>
+            <strong>Ursache:</strong> Für die gewählten Termine sind keine Standorte definiert<br>
+            <strong>Lösung:</strong> Überprüfen Sie die Standort-Konfiguration für die betroffenen Termine</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Wichtig</h4>
+            <p>Diese erweiterten Features sind nur verfügbar, wenn alle untergeordneten Elemente Verfügbarkeits-Daten haben.</p>
+        </div>
+        
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>🎯 Optimale Mindestanforderungen</h4>
             <ul>
-                <li><strong>Cast-Größe:</strong> Mindestanforderungen beeinflussen Besetzungsgrößen</li>
-                <li><strong>Standort-Prioritäten:</strong> Wichtige Standorte bekommen bevorzugte Behandlung</li>
-                <li><strong>Ressourcen-Optimierung:</strong> Effizientere Mitarbeiter-Verteilung</li>
+                <li><strong>Kleine Teams:</strong> Mindestanzahl 1-2 für Flexibilität</li>
+                <li><strong>Große Teams:</strong> Mindestanzahl 3-5 für Effizienz</li>
+                <li><strong>Kritische Termine:</strong> Höhere Mindestanforderungen für Stabilität</li>
+                <li><strong>Backup-Planung:</strong> Niedrigere Anforderungen für Flexibilität</li>
             </ul>
-        </section>
+        </div>
 
-        <section id="related">
-            <h2>🔗 Verwandte Funktionen</h2>
+        <div class="tip-box">
+            <h4>🏢 Standort-Management</h4>
             <ul>
-                <li><strong><a href="group_properties.html">Basis-Gruppeneigenschaften</a>:</strong> Standard-Version ohne Verfügbarkeits-Features</li>
-                <li><strong><a href="group_mode.html">Gruppenmodus</a>:</strong> Hauptfenster für Gruppenverwaltung</li>
-                <li><strong><a href="actor_plan_period.html">Mitarbeiterplanung</a>:</strong> Verfügbarkeitsplanung für Personen</li>
-                <li><strong><a href="location_plan_period.html">Standortplanung</a>:</strong> Event-Planung mit Cast-Management</li>
-                <li><strong><a href="team.html">Team-Verwaltung</a>:</strong> Grundlegende Team-Konfiguration</li>
+                <li><strong>Multi-Standort-Projekte:</strong> Nutzen Sie standortspezifische Bedingungen</li>
+                <li><strong>Rechtsklick-Shortcut:</strong> Schnelle Einzelstandort-Auswahl</li>
+                <li><strong>Alle auswählen:</strong> Entspricht der Deaktivierung standortspezifischer Bedingungen</li>
+                <li><strong>Testing:</strong> Testen Sie Einstellungen pro Standort separat</li>
             </ul>
-        </section>
+        </div>
 
-        <section id="technical">
-            <h2>🔧 Technische Details</h2>
-            <p><strong>Dialog-Klasse:</strong> <code>DlgGroupPropertiesAvailDay</code> (erweitert <code>DlgGroupProperties</code>)</p>
-            <p><strong>Hilfe-Aufruf:</strong> F1-Taste im Dialog</p>
-            <p><strong>Parent-Fenster:</strong> Gruppenmodus-Hauptfenster</p>
-            <p><strong>Datenmodell:</strong> Tree-basierte Gruppenhierarchie + Verfügbarkeits-Daten</p>
-            <p><strong>Abhängigkeiten:</strong> RequiredAvailDayGroups, LocationOfWork</p>
-            
-            <div class="tip-box">
-                <h4>🔧 Support</h4>
-                <p>Bei technischen Problemen mit Verfügbarkeits-Features wenden Sie sich an das Development-Team. 
-                   Halten Sie Informationen über die betroffene Gruppe, Standorte und gewünschte Bedingungen bereit.</p>
-            </div>
-        </section>
-
-        <section id="api-integration">
-            <h2>🔌 API & Datenbank-Integration</h2>
-            
-            <h3>Datenbank-Services:</h3>
+        <div class="tip-box">
+            <h4>⚡ Effizienz-Strategien</h4>
             <ul>
-                <li><strong>RequiredAvailDayGroups:</strong> Verwaltung der Mindestanforderungen</li>
-                <li><strong>LocationOfWork:</strong> Standort-Informationen und Verfügbarkeiten</li>
-                <li><strong>Command-Pattern:</strong> Undo/Redo für alle Änderungen</li>
+                <li><strong>Batch-Konfiguration:</strong> Konfigurieren Sie alle Parameter vor dem Speichern</li>
+                <li><strong>Template-Ansatz:</strong> Speichern Sie bewährte Konfigurationen als Referenz</li>
+                <li><strong>Schrittweise Optimierung:</strong> Beginnen Sie mit einfachen Bedingungen</li>
+                <li><strong>Monitoring:</strong> Überwachen Sie die Auswirkungen neuer Bedingungen</li>
             </ul>
+        </div>
 
-            <h3>Befehls-Operationen:</h3>
+        <div class="tip-box">
+            <h4>🔍 Fehlerdiagnose</h4>
             <ul>
-                <li><strong>Create:</strong> Neue Verfügbarkeits-Bedingungen erstellen</li>
-                <li><strong>Update:</strong> Bestehende Bedingungen modifizieren</li>
-                <li><strong>Delete:</strong> Bedingungen entfernen (bei Deaktivierung)</li>
+                <li><strong>Daten-Check:</strong> Überprüfen Sie Verfügbarkeits-Daten regelmäßig</li>
+                <li><strong>Bedingungen testen:</strong> Nutzen Sie kleine Testgruppen</li>
+                <li><strong>Standort-Verfügbarkeit:</strong> Prüfen Sie Standort-Termine-Zuordnungen</li>
+                <li><strong>Performance:</strong> Komplexe Bedingungen können Planungszeit erhöhen</li>
             </ul>
-        </section>
+        </div>
+        
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Erweiterte Verfügbarkeits-Features</h3>
+        
+        <h4>Mindestanzahl von Zuweisungen</h4>
+        <ul class="feature-list">
+            <li><strong>Zweck</strong> - Stellt sicher, dass Mitarbeiter nur zugewiesen werden, wenn sie eine Mindestanzahl erreichen</li>
+            <li><strong>Anwendung</strong> - Verhindert ineffiziente Einzelzuweisungen</li>
+            <li><strong>Bereich</strong> - 1 bis Maximum basierend auf verfügbaren Terminen</li>
+        </ul>
+
+        <h4>Standortspezifische Bedingungen</h4>
+        <ul class="feature-list">
+            <li><strong>Funktion</strong> - Bedingungen gelten nur für ausgewählte Einrichtungen</li>
+            <li><strong>Flexibilität</strong> - Verschiedene Standorte können unterschiedliche Anforderungen haben</li>
+            <li><strong>Rechtsklick-Feature</strong> - Schnelle Einzelauswahl eines Standorts</li>
+        </ul>
+
+        <h4>Automatische Anpassungen</h4>
+        <ul class="feature-list">
+            <li><strong>Intelligente Limits</strong> - Maximalwerte passen sich an verfügbare Termine an</li>
+            <li><strong>Bedingungs-Validierung</strong> - System prüft Machbarkeit der Einstellungen</li>
+            <li><strong>UI-Anpassung</strong> - Elemente werden bei Unverfügbarkeit deaktiviert</li>
+        </ul>
+
+        <h3>Komplexe Anwendungsszenarien</h3>
+        
+        <h4>Multi-Standort-Event mit Mindestanforderungen</h4>
+        <p><strong>Situation:</strong> Event an 5 Standorten, jeder Mitarbeiter soll mindestens 3 Termine bekommen</p>
+        <ul class="feature-list">
+            <li>Alle untergeordneten Elemente aktivieren</li>
+            <li>Mindestanzahl auf 3 setzen</li>
+            <li>Standortspezifische Bedingungen deaktiviert (gilt für alle)</li>
+            <li>Prioritäten je nach Standort-Wichtigkeit setzen</li>
+        </ul>
+
+        <h4>Kritische Standorte mit höheren Anforderungen</h4>
+        <p><strong>Situation:</strong> Hauptstandort braucht erfahrenere Mitarbeiter (mehr Termine)</p>
+        <ul class="feature-list">
+            <li>Standortspezifische Bedingungen aktivieren</li>
+            <li>Nur Hauptstandort auswählen (Rechtsklick)</li>
+            <li>Höhere Mindestanzahl für Hauptstandort (z.B. 5)</li>
+            <li>Hohe Priorität für wichtige Termine</li>
+        </ul>
+
+        <h3>Integration mit anderen Modulen</h3>
+        
+        <h4>Verbindung zu Verfügbarkeitsplanung</h4>
+        <p>Arbeitet eng mit der <a href="actor_plan_period.html">Mitarbeiterplanung</a> zusammen:</p>
+        <ul class="feature-list">
+            <li><strong>Verfügbarkeits-Daten</strong> - Stammen aus der Mitarbeiterplanung</li>
+            <li><strong>Mindestanforderungen</strong> - Beeinflussen Zuweisungsalgorithmen</li>
+            <li><strong>Standort-Filter</strong> - Berücksichtigen Mitarbeiter-Standort-Präferenzen</li>
+        </ul>
+
+        <h4>Auswirkungen auf Event-Planung</h4>
+        <p>Konfigurationen wirken sich direkt auf die <a href="location_plan_period.html">Standortplanung</a> aus:</p>
+        <ul class="feature-list">
+            <li><strong>Cast-Größe</strong> - Mindestanforderungen beeinflussen Besetzungsgrößen</li>
+            <li><strong>Standort-Prioritäten</strong> - Wichtige Standorte bekommen bevorzugte Behandlung</li>
+            <li><strong>Ressourcen-Optimierung</strong> - Effizientere Mitarbeiter-Verteilung</li>
+        </ul>
+        
+        <h2>Technische Details</h2>
+        
+        <h3>Dialog-Implementierung</h3>
+        <ul class="feature-list">
+            <li><strong>Dialog-Klasse</strong> - <strong>DlgGroupPropertiesAvailDay</strong> (erweitert <strong>DlgGroupProperties</strong>)</li>
+            <li><strong>Hilfe-Aufruf</strong> - F1-Taste im Dialog</li>
+            <li><strong>Parent-Fenster</strong> - Gruppenmodus-Hauptfenster</li>
+            <li><strong>Datenmodell</strong> - Tree-basierte Gruppenhierarchie + Verfügbarkeits-Daten</li>
+            <li><strong>Abhängigkeiten</strong> - RequiredAvailDayGroups, LocationOfWork</li>
+        </ul>
+
+        <h3>API & Datenbank-Integration</h3>
+        
+        <h4>Datenbank-Services</h4>
+        <ul class="feature-list">
+            <li><strong>RequiredAvailDayGroups</strong> - Verwaltung der Mindestanforderungen</li>
+            <li><strong>LocationOfWork</strong> - Standort-Informationen und Verfügbarkeiten</li>
+            <li><strong>Command-Pattern</strong> - Undo/Redo für alle Änderungen</li>
+        </ul>
+
+        <h4>Befehls-Operationen</h4>
+        <ul class="feature-list">
+            <li><strong>Create</strong> - Neue Verfügbarkeits-Bedingungen erstellen</li>
+            <li><strong>Update</strong> - Bestehende Bedingungen modifizieren</li>
+            <li><strong>Delete</strong> - Bedingungen entfernen (bei Deaktivierung)</li>
+        </ul>
+        
+        <h2>Support</h2>
+        <p>Bei Problemen mit erweiterten Gruppeneigenschaften:</p>
+        <ul>
+            <li>Überprüfen Sie die Verfügbarkeits-Datenqualität in der Mitarbeiterplanung</li>
+            <li>Testen Sie Bedingungen mit kleinen Testgruppen vor Produktiveinsatz</li>
+            <li>Kontrollieren Sie Standort-Termine-Zuordnungen bei fehlenden Optionen</li>
+            <li>Dokumentieren Sie erfolgreiche Konfigurationen für zukünftige Verwendung</li>
+        </ul>
     </div>
 </body>
 </html>

@@ -18,19 +18,20 @@
         <p>Die Cast-Regeln-Verwaltung bietet eine zentrale Übersicht über alle projektspezifischen Besetzungsregeln. Sie können neue Regeln erstellen, bestehende bearbeiten und nicht mehr benötigte Regeln löschen. Alle Regeln stehen automatisch in Cast-Gruppen zur Verfügung.</p>
 
         <h2>Hauptfunktionen</h2>
-        <ul>
-            <li><strong>Regel-Übersicht:</strong> Tabelle aller verfügbaren Cast-Regeln mit Name und Pattern</li>
-            <li><strong>Regel-Erstellung:</strong> Schneller Zugang zum Erstellen neuer Regeln</li>
-            <li><strong>Regel-Bearbeitung:</strong> Modifikation bestehender Regel-Definitionen</li>
-            <li><strong>Regel-Löschung:</strong> Entfernen nicht mehr benötigter Regeln</li>
-            <li><strong>Automatische Sortierung:</strong> Alphabetische Anordnung nach Regel-Namen</li>
-            <li><strong>Referenz-Prüfung:</strong> Schutz vor Löschung verwendeter Regeln</li>
+        <ul class="feature-list">
+            <li><strong>Regel-Übersicht</strong> - Tabelle aller verfügbaren Cast-Regeln mit Name und Pattern</li>
+            <li><strong>Regel-Erstellung</strong> - Schneller Zugang zum Erstellen neuer Regeln</li>
+            <li><strong>Regel-Bearbeitung</strong> - Modifikation bestehender Regel-Definitionen</li>
+            <li><strong>Regel-Löschung</strong> - Entfernen nicht mehr benötigter Regeln</li>
+            <li><strong>Automatische Sortierung</strong> - Alphabetische Anordnung nach Regel-Namen</li>
+            <li><strong>Referenz-Prüfung</strong> - Schutz vor Löschung verwendeter Regeln</li>
         </ul>
 
         <h2>Grundbedienung</h2>
+        
         <h3>Neue Cast-Regel erstellen</h3>
         <ol>
-            <li>Klicken Sie auf <strong>"Neu..."</strong></li>
+            <li>Klicken Sie auf <strong>Neu...</strong></li>
             <li>Der Cast-Regel-Editor öffnet sich</li>
             <li>Definieren Sie Name und Pattern</li>
             <li>Bestätigen Sie die Erstellung</li>
@@ -39,45 +40,71 @@
 
         <h3>Bestehende Regel bearbeiten</h3>
         <ol>
-            <li><strong>Auswahl:</strong> Klicken Sie auf eine Zeile in der Tabelle</li>
-            <li><strong>Bearbeitung:</strong> Klicken Sie "Bearbeiten..." oder Doppelklick</li>
+            <li><strong>Auswahl</strong> - Klicken Sie auf eine Zeile in der Tabelle</li>
+            <li><strong>Bearbeitung</strong> - Klicken Sie <strong>Bearbeiten...</strong> oder Doppelklick</li>
             <li>Nehmen Sie Änderungen vor</li>
             <li>Bestätigen Sie die Aktualisierung</li>
             <li>Änderungen werden in allen verwendenden Cast-Gruppen übernommen</li>
         </ol>
 
-        <h2>Bedienelemente im Detail</h2>
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Enter</strong> - Ausgewählte Regel bearbeiten</li>
+                <li><strong>Delete</strong> - Ausgewählte Regel löschen (mit Bestätigung)</li>
+                <li><strong>Strg+N</strong> - Neue Regel erstellen</li>
+                <li><strong>F2</strong> - Regel bearbeiten (wenn ausgewählt)</li>
+                <li><strong>Escape</strong> - Dialog schließen</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="cast_rule.html">Cast-Regel bearbeiten</a> - Erstellen und Bearbeiten einzelner Regeln</li>
+            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Anwendung der Regeln auf Cast-Gruppen</li>
+            <li><a href="cast_groups.html">Cast-Gruppen</a> - Verwaltung der Gruppen die Regeln verwenden</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Die Cast-Regeln-Verwaltung wird verwendet für:</p>
+        <ul>
+            <li><strong>Zentrales Regel-Management</strong> - Übersicht und Verwaltung aller projektspezifischen Besetzungsregeln</li>
+            <li><strong>Regel-Bibliothek</strong> - Aufbau wiederverwendbarer Pattern-Templates</li>
+            <li><strong>Konsistenz-Management</strong> - Einheitliche Cast-Patterns projekt-weit</li>
+            <li><strong>Referenz-Kontrolle</strong> - Überwachung der Regel-Verwendung in Cast-Gruppen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
 
         <h3>Regel-Tabelle</h3>
-        <ul>
-            <li><strong>Name-Spalte:</strong> Anzeige aller Regel-Namen (alphabetisch sortiert)</li>
-            <li><strong>Pattern-Spalte:</strong> Darstellung der Cast-Regel-Symbole</li>
-            <li><strong>Zeilen-Auswahl:</strong> Klick auf Zeile aktiviert Bearbeitung/Löschung</li>
-            <li><strong>Doppelklick:</strong> Direkter Zugang zur Regel-Bearbeitung</li>
-            <li><strong>Auto-Resize:</strong> Spalten passen sich automatisch an Inhalt an</li>
+        <ul class="feature-list">
+            <li><strong>Name-Spalte</strong> - Anzeige aller Regel-Namen (alphabetisch sortiert)</li>
+            <li><strong>Pattern-Spalte</strong> - Darstellung der Cast-Regel-Symbole</li>
+            <li><strong>Zeilen-Auswahl</strong> - Klick auf Zeile aktiviert Bearbeitung/Löschung</li>
+            <li><strong>Doppelklick</strong> - Direkter Zugang zur Regel-Bearbeitung</li>
+            <li><strong>Auto-Resize</strong> - Spalten passen sich automatisch an Inhalt an</li>
         </ul>
 
         <h3>Aktions-Buttons</h3>
-        <ul>
-            <li><strong>Neu...:</strong> Öffnet Dialog zum Erstellen einer neuen Cast-Regel</li>
-            <li><strong>Bearbeiten...:</strong> Öffnet Editor für ausgewählte Regel (Zeile muss ausgewählt sein)</li>
-            <li><strong>Löschen...:</strong> Entfernt ausgewählte Regel (mit Referenz-Prüfung)</li>
-            <li><strong>OK:</strong> Schließt Dialog und übernimmt alle Änderungen</li>
-            <li><strong>Abbrechen:</strong> Verwirft alle Änderungen (Undo-System)</li>
+        <ul class="feature-list">
+            <li><strong>Neu...</strong> - Öffnet Dialog zum Erstellen einer neuen Cast-Regel</li>
+            <li><strong>Bearbeiten...</strong> - Öffnet Editor für ausgewählte Regel (Zeile muss ausgewählt sein)</li>
+            <li><strong>Löschen...</strong> - Entfernt ausgewählte Regel (mit Referenz-Prüfung)</li>
+            <li><strong>OK</strong> - Schließt Dialog und übernimmt alle Änderungen</li>
+            <li><strong>Abbrechen</strong> - Verwirft alle Änderungen (Undo-System)</li>
         </ul>
 
-        <h2>Workflows</h2>
+        <h2>Praktische Anwendungsfälle</h2>
 
         <h3>Projekt-weite Regel-Standardisierung</h3>
         <ol>
             <li>Analysieren Sie häufig verwendete <strong>Cast-Patterns</strong></li>
             <li>Erstellen Sie <strong>Standard-Regeln</strong> für jedes Pattern:</li>
-            <ul>
-                <li>"Konstant" → "~"</li>
-                <li>"Abwechselnd" → "~-"</li>
-                <li>"Hauptsächlich gleich" → "~~~-"</li>
-                <li>"Flexibel" → "*"</li>
-            </ul>
+            <li>"Konstant" → "~"</li>
+            <li>"Abwechselnd" → "~-"</li>
+            <li>"Hauptsächlich gleich" → "~~~-"</li>
+            <li>"Flexibel" → "*"</li>
             <li>Dokumentieren Sie die Regeln im Team</li>
             <li>Verwenden Sie konsistent in allen Cast-Gruppen</li>
         </ol>
@@ -91,86 +118,151 @@
             <li>Löschen Sie überflüssige Definitionen</li>
         </ol>
 
-        <h2>Tastaturkürzel</h2>
-        <ul>
-            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
-            <li><strong>Enter:</strong> Ausgewählte Regel bearbeiten</li>
-            <li><strong>Delete:</strong> Ausgewählte Regel löschen (mit Bestätigung)</li>
-            <li><strong>Ctrl+N:</strong> Neue Regel erstellen</li>
-            <li><strong>F2:</strong> Regel bearbeiten (wenn ausgewählt)</li>
-            <li><strong>Esc:</strong> Dialog schließen</li>
+        <h2>Häufige Probleme & Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>⚠️ Regel kann nicht gelöscht werden</h4>
+            <p><strong>Problem:</strong> Löschen-Button reagiert nicht oder zeigt Fehlermeldung<br>
+            <strong>Ursache:</strong> Regel wird noch in Cast-Gruppen verwendet (Referenz-Check)<br>
+            <strong>Lösung:</strong> Entfernen Sie die Regel zuerst aus allen Cast-Gruppen oder ersetzen Sie sie durch eine andere</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Tabelle lädt nicht richtig</h4>
+            <p><strong>Problem:</strong> Regel-Tabelle zeigt keine oder veraltete Daten<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Parallel laufende Änderungen in anderen Fenstern</li>
+                <li>Datenbank-Synchronisations-Problem</li>
+                <li>Cache-Problem in der Anwendung</li>
+            </ul>
+            <p><strong>Lösung:</strong> Schließen und öffnen Sie den Dialog neu oder starten Sie die Anwendung neu</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>⚠️ Bearbeitung funktioniert nicht</h4>
+            <p><strong>Problem:</strong> <strong>Bearbeiten...</strong> Button ist deaktiviert<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Keine Tabellenzeile ausgewählt</li>
+                <li>Fehlende Schreibrechte</li>
+                <li>Regel ist bereits gelöscht</li>
+            </ul>
+            <p><strong>Lösung:</strong> Klicken Sie auf eine Tabellenzeile und prüfen Sie Ihre Berechtigungen</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>🎯 Namens-Konventionen</h4>
+            <ul>
+                <li><strong>Beschreibend:</strong> "Wechselnd_2zu1" statt "Pattern1"</li>
+                <li><strong>Kategorien:</strong> Präfixe für verschiedene Regel-Typen</li>
+                <li><strong>Versionierung:</strong> "_v2" für überarbeitete Regeln</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Regel-Bibliothek aufbauen</h4>
+            <ul>
+                <li><strong>Standard-Set:</strong> Basis-Regeln für häufige Szenarien</li>
+                <li><strong>Spezial-Regeln:</strong> Event-spezifische Patterns</li>
+                <li><strong>Template-Regeln:</strong> Ausgangspunkt für Anpassungen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>💡 Regel-Management-Tipps</h4>
+            <ul>
+                <li><strong>Regelmäßige Bereinigung:</strong> Entfernen Sie ungenutzte Regeln</li>
+                <li><strong>Konsistente Verwendung:</strong> Nutzen Sie Standard-Regeln projekt-weit</li>
+                <li><strong>Dokumentation:</strong> Verwenden Sie aussagekräftige Regel-Namen</li>
+                <li><strong>Versionierung:</strong> Behalten Sie bewährte Regeln als Backup</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+
+        <h3>Regel-Referenzen und Abhängigkeiten</h3>
+        
+        <h4>Verwendungs-Tracking</h4>
+        <ul class="feature-list">
+            <li><strong>Cast-Gruppen</strong> - Zeigt, welche Gruppen die Regel verwenden</li>
+            <li><strong>Lösch-Schutz</strong> - Verwendete Regeln können nicht gelöscht werden</li>
+            <li><strong>Update-Propagation</strong> - Regel-Änderungen wirken sich sofort aus</li>
         </ul>
 
-        <h2>Regel-Referenzen und Abhängigkeiten</h2>
-
-        <h3>Verwendungs-Tracking</h3>
-        <ul>
-            <li><strong>Cast-Gruppen:</strong> Zeigt, welche Gruppen die Regel verwenden</li>
-            <li><strong>Lösch-Schutz:</strong> Verwendete Regeln können nicht gelöscht werden</li>
-            <li><strong>Update-Propagation:</strong> Regel-Änderungen wirken sich sofort aus</li>
+        <h4>Abhängigkeits-Management</h4>
+        <ul class="feature-list">
+            <li><strong>Vor Löschung</strong> - System prüft alle Referenzen</li>
+            <li><strong>Warnung</strong> - Information über verwendende Cast-Gruppen</li>
+            <li><strong>Alternative</strong> - Regel erst aus Cast-Gruppen entfernen, dann löschen</li>
         </ul>
 
-        <h3>Abhängigkeits-Management</h3>
-        <ul>
-            <li><strong>Vor Löschung:</strong> System prüft alle Referenzen</li>
-            <li><strong>Warnung:</strong> Information über verwendende Cast-Gruppen</li>
-            <li><strong>Alternative:</strong> Regel erst aus Cast-Gruppen entfernen, dann löschen</li>
+        <h3>Regel-Organisation</h3>
+        
+        <h4>Sortierung und Filterung</h4>
+        <ul class="feature-list">
+            <li><strong>Alphabetische Sortierung</strong> - Automatisch nach Regel-Namen</li>
+            <li><strong>Pattern-Gruppierung</strong> - Ähnliche Patterns werden zusammengefasst</li>
+            <li><strong>Verwendungs-Status</strong> - Unterscheidung zwischen genutzten und ungenutzten Regeln</li>
         </ul>
 
-        <h2>Fehlerbehebung</h2>
-
-        <h3>Regel kann nicht gelöscht werden</h3>
-        <ul>
-            <li><strong>Referenz-Check:</strong> Regel wird noch in Cast-Gruppen verwendet</li>
-            <li><strong>Lösung:</strong> Entfernen Sie die Regel zuerst aus allen Cast-Gruppen</li>
-            <li><strong>Alternative:</strong> Ersetzen Sie die Regel durch eine andere</li>
+        <h4>Bulk-Operationen</h4>
+        <ul class="feature-list">
+            <li><strong>Mehrfach-Auswahl</strong> - Auswahl mehrerer Regeln für Batch-Operationen</li>
+            <li><strong>Massenbearbeitung</strong> - Änderungen an mehreren Regeln gleichzeitig</li>
+            <li><strong>Export/Import</strong> - Regel-Sets zwischen Projekten übertragen</li>
         </ul>
 
-        <h3>Tabelle lädt nicht richtig</h3>
-        <ul>
-            <li><strong>Daten-Refresh:</strong> Schließen und öffnen Sie den Dialog neu</li>
-            <li><strong>Datenbank-Sync:</strong> Prüfen Sie auf parallel laufende Änderungen</li>
-            <li><strong>Cache-Problem:</strong> Neustart der Anwendung kann helfen</li>
+        <h3>Integration in Arbeitsabläufe</h3>
+        
+        <h4>Regel-Templates</h4>
+        <ul class="feature-list">
+            <li><strong>Standard-Templates</strong> - Vordefinierte Regel-Sets für häufige Szenarien</li>
+            <li><strong>Projekt-spezifische Templates</strong> - Angepasste Regel-Sammlungen</li>
+            <li><strong>Template-Import</strong> - Übernahme bewährter Regel-Sets</li>
         </ul>
 
-        <h3>Bearbeitung funktioniert nicht</h3>
-        <ul>
-            <li><strong>Auswahl erforderlich:</strong> Klicken Sie auf eine Tabellenzeile</li>
-            <li><strong>Berechtigung:</strong> Prüfen Sie Schreibrechte</li>
-            <li><strong>Regel-Status:</strong> Gelöschte Regeln können nicht bearbeitet werden</li>
-        </ul>
-
-        <h2>Best Practices für Regel-Management</h2>
-
-        <h3>Namens-Konventionen</h3>
-        <ul>
-            <li><strong>Beschreibend:</strong> "Wechselnd_2zu1" statt "Pattern1"</li>
-            <li><strong>Kategorien:</strong> Präfixe für verschiedene Regel-Typen</li>
-            <li><strong>Versionierung:</strong> "_v2" für überarbeitete Regeln</li>
-        </ul>
-
-        <h3>Regel-Bibliothek aufbauen</h3>
-        <ul>
-            <li><strong>Standard-Set:</strong> Basis-Regeln für häufige Szenarien</li>
-            <li><strong>Spezial-Regeln:</strong> Event-spezifische Patterns</li>
-            <li><strong>Template-Regeln:</strong> Ausgangspunkt für Anpassungen</li>
-        </ul>
-
-        <h2>Verwandte Funktionen</h2>
-        <ul>
-            <li><a href="cast_rule.html">Cast-Regel bearbeiten</a> - Erstellen und Bearbeiten einzelner Regeln</li>
-            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Anwendung der Regeln</li>
+        <h4>Qualitätssicherung</h4>
+        <ul class="feature-list">
+            <li><strong>Regel-Validierung</strong> - Automatische Prüfung auf Pattern-Konsistenz</li>
+            <li><strong>Duplikats-Erkennung</strong> - Warnung bei identischen Patterns</li>
+            <li><strong>Best-Practice-Hints</strong> - Vorschläge für Regel-Optimierungen</li>
         </ul>
 
         <h2>Technische Details</h2>
-        <ul>
-            <li><strong>Datenbank-Integration:</strong> Projektspezifische Speicherung aller Regeln</li>
-            <li><strong>Referenz-Integrität:</strong> Automatische Prüfung auf Regel-Verwendung</li>
-            <li><strong>Soft-Delete:</strong> Regeln werden zunächst zum Löschen markiert</li>
-            <li><strong>Undo-System:</strong> Alle Management-Operationen sind rückgängig machbar</li>
+
+        <h3>System-Architektur</h3>
+        <ul class="feature-list">
+            <li><strong>Datenbank-Integration</strong> - Projektspezifische Speicherung aller Regeln</li>
+            <li><strong>Referenz-Integrität</strong> - Automatische Prüfung auf Regel-Verwendung</li>
+            <li><strong>Soft-Delete</strong> - Regeln werden zunächst zum Löschen markiert</li>
+            <li><strong>Undo-System</strong> - Alle Management-Operationen sind rückgängig machbar</li>
         </ul>
 
-        <p><strong>Support:</strong> Die Cast-Regeln-Verwaltung ist der zentrale Hub für alle projektspezifischen Besetzungslogiken. Eine gut organisierte Regel-Bibliothek spart Zeit und sorgt für Konsistenz in der Planung.</p>
+        <h3>Performance-Optimierung</h3>
+        <ul class="feature-list">
+            <li><strong>Lazy Loading</strong> - Regel-Details werden nur bei Bedarf geladen</li>
+            <li><strong>Caching</strong> - Häufig verwendete Regeln werden im Speicher gehalten</li>
+            <li><strong>Indexierung</strong> - Optimierte Datenbankabfragen für große Regel-Sets</li>
+        </ul>
+
+        <h3>Datenmodell</h3>
+        <ul class="feature-list">
+            <li><strong>Rule Repository</strong> - Zentrale Verwaltung aller Cast-Regeln</li>
+            <li><strong>Reference Tracking</strong> - Verfolgung der Verwendung in Cast-Gruppen</li>
+            <li><strong>Version Control</strong> - Änderungshistorie für Regel-Entwicklung</li>
+        </ul>
+
+        <h2>Support</h2>
+        <p>Bei Problemen mit der Cast-Regeln-Verwaltung:</p>
+        <ul>
+            <li>Organisieren Sie eine gut strukturierte Regel-Bibliothek für bessere Übersichtlichkeit</li>
+            <li>Nutzen Sie aussagekräftige Namen für einfacheres Wiederfinden</li>
+            <li>Prüfen Sie regelmäßig auf ungenutzte Regeln zur System-Optimierung</li>
+            <li>Konsultieren Sie die Cast-Regel Bearbeitung für Details zur Pattern-Erstellung</li>
+        </ul>
     </div>
 </body>
 </html>

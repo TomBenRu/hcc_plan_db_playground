@@ -18,16 +18,17 @@
         <p>Der Fixed Cast Builder ermöglicht die präzise Definition fester Besetzungen für verschiedene Planungsebenen. Mit dem dynamischen Grid-System können Sie komplexe Cast-Strukturen mit logischen Operatoren (UND/ODER) erstellen und dabei flexible Besetzungsregeln definieren.</p>
 
         <h2>Hauptfunktionen</h2>
-        <ul>
-            <li><strong>Dynamisches Grid:</strong> Flexibles Zeilen- und Spalten-System für Cast-Definition</li>
-            <li><strong>Akteur-Auswahl:</strong> Dropdown-Listen aller verfügbaren Team-Mitglieder</li>
-            <li><strong>Logische Operatoren:</strong> UND/ODER-Verknüpfungen zwischen Akteuren und Zeilen</li>
-            <li><strong>Datum-basierte Planung:</strong> Berücksichtigung zukünftiger Personaländerungen</li>
-            <li><strong>Automatische Vereinfachung:</strong> Optimierung komplexer Cast-Strukturen</li>
-            <li><strong>Undo/Redo-System:</strong> Vollständige Rückgängig-Funktionalität</li>
+        <ul class="feature-list">
+            <li><strong>Dynamisches Grid</strong> - Flexibles Zeilen- und Spalten-System für Cast-Definition</li>
+            <li><strong>Akteur-Auswahl</strong> - Dropdown-Listen aller verfügbaren Team-Mitglieder</li>
+            <li><strong>Logische Operatoren</strong> - UND/ODER-Verknüpfungen zwischen Akteuren und Zeilen</li>
+            <li><strong>Datum-basierte Planung</strong> - Berücksichtigung zukünftiger Personaländerungen</li>
+            <li><strong>Automatische Vereinfachung</strong> - Optimierung komplexer Cast-Strukturen</li>
+            <li><strong>Undo/Redo-System</strong> - Vollständige Rückgängig-Funktionalität</li>
         </ul>
 
         <h2>Grundbedienung</h2>
+        
         <h3>Erste Cast-Definition erstellen</h3>
         <ol>
             <li>Klicken Sie auf das <strong>Plus-Symbol</strong> um die erste Zeile zu erstellen</li>
@@ -39,39 +40,68 @@
 
         <h3>Operatoren verstehen</h3>
         <ol>
-            <li><strong>UND (innerhalb Zeile):</strong> Alle Akteure müssen anwesend sein</li>
-            <li><strong>ODER (innerhalb Zeile):</strong> Einer der Akteure reicht aus</li>
-            <li><strong>Zeilen-Operatoren:</strong> Verknüpfung verschiedener Cast-Varianten</li>
-            <li><strong>Automatische Logik:</strong> System erstellt optimierte Ausdrücke</li>
+            <li><strong>UND (innerhalb Zeile)</strong> - Alle Akteure müssen anwesend sein</li>
+            <li><strong>ODER (innerhalb Zeile)</strong> - Einer der Akteure reicht aus</li>
+            <li><strong>Zeilen-Operatoren</strong> - Verknüpfung verschiedener Cast-Varianten</li>
+            <li><strong>Automatische Logik</strong> - System erstellt optimierte Ausdrücke</li>
         </ol>
 
-        <h2>Bedienelemente im Detail</h2>
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Tab</strong> - Navigation zwischen Dropdown-Feldern</li>
+                <li><strong>Strg+Z</strong> - Undo (rückgängig)</li>
+                <li><strong>Strg+Y</strong> - Redo (wiederholen)</li>
+                <li><strong>Strg+S</strong> - Speichern</li>
+                <li><strong>Escape</strong> - Dialog abbrechen</li>
+                <li><strong>Strg+N</strong> - Neue Zeile hinzufügen</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Integration mit Cast-Gruppen</li>
+            <li><a href="cast_groups.html">Cast-Gruppen</a> - Hierarchische Cast-Verwaltung</li>
+            <li><a href="team.html">Team-Management</a> - Verwaltung verfügbarer Akteure</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Der Fixed Cast Builder wird verwendet für:</p>
+        <ul>
+            <li><strong>Feste Besetzungen</strong> - Definition unveränderlicher Cast-Zuordnungen</li>
+            <li><strong>Flexible Alternativen</strong> - ODER-Verknüpfungen für alternative Besetzungen</li>
+            <li><strong>Team-Kombinationen</strong> - UND-Verknüpfungen für Besetzungsgruppen</li>
+            <li><strong>Datum-spezifische Planung</strong> - Berücksichtigung von Personaländerungen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
 
         <h3>Grid-Bereich (Haupt-Arbeitsfeld)</h3>
-        <ul>
-            <li><strong>Plus-Symbol (links):</strong> Neue Zeile für alternative Cast-Varianten</li>
-            <li><strong>Akteur-Dropdowns:</strong> Auswahl verfügbarer Team-Mitglieder</li>
-            <li><strong>Plus/Minus-Buttons:</strong> Akteure hinzufügen/entfernen</li>
-            <li><strong>Operator-Dropdowns:</strong> UND/ODER-Verknüpfungen zwischen Elementen</li>
+        <ul class="feature-list">
+            <li><strong>Plus-Symbol (links)</strong> - Neue Zeile für alternative Cast-Varianten</li>
+            <li><strong>Akteur-Dropdowns</strong> - Auswahl verfügbarer Team-Mitglieder</li>
+            <li><strong>Plus/Minus-Buttons</strong> - Akteure hinzufügen/entfernen</li>
+            <li><strong>Operator-Dropdowns</strong> - UND/ODER-Verknüpfungen zwischen Elementen</li>
         </ul>
 
         <h3>Datum-Bereich</h3>
-        <ul>
-            <li><strong>Datum-Feld:</strong> Stichtag für Personalplanung</li>
-            <li><strong>Automatisch:</strong> Berücksichtigung zukünftiger Team-Änderungen</li>
-            <li><strong>Warnung:</strong> Information über nicht verfügbare Personen</li>
+        <ul class="feature-list">
+            <li><strong>Datum-Feld</strong> - Stichtag für Personalplanung</li>
+            <li><strong>Automatische Berücksichtigung</strong> - Zukünftige Team-Änderungen</li>
+            <li><strong>Verfügbarkeits-Warnung</strong> - Information über nicht verfügbare Personen</li>
         </ul>
 
         <h3>Aktions-Buttons</h3>
-        <ul>
-            <li><strong>Reset:</strong> Dropdown-Menü für verschiedene Reset-Optionen</li>
-            <li><strong>Undo:</strong> Letzte Änderung rückgängig machen</li>
-            <li><strong>Redo:</strong> Rückgängig gemachte Änderung wiederholen</li>
-            <li><strong>Speichern:</strong> Fixed Cast übernehmen und Dialog schließen</li>
-            <li><strong>Abbrechen:</strong> Alle Änderungen verwerfen</li>
+        <ul class="feature-list">
+            <li><strong>Reset</strong> - Dropdown-Menü für verschiedene Reset-Optionen</li>
+            <li><strong>Undo</strong> - Letzte Änderung rückgängig machen</li>
+            <li><strong>Redo</strong> - Rückgängig gemachte Änderung wiederholen</li>
+            <li><strong>Speichern</strong> - Fixed Cast übernehmen und Dialog schließen</li>
+            <li><strong>Abbrechen</strong> - Alle Änderungen verwerfen</li>
         </ul>
 
-        <h2>Workflows</h2>
+        <h2>Praktische Anwendungsfälle</h2>
 
         <h3>Einfache Fixed Cast Definition</h3>
         <ol>
@@ -101,211 +131,211 @@
             <li>Beachten Sie Warnungen über Personal-Verfügbarkeit</li>
         </ol>
 
-        <h2>Tastaturkürzel</h2>
-        <ul>
-            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
-            <li><strong>Tab:</strong> Navigation zwischen Dropdown-Feldern</li>
-            <li><strong>Ctrl+Z:</strong> Undo (rückgängig)</li>
-            <li><strong>Ctrl+Y:</strong> Redo (wiederholen)</li>
-            <li><strong>Ctrl+S:</strong> Speichern</li>
-            <li><strong>Esc:</strong> Dialog abbrechen</li>
-            <li><strong>+:</strong> Neue Zeile hinzufügen (wenn Plus-Button fokussiert)</li>
-        </ul>
+        <h2>Häufige Probleme & Lösungen</h2>
 
-        <h2>Cast-Logik verstehen</h2>
+        <div class="warning-box">
+            <h4>⚠️ Akteure nicht verfügbar</h4>
+            <p><strong>Problem:</strong> Ausgewählte Personen erscheinen nicht in der Liste<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Personen sind zum gewählten Datum nicht im Team</li>
+                <li>Team-Zuordnung ist fehlerhaft</li>
+                <li>Datum liegt außerhalb der Mitgliedschaftsdauer</li>
+            </ul>
+            <p><strong>Lösung:</strong> Überprüfen Sie Team-Mitgliedschaften und wählen Sie ein anderes Datum</p>
+        </div>
 
-        <h3>Operator-Bedeutungen</h3>
-        <ul>
-            <li><strong>UND (innerhalb Zeile):</strong> "Person A UND Person B" = beide müssen verfügbar sein</li>
-            <li><strong>ODER (innerhalb Zeile):</strong> "Person A ODER Person B" = eine der beiden reicht</li>
-            <li><strong>UND (zwischen Zeilen):</strong> "Zeile 1 UND Zeile 2" = beide Bedingungen erfüllen</li>
-            <li><strong>ODER (zwischen Zeilen):</strong> "Zeile 1 ODER Zeile 2" = eine Bedingung reicht</li>
-        </ul>
+        <div class="warning-box">
+            <h4>⚠️ Cast zu komplex / nicht speicherbar</h4>
+            <p><strong>Problem:</strong> Definition kann nicht gespeichert werden<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Widersprüchliche Operatoren-Logik</li>
+                <li>Zu viele verschachtelte Ebenen</li>
+                <li>Logik-Fehler in der Struktur</li>
+            </ul>
+            <p><strong>Lösung:</strong> Nutzen Sie <strong>Reset → Löschen</strong> für Neustart oder vereinfachen Sie die Struktur schrittweise</p>
+        </div>
 
-        <h3>Beispiel-Strukturen</h3>
-        <ul>
-            <li><strong>Einfach:</strong> "Max Mustermann" = genau diese Person</li>
-            <li><strong>Alternative:</strong> "Max Mustermann ODER Anna Schmidt" = eine von beiden</li>
-            <li><strong>Team:</strong> "Max Mustermann UND Anna Schmidt" = beide zusammen</li>
-            <li><strong>Komplex:</strong> "(Max UND Anna) ODER (Klaus UND Maria)" = ein Team von beiden Varianten</li>
-        </ul>
+        <div class="warning-box">
+            <h4>⚠️ Anzahl Mitarbeiter überschritten</h4>
+            <p><strong>Problem:</strong> Fixed Cast benötigt mehr Personen als geplant<br>
+            <strong>Lösungen:</strong></p>
+            <ul>
+                <li>Erhöhen Sie die Anzahl Akteure in der Planungsebene</li>
+                <li>Verwenden Sie ODER-Operatoren für Flexibilität</li>
+                <li>Vereinfachen Sie die Fixed Cast Definition</li>
+            </ul>
+        </div>
 
-        <h2>Fehlerbehebung</h2>
+        <div class="warning-box">
+            <h4>⚠️ Undo/Redo funktioniert nicht</h4>
+            <p><strong>Problem:</strong> Rückgängig-Funktion reagiert nicht<br>
+            <strong>Ursachen:</strong></p>
+            <ul>
+                <li>Undo-Stack ist leer (nach Speicherung)</li>
+                <li>Maximale Anzahl von Änderungen erreicht</li>
+                <li>Grid-System in inkonsistentem Zustand</li>
+            </ul>
+            <p><strong>Lösung:</strong> Verwenden Sie Reset-Menü für vollständigen Neustart</p>
+        </div>
 
-        <h3>Akteure nicht verfügbar</h3>
-        <ul>
-            <li><strong>Datum prüfen:</strong> Sind die Personen zum gewählten Datum im Team?</li>
-            <li><strong>Team-Zuordnung:</strong> Überprüfen Sie die Team-Mitgliedschaften</li>
-            <li><strong>Warnung beachten:</strong> Orange Text zeigt nicht verfügbare Personen</li>
-        </ul>
+        <h2>Best Practices</h2>
 
-        <h3>Cast zu komplex / nicht speicherbar</h3>
-        <ul>
-            <li><strong>Vereinfachung:</strong> System vereinfacht automatisch bei Speicherung</li>
-            <li><strong>Logik-Fehler:</strong> Prüfen Sie widersprüchliche Operatoren</li>
-            <li><strong>Reset nutzen:</strong> "Löschen" für Neustart</li>
-        </ul>
+        <div class="tip-box">
+            <h4>🎯 Cast-Design-Empfehlungen</h4>
+            <ul>
+                <li><strong>Einfachheit:</strong> Beginnen Sie mit einfachen Strukturen und erweitern Sie schrittweise</li>
+                <li><strong>Redundanz vermeiden:</strong> Nutzen Sie System-Vereinfachung</li>
+                <li><strong>Flexibilität:</strong> ODER-Verknüpfungen für alternative Besetzungen</li>
+                <li><strong>Hierarchie beachten:</strong> Cast-Gruppen erben von übergeordneten Definitionen</li>
+            </ul>
+        </div>
 
-        <h3>Undo/Redo funktioniert nicht</h3>
-        <ul>
-            <li><strong>Speicherung erforderlich:</strong> Erst nach dem Speichern wird Undo-Stack geleert</li>
-            <li><strong>Grid-Änderungen:</strong> Jede Änderung wird sofort im Undo-System erfasst</li>
-            <li><strong>Reset zurücksetzen:</strong> Nutzen Sie Reset-Menü für vollständigen Neustart</li>
-        </ul>
+        <div class="tip-box">
+            <h4>🚀 Effizienz-Tipps</h4>
+            <ul>
+                <li><strong>Operator-Logik:</strong> ODER-Operatoren erhöhen Flexibilität, UND-Operatoren Präzision</li>
+                <li><strong>Datum-Strategie:</strong> Wählen Sie ein repräsentatives Datum für die Planung</li>
+                <li><strong>Minimale Komplexität:</strong> Weniger Zeilen = bessere Performance</li>
+                <li><strong>Operator-Effizienz:</strong> System optimiert Ausdrücke automatisch</li>
+            </ul>
+        </div>
 
-        <h2>Tipps & Best Practices</h2>
+        <div class="tip-box">
+            <h4>💡 Mehrschicht-Logik</h4>
+            <ul>
+                <li><strong>Basis-Team:</strong> Erste Zeile mit Kern-Besetzung (UND-Operatoren)</li>
+                <li><strong>Alternativen:</strong> Weitere Zeilen mit ODER-Verknüpfung</li>
+                <li><strong>Flexibilität:</strong> Mischung aus festen und variablen Komponenten</li>
+            </ul>
+        </div>
 
-        <h3>Effizienz-Tipps</h3>
-        <ul>
-            <li><strong>Einfachheit:</strong> Beginnen Sie mit einfachen Strukturen und erweitern Sie schrittweise</li>
-            <li><strong>Operator-Logik:</strong> ODER-Operatoren erhöhen Flexibilität, UND-Operatoren Präzision</li>
-            <li><strong>Datum-Strategie:</strong> Wählen Sie ein repräsentatives Datum für die Planung</li>
-        </ul>
-
-        <h3>Cast-Design-Empfehlungen</h3>
-        <ul>
-            <li><strong>Redundanz vermeiden:</strong> Nutzen Sie System-Vereinfachung</li>
-            <li><strong>Flexibilität:</strong> ODER-Verknüpfungen für alternative Besetzungen</li>
-            <li><strong>Hierarchie beachten:</strong> Cast-Gruppen erben von übergeordneten Definitionen</li>
-        </ul>
-
-        <h3>Performance-Optimierung</h3>
-        <ul>
-            <li><strong>Minimale Komplexität:</strong> Weniger Zeilen = bessere Performance</li>
-            <li><strong>Operator-Effizienz:</strong> System optimiert Ausdrücke automatisch</li>
-            <li><strong>Datum-Caching:</strong> Personen-Listen werden für gewähltes Datum gecacht</li>
-        </ul>
-
-        <h2>Reset-Optionen</h2>
-
-        <h3>Reset-Menü Funktionen</h3>
-        <ul>
-            <li><strong>Löschen:</strong> Komplette Fixed Cast Definition entfernen</li>
-            <li><strong>Reset vom Parent-Model:</strong> Übernimmt Fixed Cast von übergeordneter Ebene</li>
-            <li><strong>Undo:</strong> Schrittweise Rückgängig-Machung von Änderungen</li>
-        </ul>
-
-        <h2>Verschiedene Anwendungskontexte</h2>
-
-        <h3>Location of Work Fixed Cast</h3>
-        <ul>
-            <li><strong>Anwendung:</strong> Grundausstattung für Arbeitsorte</li>
-            <li><strong>Vererbung:</strong> Wird von Location Plan Periods übernommen</li>
-            <li><strong>Flexibilität:</strong> Kann in untergeordneten Ebenen überschrieben werden</li>
-        </ul>
-
-        <h3>Location Plan Period Fixed Cast</h3>
-        <ul>
-            <li><strong>Anwendung:</strong> Spezifische Besetzung für Planungsperioden</li>
-            <li><strong>Datum-Relevanz:</strong> Berücksichtigt Personaländerungen im Zeitraum</li>
-            <li><strong>Override:</strong> Überschreibt Location of Work Einstellungen</li>
-        </ul>
-
-        <h3>Cast Group Fixed Cast</h3>
-        <ul>
-            <li><strong>Anwendung:</strong> Granulare Besetzung für spezifische Gruppen</li>
-            <li><strong>Höchste Priorität:</strong> Überschreibt alle übergeordneten Definitionen</li>
-            <li><strong>Event-Integration:</strong> Direkter Bezug zu konkreten Veranstaltungen</li>
-        </ul>
-
-        <h2>Automatische Vereinfachung</h2>
-
-        <h3>System-Optimierung</h3>
-        <ul>
-            <li><strong>Logik-Vereinfachung:</strong> Redundante Operatoren werden entfernt</li>
-            <li><strong>Struktur-Optimierung:</strong> Komplexe Ausdrücke werden vereinfacht</li>
-            <li><strong>Validierung:</strong> Widersprüchliche Definitionen werden erkannt</li>
-        </ul>
-
-        <h3>Beispiel-Vereinfachungen</h3>
-        <ul>
-            <li><strong>(A UND A) → A:</strong> Doppelte Personen werden entfernt</li>
-            <li><strong>(A ODER A) → A:</strong> Redundante Alternativen werden vereinfacht</li>
-            <li><strong>((A)) → A:</strong> Überflüssige Klammern werden entfernt</li>
-        </ul>
-
-        <h2>Fehlerbehebung</h2>
-
-        <h3>Warnung: Anzahl Mitarbeiter überschritten</h3>
-        <ul>
-            <li><strong>Ursache:</strong> Fixed Cast benötigt mehr Personen als geplant</li>
-            <li><strong>Lösung 1:</strong> Erhöhen Sie die Anzahl Akteure in der Planungsebene</li>
-            <li><strong>Lösung 2:</strong> Verwenden Sie ODER-Operatoren für Flexibilität</li>
-            <li><strong>Lösung 3:</strong> Vereinfachen Sie die Fixed Cast Definition</li>
-        </ul>
-
-        <h3>Personen nicht in Liste verfügbar</h3>
-        <ul>
-            <li><strong>Datum-Abhängigkeit:</strong> Person nicht im Team zum gewählten Datum</li>
-            <li><strong>Team-Zuordnung:</strong> Überprüfen Sie Team-Mitgliedschaften</li>
-            <li><strong>Datumsbereich:</strong> Wählen Sie ein anderes Planungsdatum</li>
-        </ul>
-
-        <h3>Grid-Layout Probleme</h3>
-        <ul>
-            <li><strong>Langsame Performance:</strong> Sehr komplexe Casts vereinfachen</li>
-            <li><strong>Button-Fehler:</strong> Verwenden Sie Undo um problematische Änderungen rückgängig zu machen</li>
-            <li><strong>Layout-Corruption:</strong> Reset-Funktion nutzen für Neustart</li>
-        </ul>
+        <div class="tip-box">
+            <h4>⚡ Performance bei großen Teams</h4>
+            <ul>
+                <li><strong>Einschränkung:</strong> Nutzen Sie Datum-Filter für relevante Personen</li>
+                <li><strong>Gruppierung:</strong> Definieren Sie Cast-Gruppen vor Fixed Cast</li>
+                <li><strong>Hierarchie:</strong> Nutzen Sie Vererbung anstatt Redundanz</li>
+            </ul>
+        </div>
 
         <h2>Erweiterte Funktionen</h2>
 
+        <h3>Cast-Logik verstehen</h3>
+        
+        <h4>Operator-Bedeutungen</h4>
+        <ul class="feature-list">
+            <li><strong>UND (innerhalb Zeile)</strong> - "Person A UND Person B" = beide müssen verfügbar sein</li>
+            <li><strong>ODER (innerhalb Zeile)</strong> - "Person A ODER Person B" = eine der beiden reicht</li>
+            <li><strong>UND (zwischen Zeilen)</strong> - "Zeile 1 UND Zeile 2" = beide Bedingungen erfüllen</li>
+            <li><strong>ODER (zwischen Zeilen)</strong> - "Zeile 1 ODER Zeile 2" = eine Bedingung reicht</li>
+        </ul>
+
+        <h4>Beispiel-Strukturen</h4>
+        <ul class="feature-list">
+            <li><strong>Einfach</strong> - "Max Mustermann" = genau diese Person</li>
+            <li><strong>Alternative</strong> - "Max Mustermann ODER Anna Schmidt" = eine von beiden</li>
+            <li><strong>Team</strong> - "Max Mustermann UND Anna Schmidt" = beide zusammen</li>
+            <li><strong>Komplex</strong> - "(Max UND Anna) ODER (Klaus UND Maria)" = ein Team von beiden Varianten</li>
+        </ul>
+
+        <h3>Verschiedene Anwendungskontexte</h3>
+        
+        <h4>Location of Work Fixed Cast</h4>
+        <ul class="feature-list">
+            <li><strong>Anwendung</strong> - Grundausstattung für Arbeitsorte</li>
+            <li><strong>Vererbung</strong> - Wird von Location Plan Periods übernommen</li>
+            <li><strong>Flexibilität</strong> - Kann in untergeordneten Ebenen überschrieben werden</li>
+        </ul>
+
+        <h4>Location Plan Period Fixed Cast</h4>
+        <ul class="feature-list">
+            <li><strong>Anwendung</strong> - Spezifische Besetzung für Planungsperioden</li>
+            <li><strong>Datum-Relevanz</strong> - Berücksichtigt Personaländerungen im Zeitraum</li>
+            <li><strong>Override</strong> - Überschreibt Location of Work Einstellungen</li>
+        </ul>
+
+        <h4>Cast Group Fixed Cast</h4>
+        <ul class="feature-list">
+            <li><strong>Anwendung</strong> - Granulare Besetzung für spezifische Gruppen</li>
+            <li><strong>Höchste Priorität</strong> - Überschreibt alle übergeordneten Definitionen</li>
+            <li><strong>Event-Integration</strong> - Direkter Bezug zu konkreten Veranstaltungen</li>
+        </ul>
+
+        <h3>Automatische Vereinfachung</h3>
+        
+        <h4>System-Optimierung</h4>
+        <ul class="feature-list">
+            <li><strong>Logik-Vereinfachung</strong> - Redundante Operatoren werden entfernt</li>
+            <li><strong>Struktur-Optimierung</strong> - Komplexe Ausdrücke werden vereinfacht</li>
+            <li><strong>Validierung</strong> - Widersprüchliche Definitionen werden erkannt</li>
+        </ul>
+
+        <h4>Beispiel-Vereinfachungen</h4>
+        <ul class="feature-list">
+            <li><strong>(A UND A) → A</strong> - Doppelte Personen werden entfernt</li>
+            <li><strong>(A ODER A) → A</strong> - Redundante Alternativen werden vereinfacht</li>
+            <li><strong>((A)) → A</strong> - Überflüssige Klammern werden entfernt</li>
+        </ul>
+
+        <h3>Reset-Optionen</h3>
+        
+        <h4>Reset-Menü Funktionen</h4>
+        <ul class="feature-list">
+            <li><strong>Löschen</strong> - Komplette Fixed Cast Definition entfernen</li>
+            <li><strong>Reset vom Parent-Model</strong> - Übernimmt Fixed Cast von übergeordneter Ebene</li>
+            <li><strong>Undo</strong> - Schrittweise Rückgängig-Machung von Änderungen</li>
+        </ul>
+
         <h3>Builder-Pattern Integration</h3>
-        <ul>
-            <li><strong>Context-Awareness:</strong> Dialog passt sich an Anwendungskontext an</li>
-            <li><strong>Daten-Sync:</strong> Automatische Synchronisation mit Datenbank</li>
-            <li><strong>Validation:</strong> Kontextspezifische Validierungsregeln</li>
+        <ul class="feature-list">
+            <li><strong>Context-Awareness</strong> - Dialog passt sich an Anwendungskontext an</li>
+            <li><strong>Daten-Sync</strong> - Automatische Synchronisation mit Datenbank</li>
+            <li><strong>Validation</strong> - Kontextspezifische Validierungsregeln</li>
         </ul>
 
         <h3>Command-Pattern Features</h3>
-        <ul>
-            <li><strong>Undo-Stack:</strong> Alle Änderungen werden in Command-Objekten gekapselt</li>
-            <li><strong>Redo-Capability:</strong> Wiederherstellen rückgängig gemachter Aktionen</li>
-            <li><strong>Batch-Operations:</strong> Mehrere Änderungen als ein Schritt</li>
-        </ul>
-
-        <h2>Tastaturkürzel - Erweitert</h2>
-        <ul>
-            <li><strong>F1:</strong> Diese Hilfe öffnen</li>
-            <li><strong>Tab / Shift+Tab:</strong> Navigation zwischen Dropdown-Feldern</li>
-            <li><strong>Space:</strong> Dropdown öffnen (wenn fokussiert)</li>
-            <li><strong>Enter:</strong> Auswahl bestätigen</li>
-            <li><strong>Delete:</strong> Akteur entfernen (über Minus-Button)</li>
-            <li><strong>Ctrl+N:</strong> Neue Zeile hinzufügen</li>
-        </ul>
-
-        <h2>Tipps für komplexe Casts</h2>
-
-        <h3>Mehrschicht-Logik</h3>
-        <ul>
-            <li><strong>Basis-Team:</strong> Erste Zeile mit Kern-Besetzung (UND-Operatoren)</li>
-            <li><strong>Alternativen:</strong> Weitere Zeilen mit ODER-Verknüpfung</li>
-            <li><strong>Flexibilität:</strong> Mischung aus festen und variablen Komponenten</li>
-        </ul>
-
-        <h3>Performance bei großen Teams</h3>
-        <ul>
-            <li><strong>Einschränkung:</strong> Nutzen Sie Datum-Filter für relevante Personen</li>
-            <li><strong>Gruppierung:</strong> Definieren Sie Cast-Gruppen vor Fixed Cast</li>
-            <li><strong>Hierarchie:</strong> Nutzen Sie Vererbung anstatt Redundanz</li>
-        </ul>
-
-        <h2>Verwandte Funktionen</h2>
-        <ul>
-            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Integration mit Cast-Gruppen</li>
-            <li><a href="team.html">Team-Management</a> - Verwaltung verfügbarer Akteure</li>
+        <ul class="feature-list">
+            <li><strong>Undo-Stack</strong> - Alle Änderungen werden in Command-Objekten gekapselt</li>
+            <li><strong>Redo-Capability</strong> - Wiederherstellen rückgängig gemachter Aktionen</li>
+            <li><strong>Batch-Operations</strong> - Mehrere Änderungen als ein Schritt</li>
         </ul>
 
         <h2>Technische Details</h2>
-        <ul>
-            <li><strong>Sympy-Integration:</strong> Mathematische Logik-Optimierung für Cast-Ausdrücke</li>
-            <li><strong>Builder-Pattern:</strong> Kontextspezifische Dialog-Konfiguration</li>
-            <li><strong>Command-System:</strong> Undo-fähige Operationen mit vollständiger Rückverfolgung</li>
-            <li><strong>Real-time Validation:</strong> Sofortige Prüfung aller Eingaben</li>
-            <li><strong>Dynamic UI:</strong> Grid-Layout passt sich automatisch an Cast-Komplexität an</li>
+        
+        <h3>System-Architektur</h3>
+        <ul class="feature-list">
+            <li><strong>Sympy-Integration</strong> - Mathematische Logik-Optimierung für Cast-Ausdrücke</li>
+            <li><strong>Builder-Pattern</strong> - Kontextspezifische Dialog-Konfiguration</li>
+            <li><strong>Command-System</strong> - Undo-fähige Operationen mit vollständiger Rückverfolgung</li>
+            <li><strong>Real-time Validation</strong> - Sofortige Prüfung aller Eingaben</li>
+            <li><strong>Dynamic UI</strong> - Grid-Layout passt sich automatisch an Cast-Komplexität an</li>
         </ul>
 
-        <p><strong>Support:</strong> Der Fixed Cast Builder ist ein mächtiges Tool für komplexe Besetzungsplanungen. Bei Problemen empfiehlt sich der schrittweise Aufbau beginnend mit einfachen Strukturen. Die automatische Vereinfachung sorgt für optimale Performance.</p>
+        <h3>Datum-Caching</h3>
+        <ul class="feature-list">
+            <li><strong>Team-Member-Cache</strong> - Personen-Listen werden für gewähltes Datum gecacht</li>
+            <li><strong>Availability Check</strong> - Automatische Verfügbarkeitsprüfung</li>
+            <li><strong>Performance-Optimierung</strong> - Reduzierte Datenbankabfragen</li>
+        </ul>
+
+        <h3>Erweiterte Tastaturkürzel</h3>
+        <ul class="feature-list">
+            <li><strong>Shift+Tab</strong> - Rückwärts-Navigation zwischen Dropdown-Feldern</li>
+            <li><strong>Leertaste</strong> - Dropdown öffnen (wenn fokussiert)</li>
+            <li><strong>Enter</strong> - Auswahl bestätigen</li>
+            <li><strong>Delete</strong> - Akteur entfernen (über Minus-Button)</li>
+        </ul>
+
+        <h2>Support</h2>
+        <p>Bei Problemen mit dem Fixed Cast Builder:</p>
+        <ul>
+            <li>Beginnen Sie mit einfachen Strukturen und erweitern Sie schrittweise</li>
+            <li>Nutzen Sie die automatische Vereinfachung für optimale Performance</li>
+            <li>Verwenden Sie das Reset-Menü bei komplexen Problemen</li>
+            <li>Überprüfen Sie Team-Zuordnungen bei Verfügbarkeitsproblemen</li>
+        </ul>
     </div>
 </body>
 </html>

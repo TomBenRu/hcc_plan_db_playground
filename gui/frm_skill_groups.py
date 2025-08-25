@@ -9,6 +9,7 @@ from commands import command_base_classes
 from commands.database_commands import skill_group_commands, location_of_work_commands, event_commands
 from database import schemas, db_services
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools.helper_functions import setup_form_help
 
 
 class DlgSkillGroup(QDialog):
@@ -24,6 +25,9 @@ class DlgSkillGroup(QDialog):
 
         self._setup_ui()
         self._setup_data()
+
+        # Help-Integration
+        setup_form_help(self, "skill_groups")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -86,6 +90,9 @@ class DlgSkillGroups(QDialog):
 
         self._setup_ui()
         self._setup_data()
+
+        # Help-Integration
+        setup_form_help(self, "skill_groups")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

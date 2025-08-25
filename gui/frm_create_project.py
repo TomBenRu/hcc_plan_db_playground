@@ -1,6 +1,8 @@
 """Dialog box for creating a new project."""
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
 
+from tools.helper_functions import setup_form_help
+
 
 class DlgCreateProject(QDialog):
     """Dialog box for creating a new project."""
@@ -10,6 +12,9 @@ class DlgCreateProject(QDialog):
         self.setWindowTitle(self.tr("Create New Project"))
 
         self._setup_ui()
+        
+        # F1 Help Integration
+        setup_form_help(self, "create_project")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands
 from database import db_services
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 
 
 class DlgRequestedAssignments(QDialog):
@@ -46,6 +46,7 @@ class DlgRequestedAssignments(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
         self.setup_widgets()
+        setup_form_help(self, "requested_assignments")
 
     def reject(self) -> None:
         self.controller.undo_all()

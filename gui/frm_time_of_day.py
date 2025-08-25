@@ -15,7 +15,7 @@ from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, location_plan_period_commands, project_commands, \
     person_commands, location_of_work_commands, time_of_day_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
-from tools.helper_functions import time_to_string
+from tools.helper_functions import time_to_string, setup_form_help
 
 
 class DlgTimeOfDayEditListBuilderABC(ABC):
@@ -235,6 +235,9 @@ class DlgTimeOfDayEdit(QDialog):
 
         self.autofill()
 
+        # Help-Integration
+        setup_form_help(self, "time_of_day")
+
     def autofill(self):
         for t_o_d_enum in self.project.time_of_day_enums:
             self.cb_time_of_day_enum.addItem(QIcon(os.path.join(self.path_to_icons, 'clock.png')),
@@ -331,6 +334,9 @@ class DlgTimeOfDaysEditList(QDialog):
         self.layout.addWidget(self.bt_delete, 1, 2)
         self.layout.addWidget(self.bt_reset, 2, 1)
         self.layout.addWidget(self.button_box, 3, 0, 1, 3)
+
+        # Help-Integration
+        setup_form_help(self, "time_of_day")
 
     def setup_table_time_of_days(self):
         if self.table_time_of_days:
@@ -508,6 +514,9 @@ class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. O
         self.layout.addRow(self.button_box)
 
         self.autofill()
+
+        # Help-Integration
+        setup_form_help(self, "time_of_day")
 
     def save(self):
         name = self.le_name.text()

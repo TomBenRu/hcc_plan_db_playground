@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QDialogButtonBox, QCheckBox
 
 from database import schemas
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 
 
 class DlgPlanToXLSX(QDialog):
@@ -12,6 +12,9 @@ class DlgPlanToXLSX(QDialog):
 
         self._setup_data()
         self._setup_ui()
+        
+        # F1 Help Integration
+        setup_form_help(self, "excel_export")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

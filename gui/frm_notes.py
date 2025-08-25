@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel
     QPushButton, QCheckBox
 
 from database import db_services, schemas
+from tools.helper_functions import setup_form_help
 
 
 class DlgPlanPeriodNotes(QDialog):
@@ -13,6 +14,7 @@ class DlgPlanPeriodNotes(QDialog):
         self.plan = plan
 
         self._setup_ui()
+        setup_form_help(self, "notes")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -61,6 +63,7 @@ class DlgTeamNotes(QDialog):
         self.team = team
 
         self._setup_ui()
+        setup_form_help(self, "notes")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -97,6 +100,7 @@ class DlgEventNotes(QDialog):
         self.multiple_events = multiple_events
 
         self._setup_ui()
+        setup_form_help(self, "notes")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -139,6 +143,7 @@ class DlgAppointmentNotes(QDialog):
         self.appointment = appointment
 
         self._setup_ui()
+        setup_form_help(self, "notes")
 
     def _setup_ui(self):
         self.setStyleSheet("background-color: none")

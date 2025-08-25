@@ -11,6 +11,7 @@ from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
 from .frm_team import FrmTeam
 from .frm_time_of_day_enum import DlgTimeOfDayEnumsEditList
+from tools.helper_functions import setup_form_help
 
 
 class DlgSettingsProject(QDialog):
@@ -83,6 +84,7 @@ class DlgSettingsProject(QDialog):
             self.layout_excel_export_settings.addWidget(widget)
 
         self.autofill()
+        setup_form_help(self, "project_settings")
 
     def autofill(self):
         self.le_name.setText(self.project.name)

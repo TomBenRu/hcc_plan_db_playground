@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGroupBox,
 from configuration.general_settings import general_settings_handler
 from gui.custom_widgets import date_format_selector
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools.helper_functions import setup_form_help
 
 
 class DlgGeneralSettings(QDialog):
@@ -14,6 +15,7 @@ class DlgGeneralSettings(QDialog):
         self.setWindowTitle(self.tr("General Settings"))
         self._setup_ui()
         self._setup_data()
+        setup_form_help(self, "general_settings")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

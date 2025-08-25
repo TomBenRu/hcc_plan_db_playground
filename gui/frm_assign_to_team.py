@@ -4,6 +4,7 @@ from uuid import UUID
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QDateEdit, QDialogButtonBox, QLabel
 
 from database import db_services
+from tools.helper_functions import setup_form_help
 
 
 class DlgAssignDate(QDialog):
@@ -38,6 +39,9 @@ class DlgAssignDate(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
         self.setup_data()
+
+        # Help-Integration
+        setup_form_help(self, "assign_to_team")
 
     def setup_data(self):
         curr_team = db_services.Team.get(self.curr_team_id) if self.curr_team_id else None

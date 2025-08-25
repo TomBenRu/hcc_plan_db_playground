@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from commands import command_base_classes
 from commands.database_commands import skill_commands, person_commands, avail_day_commands
 from database import db_services, schemas
-from tools.helper_functions import date_to_string, time_to_string
+from tools.helper_functions import date_to_string, time_to_string, setup_form_help
 
 
 class DlgSkillsOfProject(QDialog):
@@ -22,6 +22,9 @@ class DlgSkillsOfProject(QDialog):
 
         self._setup_data()
         self._setup_ui()
+
+        # Help-Integration
+        setup_form_help(self, "skills")
 
     def _setup_data(self):
         self.skills: list[schemas.Skill] = db_services.Skill.get_all_from__project(self.project_id)
@@ -81,6 +84,9 @@ class DlgSkill(QDialog):
         self._setup_ui()
         self._setup_data()
 
+        # Help-Integration
+        setup_form_help(self, "skills")
+
     def _setup_data(self):
         if self.skill_id:
             self.skill = db_services.Skill.get(self.skill_id)
@@ -128,6 +134,9 @@ class DlgEditSkills(QDialog):
 
         self._setup_data()
         self._setup_ui()
+
+        # Help-Integration
+        setup_form_help(self, "skills")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -285,6 +294,9 @@ class DlgSelectSkills(QDialog):
         self.object_with_skills = object_with_skills
 
         self._setup_ui()
+
+        # Help-Integration
+        setup_form_help(self, "skills")
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

@@ -71,7 +71,7 @@ class DlgParticipantSelection(QDialog):
             self._set_selected_participants()
             
         # F1 Help Integration
-        setup_form_help(self, "participant_selection")
+        setup_form_help(self, "participant_selection", add_help_button=True)
             
         logger.info(f"Participant Selection Dialog initialized for project {project_id}")
 

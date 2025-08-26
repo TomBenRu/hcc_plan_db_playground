@@ -24,7 +24,7 @@ class DlgSkillsOfProject(QDialog):
         self._setup_ui()
 
         # Help-Integration
-        setup_form_help(self, "skills")
+        setup_form_help(self, "skills", add_help_button=True)
 
     def _setup_data(self):
         self.skills: list[schemas.Skill] = db_services.Skill.get_all_from__project(self.project_id)
@@ -85,7 +85,7 @@ class DlgSkill(QDialog):
         self._setup_data()
 
         # Help-Integration
-        setup_form_help(self, "skills")
+        setup_form_help(self, "skills", add_help_button=True)
 
     def _setup_data(self):
         if self.skill_id:
@@ -136,7 +136,7 @@ class DlgEditSkills(QDialog):
         self._setup_ui()
 
         # Help-Integration
-        setup_form_help(self, "skills")
+        setup_form_help(self, "skills", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -296,7 +296,7 @@ class DlgSelectSkills(QDialog):
         self._setup_ui()
 
         # Help-Integration
-        setup_form_help(self, "skills")
+        setup_form_help(self, "skills", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

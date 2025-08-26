@@ -14,7 +14,7 @@ class DlgPlanPeriodNotes(QDialog):
         self.plan = plan
 
         self._setup_ui()
-        setup_form_help(self, "notes")
+        setup_form_help(self, "notes", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -63,7 +63,7 @@ class DlgTeamNotes(QDialog):
         self.team = team
 
         self._setup_ui()
-        setup_form_help(self, "notes")
+        setup_form_help(self, "notes", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -100,7 +100,7 @@ class DlgEventNotes(QDialog):
         self.multiple_events = multiple_events
 
         self._setup_ui()
-        setup_form_help(self, "notes")
+        setup_form_help(self, "notes", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -143,7 +143,7 @@ class DlgAppointmentNotes(QDialog):
         self.appointment = appointment
 
         self._setup_ui()
-        setup_form_help(self, "notes")
+        setup_form_help(self, "notes", add_help_button=True)
 
     def _setup_ui(self):
         self.setStyleSheet("background-color: none")

@@ -14,7 +14,7 @@ class DlgPlanToXLSX(QDialog):
         self._setup_ui()
         
         # F1 Help Integration
-        setup_form_help(self, "excel_export")
+        setup_form_help(self, "excel_export", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

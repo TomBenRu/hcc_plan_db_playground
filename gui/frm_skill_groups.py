@@ -27,7 +27,7 @@ class DlgSkillGroup(QDialog):
         self._setup_data()
 
         # Help-Integration
-        setup_form_help(self, "skill_groups")
+        setup_form_help(self, "skill_groups", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -92,7 +92,7 @@ class DlgSkillGroups(QDialog):
         self._setup_data()
 
         # Help-Integration
-        setup_form_help(self, "skill_groups")
+        setup_form_help(self, "skill_groups", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

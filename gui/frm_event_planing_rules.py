@@ -115,7 +115,7 @@ class DlgFirstDay(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "first_day")
+        setup_form_help(self, "first_day", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -148,7 +148,7 @@ class DlgEventPlanningRules(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "event_planning_rules")
+        setup_form_help(self, "event_planning_rules", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

@@ -41,7 +41,7 @@ class DlgAssignDate(QDialog):
         self.setup_data()
 
         # Help-Integration
-        setup_form_help(self, "assign_to_team")
+        setup_form_help(self, "assign_to_team", add_help_button=True)
 
     def setup_data(self):
         curr_team = db_services.Team.get(self.curr_team_id) if self.curr_team_id else None

@@ -15,7 +15,7 @@ class DlgGeneralSettings(QDialog):
         self.setWindowTitle(self.tr("General Settings"))
         self._setup_ui()
         self._setup_data()
-        setup_form_help(self, "general_settings")
+        setup_form_help(self, "general_settings", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

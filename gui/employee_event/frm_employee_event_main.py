@@ -73,7 +73,7 @@ class FrmEmployeeEventMain(QWidget):
         self.refresh_events()
 
         # F1 Help Integration
-        setup_form_help(self, "employee_event_main")
+        setup_form_help(self, "employee_event_main", add_help_button=True, help_button_style='floating')
 
         logger.info(f"Employee Event Main Window initialized for project {project_id}")
 
@@ -102,7 +102,7 @@ class FrmEmployeeEventMain(QWidget):
     def _setup_header(self):
         """Erstellt den Header mit Titel und View-Toggle."""
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setContentsMargins(0, 0, 50, 0)
 
         # Titel
         self.lb_title = QLabel(self.tr("Employee Events"))

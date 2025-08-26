@@ -622,7 +622,7 @@ class DlgGroupProperties(QDialog):
         self.setup_widgets()
 
         # F1 Help Integration
-        setup_form_help(self, "cast_group_properties")
+        setup_form_help(self, "cast_group_properties", add_help_button=True)
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -846,7 +846,7 @@ class DlgCastGroups(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
         # F1 Help Integration
-        setup_form_help(self, "cast_groups")
+        setup_form_help(self, "cast_groups", add_help_button=True)
 
     def add_group(self):
         create_command = cast_group_commands.Create(self.plan_period.id)

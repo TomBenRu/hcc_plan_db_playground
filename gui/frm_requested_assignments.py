@@ -46,7 +46,7 @@ class DlgRequestedAssignments(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
         self.setup_widgets()
-        setup_form_help(self, "requested_assignments")
+        setup_form_help(self, "requested_assignments", add_help_button=True)
 
     def reject(self) -> None:
         self.controller.undo_all()

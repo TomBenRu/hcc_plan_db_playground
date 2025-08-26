@@ -15,7 +15,7 @@ class FrmTeam(QDialog):
         super().__init__(parent=parent)
         
         # Help-System Integration
-        setup_form_help(self, "team")
+        setup_form_help(self, "team", add_help_button=True, help_button_style="titlebar")
 
         self.setWindowTitle(self.tr('Team'))
 

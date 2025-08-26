@@ -6,6 +6,7 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
+from PySide6.QtWidgets import QWidget
 
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
@@ -220,19 +221,25 @@ def time_to_string(time: datetime.time, curr_country: QLocale.Country | None = N
     return locale.toString(QTime(time.hour, time.minute), QLocale.FormatType(curr_format))
 
 
-def setup_form_help(form_widget, form_name: str) -> bool:
+def setup_form_help(form_widget: QWidget, form_name: str, add_help_button: bool = False,
+                   help_button_style: Literal["auto", "titlebar", "buttonbox", "floating"] = "titlebar") -> bool:
     """
     Richtet standardmäßig Hilfe für ein Formular ein.
     
     Args:
         form_widget: Das QWidget/QMainWindow Formular
         form_name: Name des Formulars für die Hilfe-Seite
+        add_help_button: Ob ein ?-Button hinzugefügt werden soll
+        help_button_style: Stil des Help-Buttons ("auto", "titlebar", "buttonbox", "floating")
         
     Returns:
         bool: True wenn Help-Integration erfolgreich, False bei Fehlern
     """
     try:
         from help import get_help_manager, HelpIntegration
+        from PySide6.QtCore import Qt, QEvent
+        from PySide6.QtWidgets import QDialogButtonBox, QWhatsThis
+        
         help_manager = get_help_manager()
         
         if not help_manager:
@@ -241,7 +248,117 @@ def setup_form_help(form_widget, form_name: str) -> bool:
         
         if help_manager:
             help_integration = HelpIntegration(help_manager)
+            
+            # F1-Shortcut einrichten (wie bisher)
             help_integration.setup_f1_shortcut(form_widget, form_name=form_name)
+            
+            # Optional: ?-Button hinzufügen
+            if add_help_button:
+                
+                # Auto-Detection des besten Stils
+                if help_button_style == "auto":
+                    button_boxes = form_widget.findChildren(QDialogButtonBox)
+                    if button_boxes:
+                        help_button_style = "buttonbox"
+                    else:
+                        help_button_style = "titlebar"
+                
+                if help_button_style == "titlebar":
+                    # Windows-Style Help-Button in der Titelleiste
+                    current_flags = form_widget.windowFlags()
+                    
+                    # Context Help Button hinzufügen
+                    new_flags = current_flags | Qt.WindowType.WindowContextHelpButtonHint
+                    form_widget.setWindowFlags(new_flags)
+                    
+                    # Form-Name als Widget-Attribut speichern (verhindert Closure-Problem)
+                    form_widget._help_form_name = form_name
+                    
+                    # Event-Handler für Help-Button - NUR EINMAL setzen
+                    if not hasattr(form_widget, '_help_event_handler_set'):
+                        original_event = getattr(form_widget, 'event', None)
+                        
+                        def new_event(self, event):
+                            # KORREKT: EnterWhatsThisMode abfangen (wird beim ?-Klick ausgelöst)
+                            if event.type() == QEvent.Type.EnterWhatsThisMode:
+                                # NUR verarbeiten wenn dieses Widget aktiv/fokussiert ist
+                                if self.isActiveWindow() or self.hasFocus():
+                                    # Aus Widget-Attribut lesen (verhindert Closure-Capture)
+                                    if hasattr(self, '_help_form_name'):
+                                        help_manager.show_help_for_form(self._help_form_name)
+                                    # WhatsThis-Modus beenden
+                                    QWhatsThis.leaveWhatsThisMode()
+                                    # Event konsumieren - Propagation stoppen
+                                    event.accept()
+                                    return True
+                                else:
+                                    # Inaktive Widgets ignorieren Event
+                                    return False
+                            
+                            # Standard Event-Handling
+                            if original_event:
+                                return original_event(event)
+                            else:
+                                return super(type(form_widget), self).event(event)
+                        
+                        # Event-Method ersetzen - NUR EINMAL
+                        import types
+                        form_widget.event = types.MethodType(new_event, form_widget)
+                        form_widget._help_event_handler_set = True
+                    
+                    # Event-Method ersetzen
+                    import types
+                    form_widget.event = types.MethodType(new_event, form_widget)
+                    
+                elif help_button_style == "buttonbox":
+                    # Hilfe-Button in QDialogButtonBox integrieren
+                    button_boxes = form_widget.findChildren(QDialogButtonBox)
+                    for button_box in button_boxes:
+                        help_button = button_box.addButton("?", QDialogButtonBox.ButtonRole.HelpRole)
+                        help_button.setToolTip("Hilfe anzeigen (F1)")
+                        help_button.setMaximumSize(30, 25)
+                        help_button.clicked.connect(
+                            lambda: help_manager.show_help_for_form(form_name)
+                        )
+                        break
+                
+                elif help_button_style == "floating":
+                    # Fallback: Floating Button
+                    help_button = help_integration.create_help_button(form_widget, form_name, "?")
+                    help_button.setStyleSheet("""
+                        QPushButton {
+                            background-color: #f0f0f0;
+                            border: 1px solid #c0c0c0;
+                            border-radius: 15px;
+                            font-weight: bold;
+                            color: #666;
+                        }
+                        QPushButton:hover {
+                            background-color: #e0e0e0;
+                            color: #333;
+                        }
+                    """)
+                    
+                    def position_help_button():
+                        parent_rect = form_widget.rect()
+                        button_size = 30
+                        margin = 10
+                        x = parent_rect.width() - button_size - margin
+                        y = margin
+                        help_button.setGeometry(x, y, button_size, button_size)
+                        help_button.raise_()
+                    
+                    position_help_button()
+                    
+                    original_resize_event = getattr(form_widget, 'resizeEvent', None)
+                    def new_resize_event(event):
+                        if original_resize_event:
+                            original_resize_event(event)
+                        position_help_button()
+                    
+                    form_widget.resizeEvent = new_resize_event
+                    form_widget._help_button = help_button
+                
             return True
     except Exception as e:
         logger.debug(f"Help-Integration für {form_name} fehlgeschlagen: {e}")

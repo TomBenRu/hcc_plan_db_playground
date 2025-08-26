@@ -14,7 +14,7 @@ class DlgSendAppointmentsToGoogleCal(QDialog):
         self._setup_ui()
         
         # F1 Help Integration
-        setup_form_help(self, "google_calendar")
+        setup_form_help(self, "google_calendar", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

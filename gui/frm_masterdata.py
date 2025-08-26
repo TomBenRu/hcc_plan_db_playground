@@ -35,7 +35,7 @@ class FrmMasterData(QMainWindow):
         super().__init__(parent)
         
         # Help-System Integration
-        setup_form_help(self, "masterdata")
+        setup_form_help(self, "masterdata", add_help_button=True, help_button_style='floating')
         
         self.setWindowTitle(self.tr('Master Data'))
         self.setGeometry(50, 50, 1000, 600)

@@ -76,7 +76,7 @@ class DlgEmployeeEventDetails(QDialog):
             self._setup_defaults()
             
         # F1 Help Integration
-        setup_form_help(self, "employee_event_details")
+        setup_form_help(self, "employee_event_details", add_help_button=True)
             
         logger.info(f"Employee Event Details Dialog initialized - Mode: {'Edit' if self.is_edit_mode else 'New'}")
 

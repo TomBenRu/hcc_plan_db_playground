@@ -69,7 +69,7 @@ class DlgCastRule(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
         # F1 Help Integration
-        setup_form_help(self, "cast_rule")
+        setup_form_help(self, "cast_rule", add_help_button=True)
 
     def _setup_data(self):
         self.text_rule_chars = self.tr(
@@ -243,7 +243,7 @@ class DlgCastRules(QDialog):
         self.button_box.rejected.connect(self.reject)
 
         # F1 Help Integration
-        setup_form_help(self, "cast_rules")
+        setup_form_help(self, "cast_rules", add_help_button=True)
 
     def _create_table(self) -> QTableWidget:
         table_widget = QTableWidget()

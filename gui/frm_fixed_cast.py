@@ -335,7 +335,7 @@ class DlgFixedCast(QDialog):
         self.layout.addWidget(self.button_box)
 
         # F1 Help Integration
-        setup_form_help(self, "fixed_cast")
+        setup_form_help(self, "fixed_cast", add_help_button=True)
 
     def de_date__set_initial_value(self):
         if self.builder.fixed_date:

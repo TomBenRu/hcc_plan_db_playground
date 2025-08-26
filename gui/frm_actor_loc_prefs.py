@@ -65,6 +65,10 @@ class DlgActorLocPref(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
+        
+        # Help-System Integration
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "actor_loc_prefs", add_help_button=True)
 
     def date_changed(self):
         self.set_new__locations()

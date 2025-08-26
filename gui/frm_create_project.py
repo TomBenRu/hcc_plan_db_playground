@@ -14,7 +14,7 @@ class DlgCreateProject(QDialog):
         self._setup_ui()
         
         # F1 Help Integration
-        setup_form_help(self, "create_project")
+        setup_form_help(self, "create_project", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

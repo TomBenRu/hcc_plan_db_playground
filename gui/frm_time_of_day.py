@@ -236,7 +236,7 @@ class DlgTimeOfDayEdit(QDialog):
         self.autofill()
 
         # Help-Integration
-        setup_form_help(self, "time_of_day")
+        setup_form_help(self, "time_of_day", add_help_button=True)
 
     def autofill(self):
         for t_o_d_enum in self.project.time_of_day_enums:
@@ -336,7 +336,7 @@ class DlgTimeOfDaysEditList(QDialog):
         self.layout.addWidget(self.button_box, 3, 0, 1, 3)
 
         # Help-Integration
-        setup_form_help(self, "time_of_day")
+        setup_form_help(self, "time_of_day", add_help_button=True)
 
     def setup_table_time_of_days(self):
         if self.table_time_of_days:
@@ -516,7 +516,7 @@ class DlgTimeOfDayEnum(QDialog):  # todo: zu Tabelle wie DlgTimeOfDay ändern. O
         self.autofill()
 
         # Help-Integration
-        setup_form_help(self, "time_of_day")
+        setup_form_help(self, "time_of_day", add_help_button=True)
 
     def save(self):
         name = self.le_name.text()

@@ -85,7 +85,7 @@ class DlgAvailAtDay(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "avail_at_day")
+        setup_form_help(self, "avail_at_day", add_help_button=True)
 
     def _setup_ui(self):
         self.setStyleSheet('background-color: none')
@@ -135,7 +135,7 @@ class DlgGuest(QDialog):
         self._setup_layout()
         
         # Help-Integration
-        setup_form_help(self, "guest")
+        setup_form_help(self, "guest", add_help_button=True)
 
     def _setup_layout(self):
         self.layout = QVBoxLayout(self)
@@ -165,7 +165,7 @@ class DlgEditAppointment(QDialog):
         self._setup_employee_combos()
         
         # Help-Integration
-        setup_form_help(self, "edit_appointment")
+        setup_form_help(self, "edit_appointment", add_help_button=True)
 
     def _setup_layout(self):
         self.setStyleSheet('background-color: none;')
@@ -256,7 +256,7 @@ class DlgMoveAppointment(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "move_appointment")
+        setup_form_help(self, "move_appointment", add_help_button=True)
 
     def _setup_ui(self):
         self.setStyleSheet("background-color: none")
@@ -767,7 +767,7 @@ class FrmTabPlan(QWidget):
     def _setup_help_integration(self):
         """Integriert das vereinfachte Hilfe-System in das Plan-Formular."""
         from tools.helper_functions import setup_form_help
-        setup_form_help(self, "plan")
+        setup_form_help(self, "plan", add_help_button=True)
 
     def _generate_plan_data(self):
         self.appointment_widget_width = self.general_settings.plan_settings.column_width_plan

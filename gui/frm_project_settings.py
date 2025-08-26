@@ -84,7 +84,7 @@ class DlgSettingsProject(QDialog):
             self.layout_excel_export_settings.addWidget(widget)
 
         self.autofill()
-        setup_form_help(self, "project_settings")
+        setup_form_help(self, "project_settings", add_help_button=True)
 
     def autofill(self):
         self.le_name.setText(self.project.name)

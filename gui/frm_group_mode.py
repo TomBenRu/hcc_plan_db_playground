@@ -644,11 +644,11 @@ class DlgGroupProperties(QDialog):
 
     def _setup_help_system(self):
         """Setup Help-System (kann von Child-Klassen überschrieben werden)"""
-        setup_form_help(self, "group_properties")
+        setup_form_help(self, "group_properties", add_help_button=True)
 
     def _setup_help_system(self):
         """Setup Help-System (kann von Child-Klassen überschrieben werden)"""
-        setup_form_help(self, "group_properties")
+        setup_form_help(self, "group_properties", add_help_button=True)
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -745,7 +745,7 @@ class DlgGroupPropertiesAvailDay(DlgGroupProperties):
 
     def _setup_help_system(self):
         """Setup Help-System für erweiterte Verfügbarkeits-Features"""
-        setup_form_help(self, "group_properties_avail_day")
+        setup_form_help(self, "group_properties_avail_day", add_help_button=True)
 
     def chk_none_toggled(self, checked: bool, clicked=False):
         super().chk_none_toggled(checked, clicked)
@@ -944,7 +944,7 @@ class DlgGroupMode(QDialog):
         self.resize(400, 400)
 
         # Help-System Integration
-        setup_form_help(self, "group_mode")
+        setup_form_help(self, "group_mode", add_help_button=True)
 
         self.builder = builder
         self.controller = command_base_classes.ContrExecUndoRedo()

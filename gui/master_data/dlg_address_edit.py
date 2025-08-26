@@ -67,7 +67,7 @@ class DlgAddressEdit(QDialog):
         self._update_ui_for_mode()
         
         # Help integration
-        setup_form_help(self, "address_edit")
+        setup_form_help(self, "address_edit", add_help_button=True)
     
     def _setup_ui(self):
         """Setup the user interface."""

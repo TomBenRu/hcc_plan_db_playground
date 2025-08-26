@@ -16,7 +16,7 @@ class DlgNumActorsApp(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "num_actors_app")
+        setup_form_help(self, "num_actors_app", add_help_button=True)
 
     def _setup_ui(self):
         self.setWindowTitle(self.tr("Number of Employees per Event"))
@@ -61,7 +61,7 @@ class DlgNumEmployeesEvent(QDialog):
         self._setup_ui()
         
         # Help-Integration
-        setup_form_help(self, "num_actors_app")
+        setup_form_help(self, "num_actors_app", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

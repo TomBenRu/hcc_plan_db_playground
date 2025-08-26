@@ -124,7 +124,7 @@ class DlgCalculate(QDialog):
         super().__init__(parent)
 
         # Help-System Integration
-        setup_form_help(self, "calculate_plan")
+        setup_form_help(self, "calculate_plan", add_help_button=True)
 
         signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit,
                                                                      Qt.ConnectionType.QueuedConnection)

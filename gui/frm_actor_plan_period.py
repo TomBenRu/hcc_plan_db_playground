@@ -821,7 +821,7 @@ class FrmTabActorPlanPeriods(QWidget):
         self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
 
         # Help-System Integration
-        setup_form_help(self, "actor_plan_period")
+        setup_form_help(self, "actor_plan_period", add_help_button=True)
 
         # Die Planungsmaske der alphabetisch 1. Person wird als erstes angezeigt
         self.data_setup(None, None,

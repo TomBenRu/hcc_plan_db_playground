@@ -63,7 +63,7 @@ class DlgEmployeeEventCategories(QDialog):
             self._select_category_by_id(selected_category_id)
             
         # F1 Help Integration
-        setup_form_help(self, "employee_event_categories")
+        setup_form_help(self, "employee_event_categories", add_help_button=True)
             
         logger.info(f"Employee Event Categories Dialog initialized for project {project_id}")
 

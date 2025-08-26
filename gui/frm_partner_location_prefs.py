@@ -121,7 +121,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
         
         # Help-Integration
         from tools.helper_functions import setup_form_help
-        setup_form_help(self, "partner_location_prefs_locs")
+        setup_form_help(self, "partner_location_prefs_locs", add_help_button=True)
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -231,7 +231,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
         
         # Help-Integration
         from tools.helper_functions import setup_form_help
-        setup_form_help(self, "partner_location_prefs_partner")
+        setup_form_help(self, "partner_location_prefs_partner", add_help_button=True)
 
     def reject(self) -> None:
         self.controller.undo_all()
@@ -344,7 +344,7 @@ class DlgPartnerLocationPrefs(QDialog):
         
         # Help-Integration
         from tools.helper_functions import setup_form_help
-        setup_form_help(self, "partner_location_prefs")
+        setup_form_help(self, "partner_location_prefs", add_help_button=True)
 
         self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
 

@@ -33,10 +33,10 @@ class DlgPlanPeriodCreate(QDialog):
         self.fill_dispatchers()
         
         # Help-Integration
-        setup_form_help(self, "plan_period_create")
+        setup_form_help(self, "plan_period_create", add_help_button=True)
         
         # Help-Integration
-        setup_form_help(self, "plan_period_create")
+        setup_form_help(self, "plan_period_create", add_help_button=True)
 
     def _setup_ui(self):
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
@@ -243,7 +243,7 @@ class DlgPlanPeriodEdit(QDialog):
         self.fill_dispatchers()
         
         # Help-Integration
-        setup_form_help(self, "plan_period_create")
+        setup_form_help(self, "plan_period_create", add_help_button=True)
 
     def _setup_ui(self):
         self.layout = QVBoxLayout()

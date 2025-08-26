@@ -57,7 +57,7 @@ class DlgNewCombLocPossible(QDialog):
         self.button_box.rejected.connect(self.reject)
         
         # F1 Help Integration
-        setup_form_help(self, "new_comb_loc_possible")
+        setup_form_help(self, "new_comb_loc_possible", add_help_button=True)
 
     def check_changed(self, state: int):
         if state == Qt.CheckState.Checked:
@@ -127,7 +127,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.button_box.setCenterButtons(True)
         
         # F1 Help Integration
-        setup_form_help(self, "comb_loc_possible_edit_list")
+        setup_form_help(self, "comb_loc_possible_edit_list", add_help_button=True)
 
     def set_new__locations__parent_model(self):
         date = self.de_date.date().toPython()

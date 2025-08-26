@@ -683,7 +683,7 @@ class FrmTabLocationPlanPeriods(QWidget):
         self.setObjectName('tab_location_plan_periods')
 
         # Help-System Integration
-        setup_form_help(self, "location_plan_period")
+        setup_form_help(self, "location_plan_period", add_help_button=True)
 
         signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 

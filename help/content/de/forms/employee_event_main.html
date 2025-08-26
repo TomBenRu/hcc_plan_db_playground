@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Event Management - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="employee, event, management, hauptinterface, liste, kalender, filter, crud, mitarbeiter, veranstaltung">
+    <meta name="description" content="Hilfe für das Employee Event Management Interface in HCC Plan - Vollständiges CRUD-System mit Dual Views und umfassenden Filter-Funktionen">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Employee Event Management</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Employee Event Management</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Das Employee Event Management ist das zentrale Interface für die vollständige Verwaltung von Mitarbeiter-Events. Es bietet ein ausgeklügeltes Dual-View-System (Listen- und Kalenderansicht), umfassende Filter-Funktionen, vollständige CRUD-Operationen und nahtlose Integration aller Employee Event System-Komponenten in einer professionellen Management-Oberfläche.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Dual-View-System:</strong> Umschaltung zwischen übersichtlicher Listen-Ansicht und visueller Kalender-Ansicht</li>
+            <li><strong>Vollständiges CRUD-Interface:</strong> Create, Read, Update, Delete-Operationen für alle Employee Events</li>
+            <li><strong>Multi-Kriterien-Filter-System:</strong> Filter nach Teams, Kategorien und Freitext-Suche mit Real-time-Updates</li>
+            <li><strong>Intelligent Calendar Integration:</strong> Datum-spezifische Event-Anzeige mit Unterstützung für mehrtägige Events</li>
+            <li><strong>Service-Layer-Integration:</strong> Vollständige EmployeeEventService-Anbindung mit ErrorResponseSchema-Handling</li>
+            <li><strong>External Signal Communication:</strong> Event-Selection und Modification-Signals für System-Integration</li>
+            <li><strong>Command Pattern-Support:</strong> Undo/Redo-Funktionalität für alle Event-Operationen</li>
+            <li><strong>Performance-optimierte UI:</strong> Search Timer, Data Caching und effiziente View-Updates</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Interface-Navigation</h3>
+        <ol>
+            <li><strong>Ansicht wählen:</strong> Klicken Sie <strong>"📋 List View"</strong> oder <strong>"📅 Calendar View"</strong> um zwischen den Darstellungsarten zu wechseln</li>
+            <li><strong>Events filtern:</strong> Verwenden Sie die Filter-Optionen um die Anzeige zu verfeinern:
+                <ul>
+                    <li><strong>Team:</strong> Filter nach spezifischen Teams oder "All Teams"</li>
+                    <li><strong>Category:</strong> Filter nach Event-Kategorien oder "All Categories"</li>
+                    <li><strong>Search:</strong> Freitext-Suche in Titel und Beschreibung</li>
+                </ul>
+            </li>
+            <li><strong>Events auswählen:</strong> Klicken Sie auf Events in der Liste oder Kalender-Detail-Ansicht</li>
+            <li><strong>Aktionen ausführen:</strong> Verwenden Sie die Aktions-Buttons für Event-Management</li>
+        </ol>
+
+        <h3>Listen-Ansicht-Workflow</h3>
+        <ol>
+            <li>Aktivieren Sie <strong>"📋 List View"</strong> für tabellarische Übersicht</li>
+            <li>Die Tabelle zeigt alle Events chronologisch sortiert mit Start, Ende, Titel, Kategorie, Teams und Teilnehmer-Anzahl</li>
+            <li>Klicken Sie auf Zeilen um Events auszuwählen</li>
+            <li>Nutzen Sie Doppelklick für schnelle Bearbeitung</li>
+            <li>Verwalten Sie Events über die Aktions-Buttons</li>
+        </ol>
+
+        <h3>Kalender-Ansicht-Workflow</h3>
+        <ol>
+            <li>Aktivieren Sie <strong>"📅 Calendar View"</strong> für visuelle Monatsübersicht</li>
+            <li>Klicken Sie auf Kalendertage um Events für spezifische Daten anzuzeigen</li>
+            <li>Die untere Ereignis-Liste zeigt alle Events des ausgewählten Datums</li>
+            <li>Mehrtägige Events werden intelligent mit Zeitbereich-Anzeige dargestellt</li>
+            <li>Wählen Sie Events in der Datum-spezifischen Liste für Aktionen aus</li>
+        </ol>
+
+        <h3>Event-Management-Operationen</h3>
+        <ol>
+            <li><strong>Neues Event:</strong> Klicken Sie <strong>"➕ New Event"</strong> um den Event-Details-Dialog zu öffnen</li>
+            <li><strong>Event bearbeiten:</strong> Wählen Sie ein Event und klicken Sie <strong>"✏️ Edit Event"</strong></li>
+            <li><strong>Event löschen:</strong> Wählen Sie ein Event und klicken Sie <strong>"🗑️ Delete Event"</strong> (mit Bestätigung)</li>
+            <li><strong>Kategorien verwalten:</strong> Klicken Sie <strong>"📂 Manage Categories"</strong> für Kategorie-CRUD</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+                <li><strong>Tab:</strong> Zwischen Filter-Feldern und Listen navigieren</li>
+                <li><strong>Pfeiltasten:</strong> In Tabelle oder Kalender navigieren</li>
+                <li><strong>Enter:</strong> Ausgewähltes Event bearbeiten</li>
+                <li><strong>Delete:</strong> Ausgewähltes Event löschen</li>
+                <li><strong>Ctrl+N:</strong> Neues Event erstellen</li>
+                <li><strong>Ctrl+E:</strong> Event bearbeiten</li>
+                <li><strong>Ctrl+F:</strong> Suchfeld fokussieren</li>
+                <li><strong>Ctrl+R:</strong> Alle Filter zurücksetzen</li>
+                <li><strong>Ctrl+L:</strong> Listen-Ansicht aktivieren</li>
+                <li><strong>Ctrl+K:</strong> Kalender-Ansicht aktivieren</li>
+                <li><strong>F5:</strong> Events neu laden</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="employee_event_details.html">Employee Event Details</a></strong> - Vollständige Event-Konfiguration und -Bearbeitung</li>
+            <li><strong><a href="employee_event_categories.html">Event-Kategorien verwalten</a></strong> - CRUD-Management für Event-Kategorien</li>
+            <li><strong><a href="participant_selection.html">Teilnehmer-Auswahl</a></strong> - Detailliertes Teilnehmer-Management für Events</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Das Employee Event Management Interface ist die zentrale Steuerungszentrale für alle Mitarbeiter-Events eines Projekts. Es dient sowohl der strategischen Übersicht als auch der operativen Verwaltung und ermöglicht verschiedene Perspektiven auf dasselbe Event-Portfolio.</p>
+
+        <p><strong>Typische Verwendungsszenarien:</strong></p>
+        <ul>
+            <li><strong>Event-Portfolio-Übersicht:</strong> Strategische Sicht auf alle geplanten Events mit Filter-basierten Analysen</li>
+            <li><strong>Tages- und Wochenplanung:</strong> Kalender-Ansicht für chronologische Event-Verteilung und Konflikt-Erkennung</li>
+            <li><strong>Team-spezifische Event-Verwaltung:</strong> Filter-basierte Verwaltung von Events für spezifische Teams oder Bereiche</li>
+            <li><strong>Kategorie-basierte Auswertungen:</strong> Analyse von Event-Portfolios basierend auf Event-Kategorien</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Header-Bereich</h3>
+        <p>Der obere Bereich enthält Titel und View-Toggle-Funktionalität:</p>
+        <ul>
+            <li><strong>Titel:</strong> "Employee Events" mit prominent hervorgehobener Schrift</li>
+            <li><strong>View-Toggle:</strong> Zwei checkable Buttons zum Umschalten zwischen Listen- und Kalender-Ansicht</li>
+            <li><strong>Visual Feedback:</strong> Aktive View wird farblich hervorgehoben (Teal-Färbung)</li>
+        </ul>
+
+        <h3>Filter-Sektion</h3>
+        <p>Umfassende Filter-Optionen für präzise Event-Auswahl:</p>
+        <ul>
+            <li><strong>Team-Filter:</strong> Dropdown mit "All Teams" oder spezifischen Team-Namen</li>
+            <li><strong>Category-Filter:</strong> Dropdown mit "All Categories" oder vorhandenen Kategorien</li>
+            <li><strong>Search-Field:</strong> Freitext-Suche mit Placeholder "Search in title and description..."</li>
+            <li><strong>Reset-Button:</strong> "Reset Filters" setzt alle Filter auf Standardwerte zurück</li>
+            <li><strong>Filter-Status:</strong> Live-Anzeige der aktiven Filter und resultierenden Event-Anzahl</li>
+        </ul>
+
+        <h3>Dual-View-System</h3>
+        
+        <h4>Listen-Ansicht (📋 List View)</h4>
+        <p>Tabellarische Darstellung aller Events mit umfassenden Details:</p>
+        <ul>
+            <li><strong>6-Spalten-Layout:</strong> Start, End, Title, Categories, Teams, Participants</li>
+            <li><strong>Chronologische Sortierung:</strong> Events automatisch nach Start-Datum/Zeit sortiert</li>
+            <li><strong>Single Selection:</strong> Auswahl einzelner Events für Aktionen</li>
+            <li><strong>Tooltips:</strong> Beschreibung beim Hovern über Titel, Teilnehmer-Namen bei Participants-Spalte</li>
+            <li><strong>Responsive Columns:</strong> Intelligente Spaltenbreiten-Anpassung</li>
+        </ul>
+
+        <h4>Kalender-Ansicht (📅 Calendar View)</h4>
+        <p>Visuelle Monats-/Jahres-Darstellung mit datum-spezifischen Details:</p>
+        <ul>
+            <li><strong>CalendarLocale-Integration:</strong> Lokalisierte Kalender-Darstellung basierend auf System-Einstellungen</li>
+            <li><strong>Date Selection:</strong> Klick auf Kalender-Tage zeigt Events für das spezifische Datum</li>
+            <li><strong>Kompakte Events-Tabelle:</strong> 3-Spalten-Darstellung (Time Span, Title, Category) unter dem Kalender</li>
+            <li><strong>Mehrtägige Event-Unterstützung:</strong> Intelligente Zeit-Anzeige für Events die mehrere Tage umfassen</li>
+            <li><strong>Dynamic Date Header:</strong> Ausgewähltes Datum und Event-Anzahl werden prominent angezeigt</li>
+        </ul>
+
+        <h3>Aktions-Bereich</h3>
+        <p>Vollständiges Event-Management mit integrierten CRUD-Operationen:</p>
+        <ul>
+            <li><strong>"➕ New Event":</strong> Öffnet Event-Details-Dialog für neue Events</li>
+            <li><strong>"✏️ Edit Event":</strong> Bearbeitung des ausgewählten Events (nur bei Auswahl aktiv)</li>
+            <li><strong>"🗑️ Delete Event":</strong> Löschung mit Sicherheitsabfrage (nur bei Auswahl aktiv)</li>
+            <li><strong>"📂 Manage Categories":</strong> Zugang zum Kategorien-Management-System</li>
+            <li><strong>Status-Label:</strong> Live-Anzeige des aktuellen System-Status</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>🏢 Strategische Event-Portfolio-Verwaltung</h3>
+        <p><strong>Szenario:</strong> Überblick und Management aller Unternehmens-Events</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Verwenden Sie <strong>"📋 List View"</strong> für chronologische Gesamtübersicht</li>
+            <li>Nutzen Sie Team-Filter um Events verschiedener Bereiche zu analysieren</li>
+            <li>Verwenden Sie Category-Filter für Typ-spezifische Auswertungen</li>
+            <li>Identifizieren Sie Lücken oder Überlappungen in der Event-Planung</li>
+            <li>Koordinieren Sie Event-Erstellung und -Anpassungen strategisch</li>
+        </ol>
+
+        <h3>🚀 Wöchentliche Event-Koordination</h3>
+        <p><strong>Szenario:</strong> Operative Planung und Konflikterkennung für die kommende Woche</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Wechseln Sie zu <strong>"📅 Calendar View"</strong> für visuelle Wochenübersicht</li>
+            <li>Klicken Sie auf einzelne Tage um Events im Detail zu sehen</li>
+            <li>Prüfen Sie mehrtägige Events auf Ressourcen-Konflikte</li>
+            <li>Nutzen Sie die kompakte Events-Tabelle unter dem Kalender für Zeitplan-Details</li>
+            <li>Bearbeiten Sie Events direkt aus der Kalender-Ansicht</li>
+        </ol>
+
+        <h3>🎯 Team-spezifische Event-Verwaltung</h3>
+        <p><strong>Szenario:</strong> Management aller Events eines bestimmten Teams</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Setzen Sie Team-Filter auf das gewünschte Team</li>
+            <li>Verwenden Sie Listen-Ansicht für vollständige Team-Event-Übersicht</li>
+            <li>Analysieren Sie Event-Verteilung und -Häufigkeit</li>
+            <li>Erstellen Sie neue Team-spezifische Events mit <strong>"➕ New Event"</strong></li>
+            <li>Koordinieren Sie mit anderen Teams durch Kategorie-Filter-Wechsel</li>
+        </ol>
+
+        <h3>🔄 Event-Lifecycle-Management</h3>
+        <p><strong>Szenario:</strong> Vollständiger Lifecycle von Event-Erstellung bis -Archivierung</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li><strong>Planung:</strong> Nutzen Sie Kalender-View für strategische Terminplanung</li>
+            <li><strong>Erstellung:</strong> Erstellen Sie Events mit <strong>"➕ New Event"</strong> und vollständiger Detail-Konfiguration</li>
+            <li><strong>Monitoring:</strong> Verwenden Sie Filter für kontinuierliche Überwachung</li>
+            <li><strong>Anpassungen:</strong> Bearbeiten Sie Events mit <strong>"✏️ Edit Event"</strong> basierend auf Feedback</li>
+            <li><strong>Cleanup:</strong> Löschen Sie abgelaufene oder nicht mehr relevante Events</li>
+        </ol>
+
+        <h2>Häufige Probleme &amp; Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: "Event-Liste bleibt leer trotz vorhandener Events"</h4>
+            <p><strong>Ursache:</strong> Zu restriktive Filter-Kombination filtert alle Events heraus</p>
+            <p><strong>Lösung:</strong> Klicken Sie "Reset Filters" um alle Filter zurückzusetzen oder lockern Sie schrittweise die Filter-Kriterien</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Edit/Delete-Buttons bleiben deaktiviert"</h4>
+            <p><strong>Ursache:</strong> Kein Event ausgewählt oder Selection ging verloren</p>
+            <p><strong>Lösung:</strong> Klicken Sie auf eine Event-Zeile in der Tabelle oder ein Event in der Kalender-Detail-Liste um es auszuwählen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Kalender zeigt keine Events an bestimmten Tagen"</h4>
+            <p><strong>Ursache:</strong> Events sind durch aktive Filter herausgefiltert oder liegen außerhalb des sichtbaren Zeitraums</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die aktiven Filter und stellen Sie sicher, dass Sie den korrekten Monat/Jahr im Kalender betrachten</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Suchergebnisse aktualisieren sich verzögert"</h4>
+            <p><strong>Ursache:</strong> Das System verwendet einen 300ms Timer für Performance-Optimierung</p>
+            <p><strong>Lösung:</strong> Das ist normales Verhalten - warten Sie kurz nach der Texteingabe für automatische Aktualisierung</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "View-Wechsel zeigt veraltete Daten"</h4>
+            <p><strong>Ursache:</strong> Cache-Inkonsistenz zwischen verschiedenen Views</p>
+            <p><strong>Lösung:</strong> Nutzen Sie F5 oder einen Filter-Reset um die Daten zu aktualisieren</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 View-Strategien</h4>
+            <ul>
+                <li><strong>Listen-View für Übersicht:</strong> Nutzen Sie Tabellen-Ansicht für umfassende Event-Analysen und Filter-Operations</li>
+                <li><strong>Kalender-View für Planung:</strong> Verwenden Sie Kalender für visuelle Terminplanung und Konflikt-Erkennung</li>
+                <li><strong>Workflow-abhängige Wahl:</strong> Strategische Tätigkeiten → Liste, Operative Planung → Kalender</li>
+                <li><strong>Filter-View-Kombination:</strong> Nutzen Sie Filter in beiden Views für spezifische Analysen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Filter-Optimierung</h4>
+            <ul>
+                <li><strong>Hierarchische Filterung:</strong> Beginnen Sie mit Team-Filter, verfeinern Sie dann mit Kategorien</li>
+                <li><strong>Freitext-Suche als Ergänzung:</strong> Nutzen Sie Search für spezifische Events nach grober Vor-Filterung</li>
+                <li><strong>Filter-Status beachten:</strong> Das Status-Label zeigt die Auswirkung Ihrer Filter-Kombinationen</li>
+                <li><strong>Reset als Neustart:</strong> Verwenden Sie Reset bei komplexen Filter-Kombinationen für frischen Start</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ CRUD-Workflow-Effizienz</h4>
+            <ul>
+                <li><strong>Batch-Operationen planen:</strong> Gruppieren Sie ähnliche Event-Erstellungen/Bearbeitungen</li>
+                <li><strong>Template-Events nutzen:</strong> Erstellen Sie Template-Events und nutzen Sie "Save as new" für ähnliche Events</li>
+                <li><strong>Undo/Redo ausnutzen:</strong> Command Pattern ermöglicht sicheres Experimentieren</li>
+                <li><strong>Kategorien systematisch nutzen:</strong> Investieren Sie Zeit in gute Kategorien-Struktur für bessere Filter-Ergebnisse</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Performance-Optimierung</h4>
+            <ul>
+                <li><strong>Filter schrittweise anwenden:</strong> Vermeiden Sie zu komplexe Filter-Kombinationen für bessere Response-Zeiten</li>
+                <li><strong>View-Wechsel strategisch nutzen:</strong> Kalender-View für kurze Zeiträume, Listen-View für größere Übersichten</li>
+                <li><strong>Cache-freundlich arbeiten:</strong> Vermeiden Sie zu häufige View-Wechsel bei großen Event-Mengen</li>
+                <li><strong>Search-Timer respektieren:</strong> Lassen Sie die Suchverzögerung wirken statt schnell zu tippen</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Dual-View-Architecture</h3>
+        <p>Ausgeklügeltes View-Management-System für verschiedene User-Workflows:</p>
+        <ul>
+            <li><strong>QStackedWidget-Implementation:</strong> Effiziente Umschaltung zwischen Views ohne Performance-Verlust</li>
+            <li><strong>View-State-Persistence:</strong> Filter und Auswahlen bleiben beim View-Wechsel erhalten</li>
+            <li><strong>Dynamic Button Styling:</strong> Visual Feedback für aktive Views</li>
+            <li><strong>Independent View Logic:</strong> Jede View hat optimierte Update-Mechanismen</li>
+        </ul>
+
+        <h3>Advanced Filter-System</h3>
+        <p>Multi-Kriterien-Filter mit Performance-Optimierung:</p>
+        <ul>
+            <li><strong>Kombinierbare Filter:</strong> Team + Category + Search gleichzeitig anwendbar</li>
+            <li><strong>Real-time Filter Status:</strong> Live-Anzeige der Filter-Auswirkungen</li>
+            <li><strong>Performance Search Timer:</strong> 300ms Verzögerung verhindert excessive Updates</li>
+            <li><strong>Filter Memory:</strong> Aktive Filter bleiben bei View-Wechseln erhalten</li>
+        </ul>
+
+        <h3>Calendar Integration Features</h3>
+        <p>Professionelle Kalender-Integration mit erweiterten Features:</p>
+        <ul>
+            <li><strong>Multi-Day Event Support:</strong> Intelligente Anzeige für Events die mehrere Tage umfassen</li>
+            <li><strong>Time Span Logic:</strong> "from HH:mm", "until HH:mm", "all day" Darstellung je nach Tag-Position</li>
+            <li><strong>Date-specific Event Loading:</strong> Effiziente Laden nur der Events für ausgewählte Tage</li>
+            <li><strong>Compact Event Display:</strong> Optimierte Tabelle mit begrenzter Höhe für bessere UX</li>
+        </ul>
+
+        <h3>Service-Layer-Integration</h3>
+        <p>Vollständige EmployeeEventService-Integration:</p>
+        <ul>
+            <li><strong>get_all_events:</strong> Lädt alle Events für das Projekt mit Performance-Optimierung</li>
+            <li><strong>Data Caching Strategy:</strong> Intelligent caching für Teams, Categories und Events</li>
+            <li><strong>Error Response Handling:</strong> Structured error handling mit User-friendly Messages</li>
+            <li><strong>Service State Management:</strong> Connection pooling und Session management</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Data Architecture</h3>
+        <p>Optimierte Daten-Architektur für große Event-Mengen:</p>
+        <ul>
+            <li><strong>events_cache:</strong> Vollständige Event-Liste als List[EventDetail]</li>
+            <li><strong>filtered_events:</strong> Gefilterte Events basierend auf aktuellen Filter-Kriterien</li>
+            <li><strong>teams_cache / categories_cache:</strong> Lookup-Caches für Filter-Performance</li>
+            <li><strong>Lazy Loading:</strong> Views werden nur bei Bedarf aktualisiert</li>
+        </ul>
+
+        <h3>Signal System Architecture</h3>
+        <p>External Communication über Qt Signal System:</p>
+        <ul>
+            <li><strong>event_selected Signal:</strong> Kommuniziert Event-Auswahl an externe Komponenten</li>
+            <li><strong>event_modified Signal:</strong> Benachrichtigung über Event-Änderungen für System-Synchronisation</li>
+            <li><strong>Cross-Component Integration:</strong> Ermöglicht Integration in größere Application-Workflows</li>
+        </ul>
+
+        <h3>Command Pattern Integration</h3>
+        <p>Vollständige Undo/Redo-Unterstützung:</p>
+        <ul>
+            <li><strong>ContrExecUndoRedo:</strong> Controller für alle Event-Operations</li>
+            <li><strong>Cross-Dialog Command Integration:</strong> Commands von Sub-Dialogen werden in Main-Controller integriert</li>
+            <li><strong>Transactional Consistency:</strong> Atomare Operations mit Rollback-Fähigkeit</li>
+        </ul>
+
+        <h3>DateTime-Management-System</h3>
+        <p>Ausgeklügeltes DateTime-Handling für verschiedene Anzeigemodi:</p>
+        <ul>
+            <li><strong>Locale-based Formatting:</strong> Datum/Zeit-Formate basierend auf general_settings_handler</li>
+            <li><strong>Multi-day Logic:</strong> Intelligente Anzeige für Events die Tagesgrenzen überschreiten</li>
+            <li><strong>Timezone Consistency:</strong> Einheitliche Timezone-Behandlung über alle Views</li>
+            <li><strong>Performance Formatting:</strong> Optimierte String-Konvertierung für große Event-Listen</li>
+        </ul>
+
+        <h3>UI State Management</h3>
+        <p>Sophistiziertes Management der UI-Zustände:</p>
+        <ul>
+            <li><strong>Dynamic Button States:</strong> Edit/Delete-Buttons aktivieren sich basierend auf Event-Auswahl</li>
+            <li><strong>View-Specific Logic:</strong> Verschiedene Selection-Handler für Liste vs. Kalender</li>
+            <li><strong>Filter State Persistence:</strong> Filter bleiben bei View-Wechseln und Dialog-Returns aktiv</li>
+            <li><strong>Error State Handling:</strong> Graceful degradation bei Service-Layer-Fehlern</li>
+        </ul>
+
+        <h3>Performance Optimizations</h3>
+        <p>Optimierungen für große Event-Datenmengen:</p>
+        <ul>
+            <li><strong>Search Timer Pattern:</strong> Verzögerung verhindert übermäßige Filter-Updates</li>
+            <li><strong>Incremental Loading:</strong> Views laden nur sichtbare Data-Ranges</li>
+            <li><strong>Efficient Table Updates:</strong> Row-by-Row Updates nur bei tatsächlichen Änderungen</li>
+            <li><strong>Memory Management:</strong> Intelligent cache cleanup und Data-Release</li>
+        </ul>
+
+    </div>
+</body>
+</html>

@@ -27,6 +27,7 @@ from commands import command_base_classes
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema, Category
+from tools.helper_functions import setup_form_help
 from employee_event.db_commands import event_commands
 from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -70,6 +71,9 @@ class FrmEmployeeEventMain(QWidget):
 
         # Initial load
         self.refresh_events()
+
+        # F1 Help Integration
+        setup_form_help(self, "employee_event_main")
 
         logger.info(f"Employee Event Main Window initialized for project {project_id}")
 

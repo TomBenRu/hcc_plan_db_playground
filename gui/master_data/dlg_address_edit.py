@@ -26,6 +26,7 @@ from PySide6.QtGui import QFont
 from database import schemas
 from commands.database_commands import address_commands
 from commands.command_base_classes import ContrExecUndoRedo
+from tools.helper_functions import setup_form_help
 
 
 class DlgAddressEdit(QDialog):
@@ -64,6 +65,9 @@ class DlgAddressEdit(QDialog):
             self._load_address_data()
         
         self._update_ui_for_mode()
+        
+        # Help integration
+        setup_form_help(self, "address_edit")
     
     def _setup_ui(self):
         """Setup the user interface."""

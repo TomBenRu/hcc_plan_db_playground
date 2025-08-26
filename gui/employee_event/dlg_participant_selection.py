@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from database import db_services, schemas
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
+from tools.helper_functions import setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,9 @@ class DlgParticipantSelection(QDialog):
         # Vorausgewählte Teilnehmer setzen
         if self.selected_participants:
             self._set_selected_participants()
+            
+        # F1 Help Integration
+        setup_form_help(self, "participant_selection")
             
         logger.info(f"Participant Selection Dialog initialized for project {project_id}")
 

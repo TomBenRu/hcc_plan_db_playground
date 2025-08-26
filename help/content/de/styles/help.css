@@ -209,6 +209,17 @@ a:hover {
     text-decoration: underline;
 }
 
+/* Feature-List spezifische Link-Styles */
+.feature-list li a {
+    color: #3498db;
+    font-weight: 500;
+}
+
+.feature-list li a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
 .related-links {
     margin: 20px 0;
 }

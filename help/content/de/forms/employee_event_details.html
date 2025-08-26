@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Event Details - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="employee, event, details, erstellen, bearbeiten, datum, zeit, team, kategorie, teilnehmer">
+    <meta name="description" content="Hilfe für Employee Event Details in HCC Plan - Create/Update/Delete von Events mit vollständiger Zeitfeld-Integration">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Employee Event Details</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Employee Event Details</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Der Employee Event Details Dialog ist das zentrale Interface für die vollständige Verwaltung von Mitarbeiter-Events. Er unterstützt sowohl das Erstellen neuer Events als auch die umfassende Bearbeitung bestehender Events mit ausgeklügelter DateTime-Integration, Team- und Kategorie-Management, Teilnehmer-Auswahl sowie vollständiger Service-Layer-Anbindung und Command Pattern-Unterstützung.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Dual-Modus-Operation:</strong> Sowohl Create- als auch Update/Delete-Funktionalität in einem einheitlichen Interface</li>
+            <li><strong>Intelligente DateTime-Integration:</strong> Getrennte Datum- und Zeit-Steuerelemente mit automatischer End-Zeit-Berechnung</li>
+            <li><strong>Team-Assignment-System:</strong> Flexible Zuordnung zu einzelnen Teams oder allen Teams eines Projekts</li>
+            <li><strong>Kategorie-Management:</strong> Integration des Kategorien-Systems mit direktem Zugang zur Kategorien-Verwaltung</li>
+            <li><strong>Teilnehmer-Auswahl:</strong> Umfassendes Teilnehmer-Management mit datum-basierter Verfügbarkeitsprüfung</li>
+            <li><strong>Adress-Integration:</strong> Vollständige Adress-Verwaltung mit Create/Edit-Funktionalität direkt im Dialog</li>
+            <li><strong>Save-as-New-Feature:</strong> Option zum Duplizieren bestehender Events als Vorlage für neue Events</li>
+            <li><strong>Command Pattern-Integration:</strong> Undo/Redo-Funktionalität für alle Änderungen</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        
+        <h3>Neues Event erstellen</h3>
+        <ol>
+            <li>Öffnen Sie den Dialog über <strong>"New Event"</strong> aus dem Employee Event Management</li>
+            <li><strong>Grundinformationen eingeben:</strong>
+                <ul>
+                    <li>Geben Sie einen aussagekräftigen <strong>Titel</strong> ein (max. 40 Zeichen)</li>
+                    <li>Verfassen Sie eine <strong>Beschreibung</strong> die Zweck und Inhalt des Events erklärt</li>
+                </ul>
+            </li>
+            <li><strong>Datum und Zeit einstellen:</strong>
+                <ul>
+                    <li><strong>Start:</strong> Wählen Sie Datum und Uhrzeit des Event-Beginns</li>
+                    <li><strong>End:</strong> Das System setzt automatisch Ende = Start + 1 Stunde (anpassbar)</li>
+                </ul>
+            </li>
+            <li><strong>Zuordnungen konfigurieren:</strong>
+                <ul>
+                    <li><strong>Teams:</strong> Wählen Sie beteiligte Teams oder "All teams"</li>
+                    <li><strong>Kategorie:</strong> Ordnen Sie das Event einer Kategorie zu oder verwalten Sie Kategorien direkt</li>
+                    <li><strong>Adresse:</strong> Wählen Sie einen Veranstaltungsort oder erstellen Sie eine neue Adresse</li>
+                    <li><strong>Teilnehmer:</strong> Klicken Sie "Select..." um spezifische Mitarbeiter einzuladen</li>
+                </ul>
+            </li>
+            <li>Klicken Sie <strong>"Create Event"</strong> zum Speichern</li>
+        </ol>
+
+        <h3>Bestehendes Event bearbeiten</h3>
+        <ol>
+            <li>Öffnen Sie den Dialog über <strong>"Edit"</strong> bei einem bestehenden Event</li>
+            <li>Alle Felder sind mit den aktuellen Event-Daten vorausgefüllt</li>
+            <li>Nehmen Sie gewünschte Änderungen vor</li>
+            <li><strong>Speicher-Optionen:</strong>
+                <ul>
+                    <li><strong>"Update Event":</strong> Überschreibt das bestehende Event</li>
+                    <li><strong>"Save as new event":</strong> Aktivieren Sie die Checkbox um eine Kopie zu erstellen</li>
+                </ul>
+            </li>
+            <li>Alternativ: <strong>"🗑️ Delete Event"</strong> um das Event zu löschen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+                <li><strong>Tab:</strong> Zwischen Eingabefeldern navigieren</li>
+                <li><strong>Enter:</strong> Event speichern (entspricht "Create/Update Event")</li>
+                <li><strong>Escape:</strong> Dialog abbrechen</li>
+                <li><strong>Ctrl+S:</strong> Event speichern (Alternative zu Enter)</li>
+                <li><strong>Ctrl+D:</strong> Event duplizieren (aktiviert "Save as new event")</li>
+                <li><strong>Ctrl+Delete:</strong> Event löschen (nur im Edit-Modus)</li>
+                <li><strong>F2:</strong> Titel-Feld fokussieren</li>
+                <li><strong>F3:</strong> Teilnehmer-Auswahl öffnen</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="employee_event_main.html">Employee Event Management</a></strong> - Hauptinterface und Event-Übersicht</li>
+            <li><strong><a href="employee_event_categories.html">Event-Kategorien verwalten</a></strong> - Kategorien-System für Event-Strukturierung</li>
+            <li><strong><a href="participant_selection.html">Teilnehmer-Auswahl</a></strong> - Detaillierte Teilnehmer-Management-Funktionen</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Der Event Details Dialog ist das Herzstück des Employee Event Systems und ermöglicht die vollständige Konfiguration aller Event-Eigenschaften. Er wird sowohl für einzelne Ad-hoc-Events als auch für systematische Event-Serien verwendet.</p>
+
+        <p><strong>Typische Einsatzszenarien:</strong></p>
+        <ul>
+            <li><strong>Corporate Training Events:</strong> Schulungen mit spezifischen Teilnehmern und definierten Zeiträumen</li>
+            <li><strong>Team Building Activities:</strong> Team-spezifische Events mit Location- und Kategorie-Zuordnung</li>
+            <li><strong>Company-wide Meetings:</strong> Veranstaltungen für alle Teams mit umfassendem Teilnehmer-Management</li>
+            <li><strong>Compliance Events:</strong> Pflicht-Schulungen mit präziser Dokumentation und Nachverfolgung</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>General Information-Sektion</h3>
+        <p>Der obere Bereich enthält die grundlegenden Event-Informationen:</p>
+        <ul>
+            <li><strong>Title-Feld:</strong> Kurzer, aussagekräftiger Event-Name (max. 40 Zeichen)</li>
+            <li><strong>Description-Area:</strong> Mehrzeiliger Editor für detaillierte Event-Beschreibungen</li>
+            <li><strong>Address-Selection:</strong> Dropdown mit bestehenden Adressen plus New/Edit-Buttons für Adress-Management</li>
+        </ul>
+
+        <h3>Date and Time-Sektion</h3>
+        <p>Ausgeklügelte DateTime-Steuerung mit intelligenter Synchronisation:</p>
+        <ul>
+            <li><strong>Start-DateTime:</strong> Getrennte Date- und Time-Eingabe für Event-Beginn</li>
+            <li><strong>End-DateTime:</strong> Automatische Berechnung (Start + 1 Stunde) mit manueller Übersteuerung</li>
+            <li><strong>Intelligente Validation:</strong> End-Zeit muss immer nach Start-Zeit liegen</li>
+            <li><strong>Minimum-Constraints:</strong> End-Datum/Zeit-Minimums passen sich automatisch an Start an</li>
+            <li><strong>Multi-Day-Support:</strong> Unterstützung für mehrtägige Events</li>
+        </ul>
+
+        <h3>Assignments-Sektion</h3>
+        <p>Umfassende Zuordnungs-Optionen für verschiedene Event-Typen:</p>
+        <ul>
+            <li><strong>Teams-Dropdown:</strong> Auswahl zwischen einzelnen Teams, "All teams" oder "No teams"</li>
+            <li><strong>Category-Selection:</strong> Kategorie-Zuordnung mit direktem Zugang zur Kategorien-Verwaltung</li>
+            <li><strong>Participants-Management:</strong> Teilnehmer-Counter mit Zugang zum detaillierten Auswahl-Dialog</li>
+        </ul>
+
+        <h3>Options-Sektion (Edit-Modus)</h3>
+        <p>Im Edit-Modus verfügbare erweiterte Optionen:</p>
+        <ul>
+            <li><strong>"Save as new event"-Checkbox:</strong> Erstellt eine Kopie statt das Original zu überschreiben</li>
+            <li><strong>Button-Text-Updates:</strong> OK-Button ändert Text basierend auf der Save-as-new-Option</li>
+        </ul>
+
+        <h3>Dark Theme Interface</h3>
+        <p>Professionelles Dark Theme mit modernen UI-Elementen:</p>
+        <ul>
+            <li><strong>Kontrast-reiche Farben:</strong> Optimiert für lange Arbeitszeiten und Augenkomfort</li>
+            <li><strong>Gruppierte Bereiche:</strong> Visual grouping mit farbigen Überschriften</li>
+            <li><strong>Interactive Feedback:</strong> Hover-Effekte und Focus-States für bessere Benutzerführung</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>🏢 Corporate Training Series</h3>
+        <p><strong>Szenario:</strong> Eine mehrteilige Schulungsreihe für verschiedene Abteilungen</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Erstellen Sie das erste Training-Event mit allen Details</li>
+            <li>Nutzen Sie aussagekräftige Kategorien wie "IT Training - Advanced"</li>
+            <li>Wählen Sie das erste Team und entsprechende Teilnehmer</li>
+            <li>Für Folge-Termine: Öffnen Sie das Event im Edit-Modus</li>
+            <li>Aktivieren Sie <strong>"Save as new event"</strong></li>
+            <li>Passen Sie Datum, Team und Teilnehmer an</li>
+            <li>Wiederholen Sie für alle Abteilungen</li>
+        </ol>
+
+        <h3>🚀 Multi-Location Company Events</h3>
+        <p><strong>Szenario:</strong> Company-weite Veranstaltung mit verschiedenen Standorten</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Erstellen Sie das Master-Event mit "All teams" Zuordnung</li>
+            <li>Nutzen Sie eine passende Adresse oder erstellen Sie eine neue mit <strong>"New..."</strong></li>
+            <li>Verwenden Sie Kategorien wie "Company Culture" für bessere Organisation</li>
+            <li>Nutzen Sie die Teilnehmer-Auswahl für spezifische Einladungen</li>
+            <li>Für andere Standorte: Duplizieren Sie das Event und passen Sie nur die Adresse an</li>
+        </ol>
+
+        <h3>🎯 Compliance Training Management</h3>
+        <p><strong>Szenario:</strong> Pflicht-Schulungen mit präziser Dokumentation</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Verwenden Sie eindeutige Titel wie "Data Protection Training 2025"</li>
+            <li>Kategorisieren Sie als "Mandatory Training"</li>
+            <li>Nutzen Sie detaillierte Beschreibungen für Compliance-Dokumentation</li>
+            <li>Wählen Sie alle betroffenen Teams systematisch aus</li>
+            <li>Dokumentieren Sie Änderungen durch Edit-History mit Command Pattern</li>
+        </ol>
+
+        <h3>🔄 Event-Template-Erstellung</h3>
+        <p><strong>Szenario:</strong> Wiederkehrende Events mit ähnlicher Struktur</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Erstellen Sie ein "Template"-Event mit allen Standard-Einstellungen</li>
+            <li>Verwenden Sie generische Titel wie "Monthly Team Meeting - Template"</li>
+            <li>Im Edit-Modus: Aktivieren Sie <strong>"Save as new event"</strong></li>
+            <li>Passen Sie nur Datum und spezifische Details an</li>
+            <li>So erstellen Sie schnell konsistente Event-Serien</li>
+        </ol>
+
+        <h2>Häufige Probleme &amp; Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: "End-Zeit kann nicht vor Start-Zeit gesetzt werden"</h4>
+            <p><strong>Ursache:</strong> Das System verhindert ungültige DateTime-Kombinationen automatisch</p>
+            <p><strong>Lösung:</strong> Ändern Sie zuerst die Start-Zeit oder nutzen Sie die automatische End-Zeit-Berechnung (Start + 1 Stunde)</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Event kann nicht gespeichert werden - Validation Error"</h4>
+            <p><strong>Ursache:</strong> Pflichtfelder (Titel oder Beschreibung) sind leer</p>
+            <p><strong>Lösung:</strong> Stellen Sie sicher, dass sowohl Titel als auch Beschreibung ausgefüllt sind</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Teilnehmer-Auswahl bleibt leer"</h4>
+            <p><strong>Ursache:</strong> Keine Mitarbeiter sind für das gewählte Datum verfügbar oder dem Team zugeordnet</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie Team-Zuordnungen für das Event-Datum oder wählen Sie ein anderes Datum</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Kategorien-Dropdown ist leer"</h4>
+            <p><strong>Ursache:</strong> Keine Event-Kategorien für das Projekt definiert</p>
+            <p><strong>Lösung:</strong> Klicken Sie "Manage..." neben dem Kategorien-Dropdown um neue Kategorien zu erstellen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Address Edit-Button deaktiviert"</h4>
+            <p><strong>Ursache:</strong> "No address" ausgewählt - keine editierbare Adresse vorhanden</p>
+            <p><strong>Lösung:</strong> Wählen Sie eine bestehende Adresse aus dem Dropdown oder erstellen Sie eine neue mit "New..."</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 Event-Strukturierung</h4>
+            <ul>
+                <li><strong>Konsistente Titel:</strong> Verwenden Sie einheitliche Namens-Konventionen für ähnliche Event-Typen</li>
+                <li><strong>Aussagekräftige Beschreibungen:</strong> Nutzen Sie das Beschreibungsfeld für Agenda, Ziele und wichtige Informationen</li>
+                <li><strong>Kategorie-Systematik:</strong> Ordnen Sie Events konsequent passenden Kategorien zu</li>
+                <li><strong>Template-Approach:</strong> Nutzen Sie "Save as new" für wiederkehrende Event-Strukturen</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 DateTime-Management-Strategien</h4>
+            <ul>
+                <li><strong>Standard-Dauer nutzen:</strong> Die automatische 1-Stunden-Berechnung ist für die meisten Events passend</li>
+                <li><strong>Pufferzeiten einplanen:</strong> Berücksichtigen Sie Setup- und Nachbereitungszeit in der Event-Dauer</li>
+                <li><strong>Zeitzone-Konsistenz:</strong> Nutzen Sie die lokale Zeitzone-Integration für korrekte Anzeige</li>
+                <li><strong>Multi-Day-Events:</strong> Bei mehrtägigen Events prüfen Sie die Auswirkungen auf Teilnehmer-Verfügbarkeit</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ Team- und Teilnehmer-Management</h4>
+            <ul>
+                <li><strong>Team-Hierarchie beachten:</strong> "All teams" für Company-weite Events, spezifische Teams für gezielte Veranstaltungen</li>
+                <li><strong>Teilnehmer-Granularität:</strong> Kombinieren Sie Team-Auswahl mit individueller Teilnehmer-Selektion</li>
+                <li><strong>Datum-abhängige Verfügbarkeit:</strong> Wählen Sie Teilnehmer basierend auf dem Event-Datum</li>
+                <li><strong>Kapazitäts-Planung:</strong> Berücksichtigen Sie Location-Kapazitäten bei der Teilnehmer-Anzahl</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Edit-Modus-Optimierungen</h4>
+            <ul>
+                <li><strong>Save-as-new strategisch nutzen:</strong> Für Event-Serien oder ähnliche Events mit geänderten Details</li>
+                <li><strong>Undo/Redo nutzen:</strong> Command Pattern ermöglicht sichere Experimente mit Rollback-Option</li>
+                <li><strong>Backup-Strategie:</strong> Bei wichtigen Events vor großen Änderungen Save-as-new verwenden</li>
+                <li><strong>Änderungs-Dokumentation:</strong> Nutzen Sie Beschreibungsfeld für Change-Log bei Updates</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Intelligente DateTime-Synchronisation</h3>
+        <p>Das System bietet ausgeklügelte DateTime-Management-Features:</p>
+        <ul>
+            <li><strong>Automatische End-Zeit-Berechnung:</strong> Start + 1 Stunde als Standard mit manueller Übersteuerung</li>
+            <li><strong>Cross-Field-Validation:</strong> End-DateTime muss immer nach Start-DateTime liegen</li>
+            <li><strong>Dynamic Minimums:</strong> End-Datum/Zeit-Minimums passen sich automatisch an Start an</li>
+            <li><strong>Signal-Blocking:</strong> Verhindert Infinite-Update-Loops bei automatischen Anpassungen</li>
+        </ul>
+
+        <h3>Service-Layer-Integration</h3>
+        <p>Vollständige Integration des EmployeeEventService:</p>
+        <ul>
+            <li><strong>CRUD-Operations:</strong> Create/Read/Update/Delete über strukturierte Service-Aufrufe</li>
+            <li><strong>ErrorResponseSchema-Handling:</strong> Benutzerfreundliche Fehlerbehandlung</li>
+            <li><strong>Data Caching:</strong> Effiziente Zwischenspeicherung von Teams, Kategorien und Adressen</li>
+            <li><strong>Transactional Consistency:</strong> Atomare Operations mit Rollback-Fähigkeit</li>
+        </ul>
+
+        <h3>Multi-Dialog-Integration</h3>
+        <p>Nahtlose Integration mit anderen Employee Event Dialogen:</p>
+        <ul>
+            <li><strong>Category Management:</strong> Direkter Zugang zur Kategorien-Verwaltung mit Rückkehr-Synchronisation</li>
+            <li><strong>Participant Selection:</strong> Integration des Teilnehmer-Auswahl-Dialogs mit Datum-Kontextualisierung</li>
+            <li><strong>Address Management:</strong> Eingebettete Adress-CRUD-Operationen</li>
+            <li><strong>Cross-Dialog-State:</strong> Austausch von Auswahl-Zuständen zwischen Dialogen</li>
+        </ul>
+
+        <h3>Command Pattern Implementation</h3>
+        <p>Vollständige Command Pattern-Unterstützung für alle Operations:</p>
+        <ul>
+            <li><strong>event_commands.Create:</strong> Event-Erstellung mit Schema-Validation</li>
+            <li><strong>event_commands.Update:</strong> Event-Updates mit Differential-Logic</li>
+            <li><strong>event_commands.Delete:</strong> Sichere Event-Löschung mit Abhängigkeits-Check</li>
+            <li><strong>ContrExecUndoRedo:</strong> Undo/Redo-Stack für alle Dialog-Operationen</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Event Schema Integration</h3>
+        <p>Der Dialog arbeitet mit strukturierten Event Schemas:</p>
+        <ul>
+            <li><strong>EventDetail:</strong> Vollständige Event-Informationen für Edit-Modus</li>
+            <li><strong>EventCreate:</strong> Schema für neue Events mit allen Zuordnungen</li>
+            <li><strong>EventUpdate:</strong> Schema für Event-Updates mit ID-Referenz</li>
+            <li><strong>ErrorResponseSchema:</strong> Strukturierte Fehler-Responses</li>
+        </ul>
+
+        <h3>Custom Widget Integration</h3>
+        <p>Verwendung spezialisierter UI-Komponenten:</p>
+        <ul>
+            <li><strong>DateEditLocale:</strong> Lokalisierte Datum-Eingabe mit deutschen Formaten</li>
+            <li><strong>TimeEditLocale:</strong> Lokalisierte Zeit-Eingabe mit 24-Stunden-Format</li>
+            <li><strong>QComboBoxToFindData:</strong> Erweiterte ComboBox mit Such- und Data-Funktionalität</li>
+        </ul>
+
+        <h3>Dual-Mode Architecture</h3>
+        <p>Intelligente Modus-Bestimmung und UI-Anpassung:</p>
+        <ul>
+            <li><strong>is_edit_mode / is_new_mode:</strong> Boolean-Flags für Modus-Bestimmung</li>
+            <li><strong>Conditional UI Elements:</strong> Options-Sektion nur im Edit-Modus verfügbar</li>
+            <li><strong>Dynamic Button Texts:</strong> OK-Button-Text passt sich an Modus und Optionen an</li>
+            <li><strong>Mode-specific Workflows:</strong> Unterschiedliche Datenlade-Strategien je nach Modus</li>
+        </ul>
+
+        <h3>Data Caching & Performance</h3>
+        <p>Optimierte Datenverwendung für bessere Performance:</p>
+        <ul>
+            <li><strong>teams_cache:</strong> Zwischenspeicherung aller Projekt-Teams</li>
+            <li><strong>categories_cache:</strong> Cache für Event-Kategorien</li>
+            <li><strong>addresses_cache:</strong> Lokale Kopie aller Projekt-Adressen</li>
+            <li><strong>persons_cache:</strong> Mitarbeiter-Cache für Teilnehmer-Management</li>
+            <li><strong>Smart Refresh:</strong> Selektive Cache-Updates nur bei tatsächlichen Änderungen</li>
+        </ul>
+
+    </div>
+</body>
+</html>

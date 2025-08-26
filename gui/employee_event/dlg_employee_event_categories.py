@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from commands import command_base_classes
 from employee_event import EmployeeEventService, ErrorResponseSchema, CategoryDetail, CategoryCreate, CategoryUpdate
+from tools.helper_functions import setup_form_help
 from employee_event.db_commands import category_commands
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,9 @@ class DlgEmployeeEventCategories(QDialog):
         # Vorausgewählte Kategorie setzen
         if selected_category_id:
             self._select_category_by_id(selected_category_id)
+            
+        # F1 Help Integration
+        setup_form_help(self, "employee_event_categories")
             
         logger.info(f"Employee Event Categories Dialog initialized for project {project_id}")
 

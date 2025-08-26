@@ -25,7 +25,7 @@ from employee_event.schemas import employee_event_schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.custom_widgets.custom_date_and_time_edit import DateEditLocale, TimeEditLocale
-from tools.helper_functions import date_to_string, time_to_string
+from tools.helper_functions import date_to_string, time_to_string, setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,9 @@ class DlgEmployeeEventDetails(QDialog):
             self._load_event()
         else:
             self._setup_defaults()
+            
+        # F1 Help Integration
+        setup_form_help(self, "employee_event_details")
             
         logger.info(f"Employee Event Details Dialog initialized - Mode: {'Edit' if self.is_edit_mode else 'New'}")
 

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Event Kategorien - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="employee, event, kategorien, categories, management, crud, usage, mitarbeiter, veranstaltung">
+    <meta name="description" content="Hilfe für die Verwaltung von Employee Event Kategorien in HCC Plan - CRUD-Management mit Usage-Tracking und Service-Integration">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Employee Event Kategorien</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Employee Event Kategorien</div>
+    </div>
+    <div class="help-content">
+
+        <h2>Übersicht</h2>
+        <p>Das Employee Event Kategorien-Management ist ein professionelles CRUD-Interface zur Verwaltung von Event-Kategorien für Mitarbeiter-Veranstaltungen. Der Dialog bietet ein geteiltes Layout mit Kategorien-Liste und Detail-Editor, umfassendes Usage-Tracking zur Verhinderung ungewollter Löschungen sowie vollständige Service-Layer-Integration mit Command Pattern-Unterstützung.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Split-Layout-Interface:</strong> Übersichtliche Trennung zwischen Kategorien-Liste (links) und Detail-Editor (rechts)</li>
+            <li><strong>CRUD-Operationen:</strong> Vollständige Create, Read, Update, Delete-Funktionalität für Event-Kategorien</li>
+            <li><strong>Usage-Tracking-System:</strong> Intelligente Anzeige der Verwendungshäufigkeit mit Schutz vor ungewollter Löschung</li>
+            <li><strong>Dynamic UI-States:</strong> Adaptive Aktivierung/Deaktivierung des Detail-Bereichs basierend auf Kategorien-Auswahl</li>
+            <li><strong>Real-time Validation:</strong> Sofortige Überprüfung auf Namens-Duplikate und Längenbegrenzungen (40 Zeichen)</li>
+            <li><strong>Dark Theme UI:</strong> Moderne, augenfreundliche Benutzeroberfläche mit professionellem Styling</li>
+            <li><strong>Service-Layer-Integration:</strong> EmployeeEventService mit ErrorResponseSchema für robuste Fehlerbehandlung</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li><strong>Dialog öffnen:</strong> Zugang über das Employee Event Management-System</li>
+            <li><strong>Kategorien durchsuchen:</strong> Klicken Sie auf Kategorien in der linken Liste um Details anzuzeigen</li>
+            <li><strong>Neue Kategorie erstellen:</strong>
+                <ul>
+                    <li>Klicken Sie <strong>"➕ New"</strong> unter der Kategorien-Liste</li>
+                    <li>Der Detail-Editor wird aktiviert und das Name-Feld fokussiert</li>
+                    <li>Geben Sie Namen und optional Beschreibung ein</li>
+                    <li>Klicken Sie <strong>"💾 Save Category"</strong> zum Speichern</li>
+                </ul>
+            </li>
+            <li><strong>Kategorie bearbeiten:</strong>
+                <ul>
+                    <li>Wählen Sie eine Kategorie aus der Liste</li>
+                    <li>Bearbeiten Sie Name oder Beschreibung im Detail-Editor</li>
+                    <li>Klicken Sie <strong>"💾 Save Category"</strong> zum Übernehmen der Änderungen</li>
+                </ul>
+            </li>
+            <li><strong>Kategorie löschen:</strong>
+                <ul>
+                    <li>Wählen Sie die zu löschende Kategorie</li>
+                    <li>Klicken Sie <strong>"🗑️ Delete"</strong></li>
+                    <li>Bestätigen Sie die Löschung in der Sicherheitsabfrage</li>
+                </ul>
+            </li>
+            <li><strong>Kategorie auswählen:</strong> Klicken Sie <strong>"Select Category"</strong> um die aktuell gewählte Kategorie zu übernehmen</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1:</strong> Diese Hilfe öffnen</li>
+                <li><strong>Tab:</strong> Zwischen Liste und Detail-Editor navigieren</li>
+                <li><strong>Pfeiltasten:</strong> In der Kategorien-Liste navigieren</li>
+                <li><strong>Enter:</strong> Ausgewählte Kategorie übernehmen (entspricht "Select Category")</li>
+                <li><strong>Escape:</strong> Dialog abbrechen</li>
+                <li><strong>Ctrl+N:</strong> Neue Kategorie erstellen (entspricht "➕ New")</li>
+                <li><strong>Ctrl+S:</strong> Aktuelle Kategorie speichern (entspricht "💾 Save")</li>
+                <li><strong>Delete:</strong> Kategorie löschen (entspricht "🗑️ Delete")</li>
+                <li><strong>F2:</strong> Namen der ausgewählten Kategorie bearbeiten</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><strong><a href="employee_event_details.html">Employee Event Details</a></strong> - Detailkonfiguration von Events mit Kategorie-Zuordnung</li>
+            <li><strong><a href="employee_event_main.html">Employee Event Management</a></strong> - Hauptinterface für das komplette Employee Event System</li>
+            <li><strong><a href="participant_selection.html">Teilnehmer-Auswahl</a></strong> - Auswahl von Event-Teilnehmern basierend auf Kategorien</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>Das Kategorien-Management ist fundamental für die Organisation von Employee Events. Kategorien ermöglichen eine strukturierte Klassifikation von Veranstaltungen und erleichtern sowohl die Planung als auch die Auswertung von Mitarbeiter-Events.</p>
+
+        <p><strong>Typische Verwendungsszenarien:</strong></p>
+        <ul>
+            <li><strong>Event-Strukturierung:</strong> Kategorisierung von Veranstaltungen nach Typ (Training, Meeting, Social Event, etc.)</li>
+            <li><strong>Abteilungs-spezifische Events:</strong> Kategorien für verschiedene Unternehmensbereiche oder Teams</li>
+            <li><strong>Compliance-Management:</strong> Kategorien für Pflicht-Schulungen, freiwillige Events, etc.</li>
+            <li><strong>Berichtswesen:</strong> Strukturierte Auswertungen und Statistiken basierend auf Event-Kategorien</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Split-Layout-Design</h3>
+        <p>Der Dialog verwendet ein modernes Split-Layout mit zwei Hauptbereichen:</p>
+        <ul>
+            <li><strong>Linker Bereich (Categories):</strong> Liste aller verfügbaren Kategorien mit Usage-Information</li>
+            <li><strong>Rechter Bereich (Category Details):</strong> Editor für Name und Beschreibung der ausgewählten Kategorie</li>
+        </ul>
+
+        <h3>Kategorien-Liste (Linker Bereich)</h3>
+        <p>Die Kategorien-Liste zeigt alle verfügbaren Kategorien in alphabetischer Sortierung:</p>
+        <ul>
+            <li><strong>Format:</strong> "Kategoriename (X events)" für verwendete Kategorien</li>
+            <li><strong>Ungenutzte Kategorien:</strong> "Kategoriename (unused)" für nicht verwendete Kategorien</li>
+            <li><strong>Placeholder:</strong> "No categories found" wenn keine Kategorien existieren</li>
+            <li><strong>Visuelle Hervorhebung:</strong> Ausgewählte Kategorie wird farblich markiert</li>
+        </ul>
+
+        <h3>Aktions-Buttons (Unter Liste)</h3>
+        <ul>
+            <li><strong>"➕ New":</strong> Aktiviert den Detail-Editor für eine neue Kategorie</li>
+            <li><strong>"🗑️ Delete":</strong> Löscht die ausgewählte Kategorie (mit Usage-Validation)</li>
+        </ul>
+
+        <h3>Category Details (Rechter Bereich)</h3>
+        <p>Der Detail-Editor ermöglicht die Bearbeitung von Kategorien-Eigenschaften:</p>
+        <ul>
+            <li><strong>Name-Feld:</strong> Eingabefeld mit 40-Zeichen-Limit und Placeholder-Text</li>
+            <li><strong>Beschreibung-Feld:</strong> Mehrzeiliger Text-Editor für ausführliche Beschreibungen</li>
+            <li><strong>Usage-Info:</strong> Dynamische Anzeige der Verwendung in Events</li>
+            <li><strong>"💾 Save Category"-Button:</strong> Speichert Änderungen mit Validation</li>
+        </ul>
+
+        <h3>Dynamic UI-Verhalten</h3>
+        <p>Die Benutzeroberfläche passt sich intelligent dem aktuellen Zustand an:</p>
+        <ul>
+            <li><strong>Deaktivierter Zustand:</strong> Detail-Editor ist deaktiviert wenn keine Kategorie ausgewählt ist</li>
+            <li><strong>Aktivierter Zustand:</strong> Detail-Editor wird aktiviert sobald eine Kategorie gewählt oder "New" geklickt wird</li>
+            <li><strong>Edit-Mode:</strong> Name-Feld wird automatisch fokussiert bei neuen Kategorien</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+
+        <h3>🏢 Corporate Training Events</h3>
+        <p><strong>Szenario:</strong> Strukturierung von Schulungs-Events nach Bereichen</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Erstellen Sie Kategorien wie "IT-Training", "Compliance-Schulung", "Leadership"</li>
+            <li>Nutzen Sie aussagekräftige Beschreibungen für klare Abgrenzung</li>
+            <li>Überwachen Sie Usage-Count um beliebte Kategorien zu identifizieren</li>
+            <li>Strukturieren Sie Events entsprechend den definierten Kategorien</li>
+        </ol>
+
+        <h3>🚀 Event-Portfolio-Management</h3>
+        <p><strong>Szenario:</strong> Verwaltung eines vielfältigen Event-Portfolios für verschiedene Zielgruppen</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Definieren Sie Hauptkategorien: "Team Building", "Professional Development", "Company Culture"</li>
+            <li>Erstellen Sie Unter-Kategorien bei Bedarf: "Technical Skills", "Soft Skills", "Industry Knowledge"</li>
+            <li>Nutzen Sie die Usage-Anzeige um erfolgreiche Kategorien zu identifizieren</li>
+            <li>Optimieren Sie Ihr Portfolio basierend auf der Kategorie-Nutzung</li>
+        </ol>
+
+        <h3>🔄 Kategorie-Lifecycle-Management</h3>
+        <p><strong>Szenario:</strong> Evolutionäre Anpassung der Kategorien-Struktur über die Zeit</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Beginnen Sie mit wenigen, breiten Kategorien</li>
+            <li>Überwachen Sie Usage-Patterns über mehrere Planungszyklen</li>
+            <li>Teilen Sie stark genutzte Kategorien bei Bedarf auf</li>
+            <li>Konsolidieren oder löschen Sie ungenutzte Kategorien</li>
+            <li>Nutzen Sie die Usage-Protection um versehentliche Löschungen zu vermeiden</li>
+        </ol>
+
+        <h3>🎯 Compliance & Reporting</h3>
+        <p><strong>Szenario:</strong> Strukturierung für Berichtswesen und Compliance-Anforderungen</p>
+        <p><strong>Vorgehen:</strong></p>
+        <ol>
+            <li>Erstellen Sie Compliance-relevante Kategorien: "Mandatory Training", "Optional Development"</li>
+            <li>Definieren Sie klare Beschreibungen für Audit-Zwecke</li>
+            <li>Verwenden Sie konsistente Namens-Konventionen</li>
+            <li>Überwachen Sie die Nutzung für Compliance-Berichte</li>
+        </ol>
+
+        <h2>Häufige Probleme &amp; Lösungen</h2>
+
+        <div class="warning-box">
+            <h4>Problem: "Kategorie kann nicht gelöscht werden"</h4>
+            <p><strong>Ursache:</strong> Die Kategorie wird in einem oder mehreren Events verwendet</p>
+            <p><strong>Lösung:</strong> Entfernen Sie zunächst die Kategorie aus allen verwendenden Events, dann können Sie sie löschen. Die Usage-Info zeigt die Anzahl der betroffenen Events</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Name bereits vorhanden"-Fehler</h4>
+            <p><strong>Ursache:</strong> Eine Kategorie mit dem eingegebenen Namen existiert bereits</p>
+            <p><strong>Lösung:</strong> Wählen Sie einen eindeutigen Namen oder bearbeiten Sie die bestehende Kategorie mit ähnlichem Namen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Detail-Editor bleibt deaktiviert"</h4>
+            <p><strong>Ursache:</strong> Keine Kategorie ausgewählt oder Placeholder-Item ("No categories found") angeklickt</p>
+            <p><strong>Lösung:</strong> Klicken Sie auf eine echte Kategorie oder nutzen Sie "➕ New" um eine neue zu erstellen</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Speichern schlägt fehl"</h4>
+            <p><strong>Ursache:</strong> Leer-Name, zu langer Name (>40 Zeichen) oder Service-Layer-Fehler</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie Name-Eingabe auf Korrektheit oder kontaktieren Sie den Administrator bei Service-Fehlern</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Liste zeigt veraltete Daten"</h4>
+            <p><strong>Ursache:</strong> Cache-Inkonsistenz nach externen Änderungen</p>
+            <p><strong>Lösung:</strong> Schließen Sie den Dialog und öffnen Sie ihn erneut um aktuelle Daten zu laden</p>
+        </div>
+
+        <h2>Best Practices</h2>
+
+        <div class="tip-box">
+            <h4>💡 Effektive Kategorien-Strukturierung</h4>
+            <ul>
+                <li><strong>Hierarchisch denken:</strong> Beginnen Sie mit wenigen Hauptkategorien und verfeinern Sie bei Bedarf</li>
+                <li><strong>Konsistente Namensgebung:</strong> Verwenden Sie einheitliche Namens-Konventionen (z.B. "Training - IT", "Training - HR")</li>
+                <li><strong>Aussagekräftige Beschreibungen:</strong> Nutzen Sie das Beschreibungsfeld für klare Abgrenzung ähnlicher Kategorien</li>
+                <li><strong>Zukunftsorientiert planen:</strong> Denken Sie an spätere Auswertungen und Reports bei der Namensgebung</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 CRUD-Workflow-Optimierung</h4>
+            <ul>
+                <li><strong>Batch-Erstellung:</strong> Erstellen Sie ähnliche Kategorien in einem Workflow für Konsistenz</li>
+                <li><strong>Usage-Monitoring:</strong> Prüfen Sie regelmäßig die Usage-Counts um ungenutzte Kategorien zu identifizieren</li>
+                <li><strong>Backup vor Änderungen:</strong> Bei größeren Umstrukturierungen dokumentieren Sie die aktuellen Kategorien</li>
+                <li><strong>Schrittweise Migration:</strong> Ändern Sie etablierte Kategorien-Strukturen graduell, nicht abrupt</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏗️ UI-Navigation-Strategien</h4>
+            <ul>
+                <li><strong>Split-Layout nutzen:</strong> Lassen Sie die Liste geöffnet während Sie Details bearbeiten</li>
+                <li><strong>Tastatur-Navigation:</strong> Nutzen Sie Pfeiltasten für schnelles Durchsuchen der Kategorien</li>
+                <li><strong>Fokus-Management:</strong> Das System setzt automatisch den Fokus auf relevante Felder</li>
+                <li><strong>Visual Feedback:</strong> Achten Sie auf die farbliche Hervorhebung ausgewählter Items</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔄 Usage-Protection-System nutzen</h4>
+            <ul>
+                <li><strong>Vor Löschung prüfen:</strong> Beachten Sie die Usage-Info bevor Sie Kategorien löschen</li>
+                <li><strong>Migration planen:</strong> Bei notwendigen Löschungen migrieren Sie Events zu anderen Kategorien</li>
+                <li><strong>Historische Daten:</strong> Überlegen Sie Archivierung statt Löschung für historische Auswertungen</li>
+                <li><strong>Rollback-Strategie:</strong> Nutzen Sie Command Pattern Undo bei versehentlichen Änderungen</li>
+            </ul>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        
+        <h3>Service-Layer-Integration</h3>
+        <p>Der Dialog nutzt den EmployeeEventService für alle Datenoperationen:</p>
+        <ul>
+            <li><strong>get_all_categories_by_project:</strong> Lädt alle Kategorien für das aktuelle Projekt</li>
+            <li><strong>get_all_events:</strong> Lädt Events für Usage-Count-Berechnung</li>
+            <li><strong>ErrorResponseSchema-Handling:</strong> Strukturierte Fehlerbehandlung mit User-freundlichen Meldungen</li>
+            <li><strong>Automatische Sortierung:</strong> Kategorien werden alphabetisch nach Name sortiert</li>
+        </ul>
+
+        <h3>Command Pattern Implementation</h3>
+        <p>Alle Änderungen verwenden Command Pattern für Undo/Redo-Funktionalität:</p>
+        <ul>
+            <li><strong>category_commands.Create:</strong> Erstellung neuer Kategorien mit Validation</li>
+            <li><strong>category_commands.Update:</strong> Aktualisierung bestehender Kategorien</li>
+            <li><strong>category_commands.Delete:</strong> Sichere Löschung mit Usage-Validation</li>
+            <li><strong>ContrExecUndoRedo:</strong> Vollständige Undo/Redo-Unterstützung für alle Operationen</li>
+        </ul>
+
+        <h3>Usage-Tracking-Algorithm</h3>
+        <p>Intelligentes System zur Verfolgung der Kategorien-Verwendung:</p>
+        <ul>
+            <li><strong>Count-Berechnung:</strong> Dynamische Berechnung basierend auf employee_event_categories-Zuordnungen</li>
+            <li><strong>Real-time Updates:</strong> Usage-Counts werden bei jeder Dialog-Öffnung neu berechnet</li>
+            <li><strong>Protection-Logic:</strong> Verwendete Kategorien erhalten Lösch-Schutz mit Benutzer-Warnung</li>
+            <li><strong>Dictionary-Caching:</strong> Effiziente Speicherung der Usage-Counts für Performance</li>
+        </ul>
+
+        <h3>Dynamic UI State Management</h3>
+        <p>Adaptive Benutzeroberfläche mit intelligenter Zustandssteuerung:</p>
+        <ul>
+            <li><strong>_set_details_enabled:</strong> Zentrale Steuerung der Detail-Editor-Verfügbarkeit</li>
+            <li><strong>Automatic Focus:</strong> Name-Feld wird bei neuen Kategorien automatisch fokussiert</li>
+            <li><strong>Selection Persistence:</strong> Kategorien-Auswahl bleibt auch nach Operationen erhalten</li>
+            <li><strong>Clear on Disable:</strong> Felder werden automatisch geleert wenn deaktiviert</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        
+        <h3>Data Schema Integration</h3>
+        <p>Der Dialog arbeitet mit strukturierten Data Schemas:</p>
+        <ul>
+            <li><strong>CategoryDetail:</strong> Vollständige Kategorie-Informationen mit ID, Name, Beschreibung</li>
+            <li><strong>CategoryCreate:</strong> Schema für neue Kategorien mit Projekt-Zuordnung</li>
+            <li><strong>CategoryUpdate:</strong> Schema für Kategorie-Aktualisierungen</li>
+            <li><strong>ErrorResponseSchema:</strong> Strukturierte Fehler-Responses mit Nachricht und Details</li>
+        </ul>
+
+        <h3>Project-scoped Data Management</h3>
+        <p>Kategorien sind projekt-spezifisch isoliert:</p>
+        <ul>
+            <li><strong>Project ID Binding:</strong> Alle Operationen sind auf das aktuelle Projekt beschränkt</li>
+            <li><strong>Isolation:</strong> Kategorien verschiedener Projekte beeinflussen sich nicht</li>
+            <li><strong>Scoped Service Calls:</strong> Alle Service-Aufrufe enthalten die Projekt-ID</li>
+        </ul>
+
+        <h3>UI Styling System</h3>
+        <p>Professionelles Dark Theme mit modernen UI-Elementen:</p>
+        <ul>
+            <li><strong>Color Palette:</strong> Dunkle Grundfarben (#2d2d2d) mit Teal-Akzenten (#006d6d)</li>
+            <li><strong>Interactive Elements:</strong> Hover-Effekte und Focus-States für bessere UX</li>
+            <li><strong>Semantic Colors:</strong> Verschiedene Button-Farben für verschiedene Aktions-Typen</li>
+            <li><strong>Responsive Design:</strong> Layout passt sich verschiedenen Dialog-Größen an</li>
+        </ul>
+
+        <h3>Error Handling & Logging</h3>
+        <p>Umfassende Fehlerbehandlung und Logging:</p>
+        <ul>
+            <li><strong>Exception Catching:</strong> Try/Catch-Blöcke um alle Service-Aufrufe</li>
+            <li><strong>User-friendly Messages:</strong> Benutzerverständliche Fehlermeldungen statt technischer Details</li>
+            <li><strong>Structured Logging:</strong> Detaillierte Logs für Debugging und Monitoring</li>
+            <li><strong>Graceful Degradation:</strong> System funktioniert auch bei partiellen Service-Fehlern</li>
+        </ul>
+
+    </div>
+</body>
+</html>

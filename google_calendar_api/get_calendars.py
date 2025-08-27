@@ -1,6 +1,7 @@
 import json
 import pprint
 from json import JSONDecodeError
+from typing import Any
 from uuid import UUID
 
 from googleapiclient.discovery import build, Resource
@@ -11,7 +12,7 @@ from database import db_services
 from google_calendar_api.authenticate import authenticate_google
 
 
-def add_data_from_description_field(calendar: dict) -> dict:
+def add_data_from_description_field(calendar: dict[str, Any]) -> dict:
     try:
         description: dict = json.loads(calendar['description'])
         team_id = description.get('team_id')
@@ -57,7 +58,7 @@ def list_calendar_acl(calendar_id: str, service: Resource = None):
         raise Exception(f'Fehler beim Abrufen der ACLs für Kalender-ID {calendar_id}: {e}')
 
 
-def list_all_calendars_with_acl():
+def list_all_calendars_with_acl() -> list[dict[str, Any]] | None:
     """
     Diese Funktion ruft alle vorhandenen Kalender und deren Freigaben ab.
     :return: Eine Liste von Kalenderobjekten und deren ACLs oder None bei einem Fehler.
@@ -68,7 +69,7 @@ def list_all_calendars_with_acl():
     try:
         # Kalenderliste abrufen
         calendars_result = service.calendarList().list().execute()
-        calendars = calendars_result.get('items', [])
+        calendars: list[dict[str, Any]] = calendars_result.get('items', [])
 
         if not calendars:
             print("Keine Kalender gefunden.")

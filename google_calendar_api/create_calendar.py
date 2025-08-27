@@ -64,18 +64,3 @@ def share_calendar(calendar_id: str, email: str, role: str = 'reader'):
     except HttpError as error:
         print(f"Fehler beim Freigeben des Kalenders: {error}")
         return None
-
-
-if __name__ == '__main__':
-    calendar = CalendarData('Mitarbeiter_01', 'Visiten von Mitarbeiter 01')
-    created_calendar = create_new_google_calendar(calendar.to_google_calendar_json())
-    print(created_calendar)
-
-    ##################################################################
-
-    calendar_id = created_calendar['id']  # ID des Kalenders (primary = Hauptkalender)
-    email_to_share = 'kollege@example.com'
-    role = 'reader'  # Berechtigungsstufe, z.B. 'reader', 'writer', 'owner'
-
-    share_calendar(calendar_id, email_to_share, role)
-

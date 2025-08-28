@@ -4,11 +4,13 @@ from uuid import UUID
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QComboBox, QLineEdit,
                               QDialogButtonBox, QMessageBox, QTabWidget, QListWidget, QListWidgetItem,
-                              QCheckBox, QHBoxLayout)
+                              QCheckBox, QHBoxLayout, QMenu)
+from email_validator import validate_email, EmailNotValidError
 
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services
 from tools import custom_validators
+from tools.custom_validators import validate_email_str
 from tools.helper_functions import setup_form_help
 
 
@@ -76,7 +78,6 @@ class CreateGoogleCalendar(QDialog):
         self.le_description = QLineEdit()
         self.combo_persons.currentIndexChanged.connect(self._combo_persons_index_changed)
         self.le_email = QLineEdit()
-        self.le_email.setValidator(custom_validators.email_validator)
         
         person_layout.addRow(self.tr('User:'), self.combo_persons)
         person_layout.addRow(self.tr('Email for user access:'), self.le_email)
@@ -99,6 +100,17 @@ class CreateGoogleCalendar(QDialog):
         
         # Team-Mitglieder Auswahl
         self.lw_team_members = QListWidget()
+        
+        # Context-Menu für E-Mail-Bearbeitung
+        self.lw_team_members.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.lw_team_members.customContextMenuRequested.connect(self._team_members_context_menu)
+        
+        # Tooltip für Benutzerführung
+        self.lw_team_members.setToolTip(
+            self.tr('Select team members for calendar access.\n'
+                   'Right-click on a member to edit their email address.')
+        )
+        
         team_layout.addRow(self.tr('Grant access to team members:'), self.lw_team_members)
 
     def _tab_changed(self, index: int):
@@ -217,10 +229,63 @@ class CreateGoogleCalendar(QDialog):
             
             self.lw_team_members.addItem(item)
 
+    def _team_members_context_menu(self, position):
+        """Context-Menu für Team-Mitglieder (Rechtsklick)"""
+        item = self.lw_team_members.itemAt(position)
+        if not item:
+            return  # Kein Item unter dem Mauszeiger
+        
+        # Context-Menu erstellen
+        menu = QMenu(self)
+        
+        # "E-Mail bearbeiten" Aktion
+        edit_email_action = menu.addAction(
+            self.tr('Edit email address...')
+        )
+        
+        # Icon oder weitere visuelle Hinweise könnten hier hinzugefügt werden
+        # edit_email_action.setIcon(some_icon)
+        
+        # Menu anzeigen und Auswahl abwarten
+        action = menu.exec(self.lw_team_members.mapToGlobal(position))
+        
+        if action == edit_email_action:
+            self._edit_member_email(item)
+    
+    def _edit_member_email(self, item: QListWidgetItem):
+        """Öffnet Dialog zur E-Mail-Bearbeitung für ein Team-Mitglied"""
+        member_name = item.text()
+        current_email = item.data(2) or ""
+        
+        # E-Mail-Dialog öffnen
+        dialog = EditMemberEmailDialog(self, member_name, current_email)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_email = dialog.get_new_email()
+            
+            # Item-Data mit neuer E-Mail aktualisieren
+            item.setData(2, new_email)
+            
+            # Optional: Visuellen Hinweis hinzufügen, dass E-Mail geändert wurde
+            if new_email != current_email:
+                # Tooltip aktualisieren um zu zeigen, dass E-Mail geändert wurde
+                original_tooltip = self.tr('Original: {original}\nCurrent: {current}').format(
+                    original=current_email,
+                    current=new_email
+                )
+                item.setToolTip(original_tooltip)
+
     def accept(self):
         if self.calendar_type == 'person':
             # Bestehende Personen-Kalender Logik
             if self.le_email.text():
+                if not (result := validate_email_str(self.le_email.text()))['valid']:
+                    QMessageBox.warning(
+                        self,
+                        self.tr('Invalid Email'),
+                        self.tr('The email address is not valid.\n{error}').format(error=result['error'])
+                    )
+                    return
                 taa = db_services.TeamActorAssign.get_at__date(self.combo_persons.currentData(), datetime.date.today())
                 team_calendar = next((c for c in curr_calendars_handler.get_calenders().values()
                                       if c.team_id == taa.team.id), None)
@@ -297,7 +362,98 @@ class CreateGoogleCalendar(QDialog):
                 
                 if stored_email:
                     emails.append(stored_email)
-                # TODO: Hier könnte später eine manuelle E-Mail-Eingabe-Dialog kommen
-                # wenn stored_email None ist
+                # Note: E-Mail kann über Context-Menu (Rechtsklick) bearbeitet werden
                     
         return emails
+
+
+
+class EditMemberEmailDialog(QDialog):
+    """Dialog zur Bearbeitung der E-Mail-Adresse eines Team-Mitglieds"""
+    
+    def __init__(self, parent: QWidget, member_name: str, current_email: str):
+        super().__init__(parent)
+        self.setWindowTitle(self.tr('Edit Email Address'))
+        self.setModal(True)
+        self.resize(400, 150)
+        
+        self.member_name = member_name
+        self.current_email = current_email
+        self.new_email = current_email  # Initial auf aktuelle E-Mail setzen
+        
+        self._setup_ui()
+        
+    def _setup_ui(self):
+        """Setup der Dialog-UI"""
+        layout = QVBoxLayout(self)
+        
+        # Beschreibung
+        description_label = QLabel(
+            self.tr('Edit email address for team member: {member_name}').format(
+                member_name=self.member_name
+            )
+        )
+        layout.addWidget(description_label)
+        
+        # Form Layout für E-Mail-Eingaben
+        form_layout = QFormLayout()
+        
+        # Aktuelle E-Mail (nur Anzeige)
+        self.current_email_display = QLineEdit(self.current_email)
+        self.current_email_display.setReadOnly(True)
+        form_layout.addRow(self.tr('Current email from database:'), self.current_email_display)
+        
+        # Neue E-Mail (Eingabe)
+        self.new_email_input = QLineEdit(self.current_email)
+        self.new_email_input.selectAll()  # Text vorselektieren für einfache Bearbeitung
+        form_layout.addRow(self.tr('New email for Google Calendar:'), self.new_email_input)
+        
+        layout.addLayout(form_layout)
+        
+        # Info-Text
+        info_label = QLabel(
+            self.tr('The new email address will be used for Google Calendar access.\n'
+                   'The database email remains unchanged.')
+        )
+        info_label.setStyleSheet("color: #666666; font-size: 10px;")
+        layout.addWidget(info_label)
+        
+        # Buttons
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.button_box.accepted.connect(self._accept_dialog)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+        
+        # Focus auf Eingabefeld
+        self.new_email_input.setFocus()
+    
+    def _accept_dialog(self):
+        """Validierung und Übernahme der neuen E-Mail"""
+        new_email = self.new_email_input.text().strip()
+        
+        # E-Mail-Validierung
+        if not new_email:
+            QMessageBox.warning(
+                self,
+                self.tr('Invalid Email'),
+                self.tr('Please enter an email address.')
+            )
+            return
+
+        if not (result := validate_email_str(new_email))['valid']:
+            QMessageBox.warning(
+                self,
+                self.tr('Invalid Email'),
+                self.tr('The email address is not valid.\n{error}').format(error=result['error'])
+            )
+            return
+        
+        # Neue E-Mail speichern und Dialog schließen
+        self.new_email = new_email
+        self.accept()
+    
+    def get_new_email(self) -> str:
+        """Gibt die neue E-Mail-Adresse zurück"""
+        return self.new_email

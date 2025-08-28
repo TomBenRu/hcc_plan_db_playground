@@ -2,6 +2,7 @@ import string
 
 from PySide6.QtCore import QRegularExpression
 from PySide6.QtGui import QValidator, QRegularExpressionValidator
+from email_validator import validate_email, EmailNotValidError
 
 
 class LettersAndSymbolsValidator(QValidator):
@@ -46,7 +47,20 @@ class IntValidator(QValidator):
             return QValidator.State.Invalid, text, pos
 
 
-# Erstelle einen Validator für einen regulären Ausdruck
-_email_regex = QRegularExpression(r"^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$")
-email_validator = QRegularExpressionValidator(_email_regex)
+def validate_email_str(email: str) -> dict[str, bool | str]:
+    """
+    Validiert eine E-Mail-Adresse.
 
+    Args:
+        email: Die zu validierende E-Mail-Adresse
+
+    Returns:
+        Dictionary mit dem Validierungs-Ergebnis und einem optionalen Fehler-Text
+        {'valid': bool, 'error': str}
+    """
+
+    try:
+        validate_email(email)
+        return {'valid': True, 'error': ''}
+    except EmailNotValidError as e:
+        return {'valid': False, 'error': str(e)}

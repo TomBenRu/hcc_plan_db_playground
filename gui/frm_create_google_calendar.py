@@ -57,6 +57,11 @@ class CreateGoogleCalendar(QDialog):
         self.tab_widget.addTab(self.tab_team, self.tr('Team Calendar'))
         self._setup_team_tab()
 
+        # Employee-Events-Kalender Tab
+        self.tab_employee_events = QWidget()
+        self.tab_widget.addTab(self.tab_employee_events, self.tr('Employee Events Calendar'))
+        self._setup_employee_events_tab()
+
         # Tab-Wechsel Handler
         self.tab_widget.currentChanged.connect(self._tab_changed)
 
@@ -113,12 +118,197 @@ class CreateGoogleCalendar(QDialog):
         
         team_layout.addRow(self.tr('Grant access to team members:'), self.lw_team_members)
 
+    def _setup_employee_events_tab(self):
+        """Setup der UI für Employee-Events-Kalender"""
+        ee_layout = QFormLayout(self.tab_employee_events)
+        
+        # Team-Auswahl
+        self.combo_ee_teams = QComboBox()
+        self._fill_combo_ee_teams()
+        self.combo_ee_teams.currentIndexChanged.connect(self._combo_ee_team_index_changed)
+        ee_layout.addRow(self.tr('Team:'), self.combo_ee_teams)
+        
+        # Personen-Filter
+        self.combo_person_filter = QComboBox()
+        self._fill_combo_person_filter()
+        self.combo_person_filter.currentIndexChanged.connect(self._person_filter_changed)
+        ee_layout.addRow(self.tr('Filter persons:'), self.combo_person_filter)
+        
+        # Personen-Liste für Freigabe
+        self.lw_ee_persons = QListWidget()
+        
+        # Context-Menu für E-Mail-Bearbeitung (wie bei Team-Kalender)
+        self.lw_ee_persons.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.lw_ee_persons.customContextMenuRequested.connect(self._ee_persons_context_menu)
+        
+        # Tooltip für Benutzerführung
+        self.lw_ee_persons.setToolTip(
+            self.tr('Select persons for calendar access.\n'
+                   'Right-click on a person to edit their email address.')
+        )
+        
+        ee_layout.addRow(self.tr('Grant access to persons:'), self.lw_ee_persons)
+        
+        # Kalender-Name (auto-generiert, editierbar)
+        self.le_ee_summary = QLineEdit()
+        self.le_ee_description = QLineEdit()
+        
+        ee_layout.addRow(self.tr('Calendar name:'), self.le_ee_summary)
+        ee_layout.addRow(self.tr('Short description:'), self.le_ee_description)
+        
+        # Initial setup
+        self._update_ee_calendar_info()
+        self._load_ee_persons()
+
+    def _fill_combo_ee_teams(self):
+        """Befüllt die ComboBox mit verfügbaren Teams für Employee-Events"""
+        self.combo_ee_teams.clear()
+        self.combo_ee_teams.addItem(self.tr('no team'), None)
+        for team in sorted(self.teams_for_ee_calendar, key=lambda x: x.name):
+            self.combo_ee_teams.addItem(team.name, team.id)
+
+    def _fill_combo_person_filter(self):
+        """Befüllt die ComboBox mit Person-Filter-Optionen"""
+        self.combo_person_filter.clear()
+        self.combo_person_filter.addItem(self.tr('All employees'), 'all')
+        self.combo_person_filter.addItem(self.tr('Members of any team'), 'any_team')
+        self.combo_person_filter.addItem(self.tr('Members of no team'), 'no_team')
+        
+        # Spezifische Teams als Filter-Optionen
+        for team in sorted(self.teams_of_project, key=lambda x: x.name):
+            self.combo_person_filter.addItem(self.tr('Team: {team_name}').format(team_name=team.name), team.id)
+
+    def _combo_ee_team_index_changed(self):
+        """Handler für Team-Auswahl Änderungen bei Employee-Events"""
+        self._update_ee_calendar_info()
+        self._load_ee_persons()
+
+    def _person_filter_changed(self):
+        """Handler für Person-Filter Änderungen"""
+        self._load_ee_persons()
+
+    def _update_ee_calendar_info(self):
+        """Aktualisiert Kalender-Name und Beschreibung basierend auf Auswahl"""
+        if self.combo_ee_teams.currentData():
+            # Team-spezifische Employee-Events
+            team_name = self.combo_ee_teams.currentText()
+            team_id = self.combo_ee_teams.currentData()
+            
+            calendar_name = self.tr('Employee Events - {project_name} {team_name}').format(
+                project_name=self.project.name,
+                team_name=team_name
+            )
+            
+            description = '{{"description": "Employee events - team", "team_id": "{team_id}"}}'.format(
+                team_id=team_id
+            )
+        else:
+            # Employee-Events ohne Team-Zuordnung
+            calendar_name = self.tr('Employee Events - {project_name} No team').format(
+                project_name=self.project.name
+            )
+            
+            description = '{"description": "Employee events - no team", "team_id": ""}'
+        
+        self.le_ee_summary.setText(calendar_name)
+        self.le_ee_description.setText(description)
+        self.le_ee_description.setDisabled(True)  # Nicht editierbar
+
+    def _load_ee_persons(self):
+        """Lädt Personen für Employee-Events Kalender basierend auf Filter"""
+        self.lw_ee_persons.clear()
+        
+        filter_value = self.combo_person_filter.currentData()
+        persons_to_show = []
+        
+        if filter_value == 'all':
+            # Alle Personen des Projekts
+            persons_to_show = self.persons_of_project
+        elif filter_value == 'any_team':
+            # Personen mit Team-Zugehörigkeit (heute)
+            import datetime
+            today = datetime.date.today()
+            person_ids_with_team = set()
+            for team in self.teams_of_project:
+                team_assigns = db_services.TeamActorAssign.get_all_at__date(today, team.id)
+                for assign in team_assigns:
+                    person_ids_with_team.add(assign.person.id)
+            persons_to_show = [p for p in self.persons_of_project if p.id in person_ids_with_team]
+        elif filter_value == 'no_team':
+            # Personen ohne Team-Zugehörigkeit (heute)
+            import datetime
+            today = datetime.date.today()
+            person_ids_with_team = set()
+            for team in self.teams_of_project:
+                team_assigns = db_services.TeamActorAssign.get_all_at__date(today, team.id)
+                for assign in team_assigns:
+                    person_ids_with_team.add(assign.person.id)
+            persons_to_show = [p for p in self.persons_of_project if p.id not in person_ids_with_team]
+        else:
+            # Spezifisches Team (filter_value ist team_id)
+            import datetime
+            team_assigns = db_services.TeamActorAssign.get_all_at__date(datetime.date.today(), filter_value)
+            persons_to_show = [assign.person for assign in team_assigns]
+        
+        # Personen zur Liste hinzufügen
+        for person in sorted(persons_to_show, key=lambda x: x.full_name):
+            item = QListWidgetItem(person.full_name)
+            item.setData(1, person.id)  # Person ID speichern
+            item.setData(2, person.email)  # E-Mail speichern
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            
+            self.lw_ee_persons.addItem(item)
+
+    def _ee_persons_context_menu(self, position):
+        """Context-Menu für Employee-Events Personen (Rechtsklick)"""
+        item = self.lw_ee_persons.itemAt(position)
+        if not item:
+            return  # Kein Item unter dem Mauszeiger
+        
+        # Context-Menu erstellen (gleiche Logik wie bei Team-Mitgliedern)
+        menu = QMenu(self)
+        
+        edit_email_action = menu.addAction(
+            self.tr('Edit email address...')
+        )
+        
+        # Menu anzeigen und Auswahl abwarten
+        action = menu.exec(self.lw_ee_persons.mapToGlobal(position))
+        
+        if action == edit_email_action:
+            self._edit_ee_person_email(item)
+
+    def _edit_ee_person_email(self, item: QListWidgetItem):
+        """Öffnet Dialog zur E-Mail-Bearbeitung für Employee-Events Person"""
+        person_name = item.text()
+        current_email = item.data(2) or ""
+        
+        # E-Mail-Dialog öffnen (gleicher Dialog wie bei Team-Mitgliedern)
+        dialog = EditMemberEmailDialog(self, person_name, current_email)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_email = dialog.get_new_email()
+            
+            # Item-Data mit neuer E-Mail aktualisieren
+            item.setData(2, new_email)
+            
+            # Tooltip für geänderte E-Mail
+            if new_email != current_email:
+                original_tooltip = self.tr('Original: {original}\nCurrent: {current}').format(
+                    original=current_email,
+                    current=new_email
+                )
+                item.setToolTip(original_tooltip)
+
     def _tab_changed(self, index: int):
         """Handler für Tab-Wechsel"""
         if index == 0:  # Personen-Tab
             self.calendar_type = 'person'
         elif index == 1:  # Team-Tab
             self.calendar_type = 'team'
+        elif index == 2:  # Employee-Events-Tab
+            self.calendar_type = 'employee_events'
 
     def _setup_data(self):
         self.project = db_services.Project.get(self.project_id)
@@ -126,17 +316,24 @@ class CreateGoogleCalendar(QDialog):
         self.teams_of_project = db_services.Team.get_all_from__project(self.project_id)
         self.avail_google_calendars = curr_calendars_handler.get_calenders()
         
-        # Personen ohne bestehenden Kalender
+        # Personen im Person-Tab ohne bestehenden Kalender
         self.persons_for_new_calendar = sorted(
             (p for p in self.persons_of_project
              if p.id not in {c.person_id for c in self.avail_google_calendars.values()}),
             key=lambda x: x.full_name
         )
         
-        # Teams ohne bestehenden Kalender
+        # Teams im Team-Tab ohne bestehenden Kalender
         self.teams_for_new_calendar = sorted(
             (t for t in self.teams_of_project
              if t.id not in {c.team_id for c in self.avail_google_calendars.values() if c.team_id}),
+            key=lambda x: x.name
+        )
+
+        # Teams im Employee-Events-Tab
+        self.teams_for_ee_calendar = sorted(
+            (t for t in self.teams_of_project if t.id not in {c.team_id for c in self.avail_google_calendars.values()
+                                                              if c.type == 'employee_events'}),
             key=lambda x: x.name
         )
 
@@ -162,7 +359,7 @@ class CreateGoogleCalendar(QDialog):
             )
             self.le_description.setText(
                 '{{"description": "{desc}", "person_id": "{person_id}"}}'.format(
-                    desc=self.tr('Appointments of {person_name}').format(
+                    desc=self.tr('Person appointments {person_name}').format(
                         person_name=self.combo_persons.currentText()
                     ),
                     person_id=self.combo_persons.currentData()
@@ -191,7 +388,7 @@ class CreateGoogleCalendar(QDialog):
             # Automatische Beschreibung mit team_id
             self.le_team_description.setText(
                 '{{"description": "{desc}", "team_id": "{team_id}"}}'.format(
-                    desc=self.tr('Team calendar of {team_name}').format(team_name=team_name),
+                    desc=self.tr('Team appointments {team_name}').format(team_name=team_name),
                     team_id=team_id
                 )
             )
@@ -298,7 +495,7 @@ class CreateGoogleCalendar(QDialog):
                     )
                     if reply == QMessageBox.StandardButton.Yes:
                         self.add_email_to_team_calendar = team_calendar.id
-        else:  # team
+        elif self.calendar_type == 'team':  # team
             # Team-Kalender Validierung
             if not self.combo_teams.currentData():
                 QMessageBox.warning(
@@ -315,6 +512,17 @@ class CreateGoogleCalendar(QDialog):
                     self.tr('Please enter a name for the calendar.')
                 )
                 return
+        else:  # employee_events
+            # Employee-Events-Kalender Validierung
+            if not self.le_ee_summary.text():
+                QMessageBox.warning(
+                    self,
+                    self.tr('Calendar Name'),
+                    self.tr('Please enter a name for the calendar.')
+                )
+                return
+            
+            # Validierung ist nicht nötig - "no team" ist eine gültige Option
         
         super().accept()
 
@@ -328,10 +536,17 @@ class CreateGoogleCalendar(QDialog):
                 'location': 'Berlin',
                 'timeZone': 'Europe/Berlin'
             }
-        else:  # team
+        elif self.calendar_type == 'team':
             return {
                 'summary': self.le_team_summary.text(),
                 'description': self.le_team_description.text(),
+                'location': 'Berlin',
+                'timeZone': 'Europe/Berlin'
+            }
+        else:  # employee_events
+            return {
+                'summary': self.le_ee_summary.text(),
+                'description': self.le_ee_description.text(),
                 'location': 'Berlin',
                 'timeZone': 'Europe/Berlin'
             }
@@ -341,10 +556,14 @@ class CreateGoogleCalendar(QDialog):
         """E-Mail für Zugriffskontrolle - abhängig vom Kalender-Typ"""
         if self.calendar_type == 'person':
             return self.le_email.text()
-        else:
+        elif self.calendar_type == 'team':
             # Bei Team-Kalendern wird die erste ausgewählte E-Mail zurückgegeben
             # oder leerer String wenn keine ausgewählt
             emails = self.selected_team_member_emails
+            return emails[0] if emails else ""
+        else:  # employee_events
+            # Bei Employee-Events-Kalendern wird die erste ausgewählte E-Mail zurückgegeben
+            emails = self.selected_ee_person_emails
             return emails[0] if emails else ""
 
     @property
@@ -356,6 +575,25 @@ class CreateGoogleCalendar(QDialog):
         emails = []
         for index in range(self.lw_team_members.count()):
             item = self.lw_team_members.item(index)
+            if item.checkState() == Qt.CheckState.Checked:
+                person_id = item.data(1)
+                stored_email = item.data(2)
+                
+                if stored_email:
+                    emails.append(stored_email)
+                # Note: E-Mail kann über Context-Menu (Rechtsklick) bearbeitet werden
+                    
+        return emails
+
+    @property
+    def selected_ee_person_emails(self) -> list[str]:
+        """Liste der E-Mail-Adressen ausgewählter Personen für Employee-Events-Kalender"""
+        if self.calendar_type != 'employee_events':
+            return []
+            
+        emails = []
+        for index in range(self.lw_ee_persons.count()):
+            item = self.lw_ee_persons.item(index)
             if item.checkState() == Qt.CheckState.Checked:
                 person_id = item.data(1)
                 stored_email = item.data(2)

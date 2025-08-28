@@ -42,11 +42,13 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
         google_event = create_google_event(appointment)
         google_events.append(google_event)
         user_calendars = (c for c in calendars.values()
-                          if c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
+                          if c.type == 'person_appointments'
+                          and c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
         for user_calendar in user_calendars:
             user_cal_id__google_events[(user_calendar.id, user_calendar.person_name)].append(google_event)
 
-    team_calendar = next((c for c in calendars.values() if c.team_id == plan.plan_period.team.id), None)
+    team_calendar = next((c for c in calendars.values()
+                          if c.type == 'team_appointments' and c.team_id == plan.plan_period.team.id), None)
     text_time_span = f'{plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
 
     if team_calendar:

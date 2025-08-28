@@ -15,12 +15,17 @@ from google_calendar_api.authenticate import authenticate_google
 def add_data_from_description_field(calendar: dict[str, Any]) -> dict:
     try:
         description: dict = json.loads(calendar['description'])
+        desc = description.get('description')
         team_id = description.get('team_id')
         person_id = description.get('person_id')
         person_name = db_services.Person.get_full_name_of_person(person_id) if person_id else None
         calendar['team_id'] = UUID(team_id) if team_id else None
         calendar['person_id'] = UUID(person_id) if person_id else None
         calendar['person_name'] = person_name
+        calendar['type'] = ('team_appointments' if desc.startswith('Team appointments')
+                            else 'person_appointments' if desc.startswith('Employee appointments')
+                            else 'employee_events' if desc.startswith('Employee events')
+                            else 'unknown')
     except JSONDecodeError as e:
         print(f'Fehler: description field does not contain valid json string: {e}')
         raise Exception(

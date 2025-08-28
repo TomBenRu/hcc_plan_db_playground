@@ -180,6 +180,107 @@ class EmployeeEventService:
                 message=f"Fehler beim Laden der Team-Events",
                 details=str(e)
             )
+
+    
+    @db_session
+    def get_events_by_team_id(
+        self, 
+        team_id: UUID | None, 
+        project_id: UUID,
+        include_prep_delete: bool = False,
+        last_modified: datetime | None = None
+    ) -> list[EventDetail] | ErrorResponseSchema:
+        """
+        Holt alle Employee Events eines Teams anhand der Team-ID.
+        
+        Args:
+            team_id: ID des Teams (None für "no team" Events)
+            project_id: ID des Projekts
+            include_prep_delete: Optional - True, um gelöschte Events einzutragen
+            last_modified: Optional - Nur Events nach diesem Zeitpunkt
+            
+        Returns:
+            Union[list[EventDetail], ErrorResponseSchema]: Events oder Fehler
+        """
+        try:
+            # Projekt validieren
+            project_db = models.Project.get(id=project_id)
+            if not project_db:
+                return ErrorResponseSchema(
+                    error="ProjectNotFound",
+                    message=f"Projekt mit ID {project_id} nicht gefunden"
+                )
+            
+            # Base-Query: Alle Events des Projekts
+            events_query = models.EmployeeEvent.select().filter(lambda e: e.project == project_db)
+            
+            # Soft-Delete Filter
+            if not include_prep_delete:
+                events_query = events_query.filter(lambda e: not e.prep_delete)
+            
+            # Last-Modified Filter
+            if last_modified:
+                events_query = events_query.filter(lambda e: e.last_modified > last_modified)
+            
+            # Team-Filter anwenden
+            if team_id is None:
+                # "No team" - Events ohne Team-Zuordnung
+                filtered_events = [event for event in events_query if len(event.teams) == 0]
+            else:
+                # Team-spezifisch - Events die diesem Team zugeordnet sind
+                team_db = models.Team.get(id=team_id, project=project_db)
+                if not team_db:
+                    return ErrorResponseSchema(
+                        error="TeamNotFound",
+                        message=f"Team mit ID {team_id} nicht gefunden"
+                    )
+                filtered_events = [event for event in events_query if team_db in event.teams]
+            
+            return [EventDetail.model_validate(event) for event in filtered_events]
+            
+        except Exception as e:
+            return ErrorResponseSchema(
+                error=type(e).__name__,
+                message=f"Fehler beim Laden der Team-Events nach ID",
+                details=str(e)
+            )
+    
+    @db_session
+    def get_events_for_google_calendar_sync(
+        self, 
+        project_id: UUID, 
+        team_id: UUID | None = None,
+        last_modified: datetime | None = None
+    ) -> list[EventDetail]:
+        """
+        Holt Employee Events für Google Calendar Synchronisation.
+        Optimiert für Performance und Fehlerbehandlung.
+        
+        Args:
+            project_id: ID des Projekts
+            team_id: None für "no team", UUID für team-spezifisch
+            last_modified: Nur Events nach diesem Zeitpunkt (für Performance)
+            
+        Returns:
+            list[EventDetail]: Liste der zu synchronisierenden Events
+        """
+        try:
+            result = self.get_events_by_team_id(
+                team_id=team_id,
+                project_id=project_id, 
+                include_prep_delete=False,
+                last_modified=last_modified
+            )
+            
+            # Fehler-Ergebnis zu leerer Liste konvertieren (für robuste Sync-Behandlung)
+            if isinstance(result, ErrorResponseSchema):
+                return []
+            
+            return result
+            
+        except Exception:
+            # Bei allen Fehlern leere Liste zurückgeben (robuste Sync-Behandlung)
+            return []
     
     @db_session
     def update_event(self, event_update_data: EventUpdate) -> Union[EventDetail, ErrorResponseSchema]:

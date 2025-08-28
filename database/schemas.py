@@ -501,6 +501,10 @@ class Address(BaseModel):
     city: str
     project: Project
 
+    @property
+    def full_address(self):
+        return f'{self.name}, {self.street}, {self.postal_code} {self.city}'
+
 
 class AddressShow(Address):
     pass

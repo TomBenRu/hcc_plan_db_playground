@@ -1,4 +1,6 @@
 import os
+import logging
+from datetime import datetime
 from uuid import UUID
 
 import toml
@@ -6,6 +8,8 @@ from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from toml.decoder import TomlDecodeError
 
 from configuration.project_paths import curr_user_path_handler
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleCalendar(BaseModel):
@@ -15,7 +19,7 @@ class GoogleCalendar(BaseModel):
     access_control: list[EmailStr]
     person_name: str | None = None
     person_id: UUID | None = None
-    team_id: UUID | None = None  # Wenn vorhanden, handelt es sich um einen Team-Kalender (Zugriff von allen Team-Mitgliedern.)
+    team_id: UUID | None = None
     type: str | None = None  # person_appointments, team_appointments, employee_events, unknown
 
 
@@ -58,6 +62,61 @@ class CalendarsHandlerToml:
         if self._calenders is None:
             self._calenders = self._load_calenders_from_file()
         return self._calenders
+
+    
+    def get_last_sync_time(self, calendar_id: str) -> datetime | None:
+        """
+        Holt letzte Sync-Zeit für Kalender aus TOML.
+        
+        Args:
+            calendar_id: Google Calendar ID
+            
+        Returns:
+            datetime | None: Letzte Sync-Zeit oder None falls nicht vorhanden
+        """
+        try:
+            with open(self._calender_file_path, 'r') as f:
+                data = toml.load(f)
+                sync_times = data.get('calendar_sync_times', {})
+                sync_time_str = sync_times.get(calendar_id)
+                
+                if sync_time_str:
+                    return datetime.fromisoformat(sync_time_str)
+                return None
+                
+        except (FileNotFoundError, KeyError, ValueError):
+            return None
+    
+    def update_last_sync_time(self, calendar_id: str, sync_time: datetime):
+        """
+        Aktualisiert letzte Sync-Zeit für Kalender in TOML.
+        
+        Args:
+            calendar_id: Google Calendar ID  
+            sync_time: Neue Sync-Zeit
+        """
+        try:
+            # Bestehende TOML-Datei laden
+            try:
+                with open(self._calender_file_path, 'r') as f:
+                    data = toml.load(f)
+            except FileNotFoundError:
+                data = {}
+            
+            # calendar_sync_times Sektion sicherstellen
+            if 'calendar_sync_times' not in data:
+                data['calendar_sync_times'] = {}
+            
+            # Sync-Zeit aktualisieren
+            data['calendar_sync_times'][calendar_id] = sync_time.isoformat()
+            
+            # Datei schreiben
+            with open(self._calender_file_path, 'w') as f:
+                toml.dump(data, f)
+                
+        except Exception as e:
+            # Sync-Zeit-Fehler sollen die Hauptfunktion nicht blockieren
+            logger.warning(f"Konnte Sync-Zeit nicht speichern: {e}")
 
 
 curr_calendars_handler = CalendarsHandlerToml()

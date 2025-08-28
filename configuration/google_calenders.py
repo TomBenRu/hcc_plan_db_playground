@@ -16,7 +16,7 @@ class GoogleCalendar(BaseModel):
     person_name: str | None = None
     person_id: UUID | None = None
     team_id: UUID | None = None  # Wenn vorhanden, handelt es sich um einen Team-Kalender (Zugriff von allen Team-Mitgliedern.)
-    type: str | None = None  # person, team, employee_events
+    type: str | None = None  # person_appointments, team_appointments, employee_events, unknown
 
 
 class CalendarsHandlerToml:

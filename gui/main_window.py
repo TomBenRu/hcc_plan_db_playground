@@ -1051,8 +1051,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         def create():
             try:
                 created_calendar = create_new_google_calendar(dlg.new_calender_data)
-                if dlg.email_for_access_control:
+                
+                # Zugriffskontrolle für Personen-Kalender (bestehende Logik)
+                if dlg.calendar_type == 'person' and dlg.email_for_access_control:
                     share_calendar(created_calendar['id'], dlg.email_for_access_control)
+                
+                # Zugriffskontrolle für Team-Kalender (neue Logik)
+                elif dlg.calendar_type == 'team' and dlg.selected_team_member_emails:
+                    for email in dlg.selected_team_member_emails:
+                        share_calendar(created_calendar['id'], email, 'reader')
+                
+                # Team-Kalender-Zugriff für Personen-Kalender (bestehende Logik)
                 if calendar_id := dlg.add_email_to_team_calendar:
                     add_or_update_access_to_calendar(calendar_id, dlg.email_for_access_control)
                 calendar = get_calendar_by_id(created_calendar['id'])
@@ -1067,22 +1076,34 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         def finished(result):
             progressbar.close()
             if result is True:
-                if email := dlg.email_for_access_control:
-                    text_access_control = f'\nDer Nutzer kann hat Zugriff auf diesen Kalender über:\n {email}'
-                else:
-                    text_access_control = ('\n Sie haben noch keinen Zugriff für den Nutzer über eine Email '
-                                           'eingerichtet.')
+                if dlg.calendar_type == 'person':
+                    calendar_name = person_name
+                    if email := dlg.email_for_access_control:
+                        text_access_control = f'\nDer Nutzer hat Zugriff auf diesen Kalender über:\n{email}'
+                    else:
+                        text_access_control = ('\nSie haben noch keinen Zugriff für den Nutzer über eine Email '
+                                               'eingerichtet.')
+                else:  # team
+                    calendar_name = f"Team {dlg.combo_teams.currentText()}"
+                    if dlg.selected_team_member_emails:
+                        emails_text = '\n'.join(dlg.selected_team_member_emails)
+                        text_access_control = (f'\nDie folgenden Team-Mitglieder haben Zugriff auf diesen Kalender:\n'
+                                               f'{emails_text}')
+                    else:
+                        text_access_control = '\nEs wurden keine Team-Mitglieder für den Zugriff ausgewählt.'
+                        
                 QMessageBox.information(
                     self, 'Google-Kalender erstellen',
-                    f'Ein neuer Google-Kalender für {person_name} wurde erstellt.{text_access_control}')
+                    f'Ein neuer Google-Kalender für {calendar_name} wurde erstellt.{text_access_control}')
             else:
                 if result['error'] == 'ServerNotFoundError':
                     error_text = f'{result["message"]}\nBitte prüfen Sie Ihre Internetverbindung.'
                 else:
                     error_text = f'{result["message"]}'
+                calendar_for_name = f"Team {person_name}" if dlg.calendar_type == 'team' else person_name
                 QMessageBox.critical(
                     self, 'Fehler beim Erstellen des Kalenders',
-                    f'Beim Versuch, den Kalender für {person_name} zu erstellen\n'
+                    f'Beim Versuch, den Kalender für {calendar_for_name} zu erstellen\n'
                     f'ist folgender Fehler aufgetreten:\n'
                     f'{error_text}')
 
@@ -1090,10 +1111,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if dlg.exec():
             self.worker_general = WorkerGeneral(create, True)
             self.worker_general.signals.finished.connect(finished)
-            person_name = dlg.combo_persons.currentText()
+            # Namen und Progressbar-Text basierend auf Kalender-Typ
+            if dlg.calendar_type == 'person':
+                person_name = dlg.combo_persons.currentText()
+                progress_text = f'Ein neuer Google-Kalender für {person_name} wird erstellt.'
+            else:  # team
+                person_name = dlg.combo_teams.currentText()  # Wird für Error-Handling verwendet
+                progress_text = f'Ein neuer Google-Kalender für Team {person_name} wird erstellt.'
+            
             progressbar = DlgProgressInfinite(
                 self, 'Google-Kalender erstellen',
-                f'Ein neuer Google-Kalender für {person_name} wird erstellt.',
+                progress_text,
                 'Abbruch'
             )
             progressbar.show()

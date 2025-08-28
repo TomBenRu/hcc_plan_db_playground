@@ -1,8 +1,10 @@
 import datetime
 from uuid import UUID
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QComboBox, QLineEdit,
-                              QDialogButtonBox, QMessageBox)
+                              QDialogButtonBox, QMessageBox, QTabWidget, QListWidget, QListWidgetItem,
+                              QCheckBox, QHBoxLayout)
 
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services
@@ -17,6 +19,8 @@ class CreateGoogleCalendar(QDialog):
         self.project_id = project_id
 
         self.add_email_to_team_calendar: str | None = None
+        self.calendar_type: str = 'person'  # 'person' oder 'team'
+        self.selected_team_members: list[tuple[UUID, str]] = []  # (person_id, email)
 
         self._setup_data()
         self._setup_ui()
@@ -27,19 +31,45 @@ class CreateGoogleCalendar(QDialog):
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.layout_head = QVBoxLayout()
-        self.layout_body = QFormLayout()
         self.layout_foot = QVBoxLayout()
         self.layout.addLayout(self.layout_head)
-        self.layout.addLayout(self.layout_body)
-        self.layout.addLayout(self.layout_foot)
 
+        # Beschreibung oben
         self.lb_description = QLabel(
             self.tr('Here you can create a Google Calendar in your Google Account.\n'
-                   'If you select an employee in the selection box, this calendar can '
-                   'automatically receive access rights via the email entered.')
+                   'Choose between creating a personal calendar or a team calendar.')
         )
         self.layout_head.addWidget(self.lb_description)
 
+        # Tab Widget für Personen- und Team-Kalender
+        self.tab_widget = QTabWidget()
+        self.layout.addWidget(self.tab_widget)
+
+        # Personen-Kalender Tab (bestehende Logik)
+        self.tab_person = QWidget()
+        self.tab_widget.addTab(self.tab_person, self.tr('Personal Calendar'))
+        self._setup_person_tab()
+
+        # Team-Kalender Tab (neue Logik)
+        self.tab_team = QWidget()
+        self.tab_widget.addTab(self.tab_team, self.tr('Team Calendar'))
+        self._setup_team_tab()
+
+        # Tab-Wechsel Handler
+        self.tab_widget.currentChanged.connect(self._tab_changed)
+
+        self.layout.addLayout(self.layout_foot)
+
+        # Button Box
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout_foot.addWidget(self.button_box)
+
+    def _setup_person_tab(self):
+        """Setup der UI für Personen-Kalender (bestehende Logik)"""
+        person_layout = QFormLayout(self.tab_person)
+        
         self.combo_persons = QComboBox()
         self._fill_combo_persons()
         self.le_summary = QLineEdit()
@@ -47,30 +77,67 @@ class CreateGoogleCalendar(QDialog):
         self.combo_persons.currentIndexChanged.connect(self._combo_persons_index_changed)
         self.le_email = QLineEdit()
         self.le_email.setValidator(custom_validators.email_validator)
-        self.layout_body.addRow(self.tr('User:'), self.combo_persons)
-        self.layout_body.addRow(self.tr('Email for user access:'), self.le_email)
-        self.layout_body.addRow(self.tr('Calendar name:'), self.le_summary)
-        self.layout_body.addRow(self.tr('Short description:'), self.le_description)
+        
+        person_layout.addRow(self.tr('User:'), self.combo_persons)
+        person_layout.addRow(self.tr('Email for user access:'), self.le_email)
+        person_layout.addRow(self.tr('Calendar name:'), self.le_summary)
+        person_layout.addRow(self.tr('Short description:'), self.le_description)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        self.layout_foot.addWidget(self.button_box)
+    def _setup_team_tab(self):
+        """Setup der UI für Team-Kalender"""
+        team_layout = QFormLayout(self.tab_team)
+        
+        self.combo_teams = QComboBox()
+        self._fill_combo_teams()
+        self.le_team_summary = QLineEdit()
+        self.le_team_description = QLineEdit()
+        self.combo_teams.currentIndexChanged.connect(self._combo_team_index_changed)
+        
+        team_layout.addRow(self.tr('Team:'), self.combo_teams)
+        team_layout.addRow(self.tr('Calendar name:'), self.le_team_summary)
+        team_layout.addRow(self.tr('Short description:'), self.le_team_description)
+        
+        # Team-Mitglieder Auswahl
+        self.lw_team_members = QListWidget()
+        team_layout.addRow(self.tr('Grant access to team members:'), self.lw_team_members)
+
+    def _tab_changed(self, index: int):
+        """Handler für Tab-Wechsel"""
+        if index == 0:  # Personen-Tab
+            self.calendar_type = 'person'
+        elif index == 1:  # Team-Tab
+            self.calendar_type = 'team'
 
     def _setup_data(self):
         self.project = db_services.Project.get(self.project_id)
         self.persons_of_project = db_services.Person.get_all_from__project(self.project_id)
+        self.teams_of_project = db_services.Team.get_all_from__project(self.project_id)
         self.avail_google_calendars = curr_calendars_handler.get_calenders()
+        
+        # Personen ohne bestehenden Kalender
         self.persons_for_new_calendar = sorted(
             (p for p in self.persons_of_project
              if p.id not in {c.person_id for c in self.avail_google_calendars.values()}),
             key=lambda x: x.full_name
+        )
+        
+        # Teams ohne bestehenden Kalender
+        self.teams_for_new_calendar = sorted(
+            (t for t in self.teams_of_project
+             if t.id not in {c.team_id for c in self.avail_google_calendars.values() if c.team_id}),
+            key=lambda x: x.name
         )
 
     def _fill_combo_persons(self):
         self.combo_persons.addItem(self.tr('no person'), None)
         for person in self.persons_for_new_calendar:
             self.combo_persons.addItem(person.full_name, person.id)
+
+    def _fill_combo_teams(self):
+        """Befüllt die ComboBox mit verfügbaren Teams"""
+        self.combo_teams.addItem(self.tr('no team'), None)
+        for team in self.teams_for_new_calendar:
+            self.combo_teams.addItem(team.name, team.id)
 
     def _combo_persons_index_changed(self):
         if self.combo_persons.currentData():
@@ -95,35 +162,142 @@ class CreateGoogleCalendar(QDialog):
             self.le_summary.clear()
             self.le_description.clear()
 
-    def accept(self):
-        if self.le_email.text():
-            taa = db_services.TeamActorAssign.get_at__date(self.combo_persons.currentData(), datetime.date.today())
-            team_calendar = next((c for c in curr_calendars_handler.get_calenders().values()
-                                  if c.team_id == taa.team.id), None)
-            if taa and team_calendar:
-                reply = QMessageBox.question(
-                    self,
-                    self.tr('Team Calendar Access'),
-                    self.tr('Should the user also be granted access rights to the team calendar of team {team_name}?')
-                    .format(team_name=taa.team.name)
+    def _combo_team_index_changed(self):
+        """Handler für Team-Auswahl Änderungen"""
+        if self.combo_teams.currentData():
+            team_id = self.combo_teams.currentData()
+            team_name = self.combo_teams.currentText()
+            
+            # Automatische Namensgebung für Team-Kalender
+            self.le_team_summary.setText(
+                self.tr('{project_name} - Team {team_name}').format(
+                    project_name=self.project.name,
+                    team_name=team_name
                 )
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.add_email_to_team_calendar = team_calendar.id
-        super().accept()
+            )
+            
+            # Automatische Beschreibung mit team_id
+            self.le_team_description.setText(
+                '{{"description": "{desc}", "team_id": "{team_id}"}}'.format(
+                    desc=self.tr('Team calendar of {team_name}').format(team_name=team_name),
+                    team_id=team_id
+                )
+            )
+            self.le_team_description.setDisabled(True)
+            
+            # Team-Mitglieder laden
+            self._load_team_members(team_id)
+        else:
+            self.le_team_summary.clear()
+            self.le_team_description.clear()
+            self.le_team_description.setEnabled(True)
+            self.lw_team_members.clear()
 
+    def _load_team_members(self, team_id: UUID):
+        """Lädt Team-Mitglieder für Zugriffskontrolle"""
+        import datetime
+        
+        self.lw_team_members.clear()
+        
+        # Aktuelle Team-Mitglieder zum heutigen Datum
+        current_members = db_services.TeamActorAssign.get_all_at__date(datetime.date.today(), team_id)
+        
+        for member_assign in current_members:
+            person = member_assign.person
+            
+            # E-Mail aus Datenbank laden (ist immer vorhanden)
+            person_email = person.email
+            
+            # ListWidget Item mit Checkbox erstellen
+            item = QListWidgetItem(person.full_name)
+            item.setData(1, person.id)  # Person ID speichern
+            item.setData(2, person_email)  # E-Mail speichern
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
+            
+            self.lw_team_members.addItem(item)
+
+    def accept(self):
+        if self.calendar_type == 'person':
+            # Bestehende Personen-Kalender Logik
+            if self.le_email.text():
+                taa = db_services.TeamActorAssign.get_at__date(self.combo_persons.currentData(), datetime.date.today())
+                team_calendar = next((c for c in curr_calendars_handler.get_calenders().values()
+                                      if c.team_id == taa.team.id), None)
+                if taa and team_calendar:
+                    reply = QMessageBox.question(
+                        self,
+                        self.tr('Team Calendar Access'),
+                        self.tr('Should the user also be granted access rights to the team calendar of team {team_name}?')
+                        .format(team_name=taa.team.name)
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        self.add_email_to_team_calendar = team_calendar.id
+        else:  # team
+            # Team-Kalender Validierung
+            if not self.combo_teams.currentData():
+                QMessageBox.warning(
+                    self,
+                    self.tr('Team Selection'),
+                    self.tr('Please select a team for the calendar.')
+                )
+                return
+            
+            if not self.le_team_summary.text():
+                QMessageBox.warning(
+                    self,
+                    self.tr('Calendar Name'),
+                    self.tr('Please enter a name for the calendar.')
+                )
+                return
+        
+        super().accept()
 
     @property
     def new_calender_data(self) -> dict[str, str]:
-        return {
-            'summary': self.le_summary.text(),
-            'description': self.le_description.text(),
-            'location': 'Berlin',
-            'timeZone': 'Europe/Berlin'
-        }
+        """Kalender-Daten basierend auf ausgewähltem Typ"""
+        if self.calendar_type == 'person':
+            return {
+                'summary': self.le_summary.text(),
+                'description': self.le_description.text(),
+                'location': 'Berlin',
+                'timeZone': 'Europe/Berlin'
+            }
+        else:  # team
+            return {
+                'summary': self.le_team_summary.text(),
+                'description': self.le_team_description.text(),
+                'location': 'Berlin',
+                'timeZone': 'Europe/Berlin'
+            }
 
     @property
     def email_for_access_control(self):
-        return self.le_email.text()
+        """E-Mail für Zugriffskontrolle - abhängig vom Kalender-Typ"""
+        if self.calendar_type == 'person':
+            return self.le_email.text()
+        else:
+            # Bei Team-Kalendern wird die erste ausgewählte E-Mail zurückgegeben
+            # oder leerer String wenn keine ausgewählt
+            emails = self.selected_team_member_emails
+            return emails[0] if emails else ""
 
-
-
+    @property
+    def selected_team_member_emails(self) -> list[str]:
+        """Liste der E-Mail-Adressen ausgewählter Team-Mitglieder"""
+        if self.calendar_type != 'team':
+            return []
+            
+        emails = []
+        for index in range(self.lw_team_members.count()):
+            item = self.lw_team_members.item(index)
+            if item.checkState() == Qt.CheckState.Checked:
+                person_id = item.data(1)
+                stored_email = item.data(2)
+                
+                if stored_email:
+                    emails.append(stored_email)
+                # TODO: Hier könnte später eine manuelle E-Mail-Eingabe-Dialog kommen
+                # wenn stored_email None ist
+                    
+        return emails

@@ -252,12 +252,15 @@ class CreateGoogleCalendar(QDialog):
         
         # Personen zur Liste hinzufügen
         for person in sorted(persons_to_show, key=lambda x: x.full_name):
-            item = QListWidgetItem(person.full_name)
-            item.setData(1, person.id)  # Person ID speichern
-            item.setData(2, person.email)  # E-Mail speichern
+
+            item = QListWidgetItem(f"{person.full_name} ({person.email})")
+
+            item.setData(Qt.ItemDataRole.UserRole, person.id)  # Person ID speichern
+            item.setData(Qt.ItemDataRole.UserRole + 1, person.email)  # E-Mail speichern
+
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
-            
+
             self.lw_ee_persons.addItem(item)
 
     def _ee_persons_context_menu(self, position):
@@ -282,7 +285,7 @@ class CreateGoogleCalendar(QDialog):
     def _edit_ee_person_email(self, item: QListWidgetItem):
         """Öffnet Dialog zur E-Mail-Bearbeitung für Employee-Events Person"""
         person_name = item.text()
-        current_email = item.data(2) or ""
+        current_email = item.data(Qt.ItemDataRole.UserRole + 1) or ""
         
         # E-Mail-Dialog öffnen (gleicher Dialog wie bei Team-Mitgliedern)
         dialog = EditMemberEmailDialog(self, person_name, current_email)
@@ -291,7 +294,7 @@ class CreateGoogleCalendar(QDialog):
             new_email = dialog.get_new_email()
             
             # Item-Data mit neuer E-Mail aktualisieren
-            item.setData(2, new_email)
+            item.setData(Qt.ItemDataRole.UserRole + 1, new_email)
             
             # Tooltip für geänderte E-Mail
             if new_email != current_email:
@@ -418,9 +421,9 @@ class CreateGoogleCalendar(QDialog):
             person_email = person.email
             
             # ListWidget Item mit Checkbox erstellen
-            item = QListWidgetItem(person.full_name)
-            item.setData(1, person.id)  # Person ID speichern
-            item.setData(2, person_email)  # E-Mail speichern
+            item = QListWidgetItem(f"{person.full_name} ({person_email})")
+            item.setData(Qt.ItemDataRole.UserRole, person.id)  # Person ID speichern
+            item.setData(Qt.ItemDataRole.UserRole + 1, person_email)  # E-Mail speichern
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
             
@@ -452,7 +455,7 @@ class CreateGoogleCalendar(QDialog):
     def _edit_member_email(self, item: QListWidgetItem):
         """Öffnet Dialog zur E-Mail-Bearbeitung für ein Team-Mitglied"""
         member_name = item.text()
-        current_email = item.data(2) or ""
+        current_email = item.data(Qt.ItemDataRole.UserRole + 1) or ""
         
         # E-Mail-Dialog öffnen
         dialog = EditMemberEmailDialog(self, member_name, current_email)
@@ -461,7 +464,7 @@ class CreateGoogleCalendar(QDialog):
             new_email = dialog.get_new_email()
             
             # Item-Data mit neuer E-Mail aktualisieren
-            item.setData(2, new_email)
+            item.setData(Qt.ItemDataRole.UserRole + 1, new_email)
             
             # Optional: Visuellen Hinweis hinzufügen, dass E-Mail geändert wurde
             if new_email != current_email:
@@ -576,8 +579,8 @@ class CreateGoogleCalendar(QDialog):
         for index in range(self.lw_team_members.count()):
             item = self.lw_team_members.item(index)
             if item.checkState() == Qt.CheckState.Checked:
-                person_id = item.data(1)
-                stored_email = item.data(2)
+                person_id = item.data(Qt.ItemDataRole.UserRole)
+                stored_email = item.data(Qt.ItemDataRole.UserRole + 1)
                 
                 if stored_email:
                     emails.append(stored_email)
@@ -595,8 +598,8 @@ class CreateGoogleCalendar(QDialog):
         for index in range(self.lw_ee_persons.count()):
             item = self.lw_ee_persons.item(index)
             if item.checkState() == Qt.CheckState.Checked:
-                person_id = item.data(1)
-                stored_email = item.data(2)
+                person_id = item.data(Qt.ItemDataRole.UserRole)
+                stored_email = item.data(Qt.ItemDataRole.UserRole + 1)
                 
                 if stored_email:
                     emails.append(stored_email)

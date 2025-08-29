@@ -9,13 +9,15 @@ import datetime
 import json
 import logging
 from typing import Dict, List, Tuple
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from PySide6.QtCore import QCoreApplication
 
 from configuration.google_calenders import curr_calendars_handler
+from employee_event import ErrorResponseSchema
+from employee_event.db_commands import event_commands
 from employee_event.db_service import EmployeeEventService
 from employee_event.schemas.employee_event_schemas import EventDetail
 from google_calendar_api.authenticate import authenticate_google
@@ -209,125 +211,107 @@ def delete_event_from_calendar(calendar_id: str, ical_uid: str) -> bool:
         logger.error(f"Unbekannter Fehler beim Event-Löschen: {e}")
         return False
 
-
-
-def cleanup_orphaned_teams_for_event(event_id: UUID, current_teams: List[UUID], calendars: Dict) -> int:
+def find_existing_event_across_all_calendars(event_id: UUID, current_google_calendar_event_id: str, 
+                                           calendars: dict) -> list[tuple[str, str]]:
     """
-    Löscht verwaiste Team-Events für eine Event-ID.
+    Sucht ein Event mit gegebener event_id und google_calendar_event_id in ALLEN verfügbaren Kalendern.
     
-    Diese Funktion scannt alle employee-event Kalender nach Events mit der gegebenen event_id
-    und löscht solche Events, deren team_id nicht mehr in current_teams enthalten ist.
+    ✅ MULTI-KALENDER SUPPORT: 
+    - Event kann in mehreren Team-Kalendern gleichzeitig existieren
+    - Gibt ALLE gefundenen Standorte zurück
+    - Ermöglicht DELETE aus ALLEN Kalendern vor CREATE
+    
+    Löst das Teamwechsel-Problem: Bei Wechsel von Team A → Team B sucht in allen Kalendern,
+    findet Event sowohl in A als auch B, löscht aus BEIDEN.
     
     Args:
-        event_id: UUID des Events
-        current_teams: Liste der aktuell zugeordneten Team-UUIDs
-        calendars: Dict aller employee-event calendars {team_id: calendar_obj}
+        event_id: Employee Event ID
+        current_google_calendar_event_id: Aktuelle UUID aus DB
+        calendars: Dict {team_id: calendar_object} aller verfügbaren Kalender
         
     Returns:
-        int: Anzahl der gelöschten verwaisten Events
+        list[tuple[str, str]]: Liste aller (calendar_id, ical_uid) wo Event gefunden wurde
     """
-
-    cleanup_count = 0
+    logger.info(f"Globale Event-Suche: event_id={event_id}, uuid={current_google_calendar_event_id}")
     
-    # Alle verfügbaren employee-event Kalender durchsuchen
+    found_events: list[tuple[str, str]] = []
+    
     for team_id, calendar in calendars.items():
+        # iCalUID für diesen Kalender zusammenbauen
         if team_id is None:
-            # "no team" Kalender - separate Behandlung
-            ical_uid = f"employee-event-{event_id}-no-team@hcc-plan.local"
-            
-            # Löschen falls Event keine Teams mehr hat UND ein no-team Event existiert
-            if current_teams:  # Event hat Teams, also no-team Event löschen
-                try:
-                    # Globale Suche und Löschung für robustes Cleanup
-                    if find_and_delete_event_globally(ical_uid, calendars):
-                        cleanup_count += 1
-                except Exception as e:
-                    logger.error(f"Fehler beim no-team Cleanup für Event {event_id}: {e}")
+            potential_ical_uid = f"employee-event-{event_id}-no-team-{current_google_calendar_event_id}@hcc-plan.local"
         else:
-            # Team-spezifischer Kalender - prüfen ob Team noch zugeordnet ist
-            ical_uid = f"employee-event-{event_id}-team-{team_id}@hcc-plan.local"
-            
-            # Löschen falls team_id nicht mehr in current_teams ist
-            if team_id not in current_teams:
-                try:
-                    # Globale Suche und Löschung für robustes Cleanup
-                    if find_and_delete_event_globally(ical_uid, calendars):
-                        cleanup_count += 1
-                    # Fallback: Spezifische Suche im erwarteten Kalender (für Debug)
-                    else:
-                        existing_event = find_event_by_icaluid(calendar.id, ical_uid)
-                        logger.info(f"Debug Cleanup: Kalender-spezifische Suche nach {ical_uid} in Team {team_id}: {'GEFUNDEN' if existing_event else 'NICHT GEFUNDEN'}")
-                        if existing_event:
-                            logger.warning(f"Event gefunden aber globales Löschen fehlgeschlagen - versuche spezifisches Löschen: {ical_uid}")
-                            if delete_event_from_calendar(calendar.id, ical_uid):
-                                cleanup_count += 1
-                except Exception as e:
-                    logger.error(f"Fehler beim Team-Cleanup für Event {event_id}, Team {team_id}: {e}")
-    
-    if cleanup_count > 0:
-        logger.info(f"Cleanup abgeschlossen: {cleanup_count} verwaiste Events für Event {event_id} gelöscht")
-    
-    return cleanup_count
-
-
-
-def find_and_delete_event_globally(ical_uid: str, calendars: Dict) -> bool:
-    """
-    Sucht ein Event global in allen Kalendern und löscht es aus dem gefundenen Kalender.
-    
-    Diese Funktion ist robuster als kalender-spezifische Suche, da Google Calendar
-    iCalUIDs global verwaltet, aber Events in spezifischen Kalendern gespeichert sind.
-    
-    Args:
-        ical_uid: iCalendar UID des zu löschenden Events
-        calendars: Dict aller verfügbaren Kalender {team_id: calendar_obj}
+            potential_ical_uid = f"employee-event-{event_id}-team-{team_id}-{current_google_calendar_event_id}@hcc-plan.local"
         
+        # In diesem Kalender suchen
+        existing_event = find_event_by_icaluid(calendar.id, potential_ical_uid)
+        if existing_event:
+            logger.info(f"Event GEFUNDEN in {'no-team' if team_id is None else f'Team {team_id}'} Kalender")
+            found_events.append((calendar.id, potential_ical_uid))
+    
+    if found_events:
+        logger.info(f"Event in {len(found_events)} Kalender(n) gefunden - DELETE aus allen")
+    else:
+        logger.info("Event in KEINEM Kalender gefunden - CREATE ohne DELETE")
+    
+    return found_events
+
+
+def delete_events_from_all_calendars(event_id: UUID, current_google_calendar_event_id: str,
+                                    calendars: dict) -> list[str]:
+    """
+    Löscht ein Event aus ALLEN verfügbaren Kalendern anhand seiner event_id und google_calendar_event_id.
+
+    Args:
+        event_id: Employee Event ID
+        current_google_calendar_event_id: Aktuelle UUID aus DB
+        calendars: Dict aller verfügbaren Kalender
+
     Returns:
-        bool: True wenn Event gefunden und gelöscht wurde, False wenn nicht gefunden
+        list[str]: Liste aller Kalender-IDs aus denen das Event gelöscht wurde
     """
-    # Alle verfügbaren Kalender durchsuchen
-    for team_id, calendar in calendars.items():
-        try:
-            existing_event = find_event_by_icaluid(calendar.id, ical_uid)
-            if existing_event:
-                # Event gefunden - aus diesem Kalender löschen
-                if delete_event_from_calendar(calendar.id, ical_uid):
-                    logger.info(f"Global gefundenes Event gelöscht: {ical_uid} aus {'no-team' if team_id is None else f'Team {team_id}'}")
-                    return True
-                else:
-                    logger.warning(f"Event gefunden aber Löschen fehlgeschlagen: {ical_uid} in {'no-team' if team_id is None else f'Team {team_id}'}")
-                    return False
-        except Exception as e:
-            logger.error(f"Fehler bei globaler Suche in {'no-team' if team_id is None else f'Team {team_id}'} Kalender: {e}")
-            continue
-    
-    # Event in keinem Kalender gefunden
-    logger.info(f"Event nicht gefunden bei globaler Suche: {ical_uid}")
-    return False
+    found_events = find_existing_event_across_all_calendars(event_id, current_google_calendar_event_id, calendars)
+
+    deleted_calendars: list[str] = []
+    for calendar_id, ical_uid in found_events:
+        delete_success = delete_event_from_calendar(calendar_id, ical_uid)
+        if delete_success:
+            deleted_calendars.append(calendar_id)
+    return deleted_calendars
 
 
-def add_or_update_event_to_calendar(calendar_id: str, event_data: dict, ical_uid: str) -> bool:
+def create_event_with_new_uuid(calendar_id: str, event_data: dict, event_id: UUID,
+                               team_id: UUID, current_google_calendar_event_id: str,
+                               new_google_calendar_event_id: str) -> tuple[bool, str]:
     """
-    Fügt ein Event hinzu oder aktualisiert es, falls es bereits existiert.
-    
+    Erstellt ein neues Event in Google Calendar mit einer neuen UUID.
+
     Args:
         calendar_id: Google Calendar ID
         event_data: Event-Daten im Google Calendar Format
-        ical_uid: iCalendar UID für eindeutige Identifizierung
-        
+        event_id: Employee Event ID
+        team_id: Team ID (None für no-team Events)
+        current_google_calendar_event_id: Aktuelle UUID aus DB
+        new_google_calendar_event_id: Neue UUID für das Event
+
     Returns:
-        bool: True bei Erfolg, False bei Fehler
+        tuple[bool, str]: (Success, neue_google_calendar_event_id)
     """
-    # Prüfen ob Event bereits existiert
-    existing_event = find_event_by_icaluid(calendar_id, ical_uid)
-    
-    if existing_event:
-        # Event aktualisieren
-        return update_event_in_calendar(calendar_id, existing_event['id'], event_data)
+
+    # Neue iCalUID für Ziel-Kalender zusammenbauen
+    if team_id is None:
+        new_ical_uid = f"employee-event-{event_id}-no-team-{new_google_calendar_event_id}@hcc-plan.local"
     else:
-        # Event erstellen (mit iCalUID für zukünftige Updates)
-        event_data['iCalUID'] = ical_uid
-        return add_event_to_calendar(calendar_id, event_data)
+        new_ical_uid = f"employee-event-{event_id}-team-{team_id}-{new_google_calendar_event_id}@hcc-plan.local"
+
+    # CREATE in Ziel-Kalender mit neuer iCalUID
+    event_data['iCalUID'] = new_ical_uid
+    create_success = add_event_to_calendar(calendar_id, event_data)
+
+    if create_success:
+        return True, new_google_calendar_event_id
+    else:
+        return False, current_google_calendar_event_id  # Bei Fehler: alte UUID behalten
 
 
 def sync_employee_events_to_calendar(project_id: UUID) -> dict:
@@ -352,61 +336,51 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
         'failed_events': [],
         'total_count': 0,
         'deleted_count': 0,
-        'cleanup_count': 0
+
     }
 
     employee_event_service = EmployeeEventService()
     last_sync = curr_calendars_handler.get_last_sync_time()
     timezone = get_timezone_from_config()
     calendars = {c.team_id: c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events'}
-    print(f'Debug: {calendars=}')
-    for team_id, calendar in calendars.items():
-        print(f'Debug: {team_id=}, {calendar=}')
     
     # Alle Events inklusive gelöschte holen
     events = employee_event_service.get_all_events(project_id, last_sync, include_prep_delete=True)
 
     try:
         for event in events:
-            # Cleanup verwaister Team-Events BEVOR neue Synchronisation (verhindert 409 Duplicate Errors)
-            try:
-                if event.teams:
-                    # Event hat Teams - cleanup für aktuelle Team-Liste
-                    current_team_ids = [team.id for team in event.teams]
-                    cleanup_count = cleanup_orphaned_teams_for_event(event.id, current_team_ids, calendars)
-                else:
-                    # Event hat keine Teams - cleanup für leere Team-Liste
-                    cleanup_count = cleanup_orphaned_teams_for_event(event.id, [], calendars)
-                
-                sync_results['cleanup_count'] += cleanup_count
-            except Exception as e:
-                logger.error(f"Fehler beim Team-Cleanup für Event {event.id}: {e}")
-                # Cleanup-Fehler bricht normale Sync nicht ab
-            if event.teams:
+            if event.prep_delete:
+                logger.info(f"Sync: Event {event.id} mit prep_delete gefunden")
+                sync_results['total_count'] += 1
+                calendars_with_event = delete_events_from_all_calendars(event.id, event.google_calendar_event_id, calendars)
+                if calendars_with_event:
+                    sync_results['deleted_count'] += len(calendars_with_event)
+                    sync_results['successful_count'] += len(calendars_with_event)
+            elif event.teams:
+                calendars_with_event = delete_events_from_all_calendars(
+                    event.id, event.google_calendar_event_id, calendars)
+                if calendars_with_event:
+                    sync_results['deleted_count'] += len(calendars_with_event)
+                    sync_results['successful_count'] += len(calendars_with_event)
+                # Neue UUID generieren
+                new_uuid = str(uuid4())
                 for team in event.teams:
                     if team.id in calendars:
                         calendar_id = calendars[team.id].id
-                        # Eindeutige iCalUID für Update/Delete-Erkennung
-                        ical_uid = f"employee-event-{event.id}-team-{team.id}@hcc-plan.local"
                         sync_results['total_count'] += 1
                         
                         try:
-                            # Events mit prep_delete löschen
-                            if event.prep_delete:
-                                if delete_event_from_calendar(calendar_id, ical_uid):
-                                    sync_results['deleted_count'] += 1
-                                    sync_results['successful_count'] += 1
-                                else:
-                                    sync_results['failed_events'].append((event.title, "API-Fehler beim Löschen"))
-                            
-                            # Normale Events hinzufügen/aktualisieren
+                            logger.info(f"Sync: CREATE für Event {event.id} in Team {team.id}")
+                            google_event = create_google_calendar_event_from_employee_event(event, timezone)
+                            success, new_uuid = create_event_with_new_uuid(
+                                calendar_id, google_event, event.id,
+                                team.id, event.google_calendar_event_id, new_uuid
+                            )
+                            if success:
+                                sync_results['successful_count'] += 1
+                                update_employee_event_with_new_ical_uid(event.id, new_uuid)
                             else:
-                                logger.info(f"Debug Sync: Versuche Event {event.id} in Team {team.id} zu synchronisieren mit iCalUID: {ical_uid}")
-                                google_event = create_google_calendar_event_from_employee_event(event, timezone)
-                                if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
-                                    sync_results['successful_count'] += 1
-                                else:
-                                    sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren"))
+                                sync_results['failed_events'].append((event.title, "API-Fehler beim DELETE+CREATE"))
                         
                         except Exception as e:
                             error_msg = str(e)
@@ -415,29 +389,30 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
 
             else:
                 # Events ohne Team-Zuordnung - synchronisiert mit "no team" Kalender
-                no_team_calendar = calendars.get(None)  # team_id ist leerer String für "no team"
+                calendars_with_event = delete_events_from_all_calendars(
+                    event.id, event.google_calendar_event_id, calendars)
+                if calendars_with_event:
+                    sync_results['deleted_count'] += len(calendars_with_event)
+                    sync_results['successful_count'] += len(calendars_with_event)
+                no_team_calendar = calendars.get(None)
+                # Neue UUID generieren
+                new_uuid = str(uuid4())
                 if no_team_calendar:
                     calendar_id = no_team_calendar.id
-                    # iCalUID für Events ohne Team
-                    ical_uid = f"employee-event-{event.id}-no-team@hcc-plan.local"
                     sync_results['total_count'] += 1
                     
                     try:
-                        # Events mit prep_delete löschen
-                        if event.prep_delete:
-                            if delete_event_from_calendar(calendar_id, ical_uid):
-                                sync_results['deleted_count'] += 1
-                                sync_results['successful_count'] += 1
-                            else:
-                                sync_results['failed_events'].append((event.title, "API-Fehler beim Löschen (no team)"))
-                        
-                        # Normale Events hinzufügen/aktualisieren
+                        logger.info(f"Sync: DELETE+CREATE für no-team Event {event.id}")
+                        google_event = create_google_calendar_event_from_employee_event(event, timezone)
+                        success, new_uuid = create_event_with_new_uuid(
+                            calendar_id, google_event, event.id, None,
+                            event.google_calendar_event_id, new_uuid
+                        )
+                        if success:
+                            sync_results['successful_count'] += 1
+                            update_employee_event_with_new_ical_uid(event.id, new_uuid)
                         else:
-                            google_event = create_google_calendar_event_from_employee_event(event, timezone)
-                            if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
-                                sync_results['successful_count'] += 1
-                            else:
-                                sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren (no team)"))
+                            sync_results['failed_events'].append((event.title, "API-Fehler beim DELETE+CREATE (no team)"))
                     
                     except Exception as e:
                         error_msg = str(e)
@@ -448,7 +423,8 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
                     logger.info(f"Event '{event.title}' ohne Team-Zuordnung übersprungen - kein 'no team' Kalender vorhanden")
 
         if not sync_results['failed_events']:
-            curr_calendars_handler.update_last_sync_time(datetime.datetime.now(datetime.UTC))
+            curr_calendars_handler.update_last_sync_time(
+                datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1))
             
         return sync_results
         
@@ -456,3 +432,20 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
         logger.error(f"Fehler bei Employee-Events-Synchronisation: {str(e)}")
         sync_results['failed_events'].append(("Synchronisation", str(e)))
         return sync_results
+
+
+def update_employee_event_with_new_ical_uid(event_id: UUID, new_ical_uid: str) -> bool:
+    """
+    Aktualisiert das iCalUID eines Employee Events in der Datenbank.
+
+    Args:
+        event_id: UUID des Events
+        new_ical_uid: Neuer iCalUID
+
+    Returns:
+        bool: True, wenn erfolgreich, False sonst
+    """
+    command = event_commands.UpdateGoogleCalendarEventId(event_id, new_ical_uid)
+    command.execute()
+    if isinstance(command.result, ErrorResponseSchema):
+        logger.error(f"DB Update fehlgeschlagen: {command.result.message}")

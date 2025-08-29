@@ -823,6 +823,10 @@ class DlgEmployeeEventDetails(QDialog):
                 # Bestehendes Event aktualisieren
                 command = event_commands.Update(update_data)
                 self.controller.execute(command)
+                if isinstance(command.result, ErrorResponseSchema):
+                    QMessageBox.critical(self, self.tr("Error"),
+                                       self.tr("Could not update event: {error}").format(error=command.result.message))
+                    return
                 
                 if isinstance(command.result, ErrorResponseSchema):
                     QMessageBox.critical(self, self.tr("Error"), 

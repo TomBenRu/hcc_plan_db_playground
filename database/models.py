@@ -1,6 +1,6 @@
 import datetime
 from typing import runtime_checkable, Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, Json, composite_key
 
 from database.enums import Gender, Role
@@ -808,9 +808,14 @@ class EmployeeEvent(db.Entity):
     teams = Set(Team)
     participants = Set(Person)
     address = Optional(Address)
+    google_calendar_event_id = Optional(str)
 
     def before_update(self):
         self.last_modified = utcnow_naive()
+
+    def before_insert(self):
+        # create new UUID for google_calendar_event_id
+        self.google_calendar_event_id = str(uuid4())
 
 
 class EmployeeEventCategory(db.Entity):

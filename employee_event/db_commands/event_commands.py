@@ -48,6 +48,25 @@ class Update(Command):
             self.db_services.update_event(self.event_update)
 
 
+class UpdateGoogleCalendarEventId(Command):
+    def __init__(self, event_id: UUID, google_calendar_event_id: str):
+        self.db_services = db_service.EmployeeEventService()
+        self.event_id = event_id
+        self.google_calendar_event_id = google_calendar_event_id
+        self.old_google_calendar_event_id = None
+        self.result: SuccessResponseSchema | ErrorResponseSchema | None = None
+
+    def execute(self):
+        self.old_google_calendar_event_id = self.db_services.get_event(self.event_id).google_calendar_event_id
+        self.result = self.db_services.update_google_calendar_event_id(self.event_id, self.google_calendar_event_id)
+
+    def undo(self):
+        self.db_services.update_google_calendar_event_id(self.event_id, self.old_google_calendar_event_id)
+
+    def redo(self):
+        self.db_services.update_google_calendar_event_id(self.event_id, self.google_calendar_event_id)
+
+
 class Delete(Command):
     def __init__(self, event_id: UUID):
         self.db_services = db_service.EmployeeEventService()

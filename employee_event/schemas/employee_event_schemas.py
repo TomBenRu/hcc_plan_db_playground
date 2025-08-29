@@ -32,6 +32,7 @@ class Event(BaseModel):
     created_at: datetime
     last_modified: datetime
     prep_delete: Optional[datetime]
+    google_calendar_event_id: Optional[str]
     employee_event_categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
     project: ProjectMinimal
 

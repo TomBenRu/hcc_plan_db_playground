@@ -631,6 +631,40 @@ class EmployeeEventService:
                 details=str(e)
             )
 
+    @db_session
+    def update_google_calendar_event_id(
+            self, event_id: UUID, google_calendar_event_id: str) -> Union[SuccessResponseSchema, ErrorResponseSchema]:
+        """
+        Aktualisiert die Google Calendar Event ID für ein Employee Event.
+
+        Args:
+            event_id: ID des Events
+            google_calendar_event_id: Neue Google Calendar Event ID
+
+        Returns:
+            Union[SuccessResponseSchema, ErrorResponseSchema]: Erfolg oder Fehler
+        """
+        try:
+            event_db = models.EmployeeEvent.get(id=event_id)
+            event_db.google_calendar_event_id = google_calendar_event_id
+            return SuccessResponseSchema(
+                message=f"Google Calendar Event ID für Employee Event '{event_db.title}' erfolgreich aktualisiert",
+                data={"event_id": str(event_id), "google_calendar_event_id": google_calendar_event_id}
+            )
+
+        except EmployeeEventNotFoundError as e:
+            return ErrorResponseSchema(
+                error="EventNotFound",
+                message=f"Employee Event nicht gefunden",
+                details=str(e)
+            )
+        except Exception as e:
+            return ErrorResponseSchema(
+                error=type(e).__name__,
+                message=f"Fehler beim Aktualisieren der Google Calendar Event ID",
+                details=str(e)
+            )
+
     # Private Helper Methods
     
     @db_session

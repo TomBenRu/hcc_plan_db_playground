@@ -503,7 +503,8 @@ class Address(BaseModel):
 
     @property
     def full_address(self):
-        return f'{self.name}, {self.street}, {self.postal_code} {self.city}'
+        text_name = f'{self.name}, ' if self.name else ''
+        return f'{text_name}{self.street}, {self.postal_code} {self.city}'
 
 
 class AddressShow(Address):

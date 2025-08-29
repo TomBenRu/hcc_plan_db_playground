@@ -119,12 +119,18 @@ class EmployeeEventService:
             )
     
     @db_session
-    def get_all_events(self, project_id: UUID, include_prep_delete: bool = False) -> list[EventDetail]:
+    def get_all_events(
+            self, project_id: UUID,
+            last_modified: datetime | None = None,
+            include_prep_delete: bool = False
+    ) -> list[EventDetail]:
         """
         Holt alle Employee Events, optional gefiltert nach Projekt.
         
         Args:
             project_id: Nur Events dieses Projekts
+            last_modified: Optional - Nur Events nach diesem Zeitpunkt
+            include_prep_delete: Optional - True, um gelöschte Events einzutragen
             
         Returns:
             list[EventDetail]: Liste aller Events
@@ -133,6 +139,8 @@ class EmployeeEventService:
         events = events.filter(lambda e: e.project.id == project_id)
         if not include_prep_delete:
             events = events.filter(lambda e: not e.prep_delete)
+        if last_modified:
+            events = events.filter(lambda e: e.last_modified > last_modified)
 
         return [EventDetail.model_validate(event) for event in events]
     

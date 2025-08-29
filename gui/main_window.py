@@ -27,8 +27,8 @@ from google_calendar_api.transfer_appointments import transfer_appointments_with
 from google_calendar_api.sync_employee_events import (
     sync_employee_events_to_calendar,
     determine_team_filter_from_dialog,
-    create_employee_events_calendar_description
 )
+
 from tools import open_file_or_folder
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
@@ -240,7 +240,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar-task.png'),
                               self.tr('Employee Events...'),
                               self.tr('Manage employee events and activities.'),
-                              self.show_employee_events_window)
+                              self.show_employee_events_window),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'),
+                              self.tr('Sync Employee Events...'),
+                              self.tr('Synchronize Employee Events to Google Calendar'),
+                              self.sync_employee_events_to_google_calendar)
         }
         self.actions: dict[str, MenuToolbarAction] = {a.slot.__name__: a for a in self.actions}
         self.toolbar_actions: list[QAction | None] = [
@@ -285,6 +289,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                           self.actions['open_google_calendar'],
                                           None, self.actions['create_google_calendar'],
                                           self.actions['synchronize_google_calenders'],
+                                          self.actions['sync_employee_events_to_google_calendar'],
                                           None, self.actions['import_google_api_credentials']],
             self.tr('E&xtras'): [self.actions['upgrade_hcc_plan'], None,
                                  self.actions['general_setting'],
@@ -1052,6 +1057,64 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         """Öffnet den Google-Kalender des aktuellen Projekts im Browser."""
         open_google_calendar_in_browser()
 
+    def sync_employee_events_to_google_calendar(self):
+        """Synchronisiert Employee Events mit einem bestehenden Google Calendar."""
+        
+        def sync_events():
+            """Führt die Synchronisation durch."""
+            try:
+                sync_results = sync_employee_events_to_calendar(self.project_id)
+                return {'success': True, 'sync_results': sync_results}
+            except Exception as e:
+                return {'error': 'Exception', 'message': str(e)}
+
+        @Slot(object)
+        def finished(result):
+            progressbar.close()
+            if isinstance(result, dict) and result.get('success'):
+                sync_results = result.get('sync_results')
+                if sync_results:
+                    sync_text = (f'Employee Events wurden synchronisiert:\n'
+                               f'Erfolgreich: {sync_results["successful_count"]}/{sync_results["total_count"]}')
+                    if sync_results['failed_events']:
+                        failed_titles = [title for title, _ in sync_results['failed_events'][:3]]
+                        sync_text += f'\nFehler bei: {", ".join(failed_titles)}'
+                        if len(sync_results['failed_events']) > 3:
+                            sync_text += f' (+{len(sync_results["failed_events"])-3} weitere)'
+                else:
+                    sync_text = 'Employee Events Synchronisation abgeschlossen.'
+                    
+                QMessageBox.information(self, 'Employee Events Synchronisation', sync_text)
+            else:
+                error_text = result.get('message', 'Unbekannter Fehler')
+                QMessageBox.critical(
+                    self, 'Synchronisationsfehler',
+                    f'Beim Synchronisieren der Employee Events ist ein Fehler aufgetreten:\n{error_text}'
+                )
+
+        available_calendars = [c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events']
+        if not available_calendars:
+            QMessageBox.critical(self, 'Keine Kalender verfügbar', 
+                               'Es sind keine Google Kalender verfügbar.\n'
+                               'Erstellen Sie zuerst einen Kalender oder synchronisieren Sie die Kalender-Liste.')
+            return
+
+
+
+        # Synchronisation starten
+        self.worker_general = WorkerGeneral(
+            lambda: sync_events(), True
+        )
+        self.worker_general.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
+        
+        progressbar = DlgProgressInfinite(
+            self, 'Employee Events Synchronisation',
+            f'Employee Events werden synchronisiert...',
+            'Abbruch'
+        )
+        progressbar.show()
+        self.thread_pool.start(self.worker_general)
+
     def create_google_calendar(self):
         def create():
             try:
@@ -1071,24 +1134,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     for email in dlg.selected_ee_person_emails:
                         share_calendar(created_calendar['id'], email, 'reader')
                 
-                # NEU: Employee-Events synchronisieren
-                if dlg.calendar_type == 'employee_events':
-                    team_id, team_id_str = determine_team_filter_from_dialog(dlg)
-                    sync_results = sync_employee_events_to_calendar(
-                        created_calendar['id'], 
-                        self.project_id, 
-                        team_id
-                    )
-                    # Calendar mit korrekter Description speichern
-                    calendar_description = create_employee_events_calendar_description(team_id)
-                    calendar = get_calendar_by_id(created_calendar['id'])
-                    calendar['description'] = calendar_description
-                    curr_calendars_handler.save_calendar_json_to_file(calendar)
-                    return {'success': True, 'sync_results': sync_results}
+
                 
-                # Team-Kalender-Zugriff für Personen-Kalender (bestehende Logik)
-                if calendar_id := dlg.add_email_to_team_calendar:
-                    add_or_update_access_to_calendar(calendar_id, dlg.email_for_access_control)
+
                 calendar = get_calendar_by_id(created_calendar['id'])
                 curr_calendars_handler.save_calendar_json_to_file(calendar)
                 return {'success': True}
@@ -1129,19 +1177,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     else:
                         text_access_control = '\nKein Personenzugriff konfiguriert.'
                     
-                    # Sync Results Text
-                    if sync_results := result.get('sync_results'):
-                        sync_text = (f'\nEvents synchronisiert: {sync_results["successful_count"]}'
-                                   f'/{sync_results["total_count"]}')
-                        if sync_results['failed_events']:
-                            failed_titles = [title for title, _ in sync_results['failed_events'][:3]]
-                            sync_text += f'\nFehler bei: {", ".join(failed_titles)}'
-                            if len(sync_results['failed_events']) > 3:
-                                sync_text += f' (+{len(sync_results["failed_events"])-3} weitere)'
-                    else:
-                        sync_text = ''
-                    
-                    text_access_control += sync_text
+
                         
                 QMessageBox.information(
                     self, 'Google-Kalender erstellen',
@@ -1177,7 +1213,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             elif dlg.calendar_type == 'employee_events':
                 team_text = dlg.combo_ee_teams.currentText()
                 person_name = team_text  # Für Error-Handling
-                progress_text = f'Employee-Events Kalender ({team_text}) wird erstellt und synchronisiert...'
+                progress_text = f'Employee-Events Kalender ({team_text}) wird erstellt...'
             
             progressbar = DlgProgressInfinite(
                 self, 'Google-Kalender erstellen',

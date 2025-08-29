@@ -1,4 +1,5 @@
 import pprint
+from typing import Any
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -22,7 +23,7 @@ class CalendarData:
         }
 
 
-def create_new_google_calendar(calendar_data: dict[str, str]):
+def create_new_google_calendar(calendar_data: dict[str, str]) -> dict[str, Any] | None:
     creds = authenticate_google()
     service = build('calendar', 'v3', credentials=creds)
 
@@ -30,6 +31,7 @@ def create_new_google_calendar(calendar_data: dict[str, str]):
         # Versuche, den neuen Kalender zu erstellen
         created_calendar = service.calendars().insert(body=calendar_data).execute()
         print(f"Neuer Kalender erstellt: {created_calendar['id']}")
+        print(f"Kalender-Daten: {pprint.pformat(created_calendar)}")
         return created_calendar
     except HttpError as error:
         print(f"Fehler beim Erstellen des Kalenders: {error}")

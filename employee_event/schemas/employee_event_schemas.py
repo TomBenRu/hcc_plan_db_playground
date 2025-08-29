@@ -31,6 +31,7 @@ class Event(BaseModel):
     end: datetime = Field(..., description="End-Zeitpunkt des Events")
     created_at: datetime
     last_modified: datetime
+    prep_delete: Optional[datetime]
     employee_event_categories: List['Category'] = Field(default_factory=list, description="Zugeordnete Kategorien")
     project: ProjectMinimal
 

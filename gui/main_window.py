@@ -1073,6 +1073,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 if sync_results:
                     sync_text = (f'Employee Events wurden synchronisiert:\n'
                                f'Erfolgreich: {sync_results["successful_count"]}/{sync_results["total_count"]}')
+                    if sync_results.get('deleted_count', 0) > 0:
+                        sync_text += f'\nGelöscht: {sync_results["deleted_count"]}'
                     if sync_results['failed_events']:
                         failed_titles = [title for title, _ in sync_results['failed_events'][:3]]
                         sync_text += f'\nFehler bei: {", ".join(failed_titles)}'

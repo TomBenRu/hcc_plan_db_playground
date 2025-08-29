@@ -160,6 +160,47 @@ def update_event_in_calendar(calendar_id: str, event_id: str, event_data: dict) 
         return False
 
 
+
+def delete_event_from_calendar(calendar_id: str, ical_uid: str) -> bool:
+    """
+    Löscht ein Event aus Google Calendar anhand seiner iCalUID.
+    
+    Args:
+        calendar_id: Google Calendar ID
+        ical_uid: iCalendar UID des zu löschenden Events
+        
+    Returns:
+        bool: True bei Erfolg (auch wenn Event nicht existiert), False bei Fehler
+    """
+    try:
+        # Erst Event finden
+        existing_event = find_event_by_icaluid(calendar_id, ical_uid)
+        if not existing_event:
+            # Event existiert nicht - das ist ok für Delete-Operation
+            logger.info(f"Event mit iCalUID {ical_uid} bereits gelöscht oder existiert nicht")
+            return True
+        
+        # Event löschen
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
+        service.events().delete(
+            calendarId=calendar_id,
+            eventId=existing_event['id']
+        ).execute()
+        logger.info(f"Event mit iCalUID {ical_uid} erfolgreich gelöscht")
+        return True
+        
+    except HttpError as e:
+        if e.resp.status == 410:  # Event bereits gelöscht
+            logger.info(f"Event mit iCalUID {ical_uid} bereits gelöscht (410 Gone)")
+            return True
+        logger.error(f"Google Calendar API Fehler beim Event-Löschen: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unbekannter Fehler beim Event-Löschen: {e}")
+        return False
+
+
 def add_or_update_event_to_calendar(calendar_id: str, event_data: dict, ical_uid: str) -> bool:
     """
     Fügt ein Event hinzu oder aktualisiert es, falls es bereits existiert.
@@ -187,6 +228,7 @@ def add_or_update_event_to_calendar(calendar_id: str, event_data: dict, ical_uid
 def sync_employee_events_to_calendar(project_id: UUID) -> dict:
     """
     Synchronisiert Employee Events mit Google Calendar.
+    Behandelt auch gelöschte Events (prep_delete).
     
     Args:
         project_id: Projekt UUID
@@ -195,21 +237,25 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
         dict: {
             'successful_count': int,
             'failed_events': [(title, error_message), ...],
-            'total_count': int
+            'total_count': int,
+            'deleted_count': int
         }
     """
     # Ergebnis-Struktur initialisieren
     sync_results = {
         'successful_count': 0,
         'failed_events': [],
-        'total_count': 0
+        'total_count': 0,
+        'deleted_count': 0
     }
 
     employee_event_service = EmployeeEventService()
     last_sync = curr_calendars_handler.get_last_sync_time()
     timezone = get_timezone_from_config()
     calendars = {c.team_id: c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events'}
-    events = employee_event_service.get_all_events(project_id, last_sync, False)
+    
+    # Alle Events inklusive gelöschte holen
+    events = employee_event_service.get_all_events(project_id, last_sync, include_prep_delete=True)
 
     try:
         for event in events:
@@ -217,15 +263,27 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
                 for team in event.teams:
                     if team.id in calendars:
                         calendar_id = calendars[team.id].id
-                        google_event = create_google_calendar_event_from_employee_event(event, timezone)
-                        # Eindeutige iCalUID für Update-Erkennung
+                        # Eindeutige iCalUID für Update/Delete-Erkennung
                         ical_uid = f"employee-event-{event.id}-team-{team.id}@hcc-plan.local"
                         sync_results['total_count'] += 1
+                        
                         try:
-                            if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
-                                sync_results['successful_count'] += 1
+                            # Events mit prep_delete löschen
+                            if event.prep_delete:
+                                if delete_event_from_calendar(calendar_id, ical_uid):
+                                    sync_results['deleted_count'] += 1
+                                    sync_results['successful_count'] += 1
+                                else:
+                                    sync_results['failed_events'].append((event.title, "API-Fehler beim Löschen"))
+                            
+                            # Normale Events hinzufügen/aktualisieren
                             else:
-                                sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren"))
+                                google_event = create_google_calendar_event_from_employee_event(event, timezone)
+                                if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
+                                    sync_results['successful_count'] += 1
+                                else:
+                                    sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren"))
+                        
                         except Exception as e:
                             error_msg = str(e)
                             sync_results['failed_events'].append((event.title, error_msg))

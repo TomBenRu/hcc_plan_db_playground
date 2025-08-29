@@ -44,6 +44,12 @@
 - **Konsistentes Dark Theme** mit #006d6d Akzentfarbe
 - **Modulare Struktur** - Separate Packages für verschiedene Funktionsbereiche
 - **Qt-Translations** für alle Benutzer-sichtbaren Texte
+- **KRITISCH: self.tr() in QWidgets** - In QWidget-Klassen IMMER self.tr() für Übersetzungen verwenden, NIEMALS QCoreApplication.translate()
+
+### 5. String-Verarbeitung in Code-Änderungen
+- **WARNUNG: Newline-Problem** - Bei regex-Ersetzungen '\n' NIEMALS durch echte Zeilenwechsel ersetzen
+- **String-Literals bewahren** - Backslash-Escaping in Code-Strings beibehalten 
+- **Vorsicht bei multiline-Strings** - Besonders bei Fehlermeldungen und GUI-Texten
 
 ## Task-Completion Checklist
 

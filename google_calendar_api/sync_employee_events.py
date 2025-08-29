@@ -345,33 +345,39 @@ def generate_user_friendly_sync_message(sync_results: dict, calendars: dict) -> 
     
     if success:
         if events_processed == 0:
+            # German: 'Keine Events zum Synchronisieren gefunden.'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                'Keine Events zum Synchronisieren gefunden.')
+                'No events found for synchronization.')
         elif events_deleted > 0 and events_synced > 0:
+            # German: 'Erfolgreich {synced} Event(s) synchronisiert und {deleted} Event(s) gelöscht in {calendar_count} Kalender(n).'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                'Erfolgreich {synced} Event(s) synchronisiert und {deleted} Event(s) gelöscht in {calendar_count} Kalender(n).'
+                'Successfully synchronized {synced} event(s) and deleted {deleted} event(s) in {calendar_count} calendar(s).'
             ).format(
                 synced=events_synced,
                 deleted=events_deleted, 
                 calendar_count=len(calendar_names)
             )
         elif events_deleted > 0:
+            # German: 'Erfolgreich {deleted} Event(s) aus {calendar_count} Kalender(n) gelöscht.'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                'Erfolgreich {deleted} Event(s) aus {calendar_count} Kalender(n) gelöscht.'
+                'Successfully deleted {deleted} event(s) from {calendar_count} calendar(s).'
             ).format(deleted=events_deleted, calendar_count=len(calendar_names))
         else:
+            # German: 'Erfolgreich {synced} Event(s) in {calendar_count} Kalender(n) synchronisiert.'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                'Erfolgreich {synced} Event(s) in {calendar_count} Kalender(n) synchronisiert.'
+                'Successfully synchronized {synced} event(s) to {calendar_count} calendar(s).'
             ).format(synced=events_synced, calendar_count=len(calendar_names))
     else:
         # Bei Fehlern: Erfolgreiche und fehlgeschlagene Events anzeigen
         if events_synced > 0:
+            # German: '{synced} Event(s) erfolgreich synchronisiert, {failed} Event(s) fehlgeschlagen. Details siehe Fehlerprotokoll.'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                '{synced} Event(s) erfolgreich synchronisiert, {failed} Event(s) fehlgeschlagen. Details siehe Fehlerprotokoll.'
+                '{synced} event(s) synchronized successfully, {failed} event(s) failed. See error log for details.'
             ).format(synced=events_synced, failed=events_failed)
         else:
+            # German: 'Synchronisation fehlgeschlagen: {failed} Event(s) konnten nicht synchronisiert werden.'
             message = QCoreApplication.translate('GoogleCalendarApi',
-                'Synchronisation fehlgeschlagen: {failed} Event(s) konnten nicht synchronisiert werden.'
+                'Synchronization failed: {failed} event(s) could not be synchronized.'
             ).format(failed=events_failed)
     
     print(f'{message=}')

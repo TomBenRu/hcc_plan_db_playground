@@ -1071,33 +1071,44 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             if isinstance(result, dict) and result.get('success'):
                 sync_results = result.get('sync_results')
                 if sync_results:
-                    sync_text = (f'Employee Events wurden synchronisiert:\n'
-                               f'Erfolgreich: {sync_results["successful_count"]}/{sync_results["total_count"]}')
-                    if sync_results.get('deleted_count', 0) > 0:
-                        sync_text += f'\nGelöscht: {sync_results["deleted_count"]}'
-                    if sync_results.get('cleanup_count', 0) > 0:
-                        sync_text += f'\nVerwaiste Events bereinigt: {sync_results["cleanup_count"]}'
+                    # Nutzerfreundliche Message aus der Sync-Funktion verwenden
+                    # German: 'Employee Events synchronisiert.'
+                    sync_text = sync_results.get('message', self.tr('Employee Events synchronized.'))
+                    
+                    # Bei Fehlern zusätzliche Details anhängen
                     if sync_results['failed_events']:
                         failed_titles = [title for title, _ in sync_results['failed_events'][:3]]
-                        sync_text += f'\nFehler bei: {", ".join(failed_titles)}'
+                        # German: 'Fehler bei: {failed_titles}'
+                        sync_text += (f'\n' + self.tr('Errors with: {failed_titles}')
+                                      .format(failed_titles=", ".join(failed_titles)))
                         if len(sync_results['failed_events']) > 3:
-                            sync_text += f' (+{len(sync_results["failed_events"])-3} weitere)'
+                            additional_count = len(sync_results["failed_events"]) - 3
+                            # German: '(+{count} weitere)'
+                            sync_text += ' ' + self.tr('(+{count} more)').format(count=additional_count)
                 else:
-                    sync_text = 'Employee Events Synchronisation abgeschlossen.'
+                    # German: 'Employee Events Synchronisation abgeschlossen.'
+                    sync_text = self.tr('Employee Events synchronization completed.')
                     
-                QMessageBox.information(self, 'Employee Events Synchronisation', sync_text)
+                # German: 'Employee Events Synchronisation'
+                QMessageBox.information(self, self.tr('Employee Events Synchronization'), sync_text)
             else:
-                error_text = result.get('message', 'Unbekannter Fehler')
+                # German: 'Unbekannter Fehler'
+                error_text = result.get('message', self.tr('Unknown error'))
                 QMessageBox.critical(
-                    self, 'Synchronisationsfehler',
-                    f'Beim Synchronisieren der Employee Events ist ein Fehler aufgetreten:\n{error_text}'
+                    self, 
+                    self.tr('Synchronization Error'),  # German: 'Synchronisationsfehler'
+                    self.tr('An error occurred while synchronizing Employee Events:\n{error_text}')
+                    .format(error_text=error_text)  # German: 'Beim Synchronisieren der Employee Events ist ein Fehler aufgetreten:
                 )
 
         available_calendars = [c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events']
         if not available_calendars:
-            QMessageBox.critical(self, 'Keine Kalender verfügbar', 
-                               'Es sind keine Google Kalender verfügbar.\n'
-                               'Erstellen Sie zuerst einen Kalender oder synchronisieren Sie die Kalender-Liste.')
+            QMessageBox.critical(
+                self,
+                self.tr('No Calendars Available'),  # German: 'Keine Kalender verfügbar'
+                self.tr('No Google calendars are available.\n'
+                        'Please create a calendar first or synchronize the calendar list.')  # German: 'Es sind keine Google Kalender verfügbar.\nErstellen Sie zuerst einen Kalender oder synchronisieren Sie die Kalender-Liste.'
+                               )
             return
 
 
@@ -1109,9 +1120,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.worker_general.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         
         progressbar = DlgProgressInfinite(
-            self, 'Employee Events Synchronisation',
-            f'Employee Events werden synchronisiert...',
-            'Abbruch'
+            self, 
+            self.tr('Employee Events Synchronization'),  # German: 'Employee Events Synchronisation'
+            self.tr('Synchronizing Employee Events...'),  # German: 'Employee Events werden synchronisiert...'
+            self.tr('Cancel')  # German: 'Abbruch'
         )
         progressbar.show()
         self.thread_pool.start(self.worker_general)
@@ -1120,7 +1132,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         def create():
             try:
                 created_calendar = create_new_google_calendar(dlg.new_calender_data)
-                
+
                 # Zugriffskontrolle für Personen-Kalender (bestehende Logik)
                 if dlg.calendar_type == 'person' and dlg.email_for_access_control:
                     share_calendar(created_calendar['id'], dlg.email_for_access_control)
@@ -1134,10 +1146,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 elif dlg.calendar_type == 'employee_events' and dlg.selected_ee_person_emails:
                     for email in dlg.selected_ee_person_emails:
                         share_calendar(created_calendar['id'], email, 'reader')
-                
-
-                
-
                 calendar = get_calendar_by_id(created_calendar['id'])
                 curr_calendars_handler.save_calendar_json_to_file(calendar)
                 return {'success': True}
@@ -1177,9 +1185,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                         text_access_control = f'\nZugriff für folgende Personen:\n{emails_text}'
                     else:
                         text_access_control = '\nKein Personenzugriff konfiguriert.'
-                    
 
-                        
                 QMessageBox.information(
                     self, 'Google-Kalender erstellen',
                     f'Ein neuer Google-Kalender für {calendar_name} wurde erstellt.{text_access_control}')

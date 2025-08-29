@@ -24,10 +24,7 @@ from google_calendar_api.create_calendar import create_new_google_calendar, shar
 from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
 from google_calendar_api.show_google_calendar import open_google_calendar_in_browser
 from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
-from google_calendar_api.sync_employee_events import (
-    sync_employee_events_to_calendar,
-    determine_team_filter_from_dialog,
-)
+from google_calendar_api.sync_employee_events import sync_employee_events_to_calendar
 
 from tools import open_file_or_folder
 from . import frm_comb_loc_possible, frm_calculate_plan, frm_settings_solver_params, frm_excel_settings

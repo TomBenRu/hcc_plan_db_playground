@@ -105,6 +105,85 @@ def add_event_to_calendar(calendar_id: str, event_data: dict) -> bool:
         return False
 
 
+
+def find_event_by_icaluid(calendar_id: str, ical_uid: str) -> dict | None:
+    """
+    Findet ein Event anhand seiner iCalUID.
+    
+    Args:
+        calendar_id: Google Calendar ID
+        ical_uid: iCalendar UID des Events
+        
+    Returns:
+        dict | None: Google Calendar Event oder None wenn nicht gefunden
+    """
+    try:
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
+        events_result = service.events().list(
+            calendarId=calendar_id,
+            iCalUID=ical_uid
+        ).execute()
+        events = events_result.get('items', [])
+        return events[0] if events else None
+    except Exception as e:
+        logger.error(f"Fehler beim Suchen des Events mit iCalUID {ical_uid}: {e}")
+        return None
+
+
+def update_event_in_calendar(calendar_id: str, event_id: str, event_data: dict) -> bool:
+    """
+    Aktualisiert ein bestehendes Event in Google Calendar.
+    
+    Args:
+        calendar_id: Google Calendar ID
+        event_id: Google Calendar Event ID
+        event_data: Aktualisierte Event-Daten
+        
+    Returns:
+        bool: True bei Erfolg, False bei Fehler
+    """
+    try:
+        creds = authenticate_google()
+        service = build('calendar', 'v3', credentials=creds)
+        service.events().update(
+            calendarId=calendar_id,
+            eventId=event_id,
+            body=event_data
+        ).execute()
+        return True
+    except HttpError as e:
+        logger.error(f"Google Calendar API Fehler beim Event-Update: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unbekannter Fehler beim Event-Update: {e}")
+        return False
+
+
+def add_or_update_event_to_calendar(calendar_id: str, event_data: dict, ical_uid: str) -> bool:
+    """
+    Fügt ein Event hinzu oder aktualisiert es, falls es bereits existiert.
+    
+    Args:
+        calendar_id: Google Calendar ID
+        event_data: Event-Daten im Google Calendar Format
+        ical_uid: iCalendar UID für eindeutige Identifizierung
+        
+    Returns:
+        bool: True bei Erfolg, False bei Fehler
+    """
+    # Prüfen ob Event bereits existiert
+    existing_event = find_event_by_icaluid(calendar_id, ical_uid)
+    
+    if existing_event:
+        # Event aktualisieren
+        return update_event_in_calendar(calendar_id, existing_event['id'], event_data)
+    else:
+        # Event erstellen (mit iCalUID für zukünftige Updates)
+        event_data['iCalUID'] = ical_uid
+        return add_event_to_calendar(calendar_id, event_data)
+
+
 def sync_employee_events_to_calendar(project_id: UUID) -> dict:
     """
     Synchronisiert Employee Events mit Google Calendar.
@@ -139,12 +218,14 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
                     if team.id in calendars:
                         calendar_id = calendars[team.id].id
                         google_event = create_google_calendar_event_from_employee_event(event, timezone)
+                        # Eindeutige iCalUID für Update-Erkennung
+                        ical_uid = f"employee-event-{event.id}-team-{team.id}@hcc-plan.local"
                         sync_results['total_count'] += 1
                         try:
-                            if add_event_to_calendar(calendar_id, google_event):
+                            if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
                                 sync_results['successful_count'] += 1
                             else:
-                                sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen"))
+                                sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren"))
                         except Exception as e:
                             error_msg = str(e)
                             sync_results['failed_events'].append((event.title, error_msg))

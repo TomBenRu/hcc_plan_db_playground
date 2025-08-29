@@ -163,7 +163,10 @@ class CreateGoogleCalendar(QDialog):
     def _fill_combo_ee_teams(self):
         """Befüllt die ComboBox mit verfügbaren Teams für Employee-Events"""
         self.combo_ee_teams.clear()
-        self.combo_ee_teams.addItem(self.tr('no team'), None)
+        no_team_calendar_exists = len([c for c in self.avail_google_calendars.values()
+                                       if c.type == 'employee_events' and (c.team_id is None)])
+        if no_team_calendar_exists == 0:
+            self.combo_ee_teams.addItem(self.tr('no team'), None)
         for team in sorted(self.teams_for_ee_calendar, key=lambda x: x.name):
             self.combo_ee_teams.addItem(team.name, team.id)
 

@@ -314,6 +314,70 @@ def create_event_with_new_uuid(calendar_id: str, event_data: dict, event_id: UUI
         return False, current_google_calendar_event_id  # Bei Fehler: alte UUID behalten
 
 
+def generate_user_friendly_sync_message(sync_results: dict, calendars: dict) -> tuple[bool, str]:
+    """
+    Generiert nutzerfreundliche Success-Message aus Sync-Ergebnissen.
+    
+    Args:
+        sync_results: Bestehende sync_results Struktur
+        calendars: Kalender-Dictionary für Namen-Mapping
+        
+    Returns:
+        tuple[bool, str]: (success_flag, user_message)
+    """
+    success = len(sync_results['failed_events']) == 0
+    
+    # Kalender-Namen für nutzerfreundliche Anzeige sammeln
+    calendar_names = []
+    for team_id, calendar in calendars.items():
+        if team_id is None:
+            calendar_names.append("Allgemein")
+        else:
+            # Team-Namen aus Kalender-Objekt ableiten oder Team-ID verwenden
+            team_name = getattr(calendar, 'name', f'Team {team_id}')
+            calendar_names.append(team_name)
+    
+    # Erfolgreiche Events berechnen (ohne Doppelzählung der Deletes)
+    events_processed = sync_results['total_count'] 
+    events_synced = sync_results['successful_count'] - sync_results['deleted_count']
+    events_deleted = sync_results['deleted_count']
+    events_failed = len(sync_results['failed_events'])
+    
+    if success:
+        if events_processed == 0:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                'Keine Events zum Synchronisieren gefunden.')
+        elif events_deleted > 0 and events_synced > 0:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                'Erfolgreich {synced} Event(s) synchronisiert und {deleted} Event(s) gelöscht in {calendar_count} Kalender(n).'
+            ).format(
+                synced=events_synced,
+                deleted=events_deleted, 
+                calendar_count=len(calendar_names)
+            )
+        elif events_deleted > 0:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                'Erfolgreich {deleted} Event(s) aus {calendar_count} Kalender(n) gelöscht.'
+            ).format(deleted=events_deleted, calendar_count=len(calendar_names))
+        else:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                'Erfolgreich {synced} Event(s) in {calendar_count} Kalender(n) synchronisiert.'
+            ).format(synced=events_synced, calendar_count=len(calendar_names))
+    else:
+        # Bei Fehlern: Erfolgreiche und fehlgeschlagene Events anzeigen
+        if events_synced > 0:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                '{synced} Event(s) erfolgreich synchronisiert, {failed} Event(s) fehlgeschlagen. Details siehe Fehlerprotokoll.'
+            ).format(synced=events_synced, failed=events_failed)
+        else:
+            message = QCoreApplication.translate('GoogleCalendarApi',
+                'Synchronisation fehlgeschlagen: {failed} Event(s) konnten nicht synchronisiert werden.'
+            ).format(failed=events_failed)
+    
+    print(f'{message=}')
+    return success, message
+
+
 def sync_employee_events_to_calendar(project_id: UUID) -> dict:
     """
     Synchronisiert Employee Events mit Google Calendar.
@@ -336,7 +400,6 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
         'failed_events': [],
         'total_count': 0,
         'deleted_count': 0,
-
     }
 
     employee_event_service = EmployeeEventService()
@@ -425,12 +488,29 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
         if not sync_results['failed_events']:
             curr_calendars_handler.update_last_sync_time(
                 datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1))
+        
+        # Nutzerfreundliche Success-Message generieren
+        success, user_message = generate_user_friendly_sync_message(sync_results, calendars)
+        
+        # Return-Struktur erweitern (Backward Compatible)
+        sync_results.update({
+            'success': success,
+            'message': user_message
+        })
             
         return sync_results
         
     except Exception as e:
         logger.error(f"Fehler bei Employee-Events-Synchronisation: {str(e)}")
         sync_results['failed_events'].append(("Synchronisation", str(e)))
+        
+        # Auch bei Fehlern nutzerfreundliche Message generieren
+        success, user_message = generate_user_friendly_sync_message(sync_results, calendars)
+        sync_results.update({
+            'success': success,
+            'message': user_message
+        })
+        
         return sync_results
 
 

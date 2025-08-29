@@ -1104,7 +1104,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         # Synchronisation starten
         self.worker_general = WorkerGeneral(
-            lambda: sync_events(), True
+            sync_events, True
         )
         self.worker_general.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
         

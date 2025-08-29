@@ -253,6 +253,9 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
     last_sync = curr_calendars_handler.get_last_sync_time()
     timezone = get_timezone_from_config()
     calendars = {c.team_id: c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events'}
+    print(f'Debug: {calendars=}')
+    for team_id, calendar in calendars.items():
+        print(f'Debug: {team_id=}, {calendar=}')
     
     # Alle Events inklusive gelöschte holen
     events = employee_event_service.get_all_events(project_id, last_sync, include_prep_delete=True)
@@ -291,8 +294,38 @@ def sync_employee_events_to_calendar(project_id: UUID) -> dict:
                 else:
                     continue
             else:
-                # Noch zu implementieren
-                pass
+                # Events ohne Team-Zuordnung - synchronisiert mit "no team" Kalender
+                no_team_calendar = calendars.get(None)  # team_id ist leerer String für "no team"
+                if no_team_calendar:
+                    calendar_id = no_team_calendar.id
+                    # iCalUID für Events ohne Team
+                    ical_uid = f"employee-event-{event.id}-no-team@hcc-plan.local"
+                    sync_results['total_count'] += 1
+                    
+                    try:
+                        # Events mit prep_delete löschen
+                        if event.prep_delete:
+                            if delete_event_from_calendar(calendar_id, ical_uid):
+                                sync_results['deleted_count'] += 1
+                                sync_results['successful_count'] += 1
+                            else:
+                                sync_results['failed_events'].append((event.title, "API-Fehler beim Löschen (no team)"))
+                        
+                        # Normale Events hinzufügen/aktualisieren
+                        else:
+                            google_event = create_google_calendar_event_from_employee_event(event, timezone)
+                            if add_or_update_event_to_calendar(calendar_id, google_event, ical_uid):
+                                sync_results['successful_count'] += 1
+                            else:
+                                sync_results['failed_events'].append((event.title, "API-Fehler beim Hinzufügen/Aktualisieren (no team)"))
+                    
+                    except Exception as e:
+                        error_msg = str(e)
+                        sync_results['failed_events'].append((event.title, f"{error_msg} (no team)"))
+                        logger.error(f"Employee-Event sync failed (no team): Event '{event.title}': {error_msg}")
+                else:
+                    # Kein "no team" Kalender verfügbar - Event wird übersprungen
+                    logger.info(f"Event '{event.title}' ohne Team-Zuordnung übersprungen - kein 'no team' Kalender vorhanden")
 
         if not sync_results['failed_events']:
             curr_calendars_handler.update_last_sync_time(datetime.datetime.now(datetime.UTC))

@@ -260,6 +260,7 @@ class CreateGoogleCalendar(QDialog):
 
             item.setData(Qt.ItemDataRole.UserRole, person.id)  # Person ID speichern
             item.setData(Qt.ItemDataRole.UserRole + 1, person.email)  # E-Mail speichern
+            item.setData(Qt.ItemDataRole.UserRole + 2, person.full_name)  # Vollständiger Name speichern
 
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
@@ -287,11 +288,10 @@ class CreateGoogleCalendar(QDialog):
 
     def _edit_ee_person_email(self, item: QListWidgetItem):
         """Öffnet Dialog zur E-Mail-Bearbeitung für Employee-Events Person"""
-        person_name = item.text()
         current_email = item.data(Qt.ItemDataRole.UserRole + 1) or ""
         
         # E-Mail-Dialog öffnen (gleicher Dialog wie bei Team-Mitgliedern)
-        dialog = EditMemberEmailDialog(self, person_name, current_email)
+        dialog = EditMemberEmailDialog(self, item.text(), current_email)
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_email = dialog.get_new_email()
@@ -306,6 +306,8 @@ class CreateGoogleCalendar(QDialog):
                     current=new_email
                 )
                 item.setToolTip(original_tooltip)
+                full_name = item.data(Qt.ItemDataRole.UserRole + 2)
+                item.setText(f"{full_name} ({new_email})")
 
     def _tab_changed(self, index: int):
         """Handler für Tab-Wechsel"""
@@ -401,15 +403,15 @@ class CreateGoogleCalendar(QDialog):
             self.le_team_description.setDisabled(True)
             
             # Team-Mitglieder laden
-            self._load_team_members(team_id)
+            self._load_team_appointment_members(team_id)
         else:
             self.le_team_summary.clear()
             self.le_team_description.clear()
             self.le_team_description.setEnabled(True)
             self.lw_team_members.clear()
 
-    def _load_team_members(self, team_id: UUID):
-        """Lädt Team-Mitglieder für Zugriffskontrolle"""
+    def _load_team_appointment_members(self, team_id: UUID):
+        """Lädt Team-Mitglieder für Zugriffskontrolle des Team-Appointments-Kalenders"""
         import datetime
         
         self.lw_team_members.clear()
@@ -427,6 +429,7 @@ class CreateGoogleCalendar(QDialog):
             item = QListWidgetItem(f"{person.full_name} ({person_email})")
             item.setData(Qt.ItemDataRole.UserRole, person.id)  # Person ID speichern
             item.setData(Qt.ItemDataRole.UserRole + 1, person_email)  # E-Mail speichern
+            item.setData(Qt.ItemDataRole.UserRole + 2, person.full_name)  # Vollständiger Name speichern
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item.setCheckState(Qt.CheckState.Unchecked)
             
@@ -453,10 +456,10 @@ class CreateGoogleCalendar(QDialog):
         action = menu.exec(self.lw_team_members.mapToGlobal(position))
         
         if action == edit_email_action:
-            self._edit_member_email(item)
+            self._edit_team_appointment_member_email(item)
     
-    def _edit_member_email(self, item: QListWidgetItem):
-        """Öffnet Dialog zur E-Mail-Bearbeitung für ein Team-Mitglied"""
+    def _edit_team_appointment_member_email(self, item: QListWidgetItem):
+        """Öffnet Dialog zur E-Mail-Bearbeitung für ein Team-Mitglied im Team-Appointment-Kalender"""
         member_name = item.text()
         current_email = item.data(Qt.ItemDataRole.UserRole + 1) or ""
         
@@ -476,6 +479,8 @@ class CreateGoogleCalendar(QDialog):
                     original=current_email,
                     current=new_email
                 )
+                full_name = item.data(Qt.ItemDataRole.UserRole + 2)
+                item.setText(f"{full_name} ({new_email})")
                 item.setToolTip(original_tooltip)
 
     def accept(self):

@@ -39,7 +39,7 @@ class CreateGoogleCalendar(QDialog):
         # Beschreibung oben
         self.lb_description = QLabel(
             self.tr('Here you can create a Google Calendar in your Google Account.\n'
-                   'Choose between creating a personal calendar or a team calendar.')
+                   'Choose between creating a personal calendar, a team calendar or an employee events calendar.')
         )
         self.layout_head.addWidget(self.lb_description)
 

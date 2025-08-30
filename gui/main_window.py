@@ -283,11 +283,14 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                  # self.actions['send_availability_requests'],
                                  None, self.actions['show_email_config_dialog']],
             self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'],
-                                          self.actions['open_google_calendar'],
-                                          None, self.actions['create_google_calendar'],
-                                          self.actions['synchronize_google_calenders'],
                                           self.actions['sync_employee_events_to_google_calendar'],
-                                          None, self.actions['import_google_api_credentials']],
+                                          None,
+                                          self.actions['open_google_calendar'],
+                                          None,
+                                          self.actions['create_google_calendar'],
+                                          self.actions['synchronize_google_calenders'],
+                                          None,
+                                          self.actions['import_google_api_credentials']],
             self.tr('E&xtras'): [self.actions['upgrade_hcc_plan'], None,
                                  self.actions['general_setting'],
                                  self.actions['settings_project'],
@@ -1072,46 +1075,39 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 sync_results = result.get('sync_results')
                 if sync_results:
                     # Nutzerfreundliche Message aus der Sync-Funktion verwenden
-                    # German: 'Employee Events synchronisiert.'
                     sync_text = sync_results.get('message', self.tr('Employee Events synchronized.'))
                     
                     # Bei Fehlern zusätzliche Details anhängen
                     if sync_results['failed_events']:
                         failed_titles = [title for title, _ in sync_results['failed_events'][:3]]
-                        # German: 'Fehler bei: {failed_titles}'
                         sync_text += (f'\n' + self.tr('Errors with: {failed_titles}')
                                       .format(failed_titles=", ".join(failed_titles)))
                         if len(sync_results['failed_events']) > 3:
                             additional_count = len(sync_results["failed_events"]) - 3
-                            # German: '(+{count} weitere)'
                             sync_text += ' ' + self.tr('(+{count} more)').format(count=additional_count)
                 else:
-                    # German: 'Employee Events Synchronisation abgeschlossen.'
                     sync_text = self.tr('Employee Events synchronization completed.')
-                    
-                # German: 'Employee Events Synchronisation'
+
                 QMessageBox.information(self, self.tr('Employee Events Synchronization'), sync_text)
             else:
-                # German: 'Unbekannter Fehler'
                 error_text = result.get('message', self.tr('Unknown error'))
                 QMessageBox.critical(
                     self, 
-                    self.tr('Synchronization Error'),  # German: 'Synchronisationsfehler'
+                    self.tr('Synchronization Error'),
                     self.tr('An error occurred while synchronizing Employee Events:\n{error_text}')
-                    .format(error_text=error_text)  # German: 'Beim Synchronisieren der Employee Events ist ein Fehler aufgetreten:
+                    .format(error_text=error_text)
                 )
 
-        available_calendars = [c for c in curr_calendars_handler.get_calenders().values() if c.type == 'employee_events']
+        available_calendars = [c for c in curr_calendars_handler.get_calenders().values()
+                               if c.type == 'employee_events']
         if not available_calendars:
             QMessageBox.critical(
                 self,
-                self.tr('No Calendars Available'),  # German: 'Keine Kalender verfügbar'
+                self.tr('No Calendars Available'),
                 self.tr('No Google calendars are available.\n'
-                        'Please create a calendar first or synchronize the calendar list.')  # German: 'Es sind keine Google Kalender verfügbar.\nErstellen Sie zuerst einen Kalender oder synchronisieren Sie die Kalender-Liste.'
-                               )
+                        'Please create a calendar first or synchronize the calendar list.')
+            )
             return
-
-
 
         # Synchronisation starten
         self.worker_general = WorkerGeneral(
@@ -1121,7 +1117,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         
         progressbar = DlgProgressInfinite(
             self, 
-            self.tr('Employee Events Synchronization'),  # German: 'Employee Events Synchronisation'
+            self.tr('Employee Events Synchronization'),
             self.tr('Synchronizing Employee Events...'),  # German: 'Employee Events werden synchronisiert...'
             self.tr('Cancel')  # German: 'Abbruch'
         )

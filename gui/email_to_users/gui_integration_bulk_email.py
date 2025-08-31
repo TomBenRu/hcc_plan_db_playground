@@ -37,6 +37,10 @@ class BulkEmailDialog(BaseEmailDialog):
             # Präfix hinzufügen
             current_text = item.text()
             item.setText(f"[To] {current_text}")
+        
+        # Override F1 Help für spezifische HTML-Datei
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "email_bulk", add_help_button=True)
 
     def show_context_menu(self, position):
         """Zeigt das Kontextmenü für die Personenliste an."""

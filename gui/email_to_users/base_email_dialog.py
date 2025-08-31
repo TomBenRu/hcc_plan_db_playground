@@ -19,7 +19,7 @@ from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas
 from email_to_users.service import email_service
 from gui.email_to_users.shared_dialogs import TeamAssignmentDateDialog
-from tools.helper_functions import date_to_string
+from tools.helper_functions import date_to_string, setup_form_help
 
 
 class BaseEmailDialog(QDialog):

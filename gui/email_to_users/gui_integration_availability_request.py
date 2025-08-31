@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt
 
 from database import db_services
 from email_to_users.service import email_service
+from tools.helper_functions import setup_form_help
 
 
 class AvailabilityRequestDialog(QDialog):
@@ -31,6 +32,9 @@ class AvailabilityRequestDialog(QDialog):
         self.setMinimumWidth(600)
         
         self.setup_ui()
+        
+        # F1 Help Integration
+        setup_form_help(self, "email_availability_request", add_help_button=True)
         self.load_recipients()
 
     def setup_ui(self):

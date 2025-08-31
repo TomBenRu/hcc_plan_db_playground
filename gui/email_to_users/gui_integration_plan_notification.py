@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt
 
 from database import db_services
 from email_to_users.service import email_service
+from tools.helper_functions import setup_form_help
 
 
 class PlanNotificationDialog(QDialog):
@@ -29,6 +30,9 @@ class PlanNotificationDialog(QDialog):
         self.setMinimumWidth(600)
         
         self.setup_ui()
+        
+        # F1 Help Integration
+        setup_form_help(self, "email_plan_notification", add_help_button=True)
 
     def setup_ui(self):
         """Erstellt die UI-Elemente."""

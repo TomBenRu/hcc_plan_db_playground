@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Custom Email Dialog - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="custom, email, personalisiert, template, variablen, individuell">
+    <meta name="description" content="Hilfe für Custom Email Dialog - Personalisierte E-Mails mit Template-Variablen">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Custom Email Dialog</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; <a href="email_system.html">E-Mail-System</a> &gt; Custom Email</div>
+    </div>
+    <div class="help-content">
+        
+        <h2>Übersicht</h2>
+        <p>Der Custom Email Dialog ermöglicht personalisierte E-Mails mit Template-Variablen für individuelle Ansprache. Jede E-Mail wird separat versendet und automatisch mit den jeweiligen Empfänger-Daten personalisiert.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>Template-Personalisierung</strong> - {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }}</li>
+            <li><strong>Einzelversand</strong> - Jede E-Mail wird individuell personalisiert versendet</li>
+            <li><strong>Team-Filter</strong> - Empfänger nach Teams und Zuweisungsdatum filtern</li>
+            <li><strong>Rich-Text-Editor</strong> - Formatierungsleiste mit Fett/Kursiv/Unterstrichen</li>
+            <li><strong>Anhänge-System</strong> - Dateien anhängen mit horizontalem Scrollen</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails" → "Send custom Mails..."</strong> aus dem Hauptmenü</li>
+            <li>Wählen Sie <strong>Team-Filter</strong> und <strong>Zuweisungsdatum</strong> nach Bedarf</li>
+            <li>Wählen Sie <strong>Empfänger</strong> mit Checkboxen aus der Mitarbeiterliste</li>
+            <li>Geben Sie einen <strong>Betreff</strong> ein (kann Template-Variablen enthalten)</li>
+            <li>Verfassen Sie den <strong>E-Mail-Inhalt</strong> mit Template-Variablen für Personalisierung</li>
+            <li>Optional: <strong>Anhänge hinzufügen</strong> über den entsprechenden Button</li>
+            <li>Klicken Sie auf <strong>"Senden"</strong> um die personalisierten E-Mails zu versenden</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</p>
+            <p><strong>Ctrl+A</strong> - Alle Empfänger auswählen</p>
+            <p><strong>Enter</strong> - E-Mail senden</p>
+            <p><strong>Escape</strong> - Dialog abbrechen</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        
+        <h4>📧 E-Mail-Funktionen</h4>
+        <ul class="feature-list">
+            <li><a href="email_bulk.html">Bulk Email Dialog</a> - Massen-E-Mails mit To/CC/BCC-Steuerung</li>
+            <li><a href="email_config.html">Email Configuration</a> - SMTP-Server-Einrichtung</li>
+            <li><a href="email_system.html">E-Mail-System Übersicht</a> - Alle E-Mail-Funktionen im Überblick</li>
+        </ul>
+
+        <h4>👥 Personal & Teams</h4>
+        <ul class="feature-list">
+            <li><a href="../features/team_management.html">Team-Verwaltung</a> - Team-Strukturen für E-Mail-Filter</li>
+            <li><a href="project_settings.html">Projekt-Einstellungen</a> - Mitarbeiter und E-Mail-Adressen</li>
+        </ul>
+
+        <h2>Template-Variablen</h2>
+        <p>Verwenden Sie diese Variablen in Betreff oder E-Mail-Inhalt für automatische Personalisierung:</p>
+        <ul class="feature-list">
+            <li><strong>{{ f_name }}</strong> - Vorname des Empfängers (z.B. "Max")</li>
+            <li><strong>{{ l_name }}</strong> - Nachname des Empfängers (z.B. "Mustermann")</li>
+            <li><strong>{{ full_name }}</strong> - Vollständiger Name des Empfängers (z.B. "Max Mustermann")</li>
+            <li><strong>{{ email }}</strong> - E-Mail-Adresse des Empfängers</li>
+        </ul>
+
+        <div class="tip-box">
+            <h4>💡 Template-Beispiel</h4>
+            <p><strong>Betreff:</strong> "Willkommen im Team, {{ f_name }}!"<br>
+            <strong>Inhalt:</strong> "Hallo {{ full_name }},<br>
+            herzlich willkommen in unserem Team! Bei Fragen erreichen Sie mich unter {{ email }}."</p>
+        </div>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🆕 Personalisierte Willkommensnachricht</h3>
+        <ol>
+            <li>Wählen Sie neue Mitarbeiter aus der Team-gefilterten Liste</li>
+            <li>Betreff: "Willkommen bei {{ full_name }}!"</li>
+            <li>Inhalt mit persönlicher Ansprache und individuellen Details</li>
+            <li>Jeder Mitarbeiter erhält eine individuell personalisierte E-Mail</li>
+        </ol>
+
+        <h3>📄 Individuelle Dokumentenversendung</h3>
+        <ol>
+            <li>Hängen Sie personalisierte Dokumente an (z.B. Arbeitsverträge)</li>
+            <li>Verwenden Sie {{ full_name }} für persönliche Ansprache</li>
+            <li>Jede E-Mail wird separat mit entsprechenden Anhängen versendet</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>Problem: Template-Variablen werden nicht ersetzt</h4>
+            <p><strong>Ursache:</strong> Falsche Schreibweise oder fehlende Leerzeichen</p>
+            <p><strong>Lösung:</strong> Korrekte Schreibweise verwenden: {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }}. Achten Sie auf Leerzeichen zwischen Klammern und Variable.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: E-Mails kommen nicht personalisiert an</h4>
+            <p><strong>Ursache:</strong> Mitarbeiter-Daten unvollständig in der Datenbank</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie in "Projekt-Einstellungen" ob alle Mitarbeiter vollständige Namen und E-Mail-Adressen haben.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>🚀 Effektive Personalisierung</h4>
+            <p>Verwenden Sie {{ f_name }} für freundliche Ansprache: "Hallo {{ f_name }}" ist persönlicher als "Hallo Team". Kombinieren Sie verschiedene Variablen für maximale Wirkung.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Vorlage-Texte</h4>
+            <p>Erstellen Sie Vorlage-Texte für wiederkehrende E-Mails. Speichern Sie häufig verwendete Template-Kombinationen in einer externen Datei zur Wiederverwendung.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <ul>
+            <li><strong>Team-Filter-System</strong> - Datum-spezifische Team-Zuordnungen</li>
+            <li><strong>Template-Engine</strong> - Automatische Variablen-Ersetzung beim Versand</li>
+            <li><strong>Rich-Text-Editor</strong> - HTML-basierte Formatierung mit B/I/U-Toolbar</li>
+            <li><strong>Anhänge-Management</strong> - Horizontale Scroll-Area für viele Dateien</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <p>Der Custom Email Dialog basiert auf der <code>CustomEmailDialog</code>-Klasse, die von <code>BaseEmailDialog</code> erbt. Die Template-Personalisierung erfolgt durch eine Template-Engine, die vor dem Versand alle Variablen durch die entsprechenden Mitarbeiter-Daten ersetzt. Jede E-Mail wird einzeln versendet für maximale Personalisierung.</p>
+
+    </div>
+</body>
+</html>

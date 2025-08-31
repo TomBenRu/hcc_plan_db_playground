@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from email_to_users.config import email_config
+from tools.helper_functions import setup_form_help
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ class EmailConfigDialog(QDialog):
         
         self._setup_ui()
         self.load_config()
+        
+        # F1 Help Integration
+        setup_form_help(self, "email_config", add_help_button=True)
         
     def _setup_ui(self):
         """Erstellt die UI-Elemente."""

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Configuration Dialog - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="email, konfiguration, smtp, server, einrichtung, authentifizierung">
+    <meta name="description" content="Hilfe für Email Configuration Dialog - SMTP-Server-Einrichtung und E-Mail-Konfiguration">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Email Configuration Dialog</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; <a href="email_system.html">E-Mail-System</a> &gt; Email Configuration</div>
+    </div>
+    <div class="help-content">
+        
+        <h2>Übersicht</h2>
+        <p>Der Email Configuration Dialog ermöglicht die vollständige Einrichtung der SMTP-E-Mail-Server-Verbindung. Hier konfigurieren Sie alle notwendigen Parameter für den E-Mail-Versand aus HCC Plan.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>SMTP-Server-Einrichtung</strong> - Vollständige Server-Konfiguration</li>
+            <li><strong>Authentifizierung</strong> - Benutzername und Passwort-Verwaltung</li>
+            <li><strong>Verschlüsselung</strong> - TLS/SSL/STARTTLS-Einstellungen</li>
+            <li><strong>Absender-Konfiguration</strong> - Name und E-Mail-Adresse</li>
+            <li><strong>Test-Funktionen</strong> - Verbindung testen vor dem Speichern</li>
+            <li><strong>Sichere Speicherung</strong> - Verschlüsselte Passwort-Speicherung</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails" → "Email Configuration..."</strong> aus dem Hauptmenü</li>
+            <li>Geben Sie den <strong>SMTP-Server</strong> ein (z.B. smtp.gmail.com)</li>
+            <li>Setzen Sie den <strong>Port</strong> (standardmäßig 587 für STARTTLS)</li>
+            <li>Konfigurieren Sie die <strong>Absender-Daten</strong> (Name und E-Mail)</li>
+            <li>Geben Sie <strong>Benutzername</strong> und <strong>Passwort</strong> ein</li>
+            <li>Wählen Sie die <strong>Verschlüsselung</strong> (meist STARTTLS)</li>
+            <li>Klicken Sie auf <strong>"Verbindung testen"</strong> zur Überprüfung</li>
+            <li>Bei erfolgreichem Test: <strong>"Speichern"</strong> klicken</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen</p>
+            <p><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</p>
+            <p><strong>Enter</strong> - Konfiguration speichern</p>
+            <p><strong>Escape</strong> - Dialog abbrechen</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        
+        <h4>📧 E-Mail-Funktionen</h4>
+        <ul class="feature-list">
+            <li><a href="email_custom.html">Custom Email Dialog</a> - Personalisierte E-Mails senden</li>
+            <li><a href="email_bulk.html">Bulk Email Dialog</a> - Massen-E-Mails senden</li>
+            <li><a href="email_system.html">E-Mail-System Übersicht</a> - Alle E-Mail-Funktionen im Überblick</li>
+        </ul>
+
+        <h4>⚙️ Konfiguration</h4>
+        <ul class="feature-list">
+            <li><a href="../configuration/smtp_providers.html">SMTP-Provider-Liste</a> - Gängige E-Mail-Anbieter Einstellungen</li>
+        </ul>
+
+        <h2>Konfigurationsfelder</h2>
+        
+        <h3>Server-Einstellungen</h3>
+        <ul class="feature-list">
+            <li><strong>SMTP-Server</strong> - Hostname oder IP-Adresse des E-Mail-Servers</li>
+            <li><strong>Port</strong> - SMTP-Port (587 für STARTTLS, 465 für SSL, 25 für unverschlüsselt)</li>
+            <li><strong>Verschlüsselung</strong> - Sicherheitsprotokoll (STARTTLS empfohlen)</li>
+        </ul>
+
+        <h3>Absender-Informationen</h3>
+        <ul class="feature-list">
+            <li><strong>Absender-Name</strong> - Anzeigename für ausgehende E-Mails</li>
+            <li><strong>Absender-E-Mail</strong> - E-Mail-Adresse des Absenders</li>
+        </ul>
+
+        <h3>Authentifizierung</h3>
+        <ul class="feature-list">
+            <li><strong>Benutzername</strong> - SMTP-Authentifizierung Benutzername</li>
+            <li><strong>Passwort</strong> - SMTP-Authentifizierung Passwort</li>
+        </ul>
+
+        <h2>Häufige SMTP-Einstellungen</h2>
+        
+        <div class="tip-box">
+            <h4>📧 Gmail</h4>
+            <p><strong>Server:</strong> smtp.gmail.com<br>
+            <strong>Port:</strong> 587<br>
+            <strong>Verschlüsselung:</strong> STARTTLS<br>
+            <strong>Hinweis:</strong> App-Passwort erforderlich (nicht normales Google-Passwort)</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>📧 Outlook/Hotmail</h4>
+            <p><strong>Server:</strong> smtp-mail.outlook.com<br>
+            <strong>Port:</strong> 587<br>
+            <strong>Verschlüsselung:</strong> STARTTLS<br>
+            <strong>Hinweis:</strong> App-Passwort für Zwei-Faktor-Authentifizierung</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>📧 Firmen-Exchange-Server</h4>
+            <p><strong>Server:</strong> mail.ihrefirma.de<br>
+            <strong>Port:</strong> 587 oder 25<br>
+            <strong>Verschlüsselung:</strong> STARTTLS oder None<br>
+            <strong>Hinweis:</strong> Kontaktieren Sie Ihre IT-Abteilung</p>
+        </div>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>🔧 Gmail-Einrichtung mit App-Passwort</h3>
+        <ol>
+            <li><strong>Google-Konto vorbereiten:</strong> Zwei-Faktor-Authentifizierung aktivieren</li>
+            <li><strong>App-Passwort erstellen:</strong> Google Konto → Sicherheit → App-Passwörter</li>
+            <li><strong>HCC Plan konfigurieren:</strong>
+                <ul>
+                    <li>Server: smtp.gmail.com</li>
+                    <li>Port: 587</li>
+                    <li>Benutzername: ihre.email@gmail.com</li>
+                    <li>Passwort: [16-stelliges App-Passwort]</li>
+                    <li>Verschlüsselung: STARTTLS</li>
+                </ul>
+            </li>
+            <li><strong>Testen und speichern</strong></li>
+        </ol>
+
+        <h3>🏢 Firmen-Exchange-Setup</h3>
+        <ol>
+            <li><strong>IT-Abteilung kontaktieren</strong> für SMTP-Server-Details</li>
+            <li><strong>Server-Daten erfragen:</strong>
+                <ul>
+                    <li>SMTP-Server-Adresse</li>
+                    <li>Port und Verschlüsselung</li>
+                    <li>Authentifizierung erforderlich?</li>
+                </ul>
+            </li>
+            <li><strong>Konfiguration eingeben</strong> und testen</li>
+            <li><strong>Bei Problemen:</strong> IT-Support für Firewall/Proxy-Einstellungen</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>Problem: "Authentifizierung fehlgeschlagen"</h4>
+            <p><strong>Ursache:</strong> Falsches Passwort oder keine App-Passwort bei Gmail/Outlook</p>
+            <p><strong>Lösung:</strong> Verwenden Sie App-Passwörter für Gmail/Outlook. Überprüfen Sie Benutzername und Passwort. Bei Firmen-E-Mail: IT-Abteilung kontaktieren.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "Verbindung zum Server fehlgeschlagen"</h4>
+            <p><strong>Ursache:</strong> Falscher Server oder Port, Firewall-Blockierung</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie Server-Adresse und Port. Bei Firmen-Netzwerken: Proxy/Firewall-Einstellungen prüfen.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: "SSL/TLS-Fehler"</h4>
+            <p><strong>Ursache:</strong> Verschlüsselungseinstellung passt nicht zum Server</p>
+            <p><strong>Lösung:</strong> Versuchen Sie verschiedene Verschlüsselungen: STARTTLS (Port 587), SSL (Port 465), None (Port 25).</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>🔐 Sichere Konfiguration</h4>
+            <p>Verwenden Sie immer verschlüsselte Verbindungen (STARTTLS oder SSL). Nutzen Sie starke Passwörter oder App-Passwörter. Ändern Sie Passwörter regelmäßig.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Verbindung testen</h4>
+            <p>Testen Sie immer die Verbindung vor dem Speichern. Bei Fehlern: Schritt für Schritt die Einstellungen überprüfen. Dokumentieren Sie funktionierende Konfigurationen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🏢 Firmen-Integration</h4>
+            <p>Arbeiten Sie mit der IT-Abteilung zusammen für optimale Konfiguration. Beachten Sie Firmen-Policies zu E-Mail-Sicherheit. Dokumentieren Sie Einstellungen für andere Benutzer.</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <ul>
+            <li><strong>Verschlüsselte Passwort-Speicherung</strong> - Sichere lokale Speicherung der Anmeldedaten</li>
+            <li><strong>Verbindungs-Test</strong> - Automatische Überprüfung der SMTP-Verbindung</li>
+            <li><strong>Multi-Provider-Unterstützung</strong> - Funktioniert mit allen gängigen E-Mail-Anbietern</li>
+            <li><strong>Konfigurationspersistenz</strong> - Einstellungen werden dauerhaft gespeichert</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <p>Die Email Configuration erfolgt über die <code>EmailConfigDialog</code>-Klasse mit TOML-basierter Konfigurationsspeicherung in <code>configuration/email_config.toml</code>. Die Passwörter werden verschlüsselt gespeichert und die Verbindung wird über Python's <code>smtplib</code> mit vollständiger TLS/SSL-Unterstützung getestet.</p>
+
+    </div>
+</body>
+</html>

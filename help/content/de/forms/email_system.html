@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>E-Mail-System - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="email, senden, smtp, konfiguration, team, mitarbeiter, bulk, custom, notification, verfügbarkeit">
+    <meta name="description" content="Hilfe für E-Mail-System in HCC Plan - E-Mails an Mitarbeiter senden und konfigurieren">
+    <script>
+        // Robuste Anchor-Sprung-Funktionalität für F1-Hilfe-Integration
+        function jumpToAnchor() {
+            console.log('jumpToAnchor called');
+            console.log('Current hash:', window.location.hash);
+            
+            // Verwende Hash für Anchor-Navigation (da Redirect-Datei Hash verwendet)
+            var targetId = window.location.hash ? window.location.hash.substring(1) : null;
+            
+            console.log('Target ID from hash:', targetId);
+            
+            if (targetId) {
+                var targetElement = document.getElementById(targetId);
+                
+                console.log('Looking for element with ID:', targetId);
+                console.log('Found element:', targetElement);
+                
+                if (targetElement) {
+                    // Mehrere Scroll-Methoden versuchen für maximale Kompatibilität
+                    try {
+                        // Methode 1: Modern scrollIntoView
+                        targetElement.scrollIntoView({
+                            behavior: 'auto', // 'smooth' kann bei file:// URLs Probleme machen
+                            block: 'start'
+                        });
+                    } catch (e1) {
+                        try {
+                            // Methode 2: Legacy scrollIntoView
+                            targetElement.scrollIntoView(true);
+                        } catch (e2) {
+                            // Methode 3: Manual scroll mit offsetTop
+                            var elementTop = targetElement.offsetTop - 50; // 50px offset für bessere Sichtbarkeit
+                            window.scrollTo(0, elementTop);
+                        }
+                    }
+                    
+                    // Visuelles Feedback - Element hervorheben
+                    targetElement.style.backgroundColor = '#ffeb3b';
+                    targetElement.style.transition = 'background-color 0.3s';
+                    targetElement.style.padding = '10px';
+                    targetElement.style.borderRadius = '5px';
+                    
+                    setTimeout(function() {
+                        targetElement.style.backgroundColor = '';
+                        setTimeout(function() {
+                            targetElement.style.padding = '';
+                        }, 300);
+                    }, 3000);
+                    
+                    console.log('Successfully jumped to anchor:', targetId);
+                } else {
+                    console.log('Target element not found for ID:', targetId);
+                }
+            } else {
+                console.log('No hash found in URL');
+            }
+        }
+        
+        // Multiple Event-Listener für verschiedene Browser-Szenarien
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded - attempting anchor jump');
+            setTimeout(jumpToAnchor, 100);
+        });
+        
+        window.addEventListener('load', function() {
+            console.log('Window load - attempting anchor jump');
+            setTimeout(jumpToAnchor, 200);
+        });
+        
+        // Zusätzlicher Versuch nach längerer Verzögerung
+        setTimeout(function() {
+            console.log('Delayed anchor jump attempt');
+            jumpToAnchor();
+        }, 1000);
+        
+        // Hash-Change-Listener für dynamische Navigation
+        window.addEventListener('hashchange', function() {
+            console.log('Hash changed to:', window.location.hash);
+            jumpToAnchor();
+        });
+    </script>
+</head>
+<body>
+    <div class="help-header">
+        <h1>E-Mail-System</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; E-Mail-System</div>
+    </div>
+    <div class="help-content">
+        
+        <h2>Übersicht</h2>
+        <p>Das E-Mail-System von HCC Plan ermöglicht es Ihnen, professionelle E-Mails direkt aus der Anwendung an Mitarbeiter zu senden. Das System bietet fünf spezialisierte Dialoge für verschiedene Anwendungsfälle: <strong>Custom Email</strong> für persönliche Nachrichten, <strong>Bulk Email</strong> für Massen-E-Mails mit To/CC/BCC-Steuerung, <strong>Plan Notifications</strong> für Einsatzplan-Benachrichtigungen, <strong>Availability Requests</strong> für Verfügbarkeitsanfragen und <strong>Email Configuration</strong> für SMTP-Setup.</p>
+
+        <h2>Hauptfunktionen</h2>
+        <ul class="feature-list">
+            <li><strong>5 spezialisierte E-Mail-Dialoge</strong> - Für jeden Anwendungsfall der passende Dialog</li>
+            <li><strong>Team-basierte Filter</strong> - Empfänger nach Teams und Zuweisungsdatum filtern</li>
+            <li><strong>Rich-Text-Editor</strong> - Formatierungsleiste mit Fett/Kursiv/Unterstrichen</li>
+            <li><strong>Anhänge-System</strong> - Dateien anhängen mit horizontalem Scrollen</li>
+            <li><strong>Automatische Personalisierung</strong> - Template-Variablen für individuelle Ansprache</li>
+            <li><strong>SMTP-Konfiguration</strong> - Vollständige E-Mail-Server-Einrichtung</li>
+        </ul>
+
+        <h2>Grundbedienung</h2>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails"</strong> im Hauptmenü</li>
+            <li>Wählen Sie den gewünschten E-Mail-Typ:
+                <ul>
+                    <li><strong>"Send custom Mails..."</strong> - Für personalisierte E-Mails</li>
+                    <li><strong>"Send Bulk Email..."</strong> - Für Massen-E-Mails mit To/CC/BCC</li>
+                    <li><strong>"Send Plan Notifications..."</strong> - Für Einsatzplan-Benachrichtigungen</li>
+                    <li><strong>"Send Availability Requests..."</strong> - Für Verfügbarkeitsanfragen</li>
+                    <li><strong>"Email Configuration..."</strong> - Für SMTP-Einstellungen</li>
+                </ul>
+            </li>
+            <li>Bei Custom/Bulk Email: Wählen Sie <strong>Team-Filter</strong> und <strong>Zuweisungsdatum</strong></li>
+            <li>Wählen Sie <strong>Empfänger</strong> mit Checkboxen aus der Mitarbeiterliste</li>
+            <li>Geben Sie <strong>Betreff</strong> und <strong>E-Mail-Inhalt</strong> ein</li>
+            <li>Optional: <strong>Anhänge hinzufügen</strong> über den entsprechenden Button</li>
+            <li>Klicken Sie auf <strong>"Senden"</strong> um die E-Mail zu versenden</li>
+        </ol>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <p><strong>F1</strong> - Diese Hilfe öffnen (kontextabhängig je Dialog)</p>
+            <p><strong>Tab</strong> - Zwischen Eingabefeldern wechseln</p>
+            <p><strong>Ctrl+A</strong> - Alle Empfänger auswählen (in Listen)</p>
+            <p><strong>Enter</strong> - E-Mail senden (bei aktivem Senden-Button)</p>
+            <p><strong>Escape</strong> - Dialog abbrechen</p>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+
+        <h4>📧 E-Mail-Funktionen</h4>
+        <ul class="feature-list">
+            <li><a href="#custom-email">Custom Email Dialog</a> - Personalisierte E-Mails mit Template-Variablen</li>
+            <li><a href="#bulk-email">Bulk Email Dialog</a> - Massen-E-Mails mit To/CC/BCC-Steuerung</li>
+            <li><a href="#plan-notification">Plan Notification Dialog</a> - Einsatzplan-Benachrichtigungen</li>
+            <li><a href="#availability-request">Availability Request Dialog</a> - Verfügbarkeitsanfragen</li>
+            <li><a href="#config">Email Configuration</a> - SMTP-Server-Einrichtung</li>
+        </ul>
+
+        <h4>👥 Personal & Teams</h4>
+        <ul class="feature-list">
+            <li><a href="../features/team_management.html">Team-Verwaltung</a> - Team-Strukturen für E-Mail-Filter</li>
+            <li><a href="project_settings.html">Projekt-Einstellungen</a> - Mitarbeiter und E-Mail-Adressen verwalten</li>
+        </ul>
+
+        <h4>⚙️ Konfiguration</h4>
+        <ul class="feature-list">
+            <li><a href="../configuration/smtp_setup.html">SMTP-Setup</a> - E-Mail-Server-Konfiguration</li>
+        </ul>
+
+        <h2>Anwendungsbereich</h2>
+        <p>🎯 Das E-Mail-System wird verwendet für:</p>
+        <ul>
+            <li><strong>Interne Kommunikation</strong> - Nachrichten an Mitarbeiter und Teams</li>
+            <li><strong>Plan-Benachrichtigungen</strong> - Automatisierte Mitteilungen über Einsatzpläne</li>
+            <li><strong>Verfügbarkeitsabfragen</strong> - Anfragen zur Mitarbeiter-Verfügbarkeit</li>
+            <li><strong>Massen-E-Mails</strong> - Rundschreiben und Ankündigungen</li>
+            <li><strong>Personalisierte Kommunikation</strong> - Individuelle Nachrichten mit Template-Variablen</li>
+        </ul>
+
+        <h2>Benutzeroberfläche</h2>
+        
+        <h3>Gemeinsame Dialog-Elemente</h3>
+        <p>Alle E-Mail-Dialoge (außer Configuration) basieren auf einem gemeinsamen Design:</p>
+        <ul>
+            <li><strong>E-Mail-Kopf</strong> - Betreff-Eingabe mit Validierung</li>
+            <li><strong>Empfänger-Gruppe</strong> - Team-Filter + Mitarbeiterliste mit Multi-Selection</li>
+            <li><strong>E-Mail-Inhalt</strong> - Rich-Text-Editor mit Formatierungsleiste (B/I/U)</li>
+            <li><strong>Anhänge-Bereich</strong> - Horizontales Scrollen + einzelne Entfernen-Buttons</li>
+            <li><strong>Senden/Abbrechen-Buttons</strong> - Aktionssteuerung mit Validierung</li>
+        </ul>
+
+        <h3>Team-Filter-System</h3>
+        <ul>
+            <li><strong>"Filter für Team:"</strong> - Dropdown mit allen Projekt-Teams + "Alle Teams"</li>
+            <li><strong>"Zuweisungsdatum:"</strong> - Datums-Button für Team-Zuordnungsstichtag</li>
+            <li><strong>"Keinem Team zugeordnete Personen einbeziehen"</strong> - Checkbox für teamlose Mitarbeiter</li>
+            <li><strong>Alle auswählen/Alle abwählen</strong> - Bulk-Selection für gefilterte Empfängerliste</li>
+        </ul>
+
+        <h2 id="custom-email">Custom Email Dialog</h2>
+        <p>Der Custom Email Dialog ermöglicht personalisierte E-Mails mit Template-Variablen für individuelle Ansprache.</p>
+        
+        <h3>Spezial-Features</h3>
+        <ul>
+            <li><strong>Template-Personalisierung</strong> - {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }}</li>
+            <li><strong>Einzelversand</strong> - Jede E-Mail wird individuell personalisiert versendet</li>
+            <li><strong>Rich-Text-Unterstützung</strong> - Vollständige Formatierung mit B/I/U-Toolbar</li>
+        </ul>
+
+        <h3>Template-Variablen</h3>
+        <ul>
+            <li><strong>{{ f_name }}</strong> - Vorname des Empfängers</li>
+            <li><strong>{{ l_name }}</strong> - Nachname des Empfängers</li>
+            <li><strong>{{ full_name }}</strong> - Vollständiger Name des Empfängers</li>
+            <li><strong>{{ email }}</strong> - E-Mail-Adresse des Empfängers</li>
+        </ul>
+
+        <h2 id="bulk-email">Bulk Email Dialog</h2>
+        <p>Der Bulk Email Dialog ermöglicht Massen-E-Mails mit präziser To/CC/BCC-Steuerung über Rechtsklick-Menüs.</p>
+        
+        <h3>Spezial-Features</h3>
+        <ul>
+            <li><strong>To/CC/BCC-Auswahl</strong> - Rechtsklick auf Empfänger für Typ-Auswahl</li>
+            <li><strong>Visuelle Kennzeichnung</strong> - [To]/[CC]/[BCC]-Präfixe in der Empfängerliste</li>
+            <li><strong>Massen-Versand</strong> - Eine E-Mail an alle ausgewählten Empfänger</li>
+        </ul>
+
+        <h3>To/CC/BCC-Workflow</h3>
+        <ol>
+            <li>Wählen Sie Empfänger in der Liste aus</li>
+            <li>Rechtsklick auf Empfänger öffnet Kontext-Menü</li>
+            <li>Wählen Sie "To", "CC" oder "BCC" aus dem Menü</li>
+            <li>Empfänger werden mit entsprechendem Präfix markiert: [To], [CC], [BCC]</li>
+            <li>Beim Senden werden Empfänger entsprechend ihrer Typ-Zuordnung behandelt</li>
+        </ol>
+
+        <h2 id="plan-notification">Plan Notification Dialog</h2>
+        <p>Der Plan Notification Dialog sendet automatisierte Benachrichtigungen über Einsatzpläne an betroffene Mitarbeiter.</p>
+        
+        <h3>Anwendung</h3>
+        <ul>
+            <li><strong>Einsatzplan-Updates</strong> - Benachrichtigung bei Plan-Änderungen</li>
+            <li><strong>Neue Pläne</strong> - Information über frisch erstellte Einsatzpläne</li>
+            <li><strong>Terminverschiebungen</strong> - Mitteilungen über Planungsänderungen</li>
+        </ul>
+
+        <h2 id="availability-request">Availability Request Dialog</h2>
+        <p>Der Availability Request Dialog sendet Anfragen zur Mitarbeiter-Verfügbarkeit für bestimmte Planungszeiträume.</p>
+        
+        <h3>Anwendung</h3>
+        <ul>
+            <li><strong>Verfügbarkeitsabfragen</strong> - Ermittlung freier Mitarbeiter-Kapazitäten</li>
+            <li><strong>Planungsvorbereitung</strong> - Sammlung von Verfügbarkeitsdaten vor Planerstellung</li>
+            <li><strong>Urlaubsplanung</strong> - Abstimmung von Urlaubszeiten im Team</li>
+        </ul>
+
+        <h2 id="config">Email Configuration Dialog</h2>
+        <p>Der Email Configuration Dialog ermöglicht die vollständige Einrichtung der SMTP-E-Mail-Server-Verbindung.</p>
+        
+        <h3>Konfigurationsfelder</h3>
+        <ul>
+            <li><strong>SMTP-Server</strong> - Hostname oder IP-Adresse des E-Mail-Servers</li>
+            <li><strong>Port</strong> - SMTP-Port (standardmäßig 587 für STARTTLS, 465 für SSL)</li>
+            <li><strong>Absender-Name</strong> - Anzeigename für ausgehende E-Mails</li>
+            <li><strong>Absender-E-Mail</strong> - E-Mail-Adresse des Absenders</li>
+            <li><strong>Benutzername</strong> - SMTP-Authentifizierung Benutzername</li>
+            <li><strong>Passwort</strong> - SMTP-Authentifizierung Passwort</li>
+            <li><strong>Verschlüsselung</strong> - TLS/SSL/STARTTLS-Einstellungen</li>
+        </ul>
+
+        <h2>Praktische Anwendungsfälle</h2>
+        
+        <h3>📧 Personalisierte Willkommensnachricht (Custom Email)</h3>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails" → "Send custom Mails..."</strong></li>
+            <li>Wählen Sie das entsprechende Team oder "Alle Teams"</li>
+            <li>Wählen Sie neue Mitarbeiter aus der Liste</li>
+            <li>Betreff: "Willkommen im Team, {{ f_name }}!"</li>
+            <li>Inhalt mit Personalisierung: "Hallo {{ full_name }}, herzlich willkommen..."</li>
+            <li>Template-Variablen werden beim Versand automatisch ersetzt</li>
+        </ol>
+
+        <h3>📢 Team-Rundschreiben (Bulk Email)</h3>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails" → "Send Bulk Email..."</strong></li>
+            <li>Wählen Sie das gewünschte Team aus dem Filter</li>
+            <li>Wählen Sie Team-Mitglieder aus der Liste</li>
+            <li>Rechtsklick: Setzen Sie Teamleiter auf "To", andere auf "CC"</li>
+            <li>Verfassen Sie die Rundmail-Nachricht</li>
+            <li>Eine E-Mail geht an alle mit korrekter To/CC/BCC-Verteilung</li>
+        </ol>
+
+        <h3>📋 SMTP-Ersteinrichtung (Email Configuration)</h3>
+        <ol>
+            <li>Öffnen Sie <strong>"Emails" → "Email Configuration..."</strong></li>
+            <li>SMTP-Server: Geben Sie Ihren E-Mail-Provider ein (z.B. "smtp.gmail.com")</li>
+            <li>Port: 587 (für die meisten Provider mit STARTTLS)</li>
+            <li>Absender-Daten: Name und E-Mail-Adresse der Organisation</li>
+            <li>Authentifizierung: Benutzername und Passwort</li>
+            <li>Testen Sie die Verbindung mit "Testnachricht senden"</li>
+        </ol>
+
+        <h3>📅 Plan-Update-Benachrichtigung</h3>
+        <ol>
+            <li>Nachdem Sie einen Plan erstellt/geändert haben</li>
+            <li>Öffnen Sie <strong>"Emails" → "Send Plan Notifications..."</strong></li>
+            <li>System wählt automatisch betroffene Mitarbeiter</li>
+            <li>Anpassung der Standard-Nachricht nach Bedarf</li>
+            <li>Versand der Benachrichtigung an alle Plan-Teilnehmer</li>
+        </ol>
+
+        <h2>Häufige Probleme & Lösungen</h2>
+        
+        <div class="warning-box">
+            <h4>Problem: E-Mails werden nicht versendet</h4>
+            <p><strong>Ursache:</strong> Fehlerhafte SMTP-Konfiguration oder Authentifizierungsprobleme</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie in "Email Configuration" die SMTP-Einstellungen. Testen Sie mit "Testnachricht senden". Häufige Probleme: falscher Port (587 vs 465), fehlende Verschlüsselung, App-Passwort statt normales Passwort bei Gmail/Outlook.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Keine Empfänger werden angezeigt</h4>
+            <p><strong>Ursache:</strong> Team-Filter oder Zuweisungsdatum schließt alle Mitarbeiter aus</p>
+            <p><strong>Lösung:</strong> Wählen Sie "Alle Teams" im Filter und aktivieren Sie "Keinem Team zugeordnete Personen einbeziehen". Überprüfen Sie das Zuweisungsdatum - es sollte ein aktuelles Datum sein.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Anhänge können nicht hinzugefügt werden</h4>
+            <p><strong>Ursache:</strong> Datei ist zu groß oder Dateipfad enthält Sonderzeichen</p>
+            <p><strong>Lösung:</strong> Überprüfen Sie die Dateigröße (E-Mail-Provider haben Limits). Vermeiden Sie Sonderzeichen und sehr lange Dateinamen. Komprimieren Sie große Dateien oder verwenden Sie Cloud-Links.</p>
+        </div>
+
+        <div class="warning-box">
+            <h4>Problem: Template-Variablen werden nicht ersetzt</h4>
+            <p><strong>Ursache:</strong> Falsche Schreibweise oder Dialog-Typ unterstützt keine Personalisierung</p>
+            <p><strong>Lösung:</strong> Template-Variablen funktionieren nur im Custom Email Dialog. Korrekte Schreibweise: {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }}. Achten Sie auf Leerzeichen und doppelte geschweifte Klammern.</p>
+        </div>
+
+        <h2>Best Practices</h2>
+        
+        <div class="tip-box">
+            <h4>💡 Richtige Dialog-Auswahl</h4>
+            <p><strong>Custom Email:</strong> Für personalisierte, individuelle Nachrichten<br>
+            <strong>Bulk Email:</strong> Für Rundschreiben mit To/CC/BCC-Kontrolle<br>
+            <strong>Plan Notifications:</strong> Für automatisierte Einsatzplan-Updates<br>
+            <strong>Availability Requests:</strong> Für Verfügbarkeitsabfragen</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🚀 Effiziente Empfänger-Auswahl</h4>
+            <p>Nutzen Sie Team-Filter und Zuweisungsdatum gezielt um relevante Mitarbeiter zu finden. "Alle auswählen" nach Filterung spart Zeit. Bei wiederkehrenden E-Mails an gleiche Gruppen: Notieren Sie die Filter-Einstellungen.</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>⚡ Template-Effizienz</h4>
+            <p>Erstellen Sie Vorlage-Texte für wiederkehrende E-Mails. Verwenden Sie Template-Variablen großzügig für persönliche Ansprache: "Hallo {{ f_name }}" ist viel freundlicher als "Hallo Team".</p>
+        </div>
+
+        <div class="tip-box">
+            <h4>🔧 SMTP-Konfiguration</h4>
+            <p>Für Gmail/Outlook verwenden Sie App-Passwörter statt normale Passwörter. Port 587 mit STARTTLS funktioniert bei den meisten Providern. Testen Sie neue Konfigurationen immer mit "Testnachricht senden".</p>
+        </div>
+
+        <h2>Erweiterte Funktionen</h2>
+        <p>Das E-Mail-System nutzt fortgeschrittene Funktionen:</p>
+        <ul>
+            <li><strong>Template-Engine</strong> - Automatische Personalisierung mit Variablen-Ersetzung</li>
+            <li><strong>Rich-Text-Editor</strong> - HTML-basierte E-Mail-Formatierung mit visueller Toolbar</li>
+            <li><strong>Team-Filter-System</strong> - Datum-spezifische Team-Zuordnungen und flexible Filterung</li>
+            <li><strong>Anhänge-Management</strong> - Horizontale Scroll-Area mit einzelnen Entfernen-Buttons</li>
+            <li><strong>SMTP-Authentifizierung</strong> - Vollständige TLS/SSL-Unterstützung</li>
+            <li><strong>To/CC/BCC-Steuerung</strong> - Präzise Empfänger-Typ-Verwaltung über Context-Menüs</li>
+        </ul>
+
+        <h3>Integration mit HCC Plan</h3>
+        <ul>
+            <li><strong>Project-Scoping</strong> - E-Mails nur an Mitarbeiter des aktuellen Projekts</li>
+            <li><strong>Team-Hierarchie</strong> - Respektierung von Team-Strukturen in Filtern</li>
+            <li><strong>Plan-Integration</strong> - Direkte Verbindung zu Einsatzplan-Daten</li>
+            <li><strong>Automatische E-Mail-Erkennung</strong> - E-Mail-Adressen aus Mitarbeiter-Stammdaten</li>
+        </ul>
+
+        <h2>Technische Details</h2>
+        <p>Das E-Mail-System basiert auf dem <code>gui.email_to_users</code>-Package mit fünf spezialisierten Dialog-Klassen: <code>CustomEmailDialog</code>, <code>BulkEmailDialog</code>, <code>PlanNotificationDialog</code>, <code>AvailabilityRequestDialog</code> und <code>EmailConfigDialog</code>. Custom- und Bulk-Email-Dialoge erben von <code>BaseEmailDialog</code> mit gemeinsamen Features wie Team-Filter, Rich-Text-Editor und Anhänge-System. Die SMTP-Konfiguration erfolgt über <code>email_config</code> mit vollständiger TLS/SSL-Unterstützung.</p>
+
+    </div>
+</body>
+</html>

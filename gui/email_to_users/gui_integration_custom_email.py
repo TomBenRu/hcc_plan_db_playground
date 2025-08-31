@@ -21,6 +21,10 @@ class CustomEmailDialog(BaseEmailDialog):
         self.content_edit.setPlaceholderText(
             "E-Mail-Inhalt hier eingeben... "
             "(Personalisierung möglich mit {{ f_name }}, {{ l_name }}, {{ full_name }}, {{ email }})")
+        
+        # Override F1 Help für spezifische HTML-Datei
+        from tools.helper_functions import setup_form_help
+        setup_form_help(self, "email_custom", add_help_button=True)
     
     def send_email(self):
         """Sendet die E-Mail."""

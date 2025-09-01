@@ -17,7 +17,7 @@ from PySide6.QtCore import (
 from PySide6.QtWidgets import QApplication
 
 from database.models import Person, PlanPeriod, Appointment
-from gui.plan_visualization.workload_calculator import WorkloadCalculator, WorkloadCache
+from gui.plan_visualization_to_remove.workload_calculator import WorkloadCalculator, WorkloadCache
 import logging
 
 logger = logging.getLogger(__name__)

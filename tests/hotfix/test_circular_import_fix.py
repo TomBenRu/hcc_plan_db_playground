@@ -12,7 +12,7 @@ def test_import_fix():
     """Teste ob der Circular Import Fix funktioniert"""
     try:
         # Test 1: WorkloadCalculator direkter Import
-        from gui.plan_visualization.workload_calculator import WorkloadCalculator
+        from gui.plan_visualization_to_remove.workload_calculator import WorkloadCalculator
         calculator = WorkloadCalculator()
         print("✅ WorkloadCalculator direkter Import: OK")
         
@@ -22,7 +22,7 @@ def test_import_fix():
         
         # Test 3: Command Import (conditional)
         try:
-            from commands.plan_visualization_commands import ToggleHeatMapCommand
+            from commands.plan_visualization_commands_to_remove import ToggleHeatMapCommand
             print("✅ Command Pattern verfügbar: OK")
         except ImportError:
             print("ℹ️ Command Pattern nicht verfügbar (normal bei Standalone-Test)")

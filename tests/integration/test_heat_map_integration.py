@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 def test_workload_calculator_import():
     """Test ob WorkloadCalculator importiert werden kann"""
     try:
-        from gui.plan_visualization.workload_calculator import WorkloadCalculator
+        from gui.plan_visualization_to_remove.workload_calculator import WorkloadCalculator
         calculator = WorkloadCalculator()
         print("✅ WorkloadCalculator erfolgreich importiert und initialisiert")
         return True

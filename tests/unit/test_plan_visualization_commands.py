@@ -17,7 +17,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from commands.plan_visualization_commands import (
+from commands.plan_visualization_commands_to_remove import (
     HeatMapConfig,
     ToggleHeatMapCommand,
     ConfigureHeatMapCommand, 

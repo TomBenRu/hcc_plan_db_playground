@@ -11,6 +11,36 @@
 - **Deutsche Methodennamen** - z.B. `frm_calculate_plan.py`, `execute_shell_command`
 - **Beschreibende Dateinamen** - z.B. `frm_actor_plan_period.py`, `employee_events_commands.py`
 
+## Qt/PySide6 Naming Conventions ⚠️
+**KRITISCH: Namenskollisionen mit Qt-Methoden vermeiden**
+
+- **NIEMALS Attributnamen verwenden, die Qt-Methodennamen entsprechen**
+- **Besonders problematisch:** `event`, `show`, `close`, `update`, `resize`, `move`, `hide`
+- **Grund:** Help-System und Reflection-basierte Tools interpretieren diese als Methoden
+- **Lösung:** Beschreibende, eindeutige Namen verwenden
+
+**Beispiele:**
+```python
+# ❌ SCHLECHT - Kollidiert mit QWidget-Methoden
+class MyWidget(QWidget):
+    def __init__(self):
+        self.event = event_data        # Kollidiert mit QWidget.event()
+        self.show = visibility_state   # Kollidiert mit QWidget.show()
+        self.update = update_data      # Kollidiert mit QWidget.update()
+
+# ✅ GUT - Eindeutige, beschreibende Namen
+class MyWidget(QWidget):
+    def __init__(self):
+        self.event_of_day = event_data      # Klar und eindeutig
+        self.show_details = visibility_state # Klar und eindeutig
+        self.update_data = update_data      # Klar und eindeutig
+```
+
+**Häufige Qt-Methodennamen die zu vermeiden sind:**
+- `event`, `show`, `hide`, `close`, `update`, `resize`, `move`
+- `focus`, `paint`, `size`, `pos`, `rect`, `width`, `height`
+- `parent`, `child`, `children`, `find`, `grab`
+
 ## Architektur-Patterns
 - **Command Pattern** - Alle schreibenden Operationen als Commands mit Undo/Redo
 - **MVC/MVP Pattern** - Trennung von GUI, Business Logic und Datenebene

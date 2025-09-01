@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
 
 from gui.custom_widgets.workload_heat_delegate import WorkloadHeatDelegate
-from gui.plan_visualization.workload_model_integration import WorkloadDataProvider, add_workload_support_to_model
+from gui.plan_visualization_to_remove.workload_model_integration import WorkloadDataProvider, add_workload_support_to_model
 from database.models import PlanPeriod
 import logging
 

@@ -57,7 +57,7 @@ class DlgNumEmployeesEvent(QDialog):
         super().__init__(parent)
         self.setWindowTitle(self.tr('Number of Employees'))
 
-        self.event = event
+        self.event_of_shift = event
         self._setup_ui()
         
         # Help-Integration
@@ -76,15 +76,15 @@ class DlgNumEmployeesEvent(QDialog):
             self.tr('Enter the number of employees\n'
                     'for the event on {date} ({time_of_day})\n'
                     'in {location}:').format(
-                date=date_to_string(self.event.date),
-                time_of_day=self.event.time_of_day.name,
-                location=self.event.location_plan_period.location_of_work.name_an_city
+                date=date_to_string(self.event_of_shift.date),
+                time_of_day=self.event_of_shift.time_of_day.name,
+                location=self.event_of_shift.location_plan_period.location_of_work.name_an_city
             )
         )
         self.layout_head.addWidget(self.lb_description)
         self.spin_num_employees = QSpinBox()
         self.spin_num_employees.setRange(0, 100)
-        self.spin_num_employees.setValue(self.event.cast_group.nr_actors)
+        self.spin_num_employees.setValue(self.event_of_shift.cast_group.nr_actors)
         self.layout_body.addRow(self.tr('Number of employees'), self.spin_num_employees)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)

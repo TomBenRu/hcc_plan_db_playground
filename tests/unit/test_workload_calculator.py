@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4, UUID
 from unittest.mock import Mock, patch, MagicMock
 
-from gui.plan_visualization.workload_calculator import WorkloadCalculator, WorkloadCache
+from gui.plan_visualization_to_remove.workload_calculator import WorkloadCalculator, WorkloadCache
 
 
 class TestWorkloadCalculator:

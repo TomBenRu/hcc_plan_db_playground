@@ -96,7 +96,7 @@ class DlgEventNotes(QDialog):
     def __init__(self, parent: QWidget, event: schemas.EventShow, multiple_events: bool = False):
         super().__init__(parent=parent)
         self.setWindowTitle(self.tr('Event Notes'))
-        self.event = event
+        self.event_of_day = event
         self.multiple_events = multiple_events
 
         self._setup_ui()
@@ -112,19 +112,19 @@ class DlgEventNotes(QDialog):
         self.layout.addLayout(self.layout_foot)
 
         events_text = self.tr('events') if self.multiple_events else self.tr('event')
-        time_text = self.tr('all times of day') if self.multiple_events else self.event.time_of_day.name
+        time_text = self.tr('all times of day') if self.multiple_events else self.event_of_day.time_of_day.name
 
         self.lb_explanation = QLabel(
             self.tr('Enter information relevant for the {events_type}.\n'
                    'This will be copied to linked appointments in the schedules.\n'
                    '{events_type}: {date} ({time}) - {location}').format(
                 events_type=events_text.capitalize(),
-                date=self.event.date.strftime("%d.%m.%y"),
+                date=self.event_of_day.date.strftime("%d.%m.%y"),
                 time=time_text,
-                location=self.event.location_plan_period.location_of_work.name_an_city))
+                location=self.event_of_day.location_plan_period.location_of_work.name_an_city))
         self.layout_head.addWidget(self.lb_explanation)
         self.text_info = QTextEdit()
-        self.text_info.setText(self.event.notes or '')
+        self.text_info.setText(self.event_of_day.notes or '')
         self.layout_body.addWidget(self.text_info)
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)

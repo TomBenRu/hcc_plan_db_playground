@@ -711,16 +711,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def plan_export_to_excel(self, index: int = None):
         @Slot(bool)
-        def export_finished(success: bool):
+        def export_finished(success: bool, output_path: str):
+            print(f'{success=}, {output_path=}')
             if success:
                 QMessageBox.information(self, 'Plan Excel-Export',
-                                        f'Plan wurde erfolgreich unter\n{excel_output_path}\nexportiert.')
+                                        f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
                 signal_handling.handler_excel_export.signal_finished.disconnect()
                 reply = QMessageBox.question(self, 'Plan Excel-Export',
                                              'Soll die Excel-Datei jetzt geöffnet werden?', )
                 if reply == QMessageBox.StandardButton.Yes:
                     try:
-                        open_file_or_folder.open_file_or_folder(excel_output_path)
+                        open_file_or_folder.open_file_or_folder(output_path)
                     except Exception as e:
                         QMessageBox.critical(self, 'Plan Excel-Export', f'{e}')
             else:
@@ -730,8 +731,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             dir_path = path.rsplit(os.sep, 1)[0]
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-
-        signal_handling.handler_excel_export.signal_finished.connect(export_finished)
 
         # TabManager Property nutzen
         widget = self.tab_manager.current_plan_widget
@@ -746,6 +745,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period),
                                              f'{widget.plan.name}.xlsx')
             create_dir_if_not_exist(excel_output_path)
+
+            signal_handling.handler_excel_export.signal_finished.connect(
+                functools.partial(export_finished, output_path=excel_output_path)
+            )
 
             plan_to_xlsx.export_plan_to_xlsx(self, widget, excel_output_path,
                                              dlg.note_in_empty_fields, dlg.note_in_employee_fields,

@@ -14,7 +14,8 @@ from tools.logging.crash_handler import safe_execute
 
 from configuration.general_settings import general_settings_handler
 from configuration.project_paths import curr_user_path_handler
-from gui.custom_widgets.splash_screen import SplashScreen
+from gui.custom_widgets.splash_screen import SplashScreen, InitializationProgressCallback
+from gui.app_initialization import initialize_application_with_progress
 from tools import proof_only_one_instance
 from tools.logging.logging_config import setup_crash_investigation_logging
 from tools.screen import Screen
@@ -24,53 +25,7 @@ import faulthandler
 # faulthandler.enable()
 
 
-def is_windows_dark_mode():
-    import winreg
-    try:
-        # Öffne den Registry-Schlüssel
-        registry = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                                  r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize')
-        # Lese den Wert von 'AppsUseLightTheme'
-        apps_use_light_theme, _ = winreg.QueryValueEx(registry, 'AppsUseLightTheme')
-        winreg.CloseKey(registry)
-
-        # Wenn der Wert 1 ist, wird der Lightmode verwendet, bei 0 der Darkmode
-        return apps_use_light_theme == 0
-    except FileNotFoundError:
-        # Falls der Registry-Schlüssel nicht gefunden wird, Lightmode als Standard
-        return False
-
-def set_dark_mode(app: QApplication):
-    # Erstelle eine Darkmode-Farbpalette
-    dark_palette = QPalette()
-
-    # Allgemeine Farben
-    dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))  # Hintergrundfarbe der Fenster
-    dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)        # Textfarbe
-    dark_palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))    # Hintergrundfarbe von Eingabefeldern
-    dark_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))  # Alternativer Hintergrund
-    dark_palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(53, 53, 53))  # Tooltip-Hintergrund dunkler
-    dark_palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)  # Tooltip-Text hell
-    dark_palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)              # Standard Text
-    dark_palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))  # Schaltflächen-Hintergrund
-    dark_palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)        # Schaltflächen-Text
-    dark_palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)          # Hervorhebungen
-
-    # Highlight Farben
-    dark_palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))  # Ausgewählte Elemente
-    dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)    # Text von ausgewählten Elementen
-
-    # Setze die erstellte Darkmode-Palette
-    app.setPalette(dark_palette)
-
-def set_translator(app: QApplication):
-    app.translator = QTranslator()
-    if general_settings_handler.get_general_settings().language:
-        locale = general_settings_handler.get_general_settings().language
-    else:
-        locale = QLocale.system().name()[:2]
-    if app.translator.load(f'translations_{locale}', os.path.join(os.path.dirname(__file__), 'translations')):
-        app.installTranslator(app.translator)
+# Funktionen wurden nach gui/app_initialization.py verschoben
 
 # Initialize comprehensive logging system early
 if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
@@ -104,60 +59,44 @@ logging.info("DEBUG-Logging aktiviert für Signal-Debugging")
 if enable_crash_investigation := False:
     emergency_log = setup_crash_investigation_logging(log_path)
     logging.info(f"Emergency crash logging: {emergency_log}")
+# Window icon setup - moved to app_initialization.py
 safe_execute(app.setWindowIcon, "Setting window icon", 
              QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
-safe_execute(set_translator, "Setting translator", app)
 
-system = platform.system()
-logging.info(f"Detected system: {system}")
+# Andere Initialisierungsschritte werden jetzt durch initialize_application_with_progress() erledigt
 
+# Splash screen with error handling and real progress tracking
 try:
-    if system == "Windows":
-        if not is_windows_dark_mode():
-            safe_execute(set_dark_mode, "Setting dark mode", app)
-    else:
-        safe_execute(set_dark_mode, "Setting dark mode", app)
-except Exception as e:
-    logging.error(f"Failed to set theme: {e}")
-
-# Instance check with error handling
-if system == "Windows":
-    try:
-        if not proof_only_one_instance.check():
-            logging.warning("Another instance already running")
-            QMessageBox.critical(None, "HCC Dispo", "hcc-dispo wird bereits ausgeführt.\n"
-                                                    "Sie können nur eine Instanz des Programms öffnen.")
-            sys.exit(0)
-    except Exception as e:
-        logging.error(f"Instance check failed: {e}")
-
-# Splash screen with error handling
-try:
-    splash = SplashScreen()
+    splash = SplashScreen(minimum_display_time=2.0)  # Option A: 2s Minimum-Display-Time
     splash.show()
-    safe_execute(splash.simulate_loading, "Splash screen loading")
+    
+    # Progress-Callback erstellen für echte Fortschrittsanzeige
+    progress_callback = InitializationProgressCallback(splash)
+    progress_callback.update_progress("QApplication setup")  # Initial 5%
+    
 except Exception as e:
     logging.error(f"Splash screen error: {e}")
     splash = None
-
-safe_execute(app.setStyle, "Setting app style", 'Fusion')
+    progress_callback = None
 
 # Note: Qt message handler is now handled by the comprehensive logging system
 
+# Hauptinitialisierung - einheitlich mit optionalen Progress-Updates
 try:
-    from gui.main_window import MainWindow
-    Screen.set_screen_size()
-    window = safe_execute(MainWindow, "Creating main window", app, Screen.screen_width, Screen.screen_height)
-    safe_execute(window.restore_tabs, "Restoring tabs")
-    safe_execute(window.show, "Showing main window")
+    # Einheitliche Initialisierung - mit oder ohne Progress-Callback
+    if progress_callback:
+        logging.info("Initializing with progress updates")
+        window = initialize_application_with_progress(app, progress_callback, log_file_path)
+    else:
+        logging.warning("Initializing without progress updates (splash screen failed)")
+        window = initialize_application_with_progress(app, None, log_file_path)
     
+    # Splash-Screen mit Minimum-Display-Time beenden
     if splash:
-        safe_execute(splash.finish, "Finishing splash", window)
+        splash.finish_when_ready(window)  # NEU: Respektiert 2s Minimum-Display-Time
         
-    logging.info("Application initialized successfully")
-    
 except Exception as e:
-    logging.critical(f"Failed to initialize main window: {e}")
+    logging.critical(f"Failed to initialize application: {e}")
     logging.critical(f"Stack trace:\n{traceback.format_exc()}")
     if splash:
         splash.close()

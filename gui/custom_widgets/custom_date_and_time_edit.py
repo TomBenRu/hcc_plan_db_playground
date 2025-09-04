@@ -4,12 +4,12 @@ Custom Date/Time Edit Widgets mit automatischer Locale-Konfiguration.
 Bietet DateEditLocale und TimeEditLocale Widgets, die automatisch 
 die System-Locale-Einstellungen anwenden.
 """
-
+import datetime
 import logging
 from typing import Optional
 
-from PySide6.QtCore import QDate, QTime, QLocale
-from PySide6.QtGui import QColor, QBrush, QPen, QFont
+from PySide6.QtCore import QDate, QTime, QLocale, QRect
+from PySide6.QtGui import QColor, QBrush, QPen, QFont, QPainter
 from PySide6.QtWidgets import QDateEdit, QTimeEdit, QCalendarWidget
 
 from configuration.general_settings import general_settings_handler
@@ -59,7 +59,7 @@ class HighlightCalendarLocale(CalendarLocale):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.event_dates = {}  # date -> [events]
+        self.event_dates: dict[datetime.date, list[EventDetail]] = {}  # date -> [events]
         
         # Farben für Event-Indikatoren
         self.primary_indicator_color = "#466d00"    # Hauptfarbe (Akzent)
@@ -68,7 +68,7 @@ class HighlightCalendarLocale(CalendarLocale):
         self.indicator_size = 12
         self.indicator_margin = 6
     
-    def set_event_dates(self, events):
+    def set_event_dates(self, events: list[EventDetail]):
         """
         Setzt die Events für die Hervorhebung im Kalender.
         
@@ -128,7 +128,7 @@ class HighlightCalendarLocale(CalendarLocale):
         if event_count > 1:
             self._draw_event_count(painter, rect, event_count)
     
-    def _draw_event_indicators(self, painter, rect, event_count):
+    def _draw_event_indicators(self, painter: QPainter, rect: QRect, event_count: int):
         """
         Zeichnet visuelle Indikatoren für Events in der Kalenderzelle.
         
@@ -157,7 +157,7 @@ class HighlightCalendarLocale(CalendarLocale):
         painter.drawEllipse(indicator_x, indicator_y, self.indicator_size, self.indicator_size)
         painter.restore()
     
-    def _draw_event_count(self, painter, rect, event_count):
+    def _draw_event_count(self, painter: QPainter, rect: QRect, event_count: int):
         """
         Zeichnet die Event-Anzahl in die Kalenderzelle.
         
@@ -190,7 +190,7 @@ class HighlightCalendarLocale(CalendarLocale):
         
         painter.restore()
     
-    def get_events_for_date(self, date):
+    def get_events_for_date(self, date: QDate | datetime.date) -> list[EventDetail]:
         """
         Gibt die Events für ein bestimmtes Datum zurück.
         

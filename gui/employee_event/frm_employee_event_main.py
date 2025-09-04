@@ -29,7 +29,7 @@ from database import db_services, schemas
 from employee_event import EmployeeEventService, EventDetail, ErrorResponseSchema, Category
 from tools.helper_functions import setup_form_help
 from employee_event.db_commands import event_commands
-from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
+from gui.custom_widgets.custom_date_and_time_edit import HighlightCalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string, time_to_string
 
@@ -303,15 +303,7 @@ class FrmEmployeeEventMain(QWidget):
         calendar_layout.setSpacing(15)
 
         # QCalendarWidget für Basis-Funktionalität (nimmt den meisten Platz ein)
-        self.calendar = CalendarLocale(self.calendar_widget)
-
-        # Kalender-Konfiguration basierend auf User-Settings
-        date_format_settings = general_settings_handler.get_general_settings().date_format_settings
-        locale = QLocale(
-            QLocale.Language(date_format_settings.language),
-            QLocale.Country(date_format_settings.country)
-        )
-        self.calendar.setLocale(locale)
+        self.calendar = HighlightCalendarLocale(self.calendar_widget)
 
         # Kalender-Styling
         self.calendar.setStyleSheet("""
@@ -769,8 +761,10 @@ class FrmEmployeeEventMain(QWidget):
 
     def _update_calendar_view(self):
         """Aktualisiert die Kalender-Ansicht."""
-        # TODO: Implementierung der Kalender-Event-Anzeige
-        # Für jetzt einfache Anzeige der Events am ausgewählten Datum
+        # Event-Hervorhebung im Kalender aktualisieren
+        self.calendar.set_event_dates(self.filtered_events)
+        
+        # Event-Details für das aktuell ausgewählte Datum aktualisieren
         self._on_calendar_date_changed()
 
     def _on_calendar_date_changed(self):

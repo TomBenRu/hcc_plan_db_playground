@@ -1,31 +1,23 @@
 import logging
 import os.path
-import platform
 import sys
 import traceback
 
-from PySide6.QtCore import Qt, QTranslator, QLocale
-from PySide6.QtGui import QIcon, QPalette, QColor
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 # Import the new modular logging system
 from tools.logging import setup_comprehensive_logging
 from tools.logging.crash_handler import safe_execute
 
-from configuration.general_settings import general_settings_handler
 from configuration.project_paths import curr_user_path_handler
 from gui.custom_widgets.splash_screen import SplashScreen, InitializationProgressCallback
 from gui.app_initialization import initialize_application_with_progress
-from tools import proof_only_one_instance
 from tools.logging.logging_config import setup_crash_investigation_logging
-from tools.screen import Screen
 
 import faulthandler
 
 # faulthandler.enable()
-
-
-# Funktionen wurden nach gui/app_initialization.py verschoben
 
 # Initialize comprehensive logging system early
 if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):

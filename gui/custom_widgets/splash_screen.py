@@ -1,10 +1,8 @@
 import os
-import threading
-import time
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QFont, QPainter, QPainterPath
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSplashScreen
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QSplashScreen
 
 
 class SplashScreen(QSplashScreen):
@@ -69,7 +67,7 @@ class SplashScreen(QSplashScreen):
         from PySide6.QtCore import QTimer
         
         if self.start_time is None:
-            # Fallback: Sofort beenden wenn start_time nicht gesetzt
+            # Fallback: Sofort beenden, wenn start_time nicht gesetzt
             self.finish(main_window)
             return
         

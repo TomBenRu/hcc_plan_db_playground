@@ -88,21 +88,6 @@ class SplashScreen(QSplashScreen):
             
             # Timer für verzögerte Beendigung
             QTimer.singleShot(remaining_ms, lambda: self.finish(main_window))
-    
-    # Alte fake simulate-Methoden entfernen durch Ersetzen mit Dummy-Implementierungen
-    def simulate_loading(self):
-        """
-        DEPRECATED: Ersetzt durch update_real_progress()
-        Diese Methode bleibt für Rückwärtskompatibilität, macht aber nichts
-        """
-        pass
-    
-    def simulate(self):
-        """
-        DEPRECATED: Ersetzt durch update_real_progress()  
-        Diese Methode bleibt für Rückwärtskompatibilität, macht aber nichts
-        """
-        pass
 
 
 class InitializationProgressCallback:
@@ -124,9 +109,9 @@ class InitializationProgressCallback:
             ("Theme detection", 20),
             ("Translator setup", 25),
             ("Instance check", 30),
-            ("MainWindow creation", 40),  # Längster Schritt
+            ("MainWindow creation", 40),
             ("Screen size calculation", 50),
-            ("Tab restoration", 55),      # Kann lange dauern
+            ("Tab restoration", 55),
             ("Window display", 95),
             ("Finalisierung", 100)
         ]

@@ -5,18 +5,18 @@ from functools import partial
 from uuid import UUID
 
 from PySide6 import QtCore
-from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayout, QComboBox, QCalendarWidget, QSpinBox,
+from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGridLayout, QComboBox, QSpinBox,
                                QDialogButtonBox, QPushButton, QCheckBox, QMessageBox, QHBoxLayout)
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import QDate, QSize
+from PySide6.QtCore import QDate
 
 from commands import command_base_classes
-from configuration.event_planing_rules import current_event_planning_rules_handler, EventPlanningRules, PlanningRules
+from configuration.event_planing_rules import current_event_planning_rules_handler
 from database import db_services
 from gui import frm_cast_rule
 from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
-from gui.schemas import RulesData, Rules
+from gui.data_models.schemas import RulesData, Rules
 from gui.data_models import RuleDataModel, ValidationResult
 from tools import helper_functions
 from tools.helper_functions import n_th_weekday_of_period, date_to_string, setup_form_help
@@ -726,21 +726,25 @@ class DlgEventPlanningRules(QDialog):
             self.lb_description.setText(self._text_description_default)
 
     def _save_rules(self) -> None:
-        """Speichert die aktuellen Planungsregeln zur späteren Wiederverwendung.
+        """Speichert die aktuellen Planungsregeln über das RuleDataModel.
         
-        Erstellt EventPlanningRules aus den aktuellen Widget-Daten und
-        speichert diese über den rules_handler.
+        Synchronisiert GUI-Daten in das RuleDataModel und verwendet
+        dessen save_to_config() Methode für die Persistierung.
         """
-        self._rules_data: defaultdict[int, RulesData]
-        self._event_planing_rules = EventPlanningRules(
-            location_of_work_id=self.location_plan_period.location_of_work.id,
-            planning_rules=[PlanningRules(first_day=r.first_day, time_of_day_id=r.time_of_day.id, interval=r.interval,
-                                          repeat=r.repeat, num_events=r.num_events) for r in self._rules_data.values()],
-            cast_rule_at_same_day_id=(self.combo_rule_same_day.currentData().id
-                                      if self.combo_rule_same_day.currentIndex() > 0 else None),
-            same_partial_days_for_all_rules=self.chk_same_partial_days.isChecked()
+        # Sync GUI-Daten in das data_model
+        self._sync_rules_to_data_model()
+
+        # Extrahiere GUI-spezifische Parameter
+        cast_rule_at_same_day_id = (
+            self.combo_rule_same_day.currentData().id
+            if self.combo_rule_same_day.currentIndex() > 0 else None
         )
-        self.rules_handler.set_event_planning_rules(self._event_planing_rules)
+        same_partial_days_for_all_rules = self.chk_same_partial_days.isChecked()
+
+        # Verwende RuleDataModel für das Speichern
+        self.data_model.save_to_config(cast_rule_at_same_day_id, same_partial_days_for_all_rules)
+
+        # Success-Message (bleibt bei GUI)
         QMessageBox.information(self, self.tr('Planning Rules'),
                                 self.tr('Planning rules for "{location}" have been saved for later use.').format(
                                     location=self.location_plan_period.location_of_work.name_an_city))

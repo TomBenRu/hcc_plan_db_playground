@@ -6,5 +6,6 @@ ermöglicht bessere Trennung von Daten- und Präsentationslogik.
 """
 
 from .rule_data_model import RuleDataModel, ValidationResult
+from .schemas import RulesData, Rules
 
-__all__ = ['RuleDataModel', 'ValidationResult']
+__all__ = ['RuleDataModel', 'ValidationResult', 'RulesData', 'Rules']

@@ -12,7 +12,7 @@ from uuid import UUID
 
 from configuration.event_planing_rules import EventPlanningRules, PlanningRules, EventPlanningRulesHandlerToml
 from database import db_services, schemas
-from gui.schemas import RulesData, Rules
+from gui.data_models.schemas import RulesData, Rules
 from tools.helper_functions import n_th_weekday_of_period, date_to_string
 
 

@@ -17,6 +17,7 @@ from gui import frm_cast_rule
 from gui.custom_widgets.custom_date_and_time_edit import CalendarLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.schemas import RulesData, Rules
+from gui.data_models import RuleDataModel, ValidationResult
 from tools import helper_functions
 from tools.helper_functions import n_th_weekday_of_period, date_to_string, setup_form_help
 
@@ -350,6 +351,13 @@ class DlgEventPlanningRules(QDialog):
             self.location_plan_period.location_of_work.id)
         self._rules_data: defaultdict[int, RulesData] = defaultdict(RulesData)
         self._rules_data_from_config: defaultdict[int, RulesData] = defaultdict(RulesData)
+        
+        # RuleDataModel Instanziierung für Phase 3.2
+        self.data_model = RuleDataModel.load_from_config(
+            location_plan_period_id=self.location_plan_period_id,
+            first_day_from_weekday=self.first_day_from_weekday,
+            rules_handler=self.rules_handler
+        )
         if self._event_planing_rules:
             self._text_description = (
                 self._text_description_default +
@@ -738,25 +746,33 @@ class DlgEventPlanningRules(QDialog):
                                     location=self.location_plan_period.location_of_work.name_an_city))
 
 
-    def validate_rules(self) -> bool:
-        """Validiert die konfigurierten Planungsregeln.
+    def validate_rules(self) -> ValidationResult:
+        """Validiert die konfigurierten Planungsregeln über das RuleDataModel.
         
-        Prüft ob Events mit gleicher Tageszeit nicht doppelt am
-        selben Tag erstellt werden würden.
+        Verwendet das RuleDataModel für strukturierte Validierung mit
+        detaillierten Fehlermeldungen.
         
         Returns:
-            bool: True wenn Regeln gültig sind, False bei Konflikten
+            ValidationResult: Strukturiertes Validierungsergebnis mit Fehlermeldungen
         """
-        dict_date_time_indexes: defaultdict[datetime.date, list[int]] = defaultdict(list)
-        if len(self._rules_data) > 1:
-            for rule_index, rules in self._rules_data.items():
-                for i in range(rules.num_events):
-                    date = rules.first_day + datetime.timedelta(days=i * rules.interval)
-                    dict_date_time_indexes[date].append(rules.time_of_day.time_of_day_enum.time_index)
-            for time_indexes in dict_date_time_indexes.values():
-                if len(set(time_indexes)) < len(time_indexes):
-                    return False
-        return True
+        # Sync aktuelle _rules_data in das data_model für Validierung
+        self._sync_rules_to_data_model()
+        
+        # Verwende RuleDataModel Validierung
+        return self.data_model.validate_rules()
+    
+    def _sync_rules_to_data_model(self) -> None:
+        """Synchronisiert aktuelle _rules_data in das RuleDataModel.
+        
+        Überträgt alle GUI-Regel-Daten in das RuleDataModel für
+        Validierung und weitere Operationen.
+        """
+        # Leere das data_model und füge aktuelle Regeln hinzu
+        self.data_model.rules_data.clear()
+        
+        for rule_index, rule_data in self._rules_data.items():
+            # Füge Regel zum data_model hinzu
+            self.data_model.add_rule(rule_data)
 
     def _events_already_exist(self) -> bool:
         """Prüft ob bereits Events für diese LocationPlanPeriod existieren.
@@ -781,9 +797,9 @@ class DlgEventPlanningRules(QDialog):
         Führt umfassende Validierung durch und warnt bei bestehenden Events
         oder Plänen vor dem Überschreiben.
         """
-        if not self.validate_rules():
-            QMessageBox.critical(self, self.tr('Planning Rules'),
-                                 self.tr('Events with the same time of day cannot be created twice on the same day.'))
+        validation_result = self.validate_rules()
+        if not validation_result.is_valid:
+            QMessageBox.critical(self, self.tr('Planning Rules'), validation_result.error_message)
             return
 
         if self._events_already_exist():

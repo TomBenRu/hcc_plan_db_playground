@@ -19,7 +19,6 @@ from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from gui.schemas import RulesData, Rules
 from tools import helper_functions
 from tools.helper_functions import n_th_weekday_of_period, date_to_string, setup_form_help
-from tools.size_of_objects import total_size
 
 
 class FirstDayFromWeekday(QWidget):

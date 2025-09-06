@@ -172,6 +172,17 @@ class DlgEventPlanningRules(QDialog):
         location_plan_period_id: ID der LocationPlanPeriod für die Events geplant werden
         first_day_from_weekday: Ob Starttag über Wochentag oder Kalender gewählt wird
     """
+    
+    # Spalten-Indizes für die Regel-Tabelle
+    class ColumnIndex:
+        """Definiert die Spalten-Indizes für die Regel-Grid-Tabelle."""
+        FIRST_DAY = 0
+        TIME_OF_DAY = 1
+        INTERVAL = 2
+        REPETITIONS = 3
+        POSSIBLE_COUNT = 4
+        REMOVE_BUTTON = 5
+    
     def __init__(self, parent: QWidget, location_plan_period_id: UUID, first_day_from_weekday: bool):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Event Planning Rules"))
@@ -193,6 +204,15 @@ class DlgEventPlanningRules(QDialog):
         Erstellt alle UI-Elemente und Layout-Strukturen für die
         Konfiguration der Event-Planungsregeln.
         """
+        self._create_main_layout()
+        self._setup_header_section()
+        self._setup_rules_grid_section()
+        self._setup_special_rules_section()
+        self._setup_button_section()
+        self._initialize_rules()
+        
+    def _create_main_layout(self) -> None:
+        """Erstellt die Haupt-Layout-Struktur."""
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(10)
         self.layout_head = QVBoxLayout()
@@ -205,17 +225,23 @@ class DlgEventPlanningRules(QDialog):
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_special_rules)
         self.layout.addLayout(self.layout_foot)
-
+        
+    def _setup_header_section(self) -> None:
+        """Erstellt den Header-Bereich mit Beschreibung."""
         self.lb_description = QLabel()
         self.layout_head.addWidget(self.lb_description)
-
-
+        
+    def _setup_rules_grid_section(self) -> None:
+        """Erstellt die Grid-Tabelle für Regeln mit Header-Labels."""
         for column, text in enumerate(self.header_text):
             lb_text = QLabel(text)
             lb_text.setStyleSheet("font-weight: bold; background-color: #00123a; "
                                   "padding-left: 5px; padding-right: 5px; padding-top: 10px; padding-bottom: 10px;")
             self.layout_body.addWidget(lb_text, 0, column)
 
+    def _setup_special_rules_section(self) -> None:
+        """Erstellt den Bereich für spezielle Regel-Optionen."""
+        # Same Day Rules
         self.layout_rule_same_day = QHBoxLayout()
         self.layout_special_rules.addLayout(self.layout_rule_same_day)
         self.lb_rule_same_day = QLabel(self.tr('Rules for events on the same day:'))
@@ -229,16 +255,20 @@ class DlgEventPlanningRules(QDialog):
         self.layout_rule_same_day.addWidget(self.lb_rule_same_day)
         self.layout_rule_same_day.addWidget(self.combo_rule_same_day)
         self.layout_rule_same_day.addWidget(self.bt_rule_same_day)
+        
+        # Same Partial Days Checkbox
         self.chk_same_partial_days = QCheckBox(self.tr('Same day selection for all rules'))
         self.chk_same_partial_days.setToolTip(
             self.tr('When this option is enabled,\n'
-                   'the events defined by the rules will be grouped\n'
-                   'so that they are created on the same days.')
+                    'the events defined by the rules will be grouped\n'
+                    'so that they are created on the same days.')
         )
         self.chk_same_partial_days.setDisabled(True)
         self.chk_same_partial_days.toggled.connect(self._set_text_description_to_default)
         self.layout_special_rules.addWidget(self.chk_same_partial_days)
 
+    def _setup_button_section(self) -> None:
+        """Erstellt den Button-Bereich am unteren Ende des Dialogs."""
         self.bt_add_rule = QPushButton(self.tr('New Rule'))
         self.bt_add_rule.clicked.connect(self._add_rule)
         self.bt_reset_rules = QPushButton(self.tr('Reset Rules'))
@@ -247,6 +277,7 @@ class DlgEventPlanningRules(QDialog):
         self.bt_save_rules = QPushButton(self.tr('Save Rules'))
         self.bt_save_rules.clicked.connect(self._save_rules)
         self.bt_save_rules.setToolTip(self.tr('Save rules for later use'))
+        
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.addButton(self.bt_add_rule, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_reset_rules, QDialogButtonBox.ButtonRole.ActionRole)
@@ -254,22 +285,28 @@ class DlgEventPlanningRules(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
-
+        
+    def _initialize_rules(self) -> None:
+        """Initialisiert die Regeln basierend auf gespeicherten Daten."""
         if self._event_planing_rules:
             self._setup_rules_from_data()
         else:
             self._add_rule()
-
         self.lb_description.setText(self._text_description)
 
-    def _show_calendar(self, rule_index: int):
+    def _show_calendar(self, rule_index: int) -> None:
+        """Zeigt Kalender-Dialog zur Datumsauswahl für eine Regel.
+        
+        Args:
+            rule_index: Index der Regel, für die das Datum gewählt wird
+        """
         dlg = DlgFirstDay(self, self.plan_period.start, self.plan_period.end,
                           current_date=self._rules_data[rule_index].first_day)
         if dlg.exec():
             self.widgets_for_rules[rule_index][self.header_text_first_day].setText(date_to_string(dlg.first_day))
             self._rules_data[rule_index].first_day = dlg.first_day
             self._spinbox_repeat_changed(rule_index)
-            self._enable_same_partial_days_checkbox()
+            self._update_ui_state()
 
     def _setup_data(self) -> None:
         """Initialisiert die Datenstrukturen und lädt bestehende Regeln.
@@ -334,37 +371,87 @@ class DlgEventPlanningRules(QDialog):
                     repeat=rules_data.repeat,
                     num_events=rules_data.num_events)
 
-    def _add_rule(self):
+    def _add_rule(self) -> None:
+        """Fügt eine neue Regel zur UI hinzu."""
         rule_index = max(self.widgets_for_rules.keys()) + 1 if self.widgets_for_rules else 1
         self.widgets_for_rules[rule_index] = {}
         for column, (text, widget) in enumerate(zip(self.header_text, self.rules_widgets)):
             self.layout_body.addWidget(curr_widget := widget(rule_index), rule_index, column)
             self.widgets_for_rules[rule_index][text] = curr_widget
-        if len(self.widgets_for_rules) > 1:
-            self._enable_same_partial_days_checkbox()
-            self._enable_rule_at_same_day_combobox()
+        self._update_ui_state()
 
-    def _remove_rule(self, rule_index: int):
+    def _remove_rule(self, rule_index: int) -> None:
+        """Entfernt eine Regel aus der UI."""
         for widget in self.widgets_for_rules[rule_index].values():
             widget.deleteLater()
         del self.widgets_for_rules[rule_index]
         del self._rules_data[rule_index]
-        self._enable_same_partial_days_checkbox()
-        self._enable_rule_at_same_day_combobox()
+        self._update_ui_state()
+        
+    def _update_ui_state(self) -> None:
+        """Aktualisiert den gesamten UI-Zustand basierend auf aktuellen Regeln."""
+        self._update_same_day_controls()
+        self._update_partial_days_checkbox()
+        
+    def _update_same_day_controls(self) -> None:
+        """Aktualisiert Same-Day-Rule Controls basierend auf Anzahl Regeln."""
+        has_multiple_rules = len(self._rules_data) > 1
+        self.combo_rule_same_day.setEnabled(has_multiple_rules)
+        self.bt_rule_same_day.setEnabled(has_multiple_rules)
+        
+        if not has_multiple_rules:
+            self.combo_rule_same_day.setCurrentIndex(0)
+            
+    def _update_partial_days_checkbox(self) -> None:
+        """Aktualisiert Partial-Days Checkbox basierend auf Regel-Kompatibilität."""
+        if len(self._rules_data) <= 1:
+            if self.chk_same_partial_days.isEnabled():
+                self.chk_same_partial_days.setChecked(False)
+                self.chk_same_partial_days.setDisabled(True)
+            return
+            
+        # Prüfe ob alle Regeln kompatibel sind für Same Partial Days
+        if not self._rules_data:
+            return
+            
+        min_rule_index = min(self._rules_data.keys())
+        reference_rule = self._rules_data[min_rule_index]
+        
+        all_rules_compatible = all(
+            r.first_day == reference_rule.first_day
+            and r.num_events == reference_rule.num_events
+            and r.interval == reference_rule.interval
+            for r in self._rules_data.values()
+        )
+        
+        no_full_overlap = all(
+            r.repeat + 1 != r.num_events for r in self._rules_data.values()
+        )
+        
+        if all_rules_compatible and no_full_overlap:
+            self.chk_same_partial_days.setEnabled(True)
+        else:
+            self.chk_same_partial_days.setChecked(False)
+            self.chk_same_partial_days.setDisabled(True)
 
-    def _setup_rules_from_data(self):
+    def _setup_rules_from_data(self) -> None:
+        """Lädt und konfiguriert Regeln aus gespeicherten Daten.
+        
+        Erstellt UI-Widgets basierend auf den Daten aus _rules_data_from_config
+        und stellt die ursprünglichen Werte wieder her.
+        """
         for _ in self._rules_data_from_config:
             self._add_rule()
         for rule_index, rule_data in self._rules_data_from_config.items():
             for column, (text, widget) in enumerate(zip(self.header_text, self.widgets_for_rules[rule_index].values())):
 
-                if column == 0:
+                if column == self.ColumnIndex.FIRST_DAY:
                     if isinstance(widget, QPushButton):
                         widget.setText(date_to_string(rule_data.first_day))
                         self._rules_data[rule_index].first_day = rule_data.first_day
                     elif isinstance(widget, FirstDayFromWeekday):
                         widget.set_date(rule_data.first_day)
-                elif column == 1:
+                elif column == self.ColumnIndex.TIME_OF_DAY:
                     if (idx := widget.findData(rule_data.time_of_day)) != -1:
                         widget.setCurrentIndex(idx)
                     else:
@@ -390,19 +477,28 @@ class DlgEventPlanningRules(QDialog):
                                            old_time=rule_data.time_of_day.name,
                                            new_time=widget.currentData().name)
                             )
-                elif column == 2:
+                elif column == self.ColumnIndex.INTERVAL:
                     widget.setValue(rule_data.interval)
-                elif column == 3:
+                elif column == self.ColumnIndex.REPETITIONS:
                     widget.setValue(rule_data.repeat)
-                elif column == 4:
+                elif column == self.ColumnIndex.POSSIBLE_COUNT:
                     widget.setValue(rule_data.num_events)
         self.chk_same_partial_days.setChecked(
             self._event_planing_rules.same_partial_days_for_all_rules)
-        if self._event_planing_rules.cast_rule_at_same_day_id and (idx := self.combo_rule_same_day.findData(
-                db_services.CastRule.get(self._event_planing_rules.cast_rule_at_same_day_id))) != -1:
-            self.combo_rule_same_day.setCurrentIndex(idx)
+        if self._event_planing_rules.cast_rule_at_same_day_id:
+            try:
+                cast_rule = db_services.CastRule.get(self._event_planing_rules.cast_rule_at_same_day_id)
+                if (idx := self.combo_rule_same_day.findData(cast_rule)) != -1:
+                    self.combo_rule_same_day.setCurrentIndex(idx)
+            except Exception as e:
+                QMessageBox.warning(self, self.tr('Warning'), 
+                                  self.tr('Could not load saved cast rule: {error}').format(error=str(e)))
 
-    def _reset_rule_widgets(self):
+    def _reset_rule_widgets(self) -> None:
+        """Setzt alle Regel-Widgets zurück und erstellt eine neue Standard-Regel.
+        
+        Entfernt alle existierenden Regeln und erstellt eine neue leere Regel.
+        """
         for widgets in self.widgets_for_rules.values():
             for widget in widgets.values():
                 widget.deleteLater()
@@ -444,7 +540,15 @@ class DlgEventPlanningRules(QDialog):
         self._rules_data[rule_index].first_day = self.plan_period.start
         return button
 
-    def _widget_first_day_from_weekday(self, rule_index: int):
+    def _widget_first_day_from_weekday(self, rule_index: int) -> FirstDayFromWeekday:
+        """Erstellt Widget für Wochentag-basierte Datumsauswahl.
+        
+        Args:
+            rule_index: Index der Regel, für die das Widget erstellt wird
+            
+        Returns:
+            FirstDayFromWeekday: Widget für Wochentag-Auswahl
+        """
         widget = FirstDayFromWeekday(self, self.plan_period.start, self.plan_period.end)
         widget.signal_first_day_changed.connect(partial(self._first_day_from_weekday_changed, rule_index))
         self._rules_data[rule_index].first_day = widget.curr_date
@@ -526,7 +630,7 @@ class DlgEventPlanningRules(QDialog):
             widget_repeat.setValue(widget_repeat.value() - 1)
         self._spinbox_num_events_changed(rule_index)
         self._rules_data[rule_index].repeat = widget_repeat.value()
-        self._enable_same_partial_days_checkbox()
+        self._update_ui_state()
 
     def _spinbox_num_events_changed(self, rule_index: int, *args) -> None:
         """Wird ausgelöst, wenn sich die Anzahl-Auswahl ändert.
@@ -540,7 +644,7 @@ class DlgEventPlanningRules(QDialog):
             widget_num_events.setValue(repeats + 1)
         self._set_text_description_to_default()
         self._rules_data[rule_index].num_events = widget_num_events.value()
-        self._enable_same_partial_days_checkbox()
+        self._update_ui_state()
 
     def _combobox_time_of_day_changed(self, rule_index: int, *args) -> None:
         """Wird ausgelöst, wenn sich die Tageszeit-Auswahl ändert.
@@ -560,7 +664,7 @@ class DlgEventPlanningRules(QDialog):
         """
         self._rules_data[rule_index].interval = value
         self._spinbox_repeat_changed(rule_index)
-        self._enable_same_partial_days_checkbox()
+        self._update_ui_state()
 
     def _first_day_from_weekday_changed(self, rule_index: int, date: datetime.date) -> None:
         """Wird ausgelöst, wenn sich der Starttag über Wochentag-Auswahl ändert.
@@ -570,7 +674,7 @@ class DlgEventPlanningRules(QDialog):
         """
         self._rules_data[rule_index].first_day = date
         self._spinbox_repeat_changed(rule_index)
-        self._enable_same_partial_days_checkbox()
+        self._update_ui_state()
         self._set_text_description_to_default()
 
     def _combo_rule_same_day_add_items(self) -> None:
@@ -590,36 +694,7 @@ class DlgEventPlanningRules(QDialog):
                                                              'resources/toolbar_icons/icons/foaf.png')),
                                           rule.name, rule)
 
-    def _enable_rule_at_same_day_combobox(self) -> None:
-        """Aktiviert die ComboBox für die Regelung der Events am selben Tag,
-        wenn mehr als eine Regel konfiguriert ist und Events am selben Tag erstellt werden würden."""
-        if len(self._rules_data) > 1:
-            self.combo_rule_same_day.setEnabled(True)
-            self.bt_rule_same_day.setEnabled(True)
-        else:
-            self.combo_rule_same_day.setCurrentIndex(0)
-            self.combo_rule_same_day.setDisabled(True)
-            self.bt_rule_same_day.setDisabled(True)
 
-    def _enable_same_partial_days_checkbox(self) -> None:
-        """Aktiviert die Checkbox für die Gruppierung der Events am selben Tag,
-        wenn alle Regeln die gleichen Starttag, Intervall und Anzahl haben."""
-        if len(self._rules_data) == 1:
-            if not self.chk_same_partial_days.isEnabled():
-                return
-
-            self.chk_same_partial_days.setChecked(False)
-            self.chk_same_partial_days.setDisabled(True)
-        min_rule_index = min(self._rules_data.keys())
-        if (all(r.first_day == self._rules_data[min_rule_index].first_day
-               and r.num_events == self._rules_data[min_rule_index].num_events
-               and r.interval == self._rules_data[min_rule_index].interval
-               for r in self._rules_data.values())
-            and all(r.repeat + 1 != r.num_events for r in self._rules_data.values())):
-            self.chk_same_partial_days.setEnabled(True)
-        else:
-            self.chk_same_partial_days.setChecked(False)
-            self.chk_same_partial_days.setDisabled(True)
 
     def _add_rule_same_day(self) -> None:
         """Erstellt eine neue Cast-Regel für die Regelung der Events am selben Tag."""
@@ -637,7 +712,8 @@ class DlgEventPlanningRules(QDialog):
                      cast_rule_at_same_day=self.combo_rule_same_day.currentData(),
                      same_partial_days_for_all_rules=self.chk_same_partial_days.isChecked())
 
-    def _set_text_description_to_default(self):
+    def _set_text_description_to_default(self) -> None:
+        """Setzt die Beschreibung auf den Standard-Text zurück."""
         if self._event_planing_rules:
             self.lb_description.setText(self._text_description_default)
 

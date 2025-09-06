@@ -163,14 +163,14 @@ class LocationPlanPeriodData:
                 command = event_commands.Delete(event.id)
                 self.controller.execute(command)
 
-        events = self._create_events_from_rules(dlg.rules.rules_data,
-                                                dlg.rules.same_partial_days_for_all_rules,
+        events = self._create_events_from_rules(dlg.planning_rules.rules_data,
+                                                dlg.planning_rules.same_partial_days_for_all_rules,
                                                 master_event_group.id)
 
-        if dlg.rules.same_partial_days_for_all_rules:
-            event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.rules.rules_data)
+        if dlg.planning_rules.same_partial_days_for_all_rules:
+            event_groups_same_day = self._group_events_by_day(events, master_event_group, dlg.planning_rules.rules_data)
 
-        if (rule := dlg.rules.cast_rule_at_same_day) is not None and len(events) > 1:
+        if (rule := dlg.planning_rules.cast_rule_at_same_day) is not None and len(events) > 1:
             self._create_cast_groups_for_same_day_events(events, rule)
 
         self.reload_location_plan_period()

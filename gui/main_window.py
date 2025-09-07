@@ -83,7 +83,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         self.controller = command_base_classes.ContrExecUndoRedo()
 
-        self.thread_pool = QThreadPool()
         self.worker_general: WorkerGeneral | None = None
 
         self.global_update_plan_tabs_progress_bar = DlgProgressInfinite(
@@ -1054,7 +1053,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 signal_handling.handler_google_cal_api.signal_transfer_appointments_progress
             )
             progressbar.show()
-            self.thread_pool.start(self.worker_general)
+            QThreadPool.globalInstance().start(self.worker_general)
 
     def open_google_calendar(self):
         """Öffnet den Google-Kalender des aktuellen Projekts im Browser."""
@@ -1125,7 +1124,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.tr('Cancel')  # German: 'Abbruch'
         )
         progressbar.show()
-        self.thread_pool.start(self.worker_general)
+        QThreadPool.globalInstance().start(self.worker_general)
 
     def create_google_calendar(self):
         def create():
@@ -1227,7 +1226,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 'Abbruch'
             )
             progressbar.show()
-            self.thread_pool.start(self.worker_general)
+            QThreadPool.globalInstance().start(self.worker_general)
 
     def synchronize_google_calenders(self):
         def synchronize():
@@ -1262,7 +1261,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         progressbar = DlgProgressInfinite(self, 'Kalendersynchronisation',
                                           'Google-Kalender werden heruntergeladen...', 'Abbruch')
         progressbar.show()
-        self.thread_pool.start(self.worker_general)
+        QThreadPool.globalInstance().start(self.worker_general)
 
     def import_google_api_credentials(self):
         """Dialog zum Importieren der Google API Credentials"""

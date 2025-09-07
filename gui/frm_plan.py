@@ -503,7 +503,6 @@ class AppointmentField(QWidget):
 
         fill_in_data(self)
 
-        self.thread_pool = QThreadPool()
         self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -563,7 +562,7 @@ class AppointmentField(QWidget):
         self.progress_bar.show()
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
         worker.signals.finished.connect(self.check_finished, Qt.ConnectionType.QueuedConnection)
-        self.thread_pool.start(worker)
+        QThreadPool.globalInstance().start(worker)
 
     @Slot(bool, list)
     def check_finished(self, success: bool, problems: list[str]):
@@ -711,7 +710,6 @@ class FrmTabPlan(QWidget):
         signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
 
         self.plan = plan
-        self.thread_pool = QThreadPool()
 
         self.general_settings = general_settings_handler.get_general_settings()
 
@@ -795,7 +793,7 @@ class FrmTabPlan(QWidget):
 
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
         worker.signals.finished.connect(self._check_finished, Qt.ConnectionType.QueuedConnection)
-        self.thread_pool.start(worker)
+        QThreadPool.globalInstance().start(worker)
 
     @Slot(bool, list)
     def _check_finished(self, success: bool, problems: list[str]):
@@ -824,7 +822,7 @@ class FrmTabPlan(QWidget):
         progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished, Qt.ConnectionType.QueuedConnection)
         worker.signals.finished.connect(progress_bar.deleteLater, Qt.ConnectionType.QueuedConnection)
-        self.thread_pool.start(worker)
+        QThreadPool.globalInstance().start(worker)
 
     @Slot(object, object)
     def _update_statistics_finished(self, max_shifts: dict[UUID, int], fair_shifts: dict[UUID, float]):

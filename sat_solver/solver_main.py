@@ -692,26 +692,6 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     #       wird.
     # todo: Bisher nur Cast Groups auf Level 1 berücksichtigt
 
-    def different_cast_new(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
-                       strict_rule_pref: int) -> list[IntVar]:
-        broken_rules_vars: list[IntVar] = []
-
-        all_employees_of_groups = sum()
-
-        all_shifts = sum(var for (adg_id, eg_id), var in entities.shift_vars.items()
-                         if eg_id in {event_group_1.id, event_group_2.id}
-                         and entities.shifts_exclusive[(adg_id, eg_id)])
-
-        if strict_rule_pref == 2:
-            model.Add(all_shifts <= len(entities.actor_plan_periods))
-        elif strict_rule_pref == 1:
-            broken_rules_var = model.NewIntVar(0, len(entities.actor_plan_periods),
-                                               f'{event_group_1.event.date:%d.%m.} + {event_group_2.event.date:%d.%m.}')
-            model.Add(broken_rules_var == all_shifts - len(entities.actor_plan_periods))
-            broken_rules_vars.append(broken_rules_var)
-
-        return broken_rules_vars
-
     def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
                        strict_rule_pref: int) -> list[IntVar]:
 

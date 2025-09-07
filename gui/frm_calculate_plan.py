@@ -1,7 +1,7 @@
 import datetime
 from uuid import UUID
 
-from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt
+from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt, QThreadPool
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
@@ -10,6 +10,8 @@ import sat_solver
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
 from database import db_services, schemas
+from gui import data_processing
+from gui.concurrency import general_worker
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
 from sat_solver import solver_main
@@ -40,83 +42,6 @@ class DlgAskNrPlansToSave(QDialog):
 
     def get_nr_versions_to_use(self):
         return self.spin_nr_plans.value()
-
-
-class SolverThread(QThread):
-    finished = Signal(object, object, object, object, object)  # Signal emitted when the solver finishes
-
-    def __init__(self, parent: QObject, plan_period_id: UUID, num_plans: int,
-                 time_calc_max_shifts: int, time_calc_fair_distribution: int, time_calc_plan: int):
-        super().__init__(parent)
-        self.plan_period_id = plan_period_id
-        self.num_plans = num_plans
-        self.time_calc_max_shifts = time_calc_max_shifts
-        self.time_calc_fair_distribution = time_calc_fair_distribution
-        self.time_calc_plan = time_calc_plan
-
-    def run(self):
-        # Call the solver function here
-        (schedule_versions, fixed_cast_conflicts, skill_conflicts,
-         max_shifts_per_app, fair_shifts_per_app) = solver_main.solve(self.plan_period_id,
-                                                                      self.num_plans,
-                                                                      self.time_calc_max_shifts,
-                                                                      self.time_calc_fair_distribution,
-                                                                      self.time_calc_plan)
-        self.finished.emit(schedule_versions, fixed_cast_conflicts, skill_conflicts,
-                           max_shifts_per_app, fair_shifts_per_app)
-
-
-class SaveThread(QThread):
-    finished = Signal(list)
-
-    def __init__(self, parent: QObject,
-                 plan_period_id: UUID, team_id: UUID,
-                 schedule_versions: list[list[schemas.AppointmentCreate]],
-                 max_shifts_per_app: dict[UUID, int], fair_shifts_per_app: dict[UUID, float],
-                 nr_versions_to_use: int,
-                 controller: command_base_classes.ContrExecUndoRedo):
-        super().__init__(parent=parent)
-        self._created_plan_ids: list[UUID] = []
-        self.plan_period_id = plan_period_id
-        self.team_id = team_id
-        self.schedule_versions = schedule_versions
-        self.max_shifts_per_app = max_shifts_per_app
-        self.fair_shifts_per_app = fair_shifts_per_app
-        self.nr_versions_to_use = nr_versions_to_use
-        self.controller = controller
-
-    def run(self):
-        plan_period = db_services.PlanPeriod.get(self.plan_period_id)
-        saved_plan_names = self.get_saved_plan_period_names()
-        plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
-        new_first_plan_index = 1
-
-        for version in self.schedule_versions[:self.nr_versions_to_use]:
-            while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
-                new_first_plan_index += 1
-            version: list[schemas.AppointmentCreate]
-            name_plan = f'{plan_base_name} ({new_first_plan_index:0>2})'
-            new_first_plan_index += 1
-
-            plan_create_command = plan_commands.Create(self.plan_period_id, name_plan)
-            self.controller.execute(plan_create_command)
-            self._created_plan_ids.append(plan_create_command.plan.id)
-            for appointment in version:
-                self.controller.execute(
-                    appointment_commands.Create(appointment, self._created_plan_ids[-1]))
-        for app_id in self.max_shifts_per_app:
-            max_fair_shifts_per_app_create = schemas.MaxFairShiftsOfAppCreate(
-                max_shifts=self.max_shifts_per_app[app_id],
-                fair_shifts=self.fair_shifts_per_app[app_id],
-                actor_plan_period_id=app_id
-            )
-            max_fair_shifts_per_app_command = max_fair_shifts_per_app.Create(max_fair_shifts_per_app_create)
-            self.controller.execute(max_fair_shifts_per_app_command)
-
-        self.finished.emit(self._created_plan_ids)
-
-    def get_saved_plan_period_names(self) -> set[str]:
-        return set(db_services.Plan.get_all_from__team(self.team_id, True, True).keys())
 
 
 class DlgCalculate(QDialog):
@@ -198,18 +123,14 @@ class DlgCalculate(QDialog):
         )
         self.progress_dialog_solver.show()
 
-        # Create the solver thread
-        self.solver_thread = SolverThread(
-            self, self.curr_plan_period_id, self.spin_num_plans.value(),
+        self.worker = general_worker.WorkerCalculatePlan(
+            solver_main.solve, self.curr_plan_period_id, self.spin_num_plans.value(),
             self.spin_time_calculate_max_shifts.value(),
             self.spin_time_calculate_fair_distribution.value() // self.num_actor_plan_periods,
             self.spin_time_calculate_plan.value(),
         )
-        self.solver_thread.finished.connect(
-            self.save_plan_to_db, Qt.ConnectionType.QueuedConnection)
-
-        # Start the solver thread
-        self.solver_thread.start()
+        self.worker.signals.finished.connect(self._save_plan_to_db, Qt.ConnectionType.QueuedConnection)
+        QThreadPool.globalInstance().start(self.worker)
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)
@@ -243,7 +164,7 @@ class DlgCalculate(QDialog):
         self.spin_time_calculate_fair_distribution.setValue(self.num_actor_plan_periods * 50)
 
     @Slot(object, object, object, object, object)
-    def save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
+    def _save_plan_to_db(self, schedule_versions: list[list[schemas.AppointmentCreate]] | None,
                         fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None,
                         skill_conflicts: dict[str, int] | None,
                         max_shifts_per_app: dict[UUID, int] | None,
@@ -314,14 +235,13 @@ class DlgCalculate(QDialog):
             signal_handling.handler_solver.cancel_solving
         )
         self.plans_save_progress_bar.show()
-        save_thread = SaveThread(
-            self, self.curr_plan_period_id, self.team_id,
+        self.worker = general_worker.WorkerSavePlans(
+            data_processing.save_schedule_versions_to_db, self.curr_plan_period_id, self.team_id,
             schedule_versions, max_shifts_per_app, fair_shifts_per_app,
             nr_versions_to_use, self.controller
         )
-        save_thread.finished.connect(
-            self._collect_plan_ids, Qt.ConnectionType.QueuedConnection)
-        save_thread.start()
+        self.worker.signals.finished.connect(self._collect_plan_ids, Qt.ConnectionType.QueuedConnection)
+        QThreadPool.globalInstance().start(self.worker)
 
     @Slot(list)
     def _collect_plan_ids(self, plan_ids: list[UUID]):
@@ -334,3 +254,8 @@ class DlgCalculate(QDialog):
 
     def get_created_plan_ids(self):
         return self._created_plan_ids
+
+    def reject(self):
+        if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
+            self.progress_dialog_solver.close()
+        super().reject()

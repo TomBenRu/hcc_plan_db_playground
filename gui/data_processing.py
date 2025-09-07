@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QWidget, QMessageBox
 import gui.data_models.schemas
 from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands, appointment_commands, plan_commands, \
-    event_group_commands
+    event_group_commands, max_fair_shifts_per_app
 from database import schemas, db_services
 from gui import frm_event_planing_rules
 from gui.observer import signal_handling
@@ -255,3 +255,34 @@ class LocationPlanPeriodData:
             command = event_group_commands.SetNewParent(event.event_group.id, event_group.id)
             self.controller.execute(command)
 
+
+def save_schedule_versions_to_db(plan_period_id: UUID, team_id: UUID, schedule_versions: list[list[schemas.AppointmentCreate]],
+                                max_shifts_per_app: dict[UUID, int], fair_shifts_per_app: dict[UUID, float],
+                                nr_versions_to_use: int, controller: command_base_classes.ContrExecUndoRedo) -> list[UUID]:
+    plan_period = db_services.PlanPeriod.get(plan_period_id)
+    saved_plan_names = set(db_services.Plan.get_all_from__team(team_id, True, True).keys())
+    plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
+    new_first_plan_index = 1
+    created_plan_ids = []
+    for version in schedule_versions[:nr_versions_to_use]:
+        while f'{plan_base_name} ({new_first_plan_index:0>2})' in saved_plan_names:
+            new_first_plan_index += 1
+        version: list[schemas.AppointmentCreate]
+        name_plan = f'{plan_base_name} ({new_first_plan_index:0>2})'
+        new_first_plan_index += 1
+
+        plan_create_command = plan_commands.Create(plan_period_id, name_plan)
+        controller.execute(plan_create_command)
+        created_plan_ids.append(plan_create_command.plan.id)
+        for appointment in version:
+            controller.execute(
+                appointment_commands.Create(appointment, created_plan_ids[-1]))
+    for app_id in max_shifts_per_app:
+        max_fair_shifts_per_app_create = schemas.MaxFairShiftsOfAppCreate(
+            max_shifts=max_shifts_per_app[app_id],
+            fair_shifts=fair_shifts_per_app[app_id],
+            actor_plan_period_id=app_id
+        )
+        max_fair_shifts_per_app_command = max_fair_shifts_per_app.Create(max_fair_shifts_per_app_create)
+        controller.execute(max_fair_shifts_per_app_command)
+    return created_plan_ids

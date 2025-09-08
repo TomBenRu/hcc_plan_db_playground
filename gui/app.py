@@ -17,11 +17,43 @@ from tools.logging.logging_config import setup_crash_investigation_logging
 
 import faulthandler
 
-# faulthandler.enable()
+def is_development_environment() -> bool:
+    """
+    Erkennt, ob das Programm in der Entwicklungsumgebung läuft.
+    
+    Returns:
+        True wenn Entwicklungsumgebung (normales Python), 
+        False wenn PyInstaller-Executable (onefile oder onedir)
+    """
+    # PyInstaller setzt sys.frozen auf True (sowohl bei onefile als auch onedir)
+    is_frozen = getattr(sys, 'frozen', False)
+    
+    # In Entwicklungsumgebung: frozen=False
+    # Bei PyInstaller (onefile/onedir): frozen=True
+    return not is_frozen
+
 
 # Initialize comprehensive logging system early
 if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
     os.makedirs(log_path)
+
+# Faulthandler mit File-Parameter aktivieren (umgeht PyInstaller sys.stderr Problem)
+if is_development_environment():
+    crash_log_path = os.path.join(log_path, 'crash-development.log')
+    print("🔧 Entwicklungsumgebung erkannt - Faulthandler wird konfiguriert")
+else:
+    crash_log_path = os.path.join(log_path, 'crash-production.log')
+    print("📦 PyInstaller-Executable erkannt - Faulthandler wird konfiguriert")
+
+try:
+    # File-Handle für Crash-Logs (muss offen bleiben!)
+    crash_log_file = open(crash_log_path, 'a', encoding='utf-8')
+    faulthandler.enable(file=crash_log_file, all_threads=True)
+    print(f"✅ Faulthandler aktiviert (alle Threads) - Crash-Logs: {crash_log_path}")
+except Exception as e:
+    print(f"⚠️ Faulthandler konnte nicht aktiviert werden: {e}")
+    # App läuft trotzdem weiter
+
 
 log_file_path = os.path.join(log_path, 'hcc-dispo.log')
 

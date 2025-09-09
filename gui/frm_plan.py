@@ -735,7 +735,13 @@ class FrmTabPlan(QWidget):
         self.resize_signal.emit()
     
     def _setup_side_menu(self):
-        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
+        self.side_menu = side_menu.SlideInMenu(self,
+                                               250,
+                                               10,
+                                               'right',
+                                               (20, 30, 0, 20),
+                                               (130, 205, 203, 100),
+                                               True)
         self.chk_permanent_plan_check = QCheckBox(self.tr('Background Verification'))
         self.chk_permanent_plan_check.setToolTip(self.tr('Verification of errors for each cast change.'))
         self.chk_permanent_plan_check.setChecked(True)
@@ -758,7 +764,13 @@ class FrmTabPlan(QWidget):
         self.side_menu.add_button(self.bt_refresh)
 
     def _setup_bottom_menu(self):
-        self.bottom_menu = side_menu.SlideInMenu(self, 215, 10, 'bottom', (20, 10, 20, 5))
+        self.bottom_menu = side_menu.SlideInMenu(self,
+                                                 215,
+                                                 10,
+                                                 'bottom',
+                                                 (20, 10, 20, 5),
+                                                 (130, 205, 203, 100),
+                                                 True)
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
 

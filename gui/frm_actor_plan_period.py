@@ -818,7 +818,13 @@ class FrmTabActorPlanPeriods(QWidget):
         self.layout_notes_actor.addWidget(self.lb_notes_actor)
         self.layout_notes_actor.addWidget(self.te_notes_actor)
 
-        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
+        self.side_menu = side_menu.SlideInMenu(self,
+                                               250,
+                                               10,
+                                               'right',
+                                               (20, 30, 0, 20),
+                                               (130, 205, 203, 100),
+                                               True)
 
         # Help-System Integration
         setup_form_help(self, "actor_plan_period", add_help_button=True)

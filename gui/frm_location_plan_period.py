@@ -767,7 +767,13 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.layout.addWidget(self.bt_cast_groups_plan_period)
 
-        self.side_menu = side_menu.SlideInMenu(self, 250, 10, 'right')
+        self.side_menu = side_menu.SlideInMenu(self,
+                                               250,
+                                               10,
+                                               'right',
+                                               (20, 30, 0, 20),
+                                               (130, 205, 203, 100),
+                                               True)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

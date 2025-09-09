@@ -245,9 +245,11 @@ class SlideInMenu(QWidget):
         """Handle resizing of the parent widget."""
         self.set_positions()
         if self.align in ['left', 'right']:
-            self.setGeometry(self.pos_hide, 0, self.menu_size, self.parent.height())
+            self.setGeometry(self.pos_show if self.stay_open else self.pos_hide, 0,
+                             self.menu_size, self.parent.height())
         else:
-            self.setGeometry(0, self.pos_hide, self.parent.width(), self.menu_size)
+            self.setGeometry(0, self.pos_show if self.stay_open else self.pos_hide,
+                             self.parent.width(), self.menu_size)
             if len(self.widgets_of_container) == 1 and isinstance(self.widgets_of_container[0], QTableWidget):
                 self._adjust_container_size()
         

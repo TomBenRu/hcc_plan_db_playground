@@ -35,6 +35,20 @@ class Delete(Command):
         db_services.Plan.delete(self.plan_id)
 
 
+class Undelete(Command):
+    def __init__(self, plan_id: UUID):
+        self.plan_id = plan_id
+
+    def execute(self):
+        db_services.Plan.undelete(self.plan_id)
+
+    def undo(self):
+        db_services.Plan.delete(self.plan_id)
+
+    def redo(self):
+        db_services.Plan.undelete(self.plan_id)
+
+
 class DeletePrepDeleted(Command):
     def __init__(self, plan_id: UUID):
         self.plan_id = plan_id

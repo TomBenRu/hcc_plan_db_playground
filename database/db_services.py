@@ -2752,10 +2752,16 @@ class Plan:
 
     @classmethod
     @db_session
-    def get(cls, plan_id: UUID) -> schemas.PlanShow:
+    def get(cls, plan_id: UUID, small: bool = False) -> schemas.PlanShow | schemas.Plan:
+        """
+        Wenn small == True:
+        schemas.Plan wird zurückgegeben.
+        Wenn small == False:
+        schemas.PlanShow wird zurückgegeben.
+        """
         plan_db = models.Plan.get(id=plan_id)
 
-        return schemas.PlanShow.model_validate(plan_db)
+        return schemas.Plan.model_validate(plan_db) if small else schemas.PlanShow.model_validate(plan_db)
 
     @classmethod
     @db_session

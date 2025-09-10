@@ -44,6 +44,7 @@ from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_select import DlgProjectSelect
 from .frm_project_settings import DlgSettingsProject
 from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
+from .frm_undelete_plans import DlgUndeletePlans
 from .observer import signal_handling
 from .tab_manager import TabManager
 from .cache.main_window_integration import TabCacheIntegration
@@ -175,6 +176,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, None, self.tr('Permanently Delete Current Team\'s Plans...'),
                               self.tr('The marked plans of the current team will be permanently deleted'),
                               self.plans_of_team_delete_prep_deletes),
+            MenuToolbarAction(self, None, self.tr('Undelete plans...'),
+                              self.tr('Undelete plans of the current team.'),
+                              self.undelete_plans),
             MenuToolbarAction(self, None, self.tr('Events from Plan to Events Mask...'),
                               self.tr('Transfer appointments from active plan to facilities planning mask.'),
                               self.apply_events__plan_to_mask),
@@ -276,6 +280,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.tr('&Schedule'): [self.actions['calculate_plans'], self.actions['plan_infos'],
                                    self.actions['plan_excel_configs'], None,
                                    self.actions['open_plan'], self.actions['plan_save'],
+                                   self.actions['undelete_plans'],
                                    self.actions['plans_of_team_delete_prep_deletes'], None,
                                    self.actions['apply_events__plan_to_mask']
                                    ],
@@ -543,6 +548,24 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def delete_plan(self, index: int):
         """Delegiert Plan-Löschung an TabManager"""
         self.tab_manager.delete_plan_tab(index)
+
+    def undelete_plans(self):
+        """Minimal angepasst: Nutzt TabManager Properties"""
+        if not self.curr_team:
+            QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst ein Team auswählen.')
+            return
+
+        num_plans_to_undelete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))
+        if not num_plans_to_undelete:
+            QMessageBox.information(self, 'Pläne wiederherstellen',
+                                    f'Es gibt keine Pläne des Teams "{self.curr_team.name}, '
+                                    f'die zum Löschen markiert sind.')
+            return
+
+        dlg = DlgUndeletePlans(self, self.curr_team.id)
+        if dlg.exec():
+            for plan_id in dlg.get_selected_plan_ids():
+                self.controller.execute(plan_commands.Undelete(plan_id))
 
     def plans_of_team_delete_prep_deletes(self):
         num_plans_to_delete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))

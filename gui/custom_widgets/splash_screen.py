@@ -11,6 +11,9 @@ class SplashScreen(QSplashScreen):
         
         # Splash Screen immer on top anzeigen
         # self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        # funktioniert nicht, da der SplashScreen sonst den Projekt-Auswahl-Dialog überdeckt
+        # Daher statt dessen: splash_screen.raise_() nach MainWindow-Erstellung
+        # in gui.app_initialization.initialize_application_with_progress
         
         # Font-Setup für professionellen Look
         font = self.font()

@@ -58,6 +58,7 @@ class DlgUndeletePlans(QDialog):
         self._setup_plans_table()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box.button(QDialogButtonBox.StandardButton.Ok).setText(self.tr("Undelete"))
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout_foot.addWidget(self.button_box)
@@ -75,7 +76,7 @@ class DlgUndeletePlans(QDialog):
         self.table_plans.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.layout_body.addWidget(self.table_plans)
         self.table_plans.itemSelectionChanged.connect(self._on_selection_changed)
-        self.lb_selected_count = QLabel(self.tr("Selected: 0"))
+        self.lb_selected_count = QLabel()
         self.layout_body.addWidget(self.lb_selected_count)
 
     def _fill_in_plans_table(self):
@@ -96,9 +97,15 @@ class DlgUndeletePlans(QDialog):
             self.table_plans.setItem(row, 1, item_date_start)
             self.table_plans.setItem(row, 2, item_date_end)
             self.table_plans.setItem(row, 3, item_date_deleted)
+        # Sort by deleted date
+        self.table_plans.sortItems(3, Qt.SortOrder.DescendingOrder)
+        self._on_selection_changed()
 
     def _on_selection_changed(self):
-        self.lb_selected_count.setText(self.tr("Selected: {}").format(len(self.get_selected_plan_ids())))
+        self.lb_selected_count.setText(self.tr("Selected: {selected} of {total}").format(
+            selected=len(self.get_selected_plan_ids()),
+            total=self.table_plans.rowCount()
+        ))
 
     def _adjust_dialog_width_to_table(self):
         # Calculate the total width of the table

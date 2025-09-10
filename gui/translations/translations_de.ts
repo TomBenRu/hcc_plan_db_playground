@@ -6357,7 +6357,8 @@ Planungsmaske für %s öffnen</translation>
         <location filename="../main_window.py" line="583"/>
         <source>Are you sure you want to permanently delete all {num_plans_to_delete} plans marked for deletion from team &quot;{team_name}&quot;?
 This action cannot be undone.</source>
-        <translation>Sollen wirklich alle {num_plans_to_delete} zum Löschen markierten Pläne des Teams &quot;{team_name}&quot; endgültig gelöscht werden?\nDieser Vorgang kann nicht rückgängig gemacht werden.</translation>
+        <translation>Sollen wirklich alle {num_plans_to_delete} zum Löschen markierten Pläne des Teams &quot;{team_name}&quot; endgültig gelöscht werden?
+Dieser Vorgang kann nicht rückgängig gemacht werden.</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="843"/>

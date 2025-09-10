@@ -552,14 +552,14 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def undelete_plans(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
         if not self.curr_team:
-            QMessageBox.critical(self, 'Aktuelles Team', 'Sie müssen zuerst ein Team auswählen.')
+            QMessageBox.critical(self, self.tr('Current team'), self.tr('You first have to select a team.'))
             return
 
         num_plans_to_undelete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))
         if not num_plans_to_undelete:
-            QMessageBox.information(self, 'Pläne wiederherstellen',
-                                    f'Es gibt keine Pläne des Teams "{self.curr_team.name}, '
-                                    f'die zum Löschen markiert sind.')
+            QMessageBox.information(self, self.tr('Restore plans'),
+                                    self.tr('There are no plans of the team "{team_name}" '
+                                            'that are marked for deletion.').format(team_name=self.curr_team.name))
             return
 
         dlg = DlgUndeletePlans(self, self.curr_team.id)
@@ -570,15 +570,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def plans_of_team_delete_prep_deletes(self):
         num_plans_to_delete = len(db_services.Plan.get_prep_deleted_from__team(self.curr_team.id))
         if not num_plans_to_delete:
-            QMessageBox.information(self, 'Pläne löschen',
-                                    f'Es gibt keine Pläne des Teams "{self.curr_team.name}, '
-                                    f'die zum Löschen markiert sind.')
+            QMessageBox.information(self, self.tr('Delete plans'),  # Pläne löschen
+                                    self.tr('There are no plans of the team "{team_name}" '
+                                            'that are marked for deletion.').format(team_name=self.curr_team.name))
             return
 
-        confirmation = QMessageBox.warning(self, 'Pläne endgültig löschen',
-                                           f'Sollen wirklich alle {num_plans_to_delete} zum Löschen markierte Pläne '
-                                           f'des Teams "{self.curr_team.name}" endgültig gelöscht werden?\n'
-                                           f'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+        confirmation = QMessageBox.warning(
+            self,
+            self.tr('Plans permanently delete'),  # Pläne endgültig löschen
+            self.tr('Are you sure you want to permanently delete all {num_plans_to_delete} plans marked for '
+                    'deletion from team "{team_name}"?\nThis action cannot be undone.')
+            .format(num_plans_to_delete=num_plans_to_delete, team_name=self.curr_team.name),  #
                                            QMessageBox.Yes, QMessageBox.Cancel)
         if confirmation == QMessageBox.Yes:
             db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)

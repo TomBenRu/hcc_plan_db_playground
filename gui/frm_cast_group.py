@@ -421,11 +421,11 @@ class TreeWidget(QTreeWidget):
         menu = QMenu(self)
 
         # Action: In neue Gruppe verschieben
-        action_new_group = menu.addAction(self.tr("In neue Gruppe verschieben"))
+        action_new_group = menu.addAction(self.tr("Move into a new group"))
         action_new_group.triggered.connect(lambda: self.move_selected_items_to_new_group(selected_items))
 
         # Submenu: In bestehende Gruppe verschieben
-        submenu_existing = menu.addMenu(self.tr("In bestehende Gruppe verschieben"))
+        submenu_existing = menu.addMenu(self.tr("Move into an existing group"))
         self.populate_existing_groups_menu(submenu_existing, selected_items)
 
         # Menü an der Klickposition anzeigen
@@ -434,7 +434,7 @@ class TreeWidget(QTreeWidget):
     def populate_existing_groups_menu(self, menu: QMenu, selected_items: list[QTreeWidgetItem]):
         """Füllt das Submenu mit verfügbaren Zielgruppen"""
         # Hauptgruppe (Root) als Option
-        action_root = menu.addAction(self.tr("Hauptgruppe"))
+        action_root = menu.addAction(self.tr("Main group"))
         action_root.triggered.connect(lambda: self.move_selected_items_to_group(selected_items, None))
 
         menu.addSeparator()
@@ -452,7 +452,7 @@ class TreeWidget(QTreeWidget):
             if not event_object and child not in selected_items:
                 group_nr = child.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
                 if group_nr:
-                    action_text = f"{prefix}Gruppe {group_nr:02d}"
+                    action_text = self.tr("{prefix}group {group_nr:02d}").format(prefix=prefix, group_nr=group_nr)
                     action = menu.addAction(action_text)
                     action.triggered.connect(lambda checked, item=child: self.move_selected_items_to_group(selected_items, item))
 

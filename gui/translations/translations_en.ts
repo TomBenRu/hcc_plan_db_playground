@@ -4,49 +4,49 @@
 <context>
     <name>AppointmentField</name>
     <message>
-        <location filename="../frm_plan.py" line="519"/>
+        <location filename="../frm_plan.py" line="518"/>
         <source>&lt;b&gt;%s on %s:&lt;/b&gt;&lt;br&gt;◦ Click: Change cast.&lt;br&gt;◦ Right-click: More actions.&lt;br&gt;&lt;i&gt;&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="560"/>
+        <location filename="../frm_plan.py" line="559"/>
         <source>Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="561"/>
+        <location filename="../frm_plan.py" line="560"/>
         <source>Cast changes are being tested for errors.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="561"/>
+        <location filename="../frm_plan.py" line="560"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="572"/>
-        <location filename="../frm_plan.py" line="584"/>
+        <location filename="../frm_plan.py" line="571"/>
+        <location filename="../frm_plan.py" line="583"/>
         <source>Cast Change</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="573"/>
+        <location filename="../frm_plan.py" line="572"/>
         <source>The cast change was successfully made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="582"/>
+        <location filename="../frm_plan.py" line="581"/>
         <source>&lt;h3&gt;The cast change cannot be made without conflicts.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s&lt;p&gt;Should the changes be undone?&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="621"/>
+        <location filename="../frm_plan.py" line="620"/>
         <source>On %s (%s)
 an appointment for %s already exists</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="633"/>
+        <location filename="../frm_plan.py" line="632"/>
         <source>On %s (%s)
 an appointment for %s already exists.
 This will be used for the change.
@@ -54,12 +54,12 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="687"/>
+        <location filename="../frm_plan.py" line="686"/>
         <source>Notes changed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="598"/>
+        <location filename="../frm_plan.py" line="597"/>
         <source>Move %s on %s (%s)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -69,23 +69,23 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="605"/>
+        <location filename="../frm_plan.py" line="604"/>
         <source>Notes for %s on %s (%s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="620"/>
-        <location filename="../frm_plan.py" line="630"/>
+        <location filename="../frm_plan.py" line="619"/>
+        <location filename="../frm_plan.py" line="629"/>
         <source>Move appointment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="652"/>
+        <location filename="../frm_plan.py" line="651"/>
         <source>Appointment Notes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="653"/>
+        <location filename="../frm_plan.py" line="652"/>
         <source>The new notes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -859,13 +859,13 @@ Appointment: {date} ({time}) - {location}</source>
 <context>
     <name>DlgAskNrPlansToSave</name>
     <message>
-        <location filename="../frm_calculate_plan.py" line="28"/>
+        <location filename="../frm_calculate_plan.py" line="30"/>
         <source>A total of {count} plans have been calculated.
 How many would you like to use?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="38"/>
+        <location filename="../frm_calculate_plan.py" line="40"/>
         <source>Number of plans:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -906,97 +906,97 @@ the following employees are available.</source>
 <context>
     <name>DlgCalculate</name>
     <message>
-        <location filename="../frm_calculate_plan.py" line="143"/>
+        <location filename="../frm_calculate_plan.py" line="68"/>
         <source>Period and Count</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="144"/>
+        <location filename="../frm_calculate_plan.py" line="69"/>
         <source>Calculation Times (sec)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="159"/>
+        <location filename="../frm_calculate_plan.py" line="84"/>
         <source>Planning Period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="160"/>
+        <location filename="../frm_calculate_plan.py" line="85"/>
         <source>Number of Planning Proposals</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="164"/>
+        <location filename="../frm_calculate_plan.py" line="89"/>
         <source>Max. Time for Preprocessing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="165"/>
+        <location filename="../frm_calculate_plan.py" line="90"/>
         <source>Max. Time for Fair Distribution Calculation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="167"/>
+        <location filename="../frm_calculate_plan.py" line="92"/>
         <source>Max. Time for Plan Calculation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="179"/>
+        <location filename="../frm_calculate_plan.py" line="104"/>
         <source>Period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="180"/>
+        <location filename="../frm_calculate_plan.py" line="105"/>
         <source>Please select a period first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="184"/>
+        <location filename="../frm_calculate_plan.py" line="109"/>
         <source>Create Plans</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="187"/>
+        <location filename="../frm_calculate_plan.py" line="112"/>
         <source>No plans can be created for the period {period}.
 Please select assignments in the locations first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="192"/>
+        <location filename="../frm_calculate_plan.py" line="117"/>
         <source>Calculating Plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="193"/>
+        <location filename="../frm_calculate_plan.py" line="118"/>
         <source>Calculating plans.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="196"/>
-        <location filename="../frm_calculate_plan.py" line="313"/>
+        <location filename="../frm_calculate_plan.py" line="121"/>
+        <location filename="../frm_calculate_plan.py" line="234"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="217"/>
+        <location filename="../frm_calculate_plan.py" line="138"/>
         <source>Schedule Creation {team_name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="221"/>
+        <location filename="../frm_calculate_plan.py" line="142"/>
         <source>You can automatically create schedules for team {team_name}
 for a selected planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="254"/>
-        <location filename="../frm_calculate_plan.py" line="275"/>
-        <location filename="../frm_calculate_plan.py" line="291"/>
+        <location filename="../frm_calculate_plan.py" line="175"/>
+        <location filename="../frm_calculate_plan.py" line="196"/>
+        <location filename="../frm_calculate_plan.py" line="212"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="258"/>
+        <location filename="../frm_calculate_plan.py" line="179"/>
         <source>No solutions were found.
 This could be due to early termination,
 or the time limits for plan creation were too low,
@@ -1004,35 +1004,35 @@ or the planning requirements were contradictory.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="266"/>
+        <location filename="../frm_calculate_plan.py" line="187"/>
         <source>  - {date} ({time_of_day}) {location}:
       - Fixed cast: {fixed_cast}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="276"/>
+        <location filename="../frm_calculate_plan.py" line="197"/>
         <source>{count} fixed cast conflicts found.
 {conflicts}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="286"/>
+        <location filename="../frm_calculate_plan.py" line="207"/>
         <source>  - {skill}: {count}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="292"/>
+        <location filename="../frm_calculate_plan.py" line="213"/>
         <source>{count} skill conflicts found.
 {conflicts}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="311"/>
+        <location filename="../frm_calculate_plan.py" line="232"/>
         <source>Save Plans</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_calculate_plan.py" line="312"/>
+        <location filename="../frm_calculate_plan.py" line="233"/>
         <source>In Progress...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1948,147 +1948,170 @@ This will be copied to linked appointments in the schedules.
 <context>
     <name>DlgEventPlanningRules</name>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="140"/>
+        <location filename="../frm_event_planing_rules.py" line="189"/>
         <source>Event Planning Rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="179"/>
+        <location filename="../frm_event_planing_rules.py" line="248"/>
         <source>Rules for events on the same day:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="241"/>
+        <location filename="../frm_event_planing_rules.py" line="331"/>
         <source>Start: Weekday, which one</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="234"/>
+        <location filename="../frm_event_planing_rules.py" line="319"/>
         <source>First Day</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="184"/>
+        <location filename="../frm_event_planing_rules.py" line="253"/>
         <source>New Day Rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="190"/>
+        <location filename="../frm_event_planing_rules.py" line="261"/>
         <source>Same day selection for all rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="195"/>
+        <location filename="../frm_event_planing_rules.py" line="266"/>
         <source>When this option is enabled,
 the events defined by the rules will be grouped
 so that they are created on the same days.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="200"/>
+        <location filename="../frm_event_planing_rules.py" line="273"/>
         <source>New Rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="202"/>
+        <location filename="../frm_event_planing_rules.py" line="275"/>
         <source>Reset Rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="204"/>
+        <location filename="../frm_event_planing_rules.py" line="277"/>
         <source>Delete all rules and restore with default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="205"/>
+        <location filename="../frm_event_planing_rules.py" line="278"/>
         <source>Save Rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="207"/>
+        <location filename="../frm_event_planing_rules.py" line="280"/>
         <source>Save rules for later use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="235"/>
+        <location filename="../frm_event_planing_rules.py" line="320"/>
         <source>Time of Day</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="236"/>
+        <location filename="../frm_event_planing_rules.py" line="321"/>
         <source>Interval</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="237"/>
+        <location filename="../frm_event_planing_rules.py" line="322"/>
         <source>Repetitions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="238"/>
+        <location filename="../frm_event_planing_rules.py" line="323"/>
         <source>Possible Count</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="255"/>
+        <location filename="../frm_event_planing_rules.py" line="327"/>
+        <source>Could not load location plan period: {error}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="345"/>
         <source>Here you can define how to plan the events for&lt;br&gt;&lt;b&gt;&quot;{location}&quot;&lt;/b&gt; in the period &lt;b&gt;{start_date}-{end_date}&lt;/b&gt;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="267"/>
+        <location filename="../frm_event_planing_rules.py" line="364"/>
         <source>&lt;br&gt;Rules were loaded from a previously stored configuration.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="320"/>
-        <location filename="../frm_event_planing_rules.py" line="330"/>
+        <location filename="../frm_event_planing_rules.py" line="326"/>
+        <location filename="../frm_event_planing_rules.py" line="472"/>
+        <location filename="../frm_event_planing_rules.py" line="482"/>
+        <location filename="../frm_event_planing_rules.py" line="697"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="322"/>
-        <location filename="../frm_event_planing_rules.py" line="332"/>
+        <location filename="../frm_event_planing_rules.py" line="369"/>
+        <location filename="../frm_event_planing_rules.py" line="502"/>
+        <source>Warning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="370"/>
+        <source>Could not load time of day data: {error}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="474"/>
+        <location filename="../frm_event_planing_rules.py" line="484"/>
         <source>The time of day &quot;{old_time}&quot; stored in the rules is not available.
 It has been replaced with the time of day &quot;{new_time}&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="404"/>
+        <location filename="../frm_event_planing_rules.py" line="503"/>
+        <source>Could not load saved cast rule: {error}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="621"/>
         <source>Remove rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="448"/>
+        <location filename="../frm_event_planing_rules.py" line="691"/>
         <source>No rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="513"/>
-        <location filename="../frm_event_planing_rules.py" line="539"/>
-        <location filename="../frm_event_planing_rules.py" line="545"/>
-        <location filename="../frm_event_planing_rules.py" line="554"/>
+        <location filename="../frm_event_planing_rules.py" line="698"/>
+        <source>Could not load cast rules: {error}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_event_planing_rules.py" line="748"/>
+        <location filename="../frm_event_planing_rules.py" line="806"/>
+        <location filename="../frm_event_planing_rules.py" line="811"/>
+        <location filename="../frm_event_planing_rules.py" line="820"/>
         <source>Planning Rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="514"/>
+        <location filename="../frm_event_planing_rules.py" line="749"/>
         <source>Planning rules for &quot;{location}&quot; have been saved for later use.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="540"/>
-        <source>Events with the same time of day cannot be created twice on the same day.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_event_planing_rules.py" line="548"/>
+        <location filename="../frm_event_planing_rules.py" line="814"/>
         <source>There are already events in this planning period.
 If you continue, all existing events will be deleted and new events will be created.
 Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="556"/>
+        <location filename="../frm_event_planing_rules.py" line="822"/>
         <source>The newly created events will not be added to the existing plans of the planning period from {start_date} to {end_date}.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2119,7 +2142,7 @@ Do you want to continue?</source>
 <context>
     <name>DlgFirstDay</name>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="110"/>
+        <location filename="../frm_event_planing_rules.py" line="135"/>
         <source>Day of first Event</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4163,6 +4186,49 @@ Team: {team}</source>
     </message>
 </context>
 <context>
+    <name>DlgUndeletePlans</name>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="44"/>
+        <source>Undelete Plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="55"/>
+        <source>Select the plans you want to undelete:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="61"/>
+        <source>Undelete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="68"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="68"/>
+        <source>Start</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="68"/>
+        <source>End</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="69"/>
+        <source>Deleted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_undelete_plans.py" line="105"/>
+        <source>Selected: {selected} of {total}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>EditMemberEmailDialog</name>
     <message>
         <location filename="../frm_create_google_calendar.py" line="625"/>
@@ -4297,37 +4363,37 @@ The database email remains unchanged.</source>
 <context>
     <name>FirstDayFromWeekday</name>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <location filename="../frm_event_planing_rules.py" line="47"/>
         <source>Monday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <location filename="../frm_event_planing_rules.py" line="47"/>
         <source>Tuesday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="33"/>
+        <location filename="../frm_event_planing_rules.py" line="47"/>
         <source>Wednesday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <location filename="../frm_event_planing_rules.py" line="48"/>
         <source>Thursday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <location filename="../frm_event_planing_rules.py" line="48"/>
         <source>Friday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="34"/>
+        <location filename="../frm_event_planing_rules.py" line="48"/>
         <source>Saturday</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_event_planing_rules.py" line="36"/>
+        <location filename="../frm_event_planing_rules.py" line="50"/>
         <source>Sunday</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4335,383 +4401,383 @@ The database email remains unchanged.</source>
 <context>
     <name>FrmActorPlanPeriod</name>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="968"/>
+        <location filename="../frm_actor_plan_period.py" line="974"/>
         <source>Mon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="969"/>
+        <location filename="../frm_actor_plan_period.py" line="975"/>
         <source>Tue</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="970"/>
+        <location filename="../frm_actor_plan_period.py" line="976"/>
         <source>Wed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="971"/>
+        <location filename="../frm_actor_plan_period.py" line="977"/>
         <source>Thu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="972"/>
+        <location filename="../frm_actor_plan_period.py" line="978"/>
         <source>Fri</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="973"/>
+        <location filename="../frm_actor_plan_period.py" line="979"/>
         <source>Sat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="975"/>
+        <location filename="../frm_actor_plan_period.py" line="981"/>
         <source>Sun</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="975"/>
+        <location filename="../frm_actor_plan_period.py" line="981"/>
         <source>January</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="976"/>
+        <location filename="../frm_actor_plan_period.py" line="982"/>
         <source>February</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="977"/>
+        <location filename="../frm_actor_plan_period.py" line="983"/>
         <source>March</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="978"/>
+        <location filename="../frm_actor_plan_period.py" line="984"/>
         <source>April</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="979"/>
+        <location filename="../frm_actor_plan_period.py" line="985"/>
         <source>May</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="980"/>
+        <location filename="../frm_actor_plan_period.py" line="986"/>
         <source>June</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="981"/>
+        <location filename="../frm_actor_plan_period.py" line="987"/>
         <source>July</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="982"/>
+        <location filename="../frm_actor_plan_period.py" line="988"/>
         <source>August</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="983"/>
+        <location filename="../frm_actor_plan_period.py" line="989"/>
         <source>September</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="984"/>
+        <location filename="../frm_actor_plan_period.py" line="990"/>
         <source>October</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="985"/>
+        <location filename="../frm_actor_plan_period.py" line="991"/>
         <source>November</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="988"/>
+        <location filename="../frm_actor_plan_period.py" line="994"/>
         <source>December</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1000"/>
+        <location filename="../frm_actor_plan_period.py" line="1006"/>
         <source>Times of Day...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1002"/>
+        <location filename="../frm_actor_plan_period.py" line="1008"/>
         <source>Reset Time Input Field</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1004"/>
-        <location filename="../frm_actor_plan_period.py" line="1344"/>
+        <location filename="../frm_actor_plan_period.py" line="1010"/>
+        <location filename="../frm_actor_plan_period.py" line="1350"/>
         <source>Location Combinations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1006"/>
-        <location filename="../frm_actor_plan_period.py" line="1422"/>
+        <location filename="../frm_actor_plan_period.py" line="1012"/>
+        <location filename="../frm_actor_plan_period.py" line="1428"/>
         <source>Location Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1008"/>
+        <location filename="../frm_actor_plan_period.py" line="1014"/>
         <source>Partner/Location Prefs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1010"/>
-        <location filename="../frm_actor_plan_period.py" line="1012"/>
+        <location filename="../frm_actor_plan_period.py" line="1016"/>
+        <location filename="../frm_actor_plan_period.py" line="1018"/>
         <source>Fetch Availabilities from API</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1017"/>
+        <location filename="../frm_actor_plan_period.py" line="1023"/>
         <source>Fetch for this employee</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1023"/>
+        <location filename="../frm_actor_plan_period.py" line="1029"/>
         <source>Fetch for all employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1066"/>
+        <location filename="../frm_actor_plan_period.py" line="1072"/>
         <source>Location Combinations -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1069"/>
+        <location filename="../frm_actor_plan_period.py" line="1075"/>
         <source>Reset location combinations for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1072"/>
+        <location filename="../frm_actor_plan_period.py" line="1078"/>
         <source>Location Prefs -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1074"/>
+        <location filename="../frm_actor_plan_period.py" line="1080"/>
         <source>Reset location preferences for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1078"/>
+        <location filename="../frm_actor_plan_period.py" line="1084"/>
         <source>Partner/Location Prefs -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1081"/>
+        <location filename="../frm_actor_plan_period.py" line="1087"/>
         <source>Reset partner/location preferences for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1084"/>
+        <location filename="../frm_actor_plan_period.py" line="1090"/>
         <source>Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1085"/>
+        <location filename="../frm_actor_plan_period.py" line="1091"/>
         <source>Edit skills for all availabilities in this period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1094"/>
+        <location filename="../frm_actor_plan_period.py" line="1100"/>
         <source>Remove Skill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1095"/>
+        <location filename="../frm_actor_plan_period.py" line="1101"/>
         <source>Remove all skills from availabilities in this period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1102"/>
+        <location filename="../frm_actor_plan_period.py" line="1108"/>
         <source>Reset all skills from availabilities in this period to person defaults</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1594"/>
+        <location filename="../frm_actor_plan_period.py" line="1600"/>
         <source>The following error occurred while downloading available days:
 {error}
 The changes for {name} were not applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1617"/>
+        <location filename="../frm_actor_plan_period.py" line="1623"/>
         <source>Available days for all employees were successfully downloaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1101"/>
-        <location filename="../frm_actor_plan_period.py" line="1646"/>
-        <location filename="../frm_actor_plan_period.py" line="1668"/>
+        <location filename="../frm_actor_plan_period.py" line="1107"/>
+        <location filename="../frm_actor_plan_period.py" line="1652"/>
+        <location filename="../frm_actor_plan_period.py" line="1674"/>
         <source>Reset Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1120"/>
+        <location filename="../frm_actor_plan_period.py" line="1126"/>
         <source>Availabilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1122"/>
+        <location filename="../frm_actor_plan_period.py" line="1128"/>
         <source>No default time-of-day values are defined for this planning period of {first} {last}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1160"/>
+        <location filename="../frm_actor_plan_period.py" line="1166"/>
         <source>Switch to Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1216"/>
+        <location filename="../frm_actor_plan_period.py" line="1222"/>
         <source>Availability Groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1219"/>
+        <location filename="../frm_actor_plan_period.py" line="1225"/>
         <source>Deleting this appointment left a group with only one date: {date}
 Please correct this in the following dialog.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1233"/>
-        <location filename="../frm_actor_plan_period.py" line="1238"/>
+        <location filename="../frm_actor_plan_period.py" line="1239"/>
+        <location filename="../frm_actor_plan_period.py" line="1244"/>
         <source>Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1233"/>
+        <location filename="../frm_actor_plan_period.py" line="1239"/>
         <source>All changes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1238"/>
+        <location filename="../frm_actor_plan_period.py" line="1244"/>
         <source>No changes were made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1249"/>
+        <location filename="../frm_actor_plan_period.py" line="1255"/>
         <source>Missing Standards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1250"/>
+        <location filename="../frm_actor_plan_period.py" line="1256"/>
         <source>Error:
 Cannot display available times.
 You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standards.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1270"/>
+        <location filename="../frm_actor_plan_period.py" line="1276"/>
         <source>Requested assignm. (curr.: {count}{required})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1272"/>
+        <location filename="../frm_actor_plan_period.py" line="1278"/>
         <source>, required</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1332"/>
+        <location filename="../frm_actor_plan_period.py" line="1338"/>
         <source>Reset Location Combinations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1335"/>
+        <location filename="../frm_actor_plan_period.py" line="1341"/>
         <source>Do you want to reset all location combinations of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1345"/>
-        <location filename="../frm_actor_plan_period.py" line="1423"/>
-        <location filename="../frm_actor_plan_period.py" line="1468"/>
+        <location filename="../frm_actor_plan_period.py" line="1351"/>
+        <location filename="../frm_actor_plan_period.py" line="1429"/>
+        <location filename="../frm_actor_plan_period.py" line="1474"/>
         <source>No availabilities exist in this planning period for {name}.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1411"/>
+        <location filename="../frm_actor_plan_period.py" line="1417"/>
         <source>Reset Location Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1414"/>
+        <location filename="../frm_actor_plan_period.py" line="1420"/>
         <source>Do you want to reset all location preferences of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1456"/>
+        <location filename="../frm_actor_plan_period.py" line="1462"/>
         <source>Reset Partner Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1459"/>
+        <location filename="../frm_actor_plan_period.py" line="1465"/>
         <source>Do you want to reset all partner preferences of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1467"/>
+        <location filename="../frm_actor_plan_period.py" line="1473"/>
         <source>Partner Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1495"/>
-        <location filename="../frm_actor_plan_period.py" line="1503"/>
-        <location filename="../frm_actor_plan_period.py" line="1524"/>
-        <location filename="../frm_actor_plan_period.py" line="1569"/>
+        <location filename="../frm_actor_plan_period.py" line="1501"/>
+        <location filename="../frm_actor_plan_period.py" line="1509"/>
+        <location filename="../frm_actor_plan_period.py" line="1530"/>
+        <location filename="../frm_actor_plan_period.py" line="1575"/>
         <source>Available Days ({name})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1570"/>
+        <location filename="../frm_actor_plan_period.py" line="1576"/>
         <source>Available days for {name} were successfully downloaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1591"/>
-        <location filename="../frm_actor_plan_period.py" line="1615"/>
+        <location filename="../frm_actor_plan_period.py" line="1597"/>
+        <location filename="../frm_actor_plan_period.py" line="1621"/>
         <source>Available Days</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1496"/>
+        <location filename="../frm_actor_plan_period.py" line="1502"/>
         <source>The following error occurred while downloading available days:
 {error}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1505"/>
+        <location filename="../frm_actor_plan_period.py" line="1511"/>
         <source>No available days found on server for {name} in the period {start} - {end}.
 Do you want to delete all available days from the planning mask?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1526"/>
+        <location filename="../frm_actor_plan_period.py" line="1532"/>
         <source>Available days already exist in the planning mask for {name} in the period {start} - {end}.
 Do you want to delete these available days from the planning mask?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1622"/>
-        <location filename="../frm_actor_plan_period.py" line="1639"/>
+        <location filename="../frm_actor_plan_period.py" line="1628"/>
+        <location filename="../frm_actor_plan_period.py" line="1645"/>
         <source>Remove Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1624"/>
+        <location filename="../frm_actor_plan_period.py" line="1630"/>
         <source>Do you want to remove skills from all availabilities in this planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1641"/>
+        <location filename="../frm_actor_plan_period.py" line="1647"/>
         <source>All skills have been successfully removed from all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1649"/>
+        <location filename="../frm_actor_plan_period.py" line="1655"/>
         <source>Do you want to reset all skills of availabilities in this planning period to the employee&apos;s default values?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1671"/>
+        <location filename="../frm_actor_plan_period.py" line="1677"/>
         <source>All skills have been successfully reset to default values for all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4775,7 +4841,7 @@ Do you want to delete these available days from the planning mask?</source>
     </message>
     <message>
         <location filename="../employee_event/frm_employee_event_main.py" line="242"/>
-        <location filename="../employee_event/frm_employee_event_main.py" line="380"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="372"/>
         <source>Title</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4795,166 +4861,166 @@ Do you want to delete these available days from the planning mask?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="340"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="332"/>
         <source>Events on Selected Date</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="364"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="356"/>
         <source>Select a date to view events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="380"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="372"/>
         <source>Time Span</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="381"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="373"/>
         <source>Category</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="439"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="431"/>
         <source>➕ New Event</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="440"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="432"/>
         <source>✏️ Edit Event</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="441"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="433"/>
         <source>🗑️ Delete Event</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="442"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="434"/>
         <source>📂 Manage Categories</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="500"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="492"/>
         <source>All Teams</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="512"/>
-        <location filename="../employee_event/frm_employee_event_main.py" line="991"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="504"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="985"/>
         <source>All Categories</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="627"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="619"/>
         <source>Loading events...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="634"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="626"/>
         <source>Loaded {count} events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="640"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="632"/>
         <source>Error loading events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="641"/>
-        <location filename="../employee_event/frm_employee_event_main.py" line="953"/>
-        <location filename="../employee_event/frm_employee_event_main.py" line="965"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="633"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="947"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="959"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="642"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="634"/>
         <source>Could not load events: {error}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="658"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="650"/>
         <source>Team: {team_name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="660"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="652"/>
         <source>Team: All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="667"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="659"/>
         <source>Category: {category_name}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="669"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="661"/>
         <source>Category: All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="677"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="669"/>
         <source>Search: &apos;{search_text}&apos;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="684"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="676"/>
         <source>Active filters: {filters} | {count} events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="689"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="681"/>
         <source>No filters | {count} events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="748"/>
-        <location filename="../employee_event/frm_employee_event_main.py" line="830"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="740"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="824"/>
         <source>No category</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="756"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="748"/>
         <source>No teams</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="791"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="785"/>
         <source>{formatted_date} - {count} events</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="810"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="804"/>
         <source>from {start_time}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="814"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="808"/>
         <source>until {end_time}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="819"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="813"/>
         <source>all day</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="911"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="905"/>
         <source>No Selection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="912"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="906"/>
         <source>Please select an event to edit.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="934"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="928"/>
         <source>Delete Event</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="937"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="931"/>
         <source>Are you sure you want to delete the event &apos;{event_title}&apos;?
 
 Date: {event_date}
@@ -4962,22 +5028,22 @@ Time: {start_time} - {end_time}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="954"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="948"/>
         <source>Could not delete event: {error_message}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="956"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="950"/>
         <source>Success</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="957"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="951"/>
         <source>Event &apos;{event_title}&apos; was deleted successfully.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../employee_event/frm_employee_event_main.py" line="966"/>
+        <location filename="../employee_event/frm_employee_event_main.py" line="960"/>
         <source>Unexpected error: {error}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4985,260 +5051,260 @@ Time: {start_time} - {end_time}</source>
 <context>
     <name>FrmLocationPlanPeriod</name>
     <message>
-        <location filename="../frm_location_plan_period.py" line="912"/>
+        <location filename="../frm_location_plan_period.py" line="918"/>
         <source>Mon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="912"/>
+        <location filename="../frm_location_plan_period.py" line="918"/>
         <source>Tue</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="912"/>
+        <location filename="../frm_location_plan_period.py" line="918"/>
         <source>Wed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="912"/>
+        <location filename="../frm_location_plan_period.py" line="918"/>
         <source>Thu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="913"/>
+        <location filename="../frm_location_plan_period.py" line="919"/>
         <source>Fri</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="913"/>
+        <location filename="../frm_location_plan_period.py" line="919"/>
         <source>Sat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="914"/>
+        <location filename="../frm_location_plan_period.py" line="920"/>
         <source>Sun</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="914"/>
+        <location filename="../frm_location_plan_period.py" line="920"/>
         <source>January</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="914"/>
+        <location filename="../frm_location_plan_period.py" line="920"/>
         <source>February</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="914"/>
+        <location filename="../frm_location_plan_period.py" line="920"/>
         <source>March</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="914"/>
+        <location filename="../frm_location_plan_period.py" line="920"/>
         <source>April</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="915"/>
+        <location filename="../frm_location_plan_period.py" line="921"/>
         <source>May</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="915"/>
+        <location filename="../frm_location_plan_period.py" line="921"/>
         <source>June</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="915"/>
+        <location filename="../frm_location_plan_period.py" line="921"/>
         <source>July</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="915"/>
+        <location filename="../frm_location_plan_period.py" line="921"/>
         <source>August</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="916"/>
+        <location filename="../frm_location_plan_period.py" line="922"/>
         <source>September</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="916"/>
+        <location filename="../frm_location_plan_period.py" line="922"/>
         <source>October</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="916"/>
+        <location filename="../frm_location_plan_period.py" line="922"/>
         <source>November</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="919"/>
+        <location filename="../frm_location_plan_period.py" line="925"/>
         <source>December</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="928"/>
+        <location filename="../frm_location_plan_period.py" line="934"/>
         <source>Cast Size</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="931"/>
+        <location filename="../frm_location_plan_period.py" line="937"/>
         <source>Set Events According to Rules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="935"/>
+        <location filename="../frm_location_plan_period.py" line="941"/>
         <source>Times of Day...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="938"/>
+        <location filename="../frm_location_plan_period.py" line="944"/>
         <source>Reset Time of Day Input Field</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="942"/>
+        <location filename="../frm_location_plan_period.py" line="948"/>
         <source>Fixed Cast</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="986"/>
+        <location filename="../frm_location_plan_period.py" line="992"/>
         <source>Cast -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="989"/>
+        <location filename="../frm_location_plan_period.py" line="995"/>
         <source>Reset fixed cast for all availabilities in this period to the standard values of the planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="992"/>
+        <location filename="../frm_location_plan_period.py" line="998"/>
         <source>Notes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="995"/>
+        <location filename="../frm_location_plan_period.py" line="1001"/>
         <source>Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="996"/>
+        <location filename="../frm_location_plan_period.py" line="1002"/>
         <source>Edit skills for all availabilities in this period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1003"/>
-        <location filename="../frm_location_plan_period.py" line="1203"/>
-        <location filename="../frm_location_plan_period.py" line="1222"/>
+        <location filename="../frm_location_plan_period.py" line="1009"/>
+        <location filename="../frm_location_plan_period.py" line="1209"/>
+        <location filename="../frm_location_plan_period.py" line="1228"/>
         <source>Remove Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1004"/>
+        <location filename="../frm_location_plan_period.py" line="1010"/>
         <source>Remove all skills from events in this period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1010"/>
-        <location filename="../frm_location_plan_period.py" line="1229"/>
-        <location filename="../frm_location_plan_period.py" line="1252"/>
+        <location filename="../frm_location_plan_period.py" line="1016"/>
+        <location filename="../frm_location_plan_period.py" line="1235"/>
+        <location filename="../frm_location_plan_period.py" line="1258"/>
         <source>Reset Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1011"/>
+        <location filename="../frm_location_plan_period.py" line="1017"/>
         <source>Reset all skills from events in this period to the standard values of the facility.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1032"/>
+        <location filename="../frm_location_plan_period.py" line="1038"/>
         <source>Availabilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1033"/>
+        <location filename="../frm_location_plan_period.py" line="1039"/>
         <source>Error:
 No time of day standards are defined for this planning period of {name} {city}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1076"/>
+        <location filename="../frm_location_plan_period.py" line="1082"/>
         <source>Switch to Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1081"/>
+        <location filename="../frm_location_plan_period.py" line="1087"/>
         <source>Switch to Fixed Cast Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1095"/>
-        <location filename="../frm_location_plan_period.py" line="1100"/>
-        <location filename="../frm_location_plan_period.py" line="1114"/>
-        <location filename="../frm_location_plan_period.py" line="1128"/>
+        <location filename="../frm_location_plan_period.py" line="1101"/>
+        <location filename="../frm_location_plan_period.py" line="1106"/>
+        <location filename="../frm_location_plan_period.py" line="1120"/>
+        <location filename="../frm_location_plan_period.py" line="1134"/>
         <source>Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1095"/>
-        <location filename="../frm_location_plan_period.py" line="1114"/>
+        <location filename="../frm_location_plan_period.py" line="1101"/>
+        <location filename="../frm_location_plan_period.py" line="1120"/>
         <source>All changes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1100"/>
-        <location filename="../frm_location_plan_period.py" line="1128"/>
+        <location filename="../frm_location_plan_period.py" line="1106"/>
+        <location filename="../frm_location_plan_period.py" line="1134"/>
         <source>No changes were made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1138"/>
+        <location filename="../frm_location_plan_period.py" line="1144"/>
         <source>Missing Standards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1139"/>
+        <location filename="../frm_location_plan_period.py" line="1145"/>
         <source>Error:
 Cannot display available times.
 You may have subsequently deleted &quot;{}&quot; from the standards.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1204"/>
+        <location filename="../frm_location_plan_period.py" line="1210"/>
         <source>Do you really want to remove all skills from all events in this planning period of {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1224"/>
+        <location filename="../frm_location_plan_period.py" line="1230"/>
         <source>All skills have been successfully removed from all events.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1230"/>
+        <location filename="../frm_location_plan_period.py" line="1236"/>
         <source>Do you really want to reset all skills of all events in this planning period of {} to the facility&apos;s standard values?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1254"/>
+        <location filename="../frm_location_plan_period.py" line="1260"/>
         <source>All skills have been successfully reset for all events.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1271"/>
-        <location filename="../frm_location_plan_period.py" line="1294"/>
+        <location filename="../frm_location_plan_period.py" line="1277"/>
+        <location filename="../frm_location_plan_period.py" line="1300"/>
         <source>Reset Cast</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1272"/>
+        <location filename="../frm_location_plan_period.py" line="1278"/>
         <source>Do you really want to reset the fixed cast of all events to the cast standard of this planning period of {} {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1296"/>
+        <location filename="../frm_location_plan_period.py" line="1302"/>
         <source>The cast of all events has been successfully reset.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5284,17 +5350,17 @@ You may have subsequently deleted &quot;{}&quot; from the standards.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="788"/>
+        <location filename="../frm_location_plan_period.py" line="794"/>
         <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="789"/>
+        <location filename="../frm_location_plan_period.py" line="795"/>
         <source>City</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="820"/>
+        <location filename="../frm_location_plan_period.py" line="826"/>
         <source>Events: {location_name} {location_city}</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5302,70 +5368,70 @@ You may have subsequently deleted &quot;{}&quot; from the standards.</source>
 <context>
     <name>FrmTabPlan</name>
     <message>
-        <location filename="../frm_plan.py" line="741"/>
+        <location filename="../frm_plan.py" line="745"/>
         <source>Background Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="742"/>
+        <location filename="../frm_plan.py" line="746"/>
         <source>Verification of errors for each cast change.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="746"/>
+        <location filename="../frm_plan.py" line="750"/>
         <source>Verify plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="749"/>
-        <location filename="../frm_plan.py" line="819"/>
+        <location filename="../frm_plan.py" line="753"/>
+        <location filename="../frm_plan.py" line="829"/>
         <source>Update statistics</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="758"/>
+        <location filename="../frm_plan.py" line="762"/>
         <source>Refresh view</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="791"/>
+        <location filename="../frm_plan.py" line="801"/>
         <source>Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="792"/>
+        <location filename="../frm_plan.py" line="802"/>
         <source>Plan is tested for errors.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="792"/>
-        <location filename="../frm_plan.py" line="822"/>
+        <location filename="../frm_plan.py" line="802"/>
+        <location filename="../frm_plan.py" line="832"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="804"/>
         <location filename="../frm_plan.py" line="814"/>
+        <location filename="../frm_plan.py" line="824"/>
         <source>Verification of plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="805"/>
+        <location filename="../frm_plan.py" line="815"/>
         <source>No errors were found in this plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="812"/>
+        <location filename="../frm_plan.py" line="822"/>
         <source>&lt;h3&gt;Conflicts were found in this plan.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="820"/>
+        <location filename="../frm_plan.py" line="830"/>
         <source>The cast statistics are being updated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="915"/>
+        <location filename="../frm_plan.py" line="925"/>
         <source>No remaining action</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5613,603 +5679,650 @@ Open planning mask for %s</source>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../main_window.py" line="98"/>
+        <location filename="../main_window.py" line="101"/>
         <source>Open... (Planning)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="99"/>
+        <location filename="../main_window.py" line="102"/>
         <source>Opens planning data for locations and employees of a specific planning period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="102"/>
+        <location filename="../main_window.py" line="105"/>
         <source>New Planning...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="103"/>
+        <location filename="../main_window.py" line="106"/>
         <source>Creates a new planning.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="105"/>
+        <location filename="../main_window.py" line="108"/>
         <source>Edit Planning...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="106"/>
+        <location filename="../main_window.py" line="109"/>
         <source>Edit or delete an existing planning.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="108"/>
+        <location filename="../main_window.py" line="111"/>
         <source>Project Settings...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="109"/>
+        <location filename="../main_window.py" line="112"/>
         <source>Edit basic project settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="111"/>
+        <location filename="../main_window.py" line="114"/>
         <source>Open... (Plans)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="112"/>
+        <location filename="../main_window.py" line="115"/>
         <source>Opens an existing plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="114"/>
+        <location filename="../main_window.py" line="117"/>
         <source>Save Plan...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="115"/>
+        <location filename="../main_window.py" line="118"/>
         <source>Saves the active plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="118"/>
+        <location filename="../main_window.py" line="121"/>
         <source>Excel Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="119"/>
+        <location filename="../main_window.py" line="122"/>
         <source>Color settings for the exported Excel file...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="122"/>
+        <location filename="../main_window.py" line="125"/>
         <source>Generate Blocked Dates Lists...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="123"/>
+        <location filename="../main_window.py" line="126"/>
         <source>Creates lists where employees can enter their blocked dates.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="126"/>
+        <location filename="../main_window.py" line="129"/>
         <source>Import Data from Online API...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="127"/>
+        <location filename="../main_window.py" line="130"/>
         <source>Import data from API</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="130"/>
+        <location filename="../main_window.py" line="133"/>
         <source>Export Plan to Excel...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="131"/>
+        <location filename="../main_window.py" line="134"/>
         <source>Exports the active plan to an Excel file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="134"/>
+        <location filename="../main_window.py" line="137"/>
         <source>Open Excel Export Folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="135"/>
+        <location filename="../main_window.py" line="138"/>
         <source>Shows current plans and availabilities in Explorer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="138"/>
+        <location filename="../main_window.py" line="141"/>
         <source>Exit Program</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="142"/>
+        <location filename="../main_window.py" line="145"/>
         <source>Master Data...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="143"/>
+        <location filename="../main_window.py" line="146"/>
         <source>Edit master data of employees and work locations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="145"/>
+        <location filename="../main_window.py" line="148"/>
         <source>Show Plans</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="146"/>
+        <location filename="../main_window.py" line="149"/>
         <source>Show Masks</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="148"/>
+        <location filename="../main_window.py" line="151"/>
         <source>Export Availability Overview to Excel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="149"/>
+        <location filename="../main_window.py" line="152"/>
         <source>Exports an overview of employee availabilities in this planning.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="152"/>
+        <location filename="../main_window.py" line="155"/>
         <source>Employee Assignments Overview</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="153"/>
+        <location filename="../main_window.py" line="156"/>
         <source>Shows an overview of all employee assignments.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="156"/>
+        <location filename="../main_window.py" line="159"/>
         <source>Create Assignment Plans...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="157"/>
+        <location filename="../main_window.py" line="160"/>
         <source>Create one or more assignment plans for a specific period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="160"/>
+        <location filename="../main_window.py" line="163"/>
         <source>Plan Information...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="161"/>
+        <location filename="../main_window.py" line="164"/>
         <source>Create or modify planning information.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="164"/>
+        <location filename="../main_window.py" line="167"/>
         <source>Settings for Plan Creation...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="165"/>
+        <location filename="../main_window.py" line="168"/>
         <source>Settings for plan calculation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="167"/>
+        <location filename="../main_window.py" line="170"/>
         <source>Excel Output Folder...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="168"/>
+        <location filename="../main_window.py" line="171"/>
         <source>Set folder for Excel file output</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="170"/>
+        <location filename="../main_window.py" line="173"/>
         <source>Open Log File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="171"/>
+        <location filename="../main_window.py" line="174"/>
         <source>Open log file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="173"/>
+        <location filename="../main_window.py" line="176"/>
         <source>Permanently Delete Current Team&apos;s Plans...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="174"/>
+        <location filename="../main_window.py" line="177"/>
         <source>The marked plans of the current team will be permanently deleted</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="176"/>
-        <source>Events from Plan to Events Mask...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../main_window.py" line="177"/>
-        <source>Transfer appointments from active plan to facilities planning mask.</source>
+        <location filename="../main_window.py" line="179"/>
+        <source>Undelete plans...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../main_window.py" line="180"/>
+        <source>Undelete plans of the current team.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="182"/>
+        <source>Events from Plan to Events Mask...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="183"/>
+        <source>Transfer appointments from active plan to facilities planning mask.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="186"/>
         <source>Send custom Mails...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="181"/>
+        <location filename="../main_window.py" line="187"/>
         <source>Send custom emails.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="184"/>
+        <location filename="../main_window.py" line="190"/>
         <source>Send Bulk Email...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="185"/>
+        <location filename="../main_window.py" line="191"/>
         <source>Send bulk emails.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="188"/>
+        <location filename="../main_window.py" line="194"/>
         <source>Send Plan Notifications...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="189"/>
+        <location filename="../main_window.py" line="195"/>
         <source>Send plan notifications.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="192"/>
+        <location filename="../main_window.py" line="198"/>
         <source>Send Availability Requests...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="193"/>
+        <location filename="../main_window.py" line="199"/>
         <source>Send availability requests.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="195"/>
+        <location filename="../main_window.py" line="201"/>
         <source>Email Configuration...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="196"/>
+        <location filename="../main_window.py" line="202"/>
         <source>Configure email settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="199"/>
+        <location filename="../main_window.py" line="205"/>
         <source>Transfer Appointments</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="200"/>
+        <location filename="../main_window.py" line="206"/>
         <source>Transfer appointments from active plan to Google Calendar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="203"/>
+        <location filename="../main_window.py" line="209"/>
         <source>Create Google Calendar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="204"/>
+        <location filename="../main_window.py" line="210"/>
         <source>Create a new Google Calendar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="206"/>
+        <location filename="../main_window.py" line="212"/>
         <source>Synchronize Local Calendar List</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="207"/>
+        <location filename="../main_window.py" line="213"/>
         <source>Synchronizes the local calendar list with available online Google calendars</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="210"/>
+        <location filename="../main_window.py" line="216"/>
         <source>Open Google Calendar...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="211"/>
+        <location filename="../main_window.py" line="217"/>
         <source>Opens Google Calendar in browser</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="213"/>
+        <location filename="../main_window.py" line="219"/>
         <source>Import Google API Credentials...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="214"/>
+        <location filename="../main_window.py" line="220"/>
         <source>Import Credentials of a Google Calendar for this team from JSON file.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="216"/>
+        <location filename="../main_window.py" line="222"/>
         <source>Upgrade...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="217"/>
+        <location filename="../main_window.py" line="223"/>
         <source>To extend &quot;hcc-plan&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="220"/>
+        <location filename="../main_window.py" line="226"/>
         <source>General Program Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="221"/>
+        <location filename="../main_window.py" line="227"/>
         <source>General program settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="224"/>
+        <location filename="../main_window.py" line="230"/>
         <source>Help...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="225"/>
+        <location filename="../main_window.py" line="231"/>
         <source>Opens help in browser.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="227"/>
+        <location filename="../main_window.py" line="233"/>
         <source>Check for Updates...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="228"/>
+        <location filename="../main_window.py" line="234"/>
         <source>Checks if program updates are available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="231"/>
+        <location filename="../main_window.py" line="237"/>
         <source>About...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="232"/>
+        <location filename="../main_window.py" line="238"/>
         <source>Information about the program</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="234"/>
+        <location filename="../main_window.py" line="240"/>
         <source>Show DB Structure...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="235"/>
+        <location filename="../main_window.py" line="241"/>
         <source>Shows the database structure.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="238"/>
+        <location filename="../main_window.py" line="244"/>
         <source>Employee Events...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="239"/>
+        <location filename="../main_window.py" line="245"/>
         <source>Manage employee events and activities.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="242"/>
+        <location filename="../main_window.py" line="248"/>
         <source>Sync Employee Events...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="243"/>
+        <location filename="../main_window.py" line="249"/>
         <source>Synchronize Employee Events to Google Calendar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="259"/>
+        <location filename="../main_window.py" line="265"/>
         <source>&amp;File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="263"/>
+        <location filename="../main_window.py" line="269"/>
         <source>Export</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="268"/>
+        <location filename="../main_window.py" line="274"/>
         <source>&amp;Teams</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="268"/>
+        <location filename="../main_window.py" line="274"/>
         <source>Edit Teams</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="271"/>
+        <location filename="../main_window.py" line="277"/>
         <source>&amp;View</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="274"/>
+        <location filename="../main_window.py" line="280"/>
         <source>&amp;Schedule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="280"/>
+        <location filename="../main_window.py" line="287"/>
         <source>&amp;Emails</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="285"/>
+        <location filename="../main_window.py" line="292"/>
         <source>&amp;Google Calendar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="294"/>
+        <location filename="../main_window.py" line="301"/>
         <source>E&amp;xtras</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="300"/>
+        <location filename="../main_window.py" line="307"/>
         <source>&amp;Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="302"/>
+        <location filename="../main_window.py" line="309"/>
         <source>Expert Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="329"/>
+        <location filename="../main_window.py" line="336"/>
         <source>Planning masks</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="330"/>
+        <location filename="../main_window.py" line="337"/>
         <source>Schedules</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="813"/>
+        <location filename="../main_window.py" line="555"/>
+        <source>Current team</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="555"/>
+        <source>You first have to select a team.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="560"/>
+        <source>Restore plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="562"/>
+        <location filename="../main_window.py" line="575"/>
+        <source>There are no plans of the team &quot;{team_name}&quot; that are marked for deletion.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="573"/>
+        <source>Delete plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="580"/>
+        <source>Plans permanently delete</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="583"/>
+        <source>Are you sure you want to permanently delete all {num_plans_to_delete} plans marked for deletion from team &quot;{team_name}&quot;?
+This action cannot be undone.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="843"/>
         <source>Facility Combinations...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="814"/>
+        <location filename="../main_window.py" line="844"/>
         <source>Edit possible combinations of facilities.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="816"/>
+        <location filename="../main_window.py" line="846"/>
         <source>Excel Settings...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="817"/>
+        <location filename="../main_window.py" line="847"/>
         <source>Edit settings for Excel export of the schedule.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="819"/>
+        <location filename="../main_window.py" line="849"/>
         <source>Notes...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="820"/>
+        <location filename="../main_window.py" line="850"/>
         <source>Edit team notes.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1078"/>
+        <location filename="../main_window.py" line="1108"/>
         <source>Employee Events synchronized.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1084"/>
+        <location filename="../main_window.py" line="1114"/>
         <source>Errors with: {failed_titles}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1087"/>
+        <location filename="../main_window.py" line="1117"/>
         <source>(+{count} more)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1091"/>
+        <location filename="../main_window.py" line="1121"/>
         <source>Employee Events synchronization completed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1091"/>
-        <location filename="../main_window.py" line="1120"/>
+        <location filename="../main_window.py" line="1121"/>
+        <location filename="../main_window.py" line="1150"/>
         <source>Employee Events Synchronization</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1093"/>
+        <location filename="../main_window.py" line="1123"/>
         <source>Unknown error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1096"/>
+        <location filename="../main_window.py" line="1126"/>
         <source>Synchronization Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1098"/>
+        <location filename="../main_window.py" line="1128"/>
         <source>An error occurred while synchronizing Employee Events:
 {error_text}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1106"/>
+        <location filename="../main_window.py" line="1136"/>
         <source>No Calendars Available</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1109"/>
+        <location filename="../main_window.py" line="1139"/>
         <source>No Google calendars are available.
 Please create a calendar first or synchronize the calendar list.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1121"/>
+        <location filename="../main_window.py" line="1151"/>
         <source>Synchronizing Employee Events...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1123"/>
+        <location filename="../main_window.py" line="1153"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1317"/>
-        <location filename="../main_window.py" line="1327"/>
-        <location filename="../main_window.py" line="1336"/>
+        <location filename="../main_window.py" line="1347"/>
+        <location filename="../main_window.py" line="1357"/>
+        <location filename="../main_window.py" line="1366"/>
         <source>Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1321"/>
+        <location filename="../main_window.py" line="1351"/>
         <source>Loading help documentation...
 
 If the help does not open automatically, you can find the documentation in help/content/de/ directory of the project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1330"/>
+        <location filename="../main_window.py" line="1360"/>
         <source>Help system is not available at the moment.
 
 Please check the README.md or contact support.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="1339"/>
+        <location filename="../main_window.py" line="1369"/>
         <source>An error occurred while opening the help.
 
 Try again later or contact support.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="426"/>
+        <location filename="../main_window.py" line="433"/>
         <source>Schedule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="429"/>
+        <location filename="../main_window.py" line="436"/>
         <source>File</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6234,6 +6347,14 @@ Try again later or contact support.</source>
     <message>
         <location filename="../widget_styles/buttons.py" line="61"/>
         <source>in some facilities</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SlideInMenu</name>
+    <message>
+        <location filename="../custom_widgets/side_menu.py" line="308"/>
+        <source>Keep menu open</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6444,52 +6565,52 @@ Try again later or contact support.</source>
 <context>
     <name>TblPlanStatistics</name>
     <message>
-        <location filename="../frm_plan.py" line="1175"/>
+        <location filename="../frm_plan.py" line="1185"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1177"/>
-        <location filename="../frm_plan.py" line="1267"/>
+        <location filename="../frm_plan.py" line="1187"/>
+        <location filename="../frm_plan.py" line="1277"/>
         <source>No planning mask found for this person
 Person has guest status.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1262"/>
+        <location filename="../frm_plan.py" line="1272"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1271"/>
+        <location filename="../frm_plan.py" line="1281"/>
         <source>desired</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1271"/>
+        <location filename="../frm_plan.py" line="1281"/>
         <source>possible</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1272"/>
+        <location filename="../frm_plan.py" line="1282"/>
         <source>fair</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1272"/>
+        <location filename="../frm_plan.py" line="1282"/>
         <source>assigned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1330"/>
+        <location filename="../frm_plan.py" line="1340"/>
         <source>Click:
 Mark possible assignments of %s
 in the plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1333"/>
+        <location filename="../frm_plan.py" line="1343"/>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>
@@ -6566,21 +6687,6 @@ in the plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_cast_group.py" line="424"/>
-        <source>In neue Gruppe verschieben</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_cast_group.py" line="428"/>
-        <source>In bestehende Gruppe verschieben</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_cast_group.py" line="437"/>
-        <source>Hauptgruppe</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../frm_group_mode.py" line="281"/>
         <source>Possible Count</source>
         <translation type="unfinished"></translation>
@@ -6591,21 +6697,25 @@ in the plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../frm_cast_group.py" line="424"/>
         <location filename="../frm_group_mode.py" line="461"/>
         <source>Move into a new group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../frm_cast_group.py" line="428"/>
         <location filename="../frm_group_mode.py" line="465"/>
         <source>Move into an existing group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../frm_cast_group.py" line="437"/>
         <location filename="../frm_group_mode.py" line="474"/>
         <source>Main group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../frm_cast_group.py" line="455"/>
         <location filename="../frm_group_mode.py" line="492"/>
         <source>{prefix}group {group_nr:02d}</source>
         <translation type="unfinished"></translation>

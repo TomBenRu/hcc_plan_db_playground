@@ -131,28 +131,24 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         except Exception as e:
             logging.error(f"Instance check failed: {e}")
     
-    # === Schritt 5: App-Style setzen ===
-    safe_execute(app.setStyle, "Setting app style", 'Fusion')
-    
-    # === Schritt 6: MainWindow creation (längster Schritt) ===
+    # === Schritt 5: MainWindow creation ===
     update_progress("MainWindow creation")
     try:
         from gui.main_window import MainWindow
         from tools.screen import Screen
         
-        # === Schritt 7: Screen size calculation ===
+        # === Schritt 6: Screen size calculation ===
         update_progress("Screen size calculation")
         Screen.set_screen_size()
-        
+
+        # === Schritt 7: Window display ===
+        update_progress("Window display")
         window = safe_execute(MainWindow, "Creating main window", app, Screen.screen_width, Screen.screen_height)
-        
+        safe_execute(window.show, "Showing main window")
+
         # === Schritt 8: Tab restoration ===
         update_progress("Tab restoration")
         safe_execute(window.restore_tabs, "Restoring tabs")
-        
-        # === Schritt 9: Window display ===
-        update_progress("Window display")
-        safe_execute(window.show, "Showing main window")
         
         logging.info("Application initialized successfully")
         return window

@@ -9,7 +9,7 @@ from uuid import UUID
 from typing import Optional, Dict, Any, List
 
 from PySide6.QtCore import QObject, Signal, Slot, QPoint
-from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu
+from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu, QApplication
 from pydantic_core import ValidationError
 
 from commands import command_base_classes
@@ -669,7 +669,9 @@ class TabManager(QObject):
         try:
             start_config_handler = team_start_config.curr_start_config_handler
             config = start_config_handler.get_start_config_for_team(team_id)
-            
+
+            self.tabs_left.setCurrentIndex(config.current_index_left_tabs)
+
             # Planungsmasken-Tabs wiederherstellen
             for plan_period_id, pp_tab_config in config.tabs_planungsmasken.items():
                 self.open_plan_period_tab(
@@ -678,15 +680,16 @@ class TabManager(QObject):
                     pp_tab_config.get('person_id'), 
                     pp_tab_config.get('location_id')
                 )
+                QApplication.processEvents()
             
             # Plan-Tabs wiederherstellen
             for plan_id in config.tabs_plans:
                 self.open_plan_tab(plan_id)
-            
+                QApplication.processEvents()
+
             # Tab-Indizes wiederherstellen
             self.tabs_planungsmasken.setCurrentIndex(config.current_index_planungsmasken_tabs)
             self.tabs_plans.setCurrentIndex(config.current_index_plans_tabs)
-            self.tabs_left.setCurrentIndex(config.current_index_left_tabs)
             
         except Exception as e:
             logger.error(f"Fehler beim Laden der Team-Konfiguration: {e}")

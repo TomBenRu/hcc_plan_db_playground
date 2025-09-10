@@ -16,6 +16,12 @@ from gui.app_initialization import initialize_application_with_progress
 from tools.logging.logging_config import setup_crash_investigation_logging
 
 import faulthandler
+import os
+
+# Windows 11 Dark Mode: Umgebungsvariablen setzen BEVOR Qt initialisiert wird
+if os.name == 'nt':  # Windows
+    os.environ['QT_QPA_PLATFORM'] = 'windows:darkmode=2'
+    os.environ['QT_STYLE_OVERRIDE'] = 'Fusion'
 
 def is_development_environment() -> bool:
     """

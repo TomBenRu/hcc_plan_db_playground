@@ -109,8 +109,8 @@ class InitializationProgressCallback:
             ("Instance check", 30),
             ("MainWindow creation", 40),
             ("Screen size calculation", 50),
-            ("Tab restoration", 55),
-            ("Window display", 95),
+            ("Window display", 55),
+            ("Tab restoration", 60),
             ("Finalisierung", 100)
         ]
         

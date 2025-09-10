@@ -9,6 +9,9 @@ class SplashScreen(QSplashScreen):
     def __init__(self, minimum_display_time: float = 2.0):
         super().__init__()
         
+        # Splash Screen immer on top anzeigen
+        # self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        
         # Font-Setup für professionellen Look
         font = self.font()
         font.setPointSize(16)

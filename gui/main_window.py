@@ -72,6 +72,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def __init__(self, app: QApplication, screen_width: int, screen_height: int):
         super().__init__()
 
+        # Flag für Tab-Restoration Status
+        self.tab_restoration_in_progress = False
+
         self.setWindowTitle('hcc-plan')
         self.setGeometry(QRect(0, 0, screen_width - 100, screen_height - 100))
 
@@ -1385,6 +1388,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def closeEvent(self, event=QCloseEvent):
         """Erweiterte Close-Event Behandlung mit Cache-Management"""
+        
+        # Verhindere Schließen während Tab-Restoration
+        if self.tab_restoration_in_progress:
+            event.ignore()
+            return
+        
         # Nutze erweiterte Cache-Behandlung
         self.enhanced_close_event(event)
 

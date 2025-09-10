@@ -12,11 +12,12 @@ import logging
 import os
 import platform
 import sys
+import time
 import traceback
 
 from PySide6.QtCore import Qt, QTranslator, QLocale
 from PySide6.QtGui import QIcon, QPalette, QColor
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QSplashScreen
 
 from gui.custom_widgets.splash_screen import InitializationProgressCallback
 from gui.main_window import MainWindow
@@ -75,7 +76,7 @@ def set_translator(app: QApplication):
 
 
 def initialize_application_with_progress(app: QApplication, progress_callback: InitializationProgressCallback = None, 
-                                       log_file_path: str = ""):
+                                       log_file_path: str = "", splash_screen: QSplashScreen = None):
     """
     Führt App-Initialisierung mit optionalen Progress-Updates durch
     
@@ -145,10 +146,20 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         update_progress("Window display")
         window = safe_execute(MainWindow, "Creating main window", app, Screen.screen_width, Screen.screen_height)
         safe_execute(window.show, "Showing main window")
+        splash_screen.raise_()
+        window.setEnabled(False)  # Window deaktivieren während Tab-Restoration
+        window.tab_restoration_in_progress = True  # Schließen verhindern während Tab-Restoration
 
         # === Schritt 8: Tab restoration ===
         update_progress("Tab restoration")
         safe_execute(window.restore_tabs, "Restoring tabs")
+
+        # === Schritt 9: Finalisierung ===
+        update_progress("Finalisierung")
+        time.sleep(1)  # Splash Screen wird noch 1 Sekunde angezeigt
+        window.setEnabled(True)   # Window wieder aktivieren nach Tab-Restoration
+        window.tab_restoration_in_progress = False  # Schließen wieder erlauben
+
         
         logging.info("Application initialized successfully")
         return window

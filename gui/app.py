@@ -116,7 +116,7 @@ try:
     # Einheitliche Initialisierung - mit oder ohne Progress-Callback
     if progress_callback:
         logging.info("Initializing with progress updates")
-        window = initialize_application_with_progress(app, progress_callback, log_file_path)
+        window = initialize_application_with_progress(app, progress_callback, log_file_path, splash)
     else:
         logging.warning("Initializing without progress updates (splash screen failed)")
         window = initialize_application_with_progress(app, None, log_file_path)

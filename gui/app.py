@@ -1,101 +1,30 @@
 import logging
-import os.path
+import os
+import platform
 import sys
 import traceback
 
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
-
-# Import the new modular logging system
-from tools.logging import setup_comprehensive_logging
-from tools.logging.crash_handler import safe_execute
 
 from configuration.project_paths import curr_user_path_handler
 from gui.custom_widgets.splash_screen import SplashScreen, InitializationProgressCallback
 from gui.app_initialization import initialize_application_with_progress
-from tools.logging.logging_config import setup_crash_investigation_logging
 
-import faulthandler
-import os
+# Einmalige OS-Erkennung (Best Practice)
+is_windows_os = platform.system() == "Windows"
 
 # Windows 11 Dark Mode: Umgebungsvariablen setzen BEVOR Qt initialisiert wird
-if os.name == 'nt':  # Windows
+if is_windows_os:
     os.environ['QT_QPA_PLATFORM'] = 'windows:darkmode=2'
     os.environ['QT_STYLE_OVERRIDE'] = 'Fusion'
 
-def is_development_environment() -> bool:
-    """
-    Erkennt, ob das Programm in der Entwicklungsumgebung läuft.
-    
-    Returns:
-        True wenn Entwicklungsumgebung (normales Python), 
-        False wenn PyInstaller-Executable (onefile oder onedir)
-    """
-    # PyInstaller setzt sys.frozen auf True (sowohl bei onefile als auch onedir)
-    is_frozen = getattr(sys, 'frozen', False)
-    
-    # In Entwicklungsumgebung: frozen=False
-    # Bei PyInstaller (onefile/onedir): frozen=True
-    return not is_frozen
-
-
-# Initialize comprehensive logging system early
-if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
-    os.makedirs(log_path)
-
-# Faulthandler mit File-Parameter aktivieren (umgeht PyInstaller sys.stderr Problem)
-if is_development_environment():
-    crash_log_path = os.path.join(log_path, 'crash-development.log')
-    print("🔧 Entwicklungsumgebung erkannt - Faulthandler wird konfiguriert")
-else:
-    crash_log_path = os.path.join(log_path, 'crash-production.log')
-    print("📦 PyInstaller-Executable erkannt - Faulthandler wird konfiguriert")
-
-try:
-    # File-Handle für Crash-Logs (muss offen bleiben!)
-    crash_log_file = open(crash_log_path, 'a', encoding='utf-8')
-    faulthandler.enable(file=crash_log_file, all_threads=True)
-    print(f"✅ Faulthandler aktiviert (alle Threads) - Crash-Logs: {crash_log_path}")
-except Exception as e:
-    print(f"⚠️ Faulthandler konnte nicht aktiviert werden: {e}")
-    # App läuft trotzdem weiter
-
-
-log_file_path = os.path.join(log_path, 'hcc-dispo.log')
-
+# Minimales Logging für frühe App-Phase (detailliertes Logging erfolgt in initialize_system_infrastructure)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.info("Application starting...")
 
 app = QApplication(sys.argv)
 
-# Set up comprehensive crash logging with app reference
-app_log_file = setup_comprehensive_logging(log_file_path, app)
-
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d\n%(message)s\n')
-root_logger = logging.getLogger(__name__)
-root_logger.setLevel(logging.INFO)
-# for handler in root_logger.handlers:
-#     handler.setLevel(logging.ERROR)
-
-# Emergency File-Handler hinzufügen
-emergency_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
-emergency_handler.setLevel(logging.ERROR)
-emergency_handler.setFormatter(formatter)
-root_logger.addHandler(emergency_handler)
-logging.info("🔧 Emergency File-Handler hinzugefügt!")
-
-logging.info("DEBUG-Logging aktiviert für Signal-Debugging")
-
-# Crash Investigation Logging bei Bedarf aktivieren
-if enable_crash_investigation := False:
-    emergency_log = setup_crash_investigation_logging(log_path)
-    logging.info(f"Emergency crash logging: {emergency_log}")
-# Window icon setup - moved to app_initialization.py
-safe_execute(app.setWindowIcon, "Setting window icon", 
-             QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
-
-# Andere Initialisierungsschritte werden jetzt durch initialize_application_with_progress() erledigt
-
-# Splash screen with error handling and real progress tracking
+# === Splash Screen Setup ===
 try:
     splash = SplashScreen(minimum_display_time=2.0)  # Option A: 2s Minimum-Display-Time
     splash.show()
@@ -109,17 +38,14 @@ except Exception as e:
     splash = None
     progress_callback = None
 
-# Note: Qt message handler is now handled by the comprehensive logging system
-
-# Hauptinitialisierung - einheitlich mit optionalen Progress-Updates
+# === Hauptinitialisierung ===
 try:
-    # Einheitliche Initialisierung - mit oder ohne Progress-Callback
     if progress_callback:
         logging.info("Initializing with progress updates")
-        window = initialize_application_with_progress(app, progress_callback, log_file_path, splash)
     else:
         logging.warning("Initializing without progress updates (splash screen failed)")
-        window = initialize_application_with_progress(app, None, log_file_path)
+    
+    window = initialize_application_with_progress(app, progress_callback, splash_screen=splash, is_windows_os=is_windows_os)
     
     # Splash-Screen mit Minimum-Display-Time beenden
     if splash:

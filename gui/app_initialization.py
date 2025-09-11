@@ -10,7 +10,6 @@ Folgt dem KEEP IT SIMPLE Prinzip - minimale Änderungen an bestehender Architekt
 
 import logging
 import os
-import platform
 import sys
 import time
 import traceback
@@ -24,6 +23,22 @@ from gui.main_window import MainWindow
 from tools.logging.crash_handler import safe_execute
 from tools import proof_only_one_instance
 from configuration.general_settings import general_settings_handler
+
+
+def is_development_environment() -> bool:
+    """
+    Erkennt, ob das Programm in der Entwicklungsumgebung läuft.
+    
+    Returns:
+        True wenn Entwicklungsumgebung (normales Python), 
+        False wenn PyInstaller-Executable (onefile oder onedir)
+    """
+    # PyInstaller setzt sys.frozen auf True (sowohl bei onefile als auch onedir)
+    is_frozen = getattr(sys, 'frozen', False)
+    
+    # In Entwicklungsumgebung: frozen=False
+    # Bei PyInstaller (onefile/onedir): frozen=True
+    return not is_frozen
 
 
 def is_windows_dark_mode():
@@ -76,15 +91,16 @@ def set_translator(app: QApplication):
 
 
 def initialize_application_with_progress(app: QApplication, progress_callback: InitializationProgressCallback = None, 
-                                       log_file_path: str = "", splash_screen: QSplashScreen = None):
+                                       log_file_path: str = "", splash_screen: QSplashScreen = None, is_windows_os: bool = False):
     """
     Führt App-Initialisierung mit optionalen Progress-Updates durch
     
     Args:
         app: QApplication-Instanz
         progress_callback: Optional - Callback für Progress-Updates an SplashScreen
-        log_file_path: Pfad zur Log-Datei
+        log_file_path: Optional - Pfad zur Log-Datei (wird automatisch berechnet wenn leer)
         splash_screen: Optional - Splash Screen für z-order Management
+        is_windows_os: Boolean - True wenn Windows OS (einmalig in app.py erkannt)
         
     Returns:
         Initialisierte MainWindow-Instanz
@@ -93,6 +109,11 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         Exception: Bei kritischen Initialisierungsfehlern
     """
     
+    # === Log-Pfad automatisch berechnen wenn nicht übergeben ===
+    if not log_file_path:
+        from configuration.project_paths import curr_user_path_handler
+        log_file_path = os.path.join(curr_user_path_handler.get_config().log_file_path, 'hcc-dispo.log')
+    
     # === Phase 1: System Infrastructure ===
     _update_progress(progress_callback, "System setup")
     # Logging-System setup (muss vor anderen Phasen erfolgen)
@@ -100,10 +121,10 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
     app_log_file = setup_comprehensive_logging(log_file_path, app)
     
     # System-Level Setup
-    initialize_system_infrastructure(progress_callback, log_file_path)
+    initialize_system_infrastructure(progress_callback, log_file_path, is_windows_os)
     
     # === Phase 2: UI Framework ===
-    initialize_ui_framework(app, progress_callback)
+    initialize_ui_framework(app, progress_callback, is_windows_os)
     
     # === Phase 3: Application Logic ===
     window = initialize_main_application(app, progress_callback, splash_screen)
@@ -119,28 +140,64 @@ def _update_progress(progress_callback: InitializationProgressCallback, step_nam
 
 
 def initialize_system_infrastructure(progress_callback: InitializationProgressCallback = None, 
-                                   log_file_path: str = "") -> None:
+                                   log_file_path: str = "", is_windows_os: bool = False) -> None:
     """
-    System-Level Setup: Logging-System und Instance-Check
+    System-Level Setup: Logging-System, Faulthandler und Instance-Check
     
     Args:
         progress_callback: Optional - Callback für Progress-Updates an SplashScreen
         log_file_path: Pfad zur Log-Datei
+        is_windows_os: Boolean - True wenn Windows OS (bereits erkannt)
     """
-    # === Schritt 1: Logging-System setup ===
-    _update_progress(progress_callback, "Logging-System setup")
-    from tools.logging import setup_comprehensive_logging
-    # Logging wird über app-Parameter in main function gehandhabt
-    # Hier nur der Progress-Update für UI-Feedback
+    # === Faulthandler setup (aus app.py verschoben) ===
+    _update_progress(progress_callback, "Faulthandler setup")
     
-    # === Schritt 2: Instance check ===
+    from configuration.project_paths import curr_user_path_handler
+    import faulthandler
+    
+    # Log-Pfad sicherstellen
+    if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
+        os.makedirs(log_path)
+    
+    # Faulthandler mit File-Parameter aktivieren (umgeht PyInstaller sys.stderr Problem)
+    if is_development_environment():
+        crash_log_path = os.path.join(log_path, 'crash-development.log')
+        logging.info("🔧 Entwicklungsumgebung erkannt - Faulthandler wird konfiguriert")
+    else:
+        crash_log_path = os.path.join(log_path, 'crash-production.log')
+        logging.info("📦 PyInstaller-Executable erkannt - Faulthandler wird konfiguriert")
+
+    try:
+        # File-Handle für Crash-Logs (muss offen bleiben!)
+        crash_log_file = open(crash_log_path, 'a', encoding='utf-8')
+        faulthandler.enable(file=crash_log_file, all_threads=True)
+        logging.info(f"✅ Faulthandler aktiviert (alle Threads) - Crash-Logs: {crash_log_path}")
+    except Exception as e:
+        logging.warning(f"⚠️ Faulthandler konnte nicht aktiviert werden: {e}")
+        # App läuft trotzdem weiter
+
+    # === Emergency File-Handler setup (aus app.py verschoben) ===
+    _update_progress(progress_callback, "Emergency logging setup")
+    
+    if log_file_path:  # Nur wenn log_file_path verfügbar
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d\\n%(message)s\\n')
+        root_logger = logging.getLogger(__name__)
+        root_logger.setLevel(logging.INFO)
+        
+        # Emergency File-Handler hinzufügen
+        emergency_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+        emergency_handler.setLevel(logging.ERROR)
+        emergency_handler.setFormatter(formatter)
+        root_logger.addHandler(emergency_handler)
+        logging.info("🔧 Emergency File-Handler hinzugefügt!")
+
+    # === Instance check (nur Windows) ===
     _update_progress(progress_callback, "Instance check")
-    system = platform.system()
-    if system == "Windows":
+    if is_windows_os:
         try:
             if not proof_only_one_instance.check():
                 logging.warning("Another instance already running")
-                QMessageBox.critical(None, "HCC Dispo", "hcc-dispo wird bereits ausgeführt.\n"
+                QMessageBox.critical(None, "HCC Dispo", "hcc-dispo wird bereits ausgeführt.\\n"
                                                         "Sie können nur eine Instanz des Programms öffnen.")
                 sys.exit(0)
         except Exception as e:
@@ -148,21 +205,26 @@ def initialize_system_infrastructure(progress_callback: InitializationProgressCa
 
 
 def initialize_ui_framework(app: QApplication, 
-                          progress_callback: InitializationProgressCallback = None) -> None:
+                          progress_callback: InitializationProgressCallback = None, is_windows_os: bool = False) -> None:
     """
-    UI Framework Setup: Theme-Detection und Translator-Setup
+    UI Framework Setup: Window Icon, Theme-Detection und Translator-Setup
     
     Args:
         app: QApplication-Instanz
         progress_callback: Optional - Callback für Progress-Updates an SplashScreen
+        is_windows_os: Boolean - True wenn Windows OS (bereits erkannt)
     """
-    # === Theme detection ===
+    # === Window icon setup ===
+    _update_progress(progress_callback, "Window icon setup")
+    safe_execute(app.setWindowIcon, "Setting window icon", 
+                 QIcon(os.path.join(os.path.dirname(__file__), 'resources', 'hcc-dispo_klein.png')))
+    
+    # === Theme detection (nutzt übergebenen Parameter) ===
     _update_progress(progress_callback, "Theme detection")
-    system = platform.system()
-    logging.info(f"Detected system: {system}")
+    logging.info(f"Detected system: {'Windows' if is_windows_os else 'Non-Windows'}")
     
     try:
-        if system == "Windows":
+        if is_windows_os:
             if not is_windows_dark_mode():
                 safe_execute(set_dark_mode, "Setting dark mode", app)
         else:

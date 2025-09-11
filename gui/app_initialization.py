@@ -84,6 +84,7 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         app: QApplication-Instanz
         progress_callback: Optional - Callback für Progress-Updates an SplashScreen
         log_file_path: Pfad zur Log-Datei
+        splash_screen: Optional - Splash Screen für z-order Management
         
     Returns:
         Initialisierte MainWindow-Instanz
@@ -92,18 +93,71 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         Exception: Bei kritischen Initialisierungsfehlern
     """
     
-    def update_progress(step_name: str):
-        """Helper-Funktion für optionale Progress-Updates"""
-        if progress_callback:
-            progress_callback.update_progress(step_name)
-    
-    # === Schritt 1: Logging-System setup ===
-    update_progress("Logging-System setup")
+    # === Phase 1: System Infrastructure ===
+    _update_progress(progress_callback, "System setup")
+    # Logging-System setup (muss vor anderen Phasen erfolgen)
     from tools.logging import setup_comprehensive_logging
     app_log_file = setup_comprehensive_logging(log_file_path, app)
     
-    # === Schritt 2: Theme detection ===
-    update_progress("Theme detection")
+    # System-Level Setup
+    initialize_system_infrastructure(progress_callback, log_file_path)
+    
+    # === Phase 2: UI Framework ===
+    initialize_ui_framework(app, progress_callback)
+    
+    # === Phase 3: Application Logic ===
+    window = initialize_main_application(app, progress_callback, splash_screen)
+    
+    return window
+
+
+
+def _update_progress(progress_callback: InitializationProgressCallback, step_name: str):
+    """Helper-Funktion für optionale Progress-Updates"""
+    if progress_callback:
+        progress_callback.update_progress(step_name)
+
+
+def initialize_system_infrastructure(progress_callback: InitializationProgressCallback = None, 
+                                   log_file_path: str = "") -> None:
+    """
+    System-Level Setup: Logging-System und Instance-Check
+    
+    Args:
+        progress_callback: Optional - Callback für Progress-Updates an SplashScreen
+        log_file_path: Pfad zur Log-Datei
+    """
+    # === Schritt 1: Logging-System setup ===
+    _update_progress(progress_callback, "Logging-System setup")
+    from tools.logging import setup_comprehensive_logging
+    # Logging wird über app-Parameter in main function gehandhabt
+    # Hier nur der Progress-Update für UI-Feedback
+    
+    # === Schritt 2: Instance check ===
+    _update_progress(progress_callback, "Instance check")
+    system = platform.system()
+    if system == "Windows":
+        try:
+            if not proof_only_one_instance.check():
+                logging.warning("Another instance already running")
+                QMessageBox.critical(None, "HCC Dispo", "hcc-dispo wird bereits ausgeführt.\n"
+                                                        "Sie können nur eine Instanz des Programms öffnen.")
+                sys.exit(0)
+        except Exception as e:
+            logging.error(f"Instance check failed: {e}")
+
+
+def initialize_ui_framework(app: QApplication, 
+                          progress_callback: InitializationProgressCallback = None) -> None:
+    """
+    UI Framework Setup: Theme-Detection und Translator-Setup
+    
+    Args:
+        app: QApplication-Instanz
+        progress_callback: Optional - Callback für Progress-Updates an SplashScreen
+    """
+    # === Theme detection ===
+    _update_progress(progress_callback, "Theme detection")
     system = platform.system()
     logging.info(f"Detected system: {system}")
     
@@ -116,51 +170,57 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
     except Exception as e:
         logging.error(f"Failed to set theme: {e}")
     
-    # === Schritt 3: Translator setup ===
-    update_progress("Translator setup")
+    # === Translator setup ===
+    _update_progress(progress_callback, "Translator setup")
     safe_execute(set_translator, "Setting translator", app)
+
+
+def initialize_main_application(app: QApplication, 
+                               progress_callback: InitializationProgressCallback = None,
+                               splash_screen: QSplashScreen = None) -> MainWindow:
+    """
+    Application Logic: MainWindow-Erstellung, Screen-Setup und Tab-Restoration
     
-    # === Schritt 4: Instance check ===
-    update_progress("Instance check")
-    if system == "Windows":
-        try:
-            if not proof_only_one_instance.check():
-                logging.warning("Another instance already running")
-                QMessageBox.critical(None, "HCC Dispo", "hcc-dispo wird bereits ausgeführt.\n"
-                                                        "Sie können nur eine Instanz des Programms öffnen.")
-                sys.exit(0)
-        except Exception as e:
-            logging.error(f"Instance check failed: {e}")
-    
-    # === Schritt 5: MainWindow creation ===
-    update_progress("MainWindow creation")
+    Args:
+        app: QApplication-Instanz
+        progress_callback: Optional - Callback für Progress-Updates an SplashScreen
+        splash_screen: Optional - Splash Screen für z-order Management
+        
+    Returns:
+        Initialisierte MainWindow-Instanz
+        
+    Raises:
+        Exception: Bei kritischen Initialisierungsfehlern
+    """
+    # === MainWindow creation ===
+    _update_progress(progress_callback, "MainWindow creation")
     try:
         from gui.main_window import MainWindow
         from tools.screen import Screen
         
-        # === Schritt 6: Screen size calculation ===
-        update_progress("Screen size calculation")
+        # === Screen size calculation ===
+        _update_progress(progress_callback, "Screen size calculation")
         Screen.set_screen_size()
 
-        # === Schritt 7: Window display ===
-        update_progress("Window display")
+        # === Window display ===
+        _update_progress(progress_callback, "Window display")
         window = safe_execute(MainWindow, "Creating main window", app, Screen.screen_width, Screen.screen_height)
         safe_execute(window.show, "Showing main window")
-        splash_screen.raise_()
+        if splash_screen:
+            splash_screen.raise_()
         window.setEnabled(False)  # Window deaktivieren während Tab-Restoration
         window.tab_restoration_in_progress = True  # Schließen verhindern während Tab-Restoration
 
-        # === Schritt 8: Tab restoration ===
-        update_progress("Tab restoration")
+        # === Tab restoration ===
+        _update_progress(progress_callback, "Tab restoration")
         safe_execute(window.restore_tabs, "Restoring tabs")
 
-        # === Schritt 9: Finalisierung ===
-        update_progress("Finalisierung")
+        # === Finalisierung ===
+        _update_progress(progress_callback, "Finalisierung")
         time.sleep(1)  # Splash Screen wird noch 1 Sekunde angezeigt
         window.setEnabled(True)   # Window wieder aktivieren nach Tab-Restoration
         window.tab_restoration_in_progress = False  # Schließen wieder erlauben
 
-        
         logging.info("Application initialized successfully")
         return window
         

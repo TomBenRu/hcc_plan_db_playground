@@ -133,10 +133,11 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
 
 
 
-def _update_progress(progress_callback: InitializationProgressCallback, step_name: str):
+def _update_progress(progress_callback: InitializationProgressCallback, step_name: str,
+                     fraction_to_next_step: float = None):
     """Helper-Funktion für optionale Progress-Updates"""
     if progress_callback:
-        progress_callback.update_progress(step_name)
+        progress_callback.update_progress(step_name, fraction_to_next_step)
 
 
 def initialize_system_infrastructure(progress_callback: InitializationProgressCallback = None, 
@@ -274,12 +275,10 @@ def initialize_main_application(app: QApplication,
         window.tab_restoration_in_progress = True  # Schließen verhindern während Tab-Restoration
 
         # === Tab restoration ===
-        _update_progress(progress_callback, "Tab restoration")
-        
         # Signal für detaillierte Tab-Restoration-Progress verbinden
         if progress_callback:
             window.tab_manager.tab_restoration_progress.connect(
-                lambda step: _update_progress(progress_callback, step)
+                lambda step, fraction_to_next_step=None: _update_progress(progress_callback, step, fraction_to_next_step)
             )
         
         safe_execute(window.restore_tabs, "Restoring tabs")

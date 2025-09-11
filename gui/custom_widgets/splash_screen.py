@@ -1,4 +1,5 @@
 import os
+import time
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -116,22 +117,30 @@ class InitializationProgressCallback:
             ("MainWindow creation", 40),
             ("Screen size calculation", 50),
             ("Window display", 55),
-            ("Tab restoration", 60),
             ("Finalisierung", 100)
         ]
         
         self.step_lookup = {step_name: progress for step_name, progress in self.initialization_steps}
     
-    def update_progress(self, step_name: str):
+    def update_progress(self, step_name: str, fraction_to_next_step: float = None):
         """
         Meldet Fortschritt für einen benannten Initialisierungsschritt
         
         Args:
             step_name: Name des Schritts (muss in initialization_steps definiert sein)
+            fraction_to_next_step: Bruchteil des Fortschritts bis zum nächsten definierten Schritt (0-100)
         """
         if step_name in self.step_lookup:
             progress = self.step_lookup[step_name]
             self.splash.update_real_progress(step_name, progress)
+            self.current_step = self.initialization_steps.index((step_name, progress))
+        elif fraction_to_next_step is not None:
+            # Interpolation zwischen definierten Schritten
+            next_step_progress = self.initialization_steps[self.current_step + 1][1]
+            increment = int((next_step_progress - self.splash.progress) * fraction_to_next_step)
+            self.splash.update_real_progress(step_name, self.splash.progress + increment)
+            print(f"{self.current_step=}, {self.initialization_steps[self.current_step][0]=},\n"
+                  f"{step_name=}, {self.splash.progress=}, {fraction_to_next_step=}, {increment=}\n\n")
         else:
             # Fallback für unbekannte Schritte
             self.current_step += 1

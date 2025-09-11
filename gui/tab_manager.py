@@ -49,7 +49,7 @@ class TabManager(QObject):
     # UI-Update Events
     menu_toolbar_update_needed = Signal(str)  # active_tab_type: str
     status_message = Signal(str)  # message: str
-    tab_restoration_progress = Signal(str)  # progress_step: str
+    tab_restoration_progress = Signal(str, float)  # progress_step: str, fraction_to_next_step: float
     
     # Error-Events
     error_occurred = Signal(str, str)  # title: str, message: str
@@ -672,24 +672,37 @@ class TabManager(QObject):
             config = start_config_handler.get_start_config_for_team(team_id)
 
             self.tabs_left.setCurrentIndex(config.current_index_left_tabs)
+            tabs_to_restore = len(config.tabs_planungsmasken) + len(config.tabs_plans)
 
             # Planungsmasken-Tabs wiederherstellen
-            if config.tabs_planungsmasken:
-                self.tab_restoration_progress.emit("Tab restoration: Planungsmasken")
+            total_pp_tabs = len(config.tabs_planungsmasken)
+            current_pp_tab_count = 1
             for plan_period_id, pp_tab_config in config.tabs_planungsmasken.items():
+                fraction_to_next_step = 1 / (tabs_to_restore + 1)
+                self.tab_restoration_progress.emit(f"Tab restoration: Planungsmasken "
+                                                   f"({current_pp_tab_count}/{total_pp_tabs})",
+                                                   fraction_to_next_step)
                 self.open_plan_period_tab(
                     plan_period_id,
                     pp_tab_config['curr_index_actors_locals_tabs'],
                     pp_tab_config.get('person_id'), 
                     pp_tab_config.get('location_id')
                 )
+                current_pp_tab_count += 1
+                tabs_to_restore -= 1
                 QApplication.processEvents()
             
             # Plan-Tabs wiederherstellen
-            if config.tabs_plans:
-                self.tab_restoration_progress.emit("Tab restoration: Pläne")
+            total_plan_tabs = len(config.tabs_plans)
+            current_plan_tab_count = 1
             for plan_id in config.tabs_plans:
+                fraction_to_next_step = 1 / (tabs_to_restore + 1)
+                self.tab_restoration_progress.emit(f"Tab restoration: Pläne "
+                                                   f"({current_plan_tab_count}/{total_plan_tabs})",
+                                                   fraction_to_next_step)
                 self.open_plan_tab(plan_id)
+                current_plan_tab_count += 1
+                tabs_to_restore -= 1
                 QApplication.processEvents()
 
             # Tab-Indizes wiederherstellen

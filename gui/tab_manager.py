@@ -49,6 +49,7 @@ class TabManager(QObject):
     # UI-Update Events
     menu_toolbar_update_needed = Signal(str)  # active_tab_type: str
     status_message = Signal(str)  # message: str
+    tab_restoration_progress = Signal(str)  # progress_step: str
     
     # Error-Events
     error_occurred = Signal(str, str)  # title: str, message: str
@@ -673,6 +674,8 @@ class TabManager(QObject):
             self.tabs_left.setCurrentIndex(config.current_index_left_tabs)
 
             # Planungsmasken-Tabs wiederherstellen
+            if config.tabs_planungsmasken:
+                self.tab_restoration_progress.emit("Tab restoration: Planungsmasken")
             for plan_period_id, pp_tab_config in config.tabs_planungsmasken.items():
                 self.open_plan_period_tab(
                     plan_period_id,
@@ -683,6 +686,8 @@ class TabManager(QObject):
                 QApplication.processEvents()
             
             # Plan-Tabs wiederherstellen
+            if config.tabs_plans:
+                self.tab_restoration_progress.emit("Tab restoration: Pläne")
             for plan_id in config.tabs_plans:
                 self.open_plan_tab(plan_id)
                 QApplication.processEvents()

@@ -17,7 +17,7 @@ class SplashScreen(QSplashScreen):
         
         # Font-Setup für professionellen Look
         font = self.font()
-        font.setPointSize(16)
+        font.setPointSize(11)
         font.setBold(True)
         self.setFont(font)
         

@@ -275,6 +275,13 @@ def initialize_main_application(app: QApplication,
 
         # === Tab restoration ===
         _update_progress(progress_callback, "Tab restoration")
+        
+        # Signal für detaillierte Tab-Restoration-Progress verbinden
+        if progress_callback:
+            window.tab_manager.tab_restoration_progress.connect(
+                lambda step: _update_progress(progress_callback, step)
+            )
+        
         safe_execute(window.restore_tabs, "Restoring tabs")
 
         # === Finalisierung ===

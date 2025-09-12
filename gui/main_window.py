@@ -27,7 +27,7 @@ from google_calendar_api.transfer_appointments import transfer_appointments_with
 from google_calendar_api.sync_employee_events import sync_employee_events_to_calendar
 
 from tools import open_file_or_folder
-from . import frm_comb_loc_possible, frm_calculate_plan, frm_settings_solver_params, frm_excel_settings
+from . import frm_comb_loc_possible, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
 from .frm_create_google_calendar import CreateGoogleCalendar
@@ -980,6 +980,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if not self.curr_team:
             QMessageBox.critical(self, 'Aktuelles Team', 'Es ist kein Team ausgewählt.')
             return
+
+        # Lazy Import: frm_calculate_plan nur laden wenn benötigt (Performance-Optimierung)
+        from . import frm_calculate_plan
 
         dlg = frm_calculate_plan.DlgCalculate(self, self.curr_team.id)
         if dlg.exec():

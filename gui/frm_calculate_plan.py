@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, 
     QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
 
 import tools
-import sat_solver
 from commands import command_base_classes
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
 from database import db_services, schemas
@@ -14,7 +13,6 @@ from gui import data_processing
 from gui.concurrency import general_worker
 from gui.custom_widgets.progress_bars import DlgProgressInfinite, DlgProgressSteps
 from gui.observer import signal_handling
-from sat_solver import solver_main
 from tools.helper_functions import generate_fixed_cast_clear_text, time_to_string, date_to_string, setup_form_help
 
 
@@ -51,8 +49,7 @@ class DlgCalculate(QDialog):
         # Help-System Integration
         setup_form_help(self, "calculate_plan", add_help_button=True)
 
-        signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit,
-                                                                     Qt.ConnectionType.QueuedConnection)
+        # Signal connection für solver_quit wird lazy in _calculate_schedule_versions gemacht
 
         self.team_id = team_id
         self.curr_plan_period_id: UUID | None = None
@@ -111,6 +108,13 @@ class DlgCalculate(QDialog):
                                      'Please select assignments in the locations first.')
                                .format(period=self.combo_plan_periods.currentText()))
             return
+
+        # Lazy Import: OR-Tools nur laden wenn Spielplanerstellung benötigt (Performance-Optimierung)
+        from sat_solver import solver_main
+        
+        # Signal für Solver-Cancel lazy verbinden
+        signal_handling.handler_solver.signal_cancel_solving.connect(solver_main.solver_quit,
+                                                                     Qt.ConnectionType.QueuedConnection)
 
         self.progress_dialog_solver = DlgProgressSteps(
             self, 

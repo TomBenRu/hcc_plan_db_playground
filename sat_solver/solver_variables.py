@@ -1,5 +1,12 @@
 import dataclasses
-from ortools.sat.python.cp_model import IntVar
+from typing import TYPE_CHECKING
+
+# OR-Tools lazy import für Performance-Optimierung
+# IntVar wird nur für Type Hints verwendet, daher conditional import
+if TYPE_CHECKING:
+    from ortools.sat.python.cp_model import IntVar
+else:
+    IntVar = "IntVar"  # String für Runtime, da nur für Type Hints benötigt
 
 
 @dataclasses.dataclass

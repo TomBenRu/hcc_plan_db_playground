@@ -28,7 +28,7 @@ from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
     cell_backgrounds_statistics, horizontal_header_statistics_color, horizontal_header_statistics_color_guest, \
     vertical_header_statistics_color
-from sat_solver import solver_main
+# solver_main wird lazy importiert bei Bedarf für Performance-Optimierung
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
     time_to_string, setup_form_help
@@ -560,6 +560,8 @@ class AppointmentField(QWidget):
                                                 self.tr('Cast changes are being tested for errors.'), self.tr('Cancel'),
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
+        # Lazy Import: OR-Tools nur laden wenn Plan-Test benötigt (Performance-Optimierung)
+        from sat_solver import solver_main
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
         worker.signals.finished.connect(self.check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
@@ -803,6 +805,8 @@ class FrmTabPlan(QWidget):
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
 
+        # Lazy Import: OR-Tools nur laden wenn Plan-Test benötigt (Performance-Optimierung)
+        from sat_solver import solver_main
         worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
         worker.signals.finished.connect(self._check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
@@ -830,6 +834,8 @@ class FrmTabPlan(QWidget):
                                              self.tr('The cast statistics are being updated.'),
                                              0, num_actor_plan_periods + 1,
                                              self.tr('Cancel'), signal_handling.handler_solver.cancel_solving)
+        # Lazy Import: OR-Tools nur laden wenn Fair-Shifts-Berechnung benötigt (Performance-Optimierung)
+        from sat_solver import solver_main
         worker = WorkerGetMaxFairShifts(solver_main.get_max_fair_shifts_per_app, self.plan.plan_period.id, 20, 80)
         progress_bar.show()
         worker.signals.finished.connect(self._update_statistics_finished, Qt.ConnectionType.QueuedConnection)

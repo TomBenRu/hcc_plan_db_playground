@@ -1,17 +1,16 @@
-import logging
-import os
-import platform
-import sys
-import traceback
-
-from PySide6.QtWidgets import QApplication, QMessageBox
-
-from configuration.project_paths import curr_user_path_handler
-from gui.custom_widgets.splash_screen import SplashScreen, InitializationProgressCallback
-from gui.app_initialization import initialize_application_with_progress
-
 
 def main():
+    import logging
+    import os
+    import platform
+    import sys
+    import traceback
+
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from gui.custom_widgets.splash_screen import SplashScreen, InitializationProgressCallback
+    from gui.app_initialization import initialize_application_with_progress
+
     # Einmalige OS-Erkennung (Best Practice)
     is_windows_os = platform.system() == "Windows"
 

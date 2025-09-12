@@ -1,8 +1,10 @@
 import collections
 import dataclasses
+import importlib
 import itertools
 import logging
 import os
+import sys
 import time
 from ast import literal_eval
 from collections import defaultdict
@@ -11,9 +13,41 @@ from datetime import date
 from typing import Generator, Tuple, List, Any, Dict
 from uuid import UUID
 
-from ortools.sat.cp_model_pb2 import CpSolverStatus
-from ortools.sat.python import cp_model
-from ortools.sat.python.cp_model import IntVar
+
+def setup_ortools_dlls():
+    """
+    OR-Tools DLLs nur bei Bedarf laden (Performance-Optimierung).
+    
+    Lädt OR-Tools DLLs aus dem PyInstaller Bundle nur wenn der Solver
+    tatsächlich verwendet wird, anstatt beim Anwendungsstart.
+    Dies reduziert die Startup-Zeit erheblich.
+    """
+    if hasattr(sys, '_MEIPASS'):  # PyInstaller Bundle-Umgebung
+        ortools_dir = os.path.join(sys._MEIPASS, '.ortools_libs')
+        if os.path.exists(ortools_dir):
+            try:
+                # Windows-spezifisch: DLL-Verzeichnis zur Suche hinzufügen
+                os.add_dll_directory(ortools_dir)
+                logging.info(f"OR-Tools DLLs aus {ortools_dir} für Solver-Verwendung geladen")
+            except (AttributeError, OSError) as e:
+                # Fallback für ältere Python-Versionen oder andere OS
+                logging.warning(f"Konnte OR-Tools DLL-Verzeichnis nicht hinzufügen: {e}")
+    else:
+        # Entwicklungsumgebung - keine spezielle DLL-Behandlung erforderlich
+        pass
+
+
+# OR-Tools DLLs lazy laden vor dem ersten Import
+setup_ortools_dlls()
+
+cp_model_pb2 = importlib.import_module('ortools.sat.cp_model_pb2')
+CpSolverStatus = cp_model_pb2.CpSolverStatus
+# from ortools.sat.cp_model_pb2 import CpSolverStatus
+cp_model = importlib.import_module('ortools.sat.python.cp_model')
+# from ortools.sat.python import cp_model
+cp_model_module = importlib.import_module('ortools.sat.python.cp_model')
+IntVar = cp_model_module.IntVar
+# from ortools.sat.python.cp_model import IntVar
 
 from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas

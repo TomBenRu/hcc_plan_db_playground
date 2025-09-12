@@ -9,22 +9,15 @@ from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog,
                                QApplication)
 from httplib2 import ServerNotFoundError
-from xlsxwriter.exceptions import FileCreateError
+# xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
 from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from database import db_services, schemas
-from export_to_file import plan_to_xlsx, avail_days_to_xlsx
-from export_to_file.avail_days_to_xlsx import export_avail_days_to_xlsx
-from google_calendar_api.add_access import add_or_update_access_to_calendar
-from google_calendar_api.authenticate import save_credentials
-from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
-from google_calendar_api.get_calendars import synchronize_local_calendars, get_calendar_by_id
-from google_calendar_api.show_google_calendar import open_google_calendar_in_browser
-from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
-from google_calendar_api.sync_employee_events import sync_employee_events_to_calendar
+# Excel Export Imports werden lazy geladen für bessere Startup-Performance
+# Google Calendar API Imports werden lazy geladen für bessere Startup-Performance
 
 from tools import open_file_or_folder
 from . import frm_comb_loc_possible, frm_settings_solver_params, frm_excel_settings
@@ -777,6 +770,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 functools.partial(export_finished, output_path=excel_output_path)
             )
 
+            # Lazy Import: Excel Export nur laden wenn benötigt (Performance-Optimierung)
+            from export_to_file import plan_to_xlsx
+
             plan_to_xlsx.export_plan_to_xlsx(self, widget, excel_output_path,
                                              dlg.note_in_empty_fields, dlg.note_in_employee_fields,
                                              dlg.include_employee_events)
@@ -959,6 +955,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             f'Verfügbarkeiten {plan_period.team.name} {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
         )
         create_dir_if_not_exist(excel_output_path)
+        
+        # Lazy Import: Excel Export nur laden wenn benötigt (Performance-Optimierung)
+        from export_to_file.avail_days_to_xlsx import export_avail_days_to_xlsx
+        from xlsxwriter.exceptions import FileCreateError
+        
         try:
             export_avail_days_to_xlsx(self, plan_period.id, excel_output_path)
         except FileCreateError as e:
@@ -1047,6 +1048,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         def transfer(plan: schemas.PlanShow):
             try:
+                # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+                from google_calendar_api.transfer_appointments import transfer_appointments_with_batch_requests
+                
                 transfer_appointments_with_batch_requests(plan)
                 return True
             except Exception as e:
@@ -1088,6 +1092,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def open_google_calendar(self):
         """Öffnet den Google-Kalender des aktuellen Projekts im Browser."""
+        # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+        from google_calendar_api.show_google_calendar import open_google_calendar_in_browser
+        
         open_google_calendar_in_browser()
 
     def sync_employee_events_to_google_calendar(self):
@@ -1096,6 +1103,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         def sync_events():
             """Führt die Synchronisation durch."""
             try:
+                # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+                from google_calendar_api.sync_employee_events import sync_employee_events_to_calendar
+                
                 sync_results = sync_employee_events_to_calendar(self.project_id)
                 return {'success': True, 'sync_results': sync_results}
             except Exception as e:
@@ -1160,6 +1170,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def create_google_calendar(self):
         def create():
             try:
+                # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+                from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
+                from google_calendar_api.get_calendars import get_calendar_by_id
+                
                 created_calendar = create_new_google_calendar(dlg.new_calender_data)
 
                 # Zugriffskontrolle für Personen-Kalender (bestehende Logik)
@@ -1262,6 +1276,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def synchronize_google_calenders(self):
         def synchronize():
             try:
+                # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+                from google_calendar_api.get_calendars import synchronize_local_calendars
+                
                 synchronize_local_calendars()
                 return True
             except ServerNotFoundError as e:
@@ -1301,6 +1318,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if dlg.exec():
             file_path = dlg.selectedFiles()[0]
             try:
+                # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
+                from google_calendar_api.authenticate import save_credentials
+                
                 save_credentials(file_path)
             except Exception as e:
                 QMessageBox.critical(self, 'Fehler beim Importieren der Google API Credentials',

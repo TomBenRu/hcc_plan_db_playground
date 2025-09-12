@@ -289,6 +289,9 @@ def initialize_main_application(app: QApplication,
         window.tab_restoration_in_progress = False  # Schließen wieder erlauben
 
         logging.info("Application initialized successfully")
+
+        # Signal-Verbindung trennen
+        window.tab_manager.tab_restoration_progress.disconnect()
         return window
         
     except Exception as e:

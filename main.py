@@ -8,4 +8,5 @@ from gui import app
 
 # r_path = os.path.dirname(__file__)
 # project_paths.paths.root_path = r_path
-app.app.exec()
+app = app.main()
+app.exec()

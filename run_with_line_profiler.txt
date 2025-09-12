@@ -1,0 +1,2 @@
+Dekoriere eine Funktion mit @line_profiler.profile
+und führe die Anwendung mit "$env:LINE_PROFILE=1; uv run .\main.py" aus.

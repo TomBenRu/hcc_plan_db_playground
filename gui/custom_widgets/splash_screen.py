@@ -139,8 +139,6 @@ class InitializationProgressCallback:
             next_step_progress = self.initialization_steps[self.current_step + 1][1]
             increment = int((next_step_progress - self.splash.progress) * fraction_to_next_step)
             self.splash.update_real_progress(step_name, self.splash.progress + increment)
-            print(f"{self.current_step=}, {self.initialization_steps[self.current_step][0]=},\n"
-                  f"{step_name=}, {self.splash.progress=}, {fraction_to_next_step=}, {increment=}\n\n")
         else:
             # Fallback für unbekannte Schritte
             self.current_step += 1

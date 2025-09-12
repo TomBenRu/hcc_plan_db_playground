@@ -22,7 +22,6 @@ from gui.custom_widgets.splash_screen import InitializationProgressCallback
 from gui.main_window import MainWindow
 from tools.logging.crash_handler import safe_execute
 from tools import proof_only_one_instance
-from configuration.general_settings import general_settings_handler
 
 
 def is_development_environment() -> bool:

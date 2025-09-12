@@ -1,6 +1,5 @@
 import collections
 import dataclasses
-import importlib
 import itertools
 import logging
 import os
@@ -10,10 +9,12 @@ from ast import literal_eval
 from collections import defaultdict
 import datetime
 from datetime import date
-from typing import Generator, Tuple, List, Any, Dict
+from typing import Generator
 from uuid import UUID
 
 
+# Folgende Funktion wird nicht mehr gebraucht,
+# durch direktes hinzufügen der DLLs (--add-data) in auto_py_to_exe_conf.json
 def setup_ortools_dlls():
     """
     OR-Tools DLLs nur bei Bedarf laden (Performance-Optimierung).
@@ -36,18 +37,9 @@ def setup_ortools_dlls():
         # Entwicklungsumgebung - keine spezielle DLL-Behandlung erforderlich
         pass
 
-
-# OR-Tools DLLs lazy laden vor dem ersten Import
-setup_ortools_dlls()
-
-cp_model_pb2 = importlib.import_module('ortools.sat.cp_model_pb2')
-CpSolverStatus = cp_model_pb2.CpSolverStatus
-# from ortools.sat.cp_model_pb2 import CpSolverStatus
-cp_model = importlib.import_module('ortools.sat.python.cp_model')
-# from ortools.sat.python import cp_model
-cp_model_module = importlib.import_module('ortools.sat.python.cp_model')
-IntVar = cp_model_module.IntVar
-# from ortools.sat.python.cp_model import IntVar
+from ortools.sat.cp_model_pb2 import CpSolverStatus
+from ortools.sat.python import cp_model
+from ortools.sat.python.cp_model import IntVar
 
 from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas

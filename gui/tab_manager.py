@@ -382,7 +382,7 @@ class TabManager(QObject):
             from .frm_actor_plan_period import FrmTabActorPlanPeriods
             from .frm_location_plan_period import FrmTabLocationPlanPeriods
             
-            widget_pp_tab = PlanPeriodTabWidget(self.parent, plan_period_id)
+            widget_pp_tab = PlanPeriodTabWidget(self.parent, plan_period_id, plan_period.start, plan_period.end)
             string_start = date_to_string(plan_period.start)
             string_end = date_to_string(plan_period.end)
             

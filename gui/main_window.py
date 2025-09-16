@@ -20,6 +20,7 @@ from database import db_services, schemas
 # Google Calendar API Imports werden lazy geladen für bessere Startup-Performance
 
 from tools import open_file_or_folder
+from tools.helper_functions import date_to_string
 from . import frm_comb_loc_possible, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
@@ -390,12 +391,23 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     @Slot(str, object)
     def _on_tab_opened(self, tab_type: str, widget: object):
-        """Handler für geöffnete Tabs"""
+        """
+        Handler für geöffnete Tabs
+        - Aktualisiert StatusBar
+        - Führt Tab-spezifische Aktionen aus
+        Args:
+            tab_type: 'plan' oder 'plan_period'
+            widget: das geöffnete Tab-Widget (FrmTabPlan oder FrmTabPlanPeriod)
+        """
         if tab_type == "plan":
-            # Plan-Tab geöffnet - weitere Aktionen wenn nötig
+            self.statusBar().showMessage(self.tr("Opens Planning-Tab: {name}").format(name=widget.plan.name))
             pass
         elif tab_type == "plan_period":
-            # Planungsmasken-Tab geöffnet
+            if widget.period_start and widget.period_end:
+                info_txt = f'{date_to_string(widget.period_start)} - {date_to_string(widget.period_end)}'
+            else:
+                info_txt = 'No period'
+            self.statusBar().showMessage(self.tr("Openes planning data: {name}").format(name=info_txt))
             pass
 
     @Slot(str, object)

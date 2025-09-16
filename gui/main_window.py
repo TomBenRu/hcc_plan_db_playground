@@ -400,14 +400,16 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             widget: das geöffnete Tab-Widget (FrmTabPlan oder FrmTabPlanPeriod)
         """
         if tab_type == "plan":
-            self.statusBar().showMessage(self.tr("Opens Planning-Tab: {name}").format(name=widget.plan.name))
+            self.statusBar().showMessage(self.tr("Opened Planning-Tab: {name}").format(name=widget.plan.name),
+                                         timeout=3000)
             pass
         elif tab_type == "plan_period":
             if widget.period_start and widget.period_end:
                 info_txt = f'{date_to_string(widget.period_start)} - {date_to_string(widget.period_end)}'
             else:
                 info_txt = 'No period'
-            self.statusBar().showMessage(self.tr("Openes planning data: {name}").format(name=info_txt))
+            self.statusBar().showMessage(self.tr("Opened planning data: {name}").format(name=info_txt),
+                                         timeout=3000)
             pass
 
     @Slot(str, object)

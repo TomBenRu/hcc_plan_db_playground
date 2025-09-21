@@ -1,0 +1,17 @@
+# Simplified FastAPI Auth Service Requirements
+# Vereinfachte Dependencies ohne HCC Plan project_paths
+
+# FastAPI Stack
+fastapi==0.116.2
+uvicorn[standard]==0.35.0
+pydantic==2.4.2
+
+# Database Dependencies  
+pony==0.7.17
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.0
+
+# HTTP Client
+httpx==0.28.0
+
+# Das wars! Keine toml, python-dateutil oder andere HCC Plan Dependencies

@@ -1,0 +1,16 @@
+# Ultra-Simplified Auth Service Requirements
+# Direkte SQLite-Queries ohne Pony ORM
+
+# FastAPI Stack
+fastapi==0.116.2
+uvicorn[standard]==0.35.0
+pydantic==2.4.2
+
+# Password Hashing
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.0
+
+# HTTP Client
+httpx==0.28.0
+
+# SQLite3 ist Teil von Python Standard Library - keine extra dependency nötig!

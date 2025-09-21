@@ -1,0 +1,113 @@
+# .dockerignore - HCC Plan Docker Build Optimization
+# Exclude large directories und development files from Docker build context
+
+# Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Development Tools
+.serena/
+try_outs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+README*
+
+# Test Files
+tests/
+test_*.py
+*_test.py
+
+# Build Artifacts
+build/
+dist/
+*.egg-info/
+output/
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Docker Files (avoid recursion) - EXCLUDE specific files, INCLUDE docker/ scripts
+Dockerfile*
+docker-compose*.yml
+*.bat
+*.cmd
+*.ps1
+
+# Shell scripts (exclude development scripts, INCLUDE docker/ directory)
+apply-*.sh
+build-*.sh
+create-*.sh
+detect-*.sh
+quick-*.sh
+test-*.sh
+start-*.sh
+debug-*.sh
+
+# IMPORTANT: Include docker/ directory scripts
+!docker/
+!docker/*.sh
+
+# Large Data Files
+*.sqlite-wal
+*.sqlite-shm
+*.log
+*.csv
+*.xlsx
+
+# Guacamole Config (will be mounted as volumes)
+user-mapping*.xml
+guacamole.properties
+
+# Session Manager
+session-manager/
+
+# Employment Statistics (if large)
+employment_statistics/
+
+# Build Tools Config
+auto_py_to_exe_conf.json
+pyproject.toml
+uv.lock
+
+# Development Scripts (already covered above)
+# quick-test*.cmd, debug-*.bat, test-*.bat, start-*.bat
+# apply-*.sh, build-*.sh, create-*.sh, detect-*.sh
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Keep Essential Files for HCC Plan:
+# - Python source code (all .py files)
+# - Configuration files (configuration/)
+# - Database models (database/models.py, etc.)
+# - GUI files (gui/)
+# - Requirements (requirements.txt)
+# - Docker startup scripts (docker/start-session.sh, docker/supervisord.conf)

@@ -127,6 +127,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Export Plan to Excel...'),
                               self.tr('Exports the active plan to an Excel file'),
                               self.plan_export_to_excel),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'),
+                              self.tr('Export Events in Plan for Fibu...'),
+                              self.tr('Exports the events in the active plan to an Excel file'),
+                              self.events_in_plan_for_fibu_to_excel),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-folder-open-table.png'),
                               self.tr('Open Excel Export Folder'),
                               self.tr('Shows current plans and availabilities in Explorer.'),
@@ -261,6 +265,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                self.actions['import_from_plan_api'], None,
                                {
                                    self.tr('Export'): [self.actions['plan_export_to_excel'],
+                                                       self.actions['events_in_plan_for_fibu_to_excel'],
                                                        self.actions['export_avail_days_to_excel']]
                                },
                                self.actions['lookup_for_excel_plan_folder'],
@@ -746,7 +751,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def plan_export_to_excel(self, index: int = None):
         @Slot(bool)
         def export_finished(success: bool, output_path: str):
-            print(f'{success=}, {output_path=}')
             if success:
                 QMessageBox.information(self, 'Plan Excel-Export',
                                         f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
@@ -790,6 +794,49 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             plan_to_xlsx.export_plan_to_xlsx(self, widget, excel_output_path,
                                              dlg.note_in_empty_fields, dlg.note_in_employee_fields,
                                              dlg.include_employee_events)
+
+    def events_in_plan_for_fibu_to_excel(self):
+        @Slot(bool)
+        def export_finished(success: bool, output_path: str):
+            if success:
+                QMessageBox.information(self, self.tr('Fibu Events Excel-Export'),
+                                        self.tr('Fibu-Events wurde erfolgreich unter\n{output_path}\nexportiert.')
+                                        .format(output_path=output_path)
+                                        )
+                reply = QMessageBox.question(self, self.tr('Fibu Events Excel-Export'),
+                                             self.tr('Soll die Excel-Datei jetzt geöffnet werden?'))
+                if reply == QMessageBox.StandardButton.Yes:
+                    try:
+                        open_file_or_folder.open_file_or_folder(output_path)
+                    except Exception as e:
+                        QMessageBox.critical(self, self.tr('Fibu Events Excel-Export'), f'{e}')
+            else:
+                QMessageBox.critical(self, self.tr('Fibu Events Excel-Export'),
+                                     self.tr('Fibu-Events konnte nicht exportiert werden.'))
+
+        def create_dir_if_not_exist(path: str):
+            dir_path = path.rsplit(os.sep, 1)[0]
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+        # TabManager Property nutzen
+        widget = self.tab_manager.current_plan_widget
+        if not widget:
+            QMessageBox.critical(self, 'Fibu-Events Excel-Export', 'Sie müssen zuerst einen Plan öffnen.')
+            return
+
+        excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period),
+                                         f'{widget.plan.name}_fibu.xlsx')
+        create_dir_if_not_exist(excel_output_path)
+
+        signal_handling.handler_excel_export.signal_finished.connect(
+            functools.partial(export_finished, output_path=excel_output_path)
+        )
+
+        # Lazy Import: Excel Export nur laden wenn benötigt (Performance-Optimierung)
+        from export_to_file import events_in_plan_for_fibu
+
+        events_in_plan_for_fibu.export_events_in_plan_for_fibu(self, widget.plan, excel_output_path)
 
     def lookup_for_excel_plan_folder(self):
         """Minimal angepasst: Nutzt TabManager Properties"""

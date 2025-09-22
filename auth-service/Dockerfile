@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY auth-service/requirements.txt .
+COPY auth-service/requirements_direct_sqlite.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -43,5 +43,5 @@ USER hccauth
 # Expose port
 EXPOSE 8000
 
-# Run FastAPI application
-CMD ["python", "auth-service/main.py"]
+# Run FastAPI application (Direct SQLite Version)
+CMD ["python", "auth-service/main_direct_sqlite.py"]

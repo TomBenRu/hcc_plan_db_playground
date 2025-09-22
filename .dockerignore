@@ -83,8 +83,8 @@ debug-*.sh
 user-mapping*.xml
 guacamole.properties
 
-# Session Manager
-session-manager/
+# Session Manager - ENABLED for Dynamic Multi-User System
+# session-manager/
 
 # Employment Statistics (if large)
 employment_statistics/

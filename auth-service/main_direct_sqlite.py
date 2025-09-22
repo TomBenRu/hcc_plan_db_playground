@@ -32,8 +32,8 @@ app = FastAPI(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database Path
-DOCKER_DB_PATH = "/root/.local/share/happy_code_company/hcc_plan/database/database.sqlite"
+# Database Path (Docker Volume Mount)
+DOCKER_DB_PATH = "/app/database/db_docker_test.sqlite"
 
 # Password Context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

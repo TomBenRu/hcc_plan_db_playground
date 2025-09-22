@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import logging
 import os
 from collections import defaultdict
 from pprint import pprint
@@ -15,6 +16,8 @@ from export_to_file.employee_events_to_xlsx import integrate_employee_events_int
 from gui import frm_plan
 from gui.observer import signal_handling
 from tools.helper_functions import get_appointments_of_actors_from_plan
+
+logger = logging.getLogger(__name__)
 
 
 class ExportToXlsx:
@@ -395,9 +398,8 @@ class ExportToXlsx:
                     self.tab_plan.plan.plan_period,
                     self.tab_plan.plan.excel_export_settings
                 )
-                print(f"✅ Integrated {employee_events_count} Employee Events into Excel export")
             except Exception as e:
-                print(f"⚠️ Error integrating Employee Events: {e}")
+                logger.error(f"⚠️ Error integrating Employee Events: {e}")
                 # Continue with normal export even if Employee Events fail
 
         while True:
@@ -417,11 +419,12 @@ class ExportToXlsx:
                     success = False
             break
 
-        signal_handling.handler_excel_export.finished(success)
+        return success
 
 
 def export_plan_to_xlsx(parent: QWidget, tab_plan: frm_plan.FrmTabPlan, output_path: str,
                       note_in_empty_fields: bool, note_in_employee_fields: bool, include_employee_events: bool = True):
     exporter = ExportToXlsx(parent, tab_plan, output_path, note_in_empty_fields, note_in_employee_fields,
                             include_employee_events)
-    exporter.execute()
+    success = exporter.execute()
+    signal_handling.handler_excel_export.finished(success)

@@ -1,5 +1,5 @@
 # Ultra-Simplified Auth Service Requirements
-# Direkte SQLite-Queries ohne Pony ORM
+# Direct SQLite queries without Pony ORM - optimized for main_direct_sqlite.py
 
 # FastAPI Stack
 fastapi==0.116.2
@@ -13,4 +13,4 @@ bcrypt==4.2.0
 # HTTP Client
 httpx==0.28.0
 
-# SQLite3 ist Teil von Python Standard Library - keine extra dependency nötig!
+# SQLite3 is part of Python Standard Library - no extra dependency needed!

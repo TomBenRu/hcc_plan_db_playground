@@ -754,7 +754,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             if success:
                 QMessageBox.information(self, 'Plan Excel-Export',
                                         f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
-                signal_handling.handler_excel_export.signal_finished.disconnect()
                 reply = QMessageBox.question(self, 'Plan Excel-Export',
                                              'Soll die Excel-Datei jetzt geöffnet werden?', )
                 if reply == QMessageBox.StandardButton.Yes:
@@ -764,6 +763,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                         QMessageBox.critical(self, 'Plan Excel-Export', f'{e}')
             else:
                 QMessageBox.critical(self, 'Plan Excel-Export', 'Plan konnte nicht exportiert werden.')
+            signal_handling.handler_excel_export.signal_finished.disconnect()
 
         def create_dir_if_not_exist(path: str):
             dir_path = path.rsplit(os.sep, 1)[0]
@@ -813,6 +813,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             else:
                 QMessageBox.critical(self, self.tr('Fibu Events Excel-Export'),
                                      self.tr('Fibu-Events konnte nicht exportiert werden.'))
+            signal_handling.handler_excel_export.signal_finished.disconnect()
 
         def create_dir_if_not_exist(path: str):
             dir_path = path.rsplit(os.sep, 1)[0]

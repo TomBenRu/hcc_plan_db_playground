@@ -166,7 +166,8 @@ def create_google_event(appointment: schemas.Appointment) -> tuple[dict, int]:
         int: Anzahl der unbesetzten Plätze
     """
     names_of_employees = [avd.actor_plan_period.person.full_name for avd in appointment.avail_days] + appointment.guests
-    num_vacant = appointment.event.location_plan_period.nr_actors - len(names_of_employees)
+    cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
+    num_vacant = cast_group.nr_actors - len(names_of_employees)
     text_vacant = f' (unbesetzt: {num_vacant})' if num_vacant > 0 else ''
     event_obj = GoogleCalendarEvent(
         summary=appointment.event.location_plan_period.location_of_work.name_an_city,

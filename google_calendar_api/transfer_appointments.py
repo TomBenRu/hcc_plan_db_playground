@@ -37,10 +37,13 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
     calendars = curr_calendars_handler.get_calenders()
 
     google_events = []
+    google_events_vacant = []
     user_cal_id__google_events: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
     for appointment in plan.appointments:
-        google_event = create_google_event(appointment)
+        google_event, num_vacant = create_google_event(appointment)
         google_events.append(google_event)
+        if num_vacant:
+            google_events_vacant.append(google_event.copy())
         user_calendars = (c for c in calendars.values()
                           if c.type == 'person_appointments'
                           and c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
@@ -48,7 +51,11 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
             user_cal_id__google_events[(user_calendar.id, user_calendar.person_name)].append(google_event)
 
     team_calendar = next((c for c in calendars.values()
-                          if c.type == 'team_appointments' and c.team_id == plan.plan_period.team.id), None)
+                          if c.type == 'team_appointments' and c.team_id == plan.plan_period.team.id and
+                          c.appointment_type == 'all'), None)
+    team_calendar_open_appointments = next((c for c in calendars.values()
+                                             if c.type == 'team_appointments' and c.team_id == plan.plan_period.team.id and
+                                             c.appointment_type == 'open'), None)
     text_time_span = f'{plan.plan_period.start:%d.%m.%y}-{plan.plan_period.end:%d.%m.%y}'
 
     if team_calendar:
@@ -58,7 +65,8 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
             f'Aktion: Termine übertragen.'
         )
         # Batch-Request erstellen
-        batch = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
+        batch_all_appointments = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
+        batch_open_appointments = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
 
         # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit id user_cal_id abrufen
         events_result = service.events().list(
@@ -68,19 +76,36 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
             singleEvents=True,
             orderBy='startTime'
         ).execute()
+        # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit offenen Terminen mit id user_cal_id abrufen
+        events_result_open_appointments = service.events().list(
+            calendarId=team_calendar_open_appointments.id,
+            timeMin=f'{start_time.isoformat()}Z',
+            timeMax=f'{end_time.isoformat()}Z',
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
 
         # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit id user_cal_id löschen
         for event in events_result.get('items', []):
-            batch.add(service.events().delete(calendarId=team_calendar.id, eventId=event['id']),
+            batch_all_appointments.add(service.events().delete(calendarId=team_calendar.id, eventId=event['id']),
+                      request_id=f'delete_event_{event["id"]}')
+        # Alle Events innerhalb des Zeitrahmens des Team-Kalenders mit offenen Terminen mit id user_cal_id löschen
+        for event in events_result_open_appointments.get('items', []):
+            batch_open_appointments.add(service.events().delete(calendarId=team_calendar_open_appointments.id, eventId=event['id']),
                       request_id=f'delete_event_{event["id"]}')
 
         # Anfrage hinzufügen: Alle Termine in google_events in den Google-Kalender des Teams übertragen
         for google_event in google_events:
-            batch.add(service.events().insert(calendarId=team_calendar.id, body=google_event),
+            batch_all_appointments.add(service.events().insert(calendarId=team_calendar.id, body=google_event),
                       request_id=f'insert_event_to_team_calendar_{google_event["start"]["dateTime"]}-'
                                  f'{google_event["end"]["dateTime"]}_{google_event["summary"]}')
+        for google_event in google_events_vacant:
+            batch_open_appointments.add(service.events().insert(calendarId=team_calendar_open_appointments.id, body=google_event),
+                      request_id=f'insert_event_to_team_calendar_open_appointments_{google_event["start"]["dateTime"]}-'
+                                 f'{google_event["end"]["dateTime"]}_{google_event["summary"]}')
         # Batch-Request ausführen
-        batch.execute()
+        batch_all_appointments.execute()
+        batch_open_appointments.execute()
 
     # Anfrage hinzufügen: Alle Termine von start_time bis end_time aus den Google-Kalendern der Teilnehmer löschen und
     # Anfrage hinzufügen: Alle Termine in user_cal_id__google_events in den Google-Kalendern der Teilnehmer übertragen
@@ -131,15 +156,25 @@ def add_event_to_calendar(calendar_id, event, service: Resource | None = None):
         print(f"Fehlerdetails: {error.content}")
 
 
-def create_google_event(appointment: schemas.Appointment):
+def create_google_event(appointment: schemas.Appointment) -> tuple[dict, int]:
+    """
+    Erstellt ein Google Calendar Event aus einem Appointment.
+    Args:
+        appointment: Appointment aus dem Plan
+    Returns:
+        dict: Google Calendar Event dict
+        int: Anzahl der unbesetzten Plätze
+    """
     names_of_employees = [avd.actor_plan_period.person.full_name for avd in appointment.avail_days] + appointment.guests
+    num_vacant = appointment.event.location_plan_period.nr_actors - len(names_of_employees)
+    text_vacant = f' (unbesetzt: {num_vacant})' if num_vacant > 0 else ''
     event_obj = GoogleCalendarEvent(
         summary=appointment.event.location_plan_period.location_of_work.name_an_city,
         location=f'{appointment.event.location_plan_period.location_of_work.name}, '
                  f'{appointment.event.location_plan_period.location_of_work.address.street}, '
                  f'{appointment.event.location_plan_period.location_of_work.address.postal_code} '
                  f'{appointment.event.location_plan_period.location_of_work.address.city}',
-        description=', '.join(names_of_employees) + (f'\nInfo: {appointment.notes}' if appointment.notes else ''),
+        description=', '.join(names_of_employees) + text_vacant + (f'\nInfo: {appointment.notes}' if appointment.notes else ''),
         start_time=datetime.datetime(appointment.event.date.year, appointment.event.date.month,
                                      appointment.event.date.day, appointment.event.time_of_day.start.hour,
                                      appointment.event.time_of_day.start.minute),
@@ -149,7 +184,7 @@ def create_google_event(appointment: schemas.Appointment):
     )
     if appointment.event.time_of_day.end < appointment.event.time_of_day.start:
         event_obj.end_time += datetime.timedelta(days=1)
-    return event_obj.to_google_event()
+    return event_obj.to_google_event(), num_vacant
 
 
 def transfer_plan_appointments(plan: schemas.PlanShow):

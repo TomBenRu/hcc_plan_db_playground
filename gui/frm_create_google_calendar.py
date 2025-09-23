@@ -387,15 +387,14 @@ class CreateGoogleCalendar(QDialog):
             
             # Automatische Namensgebung für Team-Kalender
             self.le_team_summary.setText(
-                self.tr('{project_name} - Team {team_name}').format(
-                    project_name=self.project.name,
+                self.tr('Appointments {team_name}').format(team_name=team_name).format(
                     team_name=team_name
                 )
             )
             
             # Automatische Beschreibung mit team_id
             self.le_team_description.setText(
-                '{{"description": "{desc}", "team_id": "{team_id}"}}'.format(
+                '{{"description": "{desc}", "team_id": "{team_id}", "appointment_type": "all"}}'.format(
                     desc=self.tr('Team appointments {team_name}').format(team_name=team_name),
                     team_id=team_id
                 )
@@ -538,29 +537,42 @@ class CreateGoogleCalendar(QDialog):
         super().accept()
 
     @property
-    def new_calender_data(self) -> dict[str, str]:
+    def new_calender_data(self) -> list[dict[str, str]]:
         """Kalender-Daten basierend auf ausgewähltem Typ"""
         if self.calendar_type == 'person':
-            return {
-                'summary': self.le_summary.text(),
-                'description': self.le_description.text(),
-                'location': 'Berlin',
-                'timeZone': 'Europe/Berlin'
-            }
+            return [
+                {
+                    'summary': self.le_summary.text(),
+                    'description': self.le_description.text(),
+                    'location': 'Berlin',
+                    'timeZone': 'Europe/Berlin'
+                }
+            ]
         elif self.calendar_type == 'team':
-            return {
-                'summary': self.le_team_summary.text(),
-                'description': self.le_team_description.text(),
-                'location': 'Berlin',
-                'timeZone': 'Europe/Berlin'
-            }
+            return [
+                {
+                    'summary': self.le_team_summary.text(),
+                    'description': self.le_team_description.text(),
+                    'location': 'Berlin',
+                    'timeZone': 'Europe/Berlin'
+                },
+                {
+                    'summary': self.le_team_summary.text() + self.tr(' (open)'),
+                    'description': f'{self.le_team_description.text().replace('"appointment_type": "all"', 
+                                                                              '"appointment_type": "open"')}',
+                    'location': 'Berlin',
+                    'timeZone': 'Europe/Berlin'
+                }
+            ]
         else:  # employee_events
-            return {
-                'summary': self.le_ee_summary.text(),
-                'description': self.le_ee_description.text(),
-                'location': 'Berlin',
-                'timeZone': 'Europe/Berlin'
-            }
+            return [
+                {
+                    'summary': self.le_ee_summary.text(),
+                    'description': self.le_ee_description.text(),
+                    'location': 'Berlin',
+                    'timeZone': 'Europe/Berlin'
+                }
+            ]
 
     @property
     def email_for_access_control(self):

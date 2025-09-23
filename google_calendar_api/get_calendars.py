@@ -26,6 +26,7 @@ def add_data_from_description_field(calendar: dict[str, Any]) -> dict:
                             else 'person_appointments' if desc.startswith('Employee appointments')
                             else 'employee_events' if desc.startswith('Employee events')
                             else 'unknown')
+        calendar['appointment_type'] = description.get('appointment_type') if 'appointment_type' in description else None
     except JSONDecodeError as e:
         print(f'Fehler: description field does not contain valid json string: {e}')
         raise Exception(
@@ -52,9 +53,6 @@ def list_calendar_acl(calendar_id: str, service: Resource = None):
         if not acl_entries:
             print(f"Keine Freigaben für Kalender-ID: {calendar_id}")
             return None
-
-        # for acl in acl_entries:
-            # print(f"Role: {acl['role']}, Scope: {acl['scope']['type']}, Email: {acl['scope'].get('value', 'N/A')}")
 
         return acl_entries
     except HttpError as error:
@@ -103,6 +101,7 @@ def get_calendar_by_id(calendar_id: str):
     try:
         # Kalenderdaten abrufen
         calendar = service.calendars().get(calendarId=calendar_id).execute()
+        print(f"Kalender:\n{pprint.pformat(calendar)}")
         acl_entries = list_calendar_acl(calendar_id, service)
         calendar['access_control'] = [a['scope'].get('value') for a in acl_entries] if acl_entries else []
         try:

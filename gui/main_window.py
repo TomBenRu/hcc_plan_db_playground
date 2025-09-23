@@ -1,6 +1,7 @@
 import functools
 import logging
 import os.path
+import pprint
 import sys
 from uuid import UUID
 
@@ -1235,24 +1236,28 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 # Lazy Import: Google Calendar API nur laden wenn benötigt (Performance-Optimierung)
                 from google_calendar_api.create_calendar import create_new_google_calendar, share_calendar
                 from google_calendar_api.get_calendars import get_calendar_by_id
-                
-                created_calendar = create_new_google_calendar(dlg.new_calender_data)
+
+                created_calendars = [create_new_google_calendar(data) for data in dlg.new_calender_data]
+                # created_calendar = create_new_google_calendar(dlg.new_calender_data)
 
                 # Zugriffskontrolle für Personen-Kalender (bestehende Logik)
                 if dlg.calendar_type == 'person' and dlg.email_for_access_control:
-                    share_calendar(created_calendar['id'], dlg.email_for_access_control)
+                    share_calendar(created_calendars[0]['id'], dlg.email_for_access_control)
                 
                 # Zugriffskontrolle für Team-Kalender (neue Logik)
                 elif dlg.calendar_type == 'team' and dlg.selected_team_member_emails:
-                    for email in dlg.selected_team_member_emails:
-                        share_calendar(created_calendar['id'], email, 'reader')
+                    for created_calendar in created_calendars:
+                        for email in dlg.selected_team_member_emails:
+                            share_calendar(created_calendar['id'], email, 'reader')
                 
                 # NEU: Employee-Events Zugriffskontrolle
                 elif dlg.calendar_type == 'employee_events' and dlg.selected_ee_person_emails:
                     for email in dlg.selected_ee_person_emails:
-                        share_calendar(created_calendar['id'], email, 'reader')
-                calendar = get_calendar_by_id(created_calendar['id'])
-                curr_calendars_handler.save_calendar_json_to_file(calendar)
+                        share_calendar(created_calendars[0]['id'], email, 'reader')
+                for created_calendar in created_calendars:
+                    calendar = get_calendar_by_id(created_calendar['id'])
+                    print(f"Kalender-Daten:\n{pprint.pformat(calendar)}")
+                    curr_calendars_handler.save_calendar_json_to_file(calendar)
                 return {'success': True}
             except ServerNotFoundError as e:
                 return {'error': 'ServerNotFoundError', 'message': e}
@@ -1272,6 +1277,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                                'eingerichtet.')
                 elif dlg.calendar_type == 'team':
                     calendar_name = f"Team {dlg.combo_teams.currentText()}"
+
                     if dlg.selected_team_member_emails:
                         emails_text = '\n'.join(dlg.selected_team_member_emails)
                         text_access_control = (f'\nDie folgenden Team-Mitglieder haben Zugriff auf diesen Kalender:\n'
@@ -1293,7 +1299,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
                 QMessageBox.information(
                     self, 'Google-Kalender erstellen',
-                    f'Ein neuer Google-Kalender für {calendar_name} wurde erstellt.{text_access_control}')
+                    f'{"Neuer " if len(dlg.new_calender_data) > 1 else "Ein neuer"} Google-Kalender für '
+                    f'{calendar_name} wurde erstellt.{text_access_control}')
             else:
                 if result['error'] == 'ServerNotFoundError':
                     error_text = f'{result["message"]}\nBitte prüfen Sie Ihre Internetverbindung.'

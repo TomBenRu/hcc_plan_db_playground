@@ -21,6 +21,7 @@ class GoogleCalendar(BaseModel):
     person_id: UUID | None = None
     team_id: UUID | None = None
     type: str | None = None  # person_appointments, team_appointments, employee_events, unknown
+    appointment_type: str | None = None  # all, open
 
 
 class CalendarSyncTimes(BaseModel):

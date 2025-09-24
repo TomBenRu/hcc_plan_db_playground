@@ -397,8 +397,7 @@ class Person:
         person_db = models.Person.get_for_update(id=person.id)
         if person_db.address:
             if person.address:
-                address = Address.update(person.address)
-                # person_db.address = models.Address.get_for_update(id=address.id)
+                Address.update(person.address)
             else:
                 person_db.address = None
         else:
@@ -650,8 +649,7 @@ class LocationOfWork:
             location_db.time_of_days.add(models.TimeOfDay.get_for_update(id=t_o_d.id))
         if location_db.address:
             if location_of_work.address:
-                address = Address.update(location_of_work.address)
-                # location_db.address = models.Address.get_for_update(id=address.id)
+                Address.update(location_of_work.address)
             else:
                 location_db.address = None
         else:
@@ -1180,7 +1178,6 @@ class Address:
     def create(cls, address: schemas.AddressCreate) -> schemas.Address:
         log_function_info(cls)
         project_db = models.Project.get_for_update(id=address.project_id)
-        print(f'Creating address: {address}')
         address_db = models.Address(project=project_db,
                                     street=address.street,
                                     postal_code=address.postal_code,

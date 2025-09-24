@@ -306,6 +306,7 @@ class DlgPersonData(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.setMinimumWidth(350)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
@@ -405,6 +406,8 @@ class DlgPersonModify(DlgPersonData):
         self.group_specific_data_layout = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
+        self.le_id = QLineEdit()
+        self.le_id.setReadOnly(True)
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
@@ -414,6 +417,7 @@ class DlgPersonModify(DlgPersonData):
                                                       clicked=self.edit_partner_location_prefs)
         self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
+        self.group_person_data_layout.addRow(self.tr('ID'), self.le_id)
         self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
         self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
@@ -474,6 +478,7 @@ class DlgPersonModify(DlgPersonData):
         self.fill_requested_assignm()
 
     def fill_person_data(self):
+        self.le_id.setText(str(self.person.id))
         self.le_f_name.setText(self.person.f_name)
         self.le_l_name.setText(self.person.l_name)
         self.le_email.setText(self.person.email)
@@ -711,6 +716,8 @@ class DlgLocationData(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
+        self.setMinimumWidth(350)
+
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
 
@@ -788,6 +795,8 @@ class DlgLocationModify(DlgLocationData):
         self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
+        self.le_id = QLineEdit()
+        self.le_id.setReadOnly(True)
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
         self.layout_teams = QVBoxLayout()
@@ -800,6 +809,7 @@ class DlgLocationModify(DlgLocationData):
         self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
         self.bt_skill_groups = QPushButton(self.tr('Edit...'), clicked=self.edit_skill_groups)
 
+        self.group_location_data_layout.addRow(self.tr('ID'), self.le_id)
         self.layout_group_specific_data.addRow(self.tr('Staff Count'), self.spin_nr_actors)
         self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.layout_group_specific_data.addRow(self.tr('Team'), self.layout_teams)
@@ -809,6 +819,7 @@ class DlgLocationModify(DlgLocationData):
 
     def _autofill_widgets(self):
         self.le_name.setText(self.location_of_work.name)
+        self.le_id.setText(str(self.location_of_work.id))
         if self.location_of_work.address:
             self.le_street.setText(self.location_of_work.address.street)
             self.le_postal_code.setText(self.location_of_work.address.postal_code)

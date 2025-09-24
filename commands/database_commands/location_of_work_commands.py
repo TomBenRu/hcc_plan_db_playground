@@ -10,9 +10,10 @@ class Update(Command):
     def __init__(self, location_of_work: schemas.LocationOfWorkShow):
         self.new_data = location_of_work.model_copy()
         self.old_data = db_services.LocationOfWork.get(location_of_work.id)
+        self.updated_location_of_work: schemas.LocationOfWorkShow | None = None
 
     def execute(self):
-        db_services.LocationOfWork.update(self.new_data)
+        self.updated_location_of_work = db_services.LocationOfWork.update(self.new_data)
 
     def undo(self):
         db_services.LocationOfWork.update(self.old_data)

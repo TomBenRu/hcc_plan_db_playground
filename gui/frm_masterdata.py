@@ -20,7 +20,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
     frm_assign_to_team, frm_skills
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
-    location_plan_period_commands, event_group_commands
+    location_plan_period_commands, event_group_commands, address_commands
 from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
@@ -438,14 +438,27 @@ class DlgPersonModify(DlgPersonData):
         self.person.phone_nr = self.le_phone_nr.text()
         self.person.requested_assignments = self.spin_num_requested_assignments.value()
         if person_address_is_set:
-            self.person.address.street = street
-            self.person.address.postal_code = postal_code
-            self.person.address.city = city
-            self.person.address.name = descriptive_name
+            if self.person.address is None:
+                new_address = schemas.AddressCreate(project_id=self.project_id,
+                                                    street=street,
+                                                    postal_code=postal_code,
+                                                    city=city,
+                                                    name=descriptive_name)
+                create_address_command = address_commands.Create(new_address)
+                self.controller.execute(create_address_command)
+                created_address = create_address_command.created_address
+                self.person.address = created_address
+            else:
+                self.person.address.street = street
+                self.person.address.postal_code = postal_code
+                self.person.address.city = city
+                self.person.address.name = descriptive_name
         else:
             self.person.address = None
 
-        updated_person = db_services.Person.update(self.person)
+        update_person_command = person_commands.Update(self.person)
+        self.controller.execute(update_person_command)
+        updated_person = update_person_command.updated_person
         QMessageBox.information(self, self.tr('Person Update'),
                                 self.tr('Person has been updated:\n{} {}').format(
                                     updated_person.f_name, updated_person.l_name))
@@ -814,15 +827,24 @@ class DlgLocationModify(DlgLocationData):
 
         self.location_of_work.name = self.le_name.text().strip()
         if address_is_set:
-            self.location_of_work.address.street = street
-            self.location_of_work.address.postal_code = postal_code
-            self.location_of_work.address.city = city
-            self.location_of_work.address.name = descriptive_name
+            if self.location_of_work.address is None:
+                address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
+                create_address_command = address_commands.Create(address)
+                self.controller.execute(create_address_command)
+                created_address = create_address_command.created_address
+                self.location_of_work.address = created_address
+            else:
+                self.location_of_work.address.street = street
+                self.location_of_work.address.postal_code = postal_code
+                self.location_of_work.address.city = city
+                self.location_of_work.address.name = descriptive_name
 
         else:
             self.location_of_work.address = None
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
-        updated_location = db_services.LocationOfWork.update(self.location_of_work)
+        update_location_command = location_of_work_commands.Update(self.location_of_work)
+        self.controller.execute(update_location_command)
+        updated_location = update_location_command.updated_location_of_work
         QMessageBox.information(self, self.tr('Location Update'),
                               self.tr('The location has been updated:\n{name}').format(
                                   name=updated_location.name))

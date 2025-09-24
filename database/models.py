@@ -434,9 +434,9 @@ class Address(db.Entity):
     """Adressen ohne Zugehörigkeit können in regelmäßigen Abständen gelöscht werden."""
     id = PrimaryKey(UUID, auto=True)
     name = Optional(str, 50, nullable=True)  # Optionaler Name für die Adresse, z.B. "Klinik XYZ"
-    street = Required(str, 50)
-    postal_code = Required(str, 20)
-    city = Required(str, 40)
+    street = Optional(str, 50, nullable=True)
+    postal_code = Optional(str, 20, nullable=True)
+    city = Optional(str, 40, nullable=True)
     created_at = Required(datetime.datetime, default=utcnow_naive)
     last_modified = Required(datetime.datetime, default=utcnow_naive)
     project = Required(Project)

@@ -29,9 +29,10 @@ class Update(Command):
     def __init__(self, person: schemas.PersonShow):
         self.new_data = person.model_copy()
         self.old_data = db_services.Person.get(person.id)
+        self.updated_person: schemas.Person | None = None
 
     def execute(self):
-        db_services.Person.update(self.new_data)
+        self.updated_person = db_services.Person.update(self.new_data)
 
     def undo(self):
         db_services.Person.update(self.old_data)

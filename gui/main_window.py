@@ -65,7 +65,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     TabManager mit intelligentem Caching übernommen.
     """
 
-    def __init__(self, app: QApplication, screen_width: int, screen_height: int):
+    def __init__(self, app: QApplication, screen_width: int, screen_height: int, choose_project: bool = False):
         super().__init__()
 
         # Flag für Tab-Restoration Status
@@ -77,7 +77,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # db_services.Project.create('Humor Hilft Heilen')
 
         # self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
-        self._choose_project()
+        if choose_project:
+            self._choose_project()
+        else:
+            self.project_id = db_services.Project.get_all()[0].id
+
         self.curr_team: schemas.TeamShow | None = None
 
         self.controller = command_base_classes.ContrExecUndoRedo()

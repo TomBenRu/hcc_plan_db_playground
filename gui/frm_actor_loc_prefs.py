@@ -99,7 +99,8 @@ class DlgActorLocPref(QDialog):
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
                                range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
         valid_days_of_actor = [date for date in days_of_plan_period
-                               if get_curr_assignment_of_person(person, date).team.id == self.curr_team.id]
+                               if (curr_team_assignment := get_curr_assignment_of_person(person, date))
+                               and curr_team_assignment.team.id == self.curr_team.id]
 
         curr_loc_of_work_ids = {loc.id for loc in
                                 get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}

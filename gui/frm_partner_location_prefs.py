@@ -346,7 +346,11 @@ class DlgPartnerLocationPrefs(QDialog):
         from tools.helper_functions import setup_form_help
         setup_form_help(self, "partner_location_prefs", add_help_button=True)
 
-        self.de_date.setMinimumDate(datetime.date.today())  # Löst in einer Kaskade die Einrichtung der Slider aus.
+        self.de_date.setMinimumDate(
+            self.curr_model.date if isinstance(self.curr_model, schemas.AvailDay)
+            else self.curr_model.plan_period.start if isinstance(self.curr_model, schemas.ActorPlanPeriod)
+            else datetime.date.today()
+        )  # Löst in einer Kaskade die Einrichtung der Slider aus.
 
     def _setup_ui(self):
         self.layout = QVBoxLayout(self)

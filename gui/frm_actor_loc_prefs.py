@@ -57,7 +57,9 @@ class DlgActorLocPref(QDialog):
         self.lb_sliders: list[QWidget] = []
         self.sliders: dict[UUID, QSlider] = {}
 
-        self.de_date.setMinimumDate(datetime.date.today())
+        self.de_date.setMinimumDate(self.curr_model.date if isinstance(self.curr_model, schemas.AvailDay)
+                                    else self.curr_model.plan_period.start if isinstance(self.curr_model, schemas.ActorPlanPeriod)
+                                    else datetime.date.today())
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)

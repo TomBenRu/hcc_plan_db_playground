@@ -16,6 +16,7 @@ from commands import command_base_classes
 from commands.database_commands import plan_commands, team_commands, plan_period_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
+from configuration.main_geometry import geometry_manager, MainGeometry
 from database import db_services, schemas
 # Excel Export Imports werden lazy geladen für bessere Startup-Performance
 # Google Calendar API Imports werden lazy geladen für bessere Startup-Performance
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.tab_restoration_in_progress = False
 
         self.setWindowTitle('hcc-plan')
-        self.setGeometry(QRect(0, 0, screen_width - 100, screen_height - 100))
+        self._set_geometry(screen_width, screen_height)
 
         # db_services.Project.create('Humor Hilft Heilen')
 
@@ -1514,7 +1515,21 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if self.tab_restoration_in_progress:
             event.ignore()
             return
-        
+        maximized = self.isMaximized()
+        # restore normal window position if maximized to save geometry
+        if maximized:
+            self.showNormal()
+        QApplication.processEvents()
+        geometry = self.geometry()
+        main_geometry = MainGeometry(
+            x=geometry.x(),
+            y=geometry.y(),
+            width=geometry.width(),
+            height=geometry.height(),
+            maximized=maximized
+        )
+        geometry_manager.save_geometry_to_file(main_geometry)
+
         # Nutze erweiterte Cache-Behandlung
         self.enhanced_close_event(event)
 
@@ -1625,5 +1640,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     menu.addAction(value)
                 else:  # callable
                     self.put_actions_to_menu(menu, value())
+
+    def _set_geometry(self, screen_width, screen_height):
+        geometry_settings: MainGeometry = geometry_manager.get_geometry()
+        pos_x = 0
+        pos_y = 0
+        width = screen_width - 100
+        height = screen_height - 100
+        self.setGeometry(QRect(geometry_settings.x or pos_x, geometry_settings.y or pos_y,
+                               geometry_settings.width or width, geometry_settings.height or height))
+        if geometry_settings.maximized:
+            self.showMaximized()
+
 
 # todo: Funktion zur Komprimierung der Datenbank hinzufügen.

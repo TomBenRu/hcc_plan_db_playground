@@ -583,8 +583,6 @@ class DlgFixedCast(QDialog):
         self.chk_only_if_available.setChecked(
             self.object_with_fixed_cast.fixed_cast_only_if_available
         )
-        print(f'{self.object_with_fixed_cast.fixed_cast_only_if_available=}')
-        print(f'{self.object_with_fixed_cast=}')
         self.chk_only_if_available.blockSignals(False)
 
     def reset_fixed_cast_plot(self):

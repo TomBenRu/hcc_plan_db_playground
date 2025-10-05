@@ -370,10 +370,11 @@ class ButtonFixedCast(QPushButton):
     def check_fixed_cast__eq_to__local_pp(self):
         if not self.cast_groups_at_day:
             return
-        fixed_casts_at_day = [c.fixed_cast for c in self.cast_groups_at_day]
+        fixed_casts_at_day = [(c.fixed_cast, c.fixed_cast_only_if_available) for c in self.cast_groups_at_day]
         return (
             len(set(fixed_casts_at_day)) == 1
-            and fixed_casts_at_day[0] == self.location_plan_period.fixed_cast
+            and fixed_casts_at_day[0] == (self.location_plan_period.fixed_cast,
+                                          self.location_plan_period.fixed_cast_only_if_available)
         )
 
     def set_stylesheet_and_tooltip(self):
@@ -405,12 +406,14 @@ class ButtonFixedCast(QPushButton):
     def set_tooltip(self):
         if not self.cast_groups_at_day:
             additional_txt = ''
-        elif len({cg.fixed_cast for cg in self.cast_groups_at_day}) > 1:
+        elif len({(cg.fixed_cast, cg.fixed_cast_only_if_available) for cg in self.cast_groups_at_day}) > 1:
             additional_txt = self.tr('\nCast of events on this day:\nDifferent casts.')
         else:
             cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(self.cast_groups_at_day[0].fixed_cast)
-            additional_txt = self.tr('\nCast of events on this day:\n{cast}').format(
-                cast=cast_clear_txt or self.tr('No fixed cast.')
+            if_avail_txt = self.tr(' (if available)') if self.cast_groups_at_day[0].fixed_cast_only_if_available else ''
+            additional_txt = self.tr('\nCast of events on this day:\n{cast}{if_avail_txt}').format(
+                cast=cast_clear_txt or self.tr('No fixed cast.'),
+                if_avail_txt=if_avail_txt
             )
 
         self.setToolTip(self.tr('Click here to change the fixed cast for this day.{additional}').format(
@@ -445,7 +448,6 @@ class ButtonFixedCast(QPushButton):
         if data.plan_period_id != self.location_plan_period.plan_period.id:
             return
         if (data.date and data.date == self.date) or not data.date:
-            self.reload_cast_groups_at_day()
             self.set_stylesheet_and_tooltip()
 
 
@@ -1285,10 +1287,13 @@ class FrmLocationPlanPeriod(QWidget):
             return
         cast_groups_of_plan_period = db_services.CastGroup.get_all_from__plan_period(
             self.location_plan_period.plan_period.id)
-        event_cast_groups = (c for c in cast_groups_of_plan_period
-                             if c.event
-                             and c.event.location_plan_period.id == self.location_plan_period.id
-                             and c.fixed_cast != self.location_plan_period.fixed_cast)
+        event_cast_groups = (
+            c for c in cast_groups_of_plan_period
+            if c.event
+               and c.event.location_plan_period.id == self.location_plan_period.id
+               and (c.fixed_cast != self.location_plan_period.fixed_cast
+                    or c.fixed_cast_only_if_available != self.location_plan_period.fixed_cast_only_if_available)
+        )
         for c in event_cast_groups:
             command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast,
                                                           self.location_plan_period.fixed_cast_only_if_available)

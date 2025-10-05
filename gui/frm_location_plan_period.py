@@ -431,7 +431,8 @@ class ButtonFixedCast(QPushButton):
         dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
             for cg in self.cast_groups_at_day:
-                cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified).execute()
+                cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified,
+                                                   dlg.object_with_fixed_cast.fixed_cast_only_if_available).execute()
             self.set_stylesheet_and_tooltip()
 
     @Slot(signal_handling.DataLocationPPWithDate)
@@ -1289,7 +1290,8 @@ class FrmLocationPlanPeriod(QWidget):
                              and c.event.location_plan_period.id == self.location_plan_period.id
                              and c.fixed_cast != self.location_plan_period.fixed_cast)
         for c in event_cast_groups:
-            command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast)
+            command = cast_group_commands.UpdateFixedCast(c.id,  self.location_plan_period.fixed_cast,
+                                                          self.location_plan_period.fixed_cast_only_if_available)
             self.controller.execute(command)
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, c.event.date)

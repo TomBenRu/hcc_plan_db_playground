@@ -67,20 +67,27 @@ class RemoveFromParent(Command):
 
 
 class UpdateFixedCast(Command):
-    def __init__(self, cast_group_id: UUID, fixed_cast: str):
+    def __init__(self, cast_group_id: UUID, fixed_cast: str, fixed_cast_only_if_available: bool):
         self.cast_group_id = cast_group_id
         self.fixed_cast = fixed_cast
-        self.fixed_cast_old = None
+        self.fixed_cast_only_if_available = fixed_cast_only_if_available
+        self.fixed_cast_old: str | None = None
+        self.fixed_cast_only_if_available_old: bool = False
 
     def execute(self):
-        self.fixed_cast_old = db_services.CastGroup.get(self.cast_group_id).fixed_cast
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast)
+        cast_group = db_services.CastGroup.get(self.cast_group_id)
+        self.fixed_cast_old = cast_group.fixed_cast
+        self.fixed_cast_only_if_available_old = cast_group.fixed_cast_only_if_available
+        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast,
+                                                self.fixed_cast_only_if_available)
 
     def undo(self):
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast_old)
+        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast_old,
+                                                self.fixed_cast_only_if_available_old)
 
     def redo(self):
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast)
+        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast,
+                                                self.fixed_cast_only_if_available)
 
 
 class UpdateNrActors(Command):

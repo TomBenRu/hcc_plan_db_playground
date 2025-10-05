@@ -910,10 +910,106 @@ def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
     return constraints_cast_rule
 
 
+def filter_unavailable_persons(
+    fixed_cast_list: tuple | str, 
+    cast_group: CastGroup
+) -> tuple | str | None:
+    """
+    Entfernt nicht verfügbare Personen aus der fixed_cast Liste.
+    
+    Args:
+        fixed_cast_list: Die geparste fixed_cast Liste (verschachtelte Struktur)
+        cast_group: Die CastGroup mit Event-Informationen
+    
+    Returns:
+        Gefilterte Liste oder None wenn keine Person verfügbar ist
+    """
+    if isinstance(fixed_cast_list, str):
+        # Einzelne Person - prüfe Verfügbarkeit
+        person_id = UUID(fixed_cast_list)
+        if is_person_available_for_event(person_id, cast_group):
+            return fixed_cast_list
+        else:
+            return None
+    
+    # Liste mit Operatoren - rekursiv filtern
+    result = []
+    for i, element in enumerate(fixed_cast_list):
+        if i % 2 == 0:  # Person oder verschachtelte Liste
+            filtered = filter_unavailable_persons(element, cast_group)
+            if filtered is not None:
+                result.append(filtered)
+        else:  # Operator
+            # Operator nur hinzufügen wenn vorher und nachher Elemente existieren
+            if result and i + 1 < len(fixed_cast_list):
+                result.append(element)
+    
+    # Bereinige: Entferne trailing Operatoren
+    while result and isinstance(result[-1], str) and result[-1] in ('and', 'or'):
+        result.pop()
+    
+    # Bereinige: Entferne leading Operatoren  
+    while result and isinstance(result[0], str) and result[0] in ('and', 'or'):
+        result.pop(0)
+
+    return tuple(result) if len(result) > 1 else result[0] if result else None
+
+
+def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> bool:
+    """
+    Prüft ob eine Person für ein spezifisches Event verfügbar ist.
+    
+    Args:
+        person_id: UUID der Person
+        cast_group: CastGroup mit Event-Informationen
+    
+    Returns:
+        True wenn Person verfügbar ist, sonst False
+    """
+    event = cast_group.event
+    event_group_id = event.event_group.id
+    
+    # Prüfe ob es shift_vars gibt für diese Person an diesem Tag/Event
+    for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+        if eg_id != event_group_id:
+            continue
+        
+        avail_day_group = entities.avail_day_groups_with_avail_day.get(adg_id)
+        if not avail_day_group:
+            continue
+            
+        # Prüfe Person, Datum und ob die Kombination möglich ist (shifts_exclusive)
+        if (avail_day_group.avail_day.actor_plan_period.person.id == person_id
+            and avail_day_group.avail_day.date == event.date
+            and entities.shifts_exclusive.get((adg_id, eg_id), 0) == 1):
+            return True
+    
+    return False
+
+
+def is_empty_list(fixed_cast_list: tuple | str | None) -> bool:
+    """
+    Prüft ob eine fixed_cast Liste leer ist (rekursiv).
+    """
+    if fixed_cast_list is None:
+        return True
+    if isinstance(fixed_cast_list, str):
+        return False
+    if not fixed_cast_list:
+        return True
+    
+    # Prüfe ob alle Elemente leer sind
+    for element in fixed_cast_list:
+        if isinstance(element, str) and element in ('and', 'or'):
+            continue  # Operatoren überspringen
+        if not is_empty_list(element):
+            return False
+    
+    return True
+
+
 def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
     # todo: funktioniert bislang nur für CastGroups mit Event
-    # todo: verschiedene Modi hinzufügen: Strict (muss mit den genannten Mitarbeitern besetzt werden),
-    #  Soft (sollte mit den genannten Mitarbeitern besetzt werden, falls möglich)
     
     def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
         var = model.NewBoolVar('')
@@ -959,6 +1055,17 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
                                   .replace('or', ',"or",')
                                   .replace('in team', '')
                                   .replace('UUID', ''))
+
+        # Wenn only_if_available aktiviert ist, filtere nicht verfügbare Personen
+        if cast_group.fixed_cast_only_if_available:
+            fixed_cast_as_list = filter_unavailable_persons(
+                fixed_cast_as_list, 
+                cast_group
+            )
+            
+            # Falls nach dem Filtern keine Personen übrig sind, überspringe Constraint
+            if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
+                continue
 
         text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast)
         text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'

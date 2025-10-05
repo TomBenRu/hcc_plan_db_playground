@@ -218,20 +218,28 @@ class RemoveActorPartnerLocationPref(Command):
 
 
 class UpdateFixedCast(Command):
-    def __init__(self, location_plan_period_id: UUID, fixed_cast: str | None):
+    def __init__(self, location_plan_period_id: UUID, fixed_cast: str | None, fixed_cast_only_if_available: bool):
         self.location_plan_period_id = location_plan_period_id
         self.fixed_cast = fixed_cast
-        self.fixed_cast_old = None
+        self.fixed_cast_only_if_available = fixed_cast_only_if_available
+        self.fixed_cast_old: str | None = None
+        self.fixed_cast_only_if_available_old: bool = False
 
     def execute(self):
-        self.fixed_cast_old = db_services.LocationPlanPeriod.get(self.location_plan_period_id).fixed_cast
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast)
+        location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period_id)
+        self.fixed_cast_old = location_plan_period.fixed_cast
+        self.fixed_cast_only_if_available_old = location_plan_period.fixed_cast_only_if_available
+
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
+                                                         self.fixed_cast_only_if_available)
 
     def undo(self):
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old)
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old,
+                                                         self.fixed_cast_only_if_available_old)
 
     def redo(self):
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast)
+        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
+                                                         self.fixed_cast_only_if_available)
 
 
 class UpdateNumActors(Command):

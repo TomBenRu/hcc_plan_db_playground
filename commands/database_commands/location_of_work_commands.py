@@ -177,20 +177,27 @@ class LeaveTeam(Command):
 
 
 class UpdateFixedCast(Command):
-    def __init__(self, location_of_work_id: UUID, fixed_cast: str | None):
+    def __init__(self, location_of_work_id: UUID, fixed_cast: str | None, fixed_cast_only_if_available: bool):
         self.location_of_work_id = location_of_work_id
         self.fixed_cast = fixed_cast
-        self.fixed_cast_old = None
+        self.fixed_cast_only_if_available = fixed_cast_only_if_available
+        self.fixed_cast_old: str | None = None
+        self.fixed_cast_only_if_available_old: bool = False
 
     def execute(self):
-        self.fixed_cast_old = db_services.LocationOfWork.get(self.location_of_work_id).fixed_cast
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast)
+        location_of_work = db_services.LocationOfWork.get(self.location_of_work_id)
+        self.fixed_cast_old = location_of_work.fixed_cast
+        self.fixed_cast_only_if_available_old = location_of_work.fixed_cast_only_if_available
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
+                                                    self.fixed_cast_only_if_available)
 
     def undo(self):
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old)
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old,
+                                                    self.fixed_cast_only_if_available_old)
 
     def redo(self):
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast)
+        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
+                                                    self.fixed_cast_only_if_available)
 
 
 class AddSkillGroup(Command):

@@ -18,6 +18,7 @@ class CastGroup(NodeMixin):
         self.parent: Optional['CastGroup'] = parent
         self.children: list['CastGroup'] = children if children is not None else []
         self.fixed_cast: str | None = cast_group_db.fixed_cast if cast_group_db else None
+        self.fixed_cast_only_if_available: bool | None = cast_group_db.fixed_cast_only_if_available if cast_group_db else None
         self.nr_actors: int | None = cast_group_db.nr_actors if cast_group_db else None
         self.cast_rule: str | None = ((cast_group_db.custom_rule or (cast_group_db.cast_rule.rule
                                                                      if cast_group_db.cast_rule else None))

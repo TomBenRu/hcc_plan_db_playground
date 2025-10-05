@@ -377,6 +377,7 @@ class LocationOfWork(db.Entity):
     team_location_assigns = Set('TeamLocationAssign')
     nr_actors = Required(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast_only_if_available = Required(bool, default=False)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     skill_groups = Set('SkillGroup')
     location_plan_periods = Set('LocationPlanPeriod')
     time_of_days = Set(TimeOfDay)
@@ -522,6 +523,7 @@ class CastGroup(db.Entity):
     parent_groups = Set('CastGroup', reverse='child_groups')
     child_groups = Set('CastGroup', reverse='parent_groups')
     fixed_cast = Optional(str, nullable=True)
+    fixed_cast_only_if_available = Required(bool, default=False)
     nr_actors = Required(int, size=16, unsigned=True)
     event = Optional(Event)
     custom_rule = Optional(str, nullable=True)
@@ -564,6 +566,7 @@ class LocationPlanPeriod(db.Entity):
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast_only_if_available = Required(bool, default=False)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
     event_group = Optional('EventGroup')
     events = Set(Event)
 

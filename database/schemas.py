@@ -438,6 +438,7 @@ class LocationOfWorkShow(LocationOfWork):
 
     team_location_assigns: List['TeamLocationAssign']
     fixed_cast: Optional[str] = None
+    fixed_cast_only_if_available: bool = False
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
     skill_groups: list['SkillGroup']
@@ -573,6 +574,7 @@ class CastGroup(CastGroupCreate):
 
     id: UUID
     fixed_cast: Optional[str]
+    fixed_cast_only_if_available: bool = False
     nr_actors: int
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.
@@ -637,6 +639,7 @@ class LocationPlanPeriod(LocationPlanPeriodCreate):
 
     id: UUID
     fixed_cast: Optional[str] = None
+    fixed_cast_only_if_available: bool = False
 
 
 class LocationPlanPeriodShow(LocationPlanPeriod):

@@ -11,7 +11,7 @@ import sympy
 from PySide6.QtCore import Qt, QTimer, QCoreApplication
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
-                               QDialogButtonBox, QDateEdit, QMenu, QMessageBox)
+                               QDialogButtonBox, QDateEdit, QMenu, QMessageBox, QCheckBox)
 from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
@@ -37,6 +37,7 @@ class DlgFixedCastBuilderABC(ABC):
         self.location_plan_period: schemas.LocationPlanPeriodShow | None = location_plan_period
         self.parent_widget = parent
         self.parent_fixed_cast: str | None = None
+        self.parent_fixed_cast_only_if_available: bool = False
         self.location_of_work: schemas.LocationOfWorkShow | None = None
         self.title_text: str | None = None
         self.info_text: str | None = None
@@ -102,6 +103,7 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
             self.object_with_fixed_cast.location_of_work.id
         )
         self.parent_fixed_cast = self.location_of_work.fixed_cast
+        self.parent_fixed_cast_only_if_available = self.location_of_work.fixed_cast_only_if_available
         self.info_text = QCoreApplication.translate('DlgFixedCastBuilderLocationPlanPeriod',
                                                     'the planning period "{start}-{end}"').format(
             start=self.object_with_fixed_cast.plan_period.start,
@@ -146,6 +148,7 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                            if self.object_with_fixed_cast.event
                            else QCoreApplication.translate('DlgFixedCastBuilderCastGroup','Fixed Cast of a Cast Group'))
         self.parent_fixed_cast = self.location_plan_period.fixed_cast
+        self.parent_fixed_cast_only_if_available = self.location_plan_period.fixed_cast_only_if_available
         self.info_text = (QCoreApplication.translate('DlgFixedCastBuilderCastGroup','the event on "{date}"').format(
             date=date_to_string(self.object_with_fixed_cast.event.date))
                           if self.object_with_fixed_cast.event
@@ -302,6 +305,19 @@ class DlgFixedCast(QDialog):
 
         self.layout.addStretch()
 
+        # Checkbox-Option - muss VOR Date-Widget erstellt werden
+        self.chk_only_if_available = QCheckBox(
+            self.tr('Apply fixed cast only if employee is available')
+        )
+        self.chk_only_if_available.setToolTip(
+            self.tr('If checked, employees are only assigned to fixed cast positions '
+                    'when they are available for the location on that day. '
+                    'Unavailable employees are automatically removed from the constraint.')
+        )
+        self.chk_only_if_available.setChecked(
+            self.object_with_fixed_cast.fixed_cast_only_if_available
+        )
+
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
         self.bt_new_row = QPushButton(QIcon(os.path.join(self.path_to_icons, 'plus.png')),
@@ -332,6 +348,13 @@ class DlgFixedCast(QDialog):
         self.button_box.addButton(self.bt_redo, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+        
+        # Container für die Checkbox-Option (zwischen Grid und Button-Box)
+        self.layout_availability_option = QHBoxLayout()
+        self.layout_availability_option.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.layout_availability_option.addWidget(self.chk_only_if_available)
+        self.layout.addLayout(self.layout_availability_option)
+        
         self.layout.addWidget(self.button_box)
 
         # F1 Help Integration
@@ -352,10 +375,16 @@ class DlgFixedCast(QDialog):
 
     def accept(self) -> None:
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
+        
+        # Setze den Checkbox-Wert im Objekt
+        self.object_with_fixed_cast.fixed_cast_only_if_available = self.chk_only_if_available.isChecked()
         if self.object_with_fixed_cast.fixed_cast:
             simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
             self.fixed_cast_simplified = simplifier.simplified_fixed_cast
-            self.controller.execute(self.builder.update_command(self.fixed_cast_simplified))
+            self.controller.execute(self.builder.update_command(
+                self.fixed_cast_simplified,
+                self.object_with_fixed_cast.fixed_cast_only_if_available)
+            )
 
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
                 # fixme: für cast_groups ohne event
@@ -385,15 +414,16 @@ class DlgFixedCast(QDialog):
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
         else:
             fixed_cast = None
-        self.controller.execute(self.builder.update_command(fixed_cast))
+        self.controller.execute(self.builder.update_command(fixed_cast, self.chk_only_if_available.isChecked()))
 
     def remove_fixed_cast(self):
-        self.controller.execute(self.builder.update_command(None))
+        self.controller.execute(self.builder.update_command(None, False))
         self.reset_fixed_cast_plot()
 
     def reset_to_parent_value(self):
         self.controller.execute(
-            self.builder.update_command(self.builder.parent_fixed_cast))
+            self.builder.update_command(self.builder.parent_fixed_cast,
+                                        self.builder.parent_fixed_cast_only_if_available))
         self.reset_fixed_cast_plot()
 
     def bt_reset_make_menu(self):
@@ -548,10 +578,19 @@ class DlgFixedCast(QDialog):
 
     def reload_object_with_fixed_cast(self):
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
+        # Checkbox-Status aktualisieren
+        self.chk_only_if_available.blockSignals(True)
+        self.chk_only_if_available.setChecked(
+            self.object_with_fixed_cast.fixed_cast_only_if_available
+        )
+        print(f'{self.object_with_fixed_cast.fixed_cast_only_if_available=}')
+        print(f'{self.object_with_fixed_cast=}')
+        self.chk_only_if_available.blockSignals(False)
 
     def reset_fixed_cast_plot(self):
         self.reload_object_with_fixed_cast()
         self.clear_plot()
+        self.chk_only_if_available.setChecked(self.object_with_fixed_cast.fixed_cast_only_if_available)
         QTimer.singleShot(20, self.plot_eval_str)
 
     def clear_plot(self):

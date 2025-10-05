@@ -715,10 +715,12 @@ class LocationOfWork:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
-    def update_fixed_cast(cls, location_of_work_id: UUID, fixed_cast: str) -> schemas.LocationOfWorkShow:
+    def update_fixed_cast(cls, location_of_work_id: UUID, fixed_cast: str,
+                          fixed_cast_only_if_available: bool) -> schemas.LocationOfWorkShow:
         log_function_info(cls)
         location_of_work_db = models.LocationOfWork.get_for_update(id=location_of_work_id)
         location_of_work_db.fixed_cast = fixed_cast
+        location_of_work_db.fixed_cast_only_if_available = fixed_cast_only_if_available
 
         return schemas.LocationOfWorkShow.model_validate(location_of_work_db)
 
@@ -1431,10 +1433,12 @@ class LocationPlanPeriod:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
-    def update_fixed_cast(cls, location_plan_period_id: UUID, fixed_cast: str) -> schemas.LocationPlanPeriodShow:
+    def update_fixed_cast(cls, location_plan_period_id: UUID, fixed_cast: str,
+                          fixed_cast_only_if_available: bool) -> schemas.LocationPlanPeriodShow:
         log_function_info(cls)
         location_plan_period_db = models.LocationPlanPeriod.get_for_update(id=location_plan_period_id)
         location_plan_period_db.fixed_cast = fixed_cast
+        location_plan_period_db.fixed_cast_only_if_available = fixed_cast_only_if_available
 
         return schemas.LocationPlanPeriodShow.model_validate(location_plan_period_db)
 
@@ -1595,10 +1599,12 @@ class CastGroup:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
-    def update_fixed_cast(cls, cast_group_id: UUID, fixed_cast: str) -> schemas.CastGroupShow:
+    def update_fixed_cast(cls, cast_group_id: UUID, fixed_cast: str,
+                          fixed_cast_only_if_available: bool) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
         cast_group_db.fixed_cast = fixed_cast
+        cast_group_db.fixed_cast_only_if_available = fixed_cast_only_if_available
 
         return schemas.CastGroupShow.model_validate(cast_group_db)
 

@@ -989,6 +989,7 @@ def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> boo
 
     pass
 
+    # der folgende Code ist deprecated, da im Ergebnis äquivalent zu dem Code oben
     event = cast_group.event
     event_group_id = event.event_group.id
     

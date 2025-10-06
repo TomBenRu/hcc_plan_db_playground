@@ -55,6 +55,10 @@ class AvailDayGroup(NodeMixin):
 
 class AvailDayGroupTree:
     def __init__(self, actor_plan_period_ids: list[UUID]):
+        """
+        Args:
+            actor_plan_period_ids: Liste der ActorPlanPeriod-IDs, für die das Tree konstruiert werden soll.
+        """
         self.actor_plan_period_ids = actor_plan_period_ids
         self.nodes: dict[UUID | int, AvailDayGroup] = {}
         self.root: AvailDayGroup = self.construct_root_node()

@@ -119,8 +119,19 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
     return requested_assignments_new
 
 
+def check_actor_location_prefs_fits_event(avail_day: schemas.AvailDayShow,
+                                          location_of_work: schemas.LocationOfWork) -> bool:
+    """Prüft, ob die actor_location_prefs des avail_days die location_of_work des Events zulassen."""
+    if found_alf := next((alf for alf in avail_day.actor_location_prefs_defaults
+                          if alf.location_of_work.id == location_of_work.id), None):
+        if found_alf.score == 0:
+            return False
+    return True
+
+
 def check_time_span_avail_day_fits_event(
         event: schemas.Event, avail_day: schemas.AvailDay, only_time_index: bool = True) -> bool:
+    """Prüft, ob der Zeitraum des avail_days den Zeitraum des Events enthält."""
     if only_time_index:
         return (
             avail_day.date == event.date
@@ -304,7 +315,8 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
 def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree):
 
     entities.event_group_vars = {
-        event_group.event_group_id: model.NewBoolVar(f'') for event_group in event_group_tree.root.descendants
+        event_group.event_group_id: model.NewBoolVar(f'')
+        for event_group in event_group_tree.root.descendants
         if event_group.children or event_group.event
     }
     entities.avail_day_group_vars = {
@@ -321,10 +333,8 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
             # shift_vars werden nicht gesetzt, wenn das zur location_of_work zugehörige actor_location_pref
             # des avail_day einen Score von 0 besitzt:
             entities.shifts_exclusive[adg_id, event_group_id] = 1
-            if found_alf := next((alf for alf in adg.avail_day.actor_location_prefs_defaults
-                                 if alf.location_of_work.id == location_of_work.id), None):
-                if found_alf.score == 0:
-                    entities.shifts_exclusive[adg_id, event_group_id] = 0
+            if not check_actor_location_prefs_fits_event(adg.avail_day, location_of_work):
+                entities.shifts_exclusive[adg_id, event_group_id] = 0
             # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
             if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
                 entities.shifts_exclusive[adg_id, event_group_id] = 0
@@ -460,7 +470,7 @@ def add_constraints_weights_in_event_groups_alternative_implementation(model: cp
     return all_weight_vars
 
 
-def add_constraints_avail_day_groups_activity(model: cp_model):
+def add_constraints_avail_day_groups_activity(model: cp_model.CpModel):
     """
     Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
     wie in der Parent-Avail-Day-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
@@ -482,7 +492,7 @@ def add_constraints_avail_day_groups_activity(model: cp_model):
             model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
 
 
-def add_constraints_required_avail_day_groups(model: cp_model):
+def add_constraints_required_avail_day_groups(model: cp_model.CpModel):
     """
     Falls die Parent-Avail-Day-Group eine Required-Avail-Day-Group hat, wird eine
     zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in required_avail_day_groups
@@ -966,6 +976,19 @@ def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> boo
     Returns:
         True wenn Person verfügbar ist, sonst False
     """
+    event = cast_group.event
+    event_group_id = event.event_group.id
+
+    available = next(
+        (bool(val) for (adg_id, eg_id), val in entities.shifts_exclusive.items()
+         if eg_id == event_group_id
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id),
+        False
+    )
+    return available
+
+    pass
+
     event = cast_group.event
     event_group_id = event.event_group.id
     

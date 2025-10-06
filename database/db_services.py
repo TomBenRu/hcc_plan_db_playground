@@ -1790,6 +1790,7 @@ class Event:
         cast_group_db = models.CastGroup.get_for_update(id=cast_group.id)
         cast_group_db.nr_actors = location_plan_period_db.nr_actors
         cast_group_db.fixed_cast = location_plan_period_db.fixed_cast
+        cast_group_db.fixed_cast_only_if_available = location_plan_period_db.fixed_cast_only_if_available
         event_db = models.Event(
             date=event.date, time_of_day=models.TimeOfDay.get_for_update(id=event.time_of_day.id),
             event_group=models.EventGroup.get_for_update(id=event_group.id),

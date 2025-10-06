@@ -566,7 +566,7 @@ class LocationPlanPeriod(db.Entity):
     location_of_work = Required(LocationOfWork)
     nr_actors = Optional(int, size=8, default=2, unsigned=True)
     fixed_cast = Optional(str, nullable=True)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
-    fixed_cast_only_if_available = Required(bool, default=False)  # Form: Person[1] and (Person[2] or Person[3] or Person[4]), (Person[1] or Person[2]) and (Person[3] or Person[4]), (Person[1] and Person[2]) or (Person[3] and Person[4])
+    fixed_cast_only_if_available = Required(bool, default=False)  # Wenn aktiviert, werden nicht verfügbare Mitarbeiter aus der fixed_cast Liste entfernt.
     event_group = Optional('EventGroup')
     events = Set(Event)
 
@@ -583,6 +583,7 @@ class LocationPlanPeriod(db.Entity):
         self.time_of_days.add(self.location_of_work.time_of_days)
         self.time_of_day_standards.add(self.location_of_work.time_of_day_standards)
         self.fixed_cast = self.location_of_work.fixed_cast
+        self.fixed_cast_only_if_available = self.location_of_work.fixed_cast_only_if_available
 
     def before_update(self):
         self.last_modified = utcnow_naive()

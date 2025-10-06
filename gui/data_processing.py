@@ -61,9 +61,13 @@ class LocationPlanPeriodData:
         Event übernommen, weil davon ausgegangen wird, dass schon evt. geänderte fixed_casts für alle Events an diesem 
         Tag gelten.'''
         if existing_events_on_day:
-            fixed_cast_first_event = db_services.Event.get(existing_events_on_day[0].id).cast_group.fixed_cast
+            first_event = db_services.Event.get(existing_events_on_day[0].id).cast_group
+            fixed_cast_first_event = first_event.fixed_cast
+            fixed_cast_only_if_available_first_event = first_event.fixed_cast_only_if_available
             self.controller.execute(
-                cast_group_commands.UpdateFixedCast(created_event.cast_group.id, fixed_cast_first_event))
+                cast_group_commands.UpdateFixedCast(created_event.cast_group.id, fixed_cast_first_event,
+                                                   fixed_cast_only_if_available_first_event)
+            )
         return created_event
 
     def _delete_event(self, date, t_o_d):

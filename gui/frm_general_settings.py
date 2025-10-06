@@ -1,7 +1,8 @@
 import os
+import platform
 
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QLabel, QGroupBox, QFormLayout, QSpinBox,
-                               QDialogButtonBox, QComboBox)
+                               QDialogButtonBox, QComboBox, QPushButton, QMessageBox, QHBoxLayout)
 
 from configuration.general_settings import general_settings_handler
 from gui.custom_widgets import date_format_selector
@@ -39,6 +40,35 @@ class DlgGeneralSettings(QDialog):
         self.group_date_format = QGroupBox(self.tr('Date and time format'))
         self.layout_body.addWidget(self.group_date_format)
         self.layout_group_date_format = QVBoxLayout(self.group_date_format)
+        
+        # Windows Defender Settings (nur auf Windows)
+        if platform.system() == "Windows":
+            self.group_defender = QGroupBox(self.tr('Performance'))
+            self.layout_body.addWidget(self.group_defender)
+            self.layout_group_defender = QVBoxLayout(self.group_defender)
+            
+            # Beschreibung
+            self.lb_defender_description = QLabel(
+                self.tr('Sie können diese Anwendung vom Windows Defender-Scan ausschließen, '
+                       'um den Programmstart zu beschleunigen.')
+            )
+            self.lb_defender_description.setWordWrap(True)
+            self.layout_group_defender.addWidget(self.lb_defender_description)
+            
+            # Status und Button in horizontalem Layout
+            status_button_layout = QHBoxLayout()
+            
+            # Status-Label
+            self.lb_defender_status = QLabel()
+            status_button_layout.addWidget(self.lb_defender_status)
+            status_button_layout.addStretch()
+            
+            # Button
+            self.btn_add_defender_exclusion = QPushButton(self.tr('Vom Virenscan ausschließen'))
+            self.btn_add_defender_exclusion.clicked.connect(self._on_add_defender_exclusion)
+            status_button_layout.addWidget(self.btn_add_defender_exclusion)
+            
+            self.layout_group_defender.addLayout(status_button_layout)
         self.spin_column_width = QSpinBox()
         self.spin_column_width.setMinimum(100)
         self.spin_column_width.setMaximum(500)
@@ -70,6 +100,106 @@ class DlgGeneralSettings(QDialog):
             self.combo_language.setCurrentIndex(self.combo_language.findData(self.general_settings.language))
         else:
             self.combo_language.setCurrentIndex(self.combo_language.findData('en'))
+        
+        # Windows Defender Status aktualisieren (nur auf Windows)
+        if platform.system() == "Windows":
+            self._update_defender_status()
+
+    def _update_defender_status(self):
+        """
+        Aktualisiert die Anzeige des Windows Defender-Status.
+        
+        Zeigt an, ob die Anwendung bereits vom Defender ausgeschlossen ist.
+        Kann nur mit Admin-Rechten geprüft werden.
+        """
+        try:
+            from tools.windows_defender_utils import is_admin, check_defender_exclusion
+            
+            if is_admin():
+                # Mit Admin-Rechten: Status kann geprüft werden
+                is_excluded = check_defender_exclusion()
+                
+                if is_excluded:
+                    self.lb_defender_status.setText(self.tr('✓ Vom Virenscan ausgeschlossen'))
+                    self.lb_defender_status.setStyleSheet('color: green; font-weight: bold;')
+                    self.btn_add_defender_exclusion.setEnabled(False)
+                    self.btn_add_defender_exclusion.setText(self.tr('Bereits ausgeschlossen'))
+                else:
+                    self.lb_defender_status.setText(self.tr('Nicht ausgeschlossen'))
+                    self.lb_defender_status.setStyleSheet('color: orange;')
+                    self.btn_add_defender_exclusion.setEnabled(True)
+                    self.btn_add_defender_exclusion.setText(self.tr('Vom Virenscan ausschließen'))
+            else:
+                # Ohne Admin-Rechte: Status kann nicht geprüft werden
+                self.lb_defender_status.setText(
+                    self.tr('Status unbekannt (Admin-Rechte erforderlich)')
+                )
+                self.lb_defender_status.setStyleSheet('color: gray;')
+                self.btn_add_defender_exclusion.setEnabled(True)
+                self.btn_add_defender_exclusion.setText(self.tr('Vom Virenscan ausschließen'))
+                
+        except Exception as e:
+            # Fehler beim Status-Check
+            self.lb_defender_status.setText(self.tr('Fehler beim Prüfen des Status'))
+            self.lb_defender_status.setStyleSheet('color: red;')
+    
+    def _on_add_defender_exclusion(self):
+        """
+        Handler für den "Vom Virenscan ausschließen" Button.
+        
+        Zeigt Bestätigungsdialog und führt die Ausnahme hinzu.
+        Aktualisiert anschließend den Status.
+        """
+        try:
+            from tools.windows_defender_utils import add_defender_exclusion
+            
+            # Bestätigungsdialog
+            reply = QMessageBox.question(
+                self,
+                self.tr('Windows Defender'),
+                self.tr(
+                    'Möchten Sie diese Anwendung vom Windows Defender-Scan ausschließen?\n\n'
+                    'Dies erfordert Administrator-Rechte. '
+                    'Es erscheint ein Bestätigungsdialog (UAC).\n\n'
+                    'Hinweis: Das Ausschließen beschleunigt den Programmstart, '
+                    'reduziert aber den Schutz für diese spezifische Anwendung.'
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # Ausnahme hinzufügen
+                success, message = add_defender_exclusion()
+                
+                if success:
+                    # Erfolg
+                    QMessageBox.information(
+                        self,
+                        self.tr('Windows Defender'),
+                        message
+                    )
+                    
+                    # Settings aktualisieren
+                    self.general_settings.defender_settings.exclusion_asked = True
+                    general_settings_handler.save_to_toml_file(self.general_settings)
+                    
+                    # Status neu laden
+                    self._update_defender_status()
+                else:
+                    # Fehler
+                    QMessageBox.warning(
+                        self,
+                        self.tr('Windows Defender'),
+                        message
+                    )
+                    
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                self.tr('Fehler'),
+                self.tr(f'Fehler beim Hinzufügen der Defender-Ausnahme:\n{str(e)}')
+            )
 
     def accept(self):
         self.general_settings.plan_settings.column_width_plan = self.spin_column_width.value()

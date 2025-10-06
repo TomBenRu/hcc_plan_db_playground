@@ -292,6 +292,17 @@ def initialize_main_application(app: QApplication,
 
         # Signal-Verbindung trennen
         window.tab_manager.tab_restoration_progress.disconnect()
+        
+        # === Windows Defender Optimierung (nur Windows) ===
+        import platform
+        if platform.system() == "Windows":
+            try:
+                from tools.windows_defender_utils import check_and_show_defender_dialog
+                check_and_show_defender_dialog(window)
+            except Exception as e:
+                logging.error(f"Fehler beim Defender-Dialog: {e}")
+                # Fehler nicht weiterwerfen - App läuft trotzdem weiter
+        
         return window
         
     except Exception as e:

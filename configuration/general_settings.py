@@ -28,6 +28,14 @@ class DateFormatSettings(BaseModel):
     format: int = QLocale.FormatType.ShortFormat.value
 
 
+class DefenderSettings(BaseModel):
+    """
+    Windows Defender exclusion settings.
+    Speichert, ob der User bereits nach der Defender-Ausnahme gefragt wurde.
+    """
+    exclusion_asked: bool = False
+
+
 class GeneralSettings(BaseModel):
     """
     General settings for the application.
@@ -35,6 +43,7 @@ class GeneralSettings(BaseModel):
     plan_settings: PlanSettings = PlanSettings()
     language: str = ''
     date_format_settings: DateFormatSettings = DateFormatSettings()
+    defender_settings: DefenderSettings = DefenderSettings()
 
 
 class GeneralSettingsHandler:

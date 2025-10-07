@@ -976,20 +976,28 @@ def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> boo
     Returns:
         True wenn Person verfügbar ist, sonst False
     """
+    if cast_group.nr_actors == 0:
+        return False
     event = cast_group.event
     event_group_id = event.event_group.id
 
     available = next(
         (bool(val) for (adg_id, eg_id), val in entities.shifts_exclusive.items()
          if eg_id == event_group_id
-         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id),
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date == event.date
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.time_of_day.time_of_day_enum.time_index
+         == event.time_of_day.time_of_day_enum.time_index),
         False
     )
+
     return available
 
     pass
 
     # der folgende Code ist deprecated, da im Ergebnis äquivalent zu dem Code oben
+    if cast_group.nr_actors == 0:
+        return False
     event = cast_group.event
     event_group_id = event.event_group.id
     

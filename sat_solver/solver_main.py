@@ -967,14 +967,14 @@ def filter_unavailable_persons(
 
 def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> bool:
     """
-    Prüft ob eine Person für ein spezifisches Event verfügbar ist.
+    Prüft, ob eine Person für ein spezifisches Event verfügbar ist.
     
     Args:
         person_id: UUID der Person
         cast_group: CastGroup mit Event-Informationen
     
     Returns:
-        True wenn Person verfügbar ist, sonst False
+        True, wenn Person verfügbar ist, sonst False
     """
     if cast_group.nr_actors == 0:
         return False

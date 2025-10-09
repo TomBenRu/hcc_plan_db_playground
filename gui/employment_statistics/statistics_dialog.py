@@ -649,6 +649,7 @@ Arbeitsverteilung:
             'netzwerk_nodes': dashboard_data_standard.netzwerk_nodes,
             'netzwerk_links': dashboard_data_standard.netzwerk_links,
             'clown_timeline': [c.model_dump() for c in dashboard_data_standard.clown_timeline],
+            'stacked_bar_data': dashboard_data_standard.stacked_bar_data.model_dump(),
 
             # Zero-Cast Dashboard-Daten (alle Termine inkl. Zero-Cast, ohne Gäste)
             'zero_cast_data': {
@@ -665,7 +666,8 @@ Arbeitsverteilung:
                 'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_zero_cast.monatliche_erfuellung],
                 'netzwerk_nodes': dashboard_data_with_zero_cast.netzwerk_nodes,
                 'netzwerk_links': dashboard_data_with_zero_cast.netzwerk_links,
-                'clown_timeline': [c.model_dump() for c in dashboard_data_with_zero_cast.clown_timeline]
+                'clown_timeline': [c.model_dump() for c in dashboard_data_with_zero_cast.clown_timeline],
+                'stacked_bar_data': dashboard_data_with_zero_cast.stacked_bar_data.model_dump()
             },
 
             # Gäste Dashboard-Daten (nur besetzte Termine, mit Gästen)
@@ -683,7 +685,8 @@ Arbeitsverteilung:
                 'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_guests.monatliche_erfuellung],
                 'netzwerk_nodes': dashboard_data_with_guests.netzwerk_nodes,
                 'netzwerk_links': dashboard_data_with_guests.netzwerk_links,
-                'clown_timeline': [c.model_dump() for c in dashboard_data_with_guests.clown_timeline]
+                'clown_timeline': [c.model_dump() for c in dashboard_data_with_guests.clown_timeline],
+                'stacked_bar_data': dashboard_data_with_guests.stacked_bar_data.model_dump()
             },
 
             # Zero-Cast + Gäste Dashboard-Daten (alle Termine + mit Gästen)
@@ -701,7 +704,8 @@ Arbeitsverteilung:
                 'monatliche_erfuellung': [m.model_dump() for m in dashboard_data_with_zero_cast_and_guests.monatliche_erfuellung],
                 'netzwerk_nodes': dashboard_data_with_zero_cast_and_guests.netzwerk_nodes,
                 'netzwerk_links': dashboard_data_with_zero_cast_and_guests.netzwerk_links,
-                'clown_timeline': [c.model_dump() for c in dashboard_data_with_zero_cast_and_guests.clown_timeline]
+                'clown_timeline': [c.model_dump() for c in dashboard_data_with_zero_cast_and_guests.clown_timeline],
+                'stacked_bar_data': dashboard_data_with_zero_cast_and_guests.stacked_bar_data.model_dump()
             },
 
             # Meta-Informationen (verwende Standard-Daten)

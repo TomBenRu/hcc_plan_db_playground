@@ -337,6 +337,46 @@
         .filter-checkbox-item.regular-item {
             color: #2c3e50;
         }
+
+        /* Tab-Navigation für Stacked Bar Charts */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .tab-btn:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .tab-btn.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -479,6 +519,35 @@
             </div>
         </div>
         
+        <!-- Gestapelte Balkengrafiken mit Tab-Navigation -->
+        <div class="full-width chart-panel">
+            <div class="chart-title">📊 Einsatzverteilung (gestapelte Ansicht)</div>
+            
+            <!-- Tab-Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="einrichtung-stacked">
+                    🏥 Nach Einrichtung
+                </button>
+                <button class="tab-btn" data-tab="mitarbeiter-stacked">
+                    👤 Nach Mitarbeiter
+                </button>
+            </div>
+            
+            <!-- Tab 1: Nach Einrichtung -->
+            <div id="einrichtung-stacked" class="tab-content active">
+                <div class="chart-container" style="height: 500px;">
+                    <canvas id="einrichtungStackedChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Tab 2: Nach Mitarbeiter -->
+            <div id="mitarbeiter-stacked" class="tab-content">
+                <div class="chart-container" style="height: 500px;">
+                    <canvas id="mitarbeiterStackedChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <div class="full-width chart-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div class="chart-title">🕸️ Netzwerk-Visualisierung: Clown ↔ Einrichtung Zuordnungen</div>
@@ -520,6 +589,7 @@
                 netzwerk_nodes: {{ netzwerk_nodes | tojson }},
                 netzwerk_links: {{ netzwerk_links | tojson }},
                 clown_timeline: {{ clown_timeline | tojson }},
+                stacked_bar_data: {{ stacked_bar_data | tojson }},
                 summary: {
                     aktive_clowns: {{ aktive_clowns }},
                     einrichtungen_count: {{ einrichtungen_count }},
@@ -538,6 +608,7 @@
                 netzwerk_nodes: {{ zero_cast_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ zero_cast_data.netzwerk_links | tojson }},
                 clown_timeline: {{ zero_cast_data.clown_timeline | tojson }},
+                stacked_bar_data: {{ zero_cast_data.stacked_bar_data | tojson }},
                 summary: {
                     aktive_clowns: {{ zero_cast_data.aktive_clowns }},
                     einrichtungen_count: {{ zero_cast_data.einrichtungen_count }},
@@ -556,6 +627,7 @@
                 netzwerk_nodes: {{ guests_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ guests_data.netzwerk_links | tojson }},
                 clown_timeline: {{ guests_data.clown_timeline | tojson }},
+                stacked_bar_data: {{ guests_data.stacked_bar_data | tojson }},
                 summary: {
                     aktive_clowns: {{ guests_data.aktive_clowns }},
                     einrichtungen_count: {{ guests_data.einrichtungen_count }},
@@ -574,6 +646,7 @@
                 netzwerk_nodes: {{ zero_cast_guests_data.netzwerk_nodes | tojson }},
                 netzwerk_links: {{ zero_cast_guests_data.netzwerk_links | tojson }},
                 clown_timeline: {{ zero_cast_guests_data.clown_timeline | tojson }},
+                stacked_bar_data: {{ zero_cast_guests_data.stacked_bar_data | tojson }},
                 summary: {
                     aktive_clowns: {{ zero_cast_guests_data.aktive_clowns }},
                     einrichtungen_count: {{ zero_cast_guests_data.einrichtungen_count }},
@@ -634,6 +707,7 @@
             createClownChart();
             createMonthlyChart();
             createClownTimelineChart();
+            createStackedBarCharts();  // NEU: Gestapelte Balkengrafiken
             createNetworkVisualization();
         }
 
@@ -1232,6 +1306,227 @@
             });
         }
 
+        // ===================================
+        // STACKED BAR CHARTS
+        // ===================================
+        
+        // Farbgenerator für viele Items (HSL-basiert)
+        function generateColors(count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 360 / count) % 360;
+                const saturation = 65 + (i % 3) * 10; // Variiere Sättigung leicht
+                const lightness = 55 + (i % 2) * 10; // Variiere Helligkeit leicht
+                colors.push(`hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`);
+            }
+            return colors;
+        }
+        
+        function createStackedBarCharts() {
+            const stackedData = currentData.stacked_bar_data;
+            
+            if (!stackedData) {
+                console.warn('Keine Stacked Bar Data verfügbar');
+                return;
+            }
+            
+            // Chart 1: Nach Einrichtung
+            createEinrichtungStackedChart(stackedData);
+            
+            // Chart 2: Nach Mitarbeiter
+            createMitarbeiterStackedChart(stackedData);
+        }
+        
+        function createEinrichtungStackedChart(stackedData) {
+            const ctx = document.getElementById('einrichtungStackedChart');
+            
+            if (!ctx) {
+                console.error('Canvas einrichtungStackedChart nicht gefunden');
+                return;
+            }
+            
+            // Labels = Einrichtungen
+            const einrichtungLabels = stackedData.einrichtung_view.map(e => 
+                e.einrichtung.length > 20 ? e.einrichtung.substring(0, 18) + '...' : e.einrichtung
+            );
+            
+            // Sammle alle unique Mitarbeiternamen
+            const allMitarbeiter = new Set();
+            stackedData.einrichtung_view.forEach(einrichtung => {
+                einrichtung.mitarbeiter_segmente.forEach(mitarbeiter => {
+                    allMitarbeiter.add(mitarbeiter.name);
+                });
+            });
+            
+            const mitarbeiterNames = Array.from(allMitarbeiter);
+            const colors = generateColors(mitarbeiterNames.length);
+            
+            // Erstelle Datasets (ein Dataset pro Mitarbeiter)
+            const datasets = mitarbeiterNames.map((name, idx) => ({
+                label: name,
+                data: stackedData.einrichtung_view.map(einrichtung => {
+                    const segment = einrichtung.mitarbeiter_segmente.find(m => m.name === name);
+                    return segment ? segment.einsaetze : 0;
+                }),
+                backgroundColor: colors[idx],
+                borderColor: colors[idx].replace('0.8', '1'),
+                borderWidth: 1
+            }));
+            
+            allCharts.einrichtungStackedChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: einrichtungLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    // Zeige vollen Einrichtungsnamen
+                                    const einrichtung = stackedData.einrichtung_view[context[0].dataIndex];
+                                    return einrichtung.einrichtung;
+                                },
+                                label: function(context) {
+                                    const mitarbeiter = context.dataset.label;
+                                    const einsaetze = context.parsed.y;
+                                    if (einsaetze > 0) {
+                                        return `${mitarbeiter}: ${einsaetze} Einsätze`;
+                                    }
+                                    return null; // Hide 0-value items
+                                },
+                                footer: function(context) {
+                                    const einrichtung = stackedData.einrichtung_view[context[0].dataIndex];
+                                    return `Gesamt: ${einrichtung.total_einsaetze} Einsätze`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: { maxRotation: 45, minRotation: 0 }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Anzahl Einsätze'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createMitarbeiterStackedChart(stackedData) {
+            const ctx = document.getElementById('mitarbeiterStackedChart');
+            
+            if (!ctx) {
+                console.error('Canvas mitarbeiterStackedChart nicht gefunden');
+                return;
+            }
+            
+            // Labels = Mitarbeiter
+            const mitarbeiterLabels = stackedData.mitarbeiter_view.map(m => 
+                m.mitarbeiter.length > 20 ? m.mitarbeiter.substring(0, 18) + '...' : m.mitarbeiter
+            );
+            
+            // Sammle alle unique Einrichtungsnamen
+            const allEinrichtungen = new Set();
+            stackedData.mitarbeiter_view.forEach(mitarbeiter => {
+                mitarbeiter.einrichtung_segmente.forEach(einrichtung => {
+                    allEinrichtungen.add(einrichtung.name);
+                });
+            });
+            
+            const einrichtungNames = Array.from(allEinrichtungen);
+            const colors = generateColors(einrichtungNames.length);
+            
+            // Erstelle Datasets (ein Dataset pro Einrichtung)
+            const datasets = einrichtungNames.map((name, idx) => ({
+                label: name,
+                data: stackedData.mitarbeiter_view.map(mitarbeiter => {
+                    const segment = mitarbeiter.einrichtung_segmente.find(e => e.name === name);
+                    return segment ? segment.einsaetze : 0;
+                }),
+                backgroundColor: colors[idx],
+                borderColor: colors[idx].replace('0.8', '1'),
+                borderWidth: 1
+            }));
+            
+            allCharts.mitarbeiterStackedChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: mitarbeiterLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    // Zeige vollen Mitarbeiternamen
+                                    const mitarbeiter = stackedData.mitarbeiter_view[context[0].dataIndex];
+                                    return mitarbeiter.mitarbeiter + (mitarbeiter.is_guest ? ' (Gast)' : '');
+                                },
+                                label: function(context) {
+                                    const einrichtung = context.dataset.label;
+                                    const einsaetze = context.parsed.y;
+                                    if (einsaetze > 0) {
+                                        return `${einrichtung}: ${einsaetze} Einsätze`;
+                                    }
+                                    return null; // Hide 0-value items
+                                },
+                                footer: function(context) {
+                                    const mitarbeiter = stackedData.mitarbeiter_view[context[0].dataIndex];
+                                    return `Gesamt: ${mitarbeiter.total_einsaetze} Einsätze`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: { maxRotation: 45, minRotation: 0 }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Anzahl Einsätze'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function createNetworkVisualization() {
             // Netzwerk-Visualisierung mit D3.js
             const networkData = {
@@ -1610,6 +1905,25 @@
 
         // Erstelle alle Charts initial
         createAllCharts();
+
+        // ===================================
+        // TAB-SWITCHING FÜR STACKED BAR CHARTS
+        // ===================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabId = this.dataset.tab;
+                
+                // Deaktiviere alle Tabs
+                document.querySelectorAll('.tab-btn').forEach(b => 
+                    b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => 
+                    c.classList.remove('active'));
+                
+                // Aktiviere gewählten Tab
+                this.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
 
         // Toggle Zero-Cast Events Funktionalität
         function toggleZeroCastMode() {

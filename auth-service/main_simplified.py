@@ -22,8 +22,7 @@ from uuid import UUID
 from pony.orm import Database, Required, Optional, Set, db_session, PrimaryKey
 from pony.orm import select, commit
 from enum import Enum
-from passlib.context import CryptContext
-from passlib.hash import bcrypt
+import bcrypt
 
 # FastAPI Application
 app = FastAPI(
@@ -68,14 +67,14 @@ except Exception as e:
     logger.error(f"Database connection failed: {e}")
     raise
 
-# Password Context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# Password Verification
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
+    """Verify a password against its hash using bcrypt"""
     try:
-        return pwd_context.verify(plain_password, hashed_password)
-    except:
+        password_bytes = plain_password.encode('utf-8')
+        hash_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    except Exception:
         return False
 
 # Pydantic Models

@@ -17,7 +17,7 @@ import hashlib
 import logging
 from datetime import datetime, timedelta
 import sqlite3
-from passlib.context import CryptContext
+import bcrypt
 
 # FastAPI Application
 app = FastAPI(
@@ -35,14 +35,14 @@ logger = logging.getLogger(__name__)
 # Database Path (Docker Volume Mount)
 DOCKER_DB_PATH = "/app/database/db_docker_test.sqlite"
 
-# Password Context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# Password Verification
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
+    """Verify a password against its hash using bcrypt"""
     try:
-        return pwd_context.verify(plain_password, hashed_password)
-    except:
+        password_bytes = plain_password.encode('utf-8')
+        hash_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hash_bytes)
+    except Exception:
         return False
 
 def get_db_connection():

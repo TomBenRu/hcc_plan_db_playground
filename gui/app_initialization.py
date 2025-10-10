@@ -113,6 +113,11 @@ def initialize_application_with_progress(app: QApplication, progress_callback: I
         from configuration.project_paths import curr_user_path_handler
         log_file_path = os.path.join(curr_user_path_handler.get_config().log_file_path, 'hcc-dispo.log')
     
+    # === Log-Verzeichnis sicherstellen (MUSS vor Logging-Setup erfolgen) ===
+    log_dir = os.path.dirname(log_file_path)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    
     # === Phase 1: System Infrastructure ===
     _update_progress(progress_callback, "System setup")
     # Logging-System setup (muss vor anderen Phasen erfolgen)
@@ -155,9 +160,8 @@ def initialize_system_infrastructure(progress_callback: InitializationProgressCa
     from configuration.project_paths import curr_user_path_handler
     import faulthandler
     
-    # Log-Pfad sicherstellen
-    if not os.path.exists(log_path := curr_user_path_handler.get_config().log_file_path):
-        os.makedirs(log_path)
+    # Log-Pfad ist bereits in initialize_application_with_progress erstellt worden
+    log_path = curr_user_path_handler.get_config().log_file_path
     
     # Faulthandler mit File-Parameter aktivieren (umgeht PyInstaller sys.stderr Problem)
     if is_development_environment():

@@ -78,10 +78,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # db_services.Project.create('Humor Hilft Heilen')
 
         # self.project_id = UUID('A2468BCF064F4A69BACFFD00F929671E')
-        if choose_project:
-            self._choose_project()
-        else:
-            self.project_id = db_services.Project.get_all()[0].id
+
+        self._load_project(choose_project)
 
         self.curr_team: schemas.TeamShow | None = None
 
@@ -496,6 +494,18 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 self.actions['new_plan_period'],
                 self.actions['calculate_plans']
             )
+
+    def _load_project(self, choose_project: bool = False):
+        if choose_project:
+            self._choose_project()
+        else:
+            # Bei Neuinstallation: Prüfen ob Projekte existieren
+            projects = db_services.Project.get_all()
+            if not projects:
+                # Kein Projekt vorhanden - Dialog öffnen zur Projekterstellung
+                self._choose_project()
+            else:
+                self.project_id = projects[0].id
 
     def _choose_project(self):
         start_config = team_start_config.curr_start_config_handler.get_start_config()

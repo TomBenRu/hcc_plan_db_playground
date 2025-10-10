@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "anytree>=2.12",
-    "bcrypt>=4.2",
+    "bcrypt~=5.0",
     "google-api-python-client>=2.149.0",
     "google-auth-oauthlib>=1.2.1",
     "google-auth>=2.35.0",
@@ -15,7 +15,6 @@ dependencies = [
     "openpyxl>=3.0",
     "ortools>=9.11.4210",
     "pandas >= 2.2",
-    "passlib>=1.7",
     "pony>=0.7.19",
     "pydantic[email]>=2.9",
     "pyjwt>=2.9",

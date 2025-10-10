@@ -70,10 +70,6 @@
    "value": "pony.orm.dbproviders.sqlite"
   },
   {
-   "optionDest": "hiddenimports",
-   "value": "passlib.handlers.bcrypt"
-  },
-  {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/resources;gui/resources/"
   },

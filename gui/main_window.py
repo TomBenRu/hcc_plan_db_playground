@@ -495,26 +495,21 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 self.actions['calculate_plans']
             )
 
-    def _load_project(self, choose_project: bool = False):
-        if choose_project:
-            self._choose_project()
-        else:
-            # Bei Neuinstallation: Prüfen ob Projekte existieren
-            projects = db_services.Project.get_all()
-            if not projects:
-                # Kein Projekt vorhanden - Dialog öffnen zur Projekterstellung
-                self._choose_project()
-            else:
-                self.project_id = projects[0].id
-
-    def _choose_project(self):
+    def _load_project(self, choose_project: bool):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
-        if not db_services.Project.get_all():
+        # Bei Neuinstallation: Prüfen ob Projekte existieren
+        if not (all_projects := db_services.Project.get_all()):
             QMessageBox.information(self, 'Projekt',
                                     'Sie haben noch kein Projekt angelegt.\n'
                                     'Legen Sie im folgenden Dialog ein neues Projekt an.')
             self._create_new_project(start_config)
             return
+        if choose_project:
+            self._choose_project(start_config)
+        else:
+            self.project_id = all_projects[0].id
+
+    def _choose_project(self, start_config: team_start_config.StartConfig):
         dlg = DlgProjectSelect(self, start_config.project_id)
         if dlg.exec():
             self.project_id = dlg.project_id

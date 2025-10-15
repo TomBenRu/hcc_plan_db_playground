@@ -46,6 +46,8 @@ class DlgCalculate(QDialog):
     def __init__(self, parent: QWidget, team_id: UUID):
         super().__init__(parent)
 
+        # TODO: Bulk Operation für mehrere Monate bei Berechnung der gerechten Aufteilung über all diese Monate
+
         # Help-System Integration
         setup_form_help(self, "calculate_plan", add_help_button=True)
 

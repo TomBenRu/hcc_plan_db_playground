@@ -130,9 +130,9 @@ class ExportToXlsx:
         self.format_names_scheduling_overview_even = self.workbook.add_format(
             {'bold': True, 'font_size': 12, 'align': 'distributed', 'valign': 'top', 'bg_color': '#D3D3D3'})
         self.format_dates_scheduling_overview_odd = self.workbook.add_format(
-            {'font_size': 12, 'text_wrap': True})
+            {'font_size': 12, 'text_wrap': True, 'indent': 1})
         self.format_dates_scheduling_overview_even = self.workbook.add_format(
-            {'font_size': 12, 'text_wrap': True, 'bg_color': '#D3D3D3'})
+            {'font_size': 12, 'text_wrap': True, 'indent': 1, 'bg_color': '#D3D3D3'})
         self.format_space_rows_scheduling_overview_odd = self.workbook.add_format({'bg_color': 'white'})
         self.format_space_rows_scheduling_overview_even = self.workbook.add_format({'bg_color': '#D3D3D3'})
 
@@ -355,7 +355,7 @@ class ExportToXlsx:
             name = name.replace(' ', self.nbsp)
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview,
-                f'{name} ({len(appointments)}{self.nbsp}Termine):{self.nbsp}{self.nbsp}', formats_names[row % 2]
+                f'{name} ({len(appointments)}{self.nbsp}Termine):', formats_names[row % 2]
             )
             text_dates = (
                     f'●{self.nbsp}' +

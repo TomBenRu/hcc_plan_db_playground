@@ -1,16 +1,13 @@
 import datetime
 import itertools
 import logging
-import os
 from collections import defaultdict
-from pprint import pprint
 from uuid import UUID
 
 import xlsxwriter
 from PySide6.QtWidgets import QWidget, QMessageBox
 from xlsxwriter.exceptions import FileCreateError
 
-from configuration import project_paths
 from database import db_services, schemas
 from export_to_file.employee_events_to_xlsx import integrate_employee_events_into_export
 from gui import frm_plan
@@ -37,6 +34,7 @@ class ExportToXlsx:
 
         self.nbsp = '\u00A0'
         self.nb_minus = "\u2212"
+        self.nb_hyphen = "\u2011"
 
         self._create_workbook()
         self._define_formats()
@@ -128,9 +126,9 @@ class ExportToXlsx:
         self.format_title_scheduling_overview = self.workbook.add_format(
             {'bold': True, 'font_size': 14})
         self.format_names_scheduling_overview_odd = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'valign': 'top'})
+            {'bold': True, 'font_size': 12, 'align': 'distributed', 'valign': 'top'})
         self.format_names_scheduling_overview_even = self.workbook.add_format(
-            {'bold': True, 'font_size': 12, 'valign': 'top', 'bg_color': '#D3D3D3'})
+            {'bold': True, 'font_size': 12, 'align': 'distributed', 'valign': 'top', 'bg_color': '#D3D3D3'})
         self.format_dates_scheduling_overview_odd = self.workbook.add_format(
             {'font_size': 12, 'text_wrap': True})
         self.format_dates_scheduling_overview_even = self.workbook.add_format(
@@ -145,7 +143,7 @@ class ExportToXlsx:
         self.row_height_dates = 20
         self.col_width_kw = 5
         self.col_width_locations = 18
-        self.col_width_names_scheduling_overview = 20
+        self.col_width_names_scheduling_overview = 30
         self.col_width_dates_scheduling_overview = 160
         self.space_rows_height_scheduling_overview = 5
 
@@ -239,7 +237,7 @@ class ExportToXlsx:
             self.worksheet_plan.set_row(row, self.row_height_dates)
 
     def _write_appointments(self):
-        self.location_appointment_notes: defaultdict[str, [schemas.Appointment]] = defaultdict(list)
+        self.location_appointment_notes: defaultdict[str, list[schemas.Appointment]] = defaultdict(list)
         for row, col in self.cells_for_default_appointments:
             self.worksheet_plan.write(row, col, '', self.format_appointments)
 
@@ -263,22 +261,22 @@ class ExportToXlsx:
                 for location_id, appointments in location_appointments.items():
                     for i, appointment in enumerate(
                             sorted(appointments, key=lambda x: x.event.time_of_day.time_of_day_enum.time_index)):
-                        loc_header = self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['locations']
+                        event = appointment.event
+                        loc_header = self.weekday_num__col_locations[event.date.isocalendar()[2]]['locations']
                         loc_indexes = {loc.id: i for i, loc in enumerate(loc_header)}
-                        row = self.week_num__row_merge[appointment.event.date.isocalendar()[1]]['row'] + 1 + i
-                        col = (self.weekday_num__col_locations[appointment.event.date.isocalendar()[2]]['column']
+                        row = self.week_num__row_merge[event.date.isocalendar()[1]]['row'] + 1 + i
+                        col = (self.weekday_num__col_locations[event.date.isocalendar()[2]]['column']
                                + 1 + loc_indexes[location_id])
                         text_names = make_text_names_and_notes()
                         rows_in_cell = 1 + text_names.count('\n')
                         rows_cols[row].append((col, rows_in_cell))
                         self.worksheet_plan.write(
-                            row, col, f'{appointment.event.time_of_day.start.strftime("%H:%M")}{text_names}',
+                            row, col, f'{event.time_of_day.start.strftime("%H:%M")}{text_names}',
                             self.format_appointments
                         )
                         if appointment.notes:
                             self.location_appointment_notes[
-                                appointment.event.location_plan_period.location_of_work.name_an_city].append(
-                                appointment)
+                                event.location_plan_period.location_of_work.name_an_city].append(appointment)
 
         for row, cols_rows_in_cell in rows_cols.items():
             min_cols = min(c for c, _ in cols_rows_in_cell)
@@ -353,18 +351,19 @@ class ExportToXlsx:
             '', format_space_rows[0]
         )
 
-        for row, (name, appointment) in enumerate(get_appointments_of_actors_from_plan(self.tab_plan.plan).items()):
+        for row, (name, appointments) in enumerate(get_appointments_of_actors_from_plan(self.tab_plan.plan).items()):
+            name = name.replace(' ', self.nbsp)
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview,
-                f'{name}:', formats_names[row % 2]
+                f'{name} ({len(appointments)}{self.nbsp}Termine):{self.nbsp}{self.nbsp}', formats_names[row % 2]
             )
             text_dates = (
                     f'●{self.nbsp}' +
                     f' ●{self.nbsp}'.join(
-                        [f'{a.event.date:%d.%m.%y}{self.nbsp}({a.event.time_of_day.start:%H:%M}){self.nbsp}-{self.nbsp}'
-                         f'{a.event.location_plan_period.location_of_work.name_an_city
-                         .replace(" ", self.nbsp).replace("-", self.nb_minus)}'
-                         for a in appointment])
+                        [f'{a.event.date:%d.%m.%y}{self.nbsp}({a.event.time_of_day.start:%H:%M}){self.nbsp}'
+                         f'{self.nb_minus}{self.nbsp}{a.event.location_plan_period.location_of_work.name_an_city
+                         .replace(" ", self.nbsp).replace("-", self.nb_hyphen)}'
+                         for a in appointments])
             )
             self.worksheet_scheduling_overview.write(
                 row * 2 + self.offset_y_dates_scheduling_overview, self.offset_x_dates_scheduling_overview + 1,

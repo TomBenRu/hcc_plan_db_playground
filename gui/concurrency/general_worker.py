@@ -1,4 +1,5 @@
 import datetime
+import datetime
 from typing import Callable
 from uuid import UUID
 
@@ -26,6 +27,11 @@ class WorkerSignalsReturnValue(QObject):
 
 class SignalsCalculatePlan(QObject):
     finished = Signal(object, object, object, object, object)
+
+
+
+class SignalsCalculateMultiPeriod(QObject):
+    finished = Signal(object, object, object, object, object, object)
 
 
 class WorkerGeneral(QRunnable):
@@ -73,6 +79,60 @@ class WorkerCalculatePlan(QRunnable):
                                                                   self.time_calc_plan)
         self.signals.finished.emit(schedule_versions, fixed_cast_conflicts, skill_conflicts,
                                    max_shifts_per_app, fair_shifts_per_app)
+
+
+
+class WorkerCalculateMultiPeriod(QRunnable):
+    """
+    Worker für Multi-Period Plan-Berechnung.
+    
+    Ruft solve_multi_period() auf und emittiert die Ergebnisse zusammen mit
+    den selected_pp_ids für die nachfolgende Aufteilung und Speicherung.
+    """
+    def __init__(self,
+                 function: Callable[[list[UUID], int, int, int, int],
+                 tuple[list[list[schemas.AppointmentCreate]],
+                 dict[tuple[datetime.date, str, UUID], int], dict[str, int], dict[UUID, int], dict[UUID, float]]],
+                 plan_period_ids: list[UUID],
+                 num_plans: int,
+                 time_calc_max_shifts: int,
+                 time_calc_fair_distribution: int,
+                 time_calc_plan: int):
+        super().__init__()
+        self.function = function
+        self.plan_period_ids = plan_period_ids
+        self.num_plans = num_plans
+        self.time_calc_max_shifts = time_calc_max_shifts
+        self.time_calc_fair_distribution = time_calc_fair_distribution
+        self.time_calc_plan = time_calc_plan
+        self.signals = SignalsCalculateMultiPeriod()
+
+    @Slot()
+    def run(self):
+        """
+        Führt die Multi-Period Berechnung aus.
+        
+        Emittiert plan_period_ids als erstes Argument, damit die GUI
+        weiß für welche Perioden der Plan aufgeteilt werden muss.
+        """
+        (schedule_versions, fixed_cast_conflicts, skill_conflicts,
+         max_shifts_per_app, fair_shifts_per_app) = self.function(
+            self.plan_period_ids,
+            self.num_plans,
+            self.time_calc_max_shifts,
+            self.time_calc_fair_distribution,
+            self.time_calc_plan
+        )
+        
+        # Emittiere Ergebnisse zusammen mit den plan_period_ids
+        self.signals.finished.emit(
+            self.plan_period_ids,
+            schedule_versions,
+            fixed_cast_conflicts,
+            skill_conflicts,
+            max_shifts_per_app,
+            fair_shifts_per_app
+        )
 
 
 class WorkerSavePlans(QRunnable):

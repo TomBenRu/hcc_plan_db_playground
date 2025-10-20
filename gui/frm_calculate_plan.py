@@ -1,9 +1,10 @@
 import datetime
+import datetime
 from uuid import UUID
 
 from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt, QThreadPool
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
-    QFormLayout, QSpinBox, QHBoxLayout, QGroupBox
+    QFormLayout, QSpinBox, QHBoxLayout, QGroupBox, QCheckBox, QListWidget, QListWidgetItem, QAbstractItemView
 
 import tools
 from commands import command_base_classes
@@ -78,9 +79,25 @@ class DlgCalculate(QDialog):
 
         self.lb_explanation = QLabel()
         self.layout_head.addWidget(self.lb_explanation)
+        
+        # Multi-Period Mode Checkbox
+        self.cb_multi_period = QCheckBox(
+            self.tr('Calculate fair distribution across multiple periods')
+        )
+        self.cb_multi_period.stateChanged.connect(self._toggle_multi_period_mode)
+        self.layout_head.addWidget(self.cb_multi_period)
+        
+        # Single-Period: ComboBox (Standard)
         self.combo_plan_periods = QComboBox()
-        self.spin_num_plans = QSpinBox()
         self.layout_plan_select.addRow(self.tr('Planning Period'), self.combo_plan_periods)
+        
+        # Multi-Period: List Widget (initial versteckt)
+        self.list_plan_periods = QListWidget()
+        self.list_plan_periods.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self.list_plan_periods.setVisible(False)
+        self.layout_plan_select.addRow(self.tr('Select Periods:'), self.list_plan_periods)
+        
+        self.spin_num_plans = QSpinBox()
         self.layout_plan_select.addRow(self.tr('Number of Planning Proposals'), self.spin_num_plans)
         self.spin_time_calculate_max_shifts = QSpinBox()
         self.spin_time_calculate_fair_distribution = QSpinBox()
@@ -98,7 +115,54 @@ class DlgCalculate(QDialog):
 
         self.fill_out_widgets()
 
+
+    def _toggle_multi_period_mode(self):
+        """
+        Schaltet zwischen Single- und Multi-Period Mode um.
+        
+        Im Multi-Period Mode:
+        - ComboBox wird ausgeblendet
+        - List Widget wird angezeigt und gefüllt
+        - User kann mehrere Perioden auswählen
+        
+        Im Single-Period Mode:
+        - ComboBox wird angezeigt
+        - List Widget wird ausgeblendet
+        """
+        is_multi = self.cb_multi_period.isChecked()
+        
+        # Toggle Sichtbarkeit
+        self.combo_plan_periods.setVisible(not is_multi)
+        self.list_plan_periods.setVisible(is_multi)
+        
+        # Fülle List Widget beim ersten Aktivieren
+        if is_multi and self.list_plan_periods.count() == 0:
+            self._fill_plan_periods_list()
+    
+    def _fill_plan_periods_list(self):
+        """
+        Füllt das List Widget mit allen verfügbaren PlanPeriods des Teams.
+        """
+        team = db_services.Team.get(self.team_id)
+        plan_periods = sorted(
+            [pp for pp in team.plan_periods if not pp.prep_delete],
+            key=lambda x: x.start
+        )
+        
+        for pp in plan_periods:
+            item = QListWidgetItem(
+                f'{date_to_string(pp.start)} - {date_to_string(pp.end)}'
+            )
+            item.setData(Qt.ItemDataRole.UserRole, pp.id)
+            self.list_plan_periods.addItem(item)
+
     def _calculate_schedule_versions(self):
+        # Prüfe ob Multi-Period Mode aktiv ist
+        if self.cb_multi_period.isChecked():
+            self._calculate_multi_period()
+            return
+        
+        # Standard Single-Period Berechnung
         if not self.curr_plan_period_id:
             QMessageBox.critical(self, self.tr('Period'), 
                                self.tr('Please select a period first.'))
@@ -137,6 +201,233 @@ class DlgCalculate(QDialog):
         )
         self.worker.signals.finished.connect(self._save_plan_to_db, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(self.worker)
+
+
+    def _calculate_multi_period(self):
+        """
+        Startet die Multi-Period Plan-Berechnung.
+        
+        Workflow:
+        1. Sammle ausgewählte PlanPeriods aus List Widget
+        2. Validiere Auswahl (min. 2 Perioden, alle haben Events)
+        3. Starte Worker für solve_multi_period()
+        4. Nach Berechnung: Teile Gesamtplan auf und speichere einzeln
+        """
+        # 1. Sammle ausgewählte PlanPeriods
+        selected_pp_ids = []
+        for i in range(self.list_plan_periods.count()):
+            item = self.list_plan_periods.item(i)
+            if item.isSelected():
+                selected_pp_ids.append(item.data(Qt.ItemDataRole.UserRole))
+        
+        # 2. Validierung: Mindestens 2 Perioden
+        if len(selected_pp_ids) < 2:
+            QMessageBox.warning(
+                self, 
+                self.tr('Period Selection'),
+                self.tr('Please select at least 2 periods for multi-period calculation.')
+            )
+            return
+        
+        # 3. Validierung: Alle Perioden haben Events
+        for pp_id in selected_pp_ids:
+            if not db_services.Event.get_all_from__plan_period(pp_id):
+                pp = db_services.PlanPeriod.get(pp_id)
+                QMessageBox.critical(
+                    self,
+                    self.tr('No Events'),
+                    self.tr('Period {period} has no events.\n'
+                           'Please add assignments first.').format(
+                        period=f'{date_to_string(pp.start)} - {date_to_string(pp.end)}'
+                    )
+                )
+                return
+        
+        # 4. Lazy Import
+        from sat_solver import solver_main
+        
+        # Signal für Solver-Cancel lazy verbinden
+        signal_handling.handler_solver.signal_cancel_solving.connect(
+            solver_main.solver_quit,
+            Qt.ConnectionType.QueuedConnection
+        )
+        
+        # 5. Berechne Anzahl ActorPlanPeriods über alle Perioden
+        total_actor_plan_periods = 0
+        for pp_id in selected_pp_ids:
+            total_actor_plan_periods += len(db_services.ActorPlanPeriod.get_all_from__plan_period(pp_id))
+        
+        # 6. Progress Dialog
+        total_steps = self.spin_num_plans.value() + total_actor_plan_periods + 2
+        self.progress_dialog_solver = DlgProgressSteps(
+            self, 
+            self.tr('Multi-Period Calculation'),
+            self.tr('Calculating fair distribution across periods...'),
+            0,
+            total_steps,
+            self.tr('Cancel'),
+            signal_handling.handler_solver.cancel_solving
+        )
+        self.progress_dialog_solver.show()
+        
+        # 7. Starte Worker
+        self.worker = general_worker.WorkerCalculateMultiPeriod(
+            solver_main.solve_multi_period,
+            selected_pp_ids,
+            self.spin_num_plans.value(),
+            self.spin_time_calculate_max_shifts.value(),
+            self.spin_time_calculate_fair_distribution.value() // total_actor_plan_periods,
+            self.spin_time_calculate_plan.value()
+        )
+        self.worker.signals.finished.connect(
+            self._save_multi_period_plans,
+            Qt.ConnectionType.QueuedConnection
+        )
+        QThreadPool.globalInstance().start(self.worker)
+
+
+    @Slot(object, object, object, object, object, object)
+    def _save_multi_period_plans(
+        self,
+        selected_pp_ids: list[UUID],
+        schedule_versions: list[list[schemas.AppointmentCreate]] | None,
+        fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None,
+        skill_conflicts: dict[str, int] | None,
+        max_shifts_per_app: dict[UUID, int] | None,
+        fair_shifts_per_app: dict[UUID, float]
+    ):
+        """
+        Speichert Multi-Period Pläne in die Datenbank.
+        
+        Diese Methode:
+        1. Führt Error-Handling durch (wie _save_plan_to_db)
+        2. Teilt jeden Gesamtplan nach Perioden auf
+        3. Speichert die aufgeteilten Pläne einzeln pro Periode
+        
+        Args:
+            selected_pp_ids: Liste der PlanPeriod IDs
+            schedule_versions: Liste von Gesamtplänen (jeder über alle Perioden)
+            fixed_cast_conflicts: Fixed cast Konflikte
+            skill_conflicts: Skill Konflikte
+            max_shifts_per_app: Maximale Einsätze pro ActorPlanPeriod
+            fair_shifts_per_app: Faire Einsätze pro ActorPlanPeriod
+        """
+        # Error-Handling analog zu _save_plan_to_db
+        if schedule_versions is None and fixed_cast_conflicts is None:
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('No solutions were found.\nThis could be due to early termination,\n'
+                       'or the time limits for plan creation were too low,\n'
+                       'or the planning requirements were contradictory.')
+            )
+            self.reject()
+            return
+
+        if sum(fixed_cast_conflicts.values()) > 0:
+            events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            conflict_string = '\n'.join([
+                self.tr('  - {date} ({time_of_day}) {location}:\n'
+                       '      - Fixed cast: {fixed_cast}').format(
+                    date=date_to_string(e.date),
+                    time_of_day=e.time_of_day.name,
+                    location=e.location_plan_period.location_of_work.name,
+                    fixed_cast=generate_fixed_cast_clear_text(e.cast_group.fixed_cast)
+                ) for e in events
+            ])
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('{count} fixed cast conflicts found.\n{conflicts}').format(
+                    count=sum(fixed_cast_conflicts.values()),
+                    conflicts=conflict_string
+                )
+            )
+            self.reject()
+            return
+
+        if sum(skill_conflicts.values()) > 0:
+            conflict_string = '\n'.join([
+                self.tr('  - {skill}: {count}').format(skill=skill, count=v) 
+                for skill, v in skill_conflicts.items() if v > 0
+            ])
+            QMessageBox.critical(
+                self, 
+                self.tr('Error'),
+                self.tr('{count} skill conflicts found.\n{conflicts}').format(
+                    count=sum(skill_conflicts.values()),
+                    conflicts=conflict_string
+                )
+            )
+            self.reject()
+            return
+
+        # Optional: User fragen wie viele Versionen gespeichert werden sollen
+        nr_versions_to_use = (len_versions := len(schedule_versions))
+        if len_versions > 1:
+            dlg = DlgAskNrPlansToSave(self, len_versions)
+            if dlg.exec():
+                nr_versions_to_use = dlg.get_nr_versions_to_use()
+            else:
+                self.reject()
+                return
+
+        # Lazy Import
+        from sat_solver import solver_main
+        
+        # Für jede Plan-Version: Teile nach Perioden auf und speichere
+        self.plans_save_progress_bar = DlgProgressInfinite(
+            self, 
+            self.tr('Save Multi-Period Plans'), 
+            self.tr('In Progress...'), 
+            self.tr('Cancel'),
+            signal_handling.handler_solver.cancel_solving
+        )
+        self.plans_save_progress_bar.show()
+        
+        # Speichere nur die ausgewählte Anzahl von Versionen
+        for version_idx in range(nr_versions_to_use):
+            gesamtplan = schedule_versions[version_idx]
+            
+            # Teile Gesamtplan nach Perioden auf
+            period_plans = solver_main.extract_appointments_by_period(
+                gesamtplan,
+                selected_pp_ids
+            )
+            
+            # Speichere jede Periode einzeln
+            for pp_id in selected_pp_ids:
+                period_appointments = period_plans[pp_id]
+                
+                # Nutze existierende save-Funktion (nur mit einer Version)
+                plan_ids = data_processing.save_schedule_versions_to_db(
+                    pp_id,
+                    self.team_id,
+                    [period_appointments],  # Als Liste mit einem Element
+                    max_shifts_per_app,
+                    fair_shifts_per_app,
+                    1,  # Nur eine Version pro Periode
+                    self.controller
+                )
+                
+                # Sammle erstellte Plan IDs
+                self._created_plan_ids.extend(plan_ids)
+        
+        self.plans_save_progress_bar.close()
+        
+        # Erfolgs-Meldung
+        QMessageBox.information(
+            self,
+            self.tr('Success'),
+            self.tr('Multi-period calculation completed successfully!\n'
+                   'Plans for {count} periods have been created.\n'
+                   'Total {total} plan versions saved.').format(
+                count=len(selected_pp_ids),
+                total=nr_versions_to_use * len(selected_pp_ids)
+            )
+        )
+        
+        self.accept()
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

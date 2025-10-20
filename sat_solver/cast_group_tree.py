@@ -41,12 +41,46 @@ class CastGroup(NodeMixin):
 
 
 class CastGroupTree:
-    def __init__(self, plan_period_id: UUID):
-        self.plan_period_id = plan_period_id
-        self.nodes: dict[UUID | int, CastGroup] = {}
-        self.root: CastGroup | None = None
+    def __init__(self, plan_period_id: UUID = None,
+                 from_root: CastGroup = None):
+        """
+        Initialisiert einen CastGroupTree.
+        
+        Args:
+            plan_period_id: PlanPeriod UUID für Single-Period Tree
+            from_root: Bereits konstruierter Root-Node für Combined Multi-Period Tree
+        """
+        if from_root:
+            # Multi-Period Mode: Nutze übergebenen Root
+            self.root = from_root
+            self.nodes = self._collect_all_nodes(from_root)
+            self.plan_period_id = None  # Nicht anwendbar bei Combined Tree
+        else:
+            # Single-Period Mode: Bestehende Logik
+            self.plan_period_id = plan_period_id
+            self.nodes: dict[UUID | int, CastGroup] = {}
+            self.root: CastGroup | None = None
+            self.construct_cast_group_tree()
 
-        self.construct_cast_group_tree()
+    def _collect_all_nodes(self, root: CastGroup) -> dict[UUID | int, CastGroup]:
+        """
+        Sammelt alle Nodes aus einem bereits konstruierten Tree.
+        
+        Args:
+            root: Root-Node des Trees
+            
+        Returns:
+            Dictionary mit allen Nodes (cast_group_id -> CastGroup)
+        """
+        nodes = {root.cast_group_id: root}
+        
+        def collect_recursive(node: CastGroup):
+            for child in node.children:
+                nodes[child.cast_group_id] = child
+                collect_recursive(child)
+        
+        collect_recursive(root)
+        return nodes
 
     def construct_cast_group_tree(self):
         self.root = CastGroup(None)
@@ -72,6 +106,128 @@ class CastGroupTree:
 
 def get_cast_group_tree(plan_period_id: UUID) -> CastGroupTree:
     return CastGroupTree(plan_period_id)
+
+
+def get_combined_cast_group_tree(plan_period_ids: list[UUID]) -> CastGroupTree:
+    """
+    Erstellt einen kombinierten CastGroupTree über mehrere PlanPeriods.
+
+    Diese Funktion ermöglicht die Multi-Period Kalkulation, indem sie einen
+    Super-Root erstellt, der alle einzelnen PlanPeriod Trees als Children enthält.
+
+    Struktur des kombinierten Trees:
+        Super-Root (cast_group_id=0)
+        ├─ PlanPeriod 1 CastGroups
+        │  ├─ CastGroup 1 (Event 1)
+        │  │  └─ Child CastGroups
+        │  └─ CastGroup 2 (Event 2)
+        └─ PlanPeriod 2 CastGroups
+           ├─ CastGroup 3 (Event 3)
+           └─ CastGroup 4 (Event 4)
+
+    Args:
+        plan_period_ids: Liste von PlanPeriod UUIDs (mindestens 2)
+
+    Returns:
+        CastGroupTree mit Super-Root die alle Periode-Trees enthält
+
+    Raises:
+        ValueError: Wenn weniger als 2 PlanPeriods übergeben werden
+    """
+    if len(plan_period_ids) < 2:
+        raise ValueError(f"Multi-Period calculation requires at least 2 periods, got {len(plan_period_ids)}")
+
+    cast_group_trees = [get_cast_group_tree(pp_id) for pp_id in plan_period_ids]
+
+    # 1. Setze eindeutige IDs für alle Root-Nodes
+    for i, tree in enumerate(cast_group_trees, start=1):
+        tree.root.cast_group_id = i
+
+    # 2. Erstelle Super-Root mit allen PlanPeriod-Roots als Children
+    super_root = CastGroup(
+        cast_group_db=None,  # Kein DB-Objekt für Super-Root
+        children=[tree.root for tree in cast_group_trees],  # Alle PlanPeriod-Roots als Children
+        parent=None
+    )
+    super_root.name = "Super-Root"
+
+    return CastGroupTree(from_root=super_root)
+
+
+def get_combined_cast_group_tree_deprecated(plan_period_ids: list[UUID]) -> CastGroupTree:
+    """
+    Erstellt einen kombinierten CastGroupTree über mehrere PlanPeriods.
+    
+    Diese Funktion ermöglicht die Multi-Period Kalkulation, indem sie einen
+    Super-Root erstellt, der alle einzelnen PlanPeriod Trees als Children enthält.
+    
+    Struktur des kombinierten Trees:
+        Super-Root (cast_group_id=0)
+        ├─ PlanPeriod 1 CastGroups
+        │  ├─ CastGroup 1 (Event 1)
+        │  │  └─ Child CastGroups
+        │  └─ CastGroup 2 (Event 2)
+        └─ PlanPeriod 2 CastGroups
+           ├─ CastGroup 3 (Event 3)
+           └─ CastGroup 4 (Event 4)
+    
+    Args:
+        plan_period_ids: Liste von PlanPeriod UUIDs (mindestens 2)
+        
+    Returns:
+        CastGroupTree mit Super-Root die alle Periode-Trees enthält
+        
+    Raises:
+        ValueError: Wenn weniger als 2 PlanPeriods übergeben werden
+    """
+    if len(plan_period_ids) < 2:
+        raise ValueError(f"Multi-Period calculation requires at least 2 periods, got {len(plan_period_ids)}")
+    
+    # 1. Erstelle Super-Root (ohne Children zunächst)
+    super_root = CastGroup(
+        cast_group_db=None,  # Kein DB-Objekt für Super-Root
+        children=[],  # Wird befüllt
+        parent=None
+    )
+    super_root.cast_group_id = 0  # Spezielle ID für Super-Root
+    super_root.name = "Super-Root"
+    
+    # 2. Erstelle für jede PlanPeriod einen Tree und füge als Children hinzu
+    all_top_nodes = []  # Sammle alle Top-Level Nodes
+    
+    for pp_id in plan_period_ids:
+        # Hole alle Top-Level CastGroups dieser PlanPeriod (die ohne Parent)
+        all_cast_groups_db = db_services.CastGroup.get_all_from__plan_period(pp_id)
+        cast_groups_db_top = [cg for cg in all_cast_groups_db if not cg.parent_groups]
+        
+        # Erstelle Top-Level Nodes für diese PlanPeriod
+        for cg_top in cast_groups_db_top:
+            # Top-Level CastGroup wird als CastGroup-Objekt erstellt
+            curr_node = CastGroup(cg_top, None, None)  # Parent wird später gesetzt
+            all_top_nodes.append(curr_node)
+    
+    # 3. Setze alle Top-Level Nodes als Children des Super-Root
+    super_root.children = all_top_nodes
+    for node in all_top_nodes:
+        node.parent = super_root
+    
+    # 4. Baue rekursiv Child-CastGroups auf
+    nodes_to_process = list(all_top_nodes)
+    
+    while nodes_to_process:
+        current_nodes = nodes_to_process
+        nodes_to_process = []
+        
+        for node in current_nodes:
+            if node.cast_group_db and node.cast_group_db.child_groups:
+                for cg_db in node.cast_group_db.child_groups:
+                    cg_db = db_services.CastGroup.get(cg_db.id)
+                    child_node = CastGroup(cg_db, None, node)
+                    if cg_db.child_groups:
+                        nodes_to_process.append(child_node)
+    
+    # 5. Erstelle CastGroupTree mit dem konstruierten Super-Root
+    return CastGroupTree(from_root=super_root)
 
 
 def render_cast_group_tree(cast_group_tree: CastGroupTree):

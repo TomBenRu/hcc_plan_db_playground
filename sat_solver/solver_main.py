@@ -3,6 +3,7 @@ import dataclasses
 import itertools
 import logging
 import os
+import pprint
 import sys
 import time
 from ast import literal_eval
@@ -47,9 +48,11 @@ from configuration.solver import curr_config_handler
 from database.schemas import AppointmentCreate
 from gui.observer import signal_handling
 from sat_solver import solver_variables
-from sat_solver.avail_day_group_tree import AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree
-from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup
-from sat_solver.event_group_tree import get_event_group_tree, EventGroupTree, EventGroup
+from sat_solver.avail_day_group_tree import (AvailDayGroup, get_avail_day_group_tree, AvailDayGroupTree,
+                                                get_combined_avail_day_group_tree)
+from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup, get_combined_cast_group_tree
+from sat_solver.event_group_tree import (get_event_group_tree, EventGroupTree, EventGroup,
+                                         get_combined_event_group_tree)
 from tools.helper_functions import generate_fixed_cast_clear_text
 
 
@@ -61,6 +64,16 @@ cp_sat_logger.addHandler(handler)
 cp_sat_logger.propagate = False
 
 def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assignments: dict[UUID, int]):
+    """
+    Berechnet faire Einsätze für eine einzelne PlanPeriod auf ActorPlanPeriod-Ebene.
+
+    Args:
+        assigned_shifts: Gesamte Anzahl an zu verteilenden Einsätzen
+        possible_assignments: Dict mit ActorPlanPeriod ID -> max. mögliche Einsätze
+
+    Returns:
+        Dict mit ActorPlanPeriod ID -> faire Anzahl Einsätze (float)
+    """
     # fixme: unkorrekt mit avail_day_group Einschränkungen
 
     def adjust_requested_assignments(requested_assignments: dict[UUID, int],
@@ -92,12 +105,14 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
     print({entities.actor_plan_periods[app_id].person.f_name: max_assign
            for app_id, max_assign in possible_assignments.items()})
     print('-----------------------------------------------------------------------------------------------------------')
+
+    # Dictionary mit ActorPlanPeriod ID -> requested_assignments welche nicht required sind
     requested_assignments: dict[UUID, int] = {
         app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
         for app_id, assignments in possible_assignments.items()
         if not entities.actor_plan_periods[app_id].required_assignments
     }
-
+    # Dictionary mit ActorPlanPeriod ID -> requested_assignments welche required sind
     required_assignments: dict[UUID, int] = {
         app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
         for app_id, assignments in possible_assignments.items()
@@ -106,17 +121,144 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
 
     avail_assignments: int = assigned_shifts
 
+    # 1. Verteile required_assignments faire auf ActorPlanPeriods, falls welche existieren
     if required_assignments:
         requested_assignments_new = adjust_requested_assignments(required_assignments, avail_assignments)
         avail_assignments -= sum(requested_assignments_new.values())
+    # 2. Verteile requested_assignments faire auf ActorPlanPeriods, falls welche übrig sind
     else:
         requested_assignments_new = {}
     requested_assignments_new |= adjust_requested_assignments(requested_assignments, avail_assignments)
 
+    # Setze die neuen requested_assignments in entities
     for app in entities.actor_plan_periods.values():
         app.requested_assignments = requested_assignments_new[app.id]
 
     return requested_assignments_new
+
+
+def generate_adjusted_requested_assignments_multi_period(assigned_shifts_per_period: dict[UUID, int],
+                                                         possible_assignments: dict[UUID, int]) -> dict[UUID, float]:
+    """
+    Berechnet faire Einsätze über mehrere PlanPeriods hinweg auf Person-Ebene.
+
+    Diese Funktion gruppiert ActorPlanPeriods nach Person und berechnet eine faire
+    Verteilung der Gesamteinsätze über ALLE Perioden einer Person. Die Verteilung
+    auf einzelne ActorPlanPeriods erfolgt proportional zum Minimum aus verfügbaren
+    Tagen und requested_assignments.
+
+    Args:
+        assigned_shifts_per_period: Dict mit PlanPeriod ID -> Anzahl zu verteilender Einsätze
+        possible_assignments: Dict mit ActorPlanPeriod ID -> max. mögliche Einsätze
+
+    Returns:
+        Dict mit ActorPlanPeriod ID -> faire Anzahl Einsätze (float)
+
+    Beispiel:
+        Person A hat 2 ActorPlanPeriods:
+        - Januar: 5 verfügbare Tage, requested=5 → Basis: min(5,5) = 5
+        - Februar: 20 verfügbare Tage, requested=20 → Basis: min(20,20) = 20
+
+        Person A bekommt fair 15 Einsätze gesamt:
+        - Januar:  15 * (5/25)  = 3.0 Einsätze
+        - Februar: 15 * (20/25) = 12.0 Einsätze
+    """
+
+    def adjust_requested_assignments_for_persons(person_requested: dict[UUID, float],
+                                                 avail_assignments: float) -> dict[UUID, float]:
+        """
+        Analog zur Original-Funktion, aber auf Person-Ebene.
+        Verteilt Einsätze fair zwischen Personen basierend auf ihren Wünschen.
+        """
+        person_requested_new: dict[UUID, float] = {}
+
+        print(
+            f'DEBUG adjust_for_persons INPUT: person_requested={person_requested}, avail_assignments={avail_assignments}')
+
+        while True:
+            mean_nr_assignments = avail_assignments / len(person_requested)
+            requested_greater_than_mean = {}
+            requested_smaller_than_mean = {}
+
+            for person_id, requested in person_requested.items():
+                if requested >= mean_nr_assignments:
+                    requested_greater_than_mean[person_id] = requested
+                else:
+                    requested_smaller_than_mean[person_id] = requested
+
+            if not requested_smaller_than_mean:
+                person_requested_new.update({
+                    person_id: avail_assignments / len(requested_greater_than_mean)
+                    for person_id in requested_greater_than_mean
+                })
+                break
+            else:
+                person_requested_new |= requested_smaller_than_mean
+                avail_assignments -= sum(requested_smaller_than_mean.values())
+                person_requested = requested_greater_than_mean.copy()
+                if not person_requested:
+                    break
+
+        print(
+            f'DEBUG adjust_for_persons OUTPUT: person_requested_new={person_requested_new}, sum={sum(person_requested_new.values())}')
+        return person_requested_new
+
+    def distribute_fair_requested_per_person_over_apps(app_requests: dict[UUID, float],
+                                                       avail_assignments: float) -> dict[UUID, float]:
+        """
+        Verteilt die faire Anzahl an Einsätzen pro Person proportional über die ActorPlanPeriods der Person.
+        """
+        app_fair_assignments: dict[UUID, float] = {}
+        while True:
+            mean_nr_assignments = avail_assignments / len(app_requests)
+            app_greater_than_mean = {}
+            app_smaller_than_mean = {}
+
+            for app_id, requested in app_requests.items():
+                if requested >= mean_nr_assignments:
+                    app_greater_than_mean[app_id] = requested
+                else:
+                    app_smaller_than_mean[app_id] = requested
+
+            if not app_smaller_than_mean:
+                app_fair_assignments.update({
+                    app_id: avail_assignments / len(app_greater_than_mean)
+                    for app_id in app_greater_than_mean
+                })
+                break
+            else:
+                app_fair_assignments |= app_smaller_than_mean
+                avail_assignments -= sum(app_smaller_than_mean.values())
+                app_requests = app_greater_than_mean.copy()
+                if not app_requests:
+                    break
+
+        return app_fair_assignments
+
+    person_to_requested: defaultdict[UUID, defaultdict[UUID, float]] = defaultdict(lambda: defaultdict(float))
+    for app_id, max_assignments in possible_assignments.items():
+        person_id = entities.actor_plan_periods[app_id].person.id
+        requested = entities.actor_plan_periods[app_id].requested_assignments
+        person_to_requested[person_id][app_id] = min(requested, max_assignments)
+
+    fair_requested_per_person = adjust_requested_assignments_for_persons(
+        {p_id: sum(app_requests.values()) for p_id, app_requests in person_to_requested.items()},
+        sum(assigned_shifts_per_period.values())
+    )
+    distribution_per_person_over_apps: defaultdict[UUID, dict[UUID, float]] = defaultdict(lambda: defaultdict(float))
+    for person_id, fair_requested in fair_requested_per_person.items():
+        distribution_per_person_over_apps[person_id] = distribute_fair_requested_per_person_over_apps(
+            person_to_requested[person_id],
+            fair_requested
+        )
+
+    fair_assignments: dict[UUID, float] = {}
+    for person_id, app_fair_assignments in distribution_per_person_over_apps.items():
+        fair_assignments |= app_fair_assignments
+        for app_id, fair in app_fair_assignments.items():
+            entities.actor_plan_periods[app_id].requested_assignments = fair
+
+    return fair_assignments
 
 
 def check_actor_location_prefs_fits_event(avail_day: schemas.AvailDayShow,
@@ -300,6 +442,57 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
     }
     entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
                                  | entities.avail_day_groups)
+    entities.avail_day_groups_with_avail_day = {
+        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
+    }
+
+    entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
+        cast_group.cast_group_id: cast_group
+        for cast_group in cast_group_tree.root.descendants
+    }
+    entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
+                                       for cast_group in cast_group_tree.root.leaves if cast_group.event}
+
+
+def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
+                                   cast_group_tree: CastGroupTree, plan_period_ids: list[UUID]):
+    """
+    Erstellt die Data Models für Multi-Period Kalkulation.
+    
+    Im Gegensatz zu create_data_models() werden hier ActorPlanPeriods, Events und CastGroups
+    von ALLEN übergebenen PlanPeriods gesammelt.
+    
+    Args:
+        event_group_tree: Combined EventGroupTree über alle Perioden
+        avail_day_group_tree: Combined AvailDayGroupTree über alle Perioden
+        cast_group_tree: Combined CastGroupTree über alle Perioden
+        plan_period_ids: Liste aller PlanPeriod UUIDs
+    """
+    # Sammle ActorPlanPeriods von ALLEN PlanPeriods
+    entities.actor_plan_periods = {}
+    for pp_id in plan_period_ids:
+        plan_period = db_services.PlanPeriod.get(pp_id)
+        for app in plan_period.actor_plan_periods:
+            # ActorPlanPeriod ID ist unique, daher keine Duplikate möglich
+            entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)
+    
+    # Rest analog zu create_data_models() - Tree-Struktur ist bereits kombiniert
+    entities.event_groups = {
+        event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
+        if event_group.children or event_group.event
+    }
+    entities.event_groups = {event_group_tree.root.event_group_id: event_group_tree.root} | entities.event_groups
+
+    entities.event_groups_with_event = {leave.event_group_id: leave for leave in event_group_tree.root.leaves
+                                        if leave.event}
+
+    entities.avail_day_groups = {
+        avail_day_group.avail_day_group_id: avail_day_group for avail_day_group in avail_day_group_tree.root.descendants
+        if avail_day_group.children or avail_day_group.avail_day
+    }
+    entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
+                                 | entities.avail_day_groups)
+
     entities.avail_day_groups_with_avail_day = {
         leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
     }
@@ -1317,6 +1510,16 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
     return sum_assigned_shifts, sum_squared_deviations
 
 
+def add_constraint_requested_assignments_multi_period(model: cp_model.CpModel):
+    """
+    Wenn mehrere Planperioden gleichzeitig berechnet werden, wird die Anzahl der Leaves der einzelnen
+    Master-AvailDayGroups genommen und die Summe der zugehörigen shift_vars
+    mit den requested_assignments der ActorPlanPeriods verglichen und jeweils Strafpunkte vergeben.
+    Bei required_assignments wird eine hard-constraint eingefügt.
+    """
+    pass
+
+
 def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     """
     Wird verwendet um die maximal möglichen Shifts eines Mitarbeiters zu bestimmen.
@@ -1588,7 +1791,7 @@ def print_solver_status(model: cp_model.CpModel, status: CpSolverStatus) -> tupl
 
 def call_solver_with_unadjusted_requested_assignments(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, max_search_time: int,
-        log_search_process: bool) -> tuple[int, int, int, int,
+        log_search_process: bool) -> tuple[dict[UUID, int], int, int, int,
                                            dict[tuple[datetime.date, str, UUID], int], dict[str, int], int, bool]:
     # Create the CP-SAT model.
     model = cp_model.CpModel()
@@ -1619,7 +1822,7 @@ def call_solver_with_unadjusted_requested_assignments(
                      constraints_weights_in_avail_day_groups, constraints_cast_rule)
     unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
 
-    return (sum(solver.Value(a) for a in sum_assigned_shifts.values()),
+    return ({app_id: solver.Value(a) for app_id, a in sum_assigned_shifts.items()},
             unassigned_shifts,
             solver.Value(sum(constraints_location_prefs)),
             solver.Value(sum(constraints_partner_loc_prefs)),
@@ -1629,10 +1832,28 @@ def call_solver_with_unadjusted_requested_assignments(
             success)
 
 
+def extract_assignments_by_period(assigned_shifts: dict[UUID, int], plan_period_ids: list[UUID]) -> dict[UUID, int]:
+    """
+    Extrahiert die Anzahl der zugewiesenen Einsätze pro PlanPeriod aus dem Dictionary der ActorPlanPeriods.
+    Args:
+        assigned_shifts: Dictionary mit ActorPlanPeriod ID als Key und Anzahl der zugewiesenen Einsätze als Value
+        plan_period_ids: Liste der PlanPeriod IDs
+
+    Returns:
+        Dictionary mit PlanPeriod ID als Key und Anzahl der zugewiesenen Einsätze als Value
+    """
+    plan_period_shifts = {pp_id: 0 for pp_id in plan_period_ids}
+    for app_id, shifts in assigned_shifts.items():
+        app = entities.actor_plan_periods[app_id]
+        pp_id = app.plan_period.id
+        plan_period_shifts[pp_id] += shifts
+    return plan_period_shifts
+
+
 def call_solver_to_get_max_shifts_per_app(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
         sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
-        assigned_shifts: int, max_search_time: int,
+        assigned_shifts: dict[UUID, int], max_search_time: int,
         log_search_process: bool) -> Generator[bool, None, tuple[bool, dict[UUID, int], dict[UUID, float]]]:
     """
     Berechnet für jeden Mitarbeiter die maximal mögliche Anzahl von Einsätzen.
@@ -1683,7 +1904,23 @@ def call_solver_to_get_max_shifts_per_app(
     print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
 
-    fair_assignments = generate_adjusted_requested_assignments(assigned_shifts, max_shifts_of_apps)
+    # Prüfe ob Multi-Period Modus aktiv ist (mehrere verschiedene PlanPeriods in entities)
+    plan_period_ids: set[UUID] = set()
+    for app in entities.actor_plan_periods.values():
+        plan_period_ids.add(app.plan_period.id)
+    
+    is_multi_period = len(plan_period_ids) > 1
+    
+    # Wähle passende Funktion basierend auf Modus
+    if is_multi_period:
+        assigned_shifts_per_period = extract_assignments_by_period(assigned_shifts, list(plan_period_ids))
+        print('======================== Using Multi-Period Fair Distribution ========================')
+        fair_assignments = generate_adjusted_requested_assignments_multi_period(assigned_shifts_per_period, max_shifts_of_apps)
+    else:
+        fair_assignments = generate_adjusted_requested_assignments(sum(assigned_shifts.values()), max_shifts_of_apps)
+    print(f'////////////////////////////////////////{max_shifts_of_apps=}')
+    print(f'////////////////////////////////////////{fair_assignments=}')
+    print(f'////////////////////////////////////////{assigned_shifts=}')
 
     print('------------------------ Adjusted Assignments ----------------------------------')
     print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
@@ -1937,6 +2174,74 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
              max_shifts_per_app, fair_shifts_per_app) if success else None)
 
 
+def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
+        plan_period_ids: list[UUID], time_calc_max_shifts: int, time_calc_fair_distribution: int,
+        log_search_process=False) -> tuple[EventGroupTree, AvailDayGroupTree, dict[tuple[date, str, UUID], int],
+                                           dict[str, int], dict[UUID, int], dict[UUID, float]] | None:
+    """
+    Multi-Period Version von _get_max_fair_shifts_and_max_shifts_to_assign.
+    
+    Berechnet faire Einsätze über mehrere PlanPeriods hinweg.
+    
+    Args:
+        plan_period_ids: Liste von PlanPeriod UUIDs
+        time_calc_max_shifts: Zeitlimit für max shifts Berechnung
+        time_calc_fair_distribution: Zeitlimit für faire Verteilung
+        log_search_process: Ob Solver-Prozess geloggt werden soll
+        
+    Returns:
+        Tuple mit Trees, Conflicts und Shifts oder None bei Fehler
+    """
+    signal_handling.handler_solver.progress('Vorberechnungen (Multi-Period)...')
+    global entities
+    entities = Entities()
+
+    # Nutze Combined Trees für alle Perioden
+    event_group_tree = get_combined_event_group_tree(plan_period_ids)
+    avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
+    cast_group_tree = get_combined_cast_group_tree(plan_period_ids)
+    
+    # Nutze Multi-Period Version von create_data_models
+    create_data_models_multi_period(event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_ids)
+
+    # Rest analog zu Single-Period Version
+    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, fixed_cast_conflicts,
+     skill_conflicts, sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(
+        event_group_tree,
+        avail_day_group_tree,
+        time_calc_max_shifts,
+        log_search_process)
+
+    if sum(fixed_cast_conflicts.values()) or sum(skill_conflicts.values()):
+        return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts, {}, {}
+    if not success:
+        return
+
+    get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(event_group_tree,
+                                                                   avail_day_group_tree,
+                                                                   unassigned_shifts,
+                                                                   sum_location_prefs,
+                                                                   sum_partner_loc_prefs,
+                                                                   sum(fixed_cast_conflicts.values()),
+                                                                   sum_cast_rules,
+                                                                   assigned_shifts,
+                                                                   time_calc_fair_distribution,
+                                                                   log_search_process)
+
+    while True:
+        try:
+            signal_handling.handler_solver.progress('Bestimmung gerechter Einsätze (Multi-Period)...')
+            next(get_max_shifts_per_app)
+        except StopIteration as e:
+            success, max_shifts_per_app, fair_shifts_per_app = e.value
+            break
+
+    time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
+
+    return ((event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts,
+             max_shifts_per_app, fair_shifts_per_app) if success else None)
+
+
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,
           time_calc_plan: int, log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
                                                                   dict[tuple[date, str, UUID], int] | None,
@@ -1978,6 +2283,148 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
     signal_handling.handler_solver.progress('Layouts der Pläne werden erstellt.')
 
     return plan_datas, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app
+
+
+def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_max_shifts: int, 
+                      time_calc_fair_distribution: int, time_calc_plan: int, 
+                      log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+                                                         dict[tuple[date, str, UUID], int] | None,
+                                                         dict[str, int] | None,
+                                                         dict[UUID, int] | None,
+                                                         dict[UUID, float] | None]:
+    """
+    Berechnet Pläne über mehrere PlanPeriods mit fairer Verteilung über alle Perioden.
+    
+    Diese Funktion ermöglicht die Multi-Period Kalkulation, wobei die faire Verteilung
+    der Einsätze ALLE PlanPeriods berücksichtigt. Wenn ein Mitarbeiter in einer Periode
+    weniger verfügbar ist, werden diese Ausfälle in anderen Perioden kompensiert.
+    
+    Workflow:
+    1. Erstelle Combined Trees über alle Perioden (Phase 1)
+    2. Berechne faire Verteilung über ALLE Perioden (Gesamtplan)
+    3. Erstelle num_plans verschiedene Gesamtpläne
+    
+    Args:
+        plan_period_ids: Liste von PlanPeriod UUIDs (mindestens 2)
+        num_plans: Anzahl der zu erstellenden Plan-Varianten
+        time_calc_max_shifts: Zeitlimit für max shifts Berechnung (Sekunden)
+        time_calc_fair_distribution: Zeitlimit für faire Verteilung (Sekunden)
+        time_calc_plan: Zeitlimit pro Plan-Berechnung (Sekunden)
+        log_search_process: Ob Solver-Prozess geloggt werden soll
+        
+    Returns:
+        Tuple mit:
+        - Liste von Plänen (jeder Plan ist eine Liste von AppointmentCreate)
+        - Fixed cast conflicts
+        - Skill conflicts  
+        - Max shifts pro ActorPlanPeriod
+        - Fair shifts pro ActorPlanPeriod
+        
+        Oder (None, None, None, None, None) bei Fehler
+        
+    Raises:
+        ValueError: Wenn weniger als 2 PlanPeriods übergeben werden
+    """
+    if len(plan_period_ids) < 2:
+        raise ValueError(f"Multi-Period calculation requires at least 2 periods, got {len(plan_period_ids)}")
+    
+    # Berechne faire Verteilung über ALLE Perioden
+    result_shifts = _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
+        plan_period_ids,
+        time_calc_max_shifts,
+        time_calc_fair_distribution,
+        log_search_process
+    )
+    
+    success = True
+    if result_shifts is None:
+        success = False
+
+    if not success:
+        return None, None, None, None, None
+
+    (event_group_tree, avail_day_group_tree,
+     fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app) = result_shifts
+
+    if sum(fixed_cast_conflicts.values()) or skill_conflicts:
+        return [], fixed_cast_conflicts, skill_conflicts, None, None
+
+    # Erstelle num_plans Gesamtpläne über alle Perioden
+    plan_datas = []
+    for n in range(1, num_plans + 1):
+        signal_handling.handler_solver.progress(f'Multi-Period Pläne werden berechnet. ({n}/{num_plans})')
+        
+        (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
+         sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res, fixed_cast_conflicts,
+         sum_cast_rules, appointments,
+         success) = call_solver_with_adjusted_requested_assignments(
+            event_group_tree,
+            avail_day_group_tree,
+            time_calc_plan,
+            log_search_process
+        )
+        
+        if not success:
+            return None, None, None, None, None
+        
+        plan_datas.append(appointments)
+
+    signal_handling.handler_solver.progress('Layouts der Multi-Period Pläne werden erstellt.')
+
+    return plan_datas, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app
+
+
+
+def extract_appointments_by_period(
+    appointments: list[AppointmentCreate],
+    plan_period_ids: list[UUID]
+) -> dict[UUID, list[AppointmentCreate]]:
+    """
+    Teilt einen Gesamtplan (über mehrere Perioden) in einzelne Perioden-Pläne auf.
+    
+    Diese Funktion nimmt einen Multi-Period Gesamtplan und gruppiert die Appointments
+    nach ihren zugehörigen PlanPeriods. Jede PlanPeriod erhält eine separate Liste
+    von Appointments, die nur Events aus dieser Periode enthält.
+    
+    Args:
+        appointments: Liste von Appointments aus dem Gesamtplan (alle Perioden)
+        plan_period_ids: Liste der PlanPeriod UUIDs zur Validierung
+        
+    Returns:
+        Dictionary mit PlanPeriod ID als Key und Liste von Appointments als Value:
+        {
+            plan_period_id_1: [appointment1, appointment2, ...],
+            plan_period_id_2: [appointment3, appointment4, ...],
+            ...
+        }
+        
+    Beispiel:
+        >>> gesamtplan = solve_multi_period([pp1_id, pp2_id], ...)
+        >>> perioden_plaene = extract_appointments_by_period(gesamtplan[0], [pp1_id, pp2_id])
+        >>> plan_januar = perioden_plaene[pp1_id]  # Nur Appointments für Januar
+        >>> plan_februar = perioden_plaene[pp2_id]  # Nur Appointments für Februar
+    """
+    # Initialisiere leere Listen für jede Periode
+    period_appointments: dict[UUID, list[AppointmentCreate]] = {
+        pp_id: [] for pp_id in plan_period_ids
+    }
+    
+    # Gruppiere Appointments nach PlanPeriod
+    for appointment in appointments:
+        # Hole PlanPeriod ID aus dem Event
+        pp_id = appointment.event.location_plan_period.plan_period.id
+        
+        # Validierung: Stelle sicher dass die PlanPeriod in der Liste ist
+        if pp_id not in period_appointments:
+            raise ValueError(
+                f"Appointment gehört zu PlanPeriod {pp_id}, "
+                f"die nicht in der übergebenen Liste enthalten ist!"
+            )
+        
+        # Füge Appointment zur entsprechenden Periode hinzu
+        period_appointments[pp_id].append(appointment)
+    
+    return period_appointments
 
 
 def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int, time_calc_fair_distribution: int,

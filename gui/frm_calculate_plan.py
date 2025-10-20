@@ -146,7 +146,7 @@ class DlgCalculate(QDialog):
         team = db_services.Team.get(self.team_id)
         plan_periods = sorted(
             [pp for pp in team.plan_periods if not pp.prep_delete],
-            key=lambda x: x.start
+            key=lambda x: x.start, reverse=True
         )
         
         for pp in plan_periods:

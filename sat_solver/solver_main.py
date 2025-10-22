@@ -1854,12 +1854,11 @@ def call_solver_to_get_max_shifts_per_app(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
         sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
         assigned_shifts: dict[UUID, int], max_search_time: int,
-        log_search_process: bool) -> Generator[bool, None, tuple[bool, dict[UUID, int], dict[UUID, float]]]:
+        log_search_process: bool) -> Generator[bool, None, tuple[bool, dict[UUID, int]]]:
     """
     Berechnet für jeden Mitarbeiter die maximal mögliche Anzahl von Einsätzen.
-    Anhand dieser Werte wird über die Funktion generate_adjusted_requested_assignments() eine gerechte Verteilung
-    berechnet und requested_assignments der entsprechenden Instanzen von ActorPlanPeriodShow in
-    entities.actor_plan_periods mit diesen gerechten Einsätzen überschrieben.
+    
+    Die faire Verteilung wird separat durch get_fair_distribution_multi_period() berechnet.
     """
 
     max_shifts_of_apps = {}
@@ -1901,35 +1900,71 @@ def call_solver_to_get_max_shifts_per_app(
 
     print(f'{sum(max_shifts_of_apps.values())=}')
 
-    print('++++++++++++++++++++++++ Requested Assignments +++++++++++++++++++++++++++++++++')
-    print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
 
-    # Prüfe ob Multi-Period Modus aktiv ist (mehrere verschiedene PlanPeriods in entities)
-    plan_period_ids: set[UUID] = set()
-    for app in entities.actor_plan_periods.values():
-        plan_period_ids.add(app.plan_period.id)
+    return True, max_shifts_of_apps
+
+
+def get_fair_distribution_multi_period(
+    plan_period_ids: list[UUID],
+    max_shifts_per_app: dict[UUID, int],
+    assigned_shifts_per_period: dict[UUID, int]
+) -> tuple[EventGroupTree, AvailDayGroupTree, dict[UUID, float]]:
+    """
+    Berechnet faire Verteilung über alle PlanPeriods und schreibt in entities.
     
-    is_multi_period = len(plan_period_ids) > 1
+    Diese Funktion erstellt Combined Trees und Data Models, um die entities.actor_plan_periods
+    korrekt mit allen ActorPlanPeriods zu füllen. Dann wird die faire Multi-Period Verteilung
+    basierend auf den bereits berechneten max_shifts berechnet.
     
-    # Wähle passende Funktion basierend auf Modus
-    if is_multi_period:
-        assigned_shifts_per_period = extract_assignments_by_period(assigned_shifts, list(plan_period_ids))
-        print('======================== Using Multi-Period Fair Distribution ========================')
-        fair_assignments = generate_adjusted_requested_assignments_multi_period(assigned_shifts_per_period, max_shifts_of_apps)
-    else:
-        fair_assignments = generate_adjusted_requested_assignments(sum(assigned_shifts.values()), max_shifts_of_apps)
-    print(f'////////////////////////////////////////{max_shifts_of_apps=}')
-    print(f'////////////////////////////////////////{fair_assignments=}')
-    print(f'////////////////////////////////////////{assigned_shifts=}')
+    Args:
+        plan_period_ids: Liste aller PlanPeriod IDs
+        max_shifts_per_app: Bereits berechnete maximale Shifts pro ActorPlanPeriod
+        assigned_shifts_per_period: Dict mapping plan_period_id zu assigned_shifts dieser Periode
+        
+    Returns:
+        Tuple mit (event_group_tree, avail_day_group_tree, fair_assignments)
+    """
+    # Combined Trees für alle Perioden erstellen
+    event_group_tree = get_combined_event_group_tree(plan_period_ids)
+    avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
+    cast_group_tree = get_combined_cast_group_tree(plan_period_ids)
+    
+    # Data Models mit ALLEN ActorPlanPeriods erstellen
+    # Dies füllt entities.actor_plan_periods korrekt
+    create_data_models_multi_period(
+        event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_ids
+    )
+    
+    # Multi-Period faire Verteilung berechnen
+    fair_assignments = generate_adjusted_requested_assignments_multi_period(
+        assigned_shifts_per_period,
+        max_shifts_per_app
+    )
+    
+    return event_group_tree, avail_day_group_tree, fair_assignments
 
-    print('------------------------ Adjusted Assignments ----------------------------------')
-    print([f'{app.person.f_name}: {app.requested_assignments}' for app in entities.actor_plan_periods.values()])
-    print(
-        '-------------------------------Vergleich: Adjusted Assignments - assigned shifts------------------------')
-    print(f'{sum(app.requested_assignments for app in entities.actor_plan_periods.values())=}')
-    print(f'{assigned_shifts=}')
 
-    return True, max_shifts_of_apps, fair_assignments
+def get_fair_distribution(
+    max_shifts_per_app: dict[UUID, int],
+    total_assigned_shifts: int
+) -> dict[UUID, float]:
+    """
+    Berechnet faire Verteilung für Single-Period.
+    
+    entities.actor_plan_periods müssen bereits durch create_data_models() gefüllt sein.
+    
+    Args:
+        max_shifts_per_app: Bereits berechnete maximale Shifts pro ActorPlanPeriod
+        total_assigned_shifts: Gesamtanzahl der zuzuweisenden Shifts
+        
+    Returns:
+        Dictionary mit fairen Shifts pro ActorPlanPeriod
+    """
+    fair_assignments = generate_adjusted_requested_assignments(
+        total_assigned_shifts,
+        max_shifts_per_app
+    )
+    return fair_assignments
 
 
 def call_solver_with_adjusted_requested_assignments(
@@ -2162,11 +2197,21 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
 
     while True:
         try:
-            signal_handling.handler_solver.progress('Bestimmung gerechter Einsätze...')
+            signal_handling.handler_solver.progress('Bestimmung maximaler Einsätze...')
             next(get_max_shifts_per_app)
         except StopIteration as e:
-            success, max_shifts_per_app, fair_shifts_per_app = e.value
+            success, max_shifts_per_app = e.value
             break
+
+    if not success:
+        return None
+
+    # Fair Distribution separat berechnen
+    signal_handling.handler_solver.progress('Berechnung fairer Verteilung...')
+    fair_shifts_per_app = get_fair_distribution(
+        max_shifts_per_app,
+        sum(assigned_shifts.values())
+    )
 
     time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
 
@@ -2179,9 +2224,9 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         log_search_process=False) -> tuple[EventGroupTree, AvailDayGroupTree, dict[tuple[date, str, UUID], int],
                                            dict[str, int], dict[UUID, int], dict[UUID, float]] | None:
     """
-    Multi-Period Version von _get_max_fair_shifts_and_max_shifts_to_assign.
+    Multi-Period Version - Berechnet faire Einsätze über mehrere PlanPeriods.
     
-    Berechnet faire Einsätze über mehrere PlanPeriods hinweg.
+    OPTIMIERT: Berechnet max_shifts periode-spezifisch für Performance.
     
     Args:
         plan_period_ids: Liste von PlanPeriod UUIDs
@@ -2193,53 +2238,109 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         Tuple mit Trees, Conflicts und Shifts oder None bei Fehler
     """
     signal_handling.handler_solver.progress('Vorberechnungen (Multi-Period)...')
-    global entities
-    entities = Entities()
-
-    # Nutze Combined Trees für alle Perioden
-    event_group_tree = get_combined_event_group_tree(plan_period_ids)
-    avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
-    cast_group_tree = get_combined_cast_group_tree(plan_period_ids)
     
-    # Nutze Multi-Period Version von create_data_models
-    create_data_models_multi_period(event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_ids)
-
-    # Rest analog zu Single-Period Version
-    (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs, fixed_cast_conflicts,
-     skill_conflicts, sum_cast_rules, success) = call_solver_with_unadjusted_requested_assignments(
-        event_group_tree,
-        avail_day_group_tree,
-        time_calc_max_shifts,
-        log_search_process)
-
-    if sum(fixed_cast_conflicts.values()) or sum(skill_conflicts.values()):
-        return event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts, {}, {}
-    if not success:
-        return
-
-    get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(event_group_tree,
-                                                                   avail_day_group_tree,
-                                                                   unassigned_shifts,
-                                                                   sum_location_prefs,
-                                                                   sum_partner_loc_prefs,
-                                                                   sum(fixed_cast_conflicts.values()),
-                                                                   sum_cast_rules,
-                                                                   assigned_shifts,
-                                                                   time_calc_fair_distribution,
-                                                                   log_search_process)
-
-    while True:
-        try:
-            signal_handling.handler_solver.progress('Bestimmung gerechter Einsätze (Multi-Period)...')
-            next(get_max_shifts_per_app)
-        except StopIteration as e:
-            success, max_shifts_per_app, fair_shifts_per_app = e.value
-            break
-
-    time.sleep(0.1)  # notwendig, damit Signal-Handling Zeit für das Senden des neuen Signals hat.
-
-    return ((event_group_tree, avail_day_group_tree, fixed_cast_conflicts, skill_conflicts,
-             max_shifts_per_app, fair_shifts_per_app) if success else None)
+    # ========== PHASE 1: Max Shifts pro Periode berechnen ==========
+    max_shifts_per_app_total = {}
+    assigned_shifts_per_period_total = {}
+    all_fixed_cast_conflicts = {}
+    all_skill_conflicts = {}
+    
+    for plan_period_id in plan_period_ids:
+        # Neue entities für jede Periode (wichtig: jede Periode hat eigene Daten!)
+        global entities
+        entities = Entities()
+        signal_handling.handler_solver.progress(
+            f'Berechne Max Shifts für Periode {plan_period_id}...'
+        )
+        
+        # Single-Period Trees für diese Periode
+        event_group_tree_period = get_event_group_tree(plan_period_id)
+        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id)
+        cast_group_tree_period = get_cast_group_tree(plan_period_id)
+        
+        # Data Models für diese Periode
+        create_data_models(
+            event_group_tree_period, 
+            avail_day_group_tree_period, 
+            cast_group_tree_period, 
+            plan_period_id
+        )
+        
+        # Unadjusted berechnen mit periode-spezifischen Trees
+        (assigned_shifts, unassigned_shifts, sum_location_prefs, sum_partner_loc_prefs,
+         fixed_cast_conflicts, skill_conflicts, sum_cast_rules, success) = \
+            call_solver_with_unadjusted_requested_assignments(
+                event_group_tree_period,
+                avail_day_group_tree_period,
+                time_calc_max_shifts,
+                log_search_process
+            )
+        
+        # Sammle Conflicts (können in verschiedenen Perioden auftreten)
+        all_fixed_cast_conflicts.update(fixed_cast_conflicts)
+        all_skill_conflicts.update(skill_conflicts)
+        
+        if not success:
+            # Combined Trees für Rückgabe erstellen
+            event_group_tree = get_combined_event_group_tree(plan_period_ids)
+            avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
+            return event_group_tree, avail_day_group_tree, all_fixed_cast_conflicts, all_skill_conflicts, {}, {}
+        
+        # Max Shifts für diese Periode berechnen
+        get_max_shifts_per_app = call_solver_to_get_max_shifts_per_app(
+            event_group_tree_period,
+            avail_day_group_tree_period,
+            unassigned_shifts,
+            sum_location_prefs,
+            sum_partner_loc_prefs,
+            sum(fixed_cast_conflicts.values()),
+            sum_cast_rules,
+            assigned_shifts,
+            time_calc_fair_distribution,
+            log_search_process
+        )
+        
+        # Generator abarbeiten
+        while True:
+            try:
+                signal_handling.handler_solver.progress(
+                    f'Max Shifts für Periode {plan_period_id}...'
+                )
+                next(get_max_shifts_per_app)
+            except StopIteration as e:
+                success, period_max_shifts = e.value
+                break
+        
+        if not success:
+            event_group_tree = get_combined_event_group_tree(plan_period_ids)
+            avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
+            return event_group_tree, avail_day_group_tree, all_fixed_cast_conflicts, all_skill_conflicts, {}, {}
+        
+        # Sammle Ergebnisse
+        max_shifts_per_app_total.update(period_max_shifts)
+        assigned_shifts_per_period_total[plan_period_id] = sum(assigned_shifts.values())
+    
+    # Prüfe ob Conflicts aufgetreten sind
+    if sum(all_fixed_cast_conflicts.values()) or sum(all_skill_conflicts.values()):
+        event_group_tree = get_combined_event_group_tree(plan_period_ids)
+        avail_day_group_tree = get_combined_avail_day_group_tree(plan_period_ids)
+        return event_group_tree, avail_day_group_tree, all_fixed_cast_conflicts, all_skill_conflicts, {}, {}
+    
+    # ========== PHASE 2: Fair Distribution über alle Perioden ==========
+    # Combined Trees werden in get_fair_distribution_multi_period() erstellt
+    signal_handling.handler_solver.progress('Berechne faire Verteilung (Multi-Period)...')
+    event_group_tree, avail_day_group_tree, fair_shifts_per_app = get_fair_distribution_multi_period(
+        plan_period_ids,
+        max_shifts_per_app_total,
+        assigned_shifts_per_period_total
+    )
+    
+    time.sleep(0.1)  # Signal-Handling Zeit geben
+    
+    # Returniere Combined Trees (werden für Plan-Berechnung benötigt!)
+    return (event_group_tree, avail_day_group_tree,
+            all_fixed_cast_conflicts, all_skill_conflicts,
+            max_shifts_per_app_total, fair_shifts_per_app)
 
 
 def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_calc_fair_distribution: int,

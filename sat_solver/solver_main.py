@@ -101,11 +101,6 @@ def generate_adjusted_requested_assignments(assigned_shifts: int, possible_assig
                     break
         return requested_assignments_new
 
-    print('----------------------------------------possible_assignments---- ------------------------------------------')
-    print({entities.actor_plan_periods[app_id].person.f_name: max_assign
-           for app_id, max_assign in possible_assignments.items()})
-    print('-----------------------------------------------------------------------------------------------------------')
-
     # Dictionary mit ActorPlanPeriod ID -> requested_assignments welche nicht required sind
     requested_assignments: dict[UUID, int] = {
         app_id: min(entities.actor_plan_periods[app_id].requested_assignments, assignments)
@@ -207,7 +202,13 @@ def generate_adjusted_requested_assignments_multi_period(assigned_shifts_per_per
                                                        avail_assignments: float) -> dict[UUID, float]:
         """
         Verteilt die faire Anzahl an Einsätzen pro Person proportional über die ActorPlanPeriods der Person.
+        Es kann dazu führen, dass die Gesamtzahl der ermittelten fairen Einsätze der Personen in einer Periode
+        geringer oder höher ist als die Anzahl der verfügbaren Einsätze.
+        Dieser Kompromiss bleibt mangels einer Idee zur besseren Lösung.
         """
+
+        # TODO: Bessere Lösung finden (siehe Docstring)
+
         app_fair_assignments: dict[UUID, float] = {}
         while True:
             mean_nr_assignments = avail_assignments / len(app_requests)
@@ -313,9 +314,9 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         self._schedule_versions: list[list[schemas.AppointmentCreate]] = []
 
     def on_solution_callback(self):
-        print(f'{self.ObjectiveValue()=}')
+        # print(f'{self.ObjectiveValue()=}')
         if abs(self._curr_objective_value - self.ObjectiveValue()) <= 50:
-            print('abs(self._curr_objective_value - self.ObjectiveValue()) <= 50')
+#             print('abs(self._curr_objective_value - self.ObjectiveValue()) <= 50')
             self._num_equal_objective_values += 1
         else:
             self._num_equal_objective_values = 0
@@ -332,7 +333,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
             self._max_assigned_shifts[app_id] = max(self._max_assigned_shifts[app_id], self.Value(s))
 
         if self._solution_limit and self._solution_count >= self._solution_limit:
-            print(f"Stop search after {self._solution_count} solutions")
+#             print(f"Stop search after {self._solution_count} solutions")
             self.StopSearch()
 
 
@@ -360,6 +361,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
             self._schedule_versions[-1].append(schemas.AppointmentCreate(avail_days=avail_days, event=event))
 
     def print_results(self):
+        return
         print(f"Solution {self._solution_count}")
         # self.print_shifts()
         print('unassigned_shifts_per_event:',
@@ -381,6 +383,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         #     print(f'active_avail_day_groups of {app.person.f_name}: {group_vars}')
 
     def print_shifts(self):
+        return
         for event_group in sorted(list(entities.event_groups_with_event.values()),
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             if not self.Value(entities.event_group_vars[event_group.event_group_id]):
@@ -1740,6 +1743,7 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
                      constraints_weights_in_event_groups: list[IntVar],
                      constraints_weights_in_av_day_groups: list[IntVar], constraints_cast_rule: list[IntVar]):
     # Statistics.
+    return
     print("\nStatistics")
     print(f"  - conflicts      : {solver.NumConflicts()}")
     print(f"  - branches       : {solver.NumBranches()}")
@@ -1772,21 +1776,22 @@ def print_statistics(solver: cp_model.CpSolver, solution_printer: PartialSolutio
 
 def print_solver_status(model: cp_model.CpModel, status: CpSolverStatus) -> tuple[bool, list[str]]:
     if status == cp_model.MODEL_INVALID:
-        print('########################### INVALID MODEL ######################################')
+        # print('########################### INVALID MODEL ######################################')
         return False, []
     elif status == cp_model.OPTIMAL:
-        print('########################### OPTIMAL ############################################')
+#         print('########################### OPTIMAL ############################################')
+        return True, []
     elif status == cp_model.FEASIBLE:
-        print('########################### FEASIBLE ############################################')
+#         print('########################### FEASIBLE ############################################')
+        return True, []
     elif status == cp_model.INFEASIBLE:
-        print('########################### INFEASIBLE ############################################')
-        for i in solver.SufficientAssumptionsForInfeasibility():
-            print(model.GetIntVarFromProtoIndex(i).name)
+#         print('########################### INFEASIBLE ############################################')
+#         for i in solver.SufficientAssumptionsForInfeasibility():
+#             print(model.GetIntVarFromProtoIndex(i).name)
         return False, [model.GetIntVarFromProtoIndex(i).name for i in solver.SufficientAssumptionsForInfeasibility()]
     else:
-        print('########################### FAILED ############################################')
+#         print('########################### FAILED ############################################')
         return False, []
-    return True, []
 
 
 def call_solver_with_unadjusted_requested_assignments(
@@ -1808,7 +1813,7 @@ def call_solver_with_unadjusted_requested_assignments(
                               constraints_fixed_cast_conflicts,
                               skill_conflict_vars,
                               constraints_cast_rule)
-    print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
+    # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
     success, problems = print_solver_status(model, solver_status)
@@ -1898,7 +1903,7 @@ def call_solver_to_get_max_shifts_per_app(
         else:
             return False, {}, {}
 
-    print(f'{sum(max_shifts_of_apps.values())=}')
+    # print(f'{sum(max_shifts_of_apps.values())=}')
 
 
     return True, max_shifts_of_apps
@@ -1988,7 +1993,7 @@ def call_solver_with_adjusted_requested_assignments(
                               constraints_location_prefs, constraints_partner_loc_prefs,
                               constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
-    print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
+    # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     success, problems = print_solver_status(model, solver_status)
     if not success:
         return 0, [], 0, 0, 0, 0, {}, 0, [], False
@@ -2064,7 +2069,7 @@ def call_solver_with__fixed_constraint_results(
         sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res,
         weights_in_event_groups_res, sum_location_prefs_res,
         sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res, sum_cast_rules)
-    print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
+    # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
         sum_squared_deviations, constraints_fixed_cast_conflicts,
@@ -2249,9 +2254,6 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         # Neue entities für jede Periode (wichtig: jede Periode hat eigene Daten!)
         global entities
         entities = Entities()
-        signal_handling.handler_solver.progress(
-            f'Berechne Max Shifts für Periode {plan_period_id}...'
-        )
         
         # Single-Period Trees für diese Periode
         event_group_tree_period = get_event_group_tree(plan_period_id)
@@ -2303,13 +2305,16 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         # Generator abarbeiten
         while True:
             try:
+                next(get_max_shifts_per_app)
                 signal_handling.handler_solver.progress(
                     f'Max Shifts für Periode {plan_period_id}...'
                 )
-                next(get_max_shifts_per_app)
             except StopIteration as e:
                 success, period_max_shifts = e.value
                 break
+        
+        # Kurze Pause für Signal-Processing (verhindert Race-Condition)
+        time.sleep(0.05)
         
         if not success:
             event_group_tree = get_combined_event_group_tree(plan_period_ids)
@@ -2388,7 +2393,7 @@ def solve(plan_period_id: UUID, num_plans: int, time_calc_max_shifts: int, time_
 
 def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_max_shifts: int, 
                       time_calc_fair_distribution: int, time_calc_plan: int, 
-                      log_search_process=False) -> tuple[list[list[AppointmentCreate]] | None,
+                      log_search_process=False) -> tuple[list[list[list[AppointmentCreate]]] | None,
                                                          dict[tuple[date, str, UUID], int] | None,
                                                          dict[str, int] | None,
                                                          dict[UUID, int] | None,
@@ -2400,10 +2405,14 @@ def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_ma
     der Einsätze ALLE PlanPeriods berücksichtigt. Wenn ein Mitarbeiter in einer Periode
     weniger verfügbar ist, werden diese Ausfälle in anderen Perioden kompensiert.
     
+    OPTIMIERT (Phase 2): Plan-Erstellung erfolgt pro Periode für bessere Performance.
+    Die Fairness ist bereits durch generate_adjusted_requested_assignments_multi_period()
+    garantiert, daher können Perioden unabhängig geplant werden.
+    
     Workflow:
-    1. Erstelle Combined Trees über alle Perioden (Phase 1)
-    2. Berechne faire Verteilung über ALLE Perioden (Gesamtplan)
-    3. Erstelle num_plans verschiedene Gesamtpläne
+    1. Berechne Max Shifts pro Periode (Phase 1 - bereits optimiert)
+    2. Berechne faire Verteilung über ALLE Perioden
+    3. Erstelle Pläne PRO PERIODE (Phase 2 - NEU!)
     
     Args:
         plan_period_ids: Liste von PlanPeriod UUIDs (mindestens 2)
@@ -2415,7 +2424,8 @@ def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_ma
         
     Returns:
         Tuple mit:
-        - Liste von Plänen (jeder Plan ist eine Liste von AppointmentCreate)
+        - Liste von Plänen pro Periode: all_plans[period_idx][plan_idx]
+          Jeder Plan enthält nur Events der jeweiligen Periode
         - Fixed cast conflicts
         - Skill conflicts  
         - Max shifts pro ActorPlanPeriod
@@ -2429,7 +2439,8 @@ def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_ma
     if len(plan_period_ids) < 2:
         raise ValueError(f"Multi-Period calculation requires at least 2 periods, got {len(plan_period_ids)}")
     
-    # Berechne faire Verteilung über ALLE Perioden
+    # ========== PHASE 1+2: Max Shifts + Fair Distribution ==========
+    # Diese Phase arbeitet bereits optimiert (pro Periode für Max Shifts)
     result_shifts = _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         plan_period_ids,
         time_calc_max_shifts,
@@ -2450,29 +2461,70 @@ def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_ma
     if sum(fixed_cast_conflicts.values()) or skill_conflicts:
         return [], fixed_cast_conflicts, skill_conflicts, None, None
 
-    # Erstelle num_plans Gesamtpläne über alle Perioden
-    plan_datas = []
-    for n in range(1, num_plans + 1):
-        signal_handling.handler_solver.progress(f'Multi-Period Pläne werden berechnet. ({n}/{num_plans})')
-        
-        (sum_squared_deviations_res, unassigned_shifts_per_event_res, sum_weights_shifts_in_avail_day_groups,
-         sum_weights_in_event_groups, sum_location_prefs_res, sum_partner_loc_prefs_res, fixed_cast_conflicts,
-         sum_cast_rules, appointments,
-         success) = call_solver_with_adjusted_requested_assignments(
-            event_group_tree,
-            avail_day_group_tree,
-            time_calc_plan,
-            log_search_process
+    # ========== PHASE 3: Plan-Erstellung PRO PERIODE (OPTIMIERT!) ==========
+    # Statt Combined Trees zu nutzen, erstellen wir Pläne pro Periode
+    # Dies ist performanter, da der Solver nur relevante Events/AvailDays betrachtet
+    all_plans = []
+    
+    for period_idx, plan_period_id in enumerate(plan_period_ids):
+        signal_handling.handler_solver.progress(
+            f'Erstelle Pläne für Periode {period_idx + 1}/{len(plan_period_ids)}...'
         )
         
-        if not success:
-            return None, None, None, None, None
+        # Single-Period Trees für diese Periode
+        event_group_tree_period = get_event_group_tree(plan_period_id)
+        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id)
+        cast_group_tree_period = get_cast_group_tree(plan_period_id)
         
-        plan_datas.append(appointments)
-
+        # entities mit nur dieser Periode füllen
+        # WICHTIG: adjusted_assignments sind bereits fair durch Fair Distribution!
+        global entities
+        entities = Entities()
+        
+        create_data_models(
+            event_group_tree_period,
+            avail_day_group_tree_period,
+            cast_group_tree_period,
+            plan_period_id
+        )
+        
+        # KRITISCH: Übertrage die fairen adjusted_requested_assignments
+        # Diese wurden in Phase 2 (Fair Distribution) für ALLE Perioden berechnet
+        # und müssen nun an die neuen entities dieser Periode übergeben werden
+        for actor_plan_period_id, fair_shifts in fair_shifts_per_app.items():
+            if actor_plan_period_id in entities.actor_plan_periods:
+                entities.actor_plan_periods[actor_plan_period_id].requested_assignments = fair_shifts
+        
+        # Erstelle num_plans für diese Periode
+        period_plans = []
+        for n in range(1, num_plans + 1):
+            signal_handling.handler_solver.progress(
+                f'Plan {n}/{num_plans} für Periode {period_idx + 1}/{len(plan_period_ids)}...'
+            )
+            
+            (sum_squared_deviations_res, unassigned_shifts_per_event_res, 
+             sum_weights_shifts_in_avail_day_groups, sum_weights_in_event_groups, 
+             sum_location_prefs_res, sum_partner_loc_prefs_res, fixed_cast_conflicts,
+             sum_cast_rules, appointments, success) = \
+                call_solver_with_adjusted_requested_assignments(
+                    event_group_tree_period,
+                    avail_day_group_tree_period,
+                    time_calc_plan,
+                    log_search_process
+                )
+            
+            if not success:
+                return None, None, None, None, None
+            
+            period_plans.append(appointments)
+        
+        all_plans.append(period_plans)
+    
     signal_handling.handler_solver.progress('Layouts der Multi-Period Pläne werden erstellt.')
-
-    return plan_datas, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app
+    
+    # Returniere Pläne pro Periode
+    # Format: all_plans[period_idx][plan_idx] = appointments (nur Events dieser Periode)
+    return all_plans, fixed_cast_conflicts, skill_conflicts, max_shifts_per_app, fair_shifts_per_app
 
 
 

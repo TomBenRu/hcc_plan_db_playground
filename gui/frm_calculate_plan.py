@@ -4,7 +4,8 @@ from uuid import UUID
 
 from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt, QThreadPool
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
-    QFormLayout, QSpinBox, QHBoxLayout, QGroupBox, QCheckBox, QListWidget, QListWidgetItem, QAbstractItemView
+    QFormLayout, QSpinBox, QHBoxLayout, QGroupBox, QCheckBox, QListWidget, QListWidgetItem, QAbstractItemView, \
+    QApplication
 
 import tools
 from commands import command_base_classes
@@ -258,7 +259,17 @@ class DlgCalculate(QDialog):
             total_actor_plan_periods += len(db_services.ActorPlanPeriod.get_all_from__plan_period(pp_id))
         
         # 6. Progress Dialog
-        total_steps = self.spin_num_plans.value() + total_actor_plan_periods + 2
+        # OPTIMIERT: Plan-Erstellung läuft jetzt pro Periode
+        # Steps (nur Aufrufe die tatsächlich incrementieren): 
+        # - "Vorberechnungen (Multi-Period)..." (1)
+        # - While-Loop Generator: "Max Shifts für Periode..." 
+        #   Progress-Call kommt NACH next(), daher genau total_actor_plan_periods Calls
+        # - "Berechne faire Verteilung (Multi-Period)..." (1)
+        # - "Erstelle Pläne für Periode..." pro Periode (len(selected_pp_ids))
+        # - "Plan x/y für Periode..." (num_plans * len(selected_pp_ids))
+        # - "Layouts der Multi-Period Pläne werden erstellt." (1)
+        total_steps = (1 + total_actor_plan_periods + 1 + len(selected_pp_ids)
+                       + (self.spin_num_plans.value() * len(selected_pp_ids)) + 1)
         self.progress_dialog_solver = DlgProgressSteps(
             self, 
             self.tr('Multi-Period Calculation'),
@@ -290,7 +301,7 @@ class DlgCalculate(QDialog):
     def _save_multi_period_plans(
         self,
         selected_pp_ids: list[UUID],
-        schedule_versions: list[list[schemas.AppointmentCreate]] | None,
+        schedule_versions: list[list[list[schemas.AppointmentCreate]]] | None,
         fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], int] | None,
         skill_conflicts: dict[str, int] | None,
         max_shifts_per_app: dict[UUID, int] | None,
@@ -301,12 +312,14 @@ class DlgCalculate(QDialog):
         
         Diese Methode:
         1. Führt Error-Handling durch (wie _save_plan_to_db)
-        2. Teilt jeden Gesamtplan nach Perioden auf
-        3. Speichert die aufgeteilten Pläne einzeln pro Periode
+        2. Speichert die Pläne pro Periode (bereits getrennt strukturiert)
+        
+        OPTIMIERT: Pläne sind bereits pro Periode erstellt (schedule_versions[period_idx][plan_idx]),
+        daher ist keine Aufteilung mehr nötig.
         
         Args:
             selected_pp_ids: Liste der PlanPeriod IDs
-            schedule_versions: Liste von Gesamtplänen (jeder über alle Perioden)
+            schedule_versions: Pläne pro Periode (all_plans[period_idx][plan_idx])
             fixed_cast_conflicts: Fixed cast Konflikte
             skill_conflicts: Skill Konflikte
             max_shifts_per_app: Maximale Einsätze pro ActorPlanPeriod
@@ -363,7 +376,9 @@ class DlgCalculate(QDialog):
             return
 
         # Optional: User fragen wie viele Versionen gespeichert werden sollen
-        nr_versions_to_use = (len_versions := len(schedule_versions))
+        # schedule_versions ist jetzt all_plans[period_idx][plan_idx]
+        # Anzahl der Plans pro Periode (alle Perioden haben gleich viele Plans)
+        nr_versions_to_use = (len_versions := len(schedule_versions[0]))
         if len_versions > 1:
             dlg = DlgAskNrPlansToSave(self, len_versions)
             if dlg.exec():
@@ -374,6 +389,10 @@ class DlgCalculate(QDialog):
 
         # Lazy Import
         from sat_solver import solver_main
+        
+        # Schließe Solver Progress Dialog bevor Save Dialog gezeigt wird
+        if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
+            self.progress_dialog_solver.close()
         
         # Für jede Plan-Version: Teile nach Perioden auf und speichere
         self.plans_save_progress_bar = DlgProgressInfinite(
@@ -386,18 +405,13 @@ class DlgCalculate(QDialog):
         self.plans_save_progress_bar.show()
         
         # Speichere nur die ausgewählte Anzahl von Versionen
+        # OPTIMIERT: schedule_versions ist bereits pro Periode strukturiert (all_plans[period_idx][plan_idx])
+        # Kein extract_appointments_by_period() mehr nötig!
         for version_idx in range(nr_versions_to_use):
-            gesamtplan = schedule_versions[version_idx]
-            
-            # Teile Gesamtplan nach Perioden auf
-            period_plans = solver_main.extract_appointments_by_period(
-                gesamtplan,
-                selected_pp_ids
-            )
-            
             # Speichere jede Periode einzeln
-            for pp_id in selected_pp_ids:
-                period_appointments = period_plans[pp_id]
+            for period_idx, pp_id in enumerate(selected_pp_ids):
+                # Direkter Zugriff auf Periode-spezifischen Plan
+                period_appointments = schedule_versions[period_idx][version_idx]
                 
                 # Nutze existierende save-Funktion (nur mit einer Version)
                 plan_ids = data_processing.save_schedule_versions_to_db(
@@ -412,6 +426,9 @@ class DlgCalculate(QDialog):
                 
                 # Sammle erstellte Plan IDs
                 self._created_plan_ids.extend(plan_ids)
+                
+                # Erlaube UI-Updates während des Speicherns
+                QApplication.processEvents()
         
         self.plans_save_progress_bar.close()
         
@@ -420,8 +437,8 @@ class DlgCalculate(QDialog):
             self,
             self.tr('Success'),
             self.tr('Multi-period calculation completed successfully!\n'
-                   'Plans for {count} periods have been created.\n'
-                   'Total {total} plan versions saved.').format(
+                    'Plans for {count} periods have been created.\n'
+                    'Total {total} plan versions saved.').format(
                 count=len(selected_pp_ids),
                 total=nr_versions_to_use * len(selected_pp_ids)
             )
@@ -523,6 +540,10 @@ class DlgCalculate(QDialog):
             else:
                 self.reject()
                 return
+
+        # Schließe Solver Progress Dialog bevor Save Dialog gezeigt wird
+        if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
+            self.progress_dialog_solver.close()
 
         self.plans_save_progress_bar = DlgProgressInfinite(
             self, 

@@ -87,11 +87,13 @@ class WorkerCalculateMultiPeriod(QRunnable):
     Worker für Multi-Period Plan-Berechnung.
     
     Ruft solve_multi_period() auf und emittiert die Ergebnisse zusammen mit
-    den selected_pp_ids für die nachfolgende Aufteilung und Speicherung.
+    den selected_pp_ids für die Speicherung.
+    
+    OPTIMIERT: Pläne sind bereits pro Periode strukturiert (all_plans[period_idx][plan_idx]).
     """
     def __init__(self,
                  function: Callable[[list[UUID], int, int, int, int],
-                 tuple[list[list[schemas.AppointmentCreate]],
+                 tuple[list[list[list[schemas.AppointmentCreate]]],
                  dict[tuple[datetime.date, str, UUID], int], dict[str, int], dict[UUID, int], dict[UUID, float]]],
                  plan_period_ids: list[UUID],
                  num_plans: int,

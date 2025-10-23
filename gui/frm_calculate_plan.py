@@ -137,8 +137,21 @@ class DlgCalculate(QDialog):
         self.list_plan_periods.setVisible(is_multi)
         
         # Fülle List Widget beim ersten Aktivieren
-        if is_multi and self.list_plan_periods.count() == 0:
-            self._fill_plan_periods_list()
+        if is_multi:
+            self.lb_explanation.setText(self.tr('You can automatically create schedules for team {team_name}\n'
+                                                'Multi-Period Mode: Select at least two periods.\n'
+                                                '(The result may be slightly less accurate '
+                                                'than when calculating for single periods.)')
+                                        .format(team_name=db_services.Team.get(self.team_id).name)
+                                        )
+            if self.list_plan_periods.count() == 0:
+                self._fill_plan_periods_list()
+        else:
+            self.lb_explanation.setText(self.tr('You can automatically create schedules for team {team_name}\n'
+                                                'for a selected planning period.').format(
+                    team_name=db_services.Team.get(self.team_id).name
+                )
+            )
     
     def _fill_plan_periods_list(self):
         """

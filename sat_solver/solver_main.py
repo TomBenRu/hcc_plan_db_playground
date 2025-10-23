@@ -53,8 +53,7 @@ from sat_solver.avail_day_group_tree import (AvailDayGroup, get_avail_day_group_
 from sat_solver.cast_group_tree import get_cast_group_tree, CastGroupTree, CastGroup, get_combined_cast_group_tree
 from sat_solver.event_group_tree import (get_event_group_tree, EventGroupTree, EventGroup,
                                          get_combined_event_group_tree)
-from tools.helper_functions import generate_fixed_cast_clear_text
-
+from tools.helper_functions import generate_fixed_cast_clear_text, date_to_string
 
 cp_sat_logger = logging.getLogger(__name__)
 handler = logging.FileHandler(os.path.join(curr_user_path_handler.get_config().log_file_path, 'cp-sat-solver.log'))
@@ -1859,7 +1858,7 @@ def call_solver_to_get_max_shifts_per_app(
         event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree, unassigned_shifts: int,
         sum_location_prefs: int, sum_partner_loc_prefs: int, sum_fixed_cast_conflicts: int, sum_cast_rules: int,
         assigned_shifts: dict[UUID, int], max_search_time: int,
-        log_search_process: bool) -> Generator[bool, None, tuple[bool, dict[UUID, int]]]:
+        log_search_process: bool) -> Generator[tuple[bool, UUID], None, tuple[bool, dict[UUID, int]]]:
     """
     Berechnet für jeden Mitarbeiter die maximal mögliche Anzahl von Einsätzen.
     
@@ -1895,7 +1894,7 @@ def call_solver_to_get_max_shifts_per_app(
 
         solver, status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
-        yield True
+        yield True, app_id
 
         if success_problems := print_solver_status(model, status):
             max_shifts_of_apps[app_id] = solver.value(max_shifts_of_app)
@@ -2305,9 +2304,12 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
         # Generator abarbeiten
         while True:
             try:
-                next(get_max_shifts_per_app)
+                _, app_id = next(get_max_shifts_per_app)
+                person_name = entities.actor_plan_periods[app_id].person.full_name
+                period_name = (f'{date_to_string(entities.actor_plan_periods[app_id].plan_period.start)} '
+                               f'- {date_to_string(entities.actor_plan_periods[app_id].plan_period.end)}')
                 signal_handling.handler_solver.progress(
-                    f'Max Shifts für Periode {plan_period_id}...'
+                    f'Max Shifts für {person_name} in {period_name}...'
                 )
             except StopIteration as e:
                 success, period_max_shifts = e.value

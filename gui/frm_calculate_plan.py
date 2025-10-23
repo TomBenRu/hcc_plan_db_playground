@@ -5,7 +5,7 @@ from uuid import UUID
 from PySide6.QtCore import QThread, Signal, QObject, Slot, Qt, QThreadPool
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox, QMessageBox, \
     QFormLayout, QSpinBox, QHBoxLayout, QGroupBox, QCheckBox, QListWidget, QListWidgetItem, QAbstractItemView, \
-    QApplication
+    QApplication, QSpacerItem, QSizePolicy
 
 import tools
 from commands import command_base_classes
@@ -77,6 +77,8 @@ class DlgCalculate(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
+        self.spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.layout.addSpacerItem(self.spacer)
 
         self.lb_explanation = QLabel()
         self.layout_head.addWidget(self.lb_explanation)
@@ -138,6 +140,7 @@ class DlgCalculate(QDialog):
         
         # Fülle List Widget beim ersten Aktivieren
         if is_multi:
+            self.spacer.changeSize(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
             self.lb_explanation.setText(self.tr('You can automatically create schedules for team {team_name}\n'
                                                 'Multi-Period Mode: Select at least two periods.\n'
                                                 '(The result may be slightly less accurate '
@@ -147,6 +150,7 @@ class DlgCalculate(QDialog):
             if self.list_plan_periods.count() == 0:
                 self._fill_plan_periods_list()
         else:
+            self.spacer.changeSize(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
             self.lb_explanation.setText(self.tr('You can automatically create schedules for team {team_name}\n'
                                                 'for a selected planning period.').format(
                     team_name=db_services.Team.get(self.team_id).name

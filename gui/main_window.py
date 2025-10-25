@@ -175,6 +175,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, None, self.tr('Open Log File'),
                               self.tr('Open log file'),
                               self.open_log_file),
+            MenuToolbarAction(self, None, self.tr('Open Config Folder'),
+                              self.tr('Open config folder'),
+                              self.open_config_folder),
+            MenuToolbarAction(self, None, self.tr('Open Database Folder'),
+                              self.tr('Open database folder'),
+                              self.open_database_folder),
             MenuToolbarAction(self, None, self.tr('Permanently Delete Current Team\'s Plans...'),
                               self.tr('The marked plans of the current team will be permanently deleted'),
                               self.plans_of_team_delete_prep_deletes),
@@ -306,7 +312,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                  self.actions['settings_project'],
                                  self.actions['plan_calculation_settings'], None,
                                  self.actions['determine_excel_output_folder'], None,
-                                 self.actions['open_log_file']],
+                                 self.actions['open_log_file'],
+                                 self.actions['open_config_folder'],
+                                 self.actions['open_database_folder']],
             self.tr('&Help'): [self.actions['open_help'], None, self.actions['check_for_updates'], None,
                                self.actions['about_hcc_plan'], None,
                                {self.tr('Expert Mode'): [self.actions['show_db_structure']]}]
@@ -692,6 +700,22 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             open_file_or_folder.open_file_or_folder(log_file_path)
         except Exception as e:
             QMessageBox.critical(self, 'Log-File', f'Beim Öffnen der Log-Datei ist ein Fehler aufgetreten:\n{e}')
+
+    def open_config_folder(self):
+        path_handler = project_paths.curr_user_path_handler
+        config_folder = path_handler.get_config().config_file_path
+        try:
+            open_file_or_folder.open_file_or_folder(config_folder)
+        except Exception as e:
+            QMessageBox.critical(self, 'Config-Ordner', f'Beim Öffnen des Config-Ordners ist ein Fehler aufgetreten:\n{e}')
+
+    def open_database_folder(self):
+        path_handler = project_paths.curr_user_path_handler
+        database_folder = path_handler.get_config().db_file_path
+        try:
+            open_file_or_folder.open_file_or_folder(database_folder)
+        except Exception as e:
+            QMessageBox.critical(self, 'Database-Ordner', f'Beim Öffnen des Database-Ordners ist ein Fehler aufgetreten:\n{e}')
 
     def plan_save(self):
         """Minimal angepasst: Nutzt TabManager Properties"""

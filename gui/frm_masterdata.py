@@ -162,7 +162,7 @@ class WidgetPerson(QWidget):
             QMessageBox.information(self, self.tr('Edit'),
                                   self.tr('Please select an entry first.\nClick on the corresponding row.'))
             return
-        person = db_services.Person.get(UUID(self.table_persons.item(row, 9).text()))
+        person = db_services.Person.get(self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole))
         dlg = DlgPersonModify(self, self.project_id, person)
         if dlg.exec():
             self.refresh_table()
@@ -188,7 +188,7 @@ class WidgetPerson(QWidget):
 
 
 class TablePersons(QTableWidget):
-    def __init__(self, persons: list[schemas.PersonShow], project_id: UUID):
+    def __init__(self, persons: list[schemas.PersonShow], project_id: UUID, sorting_column: int = 0):
         super().__init__()
 
         self.persons = persons
@@ -211,12 +211,10 @@ class TablePersons(QTableWidget):
             self.tr('ZIP'),
             self.tr('City'),
             self.tr('Team'),
-            'id'
         ]
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(6, 50)
         self.setHorizontalHeaderLabels(self.headers)
-        self.hideColumn(9)
         self.gender_visible_strings = {
             'm': self.tr('male'),
             'f': self.tr('female'),
@@ -226,10 +224,15 @@ class TablePersons(QTableWidget):
         self.put_data_to_table()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
+        # sort table by first name
+        self.sortItems(sorting_column, Qt.SortOrder.AscendingOrder)
+
     def put_data_to_table(self):
         self.setRowCount(len(self.persons))
         for row, p in enumerate(self.persons):
-            self.setItem(row, 0, QTableWidgetItem(p.f_name))
+            item_f_name = QTableWidgetItem(p.f_name)
+            item_f_name.setData(Qt.ItemDataRole.UserRole, p.id)
+            self.setItem(row, 0, item_f_name)
             self.setItem(row, 1, QTableWidgetItem(p.l_name))
             self.setItem(row, 2, QTableWidgetItem(p.email))
             self.setItem(row, 3, QTableWidgetItem(self.gender_visible_strings[p.gender.value]))
@@ -246,10 +249,8 @@ class TablePersons(QTableWidget):
             cb_team_of_actor.currentIndexChanged.connect(self.change_team)
             self.setCellWidget(row, 8, cb_team_of_actor)
 
-            self.setItem(row, 9, QTableWidgetItem(str(p.id)))
-
     def change_team(self, e):
-        person_id = UUID(self.item(self.currentRow(), 9).text())
+        person_id = self.item(self.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
         sender: QComboBoxToFindData = self.sender()
         team_id: UUID = sender.currentData()
         curr_team = get_curr_team_of_person_at_date(db_services.Person.get(person_id))
@@ -628,7 +629,7 @@ class WidgetLocationsOfWork(QWidget):
                                   self.tr('You must first select an entry.\n'
                                         'Click on the corresponding row.'))
             return
-        location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
+        location_id = self.table_locations.item(row, 0).data(Qt.ItemDataRole.UserRole)
         dlg = DlgLocationModify(self, self.project_id, location_id)
         if dlg.exec():
             self.refresh_table()
@@ -672,21 +673,21 @@ class TableLocationsOfWork(QTableWidget):
             self.tr('ZIP'),
             self.tr('City'),
             self.tr('Team'),
-            self.tr('Staff'),
-            'id'
+            self.tr('Staff')
         ]
         self.setColumnCount(len(self.headers))
         self.setColumnWidth(4, 50)
         self.setHorizontalHeaderLabels(self.headers)
 
         self.put_data_to_table()
-        self.hideColumn(self.columnCount()-1)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def put_data_to_table(self):
         self.setRowCount(len(self.locations))
         for row, loc in enumerate(self.locations):
-            self.setItem(row, 0, QTableWidgetItem(loc.name))
+            item_name = QTableWidgetItem(loc.name)
+            item_name.setData(Qt.ItemDataRole.UserRole, loc.id)
+            self.setItem(row, 0, item_name)
             self.setItem(row, 1, QTableWidgetItem(loc.address.street if loc.address else ''))
             self.setItem(row, 2, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
             self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
@@ -695,7 +696,6 @@ class TableLocationsOfWork(QTableWidget):
             txt_team = self.get_team_info_text(loc, curr_team)
             self.setItem(row, 4, QTableWidgetItem(txt_team))
             self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
-            self.setItem(row, 6, QTableWidgetItem(str(loc.id)))
 
     @staticmethod
     def get_team_info_text(location: schemas.LocationOfWorkShow, curr_team: schemas.Team | None) -> str:

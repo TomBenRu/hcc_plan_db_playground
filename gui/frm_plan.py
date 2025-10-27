@@ -564,9 +564,9 @@ class AppointmentField(QWidget):
         
         if has_notes:
             # Tooltip mit der Notiz setzen
+            notes = self.appointment.notes.replace('\n', '<br>')
             self.lb_note_icon.setToolTip(
-                self.tr('<b>Notes:</b><br>%s<br><br><i>Click to edit</i>') % 
-                self.appointment.notes
+                self.tr('<b>Notes:</b><br>{notes}<br><br><i>Click to edit</i>').format(notes=notes)
             )
 
     def _position_note_icon(self):
@@ -1148,7 +1148,8 @@ class FrmTabPlan(QWidget):
             self.plan_note_icon.setStyleSheet(plan_note_icon_with_notes_style)
             
             # Tooltip mit Notizen-Preview
-            notes_preview = self.plan.notes[:100] + "..." if len(self.plan.notes) > 100 else self.plan.notes
+            notes_preview = self.plan.notes[:200] + "..." if len(self.plan.notes) > 200 else self.plan.notes
+            notes_preview = notes_preview.replace('\n', '<br>')
             tooltip = f"<b>Plan-Notizen:</b><br>{notes_preview}<br><br><i>Klick zum Bearbeiten</i>"
             self.plan_note_icon.setToolTip(tooltip)
         else:

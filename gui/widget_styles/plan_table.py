@@ -21,12 +21,13 @@ cell_backgrounds_statistics = {
         }
 
 # Notiz-Icon Style für AppointmentField
-note_icon_style = """
+appointment_field_note_icon_style = """
     QLabel#note_icon {
         background-color: rgba(0, 64, 64, 64);
         color: white;
         border-radius: 3px;
         padding: 2px 4px;
+        font-size: 10pt;
     }
     QLabel#note_icon:hover {
         background-color: rgba(0, 128, 128, 220);
@@ -51,8 +52,8 @@ plan_note_icon_default_style = """
         background-color: rgba(37, 37, 37, 180);
         color: white;
         border-radius: 3px;
-        padding: 2px 4px;
-        font-size: 14pt;
+        padding: 3px 6px;
+        font-size: 22pt;
     }
     QLabel#plan_note_icon:hover {
         background-color: rgba(53, 53, 53, 220);
@@ -65,8 +66,8 @@ plan_note_icon_with_notes_style = """
         background-color: rgba(0, 109, 109, 180);
         color: white;
         border-radius: 3px;
-        padding: 2px 4px;
-        font-size: 14pt;
+        padding: 3px 6px;
+        font-size: 22pt;
     }
     QLabel#plan_note_icon:hover {
         background-color: rgba(0, 109, 109, 220);

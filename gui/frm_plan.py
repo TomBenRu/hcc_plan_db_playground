@@ -537,10 +537,7 @@ class AppointmentField(QWidget):
         self.lb_note_icon.clicked.connect(self._edit_notes)
         
         # Styling
-        font = self.lb_note_icon.font()
-        font.setPointSize(10)
-        self.lb_note_icon.setFont(font)
-        self.lb_note_icon.setStyleSheet(widget_styles.plan_table.note_icon_style)
+        self.lb_note_icon.setStyleSheet(widget_styles.plan_table.appointment_field_note_icon_style)
         
         # Cursor und initialer Zustand
         self.lb_note_icon.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1120,9 +1117,9 @@ class FrmTabPlan(QWidget):
         """Erstellt das Notiz-Icon für Plan-Notizen"""
         self.plan_note_icon = ClickableLabel("📝", self)
         self.plan_note_icon.setObjectName("plan_note_icon")
-        self.plan_note_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.plan_note_icon.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.plan_note_icon.setFixedSize(24, 24)
+        self.plan_note_icon.setFixedSize(32, 42)
+        self.plan_note_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Signal verbinden
         self.plan_note_icon.clicked.connect(self.edit_plan_notes)

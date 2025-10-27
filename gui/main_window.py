@@ -164,7 +164,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'notebook--pencil.png'),
                               self.tr('Plan Information...'),
                               self.tr('Create or modify planning information.'),
-                              self.plan_infos),
+                              self._edit_plan_infos),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'gear.png'),
                               self.tr('Settings for Plan Creation...'),
                               self.tr('Settings for plan calculation.'),
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.tr('&View'): [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                                self.actions['statistics'], None,
                                self.actions['show_employee_events_window']],
-            self.tr('&Schedule'): [self.actions['calculate_plans'], self.actions['plan_infos'],
+            self.tr('&Schedule'): [self.actions['calculate_plans'], self.actions['_edit_plan_infos'],
                                    self.actions['plan_excel_configs'], None,
                                    self.actions['open_plan'], self.actions['plan_save'],
                                    self.actions['undelete_plans'],
@@ -1092,22 +1092,15 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                     self.tab_manager.open_plan_tab(plan_id)
                     QCoreApplication.processEvents()
 
-    def plan_infos(self):
-        """Minimal angepasst: Nutzt TabManager Properties"""
+    def _edit_plan_infos(self):
+        """Delegiert an das aktuelle Plan-Widget"""
         curr_plan_widget = self.tab_manager.current_plan_widget
         if not curr_plan_widget:
             QMessageBox.critical(self, 'Plan-Informationen', 'Sie müssen zuerst einen Plan öffnen.')
             return
-
-        curr_plan: schemas.PlanShow = curr_plan_widget.plan
-        dlg = DlgPlanPeriodNotes(self, curr_plan)
-        if dlg.exec():
-            self.controller.execute(plan_commands.UpdateNotes(curr_plan.id, dlg.notes))
-            if dlg.chk_sav_to_plan_period.isChecked():
-                self.controller.execute(plan_period_commands.UpdateNotes(curr_plan.plan_period.id, dlg.notes))
-                signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(curr_plan.plan_period.id)
-            else:
-                signal_handling.handler_plan_tabs.reload_plan_from_db(curr_plan.id)
+        
+        # Delegiere an Plan-Widget Methode
+        curr_plan_widget.edit_plan_notes()
 
     def plan_calculation_settings(self):
         dlg = frm_settings_solver_params.DlgSettingsSolverParams(self)

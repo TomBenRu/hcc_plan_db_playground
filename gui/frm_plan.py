@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTabl
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
-from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app
+from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, plan_period_commands
 from configuration.general_settings import general_settings_handler
 from database import schemas, db_services
 from gui import widget_styles
@@ -27,7 +27,8 @@ from gui.frm_notes import DlgAppointmentNotes
 from gui.observer import signal_handling
 from gui.widget_styles.plan_table import horizontal_header_colors, vertical_header_colors, locations_bg_color, \
     cell_backgrounds_statistics, horizontal_header_statistics_color, horizontal_header_statistics_color_guest, \
-    vertical_header_statistics_color
+    vertical_header_statistics_color, plan_table_base_style, plan_note_icon_default_style, \
+    plan_note_icon_with_notes_style
 # solver_main wird lazy importiert bei Bedarf für Performance-Optimierung
 from tools.delayed_execution_timer import DelayedTimerSingleShot
 from tools.helper_functions import get_appointments_of_all_actors_from_plan, datetime_date_to_qdate, date_to_string, \
@@ -802,10 +803,16 @@ class FrmTabPlan(QWidget):
         
         # Hilfe-System Integration
         self._setup_help_integration()
+        
+        # Plan-Notizen Icon einrichten
+        self._setup_plan_note_icon()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.resize_signal.emit()
+        # Notiz-Icon neu positionieren
+        if hasattr(self, 'plan_note_icon'):
+            self._position_plan_note_icon()
     
     def _setup_side_menu(self):
         self.side_menu = side_menu.SlideInMenu(self,
@@ -1006,6 +1013,9 @@ class FrmTabPlan(QWidget):
 
     def reload_plan(self):
         self.plan = db_services.Plan.get(self.plan.id)
+        # Plan-Notizen Icon aktualisieren
+        if hasattr(self, 'plan_note_icon'):
+            self._update_plan_note_icon()
 
     def refresh_plan(self):
         self.table_plan.deleteLater()
@@ -1093,17 +1103,10 @@ class FrmTabPlan(QWidget):
         num_cols = max(self.weekday_cols.values()) + 1
         self.table_plan.setRowCount(num_rows)
         self.table_plan.setColumnCount(num_cols)
-        self.table_plan.setStyleSheet("""
-            QTableView {
-                background-color: #2d2d2d; 
-                color: white;
-            }
-            QTableView QTableCornerButton::section {
-                background-color: transparent;
-                border: none;
-            }
-        """)
-
+        
+        # Basis-Stylesheet für Tabelle
+        self.table_plan.setStyleSheet(plan_table_base_style)
+        
         self.display_headers_week_day_names()
         self.display_headers_calender_weeks()
 
@@ -1112,6 +1115,74 @@ class FrmTabPlan(QWidget):
         self.display_days()
 
         self.resize_table_plan_headers()
+
+    def _setup_plan_note_icon(self):
+        """Erstellt das Notiz-Icon für Plan-Notizen"""
+        self.plan_note_icon = ClickableLabel("📝", self)
+        self.plan_note_icon.setObjectName("plan_note_icon")
+        self.plan_note_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.plan_note_icon.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.plan_note_icon.setFixedSize(24, 24)
+        
+        # Signal verbinden
+        self.plan_note_icon.clicked.connect(self.edit_plan_notes)
+        
+        # Initial Sichtbarkeit und Style setzen
+        self._update_plan_note_icon()
+    
+    def _update_plan_note_icon(self):
+        """Aktualisiert Sichtbarkeit und Style des Notiz-Icons"""
+        has_notes = bool(self.plan.notes and self.plan.notes.strip())
+        
+        # Icon ist immer sichtbar
+        self.plan_note_icon.setVisible(True)
+        
+        if has_notes:
+            # Türkiser Hintergrund wenn Notizen vorhanden
+            self.plan_note_icon.setStyleSheet(plan_note_icon_with_notes_style)
+            
+            # Tooltip mit Notizen-Preview
+            notes_preview = self.plan.notes[:100] + "..." if len(self.plan.notes) > 100 else self.plan.notes
+            tooltip = f"<b>Plan-Notizen:</b><br>{notes_preview}<br><br><i>Klick zum Bearbeiten</i>"
+            self.plan_note_icon.setToolTip(tooltip)
+        else:
+            # Standard-Style ohne Notizen
+            self.plan_note_icon.setStyleSheet(plan_note_icon_default_style)
+            self.plan_note_icon.setToolTip("Plan-Notizen erstellen (Klick)")
+        
+        # Icon neu positionieren
+        self._position_plan_note_icon()
+    
+    def _position_plan_note_icon(self):
+        """Positioniert das Notiz-Icon in der oberen linken Ecke"""
+        if hasattr(self, 'plan_note_icon') and hasattr(self, 'table_plan'):
+            # Position relativ zur Tabelle
+            x = self.table_plan.x() + 5
+            y = self.table_plan.y() + 5
+            self.plan_note_icon.move(x, y)
+            self.plan_note_icon.raise_()  # Immer oben anzeigen
+    
+    def edit_plan_notes(self):
+        """Öffnet den Dialog zum Bearbeiten der Plan-Notizen"""
+        from gui.frm_notes import DlgPlanPeriodNotes
+        
+        dlg = DlgPlanPeriodNotes(self, self.plan)
+        if dlg.exec():
+            # Plan-Notizen speichern
+            self.controller.execute(plan_commands.UpdateNotes(self.plan.id, dlg.notes))
+            
+            # Optional: Auch PlanPeriod-Notizen aktualisieren
+            if dlg.chk_sav_to_plan_period.isChecked():
+                self.controller.execute(
+                    plan_period_commands.UpdateNotes(self.plan.plan_period.id, dlg.notes)
+                )
+                # Alle Pläne der PlanPeriod neu laden
+                signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(
+                    self.plan.plan_period.id
+                )
+            else:
+                # Nur aktuellen Plan neu laden
+                signal_handling.handler_plan_tabs.reload_plan_from_db(self.plan.id)
 
     def display_headers_week_day_names(self):
         # funktioniert nur mit app.setStyle(QStyleFactory.create('Fusion'))

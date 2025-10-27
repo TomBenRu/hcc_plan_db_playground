@@ -32,3 +32,43 @@ note_icon_style = """
         background-color: rgba(0, 128, 128, 220);
     }
 """
+
+# ========================================
+# Plan Table Styles
+# ========================================
+
+# Basis-Style für die Plan-Tabelle
+plan_table_base_style = """
+    QTableView {
+        background-color: #2d2d2d; 
+        color: white;
+    }
+"""
+
+# Plan-Notizen Icon Style (OHNE Notizen - grauer Hintergrund)
+plan_note_icon_default_style = """
+    QLabel#plan_note_icon {
+        background-color: rgba(37, 37, 37, 180);
+        color: white;
+        border-radius: 3px;
+        padding: 2px 4px;
+        font-size: 14pt;
+    }
+    QLabel#plan_note_icon:hover {
+        background-color: rgba(53, 53, 53, 220);
+    }
+"""
+
+# Plan-Notizen Icon Style (MIT Notizen - türkiser Hintergrund)
+plan_note_icon_with_notes_style = """
+    QLabel#plan_note_icon {
+        background-color: rgba(0, 109, 109, 180);
+        color: white;
+        border-radius: 3px;
+        padding: 2px 4px;
+        font-size: 14pt;
+    }
+    QLabel#plan_note_icon:hover {
+        background-color: rgba(0, 109, 109, 220);
+    }
+"""

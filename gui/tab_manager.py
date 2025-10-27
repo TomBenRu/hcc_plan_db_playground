@@ -5,6 +5,7 @@ Erweitert um intelligentes Tab-Caching für bessere Performance
 """
 
 import logging
+from traceback import TracebackException
 from uuid import UUID
 from typing import Optional, Dict, Any, List
 
@@ -359,6 +360,7 @@ class TabManager(QObject):
             )
             return False
         except Exception as e:
+            logger.exception(f"Fehler beim Öffnen des Plans {plan_id}: {e}")
             self.error_occurred.emit('Plan öffnen', f'Unerwarteter Fehler: {e}')
             return False
     

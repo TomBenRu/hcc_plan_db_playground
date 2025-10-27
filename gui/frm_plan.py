@@ -476,10 +476,17 @@ class ContainerAppointments(QWidget):
         self.display_appointments_fields()
 
     def display_appointments_fields(self):
-        for i in range(self.layout.count()):
-            self.layout.itemAt(i).widget().setParent(None)
+        # Alle Items entfernen (inklusive Stretch)
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
+            elif item.spacerItem():  # Stretch-Items explizit löschen
+                del item
+
         for appointment_field in self.appointment_fields:
             self.layout.addWidget(appointment_field)
+        self.layout.addStretch()
 
 
 class ClickableLabel(QLabel):
@@ -1108,6 +1115,8 @@ class FrmTabPlan(QWidget):
         self.display_headers_calender_weeks()
 
         self.table_plan.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.table_plan.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
         self.display_headers_locations()
         self.display_days()
 

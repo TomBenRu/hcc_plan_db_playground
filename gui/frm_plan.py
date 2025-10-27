@@ -481,6 +481,21 @@ class ContainerAppointments(QWidget):
             self.layout.addWidget(appointment_field)
 
 
+class ClickableLabel(QLabel):
+    """Ein QLabel, das Klick-Events unterstützt."""
+    clicked = Signal()
+    
+    def __init__(self, text: str, parent: QWidget = None):
+        super().__init__(text, parent)
+    
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+            event.accept()  # Event konsumieren, damit es nicht zum Parent propagiert
+        else:
+            super().mouseReleaseEvent(event)
+
+
 class AppointmentField(QWidget):
     def __init__(self, appointment: schemas.Appointment, plan_widget: 'FrmTabPlan'):
         super().__init__()
@@ -503,11 +518,66 @@ class AppointmentField(QWidget):
 
         fill_in_data(self)
 
+        # Notiz-Icon Setup
+        self._setup_note_icon()
+
         self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.setToolTip(self._tool_tip_text())
+
+    def _setup_note_icon(self):
+        """Erstellt und konfiguriert das Notiz-Icon für die obere rechte Ecke."""
+        self.lb_note_icon = ClickableLabel('📝', self)
+        self.lb_note_icon.setObjectName('note_icon')
+        
+        # Klick-Handler verbinden
+        self.lb_note_icon.clicked.connect(self._edit_notes)
+        
+        # Styling
+        font = self.lb_note_icon.font()
+        font.setPointSize(10)
+        self.lb_note_icon.setFont(font)
+        self.lb_note_icon.setStyleSheet(widget_styles.plan_table.note_icon_style)
+        
+        # Cursor und initialer Zustand
+        self.lb_note_icon.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lb_note_icon.setFixedSize(18, 18)
+        self.lb_note_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Sichtbarkeit initial setzen
+        self._update_note_icon_visibility()
+        
+        # Position wird in resizeEvent gesetzt
+        self._position_note_icon()
+
+    def _update_note_icon_visibility(self):
+        """Aktualisiert die Sichtbarkeit des Notiz-Icons basierend auf vorhandenen Notizen."""
+        has_notes = bool(self.appointment.notes and self.appointment.notes.strip())
+        self.lb_note_icon.setVisible(has_notes)
+        
+        if has_notes:
+            # Tooltip mit der Notiz setzen
+            self.lb_note_icon.setToolTip(
+                self.tr('<b>Notes:</b><br>%s<br><br><i>Click to edit</i>') % 
+                self.appointment.notes
+            )
+
+    def _position_note_icon(self):
+        """Positioniert das Notiz-Icon in der oberen rechten Ecke."""
+        if hasattr(self, 'lb_note_icon'):
+            # Position: 5px vom rechten Rand, 5px vom oberen Rand
+            x = self.width() - self.lb_note_icon.width() - 1
+            y = 1
+            self.lb_note_icon.move(x, y)
+            # Icon über allen anderen Widgets anzeigen
+            self.lb_note_icon.raise_()
+
+    def resizeEvent(self, event):
+        """Wird aufgerufen wenn das Widget die Größe ändert - positioniert das Notiz-Icon neu."""
+        super().resizeEvent(event)
+        self._position_note_icon()
 
     def _tool_tip_text(self):
         return self.tr(
@@ -657,6 +727,7 @@ class AppointmentField(QWidget):
     def _reload_appointment_and_tooltip(self):
         self.appointment = db_services.Appointment.get(self.appointment.id)
         self.setToolTip(self._tool_tip_text())
+        self._update_note_icon_visibility()
 
     def set_styling(self):
         self.setStyleSheet(widget_styles.plan_table.appointment_field_default)

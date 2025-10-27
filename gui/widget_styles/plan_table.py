@@ -19,3 +19,16 @@ cell_backgrounds_statistics = {
             'fair': [QColor(100, 130, 160, 190), QColor(100, 150, 180, 190)],
             'current': [QColor(130, 130, 160, 190), QColor(130, 150, 180, 190)]
         }
+
+# Notiz-Icon Style für AppointmentField
+note_icon_style = """
+    QLabel#note_icon {
+        background-color: rgba(0, 64, 64, 64);
+        color: white;
+        border-radius: 3px;
+        padding: 2px 4px;
+    }
+    QLabel#note_icon:hover {
+        background-color: rgba(0, 128, 128, 220);
+    }
+"""

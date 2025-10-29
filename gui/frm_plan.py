@@ -1027,6 +1027,9 @@ class FrmTabPlan(QWidget):
         self._setup_table()
         self.side_menu.raise_()
         self.bottom_menu.raise_()
+        # Plan-Notizen Icon aktualisieren
+        if hasattr(self, 'plan_note_icon'):
+            self._update_plan_note_icon()
 
     def reload_and_refresh_plan(self):
         self.reload_plan()

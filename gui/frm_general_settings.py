@@ -49,8 +49,8 @@ class DlgGeneralSettings(QDialog):
             
             # Beschreibung
             self.lb_defender_description = QLabel(
-                self.tr('Sie können diese Anwendung vom Windows Defender-Scan ausschließen, '
-                       'um den Programmstart zu beschleunigen.')
+                self.tr('You can exclude this application from Windows Defender scanning '
+                        'to speed up the program startup.')
             )
             self.lb_defender_description.setWordWrap(True)
             self.layout_group_defender.addWidget(self.lb_defender_description)
@@ -64,7 +64,7 @@ class DlgGeneralSettings(QDialog):
             status_button_layout.addStretch()
             
             # Button
-            self.btn_add_defender_exclusion = QPushButton(self.tr('Vom Virenscan ausschließen'))
+            self.btn_add_defender_exclusion = QPushButton(self.tr('Exclude from virus scan'))
             self.btn_add_defender_exclusion.clicked.connect(self._on_add_defender_exclusion)
             status_button_layout.addWidget(self.btn_add_defender_exclusion)
             
@@ -120,27 +120,27 @@ class DlgGeneralSettings(QDialog):
                 is_excluded = check_defender_exclusion()
                 
                 if is_excluded:
-                    self.lb_defender_status.setText(self.tr('✓ Vom Virenscan ausgeschlossen'))
+                    self.lb_defender_status.setText(self.tr('✓ Excluded from virus scanning'))
                     self.lb_defender_status.setStyleSheet('color: green; font-weight: bold;')
                     self.btn_add_defender_exclusion.setEnabled(False)
-                    self.btn_add_defender_exclusion.setText(self.tr('Bereits ausgeschlossen'))
+                    self.btn_add_defender_exclusion.setText(self.tr('Already excluded'))
                 else:
-                    self.lb_defender_status.setText(self.tr('Nicht ausgeschlossen'))
+                    self.lb_defender_status.setText(self.tr('Not excluded'))
                     self.lb_defender_status.setStyleSheet('color: orange;')
                     self.btn_add_defender_exclusion.setEnabled(True)
-                    self.btn_add_defender_exclusion.setText(self.tr('Vom Virenscan ausschließen'))
+                    self.btn_add_defender_exclusion.setText(self.tr('Exclude from virus scan'))
             else:
                 # Ohne Admin-Rechte: Status kann nicht geprüft werden
                 self.lb_defender_status.setText(
-                    self.tr('Status unbekannt (Admin-Rechte erforderlich)')
+                    self.tr('Status unknown (admin rights required)')
                 )
                 self.lb_defender_status.setStyleSheet('color: gray;')
                 self.btn_add_defender_exclusion.setEnabled(True)
-                self.btn_add_defender_exclusion.setText(self.tr('Vom Virenscan ausschließen'))
+                self.btn_add_defender_exclusion.setText(self.tr('Exclude from virus scan'))
                 
         except Exception as e:
             # Fehler beim Status-Check
-            self.lb_defender_status.setText(self.tr('Fehler beim Prüfen des Status'))
+            self.lb_defender_status.setText(self.tr('Error checking status'))
             self.lb_defender_status.setStyleSheet('color: red;')
     
     def _on_add_defender_exclusion(self):
@@ -158,11 +158,10 @@ class DlgGeneralSettings(QDialog):
                 self,
                 self.tr('Windows Defender'),
                 self.tr(
-                    'Möchten Sie diese Anwendung vom Windows Defender-Scan ausschließen?\n\n'
-                    'Dies erfordert Administrator-Rechte. '
-                    'Es erscheint ein Bestätigungsdialog (UAC).\n\n'
-                    'Hinweis: Das Ausschließen beschleunigt den Programmstart, '
-                    'reduziert aber den Schutz für diese spezifische Anwendung.'
+                    'Do you want to exclude this application from Windows Defender scanning?\n\n'
+                    'This requires administrator rights. A confirmation dialog (UAC) will appear.\n\n'
+                    'Note: Excluding the program will speed up startup '
+                    'but will reduce protection for that specific application.'
                 ),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
@@ -197,8 +196,8 @@ class DlgGeneralSettings(QDialog):
         except Exception as e:
             QMessageBox.critical(
                 self,
-                self.tr('Fehler'),
-                self.tr(f'Fehler beim Hinzufügen der Defender-Ausnahme:\n{str(e)}')
+                self.tr('Error'),
+                self.tr('Error adding Defender exception:\n{exception}').format(exception=str(e))
             )
 
     def accept(self):

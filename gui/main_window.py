@@ -787,17 +787,19 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         @Slot(bool)
         def export_finished(success: bool, output_path: str):
             if success:
-                QMessageBox.information(self, 'Plan Excel-Export',
-                                        f'Plan wurde erfolgreich unter\n{output_path}\nexportiert.')
-                reply = QMessageBox.question(self, 'Plan Excel-Export',
-                                             'Soll die Excel-Datei jetzt geöffnet werden?', )
+                QMessageBox.information(self, self.tr('Plan Excel-Export'),
+                                        self.tr('Plan was successfully exported to\n{output_path}.').format(
+                                            output_path=output_path)
+                                        )
+                reply = QMessageBox.question(self, self.tr('Plan Excel-Export'),
+                                             self.tr('Should the Excel file be opened now?'), )
                 if reply == QMessageBox.StandardButton.Yes:
                     try:
                         open_file_or_folder.open_file_or_folder(output_path)
                     except Exception as e:
-                        QMessageBox.critical(self, 'Plan Excel-Export', f'{e}')
+                        QMessageBox.critical(self, self.tr('Plan Excel-Export'), f'{e}')
             else:
-                QMessageBox.critical(self, 'Plan Excel-Export', 'Plan konnte nicht exportiert werden.')
+                QMessageBox.critical(self, self.tr('Plan Excel-Export'), self.tr('Plan could not be exported.'))
             signal_handling.handler_excel_export.signal_finished.disconnect()
 
         def create_dir_if_not_exist(path: str):
@@ -808,7 +810,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # TabManager Property nutzen
         widget = self.tab_manager.current_plan_widget
         if not widget:
-            QMessageBox.critical(self, 'Plan Excel-Export', 'Sie müssen zuerst einen Plan öffnen.')
+            QMessageBox.critical(self, self.tr('Plan Excel-Export'), self.tr('You must first open a plan.'))
             return
 
         dlg = DlgPlanToXLSX(self, widget.plan)
@@ -835,11 +837,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         def export_finished(success: bool, output_path: str):
             if success:
                 QMessageBox.information(self, self.tr('Fibu Events Excel-Export'),
-                                        self.tr('Fibu-Events wurde erfolgreich unter\n{output_path}\nexportiert.')
+                                        self.tr('Financial events were successfully exported under\n{output_path}.')
                                         .format(output_path=output_path)
                                         )
                 reply = QMessageBox.question(self, self.tr('Fibu Events Excel-Export'),
-                                             self.tr('Soll die Excel-Datei jetzt geöffnet werden?'))
+                                             self.tr('Should the Excel file be opened now?'))
                 if reply == QMessageBox.StandardButton.Yes:
                     try:
                         open_file_or_folder.open_file_or_folder(output_path)
@@ -847,7 +849,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                         QMessageBox.critical(self, self.tr('Fibu Events Excel-Export'), f'{e}')
             else:
                 QMessageBox.critical(self, self.tr('Fibu Events Excel-Export'),
-                                     self.tr('Fibu-Events konnte nicht exportiert werden.'))
+                                     self.tr('Financial events could not be exported.'))
             signal_handling.handler_excel_export.signal_finished.disconnect()
 
         def create_dir_if_not_exist(path: str):
@@ -858,7 +860,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # TabManager Property nutzen
         widget = self.tab_manager.current_plan_widget
         if not widget:
-            QMessageBox.critical(self, 'Fibu-Events Excel-Export', 'Sie müssen zuerst einen Plan öffnen.')
+            QMessageBox.critical(self, self.tr('Financial Events Excel-Export'),
+                                 self.tr('You must first open a plan.'))
             return
 
         excel_output_path = os.path.join(self._get_excel_folder_output_path(widget.plan.plan_period),
@@ -879,17 +882,17 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if self.tab_manager.current_tab_type == 'plans':
             curr_widget = self.tab_manager.current_plan_widget
             if not curr_widget:
-                QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst einen Plan öffnen.')
+                QMessageBox.critical(self, self.tr('Excel folder'), self.tr('You must first open a plan.'))
                 return
             plan_period = curr_widget.plan.plan_period
         elif self.tab_manager.current_tab_type == 'masks':
             curr_widget = self.tab_manager.current_plan_period_widget
             if not curr_widget:
-                QMessageBox.critical(self, 'Excel-Ordner', 'Sie müssen zuerst eine Planungsperiode öffnen.')
+                QMessageBox.critical(self, self.tr('Excel folder'), self.tr('You must first open a planning period.'))
                 return
             plan_period = db_services.PlanPeriod.get(curr_widget.plan_period_id)
         else:
-            QMessageBox.critical(self, 'Excel-Ordner', 'Unbekannter Tab-Typ.')
+            QMessageBox.critical(self, self.tr('Excel folder'), self.tr('Unknown Tab-Type.'))
             return
 
         excel_output_path = self._get_excel_folder_output_path(plan_period)
@@ -897,13 +900,16 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             open_file_or_folder.open_file_or_folder(excel_output_path)
         except Exception as e:
             if isinstance(e, FileNotFoundError):
-                QMessageBox.critical(self, 'Excel-Ordner',
-                                     f'Es wurde noch keine Excel-Datei für den Zeitraum '
-                                     f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y} '
-                                     f'des Teams {plan_period.team.name} erstellt.')
+                QMessageBox.critical(self, self.tr('Excel folder'),
+                                     self.tr('An Excel file has not yet been created for the {start}-{end} '
+                                             'period of the team {team_name}.').format(
+                                         start=date_to_string(plan_period.start),
+                                         end=date_to_string(plan_period.end),
+                                         team_name=plan_period.team.name))
             else:
-                QMessageBox.critical(self, 'Fehler beim Öffnen',
-                                     f'Beim Öffnen der Excel-Datei ist ein Fehler aufgetreten:\n{e}')
+                QMessageBox.critical(self, self.tr('Error opening'),
+                                     self.tr('An error occurred while opening the Excel file:\n{error}')
+                                     .format(error=e))
 
     def _get_excel_folder_output_path(self, plan_period: schemas.PlanPeriod) -> str:
         path_handler = project_paths.curr_user_path_handler

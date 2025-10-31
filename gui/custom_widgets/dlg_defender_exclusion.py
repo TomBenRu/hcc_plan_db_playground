@@ -40,7 +40,7 @@ class DlgDefenderExclusion(QDialog):
         
     def _setup_ui(self):
         """Erstellt die UI-Komponenten"""
-        self.setWindowTitle(self.tr("Windows Defender Optimierung"))
+        self.setWindowTitle(self.tr("Windows Defender Optimization"))
         self.setMinimumWidth(500)
         
         # Haupt-Layout
@@ -56,7 +56,7 @@ class DlgDefenderExclusion(QDialog):
         header_layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignTop)
         
         # Titel
-        title_label = QLabel(self.tr("<h3>Programmstart beschleunigen</h3>"))
+        title_label = QLabel(self.tr("<h3>Accelerate program start</h3>"))
         header_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignTop)
         header_layout.addStretch()
         
@@ -64,12 +64,12 @@ class DlgDefenderExclusion(QDialog):
         
         # === Informationstext ===
         info_text = self.tr(
-            "<p>Der Windows Defender-Scan kann den Start dieser Anwendung verzögern.</p>"
-            "<p><b>Sie können die Anwendung vom Defender-Scan ausschließen, um den Start zu beschleunigen.</b></p>"
-            "<p>Für diese Aktion sind Administrator-Rechte erforderlich. "
-            "Es erscheint ein Bestätigungsdialog, in dem Sie Ihre Credentials eingeben können.</p>"
-            "<p style='color: #888;'><i>Hinweis: Das Ausschließen reduziert den Schutz für diese spezifische Anwendung. "
-            "Die allgemeine Sicherheit Ihres Systems bleibt davon unberührt.</i></p>"
+            "<p>The Windows Defender scan may delay the launch of this application.</p>"
+            "<p><b>You can exclude the application from the Defender scan to speed up the launch.</b></p>"
+            "<p>This action requires administrator rights. "
+            "A confirmation dialog will appear where you can enter your credentials.</p>"
+            "<p style='color: #888;'><i>Note: Excluding will reduce protection for this specific application. "
+            "The general security of your system remains unaffected.</i></p>"
         )
         
         info_label = QLabel(info_text)
@@ -85,7 +85,7 @@ class DlgDefenderExclusion(QDialog):
         button_layout.setSpacing(10)
         
         # "Nie wieder fragen" Button (links)
-        self.btn_never_ask = QPushButton(self.tr("Nie wieder fragen"))
+        self.btn_never_ask = QPushButton(self.tr("Never ask again"))
         self.btn_never_ask.clicked.connect(self._on_never_ask)
         button_layout.addWidget(self.btn_never_ask)
         
@@ -93,12 +93,12 @@ class DlgDefenderExclusion(QDialog):
         button_layout.addStretch()
         
         # "Später" Button
-        self.btn_later = QPushButton(self.tr("Später"))
+        self.btn_later = QPushButton(self.tr("Later"))
         self.btn_later.clicked.connect(self._on_later)
         button_layout.addWidget(self.btn_later)
         
         # "Jetzt ausschließen" Button (primär/hervorgehoben)
-        self.btn_add_now = QPushButton(self.tr("Jetzt ausschließen"))
+        self.btn_add_now = QPushButton(self.tr("Rule it out now"))
         self.btn_add_now.setDefault(True)  # Enter-Taste triggert diesen Button
         self.btn_add_now.clicked.connect(self._on_add_now)
         

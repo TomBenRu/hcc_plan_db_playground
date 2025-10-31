@@ -110,9 +110,12 @@ class DlgAvailAtDay(QDialog):
         self.lb_description = QLabel(description_text)
         self.layout_head.addWidget(self.lb_description)
 
-        for name, tz in self.actor_time_of_day.items():
-            label = QLabel(", ".join(tz))
-            self.layout_actors.addRow(f'{name}:', label)
+        if not self.actor_time_of_day:
+            self.layout_actors.addRow(self.tr('No employees are available.'), QLabel(''))
+        else:
+            for name, tz in self.actor_time_of_day.items():
+                label = QLabel(", ".join(tz))
+                self.layout_actors.addRow(f'{name}:', label)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self.button_box.accepted.connect(self.accept)

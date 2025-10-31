@@ -4,50 +4,50 @@
 <context>
     <name>AppointmentField</name>
     <message>
-        <location filename="../frm_plan.py" line="592"/>
+        <location filename="../frm_plan.py" line="595"/>
         <source>&lt;b&gt;%s on %s:&lt;/b&gt;&lt;br&gt;◦ Click: Change cast.&lt;br&gt;◦ Right-click: More actions.&lt;br&gt;&lt;i&gt;&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
         <translation>&lt;b&gt;%s am %s:&lt;/b&gt;&lt;br&gt;◦ Klick: Besetzungsänderungen.&lt;br&gt;◦ Rechtsklick: Weitere Aktionen.&lt;br&gt;&lt;i&gt;&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="637"/>
+        <location filename="../frm_plan.py" line="640"/>
         <source>Verification</source>
         <translation>Überprüfung</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="638"/>
+        <location filename="../frm_plan.py" line="641"/>
         <source>Cast changes are being tested for errors.</source>
         <translation>Besetzungsänderungen werden auf Fehler geprüft.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="638"/>
+        <location filename="../frm_plan.py" line="641"/>
         <source>Cancel</source>
         <translation>Abbruch</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="651"/>
-        <location filename="../frm_plan.py" line="663"/>
+        <location filename="../frm_plan.py" line="654"/>
+        <location filename="../frm_plan.py" line="666"/>
         <source>Cast Change</source>
         <translation>Besetzungsänderung</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="652"/>
+        <location filename="../frm_plan.py" line="655"/>
         <source>The cast change was successfully made.</source>
         <translation>Die Besetzungsändeung wurde erfolgreich durchgeführt.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="657"/>
+        <location filename="../frm_plan.py" line="660"/>
         <source>&lt;h3&gt;The cast change cannot be made without conflicts.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s&lt;p&gt;Should the changes be undone?&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Die Besetzungsänderung kann nicht ohne Konflikt durchgeführt werden.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s&lt;p&gt;Sollen die Änderungen zurückgenommen werden?&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="700"/>
+        <location filename="../frm_plan.py" line="703"/>
         <source>On %s (%s)
 an appointment for %s already exists</source>
         <translation>Am %s (%s)
 ist schon ein Termin für %s vorhanden</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="710"/>
+        <location filename="../frm_plan.py" line="713"/>
         <source>On %s (%s)
 an appointment for %s already exists.
 This will be used for the change.
@@ -58,12 +58,12 @@ Dieses wird für die Änderungen benutzt.
 Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="767"/>
+        <location filename="../frm_plan.py" line="770"/>
         <source>Notes changed</source>
         <translation>Anmferkungen geändert</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="677"/>
+        <location filename="../frm_plan.py" line="680"/>
         <source>Move %s on %s (%s)</source>
         <translation>Verschiebe %s am %s (%s)</translation>
     </message>
@@ -73,28 +73,28 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
         <translation>unbesetzt %d</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="572"/>
+        <location filename="../frm_plan.py" line="575"/>
         <source>&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Click to edit&lt;/i&gt;</source>
         <translation>&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Zum Bearbeiten klicken&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="684"/>
+        <location filename="../frm_plan.py" line="687"/>
         <source>Notes for %s on %s (%s)</source>
         <translation>Anmerkungen für %s am %s (%s)</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="699"/>
-        <location filename="../frm_plan.py" line="709"/>
+        <location filename="../frm_plan.py" line="702"/>
+        <location filename="../frm_plan.py" line="712"/>
         <source>Move appointment</source>
         <translation>Termin verschieben</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="731"/>
+        <location filename="../frm_plan.py" line="734"/>
         <source>Appointment Notes</source>
         <translation>Termin-Anmerkungen</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="732"/>
+        <location filename="../frm_plan.py" line="735"/>
         <source>The new notes have been applied.</source>
         <translation>Die Anmerkungen wurden aktualisiert.</translation>
     </message>
@@ -1498,17 +1498,22 @@ Hier können Sie die Besetzung ändern.</translation>
         <translation>Mitarbeiter</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="212"/>
+        <location filename="../frm_plan.py" line="211"/>
+        <source>No employees are required.</source>
+        <translation>Es sind keine Mitarbeiter erforderlich.</translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="215"/>
         <source>Employee %02d</source>
         <translation>Mitarbeiter %02d</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="213"/>
+        <location filename="../frm_plan.py" line="216"/>
         <source>Unassigned</source>
         <translation>Unbesetzt</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="219"/>
+        <location filename="../frm_plan.py" line="222"/>
         <source>Guest</source>
         <translation>Gast</translation>
     </message>
@@ -3101,12 +3106,12 @@ wenn er die angegebene Mindestanzahl an Einsätzen erreicht.</translation>
 <context>
     <name>DlgMoveAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="255"/>
+        <location filename="../frm_plan.py" line="258"/>
         <source>Move appointment</source>
         <translation>Termin verschieben</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="277"/>
+        <location filename="../frm_plan.py" line="280"/>
         <source>Here you can move the appointment
 %s, %s (%s)
 to a different day and time.</source>
@@ -5754,70 +5759,70 @@ Eventuell haben Sie nachträglich &quot;{}&quot; aus den Standards gelöscht.</t
 <context>
     <name>FrmTabPlan</name>
     <message>
-        <location filename="../frm_plan.py" line="832"/>
+        <location filename="../frm_plan.py" line="835"/>
         <source>Background Verification</source>
         <translation>Überprüfung im Hintergrund</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="833"/>
+        <location filename="../frm_plan.py" line="836"/>
         <source>Verification of errors for each cast change.</source>
         <translation>Für jede Besetungsänderung wird eine automatische Überprüfung durchgeführt.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="837"/>
+        <location filename="../frm_plan.py" line="840"/>
         <source>Verify plan</source>
         <translation>Plan auf Fehler prüfen</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="840"/>
-        <location filename="../frm_plan.py" line="918"/>
+        <location filename="../frm_plan.py" line="843"/>
+        <location filename="../frm_plan.py" line="921"/>
         <source>Update statistics</source>
         <translation>Statistiken aktualisieren</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="849"/>
+        <location filename="../frm_plan.py" line="852"/>
         <source>Refresh view</source>
         <translation>Ansicht aktualisieren</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="888"/>
+        <location filename="../frm_plan.py" line="891"/>
         <source>Verification</source>
         <translation>Überprüfung</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="889"/>
+        <location filename="../frm_plan.py" line="892"/>
         <source>Plan is tested for errors.</source>
         <translation>Der Plan wird auf Fehler überprüft.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="889"/>
-        <location filename="../frm_plan.py" line="921"/>
+        <location filename="../frm_plan.py" line="892"/>
+        <location filename="../frm_plan.py" line="924"/>
         <source>Cancel</source>
         <translation>Abbruch</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="903"/>
-        <location filename="../frm_plan.py" line="913"/>
+        <location filename="../frm_plan.py" line="906"/>
+        <location filename="../frm_plan.py" line="916"/>
         <source>Verification of plan</source>
         <translation>Überprüfung des Plans</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="904"/>
+        <location filename="../frm_plan.py" line="907"/>
         <source>No errors were found in this plan.</source>
         <translation>Es wurden keine Fehler in diesem Plan gefunden.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="908"/>
+        <location filename="../frm_plan.py" line="911"/>
         <source>&lt;h3&gt;Conflicts were found in this plan.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s</source>
         <translation>&lt;h3&gt;Die Änderung der Besetzung ist nicht ohne Konflikt machbar.&lt;/h3&gt;&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;%s</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="919"/>
+        <location filename="../frm_plan.py" line="922"/>
         <source>The cast statistics are being updated.</source>
         <translation>Die Besetzungsstatistiken werden aktualisiert.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1016"/>
+        <location filename="../frm_plan.py" line="1019"/>
         <source>No remaining action</source>
         <translation>Keine verbleibende Aktion</translation>
     </message>
@@ -6013,7 +6018,7 @@ Sie müssen zuerst mit der Serverdatenbank synchronisieren, damit sie diese Akti
 <context>
     <name>LabelDayNr</name>
     <message>
-        <location filename="../frm_plan.py" line="354"/>
+        <location filename="../frm_plan.py" line="357"/>
         <source>Click: Show availabilities for %s.</source>
         <translation>KLick: Zeige Verfügbarkeiten für %s.</translation>
     </message>
@@ -6021,7 +6026,7 @@ Sie müssen zuerst mit der Serverdatenbank synchronisieren, damit sie diese Akti
 <context>
     <name>LabelLocation</name>
     <message>
-        <location filename="../frm_plan.py" line="333"/>
+        <location filename="../frm_plan.py" line="336"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation>Klick:
@@ -7105,47 +7110,47 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
 <context>
     <name>TblPlanStatistics</name>
     <message>
-        <location filename="../frm_plan.py" line="1346"/>
+        <location filename="../frm_plan.py" line="1349"/>
         <source>Info</source>
         <translation>Info</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1347"/>
-        <location filename="../frm_plan.py" line="1437"/>
+        <location filename="../frm_plan.py" line="1350"/>
+        <location filename="../frm_plan.py" line="1440"/>
         <source>No planning mask found for this person
 Person has guest status.</source>
         <translation>Für diese Person gibt es keine Planungsmaske.
 Person hat Gaststatus.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1433"/>
+        <location filename="../frm_plan.py" line="1436"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation>Klick:
 Planungsmaske für %s öffnen</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1442"/>
+        <location filename="../frm_plan.py" line="1445"/>
         <source>desired</source>
         <translation>gewünscht</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1442"/>
+        <location filename="../frm_plan.py" line="1445"/>
         <source>possible</source>
         <translation>möglich</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1443"/>
+        <location filename="../frm_plan.py" line="1446"/>
         <source>fair</source>
         <translation>gerecht</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1443"/>
+        <location filename="../frm_plan.py" line="1446"/>
         <source>assigned</source>
         <translation>zugeteilt</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1501"/>
+        <location filename="../frm_plan.py" line="1504"/>
         <source>Click:
 Mark possible assignments of %s
 in the plan.</source>
@@ -7154,7 +7159,7 @@ Mögliche Einsätze von %s
 im Plan markieren.</translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1504"/>
+        <location filename="../frm_plan.py" line="1507"/>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>

@@ -4,49 +4,49 @@
 <context>
     <name>AppointmentField</name>
     <message>
-        <location filename="../frm_plan.py" line="592"/>
+        <location filename="../frm_plan.py" line="595"/>
         <source>&lt;b&gt;%s on %s:&lt;/b&gt;&lt;br&gt;◦ Click: Change cast.&lt;br&gt;◦ Right-click: More actions.&lt;br&gt;&lt;i&gt;&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;%s&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="637"/>
+        <location filename="../frm_plan.py" line="640"/>
         <source>Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="638"/>
+        <location filename="../frm_plan.py" line="641"/>
         <source>Cast changes are being tested for errors.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="638"/>
+        <location filename="../frm_plan.py" line="641"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="651"/>
-        <location filename="../frm_plan.py" line="663"/>
+        <location filename="../frm_plan.py" line="654"/>
+        <location filename="../frm_plan.py" line="666"/>
         <source>Cast Change</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="652"/>
+        <location filename="../frm_plan.py" line="655"/>
         <source>The cast change was successfully made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="657"/>
+        <location filename="../frm_plan.py" line="660"/>
         <source>&lt;h3&gt;The cast change cannot be made without conflicts.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s&lt;p&gt;Should the changes be undone?&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="700"/>
+        <location filename="../frm_plan.py" line="703"/>
         <source>On %s (%s)
 an appointment for %s already exists</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="710"/>
+        <location filename="../frm_plan.py" line="713"/>
         <source>On %s (%s)
 an appointment for %s already exists.
 This will be used for the change.
@@ -54,12 +54,12 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="767"/>
+        <location filename="../frm_plan.py" line="770"/>
         <source>Notes changed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="677"/>
+        <location filename="../frm_plan.py" line="680"/>
         <source>Move %s on %s (%s)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -69,28 +69,28 @@ You may need to adjust the time of day variant.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="572"/>
+        <location filename="../frm_plan.py" line="575"/>
         <source>&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Click to edit&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="684"/>
+        <location filename="../frm_plan.py" line="687"/>
         <source>Notes for %s on %s (%s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="699"/>
-        <location filename="../frm_plan.py" line="709"/>
+        <location filename="../frm_plan.py" line="702"/>
+        <location filename="../frm_plan.py" line="712"/>
         <source>Move appointment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="731"/>
+        <location filename="../frm_plan.py" line="734"/>
         <source>Appointment Notes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="732"/>
+        <location filename="../frm_plan.py" line="735"/>
         <source>The new notes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1420,17 +1420,22 @@ Here you can change the cast.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="212"/>
+        <location filename="../frm_plan.py" line="211"/>
+        <source>No employees are required.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_plan.py" line="215"/>
         <source>Employee %02d</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="213"/>
+        <location filename="../frm_plan.py" line="216"/>
         <source>Unassigned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="219"/>
+        <location filename="../frm_plan.py" line="222"/>
         <source>Guest</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2972,12 +2977,12 @@ if they reach the specified minimum number of assignments.</source>
 <context>
     <name>DlgMoveAppointment</name>
     <message>
-        <location filename="../frm_plan.py" line="255"/>
+        <location filename="../frm_plan.py" line="258"/>
         <source>Move appointment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="277"/>
+        <location filename="../frm_plan.py" line="280"/>
         <source>Here you can move the appointment
 %s, %s (%s)
 to a different day and time.</source>
@@ -5587,70 +5592,70 @@ You may have subsequently deleted &quot;{}&quot; from the standards.</source>
 <context>
     <name>FrmTabPlan</name>
     <message>
-        <location filename="../frm_plan.py" line="832"/>
+        <location filename="../frm_plan.py" line="835"/>
         <source>Background Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="833"/>
+        <location filename="../frm_plan.py" line="836"/>
         <source>Verification of errors for each cast change.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="837"/>
+        <location filename="../frm_plan.py" line="840"/>
         <source>Verify plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="840"/>
-        <location filename="../frm_plan.py" line="918"/>
+        <location filename="../frm_plan.py" line="843"/>
+        <location filename="../frm_plan.py" line="921"/>
         <source>Update statistics</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="849"/>
+        <location filename="../frm_plan.py" line="852"/>
         <source>Refresh view</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="888"/>
+        <location filename="../frm_plan.py" line="891"/>
         <source>Verification</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="889"/>
+        <location filename="../frm_plan.py" line="892"/>
         <source>Plan is tested for errors.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="889"/>
-        <location filename="../frm_plan.py" line="921"/>
+        <location filename="../frm_plan.py" line="892"/>
+        <location filename="../frm_plan.py" line="924"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="903"/>
-        <location filename="../frm_plan.py" line="913"/>
+        <location filename="../frm_plan.py" line="906"/>
+        <location filename="../frm_plan.py" line="916"/>
         <source>Verification of plan</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="904"/>
+        <location filename="../frm_plan.py" line="907"/>
         <source>No errors were found in this plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="908"/>
+        <location filename="../frm_plan.py" line="911"/>
         <source>&lt;h3&gt;Conflicts were found in this plan.&lt;/h3&gt;&lt;h4&gt;Incompatibilities:&lt;/h4&gt;%s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="919"/>
+        <location filename="../frm_plan.py" line="922"/>
         <source>The cast statistics are being updated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1016"/>
+        <location filename="../frm_plan.py" line="1019"/>
         <source>No remaining action</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5840,7 +5845,7 @@ You must first synchronize with the server database to successfully complete thi
 <context>
     <name>LabelDayNr</name>
     <message>
-        <location filename="../frm_plan.py" line="354"/>
+        <location filename="../frm_plan.py" line="357"/>
         <source>Click: Show availabilities for %s.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5848,7 +5853,7 @@ You must first synchronize with the server database to successfully complete thi
 <context>
     <name>LabelLocation</name>
     <message>
-        <location filename="../frm_plan.py" line="333"/>
+        <location filename="../frm_plan.py" line="336"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation type="unfinished"></translation>
@@ -6915,52 +6920,52 @@ Try again later or contact support.</source>
 <context>
     <name>TblPlanStatistics</name>
     <message>
-        <location filename="../frm_plan.py" line="1346"/>
+        <location filename="../frm_plan.py" line="1349"/>
         <source>Info</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1347"/>
-        <location filename="../frm_plan.py" line="1437"/>
+        <location filename="../frm_plan.py" line="1350"/>
+        <location filename="../frm_plan.py" line="1440"/>
         <source>No planning mask found for this person
 Person has guest status.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1433"/>
+        <location filename="../frm_plan.py" line="1436"/>
         <source>Click:
 Open planning mask for %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1442"/>
+        <location filename="../frm_plan.py" line="1445"/>
         <source>desired</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1442"/>
+        <location filename="../frm_plan.py" line="1445"/>
         <source>possible</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1443"/>
+        <location filename="../frm_plan.py" line="1446"/>
         <source>fair</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1443"/>
+        <location filename="../frm_plan.py" line="1446"/>
         <source>assigned</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1501"/>
+        <location filename="../frm_plan.py" line="1504"/>
         <source>Click:
 Mark possible assignments of %s
 in the plan.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_plan.py" line="1504"/>
+        <location filename="../frm_plan.py" line="1507"/>
         <source>Click:
 Mark current assignments of %s
 in the plan.</source>

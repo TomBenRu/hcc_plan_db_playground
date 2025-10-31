@@ -207,6 +207,9 @@ class DlgEditAppointment(QDialog):
 
     def _setup_employee_combos(self):
         self.combos_employees = []
+        if self.cast_group.nr_actors == 0:
+            self.form_employees.addRow(self.tr('No employees are required.'), QLabel(''))
+            return
         for i in range(1, self.cast_group.nr_actors + 1):
             self.combos_employees.append(QComboBoxToFindData())
             self.form_employees.addRow(self.tr('Employee %02d') % i, self.combos_employees[-1])

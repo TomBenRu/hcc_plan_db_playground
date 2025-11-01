@@ -37,15 +37,21 @@ from tools.helper_functions import get_appointments_of_all_actors_from_plan, dat
 logger = logging.getLogger(__name__)
 
 
-WEEKDAY_NAMES = [
-    QCoreApplication.translate("WeekDays", "Monday"),
-    QCoreApplication.translate("WeekDays", "Tuesday"),
-    QCoreApplication.translate("WeekDays", "Wednesday"),
-    QCoreApplication.translate("WeekDays", "Thursday"),
-    QCoreApplication.translate("WeekDays", "Friday"),
-    QCoreApplication.translate("WeekDays", "Saturday"),
-    QCoreApplication.translate("WeekDays", "Sunday")
-]
+def get_weekday_names() -> list[str]:
+    """Gibt die lokalisierten Wochentagsnamen zurück.
+
+    Muss zur Laufzeit aufgerufen werden, nachdem die Translator geladen wurden.
+    Nicht beim Modul-Import aufrufen, da dann die Übersetzungen noch nicht verfügbar sind.
+    """
+    return [
+        QCoreApplication.translate("WeekDays", "Monday"),
+        QCoreApplication.translate("WeekDays", "Tuesday"),
+        QCoreApplication.translate("WeekDays", "Wednesday"),
+        QCoreApplication.translate("WeekDays", "Thursday"),
+        QCoreApplication.translate("WeekDays", "Friday"),
+        QCoreApplication.translate("WeekDays", "Saturday"),
+        QCoreApplication.translate("WeekDays", "Sunday")
+    ]
 
 
 def fill_in_data(appointment_field: 'AppointmentField'):
@@ -122,7 +128,7 @@ class DlgAvailAtDay(QDialog):
         self.layout_foot.addWidget(self.button_box)
 
     def _generate_data(self):
-        self.weekday_names = WEEKDAY_NAMES
+        self.weekday_names = get_weekday_names()
         avail_days = sorted(db_services.AvailDay.get_all_from__plan_period_date(self.plan_period_id, self.date),
                             key=lambda x: (x.actor_plan_period.person.full_name,
                                            x.time_of_day.time_of_day_enum.time_index))
@@ -800,7 +806,7 @@ class FrmTabPlan(QWidget):
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.permanent_plan_check = True
 
-        self.weekday_names = {i: name for i, name in enumerate(WEEKDAY_NAMES, start=1)}
+        self.weekday_names = {i: name for i, name in enumerate(get_weekday_names(), start=1)}
 
         self.layout = QVBoxLayout(self)
 
@@ -1159,7 +1165,9 @@ class FrmTabPlan(QWidget):
             # Tooltip mit Notizen-Preview
             notes_preview = self.plan.notes[:200] + "..." if len(self.plan.notes) > 200 else self.plan.notes
             notes_preview = notes_preview.replace('\n', '<br>')
-            tooltip = f"<b>Plan-Notizen:</b><br>{notes_preview}<br><br><i>Klick zum Bearbeiten</i>"
+            tooltip = self.tr("<b>Notes:</b><br>{notes_preview}<br><br><i>Click to edit</i>").format(
+                notes_preview=notes_preview
+            )
             self.plan_note_icon.setToolTip(tooltip)
         else:
             # Standard-Style ohne Notizen

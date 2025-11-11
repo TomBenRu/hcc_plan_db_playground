@@ -75,7 +75,7 @@ Möglicherweise müüsen Sie die Variante der Tageszeit neu einstellen.</transla
     <message>
         <location filename="../frm_plan.py" line="581"/>
         <source>&lt;b&gt;Notes:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Click to edit&lt;/i&gt;</source>
-        <translation type="unfinished">&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Klick zum Bearbeiten&lt;/i&gt;</translation>
+        <translation>&lt;b&gt;Anmerkungen:&lt;/b&gt;&lt;br&gt;{notes}&lt;br&gt;&lt;br&gt;&lt;i&gt;Klick zum Bearbeiten&lt;/i&gt;</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="693"/>
@@ -4976,7 +4976,24 @@ Die Datenbank-E-Mail bleibt unverändert.</translation>
         <translation>Alle Fertigkeiten von den Verfügbarkeiten in diesem Zeitraum auf die Standartwerte der Person zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1598"/>
+        <location filename="../frm_actor_plan_period.py" line="1531"/>
+        <source>No available days found on server for {name} in the period {start} - {end}.</source>
+        <translation>Es sind noch keine Verfügbarkeiten auf dem Server vorhabden für {name} in Periode von {start} - {end}.</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="1543"/>
+        <source>Available days already exist in the planning mask for
+{name} in the period {start} - {end}.
+Do you want to delete these available days from the planning mask
+before downloading the new available days?</source>
+        <translation>Es sind bereits verfügbare Tage in der Planungsmaske für
+Adeline Rüss im Zeitraum 01.01.26 - 31.01.26
+vorhanden.
+Möchten Sie diese Verfügbarkeiten aus der Planungsmaske löschen,
+bevor die neuen Verfügbarkeiten heruntergeladen werden?</translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="1612"/>
         <source>The following error occurred while downloading available days:
 {error}
 The changes for {name} were not applied.</source>
@@ -4985,14 +5002,14 @@ The changes for {name} were not applied.</source>
 Di Änderungen für {name} würden nicht angewandt.</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1622"/>
+        <location filename="../frm_actor_plan_period.py" line="1636"/>
         <source>Available days for all employees were successfully downloaded.</source>
         <translation>Die verfügbaren Tage für alle Mitarbeiter wurden erfolgreich heruntergeladen.</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1107"/>
-        <location filename="../frm_actor_plan_period.py" line="1652"/>
-        <location filename="../frm_actor_plan_period.py" line="1674"/>
+        <location filename="../frm_actor_plan_period.py" line="1666"/>
+        <location filename="../frm_actor_plan_period.py" line="1688"/>
         <source>Reset Skills</source>
         <translation>Fertigkeit zurücksetzen</translation>
     </message>
@@ -5100,20 +5117,21 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1501"/>
-        <location filename="../frm_actor_plan_period.py" line="1509"/>
+        <location filename="../frm_actor_plan_period.py" line="1511"/>
         <location filename="../frm_actor_plan_period.py" line="1530"/>
-        <location filename="../frm_actor_plan_period.py" line="1575"/>
+        <location filename="../frm_actor_plan_period.py" line="1542"/>
+        <location filename="../frm_actor_plan_period.py" line="1589"/>
         <source>Available Days ({name})</source>
         <translation>Verfügbare Tage ({name})</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1576"/>
+        <location filename="../frm_actor_plan_period.py" line="1590"/>
         <source>Available days for {name} were successfully downloaded.</source>
         <translation>Die verfügbren Tage für {name} wurden erfolgreich heruntergeladen.</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1597"/>
-        <location filename="../frm_actor_plan_period.py" line="1621"/>
+        <location filename="../frm_actor_plan_period.py" line="1611"/>
+        <location filename="../frm_actor_plan_period.py" line="1635"/>
         <source>Available Days</source>
         <translation>Verfügbare Tage</translation>
     </message>
@@ -5124,40 +5142,34 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
         <translation>Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n{error}</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1510"/>
+        <location filename="../frm_actor_plan_period.py" line="1512"/>
         <source>No available days found on server for {name} in the period {start} - {end}.
 Do you want to delete all available days from the planning mask?</source>
         <translation>Auf dem Server sind keine verfügbaren Tage von {name} im Zeitraum {start} - {end} vorhanden.\nSollen alle verfügbaren Tage aus der Planungsmaske gelöscht werden?</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1531"/>
-        <source>Available days already exist in the planning mask for {name} in the period {start} - {end}.
-Do you want to delete these available days from the planning mask?</source>
-        <translation>Es sind bereits verfügbare Tage in der Planungsmaske von {name} im Zeitraum {start} - {end} vorhanden.\nSollen diese verfügbaren Tage aus der Planungsmaske gelöscht werden?</translation>
-    </message>
-    <message>
-        <location filename="../frm_actor_plan_period.py" line="1628"/>
-        <location filename="../frm_actor_plan_period.py" line="1645"/>
+        <location filename="../frm_actor_plan_period.py" line="1642"/>
+        <location filename="../frm_actor_plan_period.py" line="1659"/>
         <source>Remove Skills</source>
         <translation>Fertigkeiten entfernen</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1629"/>
+        <location filename="../frm_actor_plan_period.py" line="1643"/>
         <source>Do you want to remove skills from all availabilities in this planning period?</source>
         <translation>Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode entfernt werden?</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1646"/>
+        <location filename="../frm_actor_plan_period.py" line="1660"/>
         <source>All skills have been successfully removed from all availabilities in this planning period.</source>
         <translation>Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich entfernt.</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1653"/>
+        <location filename="../frm_actor_plan_period.py" line="1667"/>
         <source>Do you want to reset all skills of availabilities in this planning period to the employee&apos;s default values?</source>
         <translation>Sollen die Fertigkeiten aller Verfügbarkeiten in dieser Planperiode auf die Standardwerte des Mitarbeiters zurückgesetzt werden?</translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1675"/>
+        <location filename="../frm_actor_plan_period.py" line="1689"/>
         <source>All skills have been successfully reset to default values for all availabilities in this planning period.</source>
         <translation>Alle Fertigkeiten aller Verfügbarkeiten in dieser Planperiode wurden erfolgreich zurückgesetzt.</translation>
     </message>

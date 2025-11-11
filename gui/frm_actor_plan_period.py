@@ -1503,37 +1503,55 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
         try:
-            if not avail_days_on_server:
-                reply = QMessageBox.question(
-                    self,
-                    self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
-                    self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
-                           'Do you want to delete all available days from the planning mask?').format(
-                        name=actor_plan_period.person.full_name,
-                        start=date_to_string(actor_plan_period.plan_period.start),
-                        end=date_to_string(actor_plan_period.plan_period.end)
-                    )
-                )
-                if reply == QMessageBox.StandardButton.Yes:
-                    for avail_day in [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]:
-                        delete_command = avail_day_commands.Delete(avail_day.id)
-                        controller.execute(delete_command)
-                        # todo: besser... send AvailDayButton Signal to uncheck:
-                        if actor_plan_period.id == self.actor_plan_period.id:
-                            self.set_button_avail_day_to_checked_and_configure(avail_day.date, avail_day.time_of_day, True)
-                return
-
             avail_days = [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]
+            if not avail_days_on_server:
+                if avail_days:
+                    reply = QMessageBox.question(
+                        self,
+                        self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
+                        self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
+                               'Do you want to delete all available days from the planning mask?').format(
+                            name=actor_plan_period.person.full_name,
+                            start=date_to_string(actor_plan_period.plan_period.start),
+                            end=date_to_string(actor_plan_period.plan_period.end)
+                        )
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        for avail_day in [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]:
+                            delete_command = avail_day_commands.Delete(avail_day.id)
+                            controller.execute(delete_command)
+                            # todo: besser... send AvailDayButton Signal to uncheck:
+                            if actor_plan_period.id == self.actor_plan_period.id:
+                                self.set_button_avail_day_to_checked_and_configure(
+                                    avail_day.date, avail_day.time_of_day, True
+                                )
+                    return
+                else:
+                    QMessageBox.critical(
+                        self,
+                        self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
+                        self.tr('No available days found on server for {name} in the period {start} - {end}.').format(
+                            name=actor_plan_period.person.full_name,
+                            start=date_to_string(actor_plan_period.plan_period.start),
+                            end=date_to_string(actor_plan_period.plan_period.end)
+                        )
+                    )
+                    return
+
             if avail_days:
-                reply = QMessageBox.question(
+                reply = QMessageBox.warning(
                     self,
                     self.tr('Available Days ({name})').format(name=actor_plan_period.person.full_name),
-                    self.tr('Available days already exist in the planning mask for {name} in the period {start} - {end}.\n'
-                           'Do you want to delete these available days from the planning mask?').format(
+                    self.tr('Available days already exist in the planning mask for\n'
+                            '{name} in the period {start} - {end}.\n'
+                            'Do you want to delete these available days from the planning mask\n'
+                            'before downloading the new available days?').format(
                         name=actor_plan_period.person.full_name,
                         start=date_to_string(actor_plan_period.plan_period.start),
                         end=date_to_string(actor_plan_period.plan_period.end)
-                    )
+                    ),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.No:
                     return

@@ -4818,12 +4818,14 @@ The database email remains unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1531"/>
-        <source>No available days found on server for {name} in the period {start} - {end}.</source>
+        <location filename="../frm_actor_plan_period.py" line="1512"/>
+        <source>No available days found on server for
+{name} in the period {start} - {end}.
+Do you want to delete all available days from the planning mask?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1543"/>
+        <location filename="../frm_actor_plan_period.py" line="1546"/>
         <source>Available days already exist in the planning mask for
 {name} in the period {start} - {end}.
 Do you want to delete these available days from the planning mask
@@ -4831,21 +4833,30 @@ before downloading the new available days?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1612"/>
+        <location filename="../frm_actor_plan_period.py" line="1595"/>
+        <source>Available days for
+{name} in the period {start} - {end}
+were successfully downloaded.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="1622"/>
         <source>The following error occurred while downloading available days:
 {error}
 The changes for {name} were not applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1636"/>
-        <source>Available days for all employees were successfully downloaded.</source>
+        <location filename="../frm_actor_plan_period.py" line="1648"/>
+        <source>Available days for {num_downloads} employees in
+the period {start} - {end}
+were successfully downloaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1107"/>
-        <location filename="../frm_actor_plan_period.py" line="1666"/>
-        <location filename="../frm_actor_plan_period.py" line="1688"/>
+        <location filename="../frm_actor_plan_period.py" line="1684"/>
+        <location filename="../frm_actor_plan_period.py" line="1706"/>
         <source>Reset Skills</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4958,20 +4969,21 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
     <message>
         <location filename="../frm_actor_plan_period.py" line="1501"/>
         <location filename="../frm_actor_plan_period.py" line="1511"/>
-        <location filename="../frm_actor_plan_period.py" line="1530"/>
-        <location filename="../frm_actor_plan_period.py" line="1542"/>
-        <location filename="../frm_actor_plan_period.py" line="1589"/>
+        <location filename="../frm_actor_plan_period.py" line="1533"/>
+        <location filename="../frm_actor_plan_period.py" line="1545"/>
+        <location filename="../frm_actor_plan_period.py" line="1594"/>
         <source>Available Days ({name})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1590"/>
-        <source>Available days for {name} were successfully downloaded.</source>
+        <location filename="../frm_actor_plan_period.py" line="1534"/>
+        <source>No available days found on server for
+{name} in the period {start} - {end}.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1611"/>
-        <location filename="../frm_actor_plan_period.py" line="1635"/>
+        <location filename="../frm_actor_plan_period.py" line="1621"/>
+        <location filename="../frm_actor_plan_period.py" line="1647"/>
         <source>Available Days</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4982,34 +4994,28 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1512"/>
-        <source>No available days found on server for {name} in the period {start} - {end}.
-Do you want to delete all available days from the planning mask?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_actor_plan_period.py" line="1642"/>
-        <location filename="../frm_actor_plan_period.py" line="1659"/>
+        <location filename="../frm_actor_plan_period.py" line="1660"/>
+        <location filename="../frm_actor_plan_period.py" line="1677"/>
         <source>Remove Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1643"/>
+        <location filename="../frm_actor_plan_period.py" line="1661"/>
         <source>Do you want to remove skills from all availabilities in this planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1660"/>
+        <location filename="../frm_actor_plan_period.py" line="1678"/>
         <source>All skills have been successfully removed from all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1667"/>
+        <location filename="../frm_actor_plan_period.py" line="1685"/>
         <source>Do you want to reset all skills of availabilities in this planning period to the employee&apos;s default values?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1689"/>
+        <location filename="../frm_actor_plan_period.py" line="1707"/>
         <source>All skills have been successfully reset to default values for all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>

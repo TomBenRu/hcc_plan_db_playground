@@ -1487,7 +1487,7 @@ class FrmActorPlanPeriod(QWidget):
         self.reload_actor_plan_period()
 
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
-                                                   *args, **kwargs):
+                                                   *args, **kwargs) -> bool:
         controller = command_base_classes.ContrExecUndoRedo()
         actor_plan_period = actor_plan_period or self.actor_plan_period
         try:
@@ -1501,7 +1501,7 @@ class FrmActorPlanPeriod(QWidget):
                 self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
                 self.tr('The following error occurred while downloading available days:\n{error}').format(error=e)
             )
-            return
+            return False
         try:
             avail_days = [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]
             if not avail_days_on_server:
@@ -1509,8 +1509,9 @@ class FrmActorPlanPeriod(QWidget):
                     reply = QMessageBox.question(
                         self,
                         self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
-                        self.tr('No available days found on server for {name} in the period {start} - {end}.\n'
-                               'Do you want to delete all available days from the planning mask?').format(
+                        self.tr('No available days found on server for\n'
+                                '{name} in the period {start} - {end}.\n'
+                                'Do you want to delete all available days from the planning mask?').format(
                             name=actor_plan_period.person.full_name,
                             start=date_to_string(actor_plan_period.plan_period.start),
                             end=date_to_string(actor_plan_period.plan_period.end)
@@ -1525,18 +1526,18 @@ class FrmActorPlanPeriod(QWidget):
                                 self.set_button_avail_day_to_checked_and_configure(
                                     avail_day.date, avail_day.time_of_day, True
                                 )
-                    return
+                    return True
                 else:
                     QMessageBox.critical(
                         self,
                         self.tr('Available Days ({name})'.format(name=actor_plan_period.person.full_name)),
-                        self.tr('No available days found on server for {name} in the period {start} - {end}.').format(
+                        self.tr('No available days found on server for\n{name} in the period {start} - {end}.').format(
                             name=actor_plan_period.person.full_name,
                             start=date_to_string(actor_plan_period.plan_period.start),
                             end=date_to_string(actor_plan_period.plan_period.end)
                         )
                     )
-                    return
+                    return False
 
             if avail_days:
                 reply = QMessageBox.warning(
@@ -1554,7 +1555,7 @@ class FrmActorPlanPeriod(QWidget):
                     QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.No:
-                    return
+                    return False
 
             save_command_notes = actor_plan_period_commands.UpdateNotes(actor_plan_period.id, notes)
             controller.execute(save_command_notes)
@@ -1591,9 +1592,14 @@ class FrmActorPlanPeriod(QWidget):
             QMessageBox.information(
                 self,
                 self.tr('Available Days ({name})').format(name=actor_plan_period.person.full_name),
-                self.tr('Available days for {name} were successfully downloaded.').format(
-                    name=actor_plan_period.person.full_name)
+                self.tr('Available days for\n{name} in the period {start} - {end}\n'
+                        'were successfully downloaded.').format(
+                    name=actor_plan_period.person.full_name,
+                    start=date_to_string(actor_plan_period.plan_period.start),
+                    end=date_to_string(actor_plan_period.plan_period.end)
+                )
             )
+            return True
         except Exception as e:
             if actor_plan_period.id == self.actor_plan_period.id:
                 # uncheck all checked buttons
@@ -1622,7 +1628,7 @@ class FrmActorPlanPeriod(QWidget):
             )
             logger.error(f'Error while downloading available days: {e}')
 
-            return
+            return False
         finally:
             if actor_plan_period.id == self.actor_plan_period.id:
                 self.reload_actor_plan_period()
@@ -1632,12 +1638,20 @@ class FrmActorPlanPeriod(QWidget):
     def fetch_avail_days_from_api_for_all_employees(self):
         actor_plan_periods = sorted(db_services.ActorPlanPeriod.get_all_from__plan_period(
             self.actor_plan_period.plan_period.id, maximal=True), key=lambda x: x.person.full_name)
+        num_downloads = 0
         for actor_plan_period in actor_plan_periods:
-            self.fetch_avail_days_from_api_for_one_employee(actor_plan_period)
+            download_successful = self.fetch_avail_days_from_api_for_one_employee(actor_plan_period)
+            num_downloads += 1 if download_successful else 0
         QMessageBox.information(
             self,
             self.tr('Available Days'),
-            self.tr('Available days for all employees were successfully downloaded.')
+            self.tr('Available days for {num_downloads} employees in\n'
+                    'the period {start} - {end}\n'
+                    'were successfully downloaded.').format(
+                num_downloads=num_downloads,
+                start=date_to_string(self.actor_plan_period.plan_period.start),
+                end=date_to_string(self.actor_plan_period.plan_period.end)
+            )
         )
 
     def remove_skills_from_every_avail_day(self):

@@ -31,7 +31,8 @@ dev-dependencies = ["pytest>=8.0",
     "line-profiler-pycharm>=1.2.0",
     "auto-py-to-exe>=2.5",
     "icecream>=2.1",
-    "mypy>=1.17.0"
+    "mypy>=1.17.0",
+    "PySide6-stubs"
 ]
 
 [tool.pytest.ini_options]

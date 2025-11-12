@@ -6704,22 +6704,22 @@ Try again later or contact support.</source>
 <context>
     <name>PartnerLocPrefs</name>
     <message>
-        <location filename="../widget_styles/buttons.py" line="54"/>
+        <location filename="../widget_styles/buttons.py" line="60"/>
         <source>with all employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="55"/>
+        <location filename="../widget_styles/buttons.py" line="61"/>
         <source>in all facilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="57"/>
+        <location filename="../widget_styles/buttons.py" line="63"/>
         <source>with some employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="58"/>
+        <location filename="../widget_styles/buttons.py" line="64"/>
         <source>in some facilities</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6780,6 +6780,19 @@ Try again later or contact support.</source>
     <message>
         <location filename="../frm_cast_group.py" line="45"/>
         <source>Strictly follow casting rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>TabManager</name>
+    <message>
+        <location filename="../tab_manager.py" line="410"/>
+        <source>Employees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tab_manager.py" line="411"/>
+        <source>Facilities</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -7315,19 +7328,6 @@ Click on the corresponding row.</source>
     <message>
         <location filename="../../tools/helper_functions.py" line="58"/>
         <source>or</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>self.parent</name>
-    <message>
-        <location filename="../tab_manager.py" line="410"/>
-        <source>Employees</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tab_manager.py" line="411"/>
-        <source>Facilities</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

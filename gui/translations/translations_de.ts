@@ -6918,22 +6918,22 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
 <context>
     <name>PartnerLocPrefs</name>
     <message>
-        <location filename="../widget_styles/buttons.py" line="54"/>
+        <location filename="../widget_styles/buttons.py" line="60"/>
         <source>with all employees</source>
         <translation>mit allen Mitarbeitern</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="55"/>
+        <location filename="../widget_styles/buttons.py" line="61"/>
         <source>in all facilities</source>
         <translation>in allen Einrichtungen</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="57"/>
+        <location filename="../widget_styles/buttons.py" line="63"/>
         <source>with some employees</source>
-        <translation>with some employees</translation>
+        <translation>mit einigen Mitarbeitern</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="58"/>
+        <location filename="../widget_styles/buttons.py" line="64"/>
         <source>in some facilities</source>
         <translation>in einigen Einrichtungen</translation>
     </message>
@@ -6995,6 +6995,19 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
         <location filename="../frm_cast_group.py" line="45"/>
         <source>Strictly follow casting rule</source>
         <translation>unbedingt Besetzungsregel beachten</translation>
+    </message>
+</context>
+<context>
+    <name>TabManager</name>
+    <message>
+        <location filename="../tab_manager.py" line="410"/>
+        <source>Employees</source>
+        <translation>Mitarbeiter</translation>
+    </message>
+    <message>
+        <location filename="../tab_manager.py" line="411"/>
+        <source>Facilities</source>
+        <translation>Einrichtungen</translation>
     </message>
 </context>
 <context>
@@ -7552,14 +7565,12 @@ Klicken Sie dafür in die entsprechende Zeile.</translation>
 <context>
     <name>self.parent</name>
     <message>
-        <location filename="../tab_manager.py" line="410"/>
         <source>Employees</source>
-        <translation>Mitarbeiter</translation>
+        <translation type="vanished">Mitarbeiter</translation>
     </message>
     <message>
-        <location filename="../tab_manager.py" line="411"/>
         <source>Facilities</source>
-        <translation>Einrichtungen</translation>
+        <translation type="vanished">Einrichtungen</translation>
     </message>
 </context>
 </TS>

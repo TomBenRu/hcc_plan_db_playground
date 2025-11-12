@@ -46,23 +46,25 @@ avail_day__event: dict[int, str] = {
        "{ background-color: #a9a9a9;}"
 }
 
-
 class PartnerLocPrefs:
-    dict_style_buttons: dict[
-        Literal['all', 'some', 'none'], dict[Literal['color', 'text'], dict[Literal['partners', 'locs'], str]]] = {
-        'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
-                'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with all employees'),
-                        'partners': QCoreApplication.translate('PartnerLocPrefs', 'in all facilities')}},
-        'some': {'color': {'locs': 'orange', 'partners': 'orange'},
-                 'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with some employees'),
-                         'partners': QCoreApplication.translate('PartnerLocPrefs', 'in some facilities')}}
-    }
+    @classmethod
+    def _get_colors_and_translations(cls):
+        """Get translations at runtime when translator is available"""
+        return {
+            'all': {'color': {'locs': 'lightgreen', 'partners': 'lightgreen'},
+                    'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with all employees'),
+                            'partners': QCoreApplication.translate('PartnerLocPrefs', 'in all facilities')}},
+            'some': {'color': {'locs': 'orange', 'partners': 'orange'},
+                     'text': {'locs': QCoreApplication.translate('PartnerLocPrefs', 'with some employees'),
+                             'partners': QCoreApplication.translate('PartnerLocPrefs', 'in some facilities')}}
+        }
 
     @classmethod
     def get_bg_color_text(cls, style: Literal['all', 'some', 'none'],
                           group: Literal['locs', 'partners']) -> tuple[str, str]:
         """Returns a tuple (button text, bg color)"""
-        return cls.dict_style_buttons[style]['text'][group], cls.dict_style_buttons[style]["color"][group]
+        translations = cls._get_colors_and_translations()
+        return translations[style]['text'][group], translations[style]["color"][group]
 
 
 class ConfigButtonsInCheckFields:

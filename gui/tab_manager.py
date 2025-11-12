@@ -407,8 +407,8 @@ class TabManager(QObject):
             if curr_location_id:
                 tab_location_plan_periods.data_setup(location_id=curr_location_id)
                 
-            tabs_period.addTab(tab_actor_plan_periods, self.parent.tr('Employees'))
-            tabs_period.addTab(tab_location_plan_periods, self.parent.tr('Facilities'))
+            tabs_period.addTab(tab_actor_plan_periods, self.tr('Employees'))
+            tabs_period.addTab(tab_location_plan_periods, self.tr('Facilities'))
             tabs_period.setCurrentIndex(current_index_actors_locals_tabs)
             
             self.tabs_planungsmasken.setCurrentIndex(tab_index)

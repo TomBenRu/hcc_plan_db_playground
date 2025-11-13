@@ -5024,10 +5024,6 @@ Zeitraum {start} - {end}
 wurden erfolgreich heruntergeladen.</translation>
     </message>
     <message>
-        <source>Available days for all employees were successfully downloaded.</source>
-        <translation type="vanished">Die verfügbaren Tage für alle Mitarbeiter wurden erfolgreich heruntergeladen.</translation>
-    </message>
-    <message>
         <location filename="../frm_actor_plan_period.py" line="1107"/>
         <location filename="../frm_actor_plan_period.py" line="1684"/>
         <location filename="../frm_actor_plan_period.py" line="1706"/>
@@ -5153,10 +5149,6 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
 {name} in Periode von{start} - {end}.</translation>
     </message>
     <message>
-        <source>Available days for {name} were successfully downloaded.</source>
-        <translation type="vanished">Die verfügbren Tage für {name} wurden erfolgreich heruntergeladen.</translation>
-    </message>
-    <message>
         <location filename="../frm_actor_plan_period.py" line="1621"/>
         <location filename="../frm_actor_plan_period.py" line="1647"/>
         <source>Available Days</source>
@@ -5167,12 +5159,6 @@ You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standa
         <source>The following error occurred while downloading available days:
 {error}</source>
         <translation>Beim Herunterladen der Verfügbaren Tage ist folgender Fehler aufgetreten:\n{error}</translation>
-    </message>
-    <message>
-        <source>No available days found on server for {name} in the period {start} - {end}.
-Do you want to delete all available days from the planning mask?</source>
-        <translation type="obsolete">Auf dem Server sind keine verfügbaren Tage von {name} im Zeitraum {start} - {end} vorhanden.
-Sollen alle verfügbaren Tage aus der Planungsmaske gelöscht werden?</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="1660"/>
@@ -6119,6 +6105,51 @@ Planungsmaske für %s öffnen</translation>
     </message>
 </context>
 <context>
+    <name>LocationPlanPeriodData</name>
+    <message>
+        <location filename="../data_processing.py" line="96"/>
+        <location filename="../data_processing.py" line="117"/>
+        <source>event groups</source>
+        <translation>Event-Gruppen</translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="98"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Should this group be deleted?</source>
+        <translation>Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen Termin:
+{event_date} ({event_name}) at {location}
+Soll diese Gruppe gelöscht werden?</translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="118"/>
+        <location filename="../data_processing.py" line="165"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Please correct this in the following dialog.</source>
+        <translation>Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen Termin:
+{event_date} ({event_name}) an {location}
+Bitte korrigieren Sie dies in folgendem Dialog.</translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="136"/>
+        <location filename="../data_processing.py" line="164"/>
+        <source>cast groups</source>
+        <translation>Besetzungsgruppen</translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="137"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Should this group be deleted?
+The appointment will then be merged into a higher-level group or not assigned to any group.</source>
+        <translation>Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen Termin:
+{event_date} ({event_name}) at {location}
+Soll diese Gruppe gelöscht werden?
+Der Termin wird dann in eine übergeordnete Gruppe verschmelzen bzw. keiner Gruppe zugeordnet.</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../main_window.py" line="99"/>
@@ -6918,22 +6949,22 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
 <context>
     <name>PartnerLocPrefs</name>
     <message>
-        <location filename="../widget_styles/buttons.py" line="60"/>
+        <location filename="../widget_styles/buttons.py" line="55"/>
         <source>with all employees</source>
         <translation>mit allen Mitarbeitern</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="61"/>
+        <location filename="../widget_styles/buttons.py" line="56"/>
         <source>in all facilities</source>
         <translation>in allen Einrichtungen</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="63"/>
+        <location filename="../widget_styles/buttons.py" line="58"/>
         <source>with some employees</source>
         <translation>mit einigen Mitarbeitern</translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="64"/>
+        <location filename="../widget_styles/buttons.py" line="59"/>
         <source>in some facilities</source>
         <translation>in einigen Einrichtungen</translation>
     </message>
@@ -7560,17 +7591,6 @@ Klicken Sie dafür in die entsprechende Zeile.</translation>
         <location filename="../../tools/helper_functions.py" line="58"/>
         <source>or</source>
         <translation>oder</translation>
-    </message>
-</context>
-<context>
-    <name>self.parent</name>
-    <message>
-        <source>Employees</source>
-        <translation type="vanished">Mitarbeiter</translation>
-    </message>
-    <message>
-        <source>Facilities</source>
-        <translation type="vanished">Einrichtungen</translation>
     </message>
 </context>
 </TS>

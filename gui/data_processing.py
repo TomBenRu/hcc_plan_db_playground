@@ -3,6 +3,7 @@ from typing import Literal
 from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
+from PySide6.QtCore import QCoreApplication
 
 import gui.data_models.schemas
 from commands import command_base_classes
@@ -11,6 +12,7 @@ from commands.database_commands import event_commands, cast_group_commands, appo
 from database import schemas, db_services
 from gui import frm_event_planing_rules
 from gui.observer import signal_handling
+from tools.helper_functions import date_to_string
 
 
 class LocationPlanPeriodData:
@@ -76,29 +78,103 @@ class LocationPlanPeriodData:
         self.controller.execute(del_command)
         deleted_event = del_command.event_to_delete
         containing_cast_groups = del_command.containing_cast_groups
-        self._handle_deleted_event(containing_cast_groups, event.event_group.event_group)
+        self._handle_deleted_event(containing_cast_groups, event.event_group.event_group, event.cast_group)
         return deleted_event
 
-    def _handle_deleted_event(self, containing_cast_groups, event_group):
+    def _handle_deleted_event(self,
+                              containing_cast_groups: list[schemas.CastGroup],
+                              event_group: schemas.EventGroup,
+                              cast_group: schemas.CastGroup):
         self.reload_location_plan_period()
         if not event_group.location_plan_period:
             if len(childs := db_services.EventGroup.get_child_groups_from__parent_group(event_group.id)) < 2:
-                solo_event = childs[0].event
-                QMessageBox.critical(self.parent, 'Verfügbarkeitsgruppen',
-                                     f'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
-                                     f'Termin: {solo_event.date.strftime("%d.%m.%y")}\n'
-                                     f'Bitte korrigieren Sie dies im folgenden Dialog.')
+                solo_event_group = childs[0]
+                reply = QMessageBox.question(
+                    self.parent,
+                    QCoreApplication.translate(
+                        'LocationPlanPeriodData',
+                        QCoreApplication.translate('LocationPlanPeriodData', 'event groups')
+                    ),
+                    QCoreApplication.translate(
+                        'LocationPlanPeriodData',
+                        'By deleting the appointment, a group only has a single appointment:\n'
+                        '{event_date} ({event_name}) at {location}\n'
+                        'Should this group be deleted?').format(
+                        event_date=date_to_string(solo_event_group.event.date),
+                        event_name=solo_event_group.event.time_of_day.name,
+                        location=solo_event_group.event.location_plan_period.location_of_work.name_an_city
+                    ),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    parent_event_group = event_group.event_group
+                    self.controller.execute(event_group_commands.SetNewParent(solo_event_group.id, parent_event_group.id))
+                    self.controller.execute(event_group_commands.Delete(event_group.id))
+                else:
+                    QMessageBox.critical(
+                        self.parent,
+                        QCoreApplication.translate('LocationPlanPeriodData', 'event groups'),
+                        QCoreApplication.translate(
+                            'LocationPlanPeriodData',
+                            'By deleting the appointment, a group only has a single appointment:\n'
+                            '{event_date} ({event_name}) at {location}\n'
+                            'Please correct this in the following dialog.').format(
+                            event_date=date_to_string(solo_event_group.event.date),
+                            event_name=solo_event_group.event.time_of_day.name,
+                            location=solo_event_group.event.location_plan_period.location_of_work.name_an_city
+                        )
+                    )
 
-                signal_handling.handler_show_dialog.show_dlg_event_group(self.location_plan_period.id)
+                    signal_handling.handler_show_dialog.show_dlg_event_group(self.location_plan_period.id)
         if containing_cast_groups:
             for parent_cast_group in containing_cast_groups:
-                if len(db_services.CastGroup.get(parent_cast_group.id).child_groups) < 2:
-                    QMessageBox.critical(self.parent, 'Besetzungsgruppen',
-                                         'Durch das Löschen des Termins hat eine Gruppe nur noch einen einzigen '
-                                         'Termin oder eine einzelne Untergruppe.'
-                                         'Bitte korrigieren Sie dies im folgenden Dialog.')
+                if len(childs := db_services.CastGroup.get(parent_cast_group.id).child_groups) < 2:
 
-                    signal_handling.handler_show_dialog.show_dlg_cast_group_pp(self.location_plan_period.plan_period.id)
+                    reply = QMessageBox.question(
+                        self.parent,
+                        QCoreApplication.translate('LocationPlanPeriodData', 'cast groups'),
+                        QCoreApplication.translate(
+                            'LocationPlanPeriodData',
+                            'By deleting the appointment, a group only has a single appointment:\n'
+                            '{event_date} ({event_name}) at {location}\n'
+                            'Should this group be deleted?\n'
+                            'The appointment will then be merged into a higher-level group '
+                            'or not assigned to any group.').format(
+                            event_date=date_to_string(childs[0].event.date),
+                            event_name=childs[0].event.time_of_day.name,
+                            location=childs[0].event.location_plan_period.location_of_work.name_an_city
+                        ),
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        higher_level_groups = db_services.CastGroup.get(parent_cast_group.id).parent_groups
+                        self.controller.execute(
+                            cast_group_commands.RemoveFromParent(childs[0].id, parent_cast_group.id)
+                        )
+                        self.controller.execute(cast_group_commands.Delete(parent_cast_group.id))
+                        if higher_level_groups:
+                            self.controller.execute(
+                                cast_group_commands.SetNewParent(childs[0].id, higher_level_groups[0].id)
+                            )
+                    else:
+                        QMessageBox.critical(
+                            self.parent,
+                            QCoreApplication.translate('LocationPlanPeriodData', 'cast groups'),
+                            QCoreApplication.translate(
+                                'LocationPlanPeriodData',
+                                'By deleting the appointment, a group only has a single appointment:\n'
+                                '{event_date} ({event_name}) at {location}\n'
+                                'Please correct this in the following dialog.').format(
+                                event_date=date_to_string(childs[0].event.date),
+                                event_name=childs[0].event.time_of_day.name,
+                                location=childs[0].event.location_plan_period.location_of_work.name_an_city
+                            )
+                        )
+
+
+                        signal_handling.handler_show_dialog.show_dlg_cast_group_pp(self.location_plan_period.plan_period.id)
 
     def _emit_reload_signals(self, date):
         signal_handling.handler_location_plan_period.reload_location_pp__events(

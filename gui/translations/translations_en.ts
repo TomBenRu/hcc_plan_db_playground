@@ -5920,6 +5920,44 @@ Open planning mask for %s</source>
     </message>
 </context>
 <context>
+    <name>LocationPlanPeriodData</name>
+    <message>
+        <location filename="../data_processing.py" line="96"/>
+        <location filename="../data_processing.py" line="117"/>
+        <source>event groups</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="98"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Should this group be deleted?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="118"/>
+        <location filename="../data_processing.py" line="165"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Please correct this in the following dialog.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="136"/>
+        <location filename="../data_processing.py" line="164"/>
+        <source>cast groups</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="137"/>
+        <source>By deleting the appointment, a group only has a single appointment:
+{event_date} ({event_name}) at {location}
+Should this group be deleted?
+The appointment will then be merged into a higher-level group or not assigned to any group.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../main_window.py" line="99"/>
@@ -6704,22 +6742,22 @@ Try again later or contact support.</source>
 <context>
     <name>PartnerLocPrefs</name>
     <message>
-        <location filename="../widget_styles/buttons.py" line="60"/>
+        <location filename="../widget_styles/buttons.py" line="55"/>
         <source>with all employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="61"/>
+        <location filename="../widget_styles/buttons.py" line="56"/>
         <source>in all facilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="63"/>
+        <location filename="../widget_styles/buttons.py" line="58"/>
         <source>with some employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widget_styles/buttons.py" line="64"/>
+        <location filename="../widget_styles/buttons.py" line="59"/>
         <source>in some facilities</source>
         <translation type="unfinished"></translation>
     </message>

@@ -2,6 +2,7 @@ import datetime
 import functools
 import logging
 import os.path
+from line_profiler import profile
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -1167,6 +1168,7 @@ class FrmActorPlanPeriod(QWidget):
                                                      clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
+    @profile
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.date
         t_o_d = bt.time_of_day
@@ -1178,34 +1180,38 @@ class FrmActorPlanPeriod(QWidget):
             self.controller_avail_days.execute(save_command)
 
             '''Falls es an diesem Tage schon einen oder mehrere AvailDays gibt, 
-            werden die combination_locations_possibles vom ersten gefundenen AvailDay übernommen, weil, davon ausgegangen
+            werden die combination_locations_possibles, actor_location_prefs und actor_partner_location_prefs
+            vom ersten gefundenen AvailDay übernommen, weil, davon ausgegangen
             wird, dass schon evt. geänderte combinations für alle AvailDays an diesem Tag gelten.'''
             created_avail_day = save_command.created_avail_day
             if existing_avds_on_day:
-                for comb in created_avail_day.combination_locations_possibles:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveCombLocPossible(created_avail_day.id, comb.id))
-                for comb_existing in existing_avds_on_day[0].combination_locations_possibles:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInCombLocPossible(created_avail_day.id, comb_existing.id))
-                for loc_pref in created_avail_day.actor_location_prefs_defaults:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveActorLocationPref(created_avail_day.id, loc_pref.id))
-                for loc_pref_existing in existing_avds_on_day[0].actor_location_prefs_defaults:
-                    if loc_pref_existing.prep_delete:
-                        continue
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInActorLocationPref(created_avail_day.id, loc_pref_existing.id))
-                for partner_loc_pref in created_avail_day.actor_partner_location_prefs_defaults:
-                    self.controller_avail_days.execute(
-                        avail_day_commands.RemoveActorPartnerLocationPref(created_avail_day.id, partner_loc_pref.id)
+                self.controller_avail_days.execute(
+                    avail_day_commands.ClearCombLocPossibles(created_avail_day.id,
+                        [comb.id for comb in created_avail_day.combination_locations_possibles]))
+                self.controller_avail_days.execute(
+                    avail_day_commands.PutInCombLocPossibles(
+                        created_avail_day.id,
+                        [comb.id for comb in existing_avds_on_day[0].combination_locations_possibles if not comb.prep_delete]
                     )
-                for partner_loc_pref_existing in existing_avds_on_day[0].actor_partner_location_prefs_defaults:
-                    if partner_loc_pref_existing.prep_delete:
-                        continue
-                    self.controller_avail_days.execute(
-                        avail_day_commands.PutInActorPartnerLocationPref(created_avail_day.id, partner_loc_pref_existing.id)
+                )
+                self.controller_avail_days.execute(
+                    avail_day_commands.ClearActorLocationPrefs(created_avail_day.id,
+                        [alp.id for alp in created_avail_day.actor_location_prefs_defaults]))
+                self.controller_avail_days.execute(
+                    avail_day_commands.PutInActorLocationPrefs(
+                        created_avail_day.id,
+                        [alp.id for alp in existing_avds_on_day[0].actor_location_prefs_defaults if not alp.prep_delete]
                     )
+                )
+                self.controller_avail_days.execute(
+                    avail_day_commands.ClearActorPartnerLocationPrefs(created_avail_day.id,
+                        [apl.id for apl in created_avail_day.actor_partner_location_prefs_defaults]))
+                self.controller.execute(
+                    avail_day_commands.PutInActorPartnerLocationPrefs(
+                        created_avail_day.id,
+                        [apl.id for apl in existing_avds_on_day[0].actor_partner_location_prefs_defaults if not apl.prep_delete]
+                    )
+                )
 
             self.reload_actor_plan_period()
 

@@ -19,6 +19,9 @@ class DlgActorLocPref(QDialog):
                  team_at_date_factory: Callable[[datetime.date], schemas.Team] | None):
         super().__init__(parent)
 
+        # todo: zusätzliche Spalte mit QComboBox für Operator (max, min, exact) als Enum und QSpinBox für Wert hinzufügen.
+        #  Entity ActorLocationPref muss entsprechend erweitert werden.
+
         self.setWindowTitle(self.tr('Location Preferences'))
 
         self.curr_model: schemas.ModelWithActorLocPrefs = curr_model.model_copy(deep=True)

@@ -84,6 +84,23 @@ class PutInCombLocPossible(Command):
         db_services.AvailDay.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
 
+class PutInCombLocPossibles(Command):
+    def __init__(self, avail_day_id: UUID, comb_loc_poss_ids: list[UUID]):
+
+        self.avail_day_id = avail_day_id
+        self.comb_loc_poss_ids = comb_loc_poss_ids
+
+    def execute(self):
+        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
+
+    def undo(self):
+        for comb_loc_poss_id in self.comb_loc_poss_ids:
+            db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, comb_loc_poss_id)
+
+    def redo(self):
+        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
+
+
 class RemoveCombLocPossible(Command):
     def __init__(self, avail_day_id: UUID, comb_loc_poss_id: UUID):
 
@@ -98,6 +115,21 @@ class RemoveCombLocPossible(Command):
 
     def redo(self):
         db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+
+
+class ClearCombLocPossibles(Command):
+    def __init__(self, avail_day_id: UUID, existing_comb_loc_poss_ids: list[UUID]):
+        self.avail_day_id = avail_day_id
+        self.existing_comb_loc_poss_ids = existing_comb_loc_poss_ids
+
+    def execute(self):
+        db_services.AvailDay.clear_comb_loc_possibles(self.avail_day_id)
+
+    def undo(self):
+        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.existing_comb_loc_poss_ids)
+
+    def redo(self):
+        db_services.AvailDay.clear_comb_loc_possibles(self.avail_day_id)
 
 
 class PutInActorLocationPref(Command):
@@ -116,6 +148,23 @@ class PutInActorLocationPref(Command):
         db_services.AvailDay.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
 
+class PutInActorLocationPrefs(Command):
+    def __init__(self, avail_day_id: UUID, actor_loc_pref_ids: list[UUID]):
+
+        self.avail_day_id = avail_day_id
+        self.actor_loc_pref_ids = actor_loc_pref_ids
+
+    def execute(self):
+        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
+
+    def undo(self):
+        for actor_loc_pref_id in self.actor_loc_pref_ids:
+            db_services.AvailDay.remove_location_pref(self.avail_day_id, actor_loc_pref_id)
+
+    def redo(self):
+        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
+
+
 class RemoveActorLocationPref(Command):
     def __init__(self, avail_day_id: UUID, actor_loc_pref_id: UUID):
 
@@ -130,6 +179,21 @@ class RemoveActorLocationPref(Command):
 
     def redo(self):
         db_services.AvailDay.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+
+
+class ClearActorLocationPrefs(Command):
+    def __init__(self, avail_day_id: UUID, existing_actor_loc_pref_ids: list[UUID]):
+        self.avail_day_id = avail_day_id
+        self.existing_actor_loc_pref_ids = existing_actor_loc_pref_ids
+
+    def execute(self):
+        db_services.AvailDay.clear_location_prefs(self.avail_day_id)
+
+    def undo(self):
+        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.existing_actor_loc_pref_ids)
+
+    def redo(self):
+        db_services.AvailDay.clear_location_prefs(self.avail_day_id)
 
 
 class PutInActorPartnerLocationPref(Command):
@@ -148,6 +212,23 @@ class PutInActorPartnerLocationPref(Command):
         db_services.AvailDay.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
 
+class PutInActorPartnerLocationPrefs(Command):
+    def __init__(self, avail_day_id: UUID, actor_partner_loc_pref_ids: list[UUID]):
+
+        self.avail_day_id = avail_day_id
+        self.actor_partner_loc_pref_ids = actor_partner_loc_pref_ids
+
+    def execute(self):
+        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
+
+    def undo(self):
+        for actor_partner_loc_pref_id in self.actor_partner_loc_pref_ids:
+            db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, actor_partner_loc_pref_id)
+
+    def redo(self):
+        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
+
+
 class RemoveActorPartnerLocationPref(Command):
     def __init__(self, avail_day_id: UUID, actor_partner_loc_pref_id: UUID):
 
@@ -162,6 +243,22 @@ class RemoveActorPartnerLocationPref(Command):
 
     def redo(self):
         db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+
+
+class ClearActorPartnerLocationPrefs(Command):
+    def __init__(self, avail_day_id: UUID, existing_actor_partner_loc_pref_ids: list[UUID]):
+        self.avail_day_id = avail_day_id
+        self.existing_actor_partner_loc_pref_ids = existing_actor_partner_loc_pref_ids
+
+    def execute(self):
+        db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
+
+    def undo(self):
+        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.existing_actor_partner_loc_pref_ids)
+
+    def redo(self):
+        db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
+
 
 
 class AddSkill(Command):

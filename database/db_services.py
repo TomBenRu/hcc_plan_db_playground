@@ -2341,11 +2341,29 @@ class AvailDay:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def put_in_comb_loc_possibles(cls, avail_day_id: UUID, comb_loc_possible_ids: list[UUID]) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        comb_loc_possibles_db = [models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
+                                for comb_loc_possible_id in comb_loc_possible_ids]
+        avail_day_db.combination_locations_possibles.add(comb_loc_possibles_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_comb_loc_possible(cls, avail_day_id: UUID, comb_loc_possible_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         comb_loc_possible_db = models.CombinationLocationsPossible.get_for_update(id=comb_loc_possible_id)
         avail_day_db.combination_locations_possibles.remove(comb_loc_possible_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def clear_comb_loc_possibles(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        avail_day_db.combination_locations_possibles.clear()
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
@@ -2359,11 +2377,29 @@ class AvailDay:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def put_in_location_prefs(cls, avail_day_id: UUID, actor_loc_pref_ids: list[UUID]) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        location_prefs_db = [models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
+                             for actor_loc_pref_id in actor_loc_pref_ids]
+        avail_day_db.actor_location_prefs_defaults.add(location_prefs_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_location_pref(cls, avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         location_pref_db = models.ActorLocationPref.get_for_update(id=actor_loc_pref_id)
         avail_day_db.actor_location_prefs_defaults.remove(location_pref_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def clear_location_prefs(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        avail_day_db.actor_location_prefs_defaults.clear()
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod
@@ -2377,11 +2413,29 @@ class AvailDay:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def put_in_partner_location_prefs(cls, avail_day_id: UUID, actor_partner_loc_pref_ids: list[UUID]) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        partner_location_prefs_db = [models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
+                                     for actor_partner_loc_pref_id in actor_partner_loc_pref_ids]
+        avail_day_db.actor_partner_location_prefs_defaults.add(partner_location_prefs_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def remove_partner_location_pref(cls, avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         partner_location_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         avail_day_db.actor_partner_location_prefs_defaults.remove(partner_location_pref_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def clear_partner_location_prefs(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        avail_day_db.actor_partner_location_prefs_defaults.clear()
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
     @classmethod

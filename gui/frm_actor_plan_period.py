@@ -2,7 +2,6 @@ import datetime
 import functools
 import logging
 import os.path
-from line_profiler import profile
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -1168,7 +1167,7 @@ class FrmActorPlanPeriod(QWidget):
                                                      clicked=self.change_mode__avd_group)
         self.layout_controllers.addWidget(self.bt_toggle__avd_group_mode)
 
-    @profile
+
     def save_avail_day(self, bt: ButtonAvailDay):
         date = bt.date
         t_o_d = bt.time_of_day

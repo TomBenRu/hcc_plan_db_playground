@@ -1520,7 +1520,9 @@ class FrmActorPlanPeriod(QWidget):
                             name=actor_plan_period.person.full_name,
                             start=date_to_string(actor_plan_period.plan_period.start),
                             end=date_to_string(actor_plan_period.plan_period.end)
-                        )
+                        ),
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
                     )
                     if reply == QMessageBox.StandardButton.Yes:
                         for avail_day in [avd for avd in actor_plan_period.avail_days if not avd.prep_delete]:

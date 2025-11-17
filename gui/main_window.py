@@ -1094,7 +1094,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             if reply == QMessageBox.StandardButton.Yes:
                 # TabManager öffnet die Pläne
                 self.tab_manager.current_team = self.curr_team  # Team setzen
-                for plan_id in dlg.get_created_plan_ids():
+                for plan_id in reversed(dlg.get_created_plan_ids()):
                     self.tab_manager.open_plan_tab(plan_id)
                     QCoreApplication.processEvents()
 

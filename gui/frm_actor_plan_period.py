@@ -1533,7 +1533,7 @@ class FrmActorPlanPeriod(QWidget):
                                 self.set_button_avail_day_to_checked_and_configure(
                                     avail_day.date, avail_day.time_of_day, True
                                 )
-                    return True
+                    return False
                 else:
                     QMessageBox.critical(
                         self,

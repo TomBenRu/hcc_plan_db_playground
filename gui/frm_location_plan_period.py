@@ -412,10 +412,8 @@ class ButtonFixedCast(QPushButton):
             cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(
                 self.cast_groups_at_day[0].fixed_cast, self.cast_groups_at_day[0].fixed_cast_only_if_available
             )
-            if_avail_txt = self.tr(' (if available)') if self.cast_groups_at_day[0].fixed_cast_only_if_available else ''
-            additional_txt = self.tr('\nCast of events on this day:\n{cast}{if_avail_txt}').format(
-                cast=cast_clear_txt or self.tr('No fixed cast.'),
-                if_avail_txt=if_avail_txt
+            additional_txt = self.tr('\nCast of events on this day:\n{cast}').format(
+                cast=cast_clear_txt or self.tr('No fixed cast.')
             )
 
         self.setToolTip(self.tr('Click here to change the fixed cast for this day.{additional}').format(

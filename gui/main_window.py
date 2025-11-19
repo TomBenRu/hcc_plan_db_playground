@@ -3,6 +3,7 @@ import logging
 import os.path
 import pprint
 import sys
+from typing import Literal
 from uuid import UUID
 
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool, Qt
@@ -157,7 +158,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Employee Assignments Overview'),
                               self.tr('Shows an overview of all employee assignments.'),
                               self.statistics),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document-attribute-p.png'),
+            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'blue-document--plus.png'),
                               self.tr('Create Assignment Plans...'),
                               self.tr('Create one or more assignment plans for a specific period.'),
                               self.calculate_plans),
@@ -452,8 +453,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         QMessageBox.critical(self, title, message)
 
     @Slot(str)
-    def _update_menu_toolbar_for_tab_type(self, tab_type: str):
-        """Aktualisiert Menü/Toolbar basierend auf aktivem Tab-Typ"""
+    def _update_menu_toolbar_for_tab_type(self, tab_type: Literal['plans', 'masks']):
+        """
+        Aktualisiert Menü/Toolbar basierend auf aktivem Tab-Typ.
+        Args:
+            tab_type: 'plans' oder 'masks'
+        """
         menu_plan: QMenu = self.main_menu.findChild(QMenu, self.tr('Schedule'))
         file_menu_name = self.tr('File')
 
@@ -463,7 +468,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             for action in menu_plan.actions():
                 action.setDisabled(True)
             self.actions['plan_export_to_excel'].setDisabled(True)
-            self.actions['new_plan_period'].setEnabled(True)
+            self._replace_action_in_menu(
+                self.main_menu.findChild(QMenu, file_menu_name),
+                self.actions['calculate_plans'],
+                self.actions['new_plan_period']
+            )
             self._replace_action_in_menu(
                 self.main_menu.findChild(QMenu, file_menu_name),
                 self.actions['open_plan'],
@@ -486,7 +495,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             for action in menu_plan.actions():
                 action.setEnabled(True)
             self.actions['plan_export_to_excel'].setEnabled(True)
-            self.actions['new_plan_period'].setDisabled(True)
+            self._replace_action_in_menu(
+                self.main_menu.findChild(QMenu, file_menu_name),
+                self.actions['new_plan_period'],
+                self.actions['calculate_plans']
+            )
             self._replace_action_in_menu(
                 self.main_menu.findChild(QMenu, file_menu_name),
                 self.actions['open_plan_period_masks'],

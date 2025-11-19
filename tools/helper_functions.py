@@ -53,7 +53,7 @@ def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
     return form
 
 
-def generate_fixed_cast_clear_text(fixed_cast: str | None):
+def generate_fixed_cast_clear_text(fixed_cast: str | None, only_if_available: bool = False):
     replace_map = {'and': QCoreApplication.translate('generate_fixed_cast_clear_text', 'and'),
                    'or': QCoreApplication.translate('generate_fixed_cast_clear_text', 'or')}
 
@@ -74,6 +74,9 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None):
         clear_text = clear_text[1:]
     if clear_text.endswith(')'):
         clear_text = clear_text[:-1]
+
+    clear_text += QCoreApplication.translate('generate_fixed_cast_clear_text',
+                                             ' (if available)') if only_if_available else ''
 
     return clear_text
 

@@ -183,7 +183,7 @@ class TreeWidgetItem(QTreeWidgetItem):
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
         group: schemas.CastGroupShow = db_services.CastGroup.get(group.id)
-        fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast)
+        fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast, group.fixed_cast_only_if_available)
         if event:
             self.setText(TREE_HEAD_COLUMN__TITEL, QCoreApplication.translate("TreeWidgetItem", "assigned"))
             self.setText(TREE_HEAD_COLUMN__LOCATION, event.location_plan_period.location_of_work.name)

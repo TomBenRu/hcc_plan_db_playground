@@ -643,7 +643,8 @@ class DlgGroupProperties(QDialog):
             )
         )
         self.bt_correct_childs_fixed_cast__menu_config()
-        self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast))
+        self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast,
+                                                                        self.group.fixed_cast_only_if_available))
         self.set_fixed_cast_warning()
         self.setup_combo_cast_rules()
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
@@ -731,7 +732,8 @@ class DlgGroupProperties(QDialog):
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.group = db_services.CastGroup.get(self.group.id)
-            self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast)
+            self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast,
+                                                                            self.group.fixed_cast_only_if_available)
                                              if self.group.fixed_cast else None)
             self.group = db_services.CastGroup.get(self.group.id)
             self.set_fixed_cast_warning()
@@ -931,7 +933,11 @@ class DlgCastGroups(QDialog):
             item: TreeWidgetItem
             cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
-            item.setText(TREE_HEAD_COLUMN__FIXED_CAST, generate_fixed_cast_clear_text(cast_group.fixed_cast))
+            item.setText(TREE_HEAD_COLUMN__FIXED_CAST,
+                         generate_fixed_cast_clear_text(
+                             cast_group.fixed_cast,
+                             cast_group.fixed_cast_only_if_available
+                         ))
             if not (event_object := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)):
                 item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF,
                              f'{STRICT_CAST_PREF_TEXTS[cast_group.strict_cast_pref]} ({cast_group.strict_cast_pref})')

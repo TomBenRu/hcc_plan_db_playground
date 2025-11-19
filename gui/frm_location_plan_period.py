@@ -409,7 +409,9 @@ class ButtonFixedCast(QPushButton):
         elif len({(cg.fixed_cast, cg.fixed_cast_only_if_available) for cg in self.cast_groups_at_day}) > 1:
             additional_txt = self.tr('\nCast of events on this day:\nDifferent casts.')
         else:
-            cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(self.cast_groups_at_day[0].fixed_cast)
+            cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(
+                self.cast_groups_at_day[0].fixed_cast, self.cast_groups_at_day[0].fixed_cast_only_if_available
+            )
             if_avail_txt = self.tr(' (if available)') if self.cast_groups_at_day[0].fixed_cast_only_if_available else ''
             additional_txt = self.tr('\nCast of events on this day:\n{cast}{if_avail_txt}').format(
                 cast=cast_clear_txt or self.tr('No fixed cast.'),

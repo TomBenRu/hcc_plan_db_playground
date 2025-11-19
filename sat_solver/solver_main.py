@@ -1294,7 +1294,8 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
             if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
                 continue
 
-        text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast)
+        text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast,
+                                                                 cast_group.fixed_cast_only_if_available)
         text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
                                f'Ort: {cast_group.event.location_plan_period.location_of_work.name_an_city}\n'
                                f'Besetzung: {text_fixed_cast_persons}')

@@ -792,7 +792,11 @@ class DlgGroupProperties(QDialog):
         for child in get_all_child_items(self.item):
             child_group = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             new_fixed_cast = self.group.fixed_cast if mode == 'set_fixed_cast' else None
-            self.controller.execute(cast_group_commands.UpdateFixedCast(child_group.id, new_fixed_cast))
+            self.controller.execute(
+                cast_group_commands.UpdateFixedCast(
+                    child_group.id, new_fixed_cast, self.group.fixed_cast_only_if_available
+                )
+            )
         self.set_fixed_cast_warning()
 
     def correct_childs_nr_actors(self):

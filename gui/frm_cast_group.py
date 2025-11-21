@@ -842,9 +842,17 @@ class DlgGroupProperties(QDialog):
         self.set_fixed_cast_warning()
 
     def update_prefer_fixed_cast_checkbox_state(self):
-        """Aktiviert die Checkbox nur, wenn fixed_cast gesetzt ist"""
+        """Aktiviert die Checkbox nur, wenn fixed_cast gesetzt ist
+        und wenn in der übergeordneten EventGroup nr_event_groups < len(children) und nr_event_groups != None ist."""
         has_fixed_cast = bool(self.group.fixed_cast and self.group.fixed_cast.strip())
-        self.cb_prefer_fixed_cast_events.setEnabled(has_fixed_cast)
+        event = db_services.Event.get(self.group.event.id)
+        parent_event_group: schemas.EventGroup | None = event.event_group.event_group if self.group.event else None
+        fewer_active_children_than_events = False
+        if parent_event_group:
+            children_with_event = db_services.EventGroup.get_child_groups_from__parent_group(parent_event_group.id)
+            fewer_active_children_than_events = ((parent_event_group.nr_event_groups < len(children_with_event))
+                                                 if parent_event_group.nr_event_groups else False)
+        self.cb_prefer_fixed_cast_events.setEnabled(has_fixed_cast and fewer_active_children_than_events)
         if not has_fixed_cast:
             # Wenn kein fixed_cast vorhanden ist und prefer_fixed_cast_events noch True ist,
             # dann in der DB auf False setzen

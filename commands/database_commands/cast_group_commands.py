@@ -122,6 +122,29 @@ class UpdateStrictCastPref(Command):
         db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
 
 
+class UpdatePreferFixedCastEvents(Command):
+    def __init__(self, cast_group_id: UUID, prefer_fixed_cast_events: bool):
+        self.cast_group_id = cast_group_id
+        self.prefer_fixed_cast_events = prefer_fixed_cast_events
+        self.prefer_fixed_cast_events_old = db_services.CastGroup.get(cast_group_id).prefer_fixed_cast_events
+        self.result: schemas.CastGroupShow | None = None
+
+    def execute(self):
+        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+            self.cast_group_id, self.prefer_fixed_cast_events
+        )
+
+    def undo(self):
+        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+            self.cast_group_id, self.prefer_fixed_cast_events_old
+        )
+
+    def redo(self):
+        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+            self.cast_group_id, self.prefer_fixed_cast_events
+        )
+
+
 class UpdateCustomRule(Command):
     def __init__(self, cast_group_id: UUID, custom_rule: str | None):
         self.cast_group_id = cast_group_id

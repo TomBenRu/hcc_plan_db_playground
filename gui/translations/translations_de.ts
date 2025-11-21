@@ -3834,7 +3834,7 @@ Planungszeitraum: {start} - {end}</translation>
     <message>
         <location filename="../frm_excel_export.py" line="51"/>
         <source>Include employee events</source>
-        <translation>VEranstaltungen für Mitarbeiter mit einbeziehen</translation>
+        <translation>Veranstaltungen für Mitarbeiter mit einbeziehen</translation>
     </message>
 </context>
 <context>

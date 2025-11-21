@@ -410,7 +410,9 @@ class ButtonFixedCast(QPushButton):
             additional_txt = self.tr('\nCast of events on this day:\nDifferent casts.')
         else:
             cast_clear_txt = helper_functions.generate_fixed_cast_clear_text(
-                self.cast_groups_at_day[0].fixed_cast, self.cast_groups_at_day[0].fixed_cast_only_if_available
+                self.cast_groups_at_day[0].fixed_cast,
+                self.cast_groups_at_day[0].fixed_cast_only_if_available,
+                self.cast_groups_at_day[0].prefer_fixed_cast_events
             )
             additional_txt = self.tr('\nCast of events on this day:\n{cast}').format(
                 cast=cast_clear_txt or self.tr('No fixed cast.')

@@ -53,7 +53,9 @@ def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
     return form
 
 
-def generate_fixed_cast_clear_text(fixed_cast: str | None, only_if_available: bool = False):
+def generate_fixed_cast_clear_text(fixed_cast: str | None,
+                                   only_if_available: bool = False,
+                                   prefer_fixed_cast_events: bool = False):
     replace_map = {'and': QCoreApplication.translate('generate_fixed_cast_clear_text', 'and'),
                    'or': QCoreApplication.translate('generate_fixed_cast_clear_text', 'or')}
 
@@ -75,8 +77,27 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None, only_if_available: bo
     if clear_text.endswith(')'):
         clear_text = clear_text[:-1]
 
-    clear_text += QCoreApplication.translate('generate_fixed_cast_clear_text',
-                                             ' (if available)') if only_if_available else ''
+    if only_if_available or prefer_fixed_cast_events:
+        text_prefer_fixed_cast_events = QCoreApplication.translate(
+            'generate_fixed_cast_clear_text',
+            'preferred'
+        ) if prefer_fixed_cast_events else ''
+        text_only_if_available = QCoreApplication.translate(
+            'generate_fixed_cast_clear_text',
+            'if available'
+        ) if only_if_available else ''
+        clear_text += (
+                ' ('
+                + ', '.join([text for text in [text_only_if_available, text_prefer_fixed_cast_events] if text])
+                + ')'
+        )
+
+        # clear_text += QCoreApplication.translate(
+        #     'generate_fixed_cast_clear_text',
+        #     ' (if available{text_prefer_fixed_cast_events})'.format(
+        #         text_prefer_fixed_cast_events=text_prefer_fixed_cast_events
+        #     )
+        # ) if only_if_available else ''
 
     return clear_text
 

@@ -575,6 +575,7 @@ class CastGroup(CastGroupCreate):
     id: UUID
     fixed_cast: Optional[str]
     fixed_cast_only_if_available: bool = False
+    prefer_fixed_cast_events: bool = False
     nr_actors: int
     strict_cast_pref: int = 2
     # 0: beliebige Besetzungen, 1: möglichst nah an Besetzungsregel, 2 unbedingt Besetzungsregel beachten.

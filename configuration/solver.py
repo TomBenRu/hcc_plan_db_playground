@@ -18,6 +18,7 @@ class MinimizationWeights(BaseModel):
     constraints_location_prefs: float = 0.001  # bei Faktor 0.0001 hat location prefs keinen Einfluss, komisch!
     constraints_partner_loc_prefs: float = 0.1
     constraints_fixed_casts_conflicts: float = 1_000_000_000
+    prefer_fixed_cast_events: float = 1000  # Bevorzugung von Events mit fixed_cast bei Auswahl
     constraints_cast_rule: float = 1000
     constraints_skills_match: float = 1000
 

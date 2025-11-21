@@ -8,7 +8,8 @@ from PySide6 import QtCore
 from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
-                               QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu)
+                               QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu,
+                               QCheckBox)
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
@@ -143,6 +144,34 @@ class ConsistenceProof:
         return False
 
     @classmethod
+    def check_childs_fixed_cast_only_if_available_are_different(cls, item: QTreeWidgetItem) -> bool:
+        parent_group_id = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        parent_group = db_services.CastGroup.get(parent_group_id)
+        for child in get_all_child_items(item):
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            child_group = db_services.CastGroup.get(child_group_id)
+            # Nur prüfen wenn child fixed_cast hat
+            if child_group.fixed_cast is None:
+                continue
+            if child_group.fixed_cast_only_if_available != parent_group.fixed_cast_only_if_available:
+                return True
+        return False
+
+    @classmethod
+    def check_childs_prefer_fixed_cast_events_are_different(cls, item: QTreeWidgetItem) -> bool:
+        parent_group_id = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+        parent_group = db_services.CastGroup.get(parent_group_id)
+        for child in get_all_child_items(item):
+            child_group_id = child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            child_group = db_services.CastGroup.get(child_group_id)
+            # Nur prüfen wenn child fixed_cast hat
+            if child_group.fixed_cast is None:
+                continue
+            if child_group.prefer_fixed_cast_events != parent_group.prefer_fixed_cast_events:
+                return True
+        return False
+
+    @classmethod
     def proof_solo_childs(cls, item: QTreeWidgetItem) -> QTreeWidgetItem:
         for item in get_all_child_items(item):
             if item.childCount() == 1:
@@ -183,7 +212,9 @@ class TreeWidgetItem(QTreeWidgetItem):
     def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
         group: schemas.CastGroupShow = db_services.CastGroup.get(group.id)
-        fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast, group.fixed_cast_only_if_available)
+        fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast,
+                                                         group.fixed_cast_only_if_available,
+                                                         group.prefer_fixed_cast_events)
         if event:
             self.setText(TREE_HEAD_COLUMN__TITEL, QCoreApplication.translate("TreeWidgetItem", "assigned"))
             self.setText(TREE_HEAD_COLUMN__LOCATION, event.location_plan_period.location_of_work.name)
@@ -567,6 +598,7 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast_value = QLabel()
         self.lb_fixed_cast_warning = QLabel()
         self.lb_fixed_cast_warning.setObjectName('fixed_cast_warning')
+        self.cb_prefer_fixed_cast_events = QCheckBox(self.tr('Prefer Events with Fixed Cast'))
         self.bt_correct_childs_fixed_cast = QPushButton(self.tr('Correct Fixed Cast of Child Elements'))
         self.menu_bt_correct_childs_fixed_cast = QMenu()
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)
@@ -596,20 +628,21 @@ class DlgGroupProperties(QDialog):
         self.layout_body.addWidget(self.bt_fixed_cast, 0, 1)
         self.layout_body.addWidget(self.lb_fixed_cast_value, 0, 2)
         self.layout_body.addWidget(self.lb_fixed_cast_warning, 1, 2)
-        self.layout_body.addWidget(self.bt_correct_childs_fixed_cast, 2, 2)
-        self.layout_body.addWidget(self.lb_rule, 3, 0)
-        self.layout_body.addWidget(self.combo_cast_rules, 3, 1)
-        self.layout_body.addWidget(self.le_custom_rule, 3, 2)
-        self.layout_body.addWidget(self.lb_new_rule, 4, 0)
-        self.layout_body.addWidget(self.bt_new_rule, 4, 1)
-        self.layout_body.addWidget(self.lb_cast_rule_warning, 4, 2)
-        self.layout_body.addWidget(self.lb_nr_actors, 5, 0)
-        self.layout_body.addWidget(self.spin_nr_actors, 5, 1)
-        self.layout_body.addWidget(self.lb_nr_actors_warning, 5, 2)
-        self.layout_body.addWidget(self.bt_correct_childs_nr_actors, 6, 2)
-        self.layout_body.addWidget(self.lb_strict_cast_pref, 7, 0)
-        self.layout_body.addWidget(self.slider_strict_cast_pref, 7, 1)
-        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 7, 2)
+        self.layout_body.addWidget(self.cb_prefer_fixed_cast_events, 2, 0, 1, 2)
+        self.layout_body.addWidget(self.bt_correct_childs_fixed_cast, 3, 2)
+        self.layout_body.addWidget(self.lb_rule, 4, 0)
+        self.layout_body.addWidget(self.combo_cast_rules, 4, 1)
+        self.layout_body.addWidget(self.le_custom_rule, 4, 2)
+        self.layout_body.addWidget(self.lb_new_rule, 5, 0)
+        self.layout_body.addWidget(self.bt_new_rule, 5, 1)
+        self.layout_body.addWidget(self.lb_cast_rule_warning, 5, 2)
+        self.layout_body.addWidget(self.lb_nr_actors, 6, 0)
+        self.layout_body.addWidget(self.spin_nr_actors, 6, 1)
+        self.layout_body.addWidget(self.lb_nr_actors_warning, 6, 2)
+        self.layout_body.addWidget(self.bt_correct_childs_nr_actors, 7, 2)
+        self.layout_body.addWidget(self.lb_strict_cast_pref, 8, 0)
+        self.layout_body.addWidget(self.slider_strict_cast_pref, 8, 1)
+        self.layout_body.addWidget(self.lb_strict_cast_pref_value_text, 8, 2)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
@@ -644,8 +677,12 @@ class DlgGroupProperties(QDialog):
         )
         self.bt_correct_childs_fixed_cast__menu_config()
         self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast,
-                                                                        self.group.fixed_cast_only_if_available))
+                                                                        self.group.fixed_cast_only_if_available,
+                                                                        self.group.prefer_fixed_cast_events))
         self.set_fixed_cast_warning()
+        self.cb_prefer_fixed_cast_events.setChecked(self.group.prefer_fixed_cast_events)
+        self.cb_prefer_fixed_cast_events.stateChanged.connect(self.prefer_fixed_cast_events_changed)
+        self.update_prefer_fixed_cast_checkbox_state()
         self.setup_combo_cast_rules()
         self.le_custom_rule.setText(self.group.cast_rule.rule if self.group.cast_rule else self.group.custom_rule)
         self.le_custom_rule.setValidator(custom_validators.LettersAndSymbolsValidator('*~-', False))
@@ -683,9 +720,18 @@ class DlgGroupProperties(QDialog):
             self.lb_nr_actors_warning.setText(self.tr('All is well.'))
 
     def set_fixed_cast_warning(self):
-        if ConsistenceProof.check_childs_fixed_cast_are_different(self.item):
+        fixed_cast_different = ConsistenceProof.check_childs_fixed_cast_are_different(self.item)
+        prefer_different = ConsistenceProof.check_childs_prefer_fixed_cast_events_are_different(self.item)
+        only_if_available_different = ConsistenceProof.check_childs_fixed_cast_only_if_available_are_different(self.item)
+        
+        if fixed_cast_different or prefer_different or only_if_available_different:
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: orangered}')
-            self.lb_fixed_cast_warning.setText(self.tr('Subordinate elements have a different fixed cast.'))
+            warnings = []
+            if fixed_cast_different:
+                warnings.append(self.tr('Subordinate elements have a different fixed cast.'))
+            if prefer_different or only_if_available_different:
+                warnings.append(self.tr('Subordinate elements have different preference settings.'))
+            self.lb_fixed_cast_warning.setText('\n'.join(warnings))
         else:
             self.lb_fixed_cast_warning.setStyleSheet('QWidget#fixed_cast_warning{color: green}')
             self.lb_fixed_cast_warning.setText(self.tr('All is well.'))
@@ -733,10 +779,12 @@ class DlgGroupProperties(QDialog):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.group = db_services.CastGroup.get(self.group.id)
             self.lb_fixed_cast_value.setText(generate_fixed_cast_clear_text(self.group.fixed_cast,
-                                                                            self.group.fixed_cast_only_if_available)
+                                                                            self.group.fixed_cast_only_if_available,
+                                                                            self.group.prefer_fixed_cast_events)
                                              if self.group.fixed_cast else None)
             self.group = db_services.CastGroup.get(self.group.id)
             self.set_fixed_cast_warning()
+            self.update_prefer_fixed_cast_checkbox_state()
             self.set_cast_rule_warning()
 
     def new_rule(self):
@@ -784,6 +832,29 @@ class DlgGroupProperties(QDialog):
             cast_group_commands.UpdateStrictCastPref(self.group.id, self.slider_strict_cast_pref.value()))
         self.group = db_services.CastGroup.get(self.group.id)
 
+    def prefer_fixed_cast_events_changed(self):
+        cmd = cast_group_commands.UpdatePreferFixedCastEvents(
+            self.group.id,
+            self.cb_prefer_fixed_cast_events.isChecked()
+        )
+        self.controller.execute(cmd)
+        self.group = cmd.result
+        self.set_fixed_cast_warning()
+
+    def update_prefer_fixed_cast_checkbox_state(self):
+        """Aktiviert die Checkbox nur, wenn fixed_cast gesetzt ist"""
+        has_fixed_cast = bool(self.group.fixed_cast and self.group.fixed_cast.strip())
+        self.cb_prefer_fixed_cast_events.setEnabled(has_fixed_cast)
+        if not has_fixed_cast:
+            # Wenn kein fixed_cast vorhanden ist und prefer_fixed_cast_events noch True ist,
+            # dann in der DB auf False setzen
+            if self.group.prefer_fixed_cast_events:
+                cmd = cast_group_commands.UpdatePreferFixedCastEvents(self.group.id, False)
+                self.controller.execute(cmd)
+                self.group = cmd.result
+            # Checkbox auf False setzen (ohne Signal zu triggern, da disabled)
+            self.cb_prefer_fixed_cast_events.setChecked(False)
+
     def nr_actors_changed(self):
         # fixme: Überprüfung, ob Anzahl zu gering für fixed_cast ist mit: frm_fixed_cast.SimplifyFixedCastAndInfo
         self.controller.execute(cast_group_commands.UpdateNrActors(self.group.id, self.spin_nr_actors.value()))
@@ -799,6 +870,20 @@ class DlgGroupProperties(QDialog):
                     child_group.id, new_fixed_cast, self.group.fixed_cast_only_if_available
                 )
             )
+            # Auch prefer_fixed_cast_events angleichen
+            if mode == 'set_fixed_cast':
+                self.controller.execute(
+                    cast_group_commands.UpdatePreferFixedCastEvents(
+                        child_group.id, self.group.prefer_fixed_cast_events
+                    )
+                )
+            else:
+                # Bei set_None auf False setzen
+                self.controller.execute(
+                    cast_group_commands.UpdatePreferFixedCastEvents(
+                        child_group.id, False
+                    )
+                )
         self.set_fixed_cast_warning()
 
     def correct_childs_nr_actors(self):
@@ -936,7 +1021,8 @@ class DlgCastGroups(QDialog):
             item.setText(TREE_HEAD_COLUMN__FIXED_CAST,
                          generate_fixed_cast_clear_text(
                              cast_group.fixed_cast,
-                             cast_group.fixed_cast_only_if_available
+                             cast_group.fixed_cast_only_if_available,
+                             cast_group.prefer_fixed_cast_events
                          ))
             if not (event_object := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole)):
                 item.setText(TREE_HEAD_COLUMN__STRICT_CAST_PREF,

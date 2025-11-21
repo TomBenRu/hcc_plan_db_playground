@@ -1628,6 +1628,15 @@ class CastGroup:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def update_prefer_fixed_cast_events(cls, cast_group_id: UUID, prefer_fixed_cast_events: bool) -> schemas.CastGroupShow:
+        log_function_info(cls)
+        cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)
+        cast_group_db.prefer_fixed_cast_events = prefer_fixed_cast_events
+
+        return schemas.CastGroupShow.model_validate(cast_group_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def update_custom_rule(cls, cast_group_id: UUID, custom_rule: str) -> schemas.CastGroupShow:
         log_function_info(cls)
         cast_group_db = models.CastGroup.get_for_update(id=cast_group_id)

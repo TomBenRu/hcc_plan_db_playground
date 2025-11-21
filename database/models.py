@@ -524,6 +524,7 @@ class CastGroup(db.Entity):
     child_groups = Set('CastGroup', reverse='parent_groups')
     fixed_cast = Optional(str, nullable=True)
     fixed_cast_only_if_available = Required(bool, default=False)
+    prefer_fixed_cast_events = Required(bool, default=False)
     nr_actors = Required(int, size=16, unsigned=True)
     event = Optional(Event)
     custom_rule = Optional(str, nullable=True)

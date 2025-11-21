@@ -1235,7 +1235,10 @@ def is_empty_list(fixed_cast_list: tuple | str | None) -> bool:
     return True
 
 
-def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.date, str, UUID], IntVar]:
+def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
+    dict[tuple[datetime.date, str, UUID], IntVar],
+    list[IntVar]
+]:
     # todo: funktioniert bislang nur für CastGroups mit Event
     
     def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
@@ -1295,7 +1298,8 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
                 continue
 
         text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast,
-                                                                 cast_group.fixed_cast_only_if_available)
+                                                                 cast_group.fixed_cast_only_if_available,
+                                                                 cast_group.prefer_fixed_cast_events)
         text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
                                f'Ort: {cast_group.event.location_plan_period.location_of_work.name_an_city}\n'
                                f'Besetzung: {text_fixed_cast_persons}')
@@ -1307,7 +1311,74 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> dict[tuple[datetime.d
         (model.Add(fixed_cast_vars[key] == proof_recursive(fixed_cast_as_list, cast_group).Not())
          .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
 
-    return fixed_cast_vars
+    # ============================================================================
+    # NEU: Tracking für prefer_fixed_cast_events
+    # ============================================================================
+    preference_vars = []
+    
+    for cast_group in entities.cast_groups_with_event.values():
+        # 1. Grundvoraussetzungen prüfen
+        if not (cast_group.fixed_cast and cast_group.prefer_fixed_cast_events):
+            continue
+        
+        # 2. Relevanz-Prüfung: Ist Preference überhaupt relevant?
+        parent_cast_group = cast_group.parent
+        if not parent_cast_group:
+            continue  # Keine Parent-Group → keine Auswahl → Preference irrelevant
+        
+        # Hole die zugehörige EventGroup
+        event_group_id = cast_group.event.event_group.id
+        event_group = entities.event_groups_with_event.get(event_group_id)
+        if not event_group or not event_group.parent:
+            continue  # Keine Parent EventGroup → Preference irrelevant
+        
+        parent_event_group = event_group.parent
+        
+        # Prüfe ob Parent überhaupt eine Auswahl trifft
+        nr_of_active_children = parent_event_group.nr_of_active_children
+        if nr_of_active_children is None:
+            continue  # Alle Children werden ausgewählt → Preference irrelevant
+        
+        # Zähle die Children der Parent-Group die Events haben
+        children_with_event = [c for c in parent_event_group.children if c.event]
+        if nr_of_active_children >= len(children_with_event):
+            continue  # Alle Events werden ausgewählt → Preference irrelevant
+        
+        # 3. Verfügbarkeits-Prüfung (bei fixed_cast_only_if_available)
+        if cast_group.fixed_cast_only_if_available:
+            # String wird zu Python-Objekt umgewandelt
+            fixed_cast_as_list = literal_eval(cast_group.fixed_cast
+                                      .replace('and', ',"and",')
+                                      .replace('or', ',"or",')
+                                      .replace('in team', '')
+                                      .replace('UUID', ''))
+            
+            # Filtere nicht verfügbare Personen
+            fixed_cast_as_list = filter_unavailable_persons(
+                fixed_cast_as_list, 
+                cast_group
+            )
+            
+            # Falls nach dem Filtern keine Personen übrig sind
+            if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
+                continue  # Keine Preference wenn Event nicht besetzbar
+        
+        # 4. Erstelle Preference-Variable (Penalty wenn Event NICHT gewählt)
+        penalty_var = model.NewIntVar(0, 1, 
+            f'Prefer: {cast_group.event.date:%d.%m.%y} '
+            f'({cast_group.event.time_of_day.name}), '
+            f'{cast_group.event.location_plan_period.location_of_work.name_an_city}'
+        )
+        
+        # penalty_var = 1 wenn Event NICHT ausgewählt (entities.event_group_vars[...] == 0)
+        # penalty_var = 0 wenn Event ausgewählt (entities.event_group_vars[...] == 1)
+        model.Add(penalty_var == 1 - entities.event_group_vars[event_group_id])
+        
+        preference_vars.append(penalty_var)
+    
+    # ============================================================================
+
+    return fixed_cast_vars, preference_vars
 
 
 def add_constraints_skills(model: cp_model.CpModel) -> list[IntVar]:
@@ -1541,7 +1612,7 @@ def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool 
                                                          dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar],
-                                                         list[IntVar]]:
+                                                         list[IntVar], list[IntVar]]:
     # Add constraints for employee availability.
     add_constraints_employee_availability(model)
 
@@ -1580,7 +1651,7 @@ def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool 
     skill_conflict_vars = add_constraints_skills(model)
 
     # Add constraints for fixed_cast:
-    constraints_fixed_cast_conflicts = add_constraints_fixed_cast(model)
+    constraints_fixed_cast_conflicts, constraints_prefer_fixed_cast = add_constraints_fixed_cast(model)
 
     # Add constraints for different casts on shifts with different locations on same day:
     add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model)
@@ -1590,7 +1661,8 @@ def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool 
 
     return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
             constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups, constraints_location_prefs,
-            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule)
+            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+            constraints_prefer_fixed_cast)
 
 
 def create_constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID) -> IntVar:
@@ -1604,7 +1676,8 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                               constraints_partner_loc_prefs: list[IntVar],
                               constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                               skill_conflict_vars: list[IntVar],
-                              constraints_cast_rule: list[IntVar]) -> None:
+                              constraints_cast_rule: list[IntVar],
+                              constraints_prefer_fixed_cast: list[IntVar]) -> None:
     """Change the objective to minimize a weighted sum of the number of unassigned shifts
     and the sum of the squared deviations."""
 
@@ -1619,6 +1692,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
     weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
     weight_constraints_skills = weights.constraints_skills_match
     weight_constraints_cast_rule = weights.constraints_cast_rule
+    weight_prefer_fixed_cast = weights.prefer_fixed_cast_events
 
     model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
                    + weight_sum_squared_shift_deviations * sum_squared_deviations
@@ -1629,6 +1703,7 @@ def define_objective_minimize(model: cp_model.CpModel, unassigned_shifts_per_eve
                    + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values())
                    + weight_constraints_skills * sum(skill_conflict_vars)
                    + weight_constraints_cast_rule * sum(constraints_cast_rule)
+                   + weight_prefer_fixed_cast * sum(constraints_prefer_fixed_cast)
                    )
 
 
@@ -1640,7 +1715,8 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
                                        constraints_partner_loc_prefs: list[IntVar],
                                        constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
                                        skill_conflict_vars: list[IntVar],
-                                       max_shift_of_app: IntVar
+                                       max_shift_of_app: IntVar,
+                                       constraints_prefer_fixed_cast: list[IntVar]
                                        ):
     # Mit den Constraints für location_prefs und partner_loc_prefs werden falsche max_shifts_per_app berechnet.
     model.Add(sum(constraints_location_prefs) == sum_location_prefs)
@@ -1648,6 +1724,7 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
     model.Add(sum(skill_conflict_vars) == 0)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)
+    model.Add(sum(constraints_prefer_fixed_cast) == 0)  # Keine Preference-Penalty
     model.Maximize(max_shift_of_app * 100)
 
 
@@ -1672,9 +1749,11 @@ def define_objective__fixed_constraint_results(
         constraints_location_prefs: list[IntVar], constraints_partner_loc_prefs: list[IntVar],
         constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
         constraints_cast_rule: list[IntVar],
+        constraints_prefer_fixed_cast: list[IntVar],
         unassigned_shifts_per_event_res: list[int], sum_squared_deviations_res: int,
         weights_shifts_in_avail_day_groups_res: int, weights_in_event_groups_res: int, sum_location_prefs_res: int,
-        sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, sum_cast_rules_res: int):
+        sum_partner_loc_prefs_res: int, sum_fixed_cast_conflicts_res: int, sum_cast_rules_res: int,
+        sum_prefer_fixed_cast_res: int):
     model.Add(sum(unassigned_shifts_per_event) == sum(unassigned_shifts_per_event_res))
     model.Add(sum_squared_deviations == sum_squared_deviations_res)
     model.Add(sum(constraints_weights_in_avail_day_groups) == weights_shifts_in_avail_day_groups_res)
@@ -1683,6 +1762,7 @@ def define_objective__fixed_constraint_results(
     model.Add(sum(constraints_partner_loc_prefs) == sum_partner_loc_prefs_res)
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts_res)
     model.Add(sum(constraints_cast_rule) == sum_cast_rules_res)
+    model.Add(sum(constraints_prefer_fixed_cast) == sum_prefer_fixed_cast_res)
 
 
 solver: cp_model.CpSolver | None = None
@@ -1805,14 +1885,16 @@ def call_solver_with_unadjusted_requested_assignments(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+     constraints_prefer_fixed_cast) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups,
                               constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
                               constraints_fixed_cast_conflicts,
                               skill_conflict_vars,
-                              constraints_cast_rule)
+                              constraints_cast_rule,
+                              constraints_prefer_fixed_cast)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
@@ -1874,7 +1956,8 @@ def call_solver_to_get_max_shifts_per_app(
         (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
          constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
          constraints_location_prefs, constraints_partner_loc_prefs,
-         constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+         constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+         constraints_prefer_fixed_cast) = create_constraints(model)
 
         max_shifts_of_app = create_constraint_max_shift_of_app(model, app_id)
 
@@ -1890,7 +1973,8 @@ def call_solver_to_get_max_shifts_per_app(
             constraints_partner_loc_prefs,
             constraints_fixed_cast_conflicts,
             skill_conflict_vars,
-            max_shifts_of_app
+            max_shifts_of_app,
+            constraints_prefer_fixed_cast
         )
 
         solver, status = solve_model_to_optimum(model, max_search_time, log_search_process)
@@ -1987,11 +2071,13 @@ def call_solver_with_adjusted_requested_assignments(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+     constraints_prefer_fixed_cast) = create_constraints(model)
     define_objective_minimize(model, unassigned_shifts_per_event, sum_squared_deviations,
                               constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
                               constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule)
+                              constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+                              constraints_prefer_fixed_cast)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     success, problems = print_solver_status(model, solver_status)
@@ -2060,15 +2146,17 @@ def call_solver_with__fixed_constraint_results(
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+     constraints_prefer_fixed_cast) = create_constraints(model)
     define_objective__fixed_constraint_results(
         model, list(unassigned_shifts_per_event.values()), sum_squared_deviations,
         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
         constraints_location_prefs, constraints_partner_loc_prefs,
-        constraints_fixed_cast_conflicts, constraints_cast_rule, unassigned_shifts_per_event_res,
+        constraints_fixed_cast_conflicts, constraints_cast_rule,
+        constraints_prefer_fixed_cast, unassigned_shifts_per_event_res,
         sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res,
         weights_in_event_groups_res, sum_location_prefs_res,
-        sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res, sum_cast_rules)
+        sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res, sum_cast_rules, 0)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
         model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,

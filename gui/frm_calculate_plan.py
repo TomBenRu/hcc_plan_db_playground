@@ -363,7 +363,8 @@ class DlgCalculate(QDialog):
                     time_of_day=e.time_of_day.name,
                     location=e.location_plan_period.location_of_work.name,
                     fixed_cast=generate_fixed_cast_clear_text(e.cast_group.fixed_cast,
-                                                              e.cast_group.fixed_cast_only_if_available)
+                                                              e.cast_group.fixed_cast_only_if_available,
+                                                              e.cast_group.prefer_fixed_cast_events)
                 ) for e in events
             ])
             QMessageBox.critical(
@@ -521,7 +522,8 @@ class DlgCalculate(QDialog):
                     time_of_day=e.time_of_day.name,
                     location=e.location_plan_period.location_of_work.name,
                     fixed_cast=generate_fixed_cast_clear_text(e.cast_group.fixed_cast,
-                                                              e.cast_group.fixed_cast_only_if_available)
+                                                              e.cast_group.fixed_cast_only_if_available,
+                                                              e.cast_group.prefer_fixed_cast_events)
                 ) for e in events
             ])
             QMessageBox.critical(

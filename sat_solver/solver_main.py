@@ -1332,6 +1332,65 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
     # ============================================================================
     # NEU: Tracking für prefer_fixed_cast_events
     # ============================================================================
+    
+    def extract_person_uuids(fixed_cast_list: tuple | str) -> list[UUID]:
+        """
+        Extrahiert alle Person-UUIDs aus der verschachtelten fixed_cast Struktur.
+        
+        Args:
+            fixed_cast_list: Parsed fixed_cast_as_list (kann verschachtelt sein)
+        
+        Returns:
+            Liste aller Person-UUIDs (ohne Operatoren wie 'and', 'or')
+        """
+        if isinstance(fixed_cast_list, str):
+            # Einzelne UUID
+            return [UUID(fixed_cast_list)]
+        
+        # Tuple mit mehreren Elementen - sammle rekursiv alle UUIDs
+        result = []
+        for element in fixed_cast_list:
+            if isinstance(element, str):
+                # Überspringe Operatoren
+                if element not in ('and', 'or'):
+                    result.append(UUID(element))
+            else:
+                # Rekursiver Aufruf für verschachtelte Strukturen
+                result.extend(extract_person_uuids(element))
+        
+        return result
+    
+    def has_only_and_operators(fixed_cast_list: tuple | str) -> bool:
+        """
+        Prüft ob die fixed_cast Struktur ausschließlich AND-Operatoren enthält.
+        
+        Wenn nur AND-Operatoren vorhanden sind, können wir pro Person eine Penalty-Variable
+        erstellen. Bei OR-Operatoren ist die Semantik anders (mindestens einer muss besetzt sein),
+        daher verwenden wir in dem Fall die alte Event-basierte Logik.
+        
+        Args:
+            fixed_cast_list: Parsed fixed_cast_as_list (kann verschachtelt sein)
+        
+        Returns:
+            True wenn nur AND-Operatoren (oder keine Operatoren), False bei OR-Operatoren
+        """
+        if isinstance(fixed_cast_list, str):
+            # Einzelne UUID - kein Operator
+            return True
+        
+        # Prüfe alle Operatoren in der Struktur
+        for element in fixed_cast_list:
+            if isinstance(element, str):
+                if element == 'or':
+                    return False  # OR gefunden!
+                # 'and' ist ok, andere Strings sind UUIDs (ok)
+            else:
+                # Rekursiv in verschachtelte Strukturen
+                if not has_only_and_operators(element):
+                    return False
+        
+        return True
+    
     preference_vars = []
     
     for cast_group in entities.cast_groups_with_event.values():
@@ -1367,18 +1426,73 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
         if fixed_cast_as_list is None:
             continue  # Keine Preference wenn Event nicht besetzbar
         
-        # 4. Erstelle Preference-Variable (Penalty wenn Event NICHT gewählt)
-        penalty_var = model.NewIntVar(0, 1, 
-            f'Prefer: {cast_group.event.date:%d.%m.%y} '
-            f'({cast_group.event.time_of_day.name}), '
-            f'{cast_group.event.location_plan_period.location_of_work.name_an_city}'
-        )
+        # 4. NEU: Erstelle Preference-Variable basierend auf Operator-Typ
+        # TODO: Verbesserungspotential für komplexe OR-Logik
+        #
+        # AKTUELLES VERHALTEN:
+        # - Bei reinem AND (z.B. "uuid1 AND uuid2"): Pro Mitarbeiter 1 Penalty
+        #   → 2 Mitarbeiter nicht besetzt = 2 Penalties ✓
+        #
+        # - Bei OR-Operatoren (z.B. "uuid1 OR uuid2"): 1 Penalty pro Event
+        #   → Semantisch: "Mindestens einer muss besetzt sein"
+        #   → Aktuell: Event-basierte Penalty (entweder 0 oder 1)
+        #
+        # PROBLEM:
+        # - Komplexe Strukturen wie "((uuid1 AND uuid2) OR uuid3)" werden nicht optimal behandelt
+        # - Bei reinem OR: Unterscheidung nicht möglich zwischen "1 von 2 besetzt" vs "0 von 2 besetzt"
+        #
+        # MÖGLICHE VERBESSERUNG:
+        # - Rekursive Operator-Logik analog zu proof_recursive()
+        # - Zähle "erforderliche Mindestbesetzung" statt binär Event ja/nein
+        # - Beispiel: "(uuid1 AND uuid2) OR uuid3" → Min 1 Slot erforderlich, nicht 3 Personen
+        #
+        # AUFWAND: Hoch (komplexe rekursive Logik)
+        # NUTZEN: Gering (die meisten fixed_casts sind einfache ANDs)
+        # ENTSCHEIDUNG: Aktuell "gut genug" - bei Bedarf später erweitern
         
-        # penalty_var = 1 wenn Event NICHT ausgewählt (entities.event_group_vars[...] == 0)
-        # penalty_var = 0 wenn Event ausgewählt (entities.event_group_vars[...] == 1)
-        model.Add(penalty_var == 1 - entities.event_group_vars[event_group_id])
-        
-        preference_vars.append(penalty_var)
+        if has_only_and_operators(fixed_cast_as_list):
+            # Strategie A: Pro-Person Penalties (bei reinem AND)
+            # Extrahiere alle Person-UUIDs aus der verschachtelten Struktur
+            person_uuids = extract_person_uuids(fixed_cast_as_list)
+            
+            for person_uuid in person_uuids:
+                # Prüfe ob diese Person dem Event zugewiesen ist
+                is_assigned_var = check_pers_id_in_shift_vars(person_uuid, cast_group)
+                
+                # Erstelle Penalty-Variable: 1 wenn Mitarbeiter NICHT zugewiesen
+                person = next(
+                    (app.person for app in entities.actor_plan_periods.values() 
+                     if app.person.id == person_uuid),
+                    None
+                )
+                person_name = person.f_name if person else str(person_uuid)[:8]
+                
+                penalty_var = model.NewIntVar(0, 1, 
+                    f'Prefer: {cast_group.event.date:%d.%m.%y} '
+                    f'({cast_group.event.time_of_day.name}), '
+                    f'{cast_group.event.location_plan_period.location_of_work.name_an_city}, '
+                    f'{person_name}'
+                )
+                
+                # penalty_var = 1 wenn Mitarbeiter NICHT zugewiesen
+                # penalty_var = 0 wenn Mitarbeiter zugewiesen
+                model.Add(penalty_var == 1 - is_assigned_var)
+                
+                preference_vars.append(penalty_var)
+        else:
+            # Strategie B: Event-basierte Penalty (bei OR-Operatoren)
+            # Fallback auf alte Logik: 1 Penalty wenn Event nicht gewählt
+            penalty_var = model.NewIntVar(0, 1, 
+                f'Prefer: {cast_group.event.date:%d.%m.%y} '
+                f'({cast_group.event.time_of_day.name}), '
+                f'{cast_group.event.location_plan_period.location_of_work.name_an_city}'
+            )
+            
+            # penalty_var = 1 wenn Event NICHT ausgewählt (entities.event_group_vars[...] == 0)
+            # penalty_var = 0 wenn Event ausgewählt (entities.event_group_vars[...] == 1)
+            model.Add(penalty_var == 1 - entities.event_group_vars[event_group_id])
+            
+            preference_vars.append(penalty_var)
     
     # ============================================================================
 

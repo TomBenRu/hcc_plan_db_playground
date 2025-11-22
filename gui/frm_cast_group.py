@@ -845,14 +845,32 @@ class DlgGroupProperties(QDialog):
         """Aktiviert die Checkbox nur, wenn fixed_cast gesetzt ist
         und wenn in der übergeordneten EventGroup nr_event_groups < len(children) und nr_event_groups != None ist."""
         has_fixed_cast = bool(self.group.fixed_cast and self.group.fixed_cast.strip())
-        event = db_services.Event.get(self.group.event.id)
-        parent_event_group: schemas.EventGroup | None = event.event_group.event_group if self.group.event else None
         fewer_active_children_than_events = False
-        if parent_event_group:
-            children_with_event = db_services.EventGroup.get_child_groups_from__parent_group(parent_event_group.id)
-            fewer_active_children_than_events = ((parent_event_group.nr_event_groups < len(children_with_event))
-                                                 if parent_event_group.nr_event_groups else False)
+        # Jetzt folgt eine unschöne Implementierung, die aber funktional ist, um self.cb_prefer_fixed_cast_events zu
+        # aktivieren, falls die Events der Child-Groups einer übergeordneten EventGroup angehören, und falls die
+        # Anzahl der aktiven Events in der übergeordneten EventGroup kleiner als die Anzahl der Child-Groups ist.
+        if self.group.event:
+            event = db_services.Event.get(self.group.event.id)
+            parent_event_group: schemas.EventGroup | None = event.event_group.event_group if self.group.event else None
+            if parent_event_group:
+                children_with_event = db_services.EventGroup.get_child_groups_from__parent_group(parent_event_group.id)
+                fewer_active_children_than_events = ((parent_event_group.nr_event_groups < len(children_with_event))
+                                                     if parent_event_group.nr_event_groups else False)
+        elif self.group.child_groups:
+            event = db_services.Event.get(self.group.child_groups[0].event.id) if self.group.child_groups[0].event else None
+            if event:
+                parent_event_group: schemas.EventGroup | None = event.event_group.event_group
+                if parent_event_group:
+                    children_with_event = db_services.EventGroup.get_child_groups_from__parent_group(parent_event_group.id)
+                    fewer_active_children_than_events = ((parent_event_group.nr_event_groups < len(children_with_event))
+                                                         if parent_event_group.nr_event_groups else False)
+            else:
+                fewer_active_children_than_events = False
+        else:
+            fewer_active_children_than_events = True
+
         self.cb_prefer_fixed_cast_events.setEnabled(has_fixed_cast and fewer_active_children_than_events)
+
         if not has_fixed_cast:
             # Wenn kein fixed_cast vorhanden ist und prefer_fixed_cast_events noch True ist,
             # dann in der DB auf False setzen

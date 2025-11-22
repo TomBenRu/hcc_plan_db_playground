@@ -1274,18 +1274,24 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
         else:
             return create_var_or([proof_recursive(p_id, cast_group) for p_id in pers_ids])
 
-    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy', UUID('00000000-0000-0000-0000-000000000000')): model.NewBoolVar('')}
-    for cast_group in entities.cast_groups_with_event.values():
-        if not cast_group.fixed_cast:
-            continue
-
-        # String wird zu Python-Objekt umgewandelt:
+    def parse_and_filter_fixed_cast(cast_group: CastGroup) -> tuple | str | None:
+        """
+        Parsed fixed_cast String und filtert optional nicht verfügbare Personen.
+        
+        Args:
+            cast_group: CastGroup mit fixed_cast String
+        
+        Returns:
+            - Parsed fixed_cast_as_list wenn verfügbare Personen vorhanden
+            - None wenn keine Personen übrig bleiben (bei only_if_available)
+        """
+        # String wird zu Python-Objekt umgewandelt
         fixed_cast_as_list = literal_eval(cast_group.fixed_cast
-                                  .replace('and', ',"and",')
-                                  .replace('or', ',"or",')
-                                  .replace('in team', '')
-                                  .replace('UUID', ''))
-
+                              .replace('and', ',"and",')
+                              .replace('or', ',"or",')
+                              .replace('in team', '')
+                              .replace('UUID', ''))
+        
         # Wenn only_if_available aktiviert ist, filtere nicht verfügbare Personen
         if cast_group.fixed_cast_only_if_available:
             fixed_cast_as_list = filter_unavailable_persons(
@@ -1293,9 +1299,21 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
                 cast_group
             )
             
-            # Falls nach dem Filtern keine Personen übrig sind, überspringe Constraint
+            # Falls nach dem Filtern keine Personen übrig sind
             if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
-                continue
+                return None
+        
+        return fixed_cast_as_list
+
+    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy', UUID('00000000-0000-0000-0000-000000000000')): model.NewBoolVar('')}
+    for cast_group in entities.cast_groups_with_event.values():
+        if not cast_group.fixed_cast:
+            continue
+
+        # Parsed fixed_cast und filtere optional nicht verfügbare Personen
+        fixed_cast_as_list = parse_and_filter_fixed_cast(cast_group)
+        if fixed_cast_as_list is None:
+            continue
 
         text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast,
                                                                  cast_group.fixed_cast_only_if_available,
@@ -1345,23 +1363,9 @@ def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
             continue  # Alle Events werden ausgewählt → Preference irrelevant
         
         # 3. Verfügbarkeits-Prüfung (bei fixed_cast_only_if_available)
-        if cast_group.fixed_cast_only_if_available:
-            # String wird zu Python-Objekt umgewandelt
-            fixed_cast_as_list = literal_eval(cast_group.fixed_cast
-                                      .replace('and', ',"and",')
-                                      .replace('or', ',"or",')
-                                      .replace('in team', '')
-                                      .replace('UUID', ''))
-            
-            # Filtere nicht verfügbare Personen
-            fixed_cast_as_list = filter_unavailable_persons(
-                fixed_cast_as_list, 
-                cast_group
-            )
-            
-            # Falls nach dem Filtern keine Personen übrig sind
-            if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
-                continue  # Keine Preference wenn Event nicht besetzbar
+        fixed_cast_as_list = parse_and_filter_fixed_cast(cast_group)
+        if fixed_cast_as_list is None:
+            continue  # Keine Preference wenn Event nicht besetzbar
         
         # 4. Erstelle Preference-Variable (Penalty wenn Event NICHT gewählt)
         penalty_var = model.NewIntVar(0, 1, 
@@ -1533,7 +1537,8 @@ def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[
         )
         shift_deviation = model.new_int_var(-1000, 1000, f'abs_shirt_deviation_{app.person.f_name}')
         model.Add(shift_deviation == assigned_shifts_of_app - int(app.requested_assignments))
-
+        if app.requested_assignments < 0:
+            print(f'{app.requested_assignments=}')
         model.AddDivisionEquality(
             relative_shift_deviations[app.id],
             shift_deviation * 1_000,
@@ -1724,7 +1729,8 @@ def define_objective__max_shift_of_app(model: cp_model.CpModel,
     model.Add(sum(constraints_fixed_cast_conflicts.values()) == sum_fixed_cast_conflicts)
     model.Add(sum(skill_conflict_vars) == 0)
     model.Add(sum(list(unassigned_shifts_per_event.values())) == unassigned_shifts)
-    model.Add(sum(constraints_prefer_fixed_cast) == 0)  # Keine Preference-Penalty
+    # Preference-Constraints werden NICHT erzwungen bei max_shifts Berechnung
+    # (nur die Obergrenze finden, Preferences sind für finale Plan-Erstellung relevant)
     model.Maximize(max_shift_of_app * 100)
 
 

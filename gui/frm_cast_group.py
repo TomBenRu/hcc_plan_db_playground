@@ -599,6 +599,9 @@ class DlgGroupProperties(QDialog):
         self.lb_fixed_cast_warning = QLabel()
         self.lb_fixed_cast_warning.setObjectName('fixed_cast_warning')
         self.cb_prefer_fixed_cast_events = QCheckBox(self.tr('Prefer Events with Fixed Cast'))
+        self.cb_prefer_fixed_cast_events.setToolTip(
+            self.tr('If checked, events with a fixed cast are preferred over other events.\n'
+                    'Works best with non-nested casts.'))
         self.bt_correct_childs_fixed_cast = QPushButton(self.tr('Correct Fixed Cast of Child Elements'))
         self.menu_bt_correct_childs_fixed_cast = QMenu()
         self.bt_correct_childs_fixed_cast.setFixedWidth(370)

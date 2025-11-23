@@ -2363,7 +2363,8 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
     (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
      constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
      constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule) = create_constraints(model, True)
+     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+     constraints_prefer_fixed_cast) = create_constraints(model, True)
     set_test_plan_constraints(model, plan,
                               constraints_fixed_cast_conflicts, skill_conflict_vars)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)

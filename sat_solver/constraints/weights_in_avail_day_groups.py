@@ -9,7 +9,7 @@ from uuid import UUID
 from ortools.sat.python.cp_model import IntVar
 
 from sat_solver.constraints.base import ConstraintBase
-from sat_solver.solver_main import check_time_span_avail_day_fits_event
+from sat_solver.constraints.helpers import check_time_span_avail_day_fits_event
 
 
 class WeightsInAvailDayGroupsConstraint(ConstraintBase):

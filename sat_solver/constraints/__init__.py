@@ -23,6 +23,10 @@ from sat_solver.constraints.different_casts_same_day import DifferentCastsSameDa
 from sat_solver.constraints.rel_shift_deviations import RelShiftDeviationsConstraint
 from sat_solver.constraints.cast_rules import CastRulesConstraint
 from sat_solver.constraints.fixed_cast import FixedCastConstraint
+from sat_solver.constraints.helpers import (
+    check_actor_location_prefs_fits_event,
+    check_time_span_avail_day_fits_event,
+)
 
 __all__ = [
     'ConstraintBase',
@@ -42,4 +46,7 @@ __all__ = [
     'RelShiftDeviationsConstraint',
     'CastRulesConstraint',
     'FixedCastConstraint',
+    # Helper-Funktionen
+    'check_actor_location_prefs_fits_event',
+    'check_time_span_avail_day_fits_event',
 ]

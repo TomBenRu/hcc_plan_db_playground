@@ -1,101 +1,87 @@
 # sat_solver/constraints/example_usage.py
 """
-Beispiel für die Verwendung der neuen Constraint-Registry-Architektur.
+Beispiel für die Verwendung der Constraint-Registry-Architektur.
 
-Diese Datei zeigt, wie die neue Architektur in solver_main.py integriert werden kann.
-Sie ist NICHT für den Produktionseinsatz gedacht, sondern dient als Dokumentation
-und Referenz für das Refactoring.
+Diese Datei zeigt, wie die Registry-Architektur in solver_main.py verwendet wird.
+Sie dient als Dokumentation und Referenz.
 """
-
-from uuid import UUID
 
 from ortools.sat.python import cp_model
 
 from configuration.solver import curr_config_handler
-from sat_solver.constraints import ConstraintRegistry, LocationPrefsConstraint
+from sat_solver.constraints import (
+    ConstraintRegistry,
+    LocationPrefsConstraint,
+    EmployeeAvailabilityConstraint,
+    EventGroupsActivityConstraint,
+    AvailDayGroupsActivityConstraint,
+    NumShiftsInAvailDayGroupsConstraint,
+    PartnerLocationPrefsConstraint,
+    WeightsInAvailDayGroupsConstraint,
+    WeightsInEventGroupsConstraint,
+    SkillsConstraint,
+    UnsignedShiftsConstraint,
+    RequiredAvailDayGroupsConstraint,
+    DifferentCastsSameDayConstraint,
+    RelShiftDeviationsConstraint,
+    CastRulesConstraint,
+    FixedCastConstraint,
+)
 from sat_solver.constraints.registry import Entities
 
 
-def example_new_architecture():
+def example_registry_architecture():
     """
-    Zeigt die neue Architektur im Vergleich zur alten.
+    Zeigt die Registry-Architektur.
     
-    ALTE ARCHITEKTUR (solver_main.py):
-    ----------------------------------
-    
-    ```python
-    def create_constraints(model: cp_model.CpModel):
-        add_constraints_employee_availability(model)
-        add_constraints_event_groups_activity(model)
-        # ... viele weitere Aufrufe ...
-        constraints_location_prefs = add_constraints_location_prefs(model)
-        constraints_partner_loc_prefs = add_constraints_partner_location_prefs(model)
-        # ... noch mehr Aufrufe ...
-        
-        # Riesiges Tupel zurückgeben
-        return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-                constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-                constraints_location_prefs, constraints_partner_loc_prefs,
-                constraints_fixed_cast_conflicts, skill_conflict_vars, 
-                constraints_cast_rule, constraints_prefer_fixed_cast)
-    
-    def solve(...):
-        model = cp_model.CpModel()
-        create_vars(model, ...)
-        
-        # Unübersichtliches Tupel-Unpacking
-        (a, b, c, d, e, f, g, h, i, j, k) = create_constraints(model)
-        
-        # Manuelles Zusammenbauen der Objective-Funktion
-        define_objective_minimize(model, a, c, d, e, f, g, h, i, j, k)
-    ```
-    
-    
-    NEUE ARCHITEKTUR (mit Registry):
-    --------------------------------
+    ARCHITEKTUR (mit Registry):
+    ---------------------------
     
     ```python
-    def create_constraints(model: cp_model.CpModel, entities: Entities) -> ConstraintRegistry:
+    def _create_constraints_with_registry(model, creating_test_constraints=False):
+        # Imports
+        from sat_solver.constraints import ConstraintRegistry, ...
+        
+        # Registry erstellen
         registry = ConstraintRegistry(model, entities)
         
-        # Constraints registrieren (Reihenfolge kann wichtig sein)
+        # Alle 15 Constraints registrieren
         registry.register(EmployeeAvailabilityConstraint)
         registry.register(EventGroupsActivityConstraint)
         registry.register(AvailDayGroupsActivityConstraint)
-        registry.register(WeightsInAvailDayGroupsConstraint)
-        registry.register(WeightsInEventGroupsConstraint)
-        registry.register(LocationPrefsConstraint)
-        registry.register(PartnerLocationPrefsConstraint)
-        registry.register(CastRulesConstraint)
-        registry.register(FixedCastConstraint)
-        registry.register(SkillsConstraint)
-        registry.register(UnsignedShiftsConstraint)
-        registry.register(RelShiftDeviationsConstraint)
+        if not creating_test_constraints:
+            registry.register(RequiredAvailDayGroupsConstraint)
+        registry.register(NumShiftsInAvailDayGroupsConstraint)
+        
+        weights_adg = registry.register(WeightsInAvailDayGroupsConstraint)
+        location_prefs = registry.register(LocationPrefsConstraint)
+        partner_loc = registry.register(PartnerLocationPrefsConstraint)
+        unsigned = registry.register(UnsignedShiftsConstraint)
+        weights_eg = registry.register(WeightsInEventGroupsConstraint)
+        cast_rules = registry.register(CastRulesConstraint)
+        skills = registry.register(SkillsConstraint)
+        fixed_cast = registry.register(FixedCastConstraint)
+        
+        registry.register(DifferentCastsSameDayConstraint)
+        rel_deviations = registry.register(RelShiftDeviationsConstraint)
         
         # Alle Constraints anwenden
         registry.apply_all()
         
-        return registry
-    
-    def solve(...):
-        model = cp_model.CpModel()
-        entities = Entities()
-        
-        create_data_models(entities, ...)
-        create_vars(model, entities, ...)
-        
-        # Saubere API
-        registry = create_constraints(model, entities)
-        
-        # Automatische Objective-Berechnung
-        model.Minimize(registry.get_total_weighted_penalty())
-        
-        # Solver ausführen
-        solver = cp_model.CpSolver()
-        status = solver.Solve(model)
-        
-        # Einfaches Debugging
-        registry.log_penalty_summary(solver)
+        # Ergebnisse extrahieren für API-Kompatibilität
+        return (
+            unsigned.unassigned_shifts_per_event,
+            rel_deviations.sum_assigned_shifts,
+            rel_deviations.sum_squared_deviations,
+            weights_adg.penalty_vars,
+            weights_eg.penalty_vars,
+            location_prefs.penalty_vars,
+            partner_loc.penalty_vars,
+            fixed_cast.fixed_cast_vars,
+            skills.penalty_vars,
+            cast_rules.penalty_vars,
+            fixed_cast.preference_vars,
+        )
     ```
     """
     pass
@@ -103,7 +89,7 @@ def example_new_architecture():
 
 def demo_registry_usage():
     """
-    Lauffähiges Demo der neuen Registry-Architektur.
+    Lauffähiges Demo der Registry-Architektur.
     
     HINWEIS: Dies ist ein vereinfachtes Beispiel. In der echten Implementierung
     müssen die Entities mit echten Daten gefüllt werden.
@@ -116,11 +102,22 @@ def demo_registry_usage():
     config = curr_config_handler.get_solver_config()
     registry = ConstraintRegistry(model, entities, config)
     
-    # 3. Constraints registrieren
-    location_prefs = registry.register(LocationPrefsConstraint)
-    # registry.register(PartnerLocationPrefsConstraint)  # Noch nicht implementiert
-    # registry.register(FixedCastConstraint)             # Noch nicht implementiert
-    # ... weitere Constraints ...
+    # 3. Alle 15 Constraints registrieren
+    registry.register(EmployeeAvailabilityConstraint)
+    registry.register(EventGroupsActivityConstraint)
+    registry.register(AvailDayGroupsActivityConstraint)
+    registry.register(RequiredAvailDayGroupsConstraint)
+    registry.register(NumShiftsInAvailDayGroupsConstraint)
+    registry.register(WeightsInAvailDayGroupsConstraint)
+    registry.register(LocationPrefsConstraint)
+    registry.register(PartnerLocationPrefsConstraint)
+    registry.register(UnsignedShiftsConstraint)
+    registry.register(WeightsInEventGroupsConstraint)
+    registry.register(CastRulesConstraint)
+    registry.register(SkillsConstraint)
+    registry.register(FixedCastConstraint)
+    registry.register(DifferentCastsSameDayConstraint)
+    registry.register(RelShiftDeviationsConstraint)
     
     # 4. Alle Constraints anwenden
     # HINWEIS: Würde fehlschlagen ohne echte Daten in entities
@@ -138,14 +135,13 @@ def demo_registry_usage():
     
     print("Registry erstellt:", registry)
     print("Registrierte Constraints:", [c.name for c in registry.constraints])
-    print("Location Prefs Weight:", location_prefs.get_weight())
 
 
 def demo_adding_new_constraint():
     """
     Zeigt wie einfach es ist, ein neues Constraint hinzuzufügen.
     
-    Mit der neuen Architektur:
+    Mit der Registry-Architektur:
     1. Neue Klasse erstellen die von ConstraintBase erbt
     2. name und weight_attribute definieren
     3. apply() implementieren
@@ -186,6 +182,34 @@ def demo_adding_new_constraint():
     print("Neues Constraint registriert!")
 
 
+def list_all_constraints():
+    """Listet alle 15 verfügbaren Constraint-Klassen auf."""
+    constraints = [
+        ("EmployeeAvailabilityConstraint", "Hard", "Mitarbeiter-Verfügbarkeit"),
+        ("EventGroupsActivityConstraint", "Hard", "Event-Gruppen-Aktivität"),
+        ("AvailDayGroupsActivityConstraint", "Hard", "Verfügbarkeitstag-Gruppen-Aktivität"),
+        ("RequiredAvailDayGroupsConstraint", "Hard", "Erforderliche Verfügbarkeitstag-Gruppen"),
+        ("NumShiftsInAvailDayGroupsConstraint", "Hard", "Schichten in Verfügbarkeitstag-Gruppen"),
+        ("WeightsInAvailDayGroupsConstraint", "Soft", "Gewichtungen in Verfügbarkeitstag-Gruppen"),
+        ("LocationPrefsConstraint", "Soft", "Standort-Präferenzen"),
+        ("PartnerLocationPrefsConstraint", "Soft", "Partner-Standort-Präferenzen"),
+        ("UnsignedShiftsConstraint", "Soft", "Unbesetzte Schichten"),
+        ("WeightsInEventGroupsConstraint", "Soft", "Gewichtungen in Event-Gruppen"),
+        ("CastRulesConstraint", "Soft/Hard", "Besetzungsregeln"),
+        ("SkillsConstraint", "Soft", "Fähigkeiten"),
+        ("FixedCastConstraint", "Hard+Soft", "Feste Besetzungen"),
+        ("DifferentCastsSameDayConstraint", "Hard", "Verschiedene Besetzungen am selben Tag"),
+        ("RelShiftDeviationsConstraint", "Soft", "Relative Schichtabweichungen (Fairness)"),
+    ]
+    
+    print("\n" + "=" * 70)
+    print("Alle 15 Constraint-Klassen:")
+    print("=" * 70)
+    for i, (name, typ, beschreibung) in enumerate(constraints, 1):
+        print(f"  {i:2}. {name:<40} [{typ:<9}] - {beschreibung}")
+    print("=" * 70)
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Demo: Registry Usage")
@@ -196,3 +220,5 @@ if __name__ == "__main__":
     print("Demo: Adding New Constraint")
     print("=" * 60)
     demo_adding_new_constraint()
+    
+    list_all_constraints()

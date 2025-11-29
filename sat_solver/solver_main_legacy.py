@@ -55,12 +55,6 @@ from sat_solver.event_group_tree import (get_event_group_tree, EventGroupTree, E
                                          get_combined_event_group_tree)
 from tools.helper_functions import generate_fixed_cast_clear_text, date_to_string
 
-# Hilfsfunktionen aus constraints.helpers (ausgelagert zur Vermeidung von Circular Imports)
-from sat_solver.constraints.helpers import (
-    check_actor_location_prefs_fits_event,
-    check_time_span_avail_day_fits_event,
-)
-
 cp_sat_logger = logging.getLogger(__name__)
 handler = logging.FileHandler(os.path.join(curr_user_path_handler.get_config().log_file_path, 'cp-sat-solver.log'))
 custom_format = logging.Formatter('')
@@ -267,6 +261,31 @@ def generate_adjusted_requested_assignments_multi_period(assigned_shifts_per_per
     return fair_assignments
 
 
+def check_actor_location_prefs_fits_event(avail_day: schemas.AvailDayShow,
+                                          location_of_work: schemas.LocationOfWork) -> bool:
+    """Prüft, ob die actor_location_prefs des avail_days die location_of_work des Events zulassen."""
+    if found_alf := next((alf for alf in avail_day.actor_location_prefs_defaults
+                          if alf.location_of_work.id == location_of_work.id), None):
+        if found_alf.score == 0:
+            return False
+    return True
+
+
+def check_time_span_avail_day_fits_event(
+        event: schemas.Event, avail_day: schemas.AvailDay, only_time_index: bool = True) -> bool:
+    """Prüft, ob der Zeitraum des avail_days den Zeitraum des Events enthält."""
+    if only_time_index:
+        return (
+            avail_day.date == event.date
+            and avail_day.time_of_day.time_of_day_enum.time_index
+            == event.time_of_day.time_of_day_enum.time_index
+        )
+    else:
+        return (
+            avail_day.date == event.date
+            and avail_day.time_of_day.start <= event.time_of_day.start
+            and avail_day.time_of_day.end >= event.time_of_day.end
+        )
 
 
 class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
@@ -521,6 +540,1198 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, avail
     # print(f'{sum(entities.shifts_exclusive.values())=}')
 
 
+def add_constraints_employee_availability(model: cp_model.CpModel):
+    # todo: shift_vars können schon bei der Variablenerstellung ausgeschlossen werden, falls die unten angegebene
+    #  Bedingung nicht erfüllt ist.
+
+    for key, val in entities.shifts_exclusive.items():
+        if not val:
+            model.Add(entities.shift_vars[key] == 0)
+    return
+
+
+def add_constraints_event_groups_activity(model: cp_model.CpModel):
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
+    wie in der Parent-Event-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    """
+    for event_group_id, event_group in entities.event_groups.items():
+        if not event_group.children:
+            continue
+        nr_of_active_children = (event_group.nr_of_active_children
+                                 or len([c for c in event_group.children if c.children or c.event]))
+        child_vars = [entities.event_group_vars[c.event_group_id] for c in event_group.children if
+                      c.children or c.event]
+        # Wenn es sich bei der Event-Group um eine Root-Event-Group handelt, ist diese garantiert aktiv.
+        if event_group.is_root:
+            model.Add(sum(child_vars) == nr_of_active_children)
+        # Wenn es sich um eine Child-Event-Group handelt, ist diese eventuell nicht aktiv.
+        # In diesem Fall sollen keine aktiven existieren.
+        else:
+            model.Add(sum(child_vars) == nr_of_active_children * entities.event_group_vars[event_group_id])
+
+
+def add_constraints_weights_in_event_groups(model: cp_model.CpModel) -> list[IntVar]:
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass die Child-Event-Groups mit den höheren Gewichtungen
+    bevorzugt werden. Die Werte von weight_vars werden im Solver minimiert.
+    Bei tiefer geschachtelten Event-Groups werden die Parent-Groups bevorzugt deren ausgewählte Children
+    ein insgesamt höheres weight haben, wenn die Parent-Groups gleiches weight haben.
+    not_sure: Überlegenswert ist eine alternative Implementierung wie bei 'add_constraints_weights_in_avail_day_groups'.
+      Dies entspräche allerdings nicht der Nutzerlogik. Der Nutzer geht vermutlich davon aus, dass übergeordnete Gruppen
+      eine höhere Relevanz haben.
+    """
+
+    multiplier_level = (curr_config_handler.get_solver_config()
+                        .constraints_multipliers.group_depth_weights_event_groups)
+    multiplier_weights = (curr_config_handler.get_solver_config()
+                          .constraints_multipliers.sliders_weights_event_groups)
+
+    def calculate_weight_vars_of_children_recursive(event_group: EventGroup, depth: int) -> list[IntVar]:
+        weight_vars: list[IntVar] = []
+        if event_group.nr_of_active_children is not None:
+            if (children := event_group.children) and (event_group.nr_of_active_children < len(event_group.children)):
+                children: list[EventGroup]
+                for c in children:
+                    # Das angepasste weight der Child-Event-Group wird berechnet:
+                    adjusted_weight = multiplier_weights[c.weight]
+
+                    event_group_var = entities.event_group_vars[c.event_group_id]
+                    weight_vars.append(
+                        model.NewIntVar(min(multiplier_weights.values()) * max(multiplier_level.values()),
+                                        max(multiplier_weights.values()) * max(multiplier_level.values()),
+                                        f'Depth {depth}, no Event' if c.event is None
+                                        else f'Depth {depth}, Event: {c.event.date:%d.%m.%y}, '
+                                             f'{c.event.time_of_day.name}, '
+                                             f'{c.event.location_plan_period.location_of_work.name}')
+                    )
+                    model.Add(weight_vars[-1] == (event_group_var * adjusted_weight * multiplier_level.get(depth, 1)))
+        for c in event_group.children:
+            weight_vars.extend(calculate_weight_vars_of_children_recursive(c, depth + 1))
+
+        return weight_vars
+
+    root_event_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
+
+    return calculate_weight_vars_of_children_recursive(
+        root_event_group, 1 if root_event_group.root_is_location_plan_period_master_group else 0)
+
+
+def add_constraints_weights_in_event_groups_alternative_implementation(model: cp_model.CpModel) -> list[IntVar]:
+    multiplier_weights = (curr_config_handler.get_solver_config()
+                          .constraints_multipliers.sliders_weights_event_groups)
+
+    def calculate_weight_vars_of_children_recursive(group: EventGroup,
+                                                    cumulative_adjusted_weight: int = 0) -> list[IntVar]:
+        weight_vars: list[IntVar] = []
+        for c in group.children:
+            c: EventGroup
+            if c.event:
+                # Es wird kein IntVar erstellt, wenn kein Einsatz dieses Events möglich ist:
+                if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
+                           if evg_id == c.event_group_id
+                              and check_time_span_avail_day_fits_event(
+                    entities.event_groups_with_event[evg_id].event,
+                    entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
+                    continue
+                # für die fehlenden Level wird jew. die Gewichtung 1 (default: 0) gesetzt:
+                adjusted_weight = (max_depth - c.depth) * multiplier_weights[1] + multiplier_weights[c.weight]
+                weight_vars.append(
+                    model.NewIntVar(-100, 100000,
+                                    f'Depth {group.depth}, Event: {c.event.date:%d.%m.%y}, '
+                                    f'{c.event.time_of_day.name}, '
+                                    f'{c.event.location_plan_period.location_of_work.name_an_city}')
+                )
+                # stelle fest, ob doe zugehörige Event-Group aktiv ist:
+                model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight)
+                                              * entities.event_group_vars[c.event_group_id]))
+            else:
+                adjusted_weight = multiplier_weights[c.weight]
+                weight_vars.extend(
+                    calculate_weight_vars_of_children_recursive(c,
+                                                                cumulative_adjusted_weight + adjusted_weight))
+        return weight_vars
+
+    root_group = next(eg for eg in entities.event_groups.values() if not eg.parent)
+    max_depth = (max(node.depth for node in entities.event_groups.values())
+                 - (1 if root_group.root_is_location_plan_period_master_group else 0))
+
+    if root_group.root_is_location_plan_period_master_group:
+        all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
+    else:
+        all_weight_vars = sum((calculate_weight_vars_of_children_recursive(lpp_master_group)
+                               for lpp_master_group in root_group.children), [])
+
+    return all_weight_vars
+
+
+def add_constraints_avail_day_groups_activity(model: cp_model.CpModel):
+    """
+    Fügt Constraints hinzu, um sicherzustellen, dass nur so viele Child-Event-Groups aktiv sind,
+    wie in der Parent-Avail-Day-Group mit dem Parameter 'nr_of_active_children' angegeben ist.
+    """
+
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
+        if not avail_day_group.children:
+            continue
+        nr_of_active_children = (avail_day_group.nr_of_active_children
+                                 or len([c for c in avail_day_group.children if c.children or c.avail_day]))
+        child_vars = (entities.avail_day_group_vars[c.avail_day_group_id] for c in avail_day_group.children
+                      if c.children or c.avail_day)
+        # Wenn es sich bei der Avail-Day-Group um eine Root-Avail-Day-Group handelt, ist diese garantiert aktiv.
+        if avail_day_group.is_root:
+            model.Add(sum(child_vars) == nr_of_active_children)
+        # Wenn es sich um eine Child-Avail-Day-Group handelt, ist diese eventuell nicht aktiv.
+        # In diesem Fall sollen keine aktiven existieren.
+        else:
+            model.Add(sum(child_vars) == nr_of_active_children * entities.avail_day_group_vars[avail_day_group_id])
+
+
+def add_constraints_required_avail_day_groups(model: cp_model.CpModel):
+    """
+    Falls die Parent-Avail-Day-Group eine Required-Avail-Day-Group hat, wird eine
+    zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in required_avail_day_groups
+    geplant werden oder gar keine Schichten geplant werden.
+    """
+
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups.items():
+        if required := avail_day_group.required_avail_day_groups:
+            # Erstelle die Binärvariable y über NewBoolVar.
+            y = model.NewBoolVar("y")
+
+            # Definiere die Summe der Schichtvariablen.
+            shift_sum = sum(
+                shift_var
+                for (adg_id, evg_id), shift_var in entities.shift_vars.items()
+                if adg_id in [a.avail_day_group_id for a in avail_day_group.children]
+                and (entities.event_groups_with_event[evg_id].event.location_plan_period.location_of_work.id
+                in {l.id for l in required.locations_of_work} if required.locations_of_work else True)
+            )
+
+            # Füge eine Nebenbedingung hinzu, die sicherstellt,
+            # dass shift_sum entweder 0 oder required.num_avail_day_groups ist.
+            # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = required.
+            model.Add(shift_sum == required.num_avail_day_groups * y)
+
+
+def add_constraints_num_shifts_in_avail_day_groups(model: cp_model.CpModel):
+    """
+        Wenn die BoolVar einer avail_day_group mit avail_day wegen Einschränkungen durch nr_avail_day_groups
+        auf False gesetzt ist (siehe Funktion add_constraints_avail_day_groups_activity()), müssen auch die zugehörigen
+        BoolVars der shifts auf False gesetzt sein.
+        Der Unterschied zu nr_event_groups ist, dass nr_event_groups angibt wie viele Event-Groups innerhalb einer
+        Event-Group stattfinden müssen, während nr_avail_day_groups angibt, wie viele Avail-Day-Groups innerhalb einer
+        Avail-Day-Group maximal stattfinden können.
+        Daher diese Constraints.
+    """
+    for (adg_id, event_group_id), shift_var in entities.shift_vars.items():
+        model.AddMultiplicationEquality(0, [shift_var, entities.avail_day_group_vars[adg_id].Not()])
+
+
+def add_constraints_weights_in_avail_day_groups(model: cp_model.CpModel) -> list[IntVar]:
+    """
+        Fügt Constraints hinzu, um sicherzustellen, dass Child-Avail-Day-Groups mit höherer Gewichtung bevorzugt werden.
+        Die justierten Gewichtungen werden jeweils zu den nächsten Child-Groups durchgereicht, wo sie zu den
+        Gewichtungen dieser Child-Groups addiert werden. Falls eine Child-Avail-Day-Group ein Avail-Day besitzt, wird
+        diese kumulierte Gewichtung als Constraint hinzugefügt.
+        Um Verfälschungen durch Level-Verstärkungen zu vermeiden, wenn die Zweige des Gruppenbaums
+        unterschiedliche Tiefen haben, werden die Constraints stets so berechnet, als befänden sich die
+        Avail-Day-Groups mit Avail-Days auf der untersten Stufe.
+        Falls nr_of_active_children < len(children), wird ebenso die kumulierte Gewichtung der Avail-Day-Group mit
+        Avail-Day gesetzt, falls der dazugehörige Event stattfindet.
+        not_sure: Überlegen, ob es sinnvoll ist, eine alternative Implementierung wie bei
+          'add_constraints_weights_in_event_groups' zu verwenden. Dies entspräche unter Umständen eher der Nutzerlogik.
+          Der Nutzer geht vermutlich davon aus, dass übergeordnete Gruppen
+          eine höhere Relevanz haben.
+    """
+
+    multiplier_weights = (curr_config_handler.get_solver_config()
+                              .constraints_multipliers.sliders_weights_avail_day_groups)
+    shift_vars_of_adg_ids: defaultdict[UUID, list] = defaultdict(list)
+
+    def calculate_weight_vars_of_children_recursive(group: AvailDayGroup,
+                                                    cumulative_adjusted_weight: int = 0) -> list[IntVar]:
+        weight_vars: list[IntVar] = []
+        for c in group.children:
+            if c.avail_day:
+                # Es wird kein IntVar erstellt, wenn kein Einsatz dieses AvalDays möglich ist:
+                if not sum(val for (adg_id, evg_id), val in entities.shifts_exclusive.items()
+                           if adg_id == c.avail_day_group_id
+                           and check_time_span_avail_day_fits_event(
+                               entities.event_groups_with_event[evg_id].event,
+                               entities.avail_day_groups_with_avail_day[adg_id].avail_day)):
+                    continue
+                # für die fehlenden Level wird jew. die Gewichtung 1 (default: 0) gesetzt:
+                adjusted_weight = (max_depth - c.depth) * multiplier_weights[1] + multiplier_weights[c.weight]
+                weight_vars.append(
+                    model.NewIntVar(-100, 100000,
+                                    f'Depth {group.depth}, AvailDay: {c.avail_day.date:%d.%m.%y}, '
+                                    f'{c.avail_day.time_of_day.name}, '
+                                    f'{c.avail_day.actor_plan_period.person.f_name}')
+                )
+                # stelle fest, ob ein zugehöriges Event stattfindet:
+                adg_has_shifts = model.NewBoolVar('')
+                model.Add(adg_has_shifts == sum(shift_vars_of_adg_ids[c.avail_day_group_id]))
+                model.Add(weight_vars[-1] == ((cumulative_adjusted_weight + adjusted_weight) * adg_has_shifts))
+            else:
+                adjusted_weight = multiplier_weights[c.weight]
+                weight_vars.extend(
+                    calculate_weight_vars_of_children_recursive(c,
+                                                                cumulative_adjusted_weight + adjusted_weight))
+        return weight_vars
+
+    root_group = next(eg for eg in entities.avail_day_groups.values() if not eg.parent)
+    max_depth = (max(node.depth for node in entities.avail_day_groups.values())
+                 - (1 if root_group.group_is_actor_plan_period_master_group else 0))
+
+    for (adg_id, _), bool_var in entities.shift_vars.items():
+        shift_vars_of_adg_ids[adg_id].append(bool_var)
+
+    if root_group.group_is_actor_plan_period_master_group:
+        all_weight_vars = calculate_weight_vars_of_children_recursive(root_group)
+    else:
+        all_weight_vars = sum((calculate_weight_vars_of_children_recursive(app_master_group)
+                               for app_master_group in root_group.children), [])
+
+    return all_weight_vars
+
+
+def add_constraints_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
+    # todo: Schleifen können vermutlich vereinfacht werden, indem zuerst über entities.shift_vars iteriert wird.
+    loc_pref_vars = []
+
+    multiplier_slider = curr_config_handler.get_solver_config().constraints_multipliers.sliders_location_prefs
+
+    event_data = {
+        (
+            event_group.event.date,
+            event_group.event.time_of_day.time_of_day_enum.time_index,
+            event_group.event.location_plan_period.location_of_work.id
+        ): (eg_id, event_group)
+        for eg_id, event_group in entities.event_groups_with_event.items()
+    }
+
+    for avail_day_group_id, avail_day_group in entities.avail_day_groups_with_avail_day.items():
+        avail_day = avail_day_group.avail_day
+        for loc_pref in [alp for alp in avail_day_group.avail_day.actor_location_prefs_defaults if not alp.prep_delete]:
+            eg_id__event_group = event_data.get(
+                (avail_day.date, avail_day.time_of_day.time_of_day_enum.time_index, loc_pref.location_of_work.id))
+            if not eg_id__event_group:
+                continue
+            eg_id, event_group = eg_id__event_group
+            shift_var = entities.shift_vars[(avail_day_group_id, eg_id)]
+            event = event_group.event
+
+            if loc_pref.score == 0:
+                model.add(shift_var == 0)
+                continue
+            loc_pref_vars.append(
+                model.NewIntVar(
+                    multiplier_slider[2],
+                    multiplier_slider[0.5],
+                    f'{event.date:%d.%m.%Y} ({event.time_of_day.name}), '
+                    f'{event.location_plan_period.location_of_work.name}: '
+                    f'{avail_day.actor_plan_period.person.f_name}'))
+
+            model.AddMultiplicationEquality(
+                loc_pref_vars[-1],
+                [
+                    shift_var,
+                    entities.event_group_vars[eg_id],
+                    multiplier_slider[loc_pref.score]
+                ]
+            )
+
+    return loc_pref_vars
+
+
+def add_constraints_partner_location_prefs(model: cp_model.CpModel) -> list[IntVar]:
+    plp_constr_multipliers = curr_config_handler.get_solver_config().constraints_multipliers.sliders_partner_loc_prefs
+
+    partner_loc_pref_vars: list[IntVar] = []
+
+    for eg_id, event_group in entities.event_groups_with_event.items():
+        if event_group.event.cast_group.nr_actors < 2:
+            continue
+        # Get all AvailDayGroups with the same date and time of day
+        avail_day_groups = (adg for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                            if entities.shifts_exclusive[adg_id, eg_id])
+        # Get all combinations of possible AvailDayGroups for this event
+        duo_combs = itertools.combinations(avail_day_groups, 2)
+        for combo in duo_combs:
+            combo: tuple[AvailDayGroup, AvailDayGroup]
+            # Only add constraint if there is at least one partner with partner_location_preference...
+            if not any(len(adg.avail_day.actor_partner_location_prefs_defaults) for adg in combo):
+                continue
+            # ...and if the partners are not the same...
+            if combo[0].avail_day.actor_plan_period.id == combo[1].avail_day.actor_plan_period.id:
+                continue
+            partner_loc_pref_vars.append(
+                model.NewIntVar(
+                    plp_constr_multipliers[2] * 2, plp_constr_multipliers[0] * 2,
+                    f'{event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name}), '
+                    f'{event_group.event.location_plan_period.location_of_work.name} '
+                    f'{combo[0].avail_day.actor_plan_period.person.f_name} + '
+                    f'{combo[1].avail_day.actor_plan_period.person.f_name}')
+            )
+
+            # Kalkuliere die Scores der Partner-Location-Pref-Variablen. Falls keine Variable mit dem Partner und der
+            # entsprechenden Location existiert, ist der Score 1.
+            score_0 = next((plp.score for plp in combo[0].avail_day.actor_partner_location_prefs_defaults
+                            if plp.partner.id == combo[1].avail_day.actor_plan_period.person.id
+                            and plp.location_of_work.id == event_group.event.location_plan_period.location_of_work.id),
+                           1)
+            score_1 = next((plp.score for plp in combo[1].avail_day.actor_partner_location_prefs_defaults
+                            if plp.partner.id == combo[0].avail_day.actor_plan_period.person.id
+                            and plp.location_of_work.id == event_group.event.location_plan_period.location_of_work.id),
+                           1)
+
+            # Intermediate variables that allow the calculation of the Partner-Location-Pref variable based on the
+            # Shift variables and Event-Group variable:
+            plp_weight_var = model.NewIntVar(plp_constr_multipliers[2] * 2, plp_constr_multipliers[0] * 2, '')
+            shift_active_var = model.NewBoolVar('')  # 1, wenn alle Personen der Combo besetzt sind, sonst 0
+            all_active_var = model.NewBoolVar('')  # 1, wenn zudem das Event stattfindet, sonst 0
+
+            # not_sure: plp_weight_var wird hier mit der anvisierten Besetzungsstärke ermittelt,
+            #  sollte aber vielleicht mit der tatsächlichen Besetzungsstärke ermittelt werden...
+            #  Nachteil davon: Mitarbeiter werden nicht besetzt, wenn bei einem Mitarbeiter die Partner-Location-Pref 0
+            #  ist und die aktuelle Besetzungsstärke 2 ist, obwohl durch nachträgliche Bearbeitung des Plans die
+            #  Besetzungsstärke größer als 2 sein könnte.
+            model.Add(plp_weight_var == round(
+                (plp_constr_multipliers[score_0] + plp_constr_multipliers[score_1]) /
+                (event_group.event.cast_group.nr_actors - 1))
+                      )
+
+            model.AddMultiplicationEquality(shift_active_var,
+                                            [entities.shift_vars[(combo[0].avail_day_group_id, eg_id)],
+                                             entities.shift_vars[(combo[1].avail_day_group_id, eg_id)]])
+            model.AddMultiplicationEquality(all_active_var, [shift_active_var, entities.event_group_vars[eg_id]])
+            model.AddMultiplicationEquality(partner_loc_pref_vars[-1], [plp_weight_var, all_active_var])
+
+            # Falls eine der Personen absolut nicht mit der anderen Person besetzt werden soll
+            # und die Besetzungsstärke 2 ist, wird nur 1 dieser Personen besetzt:
+            exclusive = 0 if (score_0 and score_1) or event_group.event.cast_group.nr_actors >= 3 else 1
+            model.Add(entities.shift_vars[(combo[0].avail_day_group_id, eg_id)]
+                      + entities.shift_vars[(combo[1].avail_day_group_id, eg_id)] < 2).OnlyEnforceIf(exclusive)
+
+    return partner_loc_pref_vars
+
+
+def add_constraints_cast_rules(model: cp_model.CpModel) -> list[IntVar]:
+    """
+    Erstellt Cast-Regel-Constraints für den SAT-Solver.
+
+    Implementiert Regeln für Event-Besetzungen:
+    - Different Cast ("-"): Events müssen mit verschiedenen Mitarbeitern besetzt sein
+    - Same Cast ("~"): Events müssen mit den gleichen Mitarbeitern besetzt sein
+    - No Rule ("*"): Keine Besetzungsregel
+
+    Args:
+        model: Das CP-SAT Model für Constraint-Erstellung
+
+    Returns:
+        Liste der Constraint-Variablen für gebrochene Regeln (bei strict_rule_pref == 1)
+
+    TODO: Anpassen für den Fall, dass nr_actors in Event Group < als len(children).
+          Könnte man lösen, indem der Index der 1. aktiven Gruppe in einer Variablen
+          abgelegt wird und die Besetzung dieser Gruppe als Referenz genommen wird.
+    TODO: Bisher nur Cast Groups auf Level 1 berücksichtigt
+    """
+
+    def different_cast(event_group_1: schemas.EventGroup, event_group_2: schemas.EventGroup,
+                       strict_rule_pref: int) -> list[IntVar]:
+        """
+        Implementiert "Different Cast" Regel - Events müssen verschiedene Besetzung haben.
+
+        Für jeden Mitarbeiter: Maximal eine Schicht in einer der beiden Event Groups.
+
+        Args:
+            event_group_1: Erste Event Group für Vergleich
+            event_group_2: Zweite Event Group für Vergleich
+            strict_rule_pref: Regel-Strenge (0=keine, 1=soft, 2=hart)
+
+        Returns:
+            Liste der Broken-Rule-Variablen (nur bei strict_rule_pref == 1)
+        """
+        broken_rules_vars: list[IntVar] = []
+
+        for app_id, actor_plan_period in entities.actor_plan_periods.items():
+            # Sammle alle relevanten Schicht-Variablen für beide Event Groups
+            shift_vars = {(adg_id, eg_id): var for (adg_id, eg_id), var in entities.shift_vars.items()
+                          if eg_id in {event_group_1.id, event_group_2.id}
+                          and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                          and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date
+                          in {event_group_1.event.date, event_group_2.event.date}
+                          and entities.shifts_exclusive[(adg_id, eg_id)]}
+
+            if strict_rule_pref == 2:
+                # Harte Regel: Mitarbeiter kann maximal in einer Event Group arbeiten
+                model.Add(sum(shift_vars.values()) <= 1)
+            elif strict_rule_pref == 1:
+                # Weiche Regel: Erstelle Variable für Regelverstoß
+                name_var = (f'{event_group_1.event.date:%d.%m.} + {event_group_2.event.date:%d.%m.}, '
+                            f'{event_group_1.event.location_plan_period.location_of_work.name}, '
+                            f'{actor_plan_period.person.f_name}')
+                equal_to_two = model.NewBoolVar(name_var)
+                model.AddMaxEquality(equal_to_two, [sum(shift_vars.values()) - 1, 0])
+                broken_rules_vars.append(equal_to_two)
+
+        return broken_rules_vars
+
+    def same_cast(cast_group_1: CastGroup, cast_group_2: CastGroup, strict_rule_pref: int) -> list[IntVar]:
+        """
+        Implementiert "Same Cast" Regel - Events müssen mit gleichen Mitarbeitern besetzt sein.
+
+        Falls die Events unterschiedliche Anzahl an Mitarbeitern haben, müssen alle
+        Mitarbeiter des Events mit der kleineren Besetzung auch im Event mit der
+        größeren Besetzung vorkommen.
+
+        Args:
+            cast_group_1: Erste Cast Group für Vergleich
+            cast_group_2: Zweite Cast Group für Vergleich
+            strict_rule_pref: Regel-Strenge (0=keine, 1=soft, 2=hart)
+
+        Returns:
+            Liste der Broken-Rule-Variablen (nur bei strict_rule_pref == 1)
+        """
+        broken_rules_vars: list[IntVar] = []
+
+        event_group_1_id = cast_group_1.event.event_group.id
+        event_group_2_id = cast_group_2.event.event_group.id
+
+        # Erstelle Boolean-Arrays für tatsächliche Schicht-Zuweisungen
+        applied_shifts_1: list[IntVar] = [
+            model.NewBoolVar(f'{cast_group_1.event.date:%d.%m.}: {app.person.f_name}')
+            for app in entities.actor_plan_periods.values()
+        ]
+        applied_shifts_2: list[IntVar] = [
+            model.NewBoolVar(f'{cast_group_2.event.date:%d.%m.}: {app.person.f_name}')
+            for app in entities.actor_plan_periods.values()
+        ]
+
+        # Speichere für Debug-Zwecke in solver_variables
+        solver_variables.cast_rules.applied_shifts_1.append(applied_shifts_1)
+        solver_variables.cast_rules.applied_shifts_2.append(applied_shifts_2)
+
+        # Verknüpfe Boolean-Arrays mit tatsächlichen Schicht-Variablen
+        for i, (app_id, app) in enumerate(entities.actor_plan_periods.items()):
+            # Finde Schicht-Variable für Event 1
+            shift_var_1 = next((v for (adg_id, eg_id), v in entities.shift_vars.items()
+                                if eg_id == event_group_1_id
+                                and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                                and entities.shifts_exclusive[(adg_id, eg_id)]), 0)
+            # Finde Schicht-Variable für Event 2
+            shift_var_2 = next((v for (adg_id, eg_id), v in entities.shift_vars.items()
+                                if eg_id == event_group_2_id
+                                and entities.avail_day_groups[adg_id].avail_day.actor_plan_period.id == app_id
+                                and entities.shifts_exclusive[(adg_id, eg_id)]), 0)
+
+            model.Add(applied_shifts_1[i] == shift_var_1)
+            model.Add(applied_shifts_2[i] == shift_var_2)
+
+        # Berechne Unterschiede zwischen den Besetzungen (XOR-Logic)
+        curr_is_unequal: list[IntVar] = []
+
+        for i, app in enumerate(entities.actor_plan_periods.values()):
+            curr_is_unequal.append(
+                model.NewBoolVar(f'{cast_group_1.event.date:%d.%m.}: {app.person.f_name}')
+            )
+            # Hilfsvariable für XOR-Implementierung
+            factor = model.NewIntVar(0, 1, '')
+            # XOR-Bedingung: unterschiedlich wenn genau einer der beiden true ist
+            model.Add(applied_shifts_1[i] + applied_shifts_2[i] == curr_is_unequal[-1] + 2 * factor)
+
+        solver_variables.cast_rules.is_unequal.extend(curr_is_unequal)
+
+        if strict_rule_pref == 2:
+            # Harte Regel: Anzahl Unterschiede <= erlaubte Differenz
+            (model.Add(sum(curr_is_unequal) <= abs(cast_group_1.nr_actors - cast_group_2.nr_actors))
+             .OnlyEnforceIf([entities.event_group_vars[event_group_1_id],
+                             entities.event_group_vars[event_group_2_id]]))
+            return broken_rules_vars
+        elif strict_rule_pref == 1:
+            # Weiche Regel: Erstelle Variable für Regelverstoß
+            max_diff = cast_group_1.nr_actors + cast_group_2.nr_actors
+            broken_rules_var = model.NewIntVar(0, max_diff,
+                                               f'{cast_group_1.event.date:%d.%m.} + '
+                                               f'{cast_group_2.event.date:%d.%m.}, '
+                                               f'{cast_group_1.event.location_plan_period.location_of_work.name}')
+            # Zwischenvariable für Berechnung
+            intermediate = model.NewIntVar(0, max_diff, '')
+            (model.Add(intermediate == (sum(curr_is_unequal) -
+                                        abs(cast_group_1.nr_actors - cast_group_2.nr_actors)))
+             .OnlyEnforceIf([entities.event_group_vars[event_group_1_id],
+                             entities.event_group_vars[event_group_2_id]]))
+            model.AddDivisionEquality(broken_rules_var, intermediate, 2)
+            broken_rules_vars.append(broken_rules_var)
+            return broken_rules_vars
+        elif strict_rule_pref == 0:
+            # Keine Regel aktiv
+            return broken_rules_vars
+        else:
+            raise ValueError(f'Unbekannte strict_rule_pref: {strict_rule_pref}')
+
+    # Hauptlogik der Funktion
+    constraints_cast_rule: list[IntVar] = []
+
+    # Sammle alle Cast Groups auf Level 1, gruppiert nach Parent
+    cast_groups_level_1 = collections.defaultdict(list)
+    for cast_group in entities.cast_groups_with_event.values():
+        cast_groups_level_1[cast_group.parent.cast_group_id].append(cast_group)
+
+    # Sortiere Cast Groups chronologisch für konsistente Reihenfolge
+    for cast_groups in cast_groups_level_1.values():
+        cast_groups.sort(key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index))
+
+    # Verarbeite jede Cast Group Hierarchie
+    for cg_id, cast_groups in cast_groups_level_1.items():
+        cast_groups: list[CastGroup]
+        parent = entities.cast_groups[cg_id]
+
+        # Überspringe wenn keine Regel definiert oder inaktiv
+        if not (rule := parent.cast_rule) or parent.strict_rule_pref == 0:
+            continue
+
+        # Wende Regeln auf aufeinanderfolgende Cast Groups an
+        for idx in range(len(cast_groups) - 1):
+            event_group_1 = cast_groups[idx].event.event_group
+            event_group_2 = cast_groups[idx + 1].event.event_group
+
+            # Regel-Symbol aus zyklischem Pattern ermitteln
+            if rule[idx % len(rule)] == '-':
+                # Different Cast Regel anwenden
+                constraints_cast_rule.extend(different_cast(event_group_1, event_group_2,
+                                                            parent.strict_rule_pref))
+            elif rule[idx % len(rule)] == '~':
+                # Same Cast Regel anwenden
+                constraints_cast_rule.extend(same_cast(cast_groups[idx], cast_groups[idx + 1],
+                                                       parent.strict_rule_pref))
+            elif rule[idx % len(rule)] == '*':
+                # Keine Regel - überspringen
+                continue
+            else:
+                raise ValueError(f'unknown rule symbol: {rule}')
+
+    return constraints_cast_rule
+
+
+def filter_unavailable_persons(
+    fixed_cast_list: tuple | str, 
+    cast_group: CastGroup
+) -> tuple | str | None:
+    """
+    Entfernt nicht verfügbare Personen aus der fixed_cast Liste.
+    
+    Args:
+        fixed_cast_list: Die geparste fixed_cast Liste (verschachtelte Struktur)
+        cast_group: Die CastGroup mit Event-Informationen
+    
+    Returns:
+        Gefilterte Liste oder None wenn keine Person verfügbar ist
+    """
+    if isinstance(fixed_cast_list, str):
+        # Einzelne Person - prüfe Verfügbarkeit
+        person_id = UUID(fixed_cast_list)
+        if is_person_available_for_event(person_id, cast_group):
+            return fixed_cast_list
+        else:
+            return None
+    
+    # Liste mit Operatoren - rekursiv filtern
+    result = []
+    for i, element in enumerate(fixed_cast_list):
+        if i % 2 == 0:  # Person oder verschachtelte Liste
+            filtered = filter_unavailable_persons(element, cast_group)
+            if filtered is not None:
+                result.append(filtered)
+        else:  # Operator
+            # Operator nur hinzufügen wenn vorher und nachher Elemente existieren
+            if result and i + 1 < len(fixed_cast_list):
+                result.append(element)
+    
+    # Bereinige: Entferne trailing Operatoren
+    while result and isinstance(result[-1], str) and result[-1] in ('and', 'or'):
+        result.pop()
+    
+    # Bereinige: Entferne leading Operatoren  
+    while result and isinstance(result[0], str) and result[0] in ('and', 'or'):
+        result.pop(0)
+
+    return tuple(result) if len(result) > 1 else result[0] if result else None
+
+
+def is_person_available_for_event(person_id: UUID, cast_group: CastGroup) -> bool:
+    """
+    Prüft, ob eine Person für ein spezifisches Event verfügbar ist.
+    
+    Args:
+        person_id: UUID der Person
+        cast_group: CastGroup mit Event-Informationen
+    
+    Returns:
+        True, wenn Person verfügbar ist, sonst False
+    """
+    if cast_group.nr_actors == 0:
+        return False
+    event = cast_group.event
+    event_group_id = event.event_group.id
+
+    available = next(
+        (bool(val) for (adg_id, eg_id), val in entities.shifts_exclusive.items()
+         if eg_id == event_group_id
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date == event.date
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.time_of_day.time_of_day_enum.time_index
+         == event.time_of_day.time_of_day_enum.time_index),
+        False
+    )
+
+    return available
+
+    pass
+
+    # der folgende Code ist deprecated, da im Ergebnis äquivalent zu dem Code oben
+    if cast_group.nr_actors == 0:
+        return False
+    event = cast_group.event
+    event_group_id = event.event_group.id
+    
+    # Prüfe ob es shift_vars gibt für diese Person an diesem Tag/Event
+    for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+        if eg_id != event_group_id:
+            continue
+        
+        avail_day_group = entities.avail_day_groups_with_avail_day.get(adg_id)
+        if not avail_day_group:
+            continue
+            
+        # Prüfe Person, Datum und ob die Kombination möglich ist (shifts_exclusive)
+        if (avail_day_group.avail_day.actor_plan_period.person.id == person_id
+            and avail_day_group.avail_day.date == event.date
+            and entities.shifts_exclusive.get((adg_id, eg_id), 0) == 1):
+            return True
+    
+    return False
+
+
+def is_empty_list(fixed_cast_list: tuple | str | None) -> bool:
+    """
+    Prüft ob eine fixed_cast Liste leer ist (rekursiv).
+    """
+    if fixed_cast_list is None:
+        return True
+    if isinstance(fixed_cast_list, str):
+        return False
+    if not fixed_cast_list:
+        return True
+    
+    # Prüfe ob alle Elemente leer sind
+    for element in fixed_cast_list:
+        if isinstance(element, str) and element in ('and', 'or'):
+            continue  # Operatoren überspringen
+        if not is_empty_list(element):
+            return False
+    
+    return True
+
+
+def add_constraints_fixed_cast(model: cp_model.CpModel) -> tuple[
+    dict[tuple[datetime.date, str, UUID], IntVar],
+    list[IntVar]
+]:
+    # todo: funktioniert bislang nur für CastGroups mit Event
+    
+    def check_pers_id_in_shift_vars(pers_id: UUID, cast_group: CastGroup) -> IntVar:
+        var = model.NewBoolVar('')
+        model.Add(var == sum(shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
+                             if eg_id == cast_group.event.event_group.id
+                             and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id
+                             == pers_id))
+        return var
+
+    def create_var_and(var_list: list[IntVar]) -> IntVar:
+        var = model.NewBoolVar('')
+        model.AddMultiplicationEquality(var, var_list)
+        return var
+
+    def create_var_or(var_list: list[IntVar]) -> IntVar:
+        var = model.NewBoolVar('')
+        model.Add(var == sum(var_list))
+        return var
+
+    def proof_recursive(fixed_cast_list: tuple | str, cast_group: CastGroup) -> IntVar:
+        if isinstance(fixed_cast_list, str):
+            return check_pers_id_in_shift_vars(UUID(fixed_cast_list), cast_group)
+        pers_ids = [v for i, v in enumerate(fixed_cast_list) if not i % 2]
+        operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]
+        if any(o != operators[0] for o in operators):
+            raise Exception('Alle Operatoren müssen gleich sein!')  # sourcery skip: raise-specific-error
+        else:
+            operator = operators[0]
+
+        if operator == 'and':
+            return create_var_and([proof_recursive(p_id, cast_group) for p_id in pers_ids])
+        else:
+            return create_var_or([proof_recursive(p_id, cast_group) for p_id in pers_ids])
+
+    def parse_and_filter_fixed_cast(cast_group: CastGroup) -> tuple | str | None:
+        """
+        Parsed fixed_cast String und filtert optional nicht verfügbare Personen.
+        
+        Args:
+            cast_group: CastGroup mit fixed_cast String
+        
+        Returns:
+            - Parsed fixed_cast_as_list wenn verfügbare Personen vorhanden
+            - None wenn keine Personen übrig bleiben (bei only_if_available)
+        """
+        # String wird zu Python-Objekt umgewandelt
+        fixed_cast_as_list = literal_eval(cast_group.fixed_cast
+                              .replace('and', ',"and",')
+                              .replace('or', ',"or",')
+                              .replace('in team', '')
+                              .replace('UUID', ''))
+        
+        # Wenn only_if_available aktiviert ist, filtere nicht verfügbare Personen
+        if cast_group.fixed_cast_only_if_available:
+            fixed_cast_as_list = filter_unavailable_persons(
+                fixed_cast_as_list, 
+                cast_group
+            )
+            
+            # Falls nach dem Filtern keine Personen übrig sind
+            if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
+                return None
+        
+        return fixed_cast_as_list
+
+    fixed_cast_vars = {(datetime.date(1999, 1, 1), 'dummy', UUID('00000000-0000-0000-0000-000000000000')): model.NewBoolVar('')}
+    for cast_group in entities.cast_groups_with_event.values():
+        if not cast_group.fixed_cast:
+            continue
+
+        # Parsed fixed_cast und filtere optional nicht verfügbare Personen
+        fixed_cast_as_list = parse_and_filter_fixed_cast(cast_group)
+        if fixed_cast_as_list is None:
+            continue
+
+        text_fixed_cast_persons = generate_fixed_cast_clear_text(cast_group.fixed_cast,
+                                                                 cast_group.fixed_cast_only_if_available,
+                                                                 cast_group.prefer_fixed_cast_events)
+        text_fixed_cast_var = (f'Datum: {cast_group.event.date: %d.%m.%y} ({cast_group.event.time_of_day.name})\n'
+                               f'Ort: {cast_group.event.location_plan_period.location_of_work.name_an_city}\n'
+                               f'Besetzung: {text_fixed_cast_persons}')
+
+        fixed_cast_vars[key := (cast_group.event.date, cast_group.event.time_of_day.name, cast_group.event.id)] = (
+            model.NewBoolVar(text_fixed_cast_var)
+        )
+
+        (model.Add(fixed_cast_vars[key] == proof_recursive(fixed_cast_as_list, cast_group).Not())
+         .OnlyEnforceIf(entities.event_group_vars[cast_group.event.event_group.id]))
+
+    # ============================================================================
+    # NEU: Tracking für prefer_fixed_cast_events
+    # ============================================================================
+    
+    def extract_person_uuids(fixed_cast_list: tuple | str) -> list[UUID]:
+        """
+        Extrahiert alle Person-UUIDs aus der verschachtelten fixed_cast Struktur.
+        
+        Args:
+            fixed_cast_list: Parsed fixed_cast_as_list (kann verschachtelt sein)
+        
+        Returns:
+            Liste aller Person-UUIDs (ohne Operatoren wie 'and', 'or')
+        """
+        if isinstance(fixed_cast_list, str):
+            # Einzelne UUID
+            return [UUID(fixed_cast_list)]
+        
+        # Tuple mit mehreren Elementen - sammle rekursiv alle UUIDs
+        result = []
+        for element in fixed_cast_list:
+            if isinstance(element, str):
+                # Überspringe Operatoren
+                if element not in ('and', 'or'):
+                    result.append(UUID(element))
+            else:
+                # Rekursiver Aufruf für verschachtelte Strukturen
+                result.extend(extract_person_uuids(element))
+        
+        return result
+    
+    def has_only_and_operators(fixed_cast_list: tuple | str) -> bool:
+        """
+        Prüft ob die fixed_cast Struktur ausschließlich AND-Operatoren enthält.
+        
+        Wenn nur AND-Operatoren vorhanden sind, können wir pro Person eine Penalty-Variable
+        erstellen. Bei OR-Operatoren ist die Semantik anders (mindestens einer muss besetzt sein),
+        daher verwenden wir in dem Fall die alte Event-basierte Logik.
+        
+        Args:
+            fixed_cast_list: Parsed fixed_cast_as_list (kann verschachtelt sein)
+        
+        Returns:
+            True wenn nur AND-Operatoren (oder keine Operatoren), False bei OR-Operatoren
+        """
+        if isinstance(fixed_cast_list, str):
+            # Einzelne UUID - kein Operator
+            return True
+        
+        # Prüfe alle Operatoren in der Struktur
+        for element in fixed_cast_list:
+            if isinstance(element, str):
+                if element == 'or':
+                    return False  # OR gefunden!
+                # 'and' ist ok, andere Strings sind UUIDs (ok)
+            else:
+                # Rekursiv in verschachtelte Strukturen
+                if not has_only_and_operators(element):
+                    return False
+        
+        return True
+    
+    preference_vars = []
+    
+    print("\n" + "="*80)
+    print("DEBUG: prefer_fixed_cast_events - Penalty-Variablen werden erstellt")
+    print("="*80)
+    
+    for cast_group in entities.cast_groups_with_event.values():
+        # 1. Grundvoraussetzungen prüfen
+        if not (cast_group.fixed_cast and cast_group.prefer_fixed_cast_events):
+            continue
+        
+        print(f"\nEvent gefunden: {cast_group.event.date:%d.%m.%y} "
+              f"({cast_group.event.time_of_day.name}), "
+              f"{cast_group.event.location_plan_period.location_of_work.name_an_city}")
+        
+        # 2. Relevanz-Prüfung: Ist Preference überhaupt relevant?
+        parent_cast_group = cast_group.parent
+        if not parent_cast_group:
+            print("     ✗ Übersprungen: Keine Parent-Group (keine Auswahl)")
+            continue  # Keine Parent-Group → keine Auswahl → Preference irrelevant
+        
+        # Hole die zugehörige EventGroup
+        event_group_id = cast_group.event.event_group.id
+        event_group = entities.event_groups_with_event.get(event_group_id)
+        if not event_group or not event_group.parent:
+            print("     ✗ Übersprungen: Keine Parent EventGroup")
+            continue  # Keine Parent EventGroup → Preference irrelevant
+        
+        parent_event_group = event_group.parent
+        
+        # Prüfe ob Parent überhaupt eine Auswahl trifft
+        nr_of_active_children = parent_event_group.nr_of_active_children
+        if nr_of_active_children is None:
+            print("     ✗ Übersprungen: Alle Children werden ausgewählt (nr_of_active_children=None)")
+            continue  # Alle Children werden ausgewählt → Preference irrelevant
+        
+        # Zähle die Children der Parent-Group die Events haben
+        children_with_event = [c for c in parent_event_group.children if c.event]
+        if nr_of_active_children >= len(children_with_event):
+            print(f"     ✗ Übersprungen: Alle Events werden ausgewählt "
+                  f"(nr_of_active_children={nr_of_active_children} >= "
+                  f"children_with_event={len(children_with_event)})")
+            continue  # Alle Events werden ausgewählt → Preference irrelevant
+        
+        # 3. Verfügbarkeits-Prüfung (bei fixed_cast_only_if_available)
+        fixed_cast_as_list = parse_and_filter_fixed_cast(cast_group)
+        if fixed_cast_as_list is None:
+            print("     ✗ Übersprungen: Event nicht besetzbar (keine verfügbaren Personen)")
+            continue  # Keine Preference wenn Event nicht besetzbar
+        
+        print(f"     ✓ Relevanz-Check bestanden! nr_of_active_children={nr_of_active_children}, "
+              f"children_with_event={len(children_with_event)}")
+        
+        # 4. NEU: Erstelle Preference-Variable basierend auf Operator-Typ
+        # TODO: Verbesserungspotential für komplexe OR-Logik
+        #
+        # AKTUELLES VERHALTEN:
+        # - Bei reinem AND (z.B. "uuid1 AND uuid2"): Pro Mitarbeiter 1 Penalty
+        #   → 2 Mitarbeiter nicht besetzt = 2 Penalties ✓
+        #
+        # - Bei OR-Operatoren (z.B. "uuid1 OR uuid2"): 1 Penalty pro Event
+        #   → Semantisch: "Mindestens einer muss besetzt sein"
+        #   → Aktuell: Event-basierte Penalty (entweder 0 oder 1)
+        #
+        # PROBLEM:
+        # - Komplexe Strukturen wie "((uuid1 AND uuid2) OR uuid3)" werden nicht optimal behandelt
+        # - Bei reinem OR: Unterscheidung nicht möglich zwischen "1 von 2 besetzt" vs "0 von 2 besetzt"
+        #
+        # MÖGLICHE VERBESSERUNG:
+        # - Rekursive Operator-Logik analog zu proof_recursive()
+        # - Zähle "erforderliche Mindestbesetzung" statt binär Event ja/nein
+        # - Beispiel: "(uuid1 AND uuid2) OR uuid3" → Min 1 Slot erforderlich, nicht 3 Personen
+        #
+        # AUFWAND: Hoch (komplexe rekursive Logik)
+        # NUTZEN: Gering (die meisten fixed_casts sind einfache ANDs)
+        # ENTSCHEIDUNG: Aktuell "gut genug" - bei Bedarf später erweitern
+        
+        if has_only_and_operators(fixed_cast_as_list):
+            # Strategie A: Pro-Person Penalties (bei reinem AND)
+            print(f"     📊 Strategie A: Pro-Person Penalties (nur AND-Operatoren)")
+            
+            # Extrahiere alle Person-UUIDs aus der verschachtelten Struktur
+            person_uuids = extract_person_uuids(fixed_cast_as_list)
+            print(f"        Anzahl Personen in fixed_cast: {len(person_uuids)}")
+            
+            for idx, person_uuid in enumerate(person_uuids, 1):
+                # Prüfe ob diese Person dem Event zugewiesen ist
+                is_assigned_var = check_pers_id_in_shift_vars(person_uuid, cast_group)
+                
+                # Erstelle Penalty-Variable: 1 wenn Mitarbeiter NICHT zugewiesen
+                person = next(
+                    (app.person for app in entities.actor_plan_periods.values() 
+                     if app.person.id == person_uuid),
+                    None
+                )
+                person_name = person.f_name if person else str(person_uuid)[:8]
+                
+                penalty_var = model.NewIntVar(0, 1, 
+                    f'Prefer: {cast_group.event.date:%d.%m.%y} '
+                    f'({cast_group.event.time_of_day.name}), '
+                    f'{cast_group.event.location_plan_period.location_of_work.name_an_city}, '
+                    f'{person_name}'
+                )
+                
+                # penalty_var = 1 wenn Mitarbeiter NICHT zugewiesen
+                # penalty_var = 0 wenn Mitarbeiter zugewiesen
+                model.Add(penalty_var == 1 - is_assigned_var)
+                
+                preference_vars.append(penalty_var)
+                print(f"        [{idx}/{len(person_uuids)}] Penalty-Variable erstellt für: {person_name}")
+        else:
+            # Strategie B: Event-basierte Penalty (bei OR-Operatoren)
+            print(f"     📊 Strategie B: Event-basierte Penalty (enthält OR-Operatoren)")
+            
+            # Fallback auf alte Logik: 1 Penalty wenn Event nicht gewählt
+            penalty_var = model.NewIntVar(0, 1, 
+                f'Prefer: {cast_group.event.date:%d.%m.%y} '
+                f'({cast_group.event.time_of_day.name}), '
+                f'{cast_group.event.location_plan_period.location_of_work.name_an_city}'
+            )
+            
+            # penalty_var = 1 wenn Event NICHT ausgewählt (entities.event_group_vars[...] == 0)
+            # penalty_var = 0 wenn Event ausgewählt (entities.event_group_vars[...] == 1)
+            model.Add(penalty_var == 1 - entities.event_group_vars[event_group_id])
+            
+            preference_vars.append(penalty_var)
+            print(f"        [1/1] Event-basierte Penalty-Variable erstellt")
+    
+    # ============================================================================
+    
+    print("\n" + "="*80)
+    print(f"DEBUG: Zusammenfassung prefer_fixed_cast_events")
+    print(f"  Gesamtanzahl Penalty-Variablen erstellt: {len(preference_vars)}")
+    print("="*80 + "\n")
+
+    return fixed_cast_vars, preference_vars
+
+
+def add_constraints_skills(model: cp_model.CpModel) -> list[IntVar]:
+    skill_conflict_vars = []
+
+    for eg_id, event_group in entities.event_groups_with_event.items():
+        if not event_group.event.skill_groups:
+            continue
+
+        for skill_group in event_group.event.skill_groups:
+            skill = skill_group.skill
+            #  Summe aller zugewiesenen avail_day_groups mit dem skill muss
+            #  >= min(geforderten Anzahl der Mitarbeiter mit Skill, Besetzungsstärke)
+            num_employees_with_skill = min(skill_group.nr_actors, event_group.event.cast_group.nr_actors)
+            skill_conflict_vars.append(
+                model.NewIntVar(
+                    -10, 10,
+                    f'Datum: {event_group.event.date:%d.%m.%y} ({event_group.event.time_of_day.name})\n'
+                    f'Ort: {event_group.event.location_plan_period.location_of_work.name_an_city}\n'
+                    f'benötigt: {num_employees_with_skill} Mitarbeiter mit Fertigkeit "{skill.name}"')
+            )
+            num_fulfilled_cond = (sum(entities.shift_vars[(adg_id, eg_id)]
+                                       for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+                                       if skill in adg.avail_day.skills))
+
+            # Differenz der Anzahl der Mitarbeiter mit Skill und der geforderten Anzahl
+            # wird der Variablen zugewiesen:
+            model.AddMaxEquality(
+                skill_conflict_vars[-1], [0, num_employees_with_skill - num_fulfilled_cond]
+            )
+
+    return skill_conflict_vars
+
+
+def add_constraints_unsigned_shifts(model: cp_model.CpModel) -> dict[UUID, IntVar]:
+    unassigned_shifts_per_event = {
+        event_group_id: model.NewIntVar(
+            0, max(evg.event.cast_group.nr_actors
+                   for evg in entities.event_groups_with_event.values()), f'unassigned {event_group.event.date}'
+        )
+        for event_group_id, event_group in entities.event_groups_with_event.items()}
+
+    for event_group_id, event_group in entities.event_groups_with_event.items():
+        # Summe aller zugewiesenen Freelancer zum Event:
+        num_assigned_employees = sum(
+            entities.shift_vars[(adg_id, event_group_id)] for adg_id in entities.avail_day_groups_with_avail_day
+        )
+        # Summe der zugewiesenen Freelancer muss kleiner oder gleich der einzusetzenden Mitarbeiter sein, falls
+        # wenn das Event stattfindet (über add_constraints_event_groups_activity wird das eingeschränkt):
+        model.Add(
+            num_assigned_employees <= (entities.event_group_vars[event_group.event_group_id]
+                                       * event_group.event.cast_group.nr_actors)
+        )
+        # Variablen für unsigned shifts werden erstellt. Wenn die zum Event zugehörige EventGroup nicht stattfindet,
+        # werden die unassigned_shifts_per_event durch Multiplikation mit der EventGroup-Variablen 0.:
+        model.Add(unassigned_shifts_per_event[event_group_id] == (
+                entities.event_group_vars[event_group.event_group_id] * event_group.event.cast_group.nr_actors
+                - num_assigned_employees))
+    return unassigned_shifts_per_event
+
+
+def add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model: cp_model.CpModel):
+    """Besetzungen von Events an unterschiedlichen Locations welche am gleichen Tag stattfinden müssen unterschiedlich
+       sein.
+       Ausnahme, wenn CombinationLocationsPossible für die jeweiligen Events festgelegt wurden.
+       todo: Diese Funktionalität soll deaktiviert werden können: Entweder über Configuration oder durch zusätzliche
+        Felder in Projekt und Team.
+    """
+
+    def comb_locations_possible(adg_id_1: UUID, eg_id_1: UUID, adg_id_2: UUID, eg_id_2: UUID) -> bool:
+        """
+            Stellt fest, ob combination_locations_possibles bei den AvailDays existieren und diese zu den Locations der
+            Events passen.
+        """
+        avail_day_group_1 = entities.avail_day_groups_with_avail_day[adg_id_1]
+        avail_day_group_2 = entities.avail_day_groups_with_avail_day[adg_id_2]
+        event_1 = entities.event_groups_with_event[eg_id_1].event
+        event_2 = entities.event_groups_with_event[eg_id_2].event
+        start_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.start)
+        end_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.end)
+        start_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.start)
+        end_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.end)
+        time_diff = start_1 - end_2 if start_1 > end_2 else start_2 - end_1
+        location_1_id = entities.event_groups_with_event[eg_id_1].event.location_plan_period.location_of_work.id
+        location_2_id = entities.event_groups_with_event[eg_id_2].event.location_plan_period.location_of_work.id
+
+        clp_1 = next((clp for clp in avail_day_group_1.avail_day.combination_locations_possibles
+                      if location_1_id in [loc.id for loc in clp.locations_of_work]
+                      and location_2_id in [loc.id for loc in clp.locations_of_work]
+                      and not clp.prep_delete), None)
+
+        clp_2 = next((clp for clp in avail_day_group_2.avail_day.combination_locations_possibles
+                      if location_1_id in [loc.id for loc in clp.locations_of_work]
+                      and location_2_id in [loc.id for loc in clp.locations_of_work]
+                      and not clp.prep_delete), None)
+
+        return clp_1 and clp_2 and time_diff >= max(clp_1.time_span_between, clp_2.time_span_between)
+
+    # erstellt ein defaultdict [date[actor_plan_period_id[location_id[list[tuple[tuple[adg_id, eg_id], shift_var]]]]]
+    dict_date_shift_var: defaultdict[datetime.date, defaultdict[UUID, defaultdict[UUID, list[tuple[tuple[UUID, UUID], IntVar]]]]] = (
+        defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
+    for (adg_id, eg_id), shift_var in entities.shift_vars.items():
+        if not entities.shifts_exclusive[(adg_id, eg_id)]:
+            continue
+        date = entities.event_groups_with_event[eg_id].event.date
+        # if ((date := entities.event_groups_with_event[eg_id].event.date)
+        #         != entities.avail_day_groups_with_avail_day[adg_id].avail_day.date):
+        #     continue
+        actor_plan_period_id = entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.id
+        location_id = entities.event_groups_with_event[eg_id].event.location_plan_period.location_of_work.id
+        dict_date_shift_var[date][actor_plan_period_id][location_id].append(((adg_id, eg_id), shift_var))
+
+    # erstellt Constraints
+    for date, dict_actor_plan_period_id in dict_date_shift_var.items():
+        for actor_plan_period_id, dict_location_id in dict_actor_plan_period_id.items():
+            if len(dict_location_id) > 1:
+                for loc_pair in itertools.combinations(list(dict_location_id.values()), 2):
+                    for var_pair in itertools.product(*loc_pair):
+                        if not comb_locations_possible(var_pair[0][0][0], var_pair[0][0][1],
+                                                       var_pair[1][0][0], var_pair[1][0][1]):
+                            model.Add(sum(v[1] for v in var_pair) <= 1)
+
+
+def add_constraints_rel_shift_deviations(model: cp_model.CpModel) -> tuple[dict[UUID, IntVar], IntVar]:
+    # Create a lists to represent the sums of assigned shifts and the relative shift deviations for each actor_plan_period.
+    sum_assigned_shifts = {
+        app.id: model.NewIntVar(lb=0, ub=1000, name=f'sum_assigned_shifts {app.person.f_name}')
+        for app in entities.actor_plan_periods.values()
+    }
+    relative_shift_deviations = {
+        app.id: model.NewIntVar(
+            lb=-len(entities.event_groups_with_event) * 1_000_000,
+            ub=len(entities.event_groups_with_event) * 1_000_000,
+            name=f'relative_shift_deviation_{app.person.f_name}'
+        )
+        for app in entities.actor_plan_periods.values()
+    }
+
+    # Add a constraint for each actor_plan_period,
+    # that the relative shift deviation is equal to (requested shifts - actual shifts) / requested shifts.
+    for app in entities.actor_plan_periods.values():
+        assigned_shifts_of_app = sum(
+            sum(
+                entities.shift_vars[(adg_id, evg_id)]
+                for evg_id in entities.event_groups_with_event
+            )
+            for adg_id, adg in entities.avail_day_groups_with_avail_day.items()
+            if adg.avail_day.actor_plan_period.id == app.id
+        )
+        model.AddAbsEquality(
+            sum_assigned_shifts[app.id], assigned_shifts_of_app
+        )
+        shift_deviation = model.new_int_var(-1000, 1000, f'abs_shirt_deviation_{app.person.f_name}')
+        model.Add(shift_deviation == assigned_shifts_of_app - int(app.requested_assignments))
+        if app.requested_assignments < 0:
+            print(f'{app.requested_assignments=}')
+        model.AddDivisionEquality(
+            relative_shift_deviations[app.id],
+            shift_deviation * 1_000,
+            int(app.requested_assignments * 10) if app.requested_assignments else 1)
+
+    sum_requested_assignments = sum(app.requested_assignments for app in entities.actor_plan_periods.values()) or 0.1
+    # Calculate the sum of all assigned shifts
+    sum_assigned_shifts_sum = model.NewIntVar(0, 10000, "sum_assigned_shifts_sum")
+    model.Add(sum_assigned_shifts_sum == sum(sum_assigned_shifts.values()))
+
+    # Compute the difference term
+    diff = model.NewIntVar(-10000, 10000, "difference_term")
+    model.Add(diff == sum_assigned_shifts_sum - int(sum_requested_assignments))
+
+    # Scale the difference by 1000
+    scaled_diff = model.NewIntVar(-10_000_000, 10_000_000, "scaled_difference")
+    model.AddMultiplicationEquality(scaled_diff, [diff, 1000])
+
+    # Define the division term
+    average_relative_shift_deviation = model.NewIntVar(-10_000_000, 10_000_000, "average_relative_shift_deviation")
+    model.AddDivisionEquality(average_relative_shift_deviation, scaled_diff, int(sum_requested_assignments) * 10)
+
+    # Create a list to represent the squared deviations from the average for each actor_plan_period.
+    squared_deviations = {
+        app.id: model.NewIntVar(lb=0,
+                                ub=(len(entities.event_groups_with_event) * 1_000_000) ** 2,
+                                name=f'squared_deviation_{app.person.f_name}')
+        for app in entities.actor_plan_periods.values()
+    }
+
+    # Add a constraint for each actor_plan_period,
+    # that the squared deviation is equal to (relative shift deviation - average)^2.
+    dif_average__relative_shift_deviations = {}
+    for app in entities.actor_plan_periods.values():
+        dif_average__relative_shift_deviations[app.id] = model.NewIntVar(
+            lb=0, ub=1_000_000, name=f'dif_average__relative_shift_deviation {app.id}')
+        model.AddAbsEquality(dif_average__relative_shift_deviations[app.id],
+                             relative_shift_deviations[app.id] - average_relative_shift_deviation)
+
+        model.AddMultiplicationEquality(
+            squared_deviations[app.id],
+            [dif_average__relative_shift_deviations[app.id], dif_average__relative_shift_deviations[app.id]])
+
+    # Add a constraint that the sum_squared_deviations is equal to the sum(squared_deviations).
+    sum_squared_deviations = model.NewIntVar(lb=0, ub=1_000_000_000, name='sum_squared_deviations')
+    model.AddAbsEquality(sum_squared_deviations, sum(squared_deviations.values()))
+
+    return sum_assigned_shifts, sum_squared_deviations
+
 
 def add_constraint_requested_assignments_multi_period(model: cp_model.CpModel):
     """
@@ -546,98 +1757,61 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID):
     return max_shifts_of_app
 
 
-
 def create_constraints(model: cp_model.CpModel, creating_test_constraints: bool = False) -> tuple[dict[UUID, IntVar],
                                                          dict[UUID, IntVar], IntVar, list[IntVar],
                                                          list[IntVar], list[IntVar], list[IntVar],
                                                          dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar],
                                                          list[IntVar], list[IntVar]]:
-    """
-    Erstellt alle Solver-Constraints mit der Registry-Architektur.
-    
-    Args:
-        model: Das CP-SAT Model
-        creating_test_constraints: Wenn True, werden RequiredAvailDayGroups übersprungen
-        
-    Returns:
-        11-Tupel mit:
-        - unassigned_shifts_per_event: dict[UUID, IntVar]
-        - sum_assigned_shifts: dict[UUID, IntVar]
-        - sum_squared_deviations: IntVar
-        - constraints_weights_in_avail_day_groups: list[IntVar]
-        - constraints_weights_in_event_groups: list[IntVar]
-        - constraints_location_prefs: list[IntVar]
-        - constraints_partner_loc_prefs: list[IntVar]
-        - constraints_fixed_cast_conflicts: dict[tuple[date, str, UUID], IntVar]
-        - skill_conflict_vars: list[IntVar]
-        - constraints_cast_rule: list[IntVar]
-        - constraints_prefer_fixed_cast: list[IntVar]
-    """
-    # Imports für Constraint-Klassen
-    from sat_solver.constraints import (
-        ConstraintRegistry,
-        LocationPrefsConstraint,
-        EmployeeAvailabilityConstraint,
-        EventGroupsActivityConstraint,
-        AvailDayGroupsActivityConstraint,
-        NumShiftsInAvailDayGroupsConstraint,
-        PartnerLocationPrefsConstraint,
-        WeightsInAvailDayGroupsConstraint,
-        WeightsInEventGroupsConstraint,
-        SkillsConstraint,
-        UnsignedShiftsConstraint,
-        RequiredAvailDayGroupsConstraint,
-        DifferentCastsSameDayConstraint,
-        RelShiftDeviationsConstraint,
-        CastRulesConstraint,
-        FixedCastConstraint,
-    )
-    
-    # Registry erstellen
-    registry = ConstraintRegistry(model, entities)
-    
-    # Phase 2.1 - Hard Constraints
-    registry.register(EmployeeAvailabilityConstraint)
-    registry.register(EventGroupsActivityConstraint)
-    registry.register(AvailDayGroupsActivityConstraint)
-    
-    # RequiredAvailDayGroups nur bei normalem Solving, nicht bei Test-Constraints
+    # Add constraints for employee availability.
+    add_constraints_employee_availability(model)
+
+    # Add constraints for activity of event groups:
+    add_constraints_event_groups_activity(model)
+
+    # Add constraints for activity of avail_day groups:
+    add_constraints_avail_day_groups_activity(model)
+
+    # Add constraints for required_avail_day_groups:
     if not creating_test_constraints:
-        registry.register(RequiredAvailDayGroupsConstraint)
-    
-    registry.register(NumShiftsInAvailDayGroupsConstraint)
-    
-    # Phase 2.2 - Soft Constraints mit Penalties
-    weights_in_avail_day_groups = registry.register(WeightsInAvailDayGroupsConstraint)
-    location_prefs = registry.register(LocationPrefsConstraint)
-    partner_loc_prefs = registry.register(PartnerLocationPrefsConstraint)
-    unsigned_shifts = registry.register(UnsignedShiftsConstraint)
-    weights_in_event_groups = registry.register(WeightsInEventGroupsConstraint)
-    cast_rules = registry.register(CastRulesConstraint)
-    skills = registry.register(SkillsConstraint)
-    fixed_cast = registry.register(FixedCastConstraint)
-    
-    # Phase 2.3 - Komplexe Constraints
-    registry.register(DifferentCastsSameDayConstraint)
-    rel_shift_deviations = registry.register(RelShiftDeviationsConstraint)
-    
-    # Alle Constraints anwenden
-    registry.apply_all()
-    
-    # Ergebnisse für API-Kompatibilität extrahieren
-    return (
-        unsigned_shifts.unassigned_shifts_per_event,
-        rel_shift_deviations.sum_assigned_shifts,
-        rel_shift_deviations.sum_squared_deviations,
-        weights_in_avail_day_groups.penalty_vars,
-        weights_in_event_groups.penalty_vars,
-        location_prefs.penalty_vars,
-        partner_loc_prefs.penalty_vars,
-        fixed_cast.fixed_cast_vars,
-        skills.penalty_vars,
-        cast_rules.penalty_vars,
-        fixed_cast.preference_vars,
-    )
+        add_constraints_required_avail_day_groups(model)
+
+    # Add constraints for shifts in inactive avail_day_groups:
+    add_constraints_num_shifts_in_avail_day_groups(model)
+
+    # Add constraints for weights in avail_day_groups:
+    constraints_weights_in_avail_day_groups = add_constraints_weights_in_avail_day_groups(model)
+
+    # Add constraints for location prefs in avail.days:
+    constraints_location_prefs = add_constraints_location_prefs(model)
+
+    # Add constraints for partner-location prefs in avail.days:
+    constraints_partner_loc_prefs = add_constraints_partner_location_prefs(model)
+
+    # Add constraints for unsigned shifts:
+    unassigned_shifts_per_event = add_constraints_unsigned_shifts(model)
+
+    # Add constraints for weights in event_groups:
+    constraints_weights_in_event_groups = add_constraints_weights_in_event_groups(model)
+
+    # Add constraints for cast_rules:
+    constraints_cast_rule = add_constraints_cast_rules(model)
+
+    # Add constraints for skills:
+    skill_conflict_vars = add_constraints_skills(model)
+
+    # Add constraints for fixed_cast:
+    constraints_fixed_cast_conflicts, constraints_prefer_fixed_cast = add_constraints_fixed_cast(model)
+
+    # Add constraints for different casts on shifts with different locations on same day:
+    add_constraints_different_casts_on_shifts_with_different_locations_on_same_day(model)
+
+    # Add constraints for relative shift deviations:
+    sum_assigned_shifts, sum_squared_deviations = add_constraints_rel_shift_deviations(model)
+
+    return (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
+            constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups, constraints_location_prefs,
+            constraints_partner_loc_prefs, constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
+            constraints_prefer_fixed_cast)
 
 
 def create_constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID) -> IntVar:

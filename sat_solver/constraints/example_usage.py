@@ -1,4 +1,3 @@
-# sat_solver/constraints/example_usage.py
 """
 Beispiel für die Verwendung der Constraint-Registry-Architektur.
 
@@ -25,7 +24,8 @@ from sat_solver.constraints import (
     DifferentCastsSameDayConstraint,
     RelShiftDeviationsConstraint,
     CastRulesConstraint,
-    FixedCastConstraint,
+    FixedCastConflictsConstraint,
+    PreferFixedCastConstraint,
 )
 from sat_solver.constraints.registry import Entities
 
@@ -45,7 +45,7 @@ def example_registry_architecture():
         # Registry erstellen
         registry = ConstraintRegistry(model, entities)
         
-        # Alle 15 Constraints registrieren
+        # Alle 16 Constraints registrieren
         registry.register(EmployeeAvailabilityConstraint)
         registry.register(EventGroupsActivityConstraint)
         registry.register(AvailDayGroupsActivityConstraint)
@@ -60,7 +60,8 @@ def example_registry_architecture():
         weights_eg = registry.register(WeightsInEventGroupsConstraint)
         cast_rules = registry.register(CastRulesConstraint)
         skills = registry.register(SkillsConstraint)
-        fixed_cast = registry.register(FixedCastConstraint)
+        fixed_cast_conflicts = registry.register(FixedCastConflictsConstraint)
+        prefer_fixed_cast = registry.register(PreferFixedCastConstraint)
         
         registry.register(DifferentCastsSameDayConstraint)
         rel_deviations = registry.register(RelShiftDeviationsConstraint)
@@ -77,10 +78,10 @@ def example_registry_architecture():
             weights_eg.penalty_vars,
             location_prefs.penalty_vars,
             partner_loc.penalty_vars,
-            fixed_cast.fixed_cast_vars,
+            fixed_cast_conflicts.fixed_cast_vars,
             skills.penalty_vars,
             cast_rules.penalty_vars,
-            fixed_cast.preference_vars,
+            prefer_fixed_cast.penalty_vars,
         )
     ```
     """
@@ -102,7 +103,7 @@ def demo_registry_usage():
     config = curr_config_handler.get_solver_config()
     registry = ConstraintRegistry(model, entities, config)
     
-    # 3. Alle 15 Constraints registrieren
+    # 3. Alle 16 Constraints registrieren
     registry.register(EmployeeAvailabilityConstraint)
     registry.register(EventGroupsActivityConstraint)
     registry.register(AvailDayGroupsActivityConstraint)
@@ -115,7 +116,8 @@ def demo_registry_usage():
     registry.register(WeightsInEventGroupsConstraint)
     registry.register(CastRulesConstraint)
     registry.register(SkillsConstraint)
-    registry.register(FixedCastConstraint)
+    registry.register(FixedCastConflictsConstraint)
+    registry.register(PreferFixedCastConstraint)
     registry.register(DifferentCastsSameDayConstraint)
     registry.register(RelShiftDeviationsConstraint)
     
@@ -183,7 +185,7 @@ def demo_adding_new_constraint():
 
 
 def list_all_constraints():
-    """Listet alle 15 verfügbaren Constraint-Klassen auf."""
+    """Listet alle 16 verfügbaren Constraint-Klassen auf."""
     constraints = [
         ("EmployeeAvailabilityConstraint", "Hard", "Mitarbeiter-Verfügbarkeit"),
         ("EventGroupsActivityConstraint", "Hard", "Event-Gruppen-Aktivität"),
@@ -197,13 +199,14 @@ def list_all_constraints():
         ("WeightsInEventGroupsConstraint", "Soft", "Gewichtungen in Event-Gruppen"),
         ("CastRulesConstraint", "Soft/Hard", "Besetzungsregeln"),
         ("SkillsConstraint", "Soft", "Fähigkeiten"),
-        ("FixedCastConstraint", "Hard+Soft", "Feste Besetzungen"),
+        ("FixedCastConflictsConstraint", "Hard", "Feste Besetzungen - Konflikte"),
+        ("PreferFixedCastConstraint", "Soft", "Feste Besetzungen - Präferenzen"),
         ("DifferentCastsSameDayConstraint", "Hard", "Verschiedene Besetzungen am selben Tag"),
         ("RelShiftDeviationsConstraint", "Soft", "Relative Schichtabweichungen (Fairness)"),
     ]
     
     print("\n" + "=" * 70)
-    print("Alle 15 Constraint-Klassen:")
+    print("Alle 16 Constraint-Klassen:")
     print("=" * 70)
     for i, (name, typ, beschreibung) in enumerate(constraints, 1):
         print(f"  {i:2}. {name:<40} [{typ:<9}] - {beschreibung}")
@@ -221,4 +224,7 @@ if __name__ == "__main__":
     print("=" * 60)
     demo_adding_new_constraint()
     
+    print("\n" + "=" * 60)
+    print("Liste aller Constraints")
+    print("=" * 60)
     list_all_constraints()

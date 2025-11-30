@@ -61,7 +61,7 @@ class ConstraintRegistry:
         >>> 
         >>> # Constraints registrieren
         >>> registry.register(LocationPrefsConstraint)
-        >>> registry.register(FixedCastConstraint)
+        >>> registry.register(FixedCastConflictsConstraint)
         >>> 
         >>> # Alle Constraints anwenden
         >>> registry.apply_all()

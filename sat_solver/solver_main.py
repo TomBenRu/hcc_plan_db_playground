@@ -627,7 +627,8 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
         DifferentCastsSameDayConstraint,
         RelShiftDeviationsConstraint,
         CastRulesConstraint,
-        FixedCastConstraint,
+        FixedCastConflictsConstraint,
+        PreferFixedCastConstraint,
     )
     
     # Registry erstellen
@@ -652,7 +653,8 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
     weights_in_event_groups = registry.register(WeightsInEventGroupsConstraint)
     cast_rules = registry.register(CastRulesConstraint)
     skills = registry.register(SkillsConstraint)
-    fixed_cast: FixedCastConstraint = registry.register(FixedCastConstraint)
+    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.register(FixedCastConflictsConstraint)
+    prefer_fixed_cast: PreferFixedCastConstraint = registry.register(PreferFixedCastConstraint)
     
     # Phase 2.3 - Komplexe Constraints
     registry.register(DifferentCastsSameDayConstraint)
@@ -670,10 +672,10 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
         weights_in_event_groups.penalty_vars,
         location_prefs.penalty_vars,
         partner_loc_prefs.penalty_vars,
-        fixed_cast.fixed_cast_vars,
+        fixed_cast_conflicts.fixed_cast_vars,
         skills.penalty_vars,
         cast_rules.penalty_vars,
-        fixed_cast.preference_vars,
+        prefer_fixed_cast.penalty_vars,
     )
 
 

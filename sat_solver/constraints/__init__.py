@@ -22,6 +22,10 @@ from sat_solver.constraints.required_avail_day_groups import RequiredAvailDayGro
 from sat_solver.constraints.different_casts_same_day import DifferentCastsSameDayConstraint
 from sat_solver.constraints.rel_shift_deviations import RelShiftDeviationsConstraint
 from sat_solver.constraints.cast_rules import CastRulesConstraint
+# Neue aufgeteilte Constraints
+from sat_solver.constraints.fixed_cast_conflicts import FixedCastConflictsConstraint
+from sat_solver.constraints.prefer_fixed_cast import PreferFixedCastConstraint
+# Deprecated - für Rückwärtskompatibilität
 from sat_solver.constraints.fixed_cast import FixedCastConstraint
 from sat_solver.constraints.helpers import (
     check_actor_location_prefs_fits_event,
@@ -45,6 +49,10 @@ __all__ = [
     'DifferentCastsSameDayConstraint',
     'RelShiftDeviationsConstraint',
     'CastRulesConstraint',
+    # Neue aufgeteilte Constraints
+    'FixedCastConflictsConstraint',
+    'PreferFixedCastConstraint',
+    # Deprecated
     'FixedCastConstraint',
     # Helper-Funktionen
     'check_actor_location_prefs_fits_event',

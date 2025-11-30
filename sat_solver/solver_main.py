@@ -648,15 +648,15 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
     weights_in_avail_day_groups = registry.register(WeightsInAvailDayGroupsConstraint)
     location_prefs = registry.register(LocationPrefsConstraint)
     partner_loc_prefs = registry.register(PartnerLocationPrefsConstraint)
-    unsigned_shifts = registry.register(UnsignedShiftsConstraint)
+    unsigned_shifts: UnsignedShiftsConstraint = registry.register(UnsignedShiftsConstraint)
     weights_in_event_groups = registry.register(WeightsInEventGroupsConstraint)
     cast_rules = registry.register(CastRulesConstraint)
     skills = registry.register(SkillsConstraint)
-    fixed_cast = registry.register(FixedCastConstraint)
+    fixed_cast: FixedCastConstraint = registry.register(FixedCastConstraint)
     
     # Phase 2.3 - Komplexe Constraints
     registry.register(DifferentCastsSameDayConstraint)
-    rel_shift_deviations = registry.register(RelShiftDeviationsConstraint)
+    rel_shift_deviations: RelShiftDeviationsConstraint = registry.register(RelShiftDeviationsConstraint)
     
     # Alle Constraints anwenden
     registry.apply_all()

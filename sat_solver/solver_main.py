@@ -60,6 +60,19 @@ from sat_solver.constraints.helpers import (
     check_actor_location_prefs_fits_event,
     check_time_span_avail_day_fits_event,
 )
+# Constraint-Klassen für typsicheres get_constraint()
+from sat_solver.constraints import (
+    UnsignedShiftsConstraint,
+    RelShiftDeviationsConstraint,
+    WeightsInAvailDayGroupsConstraint,
+    WeightsInEventGroupsConstraint,
+    LocationPrefsConstraint,
+    PartnerLocationPrefsConstraint,
+    FixedCastConflictsConstraint,
+    SkillsConstraint,
+    CastRulesConstraint,
+    PreferFixedCastConstraint, ConstraintRegistry,
+)
 
 cp_sat_logger = logging.getLogger(__name__)
 handler = logging.FileHandler(os.path.join(curr_user_path_handler.get_config().log_file_path, 'cp-sat-solver.log'))
@@ -583,7 +596,7 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID, entities:
 
 
 def create_constraints(model: cp_model.CpModel, entities: 'Entities', 
-                       creating_test_constraints: bool = False) -> 'ConstraintRegistry':
+                       creating_test_constraints: bool = False) -> ConstraintRegistry:
     """
     Erstellt alle Solver-Constraints mit der Registry-Architektur.
     
@@ -597,7 +610,6 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
     """
     # Imports für Constraint-Klassen
     from sat_solver.constraints import (
-        ConstraintRegistry,
         LocationPrefsConstraint,
         EmployeeAvailabilityConstraint,
         EventGroupsActivityConstraint,
@@ -839,6 +851,23 @@ def call_solver_with_unadjusted_requested_assignments(
         entities: 'Entities', max_search_time: int,
         log_search_process: bool) -> tuple[dict[UUID, int], int, int, int,
                                            dict[tuple[datetime.date, str, UUID], int], dict[str, int], int, bool]:
+    """
+    Ruft den Solver auf, um die maximale Anzahl an Einsätzen zu bestimmen, die in die verfügbaren Schichten passen.
+
+    Es werden keine Fairness-Constraints berücksichtigt.
+
+    Arguments:
+        event_group_tree: Baum der Event-Gruppen
+        avail_day_group_tree: Baum der Verfügbarkeits-Tage-Gruppen
+        entities: Entities-Objekt mit Solver-Daten
+        max_search_time: Maximale Suchzeit in Sekunden
+        log_search_process: Ob Solver-Prozess geloggt werden soll
+
+    Returns:
+        Tuple mit (max_shifts_per_app, sum_location_prefs, sum_partner_loc_prefs, sum_fixed_cast_conflicts,
+                   fixed_cast_conflicts, skill_conflicts, sum_cast_rules, success)
+    """
+
     # Create the CP-SAT model.
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
@@ -848,16 +877,17 @@ def call_solver_with_unadjusted_requested_assignments(
     registry = create_constraints(model, entities)
     
     # Constraints aus Registry holen
-    unsigned_shifts = registry.get_constraint("unsigned_shifts")
-    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
-    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
-    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
-    location_prefs = registry.get_constraint("location_prefs")
-    partner_location_prefs = registry.get_constraint("partner_location_prefs")
-    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
-    skills = registry.get_constraint("skills")
-    cast_rules = registry.get_constraint("cast_rules")
-    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    unsigned_shifts: UnsignedShiftsConstraint = registry.get_constraint(UnsignedShiftsConstraint)
+    rel_shift_deviations: RelShiftDeviationsConstraint = registry.get_constraint(RelShiftDeviationsConstraint)
+    weights_in_avail_day_groups: WeightsInAvailDayGroupsConstraint = (registry.
+                                                                      get_constraint(WeightsInAvailDayGroupsConstraint))
+    weights_in_event_groups: WeightsInEventGroupsConstraint = registry.get_constraint(WeightsInEventGroupsConstraint)
+    location_prefs: LocationPrefsConstraint = registry.get_constraint(LocationPrefsConstraint)
+    partner_location_prefs: PartnerLocationPrefsConstraint = registry.get_constraint(PartnerLocationPrefsConstraint)
+    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.get_constraint(FixedCastConflictsConstraint)
+    skills: SkillsConstraint = registry.get_constraint(SkillsConstraint)
+    cast_rules: CastRulesConstraint = registry.get_constraint(CastRulesConstraint)
+    prefer_fixed_cast: PreferFixedCastConstraint = registry.get_constraint(PreferFixedCastConstraint)
     
     define_objective_minimize(model, registry)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
@@ -950,12 +980,12 @@ def call_solver_to_get_max_shifts_per_app(
         registry = create_constraints(model, entities)
         
         # Constraints aus Registry holen
-        unsigned_shifts = registry.get_constraint("unsigned_shifts")
-        location_prefs = registry.get_constraint("location_prefs")
-        partner_location_prefs = registry.get_constraint("partner_location_prefs")
-        fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
-        skills = registry.get_constraint("skills")
-        prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+        unsigned_shifts: UnsignedShiftsConstraint = registry.get_constraint(UnsignedShiftsConstraint)
+        location_prefs: LocationPrefsConstraint = registry.get_constraint(LocationPrefsConstraint)
+        partner_location_prefs: PartnerLocationPrefsConstraint = registry.get_constraint(PartnerLocationPrefsConstraint)
+        fixed_cast_conflicts: FixedCastConflictsConstraint = registry.get_constraint(FixedCastConflictsConstraint)
+        skills: SkillsConstraint = registry.get_constraint(SkillsConstraint)
+        prefer_fixed_cast: PreferFixedCastConstraint = registry.get_constraint(PreferFixedCastConstraint)
 
         max_shifts_of_app = create_constraint_max_shift_of_app(model, app_id, entities)
 
@@ -1073,16 +1103,17 @@ def call_solver_with_adjusted_requested_assignments(
     registry = create_constraints(model, entities)
     
     # Constraints aus Registry holen
-    unsigned_shifts = registry.get_constraint("unsigned_shifts")
-    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
-    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
-    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
-    location_prefs = registry.get_constraint("location_prefs")
-    partner_location_prefs = registry.get_constraint("partner_location_prefs")
-    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
-    skills = registry.get_constraint("skills")
-    cast_rules = registry.get_constraint("cast_rules")
-    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    unsigned_shifts: UnsignedShiftsConstraint = registry.get_constraint(UnsignedShiftsConstraint)
+    rel_shift_deviations: RelShiftDeviationsConstraint = registry.get_constraint(RelShiftDeviationsConstraint)
+    weights_in_avail_day_groups: WeightsInAvailDayGroupsConstraint = (registry.
+                                                                      get_constraint(WeightsInAvailDayGroupsConstraint))
+    weights_in_event_groups: WeightsInEventGroupsConstraint = registry.get_constraint(WeightsInEventGroupsConstraint)
+    location_prefs: LocationPrefsConstraint = registry.get_constraint(LocationPrefsConstraint)
+    partner_location_prefs: PartnerLocationPrefsConstraint = registry.get_constraint(PartnerLocationPrefsConstraint)
+    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.get_constraint(FixedCastConflictsConstraint)
+    skills: SkillsConstraint = registry.get_constraint(SkillsConstraint)
+    cast_rules: CastRulesConstraint = registry.get_constraint(CastRulesConstraint)
+    prefer_fixed_cast: PreferFixedCastConstraint = registry.get_constraint(PreferFixedCastConstraint)
     
     define_objective_minimize(model, registry)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
@@ -1181,15 +1212,16 @@ def call_solver_with__fixed_constraint_results(
     registry = create_constraints(model, entities)
     
     # Constraints aus Registry holen
-    unsigned_shifts = registry.get_constraint("unsigned_shifts")
-    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
-    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
-    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
-    location_prefs = registry.get_constraint("location_prefs")
-    partner_location_prefs = registry.get_constraint("partner_location_prefs")
-    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
-    cast_rules = registry.get_constraint("cast_rules")
-    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    unsigned_shifts: UnsignedShiftsConstraint = registry.get_constraint(UnsignedShiftsConstraint)
+    rel_shift_deviations: RelShiftDeviationsConstraint = registry.get_constraint(RelShiftDeviationsConstraint)
+    weights_in_avail_day_groups: WeightsInAvailDayGroupsConstraint = (registry.
+                                                                      get_constraint(WeightsInAvailDayGroupsConstraint))
+    weights_in_event_groups: WeightsInEventGroupsConstraint = registry.get_constraint(WeightsInEventGroupsConstraint)
+    location_prefs: LocationPrefsConstraint = registry.get_constraint(LocationPrefsConstraint)
+    partner_location_prefs: PartnerLocationPrefsConstraint = registry.get_constraint(PartnerLocationPrefsConstraint)
+    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.get_constraint(FixedCastConflictsConstraint)
+    cast_rules: CastRulesConstraint = registry.get_constraint(CastRulesConstraint)
+    prefer_fixed_cast: PreferFixedCastConstraint = registry.get_constraint(PreferFixedCastConstraint)
     
     define_objective__fixed_constraint_results(
         model, list(unsigned_shifts.unassigned_shifts_per_event.values()), rel_shift_deviations.sum_squared_deviations,
@@ -1289,8 +1321,8 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
     registry = create_constraints(model, entities, True)
     
     # Constraints aus Registry holen
-    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
-    skills = registry.get_constraint("skills")
+    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.get_constraint(FixedCastConflictsConstraint)
+    skills: SkillsConstraint = registry.get_constraint(SkillsConstraint)
     
     set_test_plan_constraints(model, plan,
                               fixed_cast_conflicts.fixed_cast_vars, skills.penalty_vars, entities)

@@ -6,7 +6,7 @@ Registry zur Verwaltung aller Solver-Constraints.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
@@ -163,17 +163,17 @@ class ConstraintRegistry:
         
         logger.info(f"Alle {len(self._constraints)} Constraints angewendet")
     
-    def get_constraint(self, name: str) -> 'ConstraintBase | None':
+    def get_constraint(self, constraint_class: Type[ConstraintBase]) -> ConstraintBase | None:
         """
-        Gibt ein Constraint anhand seines Namens zurück.
+        Gibt ein Constraint anhand seiner Klasse zurück.
         
         Args:
-            name: Der Name des Constraints
+            constraint_class: Die Klasse des Constraints
         
         Returns:
             Das Constraint oder None wenn nicht gefunden
         """
-        return next((c for c in self._constraints if c.name == name), None)
+        return next((c for c in self._constraints if isinstance(c, constraint_class)), None)
     
     def get_all_penalty_vars(self) -> dict[str, list[IntVar]]:
         """

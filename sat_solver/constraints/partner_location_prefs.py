@@ -29,7 +29,7 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
     """
     
     name = "partner_location_prefs"
-    weight_attribute = "constraints_partner_location_prefs"
+    weight_attribute = "constraints_partner_loc_prefs"
     
     def apply(self) -> None:
         """

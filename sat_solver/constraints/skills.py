@@ -23,7 +23,7 @@ class SkillsConstraint(ConstraintBase):
     """
     
     name = "skills"
-    weight_attribute = "constraints_skills"
+    weight_attribute = "constraints_skills_match"
     
     def apply(self) -> None:
         """

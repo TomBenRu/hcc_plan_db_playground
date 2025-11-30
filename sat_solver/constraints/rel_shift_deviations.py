@@ -30,12 +30,23 @@ class RelShiftDeviationsConstraint(ConstraintBase):
     """
     
     name = "rel_shift_deviations"
-    weight_attribute = "sum_deviations"
+    weight_attribute = "sum_squared_deviations"
     
     def __init__(self):
         super().__init__()
         self.sum_assigned_shifts: dict[UUID, IntVar] = {}
         self.sum_squared_deviations: IntVar | None = None
+
+    def get_weight(self) -> float:
+        """
+        Gibt das normalisierte Weight für dieses Constraint zurück.
+        
+        Das Weight wird durch die Anzahl der ActorPlanPeriods geteilt,
+        um die Fairness-Metrik unabhängig von der Mitarbeiterzahl zu machen.
+        """
+        base_weight = super().get_weight()
+        num_apps = len(self.entities.actor_plan_periods)
+        return base_weight / num_apps if num_apps > 0 else base_weight
     
     def apply(self) -> None:
         """

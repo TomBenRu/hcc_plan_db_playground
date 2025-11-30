@@ -25,7 +25,7 @@ class UnsignedShiftsConstraint(ConstraintBase):
     """
     
     name = "unsigned_shifts"
-    weight_attribute = "constraints_unsigned_shifts"
+    weight_attribute = "unassigned_shifts"
     
     def __init__(self):
         super().__init__()

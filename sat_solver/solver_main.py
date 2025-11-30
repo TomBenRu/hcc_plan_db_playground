@@ -583,11 +583,7 @@ def constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID, entities:
 
 
 def create_constraints(model: cp_model.CpModel, entities: 'Entities', 
-                       creating_test_constraints: bool = False) -> tuple[dict[UUID, IntVar],
-                                                         dict[UUID, IntVar], IntVar, list[IntVar],
-                                                         list[IntVar], list[IntVar], list[IntVar],
-                                                         dict[tuple[datetime.date, str, UUID], IntVar], list[IntVar],
-                                                         list[IntVar], list[IntVar]]:
+                       creating_test_constraints: bool = False) -> 'ConstraintRegistry':
     """
     Erstellt alle Solver-Constraints mit der Registry-Architektur.
     
@@ -597,18 +593,7 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
         creating_test_constraints: Wenn True, werden RequiredAvailDayGroups übersprungen
         
     Returns:
-        11-Tupel mit:
-        - unassigned_shifts_per_event: dict[UUID, IntVar]
-        - sum_assigned_shifts: dict[UUID, IntVar]
-        - sum_squared_deviations: IntVar
-        - constraints_weights_in_avail_day_groups: list[IntVar]
-        - constraints_weights_in_event_groups: list[IntVar]
-        - constraints_location_prefs: list[IntVar]
-        - constraints_partner_loc_prefs: list[IntVar]
-        - constraints_fixed_cast_conflicts: dict[tuple[date, str, UUID], IntVar]
-        - skill_conflict_vars: list[IntVar]
-        - constraints_cast_rule: list[IntVar]
-        - constraints_prefer_fixed_cast: list[IntVar]
+        ConstraintRegistry mit allen registrierten und angewendeten Constraints
     """
     # Imports für Constraint-Klassen
     from sat_solver.constraints import (
@@ -646,80 +631,39 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
     registry.register(NumShiftsInAvailDayGroupsConstraint)
     
     # Phase 2.2 - Soft Constraints mit Penalties
-    weights_in_avail_day_groups = registry.register(WeightsInAvailDayGroupsConstraint)
-    location_prefs = registry.register(LocationPrefsConstraint)
-    partner_loc_prefs = registry.register(PartnerLocationPrefsConstraint)
-    unsigned_shifts: UnsignedShiftsConstraint = registry.register(UnsignedShiftsConstraint)
-    weights_in_event_groups = registry.register(WeightsInEventGroupsConstraint)
-    cast_rules = registry.register(CastRulesConstraint)
-    skills = registry.register(SkillsConstraint)
-    fixed_cast_conflicts: FixedCastConflictsConstraint = registry.register(FixedCastConflictsConstraint)
-    prefer_fixed_cast: PreferFixedCastConstraint = registry.register(PreferFixedCastConstraint)
+    registry.register(WeightsInAvailDayGroupsConstraint)
+    registry.register(LocationPrefsConstraint)
+    registry.register(PartnerLocationPrefsConstraint)
+    registry.register(UnsignedShiftsConstraint)
+    registry.register(WeightsInEventGroupsConstraint)
+    registry.register(CastRulesConstraint)
+    registry.register(SkillsConstraint)
+    registry.register(FixedCastConflictsConstraint)
+    registry.register(PreferFixedCastConstraint)
     
     # Phase 2.3 - Komplexe Constraints
     registry.register(DifferentCastsSameDayConstraint)
-    rel_shift_deviations: RelShiftDeviationsConstraint = registry.register(RelShiftDeviationsConstraint)
+    registry.register(RelShiftDeviationsConstraint)
     
     # Alle Constraints anwenden
     registry.apply_all()
     
-    # Ergebnisse für API-Kompatibilität extrahieren
-    return (
-        unsigned_shifts.unassigned_shifts_per_event,
-        rel_shift_deviations.sum_assigned_shifts,
-        rel_shift_deviations.sum_squared_deviations,
-        weights_in_avail_day_groups.penalty_vars,
-        weights_in_event_groups.penalty_vars,
-        location_prefs.penalty_vars,
-        partner_loc_prefs.penalty_vars,
-        fixed_cast_conflicts.fixed_cast_vars,
-        skills.penalty_vars,
-        cast_rules.penalty_vars,
-        prefer_fixed_cast.penalty_vars,
-    )
+    return registry
 
 
 def create_constraint_max_shift_of_app(model: cp_model.CpModel, app_id: UUID, entities: 'Entities') -> IntVar:
     return constraint_max_shift_of_app(model, app_id, entities)
 
 
-def define_objective_minimize(model: cp_model.CpModel, entities: 'Entities',
-                              unassigned_shifts_per_event: dict[UUID, IntVar],
-                              sum_squared_deviations: IntVar, constraints_weights_in_avail_day_groups: list[IntVar],
-                              constraints_weights_in_event_groups: list[IntVar],
-                              constraints_location_prefs: list[IntVar],
-                              constraints_partner_loc_prefs: list[IntVar],
-                              constraints_fixed_cast_conflicts: dict[tuple[datetime.date, str, UUID], IntVar],
-                              skill_conflict_vars: list[IntVar],
-                              constraints_cast_rule: list[IntVar],
-                              constraints_prefer_fixed_cast: list[IntVar]) -> None:
-    """Change the objective to minimize a weighted sum of the number of unassigned shifts
-    and the sum of the squared deviations."""
-
-    weights = curr_config_handler.get_solver_config().minimization_weights
-
-    weight_unassigned_shifts = weights.unassigned_shifts
-    weight_sum_squared_shift_deviations = weights.sum_squared_deviations / len(entities.actor_plan_periods)
-    weight_constraints_weights_in_avail_day_groups = weights.constraints_weights_in_avail_day_groups
-    weight_constraints_weights_in_event_groups = weights.constraints_weights_in_event_groups
-    weight_constraints_location_prefs = weights.constraints_location_prefs
-    weight_constraints_fixed_cast_conflicts = weights.constraints_fixed_casts_conflicts
-    weight_constraints_partner_loc_prefs = weights.constraints_partner_loc_prefs
-    weight_constraints_skills = weights.constraints_skills_match
-    weight_constraints_cast_rule = weights.constraints_cast_rule
-    weight_prefer_fixed_cast = weights.prefer_fixed_cast_events
-
-    model.Minimize(weight_unassigned_shifts * sum(unassigned_shifts_per_event.values())
-                   + weight_sum_squared_shift_deviations * sum_squared_deviations
-                   + weight_constraints_weights_in_avail_day_groups * sum(constraints_weights_in_avail_day_groups)
-                   + weight_constraints_weights_in_event_groups * sum(constraints_weights_in_event_groups)
-                   + weight_constraints_location_prefs * sum(constraints_location_prefs)
-                   + weight_constraints_partner_loc_prefs * sum(constraints_partner_loc_prefs)
-                   + weight_constraints_fixed_cast_conflicts * sum(constraints_fixed_cast_conflicts.values())
-                   + weight_constraints_skills * sum(skill_conflict_vars)
-                   + weight_constraints_cast_rule * sum(constraints_cast_rule)
-                   + weight_prefer_fixed_cast * sum(constraints_prefer_fixed_cast)
-                   )
+def define_objective_minimize(model: cp_model.CpModel, registry: 'ConstraintRegistry') -> None:
+    """
+    Definiert die Objective-Funktion als gewichtete Summe aller Constraint-Penalties.
+    
+    Args:
+        model: Das CP-SAT Model
+        registry: Die ConstraintRegistry mit allen registrierten Constraints
+    """
+    model.Minimize(registry.get_total_weighted_penalty())
 
 
 def define_objective__max_shift_of_app(model: cp_model.CpModel,
@@ -899,19 +843,23 @@ def call_solver_with_unadjusted_requested_assignments(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
     solver_variables.cast_rules.reset_fields()
-    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-     constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-     constraints_prefer_fixed_cast) = create_constraints(model, entities)
-    define_objective_minimize(model, entities, unassigned_shifts_per_event, sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups,
-                              constraints_weights_in_event_groups,
-                              constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts,
-                              skill_conflict_vars,
-                              constraints_cast_rule,
-                              constraints_prefer_fixed_cast)
+    
+    # Registry-basierte Constraints
+    registry = create_constraints(model, entities)
+    
+    # Constraints aus Registry holen
+    unsigned_shifts = registry.get_constraint("unsigned_shifts")
+    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
+    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
+    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
+    location_prefs = registry.get_constraint("location_prefs")
+    partner_location_prefs = registry.get_constraint("partner_location_prefs")
+    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
+    skills = registry.get_constraint("skills")
+    cast_rules = registry.get_constraint("cast_rules")
+    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    
+    define_objective_minimize(model, registry)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
@@ -920,13 +868,13 @@ def call_solver_with_unadjusted_requested_assignments(
         return 0, 0, 0, 0, {}, {}, 0, False
     
     # DEBUG: Zeige tatsächliche Penalty-Werte
-    if constraints_prefer_fixed_cast:
+    if prefer_fixed_cast.penalty_vars:
         print("\n" + "="*80)
         print("DEBUG: prefer_fixed_cast_events - Tatsächliche Penalty-Werte (Unadjusted)")
         print("="*80)
         total_penalty = 0
         penalty_details = []
-        for penalty_var in constraints_prefer_fixed_cast:
+        for penalty_var in prefer_fixed_cast.penalty_vars:
             penalty_value = solver.Value(penalty_var)
             total_penalty += penalty_value
             if penalty_value > 0:
@@ -934,7 +882,7 @@ def call_solver_with_unadjusted_requested_assignments(
                 penalty_details.append(f"  ⚠️  Penalty={penalty_value}: {penalty_var.name}")
         
         if penalty_details:
-            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(constraints_prefer_fixed_cast)}):")
+            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(prefer_fixed_cast.penalty_vars)}):")
             for detail in penalty_details:
                 print(detail)
         else:
@@ -942,21 +890,21 @@ def call_solver_with_unadjusted_requested_assignments(
         
         print(f"\nGesamtsumme Penalties: {total_penalty}")
         print("="*80 + "\n")
-    print_statistics(solver, None, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
-    unassigned_shifts = sum(solver.Value(u) for u in unassigned_shifts_per_event.values())
+    print_statistics(solver, None, unsigned_shifts.unassigned_shifts_per_event,
+                     rel_shift_deviations.sum_assigned_shifts, rel_shift_deviations.sum_squared_deviations,
+                     partner_location_prefs.penalty_vars, location_prefs.penalty_vars,
+                     fixed_cast_conflicts.fixed_cast_vars,
+                     weights_in_event_groups.penalty_vars,
+                     weights_in_avail_day_groups.penalty_vars, cast_rules.penalty_vars)
+    unassigned_shifts = sum(solver.Value(u) for u in unsigned_shifts.unassigned_shifts_per_event.values())
 
-    return ({app_id: solver.Value(a) for app_id, a in sum_assigned_shifts.items()},
+    return ({app_id: solver.Value(a) for app_id, a in rel_shift_deviations.sum_assigned_shifts.items()},
             unassigned_shifts,
-            solver.Value(sum(constraints_location_prefs)),
-            solver.Value(sum(constraints_partner_loc_prefs)),
-            {key: solver.Value(int_var) for key, int_var in constraints_fixed_cast_conflicts.items()},
-            {skill_var.name: solver.Value(skill_var) for skill_var in skill_conflict_vars},
-            solver.Value(sum(constraints_cast_rule)),
+            solver.Value(sum(location_prefs.penalty_vars)),
+            solver.Value(sum(partner_location_prefs.penalty_vars)),
+            {key: solver.Value(int_var) for key, int_var in fixed_cast_conflicts.fixed_cast_vars.items()},
+            {skill_var.name: solver.Value(skill_var) for skill_var in skills.penalty_vars},
+            solver.Value(sum(cast_rules.penalty_vars)),
             success)
 
 
@@ -997,11 +945,17 @@ def call_solver_to_get_max_shifts_per_app(
         model = cp_model.CpModel()
         create_vars(model, event_group_tree, avail_day_group_tree, entities)
         solver_variables.cast_rules.reset_fields()
-        (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-         constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-         constraints_location_prefs, constraints_partner_loc_prefs,
-         constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-         constraints_prefer_fixed_cast) = create_constraints(model, entities)
+        
+        # Registry-basierte Constraints
+        registry = create_constraints(model, entities)
+        
+        # Constraints aus Registry holen
+        unsigned_shifts = registry.get_constraint("unsigned_shifts")
+        location_prefs = registry.get_constraint("location_prefs")
+        partner_location_prefs = registry.get_constraint("partner_location_prefs")
+        fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
+        skills = registry.get_constraint("skills")
+        prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
 
         max_shifts_of_app = create_constraint_max_shift_of_app(model, app_id, entities)
 
@@ -1012,13 +966,13 @@ def call_solver_to_get_max_shifts_per_app(
             sum_partner_loc_prefs,
             sum_fixed_cast_conflicts,
             sum_cast_rules,
-            unassigned_shifts_per_event,
-            constraints_location_prefs,
-            constraints_partner_loc_prefs,
-            constraints_fixed_cast_conflicts,
-            skill_conflict_vars,
+            unsigned_shifts.unassigned_shifts_per_event,
+            location_prefs.penalty_vars,
+            partner_location_prefs.penalty_vars,
+            fixed_cast_conflicts.fixed_cast_vars,
+            skills.penalty_vars,
             max_shifts_of_app,
-            constraints_prefer_fixed_cast
+            prefer_fixed_cast.penalty_vars
         )
 
         solver, status = solve_model_to_optimum(model, max_search_time, log_search_process)
@@ -1114,16 +1068,23 @@ def call_solver_with_adjusted_requested_assignments(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
     solver_variables.cast_rules.reset_fields()
-    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-     constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-     constraints_prefer_fixed_cast) = create_constraints(model, entities)
-    define_objective_minimize(model, entities, unassigned_shifts_per_event, sum_squared_deviations,
-                              constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-                              constraints_location_prefs, constraints_partner_loc_prefs,
-                              constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-                              constraints_prefer_fixed_cast)
+    
+    # Registry-basierte Constraints
+    registry = create_constraints(model, entities)
+    
+    # Constraints aus Registry holen
+    unsigned_shifts = registry.get_constraint("unsigned_shifts")
+    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
+    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
+    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
+    location_prefs = registry.get_constraint("location_prefs")
+    partner_location_prefs = registry.get_constraint("partner_location_prefs")
+    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
+    skills = registry.get_constraint("skills")
+    cast_rules = registry.get_constraint("cast_rules")
+    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    
+    define_objective_minimize(model, registry)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     success, problems = print_solver_status(model, solver_status)
@@ -1131,13 +1092,13 @@ def call_solver_with_adjusted_requested_assignments(
         return 0, [], 0, 0, 0, 0, {}, 0, [], False
     
     # DEBUG: Zeige tatsächliche Penalty-Werte
-    if constraints_prefer_fixed_cast:
+    if prefer_fixed_cast.penalty_vars:
         print("\n" + "="*80)
         print("DEBUG: prefer_fixed_cast_events - Tatsächliche Penalty-Werte")
         print("="*80)
         total_penalty = 0
         penalty_details = []
-        for penalty_var in constraints_prefer_fixed_cast:
+        for penalty_var in prefer_fixed_cast.penalty_vars:
             penalty_value = solver.Value(penalty_var)
             total_penalty += penalty_value
             if penalty_value > 0:
@@ -1145,7 +1106,7 @@ def call_solver_with_adjusted_requested_assignments(
                 penalty_details.append(f"  ⚠️  Penalty={penalty_value}: {penalty_var.name}")
         
         if penalty_details:
-            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(constraints_prefer_fixed_cast)}):")
+            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(prefer_fixed_cast.penalty_vars)}):")
             for detail in penalty_details:
                 print(detail)
         else:
@@ -1153,12 +1114,12 @@ def call_solver_with_adjusted_requested_assignments(
         
         print(f"\nGesamtsumme Penalties: {total_penalty}")
         print("="*80 + "\n")
-    print_statistics(solver, None, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
+    print_statistics(solver, None, unsigned_shifts.unassigned_shifts_per_event,
+                     rel_shift_deviations.sum_assigned_shifts, rel_shift_deviations.sum_squared_deviations,
+                     partner_location_prefs.penalty_vars, location_prefs.penalty_vars,
+                     fixed_cast_conflicts.fixed_cast_vars,
+                     weights_in_event_groups.penalty_vars,
+                     weights_in_avail_day_groups.penalty_vars, cast_rules.penalty_vars)
 
     event_group_id_avail_day_group_ids: dict[UUID, list[UUID]] = {}
     for (adg_id, eg_id), var in entities.shift_vars.items():
@@ -1193,13 +1154,14 @@ def call_solver_with_adjusted_requested_assignments(
     # )
     # print('OPTIMAL' if status == cp_model.OPTIMAL else 'FEASIBLE' if status == cp_model.FEASIBLE else 'FAILED')
 
-    return (solver.Value(sum_squared_deviations), [solver.Value(u) for u in unassigned_shifts_per_event.values()],
-            sum(solver.Value(w) for w in constraints_weights_in_avail_day_groups),
-            sum(solver.Value(v) for v in constraints_weights_in_event_groups),
-            sum(solver.Value(lp) for lp in constraints_location_prefs),
-            solver.Value(sum(constraints_partner_loc_prefs)),
-            {key: solver.Value(int_var) for key, int_var in constraints_fixed_cast_conflicts.items()},
-            solver.Value(sum(constraints_cast_rule)), appointments, success)
+    return (solver.Value(rel_shift_deviations.sum_squared_deviations), 
+            [solver.Value(u) for u in unsigned_shifts.unassigned_shifts_per_event.values()],
+            sum(solver.Value(w) for w in weights_in_avail_day_groups.penalty_vars),
+            sum(solver.Value(v) for v in weights_in_event_groups.penalty_vars),
+            sum(solver.Value(lp) for lp in location_prefs.penalty_vars),
+            solver.Value(sum(partner_location_prefs.penalty_vars)),
+            {key: solver.Value(int_var) for key, int_var in fixed_cast_conflicts.fixed_cast_vars.items()},
+            solver.Value(sum(cast_rules.penalty_vars)), appointments, success)
 
 
 def call_solver_with__fixed_constraint_results(
@@ -1214,37 +1176,47 @@ def call_solver_with__fixed_constraint_results(
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
     solver_variables.cast_rules.reset_fields()
-    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-     constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-     constraints_prefer_fixed_cast) = create_constraints(model, entities)
+    
+    # Registry-basierte Constraints
+    registry = create_constraints(model, entities)
+    
+    # Constraints aus Registry holen
+    unsigned_shifts = registry.get_constraint("unsigned_shifts")
+    rel_shift_deviations = registry.get_constraint("rel_shift_deviations")
+    weights_in_avail_day_groups = registry.get_constraint("weights_in_avail_day_groups")
+    weights_in_event_groups = registry.get_constraint("weights_in_event_groups")
+    location_prefs = registry.get_constraint("location_prefs")
+    partner_location_prefs = registry.get_constraint("partner_location_prefs")
+    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
+    cast_rules = registry.get_constraint("cast_rules")
+    prefer_fixed_cast = registry.get_constraint("prefer_fixed_cast")
+    
     define_objective__fixed_constraint_results(
-        model, list(unassigned_shifts_per_event.values()), sum_squared_deviations,
-        constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-        constraints_location_prefs, constraints_partner_loc_prefs,
-        constraints_fixed_cast_conflicts, constraints_cast_rule,
-        constraints_prefer_fixed_cast, unassigned_shifts_per_event_res,
+        model, list(unsigned_shifts.unassigned_shifts_per_event.values()), rel_shift_deviations.sum_squared_deviations,
+        weights_in_avail_day_groups.penalty_vars, weights_in_event_groups.penalty_vars,
+        location_prefs.penalty_vars, partner_location_prefs.penalty_vars,
+        fixed_cast_conflicts.fixed_cast_vars, cast_rules.penalty_vars,
+        prefer_fixed_cast.penalty_vars, unassigned_shifts_per_event_res,
         sum_squared_deviations_res, weights_shifts_in_avail_day_groups_res,
         weights_in_event_groups_res, sum_location_prefs_res,
         sum_partner_loc_prefs_res, sum_fixed_cast_conflicts_res, sum_cast_rules, 0)
     # print('\n\n++++++++++++++++++++++++++++++++++++++ New Solution +++++++++++++++++++++++++++++++++++++++++++++++++++')
     solver, solution_printer, solver_status = solve_model_with_solver_solution_callback(
-        model, list(unassigned_shifts_per_event.values()), sum_assigned_shifts,
-        sum_squared_deviations, constraints_fixed_cast_conflicts,
+        model, list(unsigned_shifts.unassigned_shifts_per_event.values()), rel_shift_deviations.sum_assigned_shifts,
+        rel_shift_deviations.sum_squared_deviations, fixed_cast_conflicts.fixed_cast_vars,
         print_solution_printer_results, 100, log_search_process, entities, collect_schedule_versions)
     success, problems = print_solver_status(model, solver_status)
     if not success:
         return None, {}, False
-    print_statistics(solver, solution_printer, unassigned_shifts_per_event,
-                     sum_assigned_shifts, sum_squared_deviations,
-                     constraints_partner_loc_prefs, constraints_location_prefs,
-                     constraints_fixed_cast_conflicts,
-                     constraints_weights_in_event_groups,
-                     constraints_weights_in_avail_day_groups, constraints_cast_rule)
+    print_statistics(solver, solution_printer, unsigned_shifts.unassigned_shifts_per_event,
+                     rel_shift_deviations.sum_assigned_shifts, rel_shift_deviations.sum_squared_deviations,
+                     partner_location_prefs.penalty_vars, location_prefs.penalty_vars,
+                     fixed_cast_conflicts.fixed_cast_vars,
+                     weights_in_event_groups.penalty_vars,
+                     weights_in_avail_day_groups.penalty_vars, cast_rules.penalty_vars)
 
-    constraints_fixed_cast_conflicts = {key: solver.Value(val) for key, val in constraints_fixed_cast_conflicts.items()}
-    return solution_printer, constraints_fixed_cast_conflicts, success
+    fixed_cast_conflicts_result = {key: solver.Value(val) for key, val in fixed_cast_conflicts.fixed_cast_vars.items()}
+    return solution_printer, fixed_cast_conflicts_result, success
 
 
 def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
@@ -1312,13 +1284,16 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
                              log_search_process: bool) -> tuple[bool, list[str]]:
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
-    (unassigned_shifts_per_event, sum_assigned_shifts, sum_squared_deviations,
-     constraints_weights_in_avail_day_groups, constraints_weights_in_event_groups,
-     constraints_location_prefs, constraints_partner_loc_prefs,
-     constraints_fixed_cast_conflicts, skill_conflict_vars, constraints_cast_rule,
-     constraints_prefer_fixed_cast) = create_constraints(model, entities, True)
+    
+    # Registry-basierte Constraints
+    registry = create_constraints(model, entities, True)
+    
+    # Constraints aus Registry holen
+    fixed_cast_conflicts = registry.get_constraint("fixed_cast_conflicts")
+    skills = registry.get_constraint("skills")
+    
     set_test_plan_constraints(model, plan,
-                              constraints_fixed_cast_conflicts, skill_conflict_vars, entities)
+                              fixed_cast_conflicts.fixed_cast_vars, skills.penalty_vars, entities)
     solver, solver_status = solve_model_to_optimum(model, max_search_time, log_search_process)
 
     success, problems = print_solver_status(model, solver_status)

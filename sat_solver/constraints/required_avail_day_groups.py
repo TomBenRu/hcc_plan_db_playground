@@ -14,6 +14,7 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
     Falls die Parent-Avail-Day-Group eine Required-Avail-Day-Group hat, wird eine
     zusätzliche Bedingung hinzugefügt, dass mindestens so viele Schichten wie in 
     required_avail_day_groups geplant werden oder gar keine Schichten geplant werden.
+    Falls LocationsOfWork definiert sind, werden nur Schichten an diesen Standorten gezählt.
     
     Technische Umsetzung:
     - Für jede Avail-Day-Group mit required_avail_day_groups wird geprüft

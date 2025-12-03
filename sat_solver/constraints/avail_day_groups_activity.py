@@ -5,9 +5,8 @@ Stellt sicher, dass nur die konfigurierte Anzahl von Kind-Gruppen aktiv ist.
 """
 from uuid import UUID
 
-from database import schemas
-from sat_solver.avail_day_group_tree import AvailDayGroup
-from sat_solver.constraints.base import ConstraintBase
+from database.schemas import PlanShow
+from sat_solver.constraints.base import ConstraintBase, ValidationError
 
 
 class AvailDayGroupsActivityConstraint(ConstraintBase):
@@ -71,7 +70,7 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
                     sum(child_vars) == nr_of_active_children * self.entities.avail_day_group_vars[avail_day_group_id]
                 )
     
-    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+    def validate_plan(self, plan: PlanShow) -> list[ValidationError]:
         """
         Prüft ob die Anzahl aktiver Kinder-Gruppen die Limits nicht überschreitet.
         
@@ -79,8 +78,7 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
         Verfügbarkeitstage pro Gruppe das konfigurierte Maximum (nr_of_active_children)
         nicht überschreitet.
         """
-        from sat_solver.constraints.base import ValidationError
-        
+
         errors = []
         
         # Sammle alle im Plan verwendeten avail_day_group_ids mit zugehörigen Appointments

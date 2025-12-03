@@ -6,6 +6,7 @@ Stellt sicher, dass nur die konfigurierte Anzahl von Kind-Gruppen aktiv ist.
 from uuid import UUID
 
 from database import schemas
+from sat_solver.avail_day_group_tree import AvailDayGroup
 from sat_solver.constraints.base import ConstraintBase
 
 
@@ -70,7 +71,7 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
                     sum(child_vars) == nr_of_active_children * self.entities.avail_day_group_vars[avail_day_group_id]
                 )
     
-    def validate_plan(self, plan: schemas.PlanShow) -> list['ValidationError']:
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
         """
         Prüft ob die Anzahl aktiver Kinder-Gruppen die Limits nicht überschreitet.
         
@@ -82,11 +83,14 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
         
         errors = []
         
-        # Sammle alle im Plan verwendeten avail_day_group_ids
-        used_adg_ids: set[UUID] = set()
+        # Sammle alle im Plan verwendeten avail_day_group_ids mit zugehörigen Appointments
+        adg_to_appointments: dict[UUID, list] = {}
         for appointment in plan.appointments:
             for avd in appointment.avail_days:
-                used_adg_ids.add(avd.avail_day_group.id)
+                adg_id = avd.avail_day_group.id
+                if adg_id not in adg_to_appointments:
+                    adg_to_appointments[adg_id] = []
+                adg_to_appointments[adg_id].append(appointment)
         
         # Für jede Gruppe mit Kindern prüfen
         for avail_day_group_id, avail_day_group in self.entities.avail_day_groups.items():
@@ -106,29 +110,53 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
                 or len(relevant_children)
             )
             
-            # Zähle wie viele relevante Kinder tatsächlich verwendet werden
-            # Ein Kind gilt als "verwendet" wenn es selbst oder ein Nachkomme im Plan ist
-            active_children_count = 0
+            # Sammle aktive Kinder und deren Appointments (gruppiert)
+            active_children_with_appointments: list[tuple] = []
             for child in relevant_children:
-                if self._is_group_or_descendant_used(child, used_adg_ids):
-                    active_children_count += 1
+                child_appointments = self._get_appointments_for_group(child, adg_to_appointments)
+                if child_appointments:
+                    active_children_with_appointments.append((child, child_appointments))
+            
+            active_children_count = len(active_children_with_appointments)
             
             # Prüfe ob Limit überschritten
             if active_children_count > nr_of_active_children:
-                # Ermittle den Mitarbeiter-Namen über die Hierarchie
+                # Ermittle den Mitarbeiter-Namen über die Gruppen-Hierarchie
                 person_name = self._get_person_name_from_group(avail_day_group)
+                
+                # Formatiere die Termine gruppiert
+                grouped_termine = []
+                for child, appointments in active_children_with_appointments:
+                    # Sortiere Appointments innerhalb der Gruppe
+                    sorted_apps = sorted(
+                        appointments,
+                        key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)
+                    )
+                    # Entferne Duplikate innerhalb der Gruppe
+                    unique_apps = list({app.id: app for app in sorted_apps}.values())
+                    
+                    termine_in_gruppe = [
+                        f'{app.event.date:%d.%m.%y} ({app.event.time_of_day.name}) - '
+                        f'{app.event.location_plan_period.location_of_work.name}'
+                        for app in unique_apps
+                    ]
+                    grouped_termine.append(', '.join(termine_in_gruppe))
+                
+                # Formatiere als Bullet-Liste
+                termine_text = '<br>'.join(f'• {gruppe}' for gruppe in grouped_termine)
                 
                 errors.append(ValidationError(
                     category="Maximale Einsätze überschritten",
                     message=(
-                        f'{person_name}: {active_children_count} Einsätze geplant, '
-                        f'aber maximal {nr_of_active_children} erlaubt'
+                        f'Betroffener Mitarbeiter: {person_name}<br>'
+                        f'Betroffene gruppierte Termine:<br>{termine_text}<br>'
+                        f'Es {"ist nur eine Gruppe" if nr_of_active_children == 1 else f"sind nur {nr_of_active_children} Gruppen"} erlaubt.'
                     )
                 ))
         
         return errors
     
-    def _is_group_or_descendant_used(self, group, used_adg_ids: set[UUID]) -> bool:
+    def _is_group_or_descendant_used(self, group, used_adg_ids: set[int]) -> bool:
         """
         Prüft ob diese Gruppe oder ein Nachkomme im Plan verwendet wird.
         """
@@ -141,17 +169,27 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
         
         return False
     
+    def _get_appointments_for_group(self, group, adg_to_appointments: dict[UUID, list]) -> list:
+        """
+        Sammelt alle Appointments für diese Gruppe und ihre Nachkommen.
+        """
+        appointments = []
+        
+        if group.avail_day_group_id in adg_to_appointments:
+            appointments.extend(adg_to_appointments[group.avail_day_group_id])
+        
+        for child in group.children:
+            appointments.extend(self._get_appointments_for_group(child, adg_to_appointments))
+        
+        return appointments
+    
     def _get_person_name_from_group(self, avail_day_group) -> str:
         """
         Ermittelt den Mitarbeiter-Namen aus der AvailDayGroup-Hierarchie.
+        Nutzt das erste Blatt der Gruppe, da alle Blätter zum selben Mitarbeiter gehören.
         """
-        # Traversiere nach oben zur Root-Gruppe
-        current = avail_day_group
-        while current.parent:
-            current = current.parent
-        
-        # Die Root-Gruppe sollte die actor_plan_period Info haben
-        if current.avail_day_group_db and current.avail_day_group_db.actor_plan_period:
-            return current.avail_day_group_db.actor_plan_period.person.full_name
+        if avail_day_group.leaves and avail_day_group.leaves[0].avail_day:
+            return avail_day_group.leaves[0].avail_day.actor_plan_period.person.full_name
         
         return f"Unbekannt (Gruppe {avail_day_group.avail_day_group_id})"
+    

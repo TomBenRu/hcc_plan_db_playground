@@ -2,10 +2,15 @@
 """
 Constraint für Location-Präferenzen der Mitarbeiter.
 """
+from typing import TYPE_CHECKING
 
 from ortools.sat.python.cp_model import IntVar
 
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.avail_day_group_tree import AvailDayGroup
+from sat_solver.constraints.base import ConstraintBase, ValidationError
+
+if TYPE_CHECKING:
+    from database import schemas
 
 
 class LocationPrefsConstraint(ConstraintBase):
@@ -25,6 +30,8 @@ class LocationPrefsConstraint(ConstraintBase):
     Bei Score 0 wird ein Hard Constraint gesetzt (shift_var == 0), das die Zuweisung
     komplett verhindert. Bei allen anderen Scores wird eine Penalty-Variable erstellt,
     die in die Objective-Funktion eingeht.
+    
+    Implementiert das Validatable-Protocol für Plan-Validierung (nur Score=0).
     
     Attributes:
         name: "location_prefs"
@@ -158,3 +165,47 @@ class LocationPrefsConstraint(ConstraintBase):
         )
         
         return self.model.NewIntVar(min_value, max_value, var_name)
+    
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationError]:
+        """
+        Prüft ob Mitarbeiter an Standorten mit Score=0 zugewiesen wurden.
+        
+        Nur Score=0 wird validiert, da dies ein Hard Constraint ist.
+        """
+        errors = []
+        
+        for appointment in sorted(plan.appointments,
+                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
+            event = appointment.event
+            location_id = event.location_plan_period.location_of_work.id
+            location_name = event.location_plan_period.location_of_work.name
+            
+            for avd in appointment.avail_days:
+                adg_id = avd.avail_day_group.id
+                
+                # Hole die Location-Präferenzen über entities
+                if adg_id not in self.entities.avail_day_groups_with_avail_day:
+                    continue
+                
+                adg: AvailDayGroup = self.entities.avail_day_groups_with_avail_day[adg_id]
+                avail_day = adg.avail_day
+                
+                # Prüfe Location-Präferenzen für diese Location
+                for loc_pref in avail_day.actor_location_prefs_defaults:
+                    if loc_pref.prep_delete:
+                        continue
+
+                    # Prüfe ob es um diese Location geht und Score=0 ist
+                    if (loc_pref.location_of_work.id == location_id 
+                            and loc_pref.score == 0):
+                        person_name = avail_day.actor_plan_period.person.full_name
+                        errors.append(ValidationError(
+                            category="Standort-Präferenz",
+                            message=(
+                                f'{person_name} darf am {event.date:%d.%m.%y} '
+                                f'({event.time_of_day.name}) nicht in '
+                                f'{location_name} arbeiten (Score=0)'
+                            )
+                        ))
+        
+        return errors

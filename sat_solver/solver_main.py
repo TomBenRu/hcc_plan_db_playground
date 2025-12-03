@@ -1,12 +1,8 @@
-import collections
 import dataclasses
-import itertools
 import logging
 import os
-import pprint
 import sys
 import time
-from ast import literal_eval
 from collections import defaultdict
 import datetime
 from datetime import date
@@ -1314,6 +1310,20 @@ def call_solver_to_test_plan(plan: schemas.PlanShow,
                              event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
                              entities: 'Entities', max_search_time: int, 
                              log_search_process: bool) -> tuple[bool, list[str]]:
+    """
+    DEPRECATED: Verwende stattdessen die neue validate_plan()-basierte Architektur.
+    
+    Diese Funktion startet einen vollständigen Solver-Lauf zur Plan-Validierung.
+    Die neue Architektur nutzt direkte Python-Prüfungen ohne Solver.
+    """
+    import warnings
+    warnings.warn(
+        "call_solver_to_test_plan ist deprecated. "
+        "Die neue test_plan() nutzt Registry.validate_plan() ohne Solver.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     model = cp_model.CpModel()
     create_vars(model, event_group_tree, avail_day_group_tree, entities)
     
@@ -1773,8 +1783,78 @@ def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int,
 
 
 def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
-    # todo: Möglichkeit hinzufügen, um die Besetzung von Gästen auf CastRules zu überprüfen.
-    #  Statistiken von möglichen und gerechten Einsätzen zurückgeben.
+    """
+    Testet einen bestehenden Plan auf Regelverletzungen.
+    
+    Nutzt die neue Registry-basierte Validierung ohne Solver-Aufruf.
+    Constraints die das Validatable-Protocol implementieren werden direkt
+    in Python geprüft, was deutlich schneller ist als ein Solver-Durchlauf.
+    
+    Args:
+        plan_id: UUID des zu testenden Plans
+        
+    Returns:
+        Tuple (success, problems):
+        - success: True wenn keine Fehler gefunden wurden
+        - problems: Liste von HTML-formatierten Fehlermeldungen
+    
+    Note:
+        Aktuell implementierte Validierungen:
+        - EmployeeAvailability: Mitarbeiter-Verfügbarkeit
+        - Skills: Fertigkeitsanforderungen
+        - LocationPrefs: Standort-Präferenzen (nur Score=0)
+        
+        Für vollständige Validierung inkl. aller Constraints kann
+        test_plan_with_solver() verwendet werden (deprecated).
+    """
+
+    from sat_solver.constraints import ConstraintRegistry
+    
+    plan = db_services.Plan.get(plan_id)
+    event_group_tree = get_event_group_tree(plan.plan_period.id)
+    avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
+    cast_group_tree = get_cast_group_tree(plan.plan_period.id)
+    entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
+    
+    # Erstelle Registry nur für Validierung (kein echtes Model nötig)
+    # Wir übergeben ein Dummy-Model, da wir apply() nicht aufrufen
+    model = cp_model.CpModel()
+    registry = ConstraintRegistry(model, entities)
+
+    registry.register_plan_test_constraints()
+
+    # Validiere den Plan
+    errors = registry.validate_plan(plan)
+    
+    if errors:
+        # Konvertiere ValidationErrors zu HTML-Strings
+        problems = [error.to_html() for error in errors]
+        return False, problems
+    
+    return True, []
+
+
+def test_plan_with_solver(plan_id: UUID) -> tuple[bool, list[str]]:
+    """
+    DEPRECATED: Testet einen Plan mit vollständigem Solver-Durchlauf.
+    
+    Diese Funktion nutzt die alte Architektur mit Solver-Assumptions.
+    Für die meisten Anwendungsfälle ist test_plan() schneller und ausreichend.
+    
+    Args:
+        plan_id: UUID des zu testenden Plans
+        
+    Returns:
+        Tuple (success, problems)
+    """
+    import warnings
+    warnings.warn(
+        "test_plan_with_solver ist deprecated. "
+        "Verwende test_plan() für schnellere Validierung.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     plan = db_services.Plan.get(plan_id)
     event_group_tree = get_event_group_tree(plan.plan_period.id)
     avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)

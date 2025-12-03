@@ -4,14 +4,73 @@ Abstrakte Basisklasse für alle Solver-Constraints.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from uuid import UUID
+
+from dataclasses import dataclass
 
 from ortools.sat.python import cp_model
 from ortools.sat.python.cp_model import IntVar
 
 if TYPE_CHECKING:
     from sat_solver.constraints.registry import ConstraintRegistry
+    from database import schemas
+
+
+@dataclass
+class ValidationError:
+    """
+    Repräsentiert einen Validierungsfehler bei der Plan-Prüfung.
+    
+    Wird von Constraints zurückgegeben, die das Validatable-Protokoll implementieren.
+    
+    Attributes:
+        category: Kategorie des Fehlers (z.B. "Feste Besetzung", "Fertigkeitskonflikt")
+        message: Detaillierte Fehlerbeschreibung
+    """
+    category: str
+    message: str
+    
+    def to_html(self) -> str:
+        """Formatiert den Fehler als HTML für die UI-Anzeige."""
+        return (f'<p style="margin-bottom: 4px; margin-top: 8px;">{self.category}:</p>'
+                f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">'
+                f'{self.message}</p>')
+
+
+@runtime_checkable
+class Validatable(Protocol):
+    """
+    Protocol für Constraints, die Plan-Validierung unterstützen.
+    
+    Constraints die dieses Protocol implementieren, können einen bestehenden Plan
+    ohne Solver auf Regelverletzungen prüfen. Dies ermöglicht schnelle Validierung
+    mit klaren Fehlermeldungen.
+    
+    Die Registry nutzt isinstance(constraint, Validatable) um zu prüfen,
+    ob ein Constraint Validierung unterstützt.
+    
+    Example:
+        >>> class MyConstraint(ConstraintBase, Validatable):
+        ...     def validate_plan(self, plan) -> list[ValidationError]:
+        ...         errors = []
+        ...         # Prüflogik hier
+        ...         return errors
+    """
+    name: str
+    
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationError]:
+        """
+        Validiert einen bestehenden Plan gegen dieses Constraint.
+        
+        Args:
+            plan: Der zu prüfende Plan
+        
+        Returns:
+            Liste von ValidationError-Objekten für gefundene Verstöße.
+            Leere Liste wenn keine Verstöße gefunden wurden.
+        """
+        ...
 
 
 class ConstraintBase(ABC):

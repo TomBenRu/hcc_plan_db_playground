@@ -14,7 +14,8 @@ from ortools.sat.python.cp_model import IntVar
 from configuration.solver import SolverConfig, curr_config_handler
 
 if TYPE_CHECKING:
-    from sat_solver.constraints.base import ConstraintBase
+    from sat_solver.constraints.base import ConstraintBase, ValidationError, Validatable
+    from database import schemas
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ class ConstraintRegistry:
         """
         Registriert eine bereits erstellte Constraint-Instanz.
         
-        Nützlich wenn ein Constraint mit speziellen Parametern erstellt wurde.
+        Nützlich, wenn ein Constraint mit speziellen Parametern erstellt wurde.
         
         Args:
             constraint: Die Constraint-Instanz
@@ -134,6 +135,51 @@ class ConstraintRegistry:
         self._constraints.append(constraint)
         logger.debug(f"Constraint-Instanz registriert: {constraint.name}")
         return constraint
+
+    def register_plan_test_constraints(self) -> None:
+        """
+        Registriert alle Plan-Test-Constraints.
+        Das sind alle Constraints die das Validatable-Protocol implementieren.
+        """
+        import pkgutil
+        import importlib
+        import inspect
+        import sat_solver.constraints
+        from sat_solver.constraints import ConstraintBase, Validatable
+
+        registered_count = 0
+        
+        try:
+            # Dynamische Erkennung und Registrierung von Validierungs-Constraints.
+            package_path = sat_solver.constraints.__path__
+            for _, name, _ in pkgutil.iter_modules(package_path):
+                try:
+                    full_module_name = f"{sat_solver.constraints.__name__}.{name}"
+                    module = importlib.import_module(full_module_name)
+                    
+                    for member_name, obj in inspect.getmembers(module):
+                        try:
+                            if (inspect.isclass(obj) and obj.__module__ == full_module_name
+                                    and issubclass(obj, ConstraintBase)
+                                    and isinstance(obj, Validatable)
+                                    and obj is not ConstraintBase):
+                                self.register(obj)
+                                registered_count += 1
+                                logger.debug(f"Plan-Test-Constraint registriert: {obj.__name__}")
+                        except Exception as e:
+                            logger.warning(f"Fehler beim Prüfen von Klasse {member_name}: {e}")
+                            
+                except ImportError as e:
+                    logger.warning(f"Modul {name} konnte nicht importiert werden: {e}")
+                except Exception as e:
+                    logger.error(f"Unerwarteter Fehler beim Laden von Modul {name}: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Kritischer Fehler bei Plan-Test-Constraint-Registrierung: {e}")
+            raise RuntimeError(f"Plan-Test-Constraint-Registrierung fehlgeschlagen: {e}") from e
+        
+        logger.info(f"{registered_count} Plan-Test-Constraints automatisch registriert")
+
     
     def apply_all(self) -> None:
         """
@@ -279,6 +325,47 @@ class ConstraintRegistry:
         logger.info("-" * 60)
         logger.info(f"  GESAMT (gewichtet): {total_weighted:.2f}")
         logger.info("=" * 60)
+
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Validiert einen Plan gegen alle registrierten Constraints.
+        
+        Iteriert über alle Constraints die das Validatable-Protocol implementieren
+        und ruft deren validate_plan()-Methode auf. Dies ermöglicht eine schnelle 
+        Plan-Validierung ohne den Solver zu starten.
+        
+        Args:
+            plan: Der zu prüfende Plan
+        
+        Returns:
+            Liste aller ValidationError-Objekte aus allen Constraints.
+            Leere Liste wenn der Plan gültig ist.
+        
+        Example:
+            >>> errors = registry.validate_plan(plan)
+            >>> if errors:
+            ...     for error in errors:
+            ...         print(error.to_html())
+        """
+        from sat_solver.constraints.base import ValidationError, Validatable
+        
+        errors: list[ValidationError] = []
+        
+        for constraint in self._constraints:
+            if isinstance(constraint, Validatable):
+                constraint_errors = constraint.validate_plan(plan)
+                if constraint_errors:
+                    logger.debug(
+                        f"Constraint '{constraint.name}' fand {len(constraint_errors)} Fehler"
+                    )
+                    errors.extend(constraint_errors)
+        
+        if errors:
+            logger.info(f"Plan-Validierung: {len(errors)} Fehler gefunden")
+        else:
+            logger.debug("Plan-Validierung: keine Fehler gefunden")
+        
+        return errors
     
     def __repr__(self) -> str:
         constraint_names = [c.name for c in self._constraints]

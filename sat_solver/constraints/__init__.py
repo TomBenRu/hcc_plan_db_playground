@@ -6,7 +6,7 @@ Dieses Modul enthält alle Constraint-Implementierungen als Klassen,
 die über die ConstraintRegistry verwaltet werden.
 """
 
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.constraints.base import ConstraintBase, Validatable
 from sat_solver.constraints.registry import ConstraintRegistry
 from sat_solver.constraints.location_prefs import LocationPrefsConstraint
 from sat_solver.constraints.employee_availability import EmployeeAvailabilityConstraint
@@ -34,6 +34,7 @@ from sat_solver.constraints.helpers import (
 
 __all__ = [
     'ConstraintBase',
+    'Validatable',
     'ConstraintRegistry',
     'LocationPrefsConstraint',
     'EmployeeAvailabilityConstraint',

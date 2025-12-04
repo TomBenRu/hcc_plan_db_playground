@@ -523,6 +523,31 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
     return entities
 
 
+def populate_shifts_exclusive(entities: Entities) -> None:
+    """
+    Befüllt entities.shifts_exclusive mit Verfügbarkeitsinformationen.
+    
+    Für jede Kombination aus AvailDayGroup und EventGroup wird geprüft,
+    ob eine Zuweisung möglich ist (basierend auf Standort-Präferenzen und Zeitfenstern).
+    
+    Diese Funktion kann unabhängig vom Solver aufgerufen werden, z.B. für Plan-Validierung.
+    
+    Args:
+        entities: Entities-Objekt mit avail_day_groups_with_avail_day und event_groups_with_event
+    """
+    for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
+        for event_group_id, event_group in entities.event_groups_with_event.items():
+            location_of_work = event_group.event.location_plan_period.location_of_work
+            # Standardmäßig ist Zuweisung möglich
+            entities.shifts_exclusive[adg_id, event_group_id] = 1
+            # Prüfe Standort-Präferenzen (Score > 0 erforderlich)
+            if not check_actor_location_prefs_fits_event(adg.avail_day, location_of_work):
+                entities.shifts_exclusive[adg_id, event_group_id] = 0
+            # Prüfe Zeitfenster und Datum
+            if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
+                entities.shifts_exclusive[adg_id, event_group_id] = 0
+
+
 def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, 
                 avail_day_group_tree: AvailDayGroupTree, entities: Entities) -> None:
     """
@@ -545,20 +570,12 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree,
         if avail_day_group.children or avail_day_group.avail_day
     }
 
+    # Befülle shifts_exclusive (Verfügbarkeitsmatrix)
+    populate_shifts_exclusive(entities)
+    
+    # Erstelle shift_vars für den Solver
     for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
         for event_group_id, event_group in entities.event_groups_with_event.items():
-            location_of_work = event_group.event.location_plan_period.location_of_work
-            #######################################################################################################
-            # todo: später implementieren, um die shift_vars zu minimieren und die Effektivität zu verbessern
-            # shift_vars werden nicht gesetzt, wenn das zur location_of_work zugehörige actor_location_pref
-            # des avail_day einen Score von 0 besitzt:
-            entities.shifts_exclusive[adg_id, event_group_id] = 1
-            if not check_actor_location_prefs_fits_event(adg.avail_day, location_of_work):
-                entities.shifts_exclusive[adg_id, event_group_id] = 0
-            # shift_vars werden nicht gesetzt, wenn Zeitfenster und Datum nicht zu denen des avail_day passen:
-            if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
-                entities.shifts_exclusive[adg_id, event_group_id] = 0
-            #########################################################################################################
             entities.shift_vars[(adg_id, event_group_id)] = model.NewBoolVar(
                 f'shift ({adg.avail_day.actor_plan_period.person.f_name},{adg.avail_day.date:%d.%m.%y}, {event_group_id})')
     # print(f'{len(entities.shift_vars)=}')
@@ -1803,6 +1820,7 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
         - EmployeeAvailability: Mitarbeiter-Verfügbarkeit
         - Skills: Fertigkeitsanforderungen
         - LocationPrefs: Standort-Präferenzen (nur Score=0)
+        - FixedCastConflicts: Feste Besetzungen
         
         Für vollständige Validierung inkl. aller Constraints kann
         test_plan_with_solver() verwendet werden (deprecated).
@@ -1815,6 +1833,9 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
     avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
     cast_group_tree = get_cast_group_tree(plan.plan_period.id)
     entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
+    
+    # Befülle shifts_exclusive für Verfügbarkeitsprüfungen (z.B. fixed_cast_only_if_available)
+    populate_shifts_exclusive(entities)
     
     # Erstelle Registry nur für Validierung (kein echtes Model nötig)
     # Wir übergeben ein Dummy-Model, da wir apply() nicht aufrufen

@@ -95,3 +95,127 @@ class FixedCastConflictsConstraint(ConstraintBase):
         
         # Penalty-Variablen für Registry
         self.penalty_vars = list(self.fixed_cast_vars.values())
+
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Prüft ob alle fixed_cast Anforderungen im Plan erfüllt sind.
+        
+        Für jeden Termin wird geprüft, ob die vorgegebene Besetzung (AND/OR-Logik)
+        durch die zugewiesenen Personen erfüllt wird.
+        """
+        from database import schemas
+        from sat_solver.constraints.base import ValidationError
+        from sat_solver.constraints.fixed_cast_helpers import (
+            parse_fixed_cast_string,
+            filter_unavailable_persons,
+            is_empty_list,
+        )
+        from tools.helper_functions import generate_fixed_cast_clear_text
+        
+        errors = []
+        
+        # Lookup: event_id -> cast_group
+        cast_group_by_event_id = {
+            cg.event.id: cg 
+            for cg in self.entities.cast_groups_with_event.values()
+            if cg.event is not None
+        }
+        
+        # Lookup: event_id -> zugewiesene Person-IDs (aus dem Plan)
+        assigned_persons_by_event: dict[UUID, set[UUID]] = {}
+        for appointment in plan.appointments:
+            event_id = appointment.event.id
+            person_ids = {
+                avd.actor_plan_period.person.id 
+                for avd in appointment.avail_days
+            }
+            assigned_persons_by_event[event_id] = person_ids
+        
+        for appointment in sorted(plan.appointments,
+                                  key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
+            event_id = appointment.event.id
+            cast_group = cast_group_by_event_id.get(event_id)
+            
+            if not cast_group or not cast_group.fixed_cast:
+                continue
+            
+            # Parse fixed_cast String
+            fixed_cast_as_list = parse_fixed_cast_string(cast_group.fixed_cast)
+            
+            # Wenn only_if_available: Filtere nicht verfügbare Personen
+            if cast_group.fixed_cast_only_if_available:
+                fixed_cast_as_list = filter_unavailable_persons(
+                    fixed_cast_as_list, cast_group, self.entities
+                )
+                print(f'DEBUG: filtered fixed_cast_as_list: {fixed_cast_as_list}')
+                if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
+                    continue  # Keine Personen verfügbar -> keine Prüfung nötig
+            
+            # Hole zugewiesene Personen für dieses Event
+            assigned_persons = assigned_persons_by_event.get(event_id, set())
+            
+            # Prüfe ob fixed_cast erfüllt ist
+            if not self._evaluate_fixed_cast(fixed_cast_as_list, assigned_persons):
+                # Erstelle lesbare Fehlermeldung
+                text_fixed_cast = generate_fixed_cast_clear_text(
+                    cast_group.fixed_cast,
+                    cast_group.fixed_cast_only_if_available,
+                    cast_group.prefer_fixed_cast_events
+                )
+                event = cast_group.event
+                
+                # Zeige wer tatsächlich zugewiesen wurde
+                assigned_names = [
+                    avd.actor_plan_period.person.full_name 
+                    for avd in appointment.avail_days
+                ]
+                assigned_text = ', '.join(assigned_names) if assigned_names else 'niemand'
+                
+                errors.append(ValidationError(
+                    category="Feste Besetzung nicht erfüllt",
+                    message=(
+                        f'{event.date:%d.%m.%y} ({event.time_of_day.name}), '
+                        f'{event.location_plan_period.location_of_work.name}:<br>'
+                        f'Gefordert: {text_fixed_cast}<br>'
+                        f'Zugewiesen: {assigned_text}'
+                    )
+                ))
+        
+        return errors
+    
+    def _evaluate_fixed_cast(self, fixed_cast_list: tuple | str, assigned_persons: set[UUID]) -> bool:
+        """
+        Evaluiert rekursiv die fixed_cast AND/OR-Logik.
+        
+        Args:
+            fixed_cast_list: Geparste fixed_cast Struktur (verschachtelt)
+            assigned_persons: Set der zugewiesenen Person-UUIDs
+        
+        Returns:
+            True wenn die Besetzungsanforderung erfüllt ist, sonst False
+        """
+        if isinstance(fixed_cast_list, str):
+            # Einzelne Person-UUID
+            return UUID(fixed_cast_list) in assigned_persons
+        
+        # Liste mit Operatoren
+        # Struktur: (person_or_nested, operator, person_or_nested, operator, ...)
+        elements = [v for i, v in enumerate(fixed_cast_list) if not i % 2]  # Personen/verschachtelte
+        operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]      # Operatoren
+        
+        if not operators:
+            # Nur ein Element
+            return self._evaluate_fixed_cast(elements[0], assigned_persons) if elements else True
+        
+        # Alle Operatoren müssen gleich sein (laut fixed_cast_helpers.py)
+        operator = operators[0]
+        
+        # Evaluiere rekursiv alle Elemente
+        results = [self._evaluate_fixed_cast(elem, assigned_persons) for elem in elements]
+        
+        if operator == 'and':
+            # AND: Alle müssen True sein
+            return all(results)
+        else:
+            # OR: Mindestens einer muss True sein
+            return any(results)

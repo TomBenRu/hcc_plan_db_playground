@@ -4,6 +4,7 @@ RequiredAvailDayGroupsConstraint - Hard Constraint für erforderliche Verfügbar
 Stellt sicher, dass entweder die erforderliche Mindestanzahl an Schichten
 geplant wird oder gar keine.
 """
+from database import schemas
 from sat_solver.constraints.base import ConstraintBase
 
 
@@ -67,3 +68,117 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
                 # Füge Constraint hinzu: shift_sum entweder 0 oder required.num_avail_day_groups
                 # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = required
                 self.model.Add(shift_sum == required.num_avail_day_groups * y)
+    
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Prüft ob die Mindesteinsätze eingehalten werden.
+        
+        Für jeden Mitarbeiter mit required_avail_day_groups wird geprüft, ob
+        entweder 0 Einsätze oder mindestens die erforderliche Anzahl geplant sind.
+        """
+        from uuid import UUID
+        from sat_solver.constraints.base import ValidationError
+        
+        errors = []
+        
+        # Sammle alle im Plan verwendeten avail_day_group_ids mit zugehörigen Appointments
+        adg_to_appointments: dict[UUID, list] = {}
+        for appointment in plan.appointments:
+            for avd in appointment.avail_days:
+                adg_id = avd.avail_day_group.id
+                if adg_id not in adg_to_appointments:
+                    adg_to_appointments[adg_id] = []
+                adg_to_appointments[adg_id].append(appointment)
+        
+        # Für jede Gruppe mit required_avail_day_groups prüfen
+        for avail_day_group_id, avail_day_group in self.entities.avail_day_groups.items():
+            required = avail_day_group.required_avail_day_groups
+            if not required:
+                continue
+            
+            # Sammle IDs der Kind-Avail-Day-Groups (rekursiv alle Nachkommen)
+            child_adg_ids = self._get_all_descendant_ids(avail_day_group)
+            
+            # Sammle Location-IDs falls vorhanden
+            location_ids = (
+                {l.id for l in required.locations_of_work}
+                if required.locations_of_work
+                else None
+            )
+            
+            # Zähle relevante Appointments
+            relevant_appointments = []
+            for adg_id in child_adg_ids:
+                if adg_id not in adg_to_appointments:
+                    continue
+                for appointment in adg_to_appointments[adg_id]:
+                    # Location-Filter anwenden falls vorhanden
+                    if location_ids:
+                        if appointment.event.location_plan_period.location_of_work.id not in location_ids:
+                            continue
+                    relevant_appointments.append(appointment)
+            
+            # Entferne Duplikate (ein Appointment kann mehrere avail_days haben)
+            unique_appointments = list({app.id: app for app in relevant_appointments}.values())
+            shift_count = len(unique_appointments)
+            
+            # Prüfe: Entweder 0 oder >= required
+            if 0 < shift_count < required.num_avail_day_groups:
+                # Ermittle den Mitarbeiter-Namen
+                person_name = self._get_person_name_from_group(avail_day_group)
+                
+                # Sortiere Termine
+                sorted_appointments = sorted(
+                    unique_appointments,
+                    key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)
+                )
+                
+                # Formatiere die Termine
+                termine = [
+                    f'{app.event.date:%d.%m.%y} ({app.event.time_of_day.name}) - '
+                    f'{app.event.location_plan_period.location_of_work.name}'
+                    for app in sorted_appointments
+                ]
+                termine_text = ', '.join(termine)
+                
+                # Location-Hinweis falls relevant
+                location_hinweis = ""
+                if location_ids:
+                    location_names = [l.name for l in required.locations_of_work]
+                    location_hinweis = f" (nur für: {', '.join(location_names)})"
+                
+                fehlend = required.num_avail_day_groups - shift_count
+                
+                errors.append(ValidationError(
+                    category="Mindesteinsätze nicht erreicht",
+                    message=(
+                        f'Betroffener Mitarbeiter: {person_name}{location_hinweis}<br>'
+                        f'Aktuell {shift_count} Einsätze geplant, aber mindestens '
+                        f'{required.num_avail_day_groups} erforderlich (oder keine).<br>'
+                        f'Bitte {fehlend} weitere{"n" if fehlend == 1 else ""} Einsatz{"" if fehlend == 1 else "e"} '
+                        f'hinzufügen oder alle entfernen.<br>'
+                        f'Betroffene Termine: {termine_text}'
+                    )
+                ))
+        
+        return errors
+    
+    def _get_all_descendant_ids(self, avail_day_group) -> set:
+        """
+        Sammelt alle IDs der Nachkommen einer Gruppe (rekursiv).
+        """
+        ids = set()
+        for child in avail_day_group.children:
+            ids.add(child.avail_day_group_id)
+            ids.update(self._get_all_descendant_ids(child))
+        return ids
+    
+    def _get_person_name_from_group(self, avail_day_group) -> str:
+        """
+        Ermittelt den Mitarbeiter-Namen aus der AvailDayGroup-Hierarchie.
+        Nutzt das erste Blatt der Gruppe, da alle Blätter zum selben Mitarbeiter gehören.
+        """
+        if avail_day_group.leaves and avail_day_group.leaves[0].avail_day:
+            return avail_day_group.leaves[0].avail_day.actor_plan_period.person.full_name
+        
+        return f"Unbekannt (Gruppe {avail_day_group.avail_day_group_id})"

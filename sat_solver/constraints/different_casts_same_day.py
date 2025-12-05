@@ -7,11 +7,15 @@ die am gleichen Tag stattfinden, unterschiedlich sein müssen.
 import datetime
 import itertools
 from collections import defaultdict
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from ortools.sat.python.cp_model import IntVar
 
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.constraints.base import ConstraintBase, Validatable
+
+if TYPE_CHECKING:
+    from database import schemas
 
 
 class DifferentCastsSameDayConstraint(ConstraintBase):
@@ -181,3 +185,121 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
             ),
             None
         )
+
+
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Prüft ob Mitarbeiter an einem Tag bei verschiedenen Locations eingeteilt sind,
+        ohne dass dies durch CombinationLocationsPossible erlaubt ist.
+        """
+        from database import schemas
+        from sat_solver.constraints.base import ValidationError
+        
+        errors = []
+        
+        # Gruppiere Appointments nach (Datum, Person)
+        # Structure: {(date, person_id): [(appointment, avail_day), ...]}
+        appointments_by_date_person: dict[
+            tuple[datetime.date, UUID], 
+            list[tuple[schemas.Appointment, schemas.AvailDay]]
+        ] = defaultdict(list)
+        
+        for appointment in plan.appointments:
+            event = appointment.event
+            date = event.date
+            
+            for avail_day in appointment.avail_days:
+                person_id = avail_day.actor_plan_period.person.id
+                appointments_by_date_person[(date, person_id)].append((appointment, avail_day))
+        
+        # Prüfe für jede (Datum, Person)-Kombination
+        for (date, person_id), app_avd_list in appointments_by_date_person.items():
+            # Gruppiere nach Location
+            apps_by_location: dict[UUID, list[tuple[schemas.Appointment, schemas.AvailDay]]] = defaultdict(list)
+            
+            for appointment, avail_day in app_avd_list:
+                location_id = appointment.event.location_plan_period.location_of_work.id
+                apps_by_location[location_id].append((appointment, avail_day))
+            
+            # Nur prüfen wenn mehr als eine Location
+            if len(apps_by_location) <= 1:
+                continue
+            
+            # Person-Name für Fehlermeldung
+            person_name = app_avd_list[0][1].actor_plan_period.person.full_name
+            
+            # Alle Location-Paare prüfen
+            location_ids = list(apps_by_location.keys())
+            for loc_id_1, loc_id_2 in itertools.combinations(location_ids, 2):
+                apps_loc_1 = apps_by_location[loc_id_1]
+                apps_loc_2 = apps_by_location[loc_id_2]
+                
+                # Alle Kombinationen von Appointments zwischen den Locations prüfen
+                for (app_1, avd_1), (app_2, avd_2) in itertools.product(apps_loc_1, apps_loc_2):
+                    if not self._is_combination_allowed(app_1, avd_1, app_2, avd_2):
+                        loc_name_1 = app_1.event.location_plan_period.location_of_work.name
+                        loc_name_2 = app_2.event.location_plan_period.location_of_work.name
+                        time_1 = app_1.event.time_of_day.name
+                        time_2 = app_2.event.time_of_day.name
+                        
+                        errors.append(ValidationError(
+                            category="Unerlaubte Location-Kombination",
+                            message=(
+                                f'{date:%d.%m.%y}: {person_name}<br>'
+                                f'{loc_name_1} ({time_1}) und {loc_name_2} ({time_2}) '
+                                f'sind am gleichen Tag nicht erlaubt.'
+                            )
+                        ))
+        
+        return errors
+    
+    def _is_combination_allowed(
+        self,
+        app_1: 'schemas.AppointmentShow',
+        avd_1: 'schemas.AvailDayShow',
+        app_2: 'schemas.AppointmentShow',
+        avd_2: 'schemas.AvailDayShow'
+    ) -> bool:
+        """
+        Prüft ob die Kombination zweier Appointments an verschiedenen Locations erlaubt ist.
+        
+        Returns:
+            True wenn erlaubt (via CombinationLocationsPossible), False sonst
+        """
+        event_1 = app_1.event
+        event_2 = app_2.event
+        
+        location_1_id = event_1.location_plan_period.location_of_work.id
+        location_2_id = event_2.location_plan_period.location_of_work.id
+        
+        # CombinationLocationsPossible für beide AvailDays suchen
+        clp_1 = self._find_combination_location_possible(
+            avd_1.combination_locations_possibles,
+            location_1_id,
+            location_2_id
+        )
+        clp_2 = self._find_combination_location_possible(
+            avd_2.combination_locations_possibles,
+            location_1_id,
+            location_2_id
+        )
+        
+        # Wenn keine CLP für einen der beiden -> nicht erlaubt
+        if clp_1 is None or clp_2 is None:
+            return False
+        
+        # Zeitabstand prüfen
+        start_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.start)
+        end_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.end)
+        start_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.start)
+        end_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.end)
+        
+        # Zeitdifferenz zwischen Ende des einen und Start des anderen
+        if start_1 > end_2:
+            time_diff = start_1 - end_2
+        else:
+            time_diff = start_2 - end_1
+        
+        # Kombination ist möglich wenn Zeitabstand ausreicht
+        required_time = max(clp_1.time_span_between, clp_2.time_span_between)
+        return time_diff >= required_time

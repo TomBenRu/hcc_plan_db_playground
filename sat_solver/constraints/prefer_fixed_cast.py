@@ -10,7 +10,7 @@ Strategie:
   → 2 Mitarbeiter nicht besetzt = 2 Penalties
 - Bei OR-Operatoren: 1 Penalty pro Event (Event-basierte Logik)
 """
-
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from ortools.sat.python.cp_model import IntVar
@@ -22,6 +22,10 @@ from sat_solver.constraints.fixed_cast_helpers import (
     extract_person_uuids,
     has_only_and_operators,
 )
+
+if TYPE_CHECKING:
+    from database import schemas
+    from sat_solver.constraints.base import ValidationError
 
 
 class PreferFixedCastConstraint(ConstraintBase):
@@ -195,7 +199,7 @@ class PreferFixedCastConstraint(ConstraintBase):
         self.penalty_vars.append(penalty_var)
         print(f"        [1/1] Event-basierte Penalty-Variable erstellt")
 
-    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+    def validate_plan(self, plan: schemas.PlanShow) -> list[ValidationError]:
         """
         Prüft ob bevorzugte Events korrekt ausgewählt wurden.
         
@@ -206,12 +210,6 @@ class PreferFixedCastConstraint(ConstraintBase):
         Gibt auch einen Hinweis aus, wenn es mehr bevorzugte Events gibt als
         ausgewählt werden können (Konfliktfall ohne eindeutige Lösung).
         """
-        from sat_solver.constraints.base import ValidationError
-        from sat_solver.constraints.fixed_cast_helpers import (
-            parse_fixed_cast_string,
-            filter_unavailable_persons,
-            is_empty_list,
-        )
         
         errors = []
         

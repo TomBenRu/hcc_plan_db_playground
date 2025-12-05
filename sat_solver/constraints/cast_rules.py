@@ -7,6 +7,7 @@ Implementiert Regeln für Event-Besetzungen:
 - No Rule ("*"): Keine Besetzungsregel
 """
 import collections
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from ortools.sat.python.cp_model import IntVar
@@ -14,7 +15,10 @@ from ortools.sat.python.cp_model import IntVar
 from database import schemas
 from sat_solver import solver_variables
 from sat_solver.cast_group_tree import CastGroup
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.constraints.base import ConstraintBase, Validatable
+
+if TYPE_CHECKING:
+    pass  # schemas bereits importiert
 
 
 class CastRulesConstraint(ConstraintBase):
@@ -246,3 +250,140 @@ class CastRulesConstraint(ConstraintBase):
             return broken_rules_vars
         else:
             raise ValueError(f'Unbekannte strict_rule_pref: {strict_rule_pref}')
+
+
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Prüft ob Cast Rules (bei strict_rule_pref=2) eingehalten werden.
+        
+        Regeln:
+        - "-" = Different Cast: Keine Person darf in beiden aufeinanderfolgenden Events sein
+        - "~" = Same Cast: Gleiche Personen müssen in beiden Events sein (mit erlaubter Differenz)
+        """
+        from sat_solver.constraints.base import ValidationError
+        
+        errors = []
+        
+        # Lookup: event_id -> Set von Person-IDs
+        assigned_persons_by_event: dict[UUID, set[UUID]] = {}
+        for appointment in plan.appointments:
+            event_id = appointment.event.id
+            person_ids = {
+                avd.actor_plan_period.person.id 
+                for avd in appointment.avail_days
+            }
+            assigned_persons_by_event[event_id] = person_ids
+        
+        # Lookup: event_id -> Person-Namen (für Fehlermeldungen)
+        assigned_names_by_event: dict[UUID, set[str]] = {}
+        for appointment in plan.appointments:
+            event_id = appointment.event.id
+            person_names = {
+                avd.actor_plan_period.person.full_name 
+                for avd in appointment.avail_days
+            }
+            assigned_names_by_event[event_id] = person_names
+        
+        # Sammle Cast Groups auf Level 1, gruppiert nach Parent (wie in apply())
+        cast_groups_level_1 = collections.defaultdict(list)
+        for cast_group in self.entities.cast_groups_with_event.values():
+            cast_groups_level_1[cast_group.parent.cast_group_id].append(cast_group)
+        
+        # Sortiere chronologisch
+        for cast_groups in cast_groups_level_1.values():
+            cast_groups.sort(
+                key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)
+            )
+        
+        # Prüfe jede Cast Group Hierarchie
+        for cg_id, cast_groups in cast_groups_level_1.items():
+            cast_groups: list[CastGroup]
+            parent = self.entities.cast_groups[cg_id]
+            
+            # Nur Hard Constraints prüfen (strict_rule_pref == 2)
+            if not (rule := parent.cast_rule) or parent.strict_rule_pref != 2:
+                continue
+            
+            # Prüfe aufeinanderfolgende Cast Groups
+            for idx in range(len(cast_groups) - 1):
+                cg_1 = cast_groups[idx]
+                cg_2 = cast_groups[idx + 1]
+                
+                event_1 = cg_1.event
+                event_2 = cg_2.event
+                
+                # Prüfe ob beide Events im Plan sind
+                if event_1.id not in assigned_persons_by_event or event_2.id not in assigned_persons_by_event:
+                    continue
+                
+                persons_1 = assigned_persons_by_event[event_1.id]
+                persons_2 = assigned_persons_by_event[event_2.id]
+                
+                # Regel-Symbol aus zyklischem Pattern
+                rule_symbol = rule[idx % len(rule)]
+                
+                if rule_symbol == '-':
+                    # Different Cast: Keine Person darf in beiden Events sein
+                    overlap = persons_1 & persons_2
+                    if overlap:
+                        # Namen der überlappenden Personen sammeln
+                        overlap_names = []
+                        for appointment in plan.appointments:
+                            if appointment.event.id == event_1.id:
+                                for avd in appointment.avail_days:
+                                    if avd.actor_plan_period.person.id in overlap:
+                                        overlap_names.append(avd.actor_plan_period.person.full_name)
+                        
+                        errors.append(ValidationError(
+                            category="Different-Cast-Regel verletzt",
+                            message=(
+                                f'{event_1.location_plan_period.location_of_work.name}:<br>'
+                                f'{event_1.date:%d.%m.%y} ({event_1.time_of_day.name}) und '
+                                f'{event_2.date:%d.%m.%y} ({event_2.time_of_day.name})<br>'
+                                f'Doppelt besetzt: {", ".join(overlap_names)}'
+                            )
+                        ))
+                
+                elif rule_symbol == '~':
+                    # Same Cast: Gleiche Personen (mit erlaubter Differenz durch unterschiedliche nr_actors)
+                    allowed_diff = abs(cg_1.nr_actors - cg_2.nr_actors)
+                    
+                    # Symmetrische Differenz = Personen die nur in einem der beiden Events sind
+                    sym_diff = persons_1 ^ persons_2
+                    actual_diff = len(sym_diff)
+                    
+                    if actual_diff > allowed_diff:
+                        # Namen der unterschiedlichen Personen sammeln
+                        diff_in_1 = persons_1 - persons_2
+                        diff_in_2 = persons_2 - persons_1
+                        
+                        diff_names_1 = []
+                        diff_names_2 = []
+                        for appointment in plan.appointments:
+                            if appointment.event.id == event_1.id:
+                                for avd in appointment.avail_days:
+                                    if avd.actor_plan_period.person.id in diff_in_1:
+                                        diff_names_1.append(avd.actor_plan_period.person.full_name)
+                            if appointment.event.id == event_2.id:
+                                for avd in appointment.avail_days:
+                                    if avd.actor_plan_period.person.id in diff_in_2:
+                                        diff_names_2.append(avd.actor_plan_period.person.full_name)
+                        
+                        details = []
+                        if diff_names_1:
+                            details.append(f'Nur am {event_1.date:%d.%m.%y}: {", ".join(diff_names_1)}')
+                        if diff_names_2:
+                            details.append(f'Nur am {event_2.date:%d.%m.%y}: {", ".join(diff_names_2)}')
+                        
+                        errors.append(ValidationError(
+                            category="Same-Cast-Regel verletzt",
+                            message=(
+                                f'{event_1.location_plan_period.location_of_work.name}:<br>'
+                                f'{event_1.date:%d.%m.%y} ({event_1.time_of_day.name}) und '
+                                f'{event_2.date:%d.%m.%y} ({event_2.time_of_day.name})<br>'
+                                f'Erlaubte Abweichung: {allowed_diff}, Tatsächlich: {actual_diff}<br>'
+                                f'{"; ".join(details)}'
+                            )
+                        ))
+        
+        return errors

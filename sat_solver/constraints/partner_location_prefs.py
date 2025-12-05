@@ -5,10 +5,15 @@ Bewertet und optimiert die Zusammenarbeit von Mitarbeitern basierend auf
 ihren gegenseitigen Präferenzen für bestimmte Standorte.
 """
 import itertools
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from ortools.sat.python.cp_model import IntVar
 
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.constraints.base import ConstraintBase, Validatable
+
+if TYPE_CHECKING:
+    from database import schemas
 
 
 class PartnerLocationPrefsConstraint(ConstraintBase):
@@ -169,3 +174,91 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
                 self.entities.shift_vars[(combo[0].avail_day_group_id, eg_id)]
                 + self.entities.shift_vars[(combo[1].avail_day_group_id, eg_id)] < 2
             ).OnlyEnforceIf(exclusive)
+
+
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+        """
+        Prüft ob Personen mit Score 0 bei Besetzungsstärke 2 gemeinsam besetzt wurden.
+        
+        Dies ist ein Hard-Constraint-Verstoß: Bei Score 0 (Person will absolut nicht
+        mit Partner arbeiten) und nur 2 benötigten Personen dürfen beide nicht
+        gemeinsam besetzt sein.
+        """
+        from database import schemas
+        from sat_solver.constraints.base import ValidationError
+        
+        errors = []
+        
+        # Lookup: event_id -> cast_group (für nr_actors)
+        cast_group_by_event_id = {
+            cg.event.id: cg 
+            for cg in self.entities.cast_groups_with_event.values()
+            if cg.event is not None
+        }
+        
+        for appointment in plan.appointments:
+            event = appointment.event
+            avail_days = list(appointment.avail_days)
+            
+            # Nur prüfen wenn genau 2 Personen zugewiesen sind (Besetzungsstärke 2)
+            if len(avail_days) != 2:
+                continue
+            
+            # nr_actors über cast_group_by_event_id holen
+            cast_group = cast_group_by_event_id.get(event.id)
+            nr_actors = cast_group.nr_actors if cast_group else None
+            if nr_actors is None or nr_actors >= 3:
+                continue
+            
+            location_id = event.location_plan_period.location_of_work.id
+            location_name = event.location_plan_period.location_of_work.name
+            
+            # Prüfe beide Richtungen der Partner-Präferenz
+            avd_0, avd_1 = avail_days[0], avail_days[1]
+            person_0 = avd_0.actor_plan_period.person
+            person_1 = avd_1.actor_plan_period.person
+            
+            score_0_to_1 = self._get_partner_score_from_avail_day(avd_0, person_1.id, location_id)
+            score_1_to_0 = self._get_partner_score_from_avail_day(avd_1, person_0.id, location_id)
+            
+            # Fehler wenn mindestens ein Score 0 ist
+            if score_0_to_1 == 0 or score_1_to_0 == 0:
+                # Bestimme wer wen ausschließt
+                exclusion_details = []
+                if score_0_to_1 == 0:
+                    exclusion_details.append(f'{person_0.full_name} schließt {person_1.full_name} aus')
+                if score_1_to_0 == 0:
+                    exclusion_details.append(f'{person_1.full_name} schließt {person_0.full_name} aus')
+                
+                errors.append(ValidationError(
+                    category="Partner-Ausschluss verletzt",
+                    message=(
+                        f'{event.date:%d.%m.%y} ({event.time_of_day.name}), {location_name}:<br>'
+                        f'{" / ".join(exclusion_details)}<br>'
+                        f'Bei Besetzungsstärke 2 dürfen beide nicht gemeinsam besetzt sein.'
+                    )
+                ))
+        
+        return errors
+    
+    def _get_partner_score_from_avail_day(
+        self, 
+        avail_day: 'schemas.AvailDay',
+        partner_id: UUID, 
+        location_id: UUID
+    ) -> int:
+        """
+        Ermittelt den Partner-Präferenz-Score aus einem AvailDay.
+        
+        Args:
+            avail_day: AvailDay der Person, deren Präferenz geprüft wird
+            partner_id: ID des Partners
+            location_id: ID der Location
+        
+        Returns:
+            Score (0-2), Standard ist 1 wenn keine Präferenz definiert
+        """
+        for plp in avail_day.actor_partner_location_prefs_defaults:
+            if plp.partner.id == partner_id and plp.location_of_work.id == location_id:
+                return int(plp.score)
+        return 1  # Standard-Score

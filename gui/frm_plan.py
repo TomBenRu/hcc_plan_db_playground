@@ -9,7 +9,8 @@ from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreAp
 from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
-                               QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame)
+                               QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame,
+                               QScrollArea, QStyle)
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
@@ -653,31 +654,38 @@ class AppointmentField(QWidget):
         worker.signals.finished.connect(self.check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
 
-    @Slot(bool, list)
-    def check_finished(self, success: bool, problems: list[str]):
+    @Slot(bool, list, list)
+    def check_finished(self, success: bool, problems: list[str], infos: list[str]):
         self.progress_bar.close()
-        if success:
-            QMessageBox.information(self, self.tr('Cast Change'),
-                                    self.tr('The cast change was successfully made.'))
-            self.execution_timer_post_cast_change.start_timer()
-        else:
-            problems_txt ="".join(problems)
-            msg_text = self.tr(
-                "<h3>The cast change cannot be made without conflicts.</h3>"
-                "<h4>Incompatibilities:</h4>"
-                "%s"
-                "<p>Should the changes be undone?</p>"
-            ) % problems_txt
-
-            reply = QMessageBox.critical(self, self.tr('Cast Change'),
-                                         msg_text,
-                                         QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
-            if reply == QMessageBox.StandardButton.Yes:
-                self.plan_widget.controller.undo()
-                self.appointment = self.batch_command.appointment
-                fill_in_data(self)
-            else:
-                self.execution_timer_post_cast_change.start_timer()
+        
+        # Speichere Referenzen für die Undo-Aktion
+        self._check_success = success
+        
+        # Nicht-modaler Dialog für Validierungsergebnisse
+        dlg = DlgValidationResult(
+            self, 
+            success, 
+            problems, 
+            infos,
+            title=self.tr('Cast Change'),
+            show_undo_option=not success  # Undo-Option nur bei Fehlern
+        )
+        
+        # Verbinde Signale
+        dlg.undo_requested.connect(self._on_validation_undo)
+        dlg.changes_accepted.connect(self._on_validation_accepted)
+        
+        dlg.show()
+    
+    def _on_validation_undo(self):
+        """Wird aufgerufen wenn der User Undo im Validierungsdialog wählt."""
+        self.plan_widget.controller.undo()
+        self.appointment = self.batch_command.appointment
+        fill_in_data(self)
+    
+    def _on_validation_accepted(self):
+        """Wird aufgerufen wenn der User die Änderungen akzeptiert."""
+        self.execution_timer_post_cast_change.start_timer()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -784,6 +792,132 @@ class AppointmentField(QWidget):
                     appointment_commands.UpdateNotes(self.appointment, self.appointment.event.notes).execute()
                     self._reload_appointment_and_tooltip()
                     fill_in_data(self)
+
+
+class DlgValidationResult(QDialog):
+    """
+    Nicht-modaler Dialog zur Anzeige von Validierungsergebnissen.
+    
+    Zeigt Erfolgs- oder Fehlermeldungen an und bietet optional
+    einen Button zur Anzeige von Hinweisen (ValidationInfo).
+    
+    Bei show_undo_option=True werden statt "Schließen" die Buttons
+    "Rückgängig" und "Änderungen behalten" angezeigt.
+    """
+    
+    # Signale für Undo-Entscheidung
+    undo_requested = Signal()
+    changes_accepted = Signal()
+    
+    def __init__(self, parent: QWidget, success: bool, problems: list[str], infos: list[str],
+                 title: str = None, show_undo_option: bool = False):
+        super().__init__(parent)
+        self.infos = infos
+        self._show_undo_option = show_undo_option
+        
+        # Nicht-modal
+        self.setModal(False)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        
+        self.setWindowTitle(title or self.tr('Verification of plan'))
+        self.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(self)
+        
+        # Icon und Haupttext
+        header_layout = QHBoxLayout()
+        
+        icon_label = QLabel()
+        icon = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_MessageBoxInformation if success 
+            else QStyle.StandardPixmap.SP_MessageBoxCritical
+        )
+        icon_label.setPixmap(icon.pixmap(48, 48))
+        header_layout.addWidget(icon_label)
+        
+        if success:
+            title_text = self.tr('<h3>No errors were found in this plan.</h3>')
+        else:
+            title_text = self.tr('<h3>Conflicts were found in this plan.</h3>')
+        
+        title_label = QLabel(title_text)
+        title_label.setWordWrap(True)
+        header_layout.addWidget(title_label, 1)
+        layout.addLayout(header_layout)
+        
+        # Details (Probleme) in scrollbarem Bereich
+        if problems:
+            problems_label = QLabel(self.tr('<h4>Incompatibilities:</h4>'))
+            layout.addWidget(problems_label)
+            
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setMaximumHeight(300)
+            
+            problems_content = QLabel("".join(problems))
+            problems_content.setWordWrap(True)
+            problems_content.setTextFormat(Qt.TextFormat.RichText)
+            scroll_area.setWidget(problems_content)
+            layout.addWidget(scroll_area)
+        
+        # Hinweis wenn Infos vorhanden
+        if infos:
+            info_hint = QLabel(self.tr('<i>There are %n note(s) available.</i>', '', len(infos)))
+            info_hint.setWordWrap(True)
+            layout.addWidget(info_hint)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        if infos:
+            btn_show_infos = QPushButton(self.tr('Show notes'))
+            btn_show_infos.clicked.connect(self._show_infos)
+            button_layout.addWidget(btn_show_infos)
+        
+        if show_undo_option and not success:
+            # Undo-Frage bei Fehlern
+            btn_undo = QPushButton(self.tr('Undo'))
+            btn_undo.clicked.connect(self._on_undo)
+            button_layout.addWidget(btn_undo)
+            
+            btn_keep = QPushButton(self.tr('Keep changes'))
+            btn_keep.clicked.connect(self._on_keep)
+            btn_keep.setDefault(True)
+            button_layout.addWidget(btn_keep)
+        else:
+            btn_close = QPushButton(self.tr('Close'))
+            btn_close.clicked.connect(self._on_close)
+            btn_close.setDefault(True)
+            button_layout.addWidget(btn_close)
+        
+        layout.addLayout(button_layout)
+    
+    def _show_infos(self):
+        """Zeigt die Hinweise in einer separaten MessageBox an."""
+        infos_txt = "".join(self.infos)
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setWindowTitle(self.tr('Notes'))
+        msg_box.setText(self.tr('<h3>Notes from plan verification</h3>'))
+        msg_box.setInformativeText(infos_txt)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+    
+    def _on_undo(self):
+        """Undo-Button geklickt."""
+        self.undo_requested.emit()
+        self.close()
+    
+    def _on_keep(self):
+        """Änderungen behalten geklickt."""
+        self.changes_accepted.emit()
+        self.close()
+    
+    def _on_close(self):
+        """Normaler Schließen-Button."""
+        self.changes_accepted.emit()
+        self.close()
 
 
 
@@ -905,22 +1039,14 @@ class FrmTabPlan(QWidget):
         worker.signals.finished.connect(self._check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
 
-    @Slot(bool, list)
-    def _check_finished(self, success: bool, problems: list[str]):
+    @Slot(bool, list, list)
+    def _check_finished(self, success: bool, problems: list[str], infos: list[str]):
         self.progress_bar.close()
-        if success:
-            QMessageBox.information(self, self.tr('Verification of plan'),
-                                    self.tr('No errors were found in this plan.'))
-        else:
-            problems_txt = "".join(problems)
-            msg_text = self.tr(
-                "<h3>Conflicts were found in this plan.</h3>"
-                "<h4>Incompatibilities:</h4>"
-                "%s"
-            ) % problems_txt
-            QMessageBox.critical(
-                self, self.tr('Verification of plan'),
-                msg_text)
+        
+        # Nicht-modaler Dialog für Validierungsergebnisse
+        dlg = DlgValidationResult(self, success, problems, infos)
+        dlg.show()
+
 
     def _update_statistics(self):
         num_actor_plan_periods = len(db_services.PlanPeriod.get(self.plan.plan_period.id).actor_plan_periods)

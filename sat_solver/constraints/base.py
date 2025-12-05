@@ -18,24 +18,45 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class ValidationError:
+class ValidationResult:
     """
-    Repräsentiert einen Validierungsfehler bei der Plan-Prüfung.
+    Basisklasse für Validierungsergebnisse bei der Plan-Prüfung.
     
     Wird von Constraints zurückgegeben, die das Validatable-Protokoll implementieren.
     
     Attributes:
-        category: Kategorie des Fehlers (z.B. "Feste Besetzung", "Fertigkeitskonflikt")
-        message: Detaillierte Fehlerbeschreibung
+        category: Kategorie des Ergebnisses (z.B. "Feste Besetzung", "Fertigkeitskonflikt")
+        message: Detaillierte Beschreibung
     """
     category: str
     message: str
     
     def to_html(self) -> str:
-        """Formatiert den Fehler als HTML für die UI-Anzeige."""
+        """Formatiert das Ergebnis als HTML für die UI-Anzeige."""
         return (f'<p style="margin-bottom: 4px; margin-top: 8px;">{self.category}:</p>'
                 f'<p style="margin-left: 20px; margin-bottom: 4px; margin-top: 4px;">'
                 f'{self.message}</p>')
+
+
+@dataclass
+class ValidationError(ValidationResult):
+    """
+    Repräsentiert einen Validierungsfehler bei der Plan-Prüfung.
+    
+    Wird von Constraints zurückgegeben, wenn Regeln verletzt werden.
+    """
+    pass
+
+
+@dataclass
+class ValidationInfo(ValidationResult):
+    """
+    Repräsentiert einen Hinweis bei der Plan-Validierung (kein Fehler).
+    
+    Wird verwendet für Informationen wie "Feste Besetzung: Keine eindeutige Lösung".
+    Diese werden separat von Fehlern angezeigt.
+    """
+    pass
 
 
 @runtime_checkable
@@ -52,14 +73,14 @@ class Validatable(Protocol):
     
     Example:
         >>> class MyConstraint(ConstraintBase, Validatable):
-        ...     def validate_plan(self, plan) -> list[ValidationError]:
+        ...     def validate_plan(self, plan) -> list[ValidationResult]:
         ...         errors = []
         ...         # Prüflogik hier
         ...         return errors
     """
     name: str
     
-    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationError]:
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationResult]:
         """
         Validiert einen bestehenden Plan gegen dieses Constraint.
         

@@ -10,6 +10,7 @@ Strategie:
   → 2 Mitarbeiter nicht besetzt = 2 Penalties
 - Bei OR-Operatoren: 1 Penalty pro Event (Event-basierte Logik)
 """
+import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -22,10 +23,10 @@ from sat_solver.constraints.fixed_cast_helpers import (
     extract_person_uuids,
     has_only_and_operators,
 )
+from sat_solver.constraints.base import ValidationError, ValidationInfo
 
 if TYPE_CHECKING:
     from database import schemas
-    from sat_solver.constraints.base import ValidationError
 
 
 class PreferFixedCastConstraint(ConstraintBase):
@@ -199,7 +200,7 @@ class PreferFixedCastConstraint(ConstraintBase):
         self.penalty_vars.append(penalty_var)
         print(f"        [1/1] Event-basierte Penalty-Variable erstellt")
 
-    def validate_plan(self, plan: schemas.PlanShow) -> list[ValidationError]:
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationError | ValidationInfo]:
         """
         Prüft ob bevorzugte Events korrekt ausgewählt wurden.
         
@@ -209,9 +210,13 @@ class PreferFixedCastConstraint(ConstraintBase):
         
         Gibt auch einen Hinweis aus, wenn es mehr bevorzugte Events gibt als
         ausgewählt werden können (Konfliktfall ohne eindeutige Lösung).
-        """
         
-        errors = []
+        Returns:
+            Liste mit ValidationError (Fehler) und ValidationInfo (Hinweise)
+        """
+        from sat_solver.constraints.base import ValidationError, ValidationInfo
+        
+        errors: list[ValidationError | ValidationInfo] = []
         
         # Sammle alle Event-IDs die im Plan sind
         events_in_plan = {app.event.id for app in plan.appointments}
@@ -304,17 +309,20 @@ class PreferFixedCastConstraint(ConstraintBase):
             # Hinweis: Mehr bevorzugte Events als Slots (Konfliktfall)
             total_preferred = len(chosen_preferred) + len(not_chosen_preferred)
             if total_preferred > event_group.nr_of_active_children and not_chosen_preferred:
-                preferred_events_lines = []
+                preferred_events_lines: list[tuple[tuple[datetime.date, int], str]] = []
                 for e in (chosen_preferred + not_chosen_preferred):
-                    event = e["event"]
+                    event: schemas.Event = e["event"]
                     cast_group = e["cast_group"]
                     fixed_cast_text = self._get_fixed_cast_persons_text(cast_group)
                     preferred_events_lines.append(
-                        f'&nbsp;&nbsp;&nbsp;&nbsp;{event.date:%d.%m.%y} ({event.time_of_day.name}) '
-                        f'- zu besetzen: {fixed_cast_text}'
+                        ((event.date, event.time_of_day.time_of_day_enum.time_index),
+                         f'&nbsp;&nbsp;&nbsp;{event.date:%d.%m.%y} ({event.time_of_day.name}) - '
+                         f'{event.location_plan_period.location_of_work.name_an_city}<br>'
+                         f'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;zu besetzen: {fixed_cast_text}')
                     )
-                preferred_events_text = '<br>'.join(preferred_events_lines)
-                errors.append(ValidationError(
+                preferred_events_text = '<br>'.join(line[1] for line in sorted(preferred_events_lines,
+                                                                               key=lambda x: (x[0][0], x[0])[1]))
+                errors.append(ValidationInfo(
                     category="Feste Besetzung: Keine eindeutige Lösung",
                     message=(
                         f'Es gibt {total_preferred} bevorzugte Events, aber nur '

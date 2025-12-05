@@ -14,7 +14,7 @@ from ortools.sat.python.cp_model import IntVar
 from configuration.solver import SolverConfig, curr_config_handler
 
 if TYPE_CHECKING:
-    from sat_solver.constraints.base import ConstraintBase, ValidationError, Validatable
+    from sat_solver.constraints.base import ConstraintBase, ValidationError, ValidationInfo, Validatable
     from database import schemas
 
 logger = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ class ConstraintRegistry:
         logger.info(f"  GESAMT (gewichtet): {total_weighted:.2f}")
         logger.info("=" * 60)
 
-    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+    def validate_plan(self, plan: 'schemas.PlanShow') -> tuple[list['ValidationError'], list['ValidationInfo']]:
         """
         Validiert einen Plan gegen alle registrierten Constraints.
         
@@ -338,34 +338,51 @@ class ConstraintRegistry:
             plan: Der zu prüfende Plan
         
         Returns:
-            Liste aller ValidationError-Objekte aus allen Constraints.
-            Leere Liste wenn der Plan gültig ist.
+            Tuple aus (errors, infos):
+            - errors: Liste aller ValidationError-Objekte (Regelverletzungen)
+            - infos: Liste aller ValidationInfo-Objekte (Hinweise)
+            Leere Listen wenn der Plan gültig ist bzw. keine Hinweise existieren.
         
         Example:
-            >>> errors = registry.validate_plan(plan)
+            >>> errors, infos = registry.validate_plan(plan)
             >>> if errors:
             ...     for error in errors:
             ...         print(error.to_html())
+            >>> if infos:
+            ...     for info in infos:
+            ...         print(info.to_html())
         """
-        from sat_solver.constraints.base import ValidationError, Validatable
+        from sat_solver.constraints.base import ValidationError, ValidationInfo, Validatable
         
         errors: list[ValidationError] = []
+        infos: list[ValidationInfo] = []
         
         for constraint in self._constraints:
             if isinstance(constraint, Validatable):
-                constraint_errors = constraint.validate_plan(plan)
-                if constraint_errors:
-                    logger.debug(
-                        f"Constraint '{constraint.name}' fand {len(constraint_errors)} Fehler"
-                    )
-                    errors.extend(constraint_errors)
+                results = constraint.validate_plan(plan)
+                if results:
+                    for result in results:
+                        if isinstance(result, ValidationInfo):
+                            infos.append(result)
+                        elif isinstance(result, ValidationError):
+                            errors.append(result)
+                    
+                    error_count = sum(1 for r in results if isinstance(r, ValidationError))
+                    info_count = sum(1 for r in results if isinstance(r, ValidationInfo))
+                    if error_count or info_count:
+                        logger.debug(
+                            f"Constraint '{constraint.name}': {error_count} Fehler, {info_count} Hinweise"
+                        )
         
         if errors:
             logger.info(f"Plan-Validierung: {len(errors)} Fehler gefunden")
         else:
             logger.debug("Plan-Validierung: keine Fehler gefunden")
         
-        return errors
+        if infos:
+            logger.info(f"Plan-Validierung: {len(infos)} Hinweise")
+        
+        return errors, infos
     
     def __repr__(self) -> str:
         constraint_names = [c.name for c in self._constraints]

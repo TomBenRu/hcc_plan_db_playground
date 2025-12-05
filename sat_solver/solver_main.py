@@ -1799,7 +1799,7 @@ def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int,
     return max_shifts_per_app, fair_shifts_per_app
 
 
-def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
+def test_plan(plan_id: UUID) -> tuple[bool, list[str], list[str]]:
     """
     Testet einen bestehenden Plan auf Regelverletzungen.
     
@@ -1811,9 +1811,10 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
         plan_id: UUID des zu testenden Plans
         
     Returns:
-        Tuple (success, problems):
+        Tuple (success, problems, infos):
         - success: True wenn keine Fehler gefunden wurden
         - problems: Liste von HTML-formatierten Fehlermeldungen
+        - infos: Liste von HTML-formatierten Hinweisen (keine Fehler)
     
     Note:
         Aktuell implementierte Validierungen:
@@ -1845,14 +1846,14 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str]]:
     registry.register_plan_test_constraints()
 
     # Validiere den Plan
-    errors = registry.validate_plan(plan)
+    errors, validation_infos = registry.validate_plan(plan)
     
-    if errors:
-        # Konvertiere ValidationErrors zu HTML-Strings
-        problems = [error.to_html() for error in errors]
-        return False, problems
+    # Konvertiere zu HTML-Strings
+    problems = [error.to_html() for error in errors]
+    infos = [info.to_html() for info in validation_infos]
     
-    return True, []
+    success = len(errors) == 0
+    return success, problems, infos
 
 
 def test_plan_with_solver(plan_id: UUID) -> tuple[bool, list[str]]:

@@ -15,7 +15,7 @@ class WorkerSignals(QObject):
 
 
 class SignalsCheckPlan(QObject):
-    finished = Signal(bool, list)
+    finished = Signal(bool, list, list)  # success, problems, infos
 
 
 class SignalsGetMaxFairShifts(QObject):
@@ -163,7 +163,7 @@ class WorkerSavePlans(QRunnable):
 
 
 class WorkerCheckPlan(QRunnable):
-    def __init__(self, function: Callable[[UUID], tuple[bool, list[str]]], plan_id: UUID):
+    def __init__(self, function: Callable[[UUID], tuple[bool, list[str], list[str]]], plan_id: UUID):
         super().__init__()
         self.function = function
         self.plan_id = plan_id
@@ -171,8 +171,8 @@ class WorkerCheckPlan(QRunnable):
 
     @Slot()
     def run(self):
-        success, problems = self.function(self.plan_id)
-        self.signals.finished.emit(success, problems)
+        success, problems, infos = self.function(self.plan_id)
+        self.signals.finished.emit(success, problems, infos)
 
 
 class WorkerGetMaxFairShifts(QRunnable):

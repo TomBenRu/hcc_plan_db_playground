@@ -4,6 +4,7 @@ PartnerLocationPrefsConstraint - Soft Constraint für Partner-Standort-Präferen
 Bewertet und optimiert die Zusammenarbeit von Mitarbeitern basierend auf
 ihren gegenseitigen Präferenzen für bestimmte Standorte.
 """
+import datetime
 import itertools
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -223,6 +224,9 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
             
             # Fehler wenn mindestens ein Score 0 ist
             if score_0_to_1 == 0 or score_1_to_0 == 0:
+                if appointment.event.date == datetime.date(2025, 12, 1):
+                    print(f'DEBUG: {person_0.full_name=} + {person_1.full_name=}')
+                    print(f'       {score_0_to_1=} / {score_1_to_0=}')
                 # Bestimme wer wen ausschließt
                 exclusion_details = []
                 if score_0_to_1 == 0:
@@ -246,7 +250,7 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
         avail_day: 'schemas.AvailDay',
         partner_id: UUID, 
         location_id: UUID
-    ) -> int:
+    ) -> float:
         """
         Ermittelt den Partner-Präferenz-Score aus einem AvailDay.
         
@@ -260,5 +264,5 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
         """
         for plp in avail_day.actor_partner_location_prefs_defaults:
             if plp.partner.id == partner_id and plp.location_of_work.id == location_id:
-                return int(plp.score)
+                return plp.score
         return 1  # Standard-Score

@@ -329,3 +329,45 @@ def has_only_and_operators(fixed_cast_list: tuple | str) -> bool:
                 return False
     
     return True
+
+
+def evaluate_fixed_cast(fixed_cast_list: tuple | str, assigned_persons: set[UUID]) -> bool:
+    """
+    Evaluiert rekursiv die fixed_cast AND/OR-Logik.
+    
+    Prüft ob die Besetzungsanforderungen einer fixed_cast Struktur erfüllt sind,
+    basierend auf den tatsächlich zugewiesenen Personen.
+    
+    Args:
+        fixed_cast_list: Geparste fixed_cast Struktur (verschachtelt)
+                         Ergebnis von parse_fixed_cast_string()
+        assigned_persons: Set der zugewiesenen Person-UUIDs
+    
+    Returns:
+        True wenn die Besetzungsanforderung erfüllt ist, sonst False
+    """
+    if isinstance(fixed_cast_list, str):
+        # Einzelne Person-UUID
+        return UUID(fixed_cast_list) in assigned_persons
+    
+    # Liste mit Operatoren
+    # Struktur: (person_or_nested, operator, person_or_nested, operator, ...)
+    elements = [v for i, v in enumerate(fixed_cast_list) if not i % 2]  # Personen/verschachtelte
+    operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]      # Operatoren
+    
+    if not operators:
+        # Nur ein Element
+        return evaluate_fixed_cast(elements[0], assigned_persons) if elements else True
+    
+    # Alle Operatoren müssen gleich sein (laut Parsing-Logik)
+    operator = operators[0]
+    
+    # Evaluiere rekursiv alle Elemente
+    results = [evaluate_fixed_cast(elem, assigned_persons) for elem in elements]
+    
+    if operator == 'and':
+        # AND: Alle müssen True sein
+        return all(results)
+    else:
+        # OR: Mindestens einer muss True sein
+        return any(results)

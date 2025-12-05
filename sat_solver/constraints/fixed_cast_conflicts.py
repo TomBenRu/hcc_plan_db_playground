@@ -20,6 +20,7 @@ from ortools.sat.python.cp_model import IntVar
 
 from sat_solver.constraints.base import ConstraintBase
 from sat_solver.constraints.fixed_cast_helpers import (
+    evaluate_fixed_cast,
     parse_and_filter_fixed_cast,
     proof_recursive,
 )
@@ -155,7 +156,7 @@ class FixedCastConflictsConstraint(ConstraintBase):
             assigned_persons = assigned_persons_by_event.get(event_id, set())
             
             # Prüfe ob fixed_cast erfüllt ist
-            if not self._evaluate_fixed_cast(fixed_cast_as_list, assigned_persons):
+            if not evaluate_fixed_cast(fixed_cast_as_list, assigned_persons):
                 # Erstelle lesbare Fehlermeldung
                 text_fixed_cast = generate_fixed_cast_clear_text(
                     cast_group.fixed_cast,
@@ -183,39 +184,3 @@ class FixedCastConflictsConstraint(ConstraintBase):
         
         return errors
     
-    def _evaluate_fixed_cast(self, fixed_cast_list: tuple | str, assigned_persons: set[UUID]) -> bool:
-        """
-        Evaluiert rekursiv die fixed_cast AND/OR-Logik.
-        
-        Args:
-            fixed_cast_list: Geparste fixed_cast Struktur (verschachtelt)
-            assigned_persons: Set der zugewiesenen Person-UUIDs
-        
-        Returns:
-            True wenn die Besetzungsanforderung erfüllt ist, sonst False
-        """
-        if isinstance(fixed_cast_list, str):
-            # Einzelne Person-UUID
-            return UUID(fixed_cast_list) in assigned_persons
-        
-        # Liste mit Operatoren
-        # Struktur: (person_or_nested, operator, person_or_nested, operator, ...)
-        elements = [v for i, v in enumerate(fixed_cast_list) if not i % 2]  # Personen/verschachtelte
-        operators = [v for i, v in enumerate(fixed_cast_list) if i % 2]      # Operatoren
-        
-        if not operators:
-            # Nur ein Element
-            return self._evaluate_fixed_cast(elements[0], assigned_persons) if elements else True
-        
-        # Alle Operatoren müssen gleich sein (laut fixed_cast_helpers.py)
-        operator = operators[0]
-        
-        # Evaluiere rekursiv alle Elemente
-        results = [self._evaluate_fixed_cast(elem, assigned_persons) for elem in elements]
-        
-        if operator == 'and':
-            # AND: Alle müssen True sein
-            return all(results)
-        else:
-            # OR: Mindestens einer muss True sein
-            return any(results)

@@ -285,7 +285,7 @@ class PreferFixedCastConstraint(ConstraintBase):
             if chosen_normal and not_chosen_preferred:
                 for normal_event_info in chosen_normal:
                     for preferred_event_info in not_chosen_preferred:
-                        normal_event = normal_event_info['event']
+                        normal_event: schemas.Event = normal_event_info['event']
                         preferred_event = preferred_event_info['event']
                         preferred_cg = preferred_event_info['cast_group']
                         
@@ -296,10 +296,10 @@ class PreferFixedCastConstraint(ConstraintBase):
                             category="Bevorzugtes Event nicht gewählt",
                             message=(
                                 f'Statt {normal_event.date:%d.%m.%y} ({normal_event.time_of_day.name}), '
-                                f'{normal_event.location_plan_period.location_of_work.name}<br>'
+                                f'{normal_event.location_plan_period.location_of_work.name_an_city}<br>'
                                 f'hätte bevorzugt werden sollen: '
                                 f'{preferred_event.date:%d.%m.%y} ({preferred_event.time_of_day.name}), '
-                                f'{preferred_event.location_plan_period.location_of_work.name}<br>'
+                                f'{preferred_event.location_plan_period.location_of_work.name_an_city}<br>'
                                 f'Feste Besetzung: {fixed_cast_text}'
                             )
                         ))

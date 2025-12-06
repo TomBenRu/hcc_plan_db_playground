@@ -224,9 +224,6 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
             
             # Fehler wenn mindestens ein Score 0 ist
             if score_0_to_1 == 0 or score_1_to_0 == 0:
-                if appointment.event.date == datetime.date(2025, 12, 1):
-                    print(f'DEBUG: {person_0.full_name=} + {person_1.full_name=}')
-                    print(f'       {score_0_to_1=} / {score_1_to_0=}')
                 # Bestimme wer wen ausschließt
                 exclusion_details = []
                 if score_0_to_1 == 0:

@@ -148,7 +148,6 @@ class FixedCastConflictsConstraint(ConstraintBase):
                 fixed_cast_as_list = filter_unavailable_persons(
                     fixed_cast_as_list, cast_group, self.entities
                 )
-                print(f'DEBUG: filtered fixed_cast_as_list: {fixed_cast_as_list}')
                 if not fixed_cast_as_list or is_empty_list(fixed_cast_as_list):
                     continue  # Keine Personen verfügbar -> keine Prüfung nötig
             

@@ -638,6 +638,7 @@ class TabManager(QObject):
         from PySide6.QtCore import QThreadPool, Qt
         
         worker = WorkerLoadEntities(plan_period_id)
+        print(f"WorkerLoadEntities started for {plan_period_id}")
         worker.signals.finished.connect(
             self._on_entities_loaded, 
             Qt.ConnectionType.QueuedConnection
@@ -822,7 +823,8 @@ class TabManager(QObject):
         """Lädt Tab-Konfiguration für Team"""
         if not team_id:
             return
-            
+
+        self.tabs_plans.currentChanged.disconnect(self._on_plan_tab_changed)
         try:
             start_config_handler = team_start_config.curr_start_config_handler
             config = start_config_handler.get_start_config_for_team(team_id)
@@ -875,6 +877,9 @@ class TabManager(QObject):
             
         except Exception as e:
             logger.error(f"Fehler beim Laden der Team-Konfiguration: {e}")
+
+        finally:
+            self.tabs_plans.currentChanged.connect(self._on_plan_tab_changed)
     
     def restore_startup_tabs(self):
         """Lädt Tabs beim Programmstart"""

@@ -103,6 +103,10 @@ class TabManager(QObject):
         # Plan-Tab-Wechsel für Entities-Preloading
         self.tabs_plans.currentChanged.connect(self._on_plan_tab_changed)
         
+        # Plan-Tab-Schließen über TabManager leiten (für Entities-Cache-Invalidierung)
+        self.tabs_plans.tabCloseRequested.disconnect(self.tabs_plans.close_tab_and_delete_widget)
+        self.tabs_plans.tabCloseRequested.connect(self.close_plan_tab)
+        
         # Entities-Cache Invalidierung bei Stammdaten-Änderungen
         signal_handling.handler_plan_tabs.signal_invalidate_entities_cache.connect(
             self.invalidate_entities_cache
@@ -488,6 +492,7 @@ class TabManager(QObject):
     
     def close_plan_tab(self, index: int) -> bool:
         """Schließt Plan-Tab mit Cache-Berücksichtigung"""
+        logger.debug(f"Schließe Plan-Tab: Index {index}")
         if 0 <= index < self.tabs_plans.count():
             widget = self.tabs_plans.widget(index)
             
@@ -507,7 +512,7 @@ class TabManager(QObject):
             if plan_period_id is not None:
                 if self._count_plan_tabs_for_plan_period(plan_period_id) == 0:
                     self.invalidate_entities_cache(plan_period_id)
-            
+            logger.debug(f'Plan-Tab geschlossen: Index {index}, noch geöffnet: {self._count_plan_tabs_for_plan_period(plan_period_id)}')
             return True
         return False
     

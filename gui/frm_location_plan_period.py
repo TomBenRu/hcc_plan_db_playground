@@ -218,6 +218,7 @@ class ButtonEvent(QPushButton):
         self.reset_menu_times_of_day(self.location_plan_period)
         self.set_tooltip()
         signal_handling.handler_location_plan_period.reload_location_pp_on__frm_location_plan_period()
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def edit_skills(self):
         if not (event := self.get_curr_event()):

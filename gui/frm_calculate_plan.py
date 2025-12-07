@@ -412,6 +412,7 @@ class DlgCalculate(QDialog):
         # Schließe Solver Progress Dialog bevor Save Dialog gezeigt wird
         if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
             self.progress_dialog_solver.close()
+            self.progress_dialog_solver.deleteLater()
         
         # Für jede Plan-Version: Teile nach Perioden auf und speichere
         self.plans_save_progress_bar = DlgProgressInfinite(
@@ -565,6 +566,7 @@ class DlgCalculate(QDialog):
         # Schließe Solver Progress Dialog bevor Save Dialog gezeigt wird
         if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
             self.progress_dialog_solver.close()
+            self.progress_dialog_solver.deleteLater()
 
         self.plans_save_progress_bar = DlgProgressInfinite(
             self, 
@@ -597,4 +599,5 @@ class DlgCalculate(QDialog):
     def reject(self):
         if hasattr(self, 'progress_dialog_solver') and self.progress_dialog_solver:
             self.progress_dialog_solver.close()
+            self.progress_dialog_solver.deleteLater()
         super().reject()

@@ -87,7 +87,8 @@ class TabManager(QObject):
         # === ENTITIES-CACHE für schnelle Plan-Validierung ===
         self._entities_cache: dict[UUID, object] = {}  # plan_period_id -> Entities
         self._entities_loading: set[UUID] = set()  # plan_period_ids die gerade laden
-        self._entities_preload_enabled = False  # Erst nach vollständigem Tab-Laden aktivieren  # plan_period_ids die gerade laden  # Kann zur Laufzeit deaktiviert werden
+        self._entities_workers: dict[UUID, object] = {}  # Referenz auf Worker halten bis Signal verarbeitet
+        self._entities_preload_enabled = False  # Erst nach vollständigem Tab-Laden aktivieren  # Erst nach vollständigem Tab-Laden aktivieren  # plan_period_ids die gerade laden  # Kann zur Laufzeit deaktiviert werden
         
     def initialize_tabs(self, tabs_left: TabBar, tabs_planungsmasken: TabBar, tabs_plans: TabBar):
         """
@@ -638,7 +639,6 @@ class TabManager(QObject):
         from PySide6.QtCore import QThreadPool, Qt
         
         worker = WorkerLoadEntities(plan_period_id)
-        print(f"WorkerLoadEntities started for {plan_period_id}")
         worker.signals.finished.connect(
             self._on_entities_loaded, 
             Qt.ConnectionType.QueuedConnection
@@ -647,12 +647,17 @@ class TabManager(QObject):
             self._on_entities_load_error,
             Qt.ConnectionType.QueuedConnection
         )
+        
+        # Referenz halten um vorzeitiges Löschen zu verhindern (Dangling Signal vermeiden)
+        self._entities_workers[plan_period_id] = worker
+        
         QThreadPool.globalInstance().start(worker)
     
     @Slot(UUID, object)
     def _on_entities_loaded(self, plan_period_id: UUID, entities):
         """Callback wenn Entities erfolgreich geladen wurden."""
         self._entities_loading.discard(plan_period_id)
+        self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
         self._entities_cache[plan_period_id] = entities
         
         # Statusmeldung
@@ -662,6 +667,7 @@ class TabManager(QObject):
     def _on_entities_load_error(self, plan_period_id: UUID, error_message: str):
         """Callback bei Fehler beim Entities-Laden."""
         self._entities_loading.discard(plan_period_id)
+        self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
         
         # Fehler loggen, aber nicht dem User anzeigen (Fallback funktioniert)
         import logging

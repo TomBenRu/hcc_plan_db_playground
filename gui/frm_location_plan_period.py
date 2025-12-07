@@ -188,6 +188,7 @@ class ButtonEvent(QPushButton):
         
         self.controller.execute(
             cast_group_commands.UpdateNrActors(cast_group.id, value))
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def reset_menu_times_of_day(self, location_plan_period: schemas.LocationPlanPeriodShow):
         self.location_plan_period = location_plan_period
@@ -233,6 +234,7 @@ class ButtonEvent(QPushButton):
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
             )
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def edit_fixed_cast(self):
         if not self.isChecked():
@@ -252,6 +254,7 @@ class ButtonEvent(QPushButton):
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
                 signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
             )
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def edit_flags(self):
         if not self.isChecked():
@@ -439,6 +442,7 @@ class ButtonFixedCast(QPushButton):
                 cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified,
                                                    dlg.object_with_fixed_cast.fixed_cast_only_if_available).execute()
             self.set_stylesheet_and_tooltip()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     @Slot(signal_handling.DataLocationPPWithDate)
     def reload_location_plan_period(self, data: signal_handling.DataLocationPPWithDate):
@@ -670,6 +674,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
                     self.controller.execute(command_add)
                 signal_handling.handler_plan_tabs.event_changed(event.id)
             self.set_stylesheet_and_tooltip()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             QMessageBox.information(
                 self,
                 self.tr('Event Skills'),
@@ -1099,11 +1104,13 @@ class FrmLocationPlanPeriod(QWidget):
         t_o_d = bt.time_of_day
         mode: Literal['added', 'deleted'] = 'added' if bt.isChecked() else 'deleted'
         self.data_processor.save_event(date, t_o_d, mode)
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def change_mode__event_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
@@ -1123,6 +1130,7 @@ class FrmLocationPlanPeriod(QWidget):
         dlg = frm_cast_group.DlgCastGroups(self, plan_period, {self.location_plan_period.id})
         if dlg.exec():
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
@@ -1175,6 +1183,7 @@ class FrmLocationPlanPeriod(QWidget):
         if dlg.exec():
             self.data_processor.make_events_from_planning_rules(dlg)
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             return
         else:
             dlg.controller.undo_all()
@@ -1207,6 +1216,7 @@ class FrmLocationPlanPeriod(QWidget):
 
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         self.reset_chk_field()
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def remove_skills_from_every_event(self):
         reply = QMessageBox.question(
@@ -1233,6 +1243,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.tr('Remove Skills'),
             self.tr('All skills have been successfully removed from all events.')
         )
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def reset_skills_of_every_event(self):
         reply = QMessageBox.question(
@@ -1263,6 +1274,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.tr('Reset Skills'),
             self.tr('All skills have been successfully reset for all events.')
         )
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
@@ -1309,6 +1321,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.tr('Reset Cast'),
             self.tr('The cast of all events has been successfully reset.')
         )
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
 
 

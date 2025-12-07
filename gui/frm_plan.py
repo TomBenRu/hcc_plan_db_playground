@@ -649,8 +649,24 @@ class AppointmentField(QWidget):
                                                 signal_handling.handler_solver.cancel_solving)
         self.progress_bar.show()
         # Lazy Import: OR-Tools nur laden wenn Plan-Test benötigt (Performance-Optimierung)
+        from functools import partial
         from sat_solver import solver_main
-        worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan_widget.plan.id)
+        
+        # Versuche gecachte Entities vom TabManager zu holen
+        cached_entities = None
+        main_window = self.window()
+        if hasattr(main_window, 'tab_manager'):
+            cached_entities = main_window.tab_manager.get_cached_entities(
+                self.plan_widget.plan.plan_period.id
+            )
+        
+        # Wrapper-Funktion die gecachte Entities verwendet
+        if cached_entities is not None:
+            check_func = partial(solver_main.test_plan, cached_entities=cached_entities)
+        else:
+            check_func = solver_main.test_plan
+        
+        worker = general_worker.WorkerCheckPlan(check_func, self.plan_widget.plan.id)
         worker.signals.finished.connect(self.check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
 
@@ -1034,8 +1050,24 @@ class FrmTabPlan(QWidget):
         self.progress_bar.show()
 
         # Lazy Import: OR-Tools nur laden wenn Plan-Test benötigt (Performance-Optimierung)
+        from functools import partial
         from sat_solver import solver_main
-        worker = general_worker.WorkerCheckPlan(solver_main.test_plan, self.plan.id)
+        
+        # Versuche gecachte Entities vom TabManager zu holen
+        cached_entities = None
+        main_window = self.window()
+        if hasattr(main_window, 'tab_manager'):
+            cached_entities = main_window.tab_manager.get_cached_entities(
+                self.plan.plan_period.id
+            )
+        
+        # Wrapper-Funktion die gecachte Entities verwendet
+        if cached_entities is not None:
+            check_func = partial(solver_main.test_plan, cached_entities=cached_entities)
+        else:
+            check_func = solver_main.test_plan
+        
+        worker = general_worker.WorkerCheckPlan(check_func, self.plan.id)
         worker.signals.finished.connect(self._check_finished, Qt.ConnectionType.QueuedConnection)
         QThreadPool.globalInstance().start(worker)
 

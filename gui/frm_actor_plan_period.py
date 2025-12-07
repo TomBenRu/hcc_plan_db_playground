@@ -133,6 +133,7 @@ class ButtonAvailDay(QPushButton):
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(
                 self.actor_plan_period.id, self.date, self.time_of_day.id)
             avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
         self.time_of_day = new_time_of_day
         self.reload_actor_plan_period()
@@ -153,6 +154,7 @@ class ButtonAvailDay(QPushButton):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
                 signal_handling.DataDate(self.actor_plan_period.plan_period.id, self.date))
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
         else:
             dlg.controller.undo_all()
 
@@ -277,6 +279,7 @@ class ButtonCombLocPossible(QPushButton):
                 for comb_new in avail_days_at_date[0].combination_locations_possibles:
                     db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
 
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
             self.reload_actor_plan_period()
             signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
@@ -436,6 +439,7 @@ class ButtonActorLocationPref(QPushButton):
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
@@ -583,6 +587,7 @@ class ButtonActorPartnerLocationPref(QPushButton):
 
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     @Slot(signal_handling.DataActorPPWithDate)
     def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
@@ -715,6 +720,7 @@ class ButtonSkills(QPushButton):
                     command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
                     self.controller.execute(command_add)
             self.set_stylesheet_and_tooltip()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
             QMessageBox.information(
                 self, self.tr('Skills for the day'),
                 self.tr('The skills for day %s have been modified.') % date_to_string(self.date))
@@ -1237,11 +1243,15 @@ class FrmActorPlanPeriod(QWidget):
 
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period, date))
+        
+        # Entities-Cache invalidieren bei Verfügbarkeitsänderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def change_mode__avd_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
             self.reload_actor_plan_period()
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_days(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
@@ -1316,6 +1326,9 @@ class FrmActorPlanPeriod(QWidget):
 
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.reset_chk_field()
+        
+        # Entities-Cache invalidieren bei TimeOfDay-Änderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def edit_comb_loc_possibles(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
@@ -1367,6 +1380,9 @@ class FrmActorPlanPeriod(QWidget):
                 button_comb_loc_possible.reload_actor_plan_period()
                 button_comb_loc_possible.set_stylesheet()
         self.reload_actor_plan_period()
+        
+        # Entities-Cache invalidieren bei Standort-Kombinationsänderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
 
     def edit_location_prefs(self):
@@ -1445,6 +1461,9 @@ class FrmActorPlanPeriod(QWidget):
                 button_actor_location_pref.reload_actor_plan_period()
                 button_actor_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
+        
+        # Entities-Cache invalidieren bei Standort-Präferenzänderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def edit_partner_loc_prefs(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
@@ -1490,6 +1509,9 @@ class FrmActorPlanPeriod(QWidget):
                 button_partner_location_pref.reload_actor_plan_period()
                 button_partner_location_pref.set_stylesheet()
         self.reload_actor_plan_period()
+        
+        # Entities-Cache invalidieren bei Partner-Präferenzänderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
                                                    *args, **kwargs) -> bool:
@@ -1641,6 +1663,8 @@ class FrmActorPlanPeriod(QWidget):
                 self.reload_actor_plan_period()
                 signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                     signal_handling.DataActorPPWithDate(self.actor_plan_period))
+                # Entities-Cache invalidieren bei Verfügbarkeitsänderungen von API
+                signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def fetch_avail_days_from_api_for_all_employees(self):
         actor_plan_periods = sorted(db_services.ActorPlanPeriod.get_all_from__plan_period(
@@ -1684,6 +1708,9 @@ class FrmActorPlanPeriod(QWidget):
             self.tr('Remove Skills'),
             self.tr('All skills have been successfully removed from all availabilities in this planning period.')
         )
+        
+        # Entities-Cache invalidieren bei Skill-Änderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
     def reset_skills_of_every_avail_day(self):
         reply = QMessageBox.question(
@@ -1714,6 +1741,9 @@ class FrmActorPlanPeriod(QWidget):
             self.tr('All skills have been successfully reset to default values '
                     'for all availabilities in this planning period.')
         )
+        
+        # Entities-Cache invalidieren bei Skill-Änderungen
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
 if __name__ == '__main__':
     app = QApplication()

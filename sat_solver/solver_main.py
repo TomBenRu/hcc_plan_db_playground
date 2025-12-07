@@ -1799,7 +1799,7 @@ def get_max_fair_shifts_per_app(plan_period_id: UUID, time_calc_max_shifts: int,
     return max_shifts_per_app, fair_shifts_per_app
 
 
-def test_plan(plan_id: UUID) -> tuple[bool, list[str], list[str]]:
+def test_plan(plan_id: UUID, cached_entities: 'Entities | None' = None) -> tuple[bool, list[str], list[str]]:
     """
     Testet einen bestehenden Plan auf Regelverletzungen.
     
@@ -1809,6 +1809,8 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str], list[str]]:
     
     Args:
         plan_id: UUID des zu testenden Plans
+        cached_entities: Optional bereits geladene Entities für schnelle Validierung.
+                        Wenn None, werden Entities neu geladen (langsamer).
         
     Returns:
         Tuple (success, problems, infos):
@@ -1826,64 +1828,32 @@ def test_plan(plan_id: UUID) -> tuple[bool, list[str], list[str]]:
         Für vollständige Validierung inkl. aller Constraints kann
         test_plan_with_solver() verwendet werden (deprecated).
     """
-    import time
-
     from sat_solver.constraints import ConstraintRegistry
     
-    # TEMP: Performance-Profiling
-    timing = {}
-    total_start = time.perf_counter()
-    
-    t0 = time.perf_counter()
+    # Plan laden (immer nötig, da Appointments aktuell sein müssen)
     plan = db_services.Plan.get(plan_id)
-    timing['Plan.get()'] = time.perf_counter() - t0
     
-    t0 = time.perf_counter()
-    event_group_tree = get_event_group_tree(plan.plan_period.id)
-    timing['get_event_group_tree()'] = time.perf_counter() - t0
+    if cached_entities is not None:
+        # Schneller Pfad: Verwende gecachte Entities
+        entities = cached_entities
+    else:
+        # Langsamer Pfad: Entities neu laden (Fallback)
+        event_group_tree = get_event_group_tree(plan.plan_period.id)
+        avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
+        cast_group_tree = get_cast_group_tree(plan.plan_period.id)
+        entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
+        
+        # Befülle shifts_exclusive für Verfügbarkeitsprüfungen (z.B. fixed_cast_only_if_available)
+        populate_shifts_exclusive(entities)
     
-    t0 = time.perf_counter()
-    avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
-    timing['get_avail_day_group_tree()'] = time.perf_counter() - t0
-    
-    t0 = time.perf_counter()
-    cast_group_tree = get_cast_group_tree(plan.plan_period.id)
-    timing['get_cast_group_tree()'] = time.perf_counter() - t0
-    
-    t0 = time.perf_counter()
-    entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
-    timing['create_data_models()'] = time.perf_counter() - t0
-    
-    t0 = time.perf_counter()
-    # Befülle shifts_exclusive für Verfügbarkeitsprüfungen (z.B. fixed_cast_only_if_available)
-    populate_shifts_exclusive(entities)
-    timing['populate_shifts_exclusive()'] = time.perf_counter() - t0
-    
-    t0 = time.perf_counter()
     # Erstelle Registry nur für Validierung (kein echtes Model nötig)
     # Wir übergeben ein Dummy-Model, da wir apply() nicht aufrufen
     model = cp_model.CpModel()
     registry = ConstraintRegistry(model, entities)
     registry.register_plan_test_constraints()
-    timing['Registry-Setup'] = time.perf_counter() - t0
 
-    t0 = time.perf_counter()
     # Validiere den Plan
     errors, validation_infos = registry.validate_plan(plan)
-    timing['validate_plan()'] = time.perf_counter() - t0
-    
-    total_duration = time.perf_counter() - total_start
-    
-    # TEMP: Timing-Ausgabe
-    print("\n" + "=" * 60)
-    print("TEST_PLAN TIMING (sortiert nach Dauer)")
-    print("=" * 60)
-    for name, duration in sorted(timing.items(), key=lambda x: x[1], reverse=True):
-        percent = (duration / total_duration * 100) if total_duration > 0 else 0
-        print(f"  {name:35s} {duration:6.3f}s ({percent:5.1f}%)")
-    print("-" * 60)
-    print(f"  {'GESAMT':35s} {total_duration:6.3f}s")
-    print("=" * 60 + "\n")
     
     # Konvertiere zu HTML-Strings
     problems = [error.to_html() for error in errors]

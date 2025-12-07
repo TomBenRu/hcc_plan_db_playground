@@ -145,6 +145,7 @@ class HandlerPlanTabs(QObject):
     signal_reload_specific_plan_statistics_plan = Signal(UUID)
     signal_refresh_specific_plan_statistics_plan = Signal(UUID)
     signal_refresh_plan_statistics = Signal(UUID)
+    signal_invalidate_entities_cache = Signal(UUID)
 
     def event_changed(self, event_id: UUID, notes_changed: bool = False):
         self.signal_event_changed.emit(event_id, notes_changed)
@@ -172,6 +173,9 @@ class HandlerPlanTabs(QObject):
 
     def refresh_plan_statistics(self, plan_period_id: UUID):
         self.signal_refresh_plan_statistics.emit(plan_period_id)
+
+    def invalidate_entities_cache(self, plan_period_id: UUID):
+        self.signal_invalidate_entities_cache.emit(plan_period_id)
 
 
 class HandlerShowDialog(QObject):

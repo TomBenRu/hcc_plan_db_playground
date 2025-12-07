@@ -352,24 +352,14 @@ class ConstraintRegistry:
             ...     for info in infos:
             ...         print(info.to_html())
         """
-        import time
         from sat_solver.constraints.base import ValidationError, ValidationInfo, Validatable
         
         errors: list[ValidationError] = []
         infos: list[ValidationInfo] = []
         
-        # TEMP: Performance-Profiling
-        timing_results: list[tuple[str, float]] = []
-        total_start = time.perf_counter()
-        
         for constraint in self._constraints:
             if isinstance(constraint, Validatable):
-                # TEMP: Zeit pro Constraint messen
-                constraint_start = time.perf_counter()
                 results = constraint.validate_plan(plan)
-                constraint_duration = time.perf_counter() - constraint_start
-                timing_results.append((constraint.name, constraint_duration))
-                
                 if results:
                     for result in results:
                         if isinstance(result, ValidationInfo):
@@ -383,19 +373,6 @@ class ConstraintRegistry:
                         logger.debug(
                             f"Constraint '{constraint.name}': {error_count} Fehler, {info_count} Hinweise"
                         )
-        
-        total_duration = time.perf_counter() - total_start
-        
-        # TEMP: Timing-Ausgabe (sortiert nach Dauer, längste zuerst)
-        print("\n" + "=" * 60)
-        print("CONSTRAINT VALIDATION TIMING (sortiert nach Dauer)")
-        print("=" * 60)
-        for name, duration in sorted(timing_results, key=lambda x: x[1], reverse=True):
-            percent = (duration / total_duration * 100) if total_duration > 0 else 0
-            print(f"  {name:40s} {duration:6.3f}s ({percent:5.1f}%)")
-        print("-" * 60)
-        print(f"  {'GESAMT':40s} {total_duration:6.3f}s")
-        print("=" * 60 + "\n")
         
         if errors:
             logger.info(f"Plan-Validierung: {len(errors)} Fehler gefunden")

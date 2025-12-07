@@ -20,6 +20,7 @@ from gui.cache.performance_monitor import performance_monitor
 from configuration import team_start_config
 from database import db_services, schemas
 from gui.custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager
+from gui.observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
 from tools.actions import MenuToolbarAction
 from tools.helper_functions import date_to_string
@@ -83,6 +84,11 @@ class TabManager(QObject):
         self.cache_manager = TabCacheManager(max_cached_teams=5, cache_expire_hours=24)
         self._cache_enabled = True  # Kann zur Laufzeit deaktiviert werden
         
+        # === ENTITIES-CACHE für schnelle Plan-Validierung ===
+        self._entities_cache: dict[UUID, object] = {}  # plan_period_id -> Entities
+        self._entities_loading: set[UUID] = set()  # plan_period_ids die gerade laden
+        self._entities_preload_enabled = False  # Erst nach vollständigem Tab-Laden aktivieren  # plan_period_ids die gerade laden  # Kann zur Laufzeit deaktiviert werden
+        
     def initialize_tabs(self, tabs_left: TabBar, tabs_planungsmasken: TabBar, tabs_plans: TabBar):
         """
         Initialisiert die TabBar-Widgets und verbindet Signals
@@ -93,6 +99,14 @@ class TabManager(QObject):
         
         # Tab-Navigation Events verbinden
         self.tabs_left.currentChanged.connect(self._on_left_tabs_changed)
+        
+        # Plan-Tab-Wechsel für Entities-Preloading
+        self.tabs_plans.currentChanged.connect(self._on_plan_tab_changed)
+        
+        # Entities-Cache Invalidierung bei Stammdaten-Änderungen
+        signal_handling.handler_plan_tabs.signal_invalidate_entities_cache.connect(
+            self.invalidate_entities_cache
+        )
         
         # Kontextmenü für Plan-Tabs
         # Note: Das muss in der MainWindow-Integration angepasst werden
@@ -123,6 +137,9 @@ class TabManager(QObject):
                 self._close_all_visible_tabs()  # Widgets behalten für Cache
             else:
                 self.close_all_tabs()  # Widgets wirklich löschen
+            
+            # Entities-Cache leeren bei Team-Wechsel (andere Plan-Periods)
+            self.invalidate_entities_cache()
             
             # Zu neuem Team wechseln
             self.current_team = team
@@ -265,6 +282,14 @@ class TabManager(QObject):
 
             # Tab-Indizes wiederherstellen
             self._restore_cached_tab_indices(cached_team.tab_indices)
+            
+            # Entities-Preloading aktivieren und für aktiven Tab starten
+            self._entities_preload_enabled = True
+            current_index = self.tabs_plans.currentIndex()
+            if current_index >= 0:
+                widget = self.tabs_plans.widget(current_index)
+                if widget and hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
+                    self._start_entities_preload(widget.plan.plan_period.id)
 
         except Exception as e:
             logger.error(f"Fehler beim Cache-Restore: {e}")
@@ -537,6 +562,110 @@ class TabManager(QObject):
         elif current_tab_type == 'masks' and self.tabs_planungsmasken.count() > 0:
             current_widget = self.tabs_planungsmasken.currentWidget()
             self.tab_activated.emit("plan_period", current_widget)
+
+    @Slot(int)
+    def _on_plan_tab_changed(self, index: int):
+        """
+        Handler für Wechsel zwischen Plan-Tabs.
+        
+        Startet das Preloading der Entities für den aktiven Plan-Tab,
+        um schnelle Validierung zu ermöglichen.
+        """
+        # Preloading erst nach vollständigem Tab-Laden aktiviert
+        if not self._entities_preload_enabled:
+            return
+        
+        if index < 0:
+            return
+            
+        widget = self.tabs_plans.widget(index)
+        if widget is None:
+            return
+        
+        # FrmTabPlan hat ein plan-Attribut mit plan_period
+        if hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
+            plan_period_id = widget.plan.plan_period.id
+            self._start_entities_preload(plan_period_id)
+    
+    def _start_entities_preload(self, plan_period_id: UUID):
+        """
+        Startet das Hintergrund-Laden der Entities für eine PlanPeriod.
+        
+        Wenn die Entities bereits geladen oder im Ladevorgang sind,
+        wird nichts unternommen.
+        """
+        # Bereits gecacht?
+        if plan_period_id in self._entities_cache:
+            return
+        
+        # Bereits im Ladevorgang?
+        if plan_period_id in self._entities_loading:
+            return
+        
+        # Markiere als ladend
+        self._entities_loading.add(plan_period_id)
+        
+        # Statusmeldung
+        self.status_message.emit(self.tr("Preparing validation..."))
+        
+        # Worker starten
+        from sat_solver.entities_cache import WorkerLoadEntities
+        from PySide6.QtCore import QThreadPool, Qt
+        
+        worker = WorkerLoadEntities(plan_period_id)
+        worker.signals.finished.connect(
+            self._on_entities_loaded, 
+            Qt.ConnectionType.QueuedConnection
+        )
+        worker.signals.error.connect(
+            self._on_entities_load_error,
+            Qt.ConnectionType.QueuedConnection
+        )
+        QThreadPool.globalInstance().start(worker)
+    
+    @Slot(UUID, object)
+    def _on_entities_loaded(self, plan_period_id: UUID, entities):
+        """Callback wenn Entities erfolgreich geladen wurden."""
+        self._entities_loading.discard(plan_period_id)
+        self._entities_cache[plan_period_id] = entities
+        
+        # Statusmeldung
+        self.status_message.emit(self.tr("Validation ready"))
+    
+    @Slot(UUID, str)
+    def _on_entities_load_error(self, plan_period_id: UUID, error_message: str):
+        """Callback bei Fehler beim Entities-Laden."""
+        self._entities_loading.discard(plan_period_id)
+        
+        # Fehler loggen, aber nicht dem User anzeigen (Fallback funktioniert)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Entities-Preload fehlgeschlagen für {plan_period_id}: {error_message}")
+    
+    def get_cached_entities(self, plan_period_id: UUID):
+        """
+        Gibt gecachte Entities zurück oder None wenn nicht gecacht.
+        
+        Args:
+            plan_period_id: UUID der PlanPeriod
+            
+        Returns:
+            Entities-Objekt oder None
+        """
+        return self._entities_cache.get(plan_period_id)
+    
+    def invalidate_entities_cache(self, plan_period_id: UUID = None):
+        """
+        Invalidiert den Entities-Cache.
+        
+        Args:
+            plan_period_id: Wenn angegeben, nur diese PlanPeriod invalidieren.
+                           Wenn None, gesamten Cache leeren.
+        """
+        if plan_period_id is not None:
+            self._entities_cache.pop(plan_period_id, None)
+        else:
+            self._entities_cache.clear()
     
     def show_plans(self):
         """Wechselt zur Plan-Ansicht"""
@@ -710,6 +839,14 @@ class TabManager(QObject):
             # Tab-Indizes wiederherstellen
             self.tabs_planungsmasken.setCurrentIndex(config.current_index_planungsmasken_tabs)
             self.tabs_plans.setCurrentIndex(config.current_index_plans_tabs)
+            
+            # Entities-Preloading aktivieren und für aktiven Tab starten
+            self._entities_preload_enabled = True
+            current_index = self.tabs_plans.currentIndex()
+            if current_index >= 0:
+                widget = self.tabs_plans.widget(current_index)
+                if widget and hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
+                    self._start_entities_preload(widget.plan.plan_period.id)
             
         except Exception as e:
             logger.error(f"Fehler beim Laden der Team-Konfiguration: {e}")

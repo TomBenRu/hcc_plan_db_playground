@@ -559,6 +559,14 @@ class TabManager(QObject):
         if current_tab_type == 'plans' and self.tabs_plans.count() > 0:
             current_widget = self.tabs_plans.currentWidget()
             self.tab_activated.emit("plan", current_widget)
+            
+            # Entities-Cache prüfen und ggf. neu laden
+            # (z.B. nach Invalidierung durch Stammdaten-Änderung in Planungsmaske)
+            if self._entities_preload_enabled:
+                if hasattr(current_widget, 'plan') and hasattr(current_widget.plan, 'plan_period'):
+                    plan_period_id = current_widget.plan.plan_period.id
+                    self._start_entities_preload(plan_period_id)
+                    
         elif current_tab_type == 'masks' and self.tabs_planungsmasken.count() > 0:
             current_widget = self.tabs_planungsmasken.currentWidget()
             self.tab_activated.emit("plan_period", current_widget)

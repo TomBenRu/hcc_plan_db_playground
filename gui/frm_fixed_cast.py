@@ -414,6 +414,11 @@ class DlgFixedCast(QDialog):
             fixed_cast = f'{result_list}'.replace('[', '(').replace(']', ')').replace("'", "").replace(',', '')
         else:
             fixed_cast = None
+        # Wenn fixed_cast geändert wird, muss die prefer_fixed_cast_events Checkbox geprüft werden und,
+        # falls leer, automatisch deaktiviert werden
+        if not fixed_cast:
+            self.chk_only_if_available.setChecked(False)
+
         self.controller.execute(self.builder.update_command(fixed_cast, self.chk_only_if_available.isChecked()))
 
     def remove_fixed_cast(self):

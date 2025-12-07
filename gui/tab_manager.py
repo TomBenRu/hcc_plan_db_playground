@@ -138,10 +138,11 @@ class TabManager(QObject):
             else:
                 self.close_all_tabs()  # Widgets wirklich löschen
             
-            # Entities-Cache leeren bei Team-Wechsel (andere Plan-Periods)
-            self.invalidate_entities_cache()
-            
             # Zu neuem Team wechseln
+            # Hinweis: Entities-Cache wird NICHT mehr bei Team-Wechsel geleert,
+            # da plan_period_id eindeutig ist. Cache wird nur invalidiert wenn:
+            # - Stammdaten geändert werden
+            # - Der letzte Plan-Tab einer PlanPeriod geschlossen wird
             self.current_team = team
             
             # Aus Cache laden oder neu erstellen
@@ -490,12 +491,23 @@ class TabManager(QObject):
         if 0 <= index < self.tabs_plans.count():
             widget = self.tabs_plans.widget(index)
             
-            # Cache invalidieren falls der Plan betroffen ist
+            # Plan-Period-ID merken für spätere Entities-Cache-Prüfung
+            plan_period_id = None
+            if hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
+                plan_period_id = widget.plan.plan_period.id
+            
+            # Tab-Widget-Cache invalidieren falls der Plan betroffen ist
             if hasattr(widget, 'plan') and self._cache_enabled:
                 self.cache_manager.invalidate_plan_cache(widget.plan.id)
             
             self.tabs_plans.close_tab_and_delete_widget(index)
             self.tab_closed.emit("plan", widget)
+            
+            # Entities-Cache invalidieren, wenn dies der letzte Tab dieser PlanPeriod war
+            if plan_period_id is not None:
+                if self._count_plan_tabs_for_plan_period(plan_period_id) == 0:
+                    self.invalidate_entities_cache(plan_period_id)
+            
             return True
         return False
     
@@ -892,6 +904,25 @@ class TabManager(QObject):
             if self.tabs_planungsmasken.widget(i).plan_period_id == plan_period_id:
                 return True
         return False
+
+    def _count_plan_tabs_for_plan_period(self, plan_period_id: UUID) -> int:
+        """
+        Zählt wie viele Plan-Tabs für eine bestimmte PlanPeriod geöffnet sind.
+        
+        Args:
+            plan_period_id: Die ID der PlanPeriod
+            
+        Returns:
+            Anzahl der offenen Plan-Tabs für diese PlanPeriod
+        """
+        count = 0
+        for i in range(self.tabs_plans.count()):
+            widget = self.tabs_plans.widget(i)
+            if hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
+                if widget.plan.plan_period.id == plan_period_id:
+                    count += 1
+
+        return count
     
     def _activate_plan_tab(self, plan_id: UUID):
         """Aktiviert existierenden Plan-Tab"""

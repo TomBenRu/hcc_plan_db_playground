@@ -51,10 +51,12 @@ class WorkerLoadEntities(QRunnable):
         """Lädt Entities im Hintergrund-Thread."""
         try:
             # Lazy Import um zirkuläre Imports zu vermeiden
-            from sat_solver.solver_main import (
-                get_event_group_tree,
-                get_avail_day_group_tree,
-                get_cast_group_tree,
+            # WICHTIG: Imports aus data_loading.py statt solver_main.py
+            # um OR-Tools Threading-Crash zu vermeiden (siehe HANDOVER_ortools_threading_crash_fix)
+            from sat_solver.event_group_tree import get_event_group_tree
+            from sat_solver.avail_day_group_tree import get_avail_day_group_tree
+            from sat_solver.cast_group_tree import get_cast_group_tree
+            from sat_solver.data_loading import (
                 create_data_models,
                 populate_shifts_exclusive,
             )

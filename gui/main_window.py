@@ -19,6 +19,10 @@ from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from configuration.main_geometry import geometry_manager, MainGeometry
 from database import db_services, schemas
+# WICHTIG: Früher Top-Level-Import von solver_main initialisiert OR-Tools im Haupt-Thread
+# BEVOR Worker-Threads starten. Dies verhindert den Threading-Crash (0xC0000005).
+# Siehe HANDOVER_ortools_threading_crash_fix_december_2025
+from sat_solver import solver_main
 # Excel Export Imports werden lazy geladen für bessere Startup-Performance
 # Google Calendar API Imports werden lazy geladen für bessere Startup-Performance
 

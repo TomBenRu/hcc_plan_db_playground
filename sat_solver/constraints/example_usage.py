@@ -101,7 +101,7 @@ def demo_registry_usage():
     
     # 2. Registry erstellen
     config = curr_config_handler.get_solver_config()
-    registry = ConstraintRegistry(model, entities, config)
+    registry = ConstraintRegistry(entities, model, config)
     
     # 3. Alle 16 Constraints registrieren
     registry.register(EmployeeAvailabilityConstraint)
@@ -176,7 +176,7 @@ def demo_adding_new_constraint():
     # Verwendung:
     model = cp_model.CpModel()
     entities = Entities()
-    registry = ConstraintRegistry(model, entities)
+    registry = ConstraintRegistry(entities, model)
     
     # Einfach registrieren - fertig!
     registry.register(MyNewConstraint)

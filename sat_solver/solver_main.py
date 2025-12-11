@@ -400,152 +400,15 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
         return self._solution_count
 
 
-@dataclasses.dataclass
-class Entities:
-    actor_plan_periods: dict[UUID, schemas.ActorPlanPeriodShow] = dataclasses.field(default_factory=dict)
-    avail_day_groups: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
-    avail_day_groups_with_avail_day: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
-    avail_day_group_vars: dict[UUID, IntVar] = dataclasses.field(default_factory=dict)
-    event_groups: dict[UUID, EventGroup] = dataclasses.field(default_factory=dict)
-    event_groups_with_event: dict[UUID, EventGroup] = dataclasses.field(default_factory=dict)
-    event_group_vars: dict[UUID, IntVar] = dataclasses.field(default_factory=dict)
-    cast_groups: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
-    cast_groups_with_event: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
-    shift_vars: dict[tuple[UUID, UUID], IntVar] = dataclasses.field(default_factory=dict)
-    shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
-    # wenn value==0, kann shift mit key (adg_id, eg_id) nicht gesetzt werden
-
-
-
-def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-                       cast_group_tree: CastGroupTree, plan_period_id: UUID) -> Entities:
-    """
-    Erstellt und füllt ein neues Entities-Objekt mit allen Solver-Daten.
-    
-    Args:
-        event_group_tree: Baum der Event-Gruppen
-        avail_day_group_tree: Baum der Verfügbarkeits-Tage-Gruppen
-        cast_group_tree: Baum der Cast-Gruppen
-        plan_period_id: ID der Planperiode
-        
-    Returns:
-        Gefülltes Entities-Objekt
-    """
-    entities = Entities()
-    
-    plan_period = db_services.PlanPeriod.get(plan_period_id)
-    entities.actor_plan_periods = {app.id: db_services.ActorPlanPeriod.get(app.id)
-                                   for app in plan_period.actor_plan_periods}
-    entities.event_groups = {
-        event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
-        if event_group.children or event_group.event
-    }
-    entities.event_groups = {event_group_tree.root.event_group_id: event_group_tree.root} | entities.event_groups
-
-    entities.event_groups_with_event = {leave.event_group_id: leave for leave in event_group_tree.root.leaves
-                                        if leave.event}
-
-    entities.avail_day_groups = {
-        avail_day_group.avail_day_group_id: avail_day_group for avail_day_group in avail_day_group_tree.root.descendants
-        if avail_day_group.children or avail_day_group.avail_day
-    }
-    entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
-                                 | entities.avail_day_groups)
-    entities.avail_day_groups_with_avail_day = {
-        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
-    }
-
-    entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
-        cast_group.cast_group_id: cast_group
-        for cast_group in cast_group_tree.root.descendants
-    }
-    entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
-                                       for cast_group in cast_group_tree.root.leaves if cast_group.event}
-    
-    return entities
-
-
-def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-                                   cast_group_tree: CastGroupTree, plan_period_ids: list[UUID]) -> Entities:
-    """
-    Erstellt und füllt ein neues Entities-Objekt für Multi-Period Kalkulation.
-    
-    Im Gegensatz zu create_data_models() werden hier ActorPlanPeriods, Events und CastGroups
-    von ALLEN übergebenen PlanPeriods gesammelt.
-    
-    Args:
-        event_group_tree: Combined EventGroupTree über alle Perioden
-        avail_day_group_tree: Combined AvailDayGroupTree über alle Perioden
-        cast_group_tree: Combined CastGroupTree über alle Perioden
-        plan_period_ids: Liste aller PlanPeriod UUIDs
-        
-    Returns:
-        Gefülltes Entities-Objekt
-    """
-    entities = Entities()
-    
-    # Sammle ActorPlanPeriods von ALLEN PlanPeriods
-    entities.actor_plan_periods = {}
-    for pp_id in plan_period_ids:
-        plan_period = db_services.PlanPeriod.get(pp_id)
-        for app in plan_period.actor_plan_periods:
-            # ActorPlanPeriod ID ist unique, daher keine Duplikate möglich
-            entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)
-    
-    # Rest analog zu create_data_models() - Tree-Struktur ist bereits kombiniert
-    entities.event_groups = {
-        event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
-        if event_group.children or event_group.event
-    }
-    entities.event_groups = {event_group_tree.root.event_group_id: event_group_tree.root} | entities.event_groups
-
-    entities.event_groups_with_event = {leave.event_group_id: leave for leave in event_group_tree.root.leaves
-                                        if leave.event}
-
-    entities.avail_day_groups = {
-        avail_day_group.avail_day_group_id: avail_day_group for avail_day_group in avail_day_group_tree.root.descendants
-        if avail_day_group.children or avail_day_group.avail_day
-    }
-    entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
-                                 | entities.avail_day_groups)
-
-    entities.avail_day_groups_with_avail_day = {
-        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
-    }
-
-    entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
-        cast_group.cast_group_id: cast_group
-        for cast_group in cast_group_tree.root.descendants
-    }
-    entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
-                                       for cast_group in cast_group_tree.root.leaves if cast_group.event}
-    
-    return entities
-
-
-def populate_shifts_exclusive(entities: Entities) -> None:
-    """
-    Befüllt entities.shifts_exclusive mit Verfügbarkeitsinformationen.
-    
-    Für jede Kombination aus AvailDayGroup und EventGroup wird geprüft,
-    ob eine Zuweisung möglich ist (basierend auf Standort-Präferenzen und Zeitfenstern).
-    
-    Diese Funktion kann unabhängig vom Solver aufgerufen werden, z.B. für Plan-Validierung.
-    
-    Args:
-        entities: Entities-Objekt mit avail_day_groups_with_avail_day und event_groups_with_event
-    """
-    for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
-        for event_group_id, event_group in entities.event_groups_with_event.items():
-            location_of_work = event_group.event.location_plan_period.location_of_work
-            # Standardmäßig ist Zuweisung möglich
-            entities.shifts_exclusive[adg_id, event_group_id] = 1
-            # Prüfe Standort-Präferenzen (Score > 0 erforderlich)
-            if not check_actor_location_prefs_fits_event(adg.avail_day, location_of_work):
-                entities.shifts_exclusive[adg_id, event_group_id] = 0
-            # Prüfe Zeitfenster und Datum
-            if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
-                entities.shifts_exclusive[adg_id, event_group_id] = 0
+# Re-Export aus data_loading für Rückwärtskompatibilität
+# WICHTIG: Diese Komponenten wurden nach data_loading.py ausgelagert,
+# um OR-Tools Threading-Crash zu vermeiden (siehe HANDOVER_ortools_threading_crash_fix)
+from sat_solver.data_loading import (
+    Entities,
+    create_data_models,
+    create_data_models_multi_period,
+    populate_shifts_exclusive,
+)
 
 
 def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree, 
@@ -642,7 +505,7 @@ def create_constraints(model: cp_model.CpModel, entities: 'Entities',
     )
     
     # Registry erstellen
-    registry = ConstraintRegistry(model, entities)
+    registry = ConstraintRegistry(entities, model)
     
     # Phase 2.1 - Hard Constraints
     registry.register(EmployeeAvailabilityConstraint)
@@ -909,30 +772,7 @@ def call_solver_with_unadjusted_requested_assignments(
     success, problems = print_solver_status(model, solver_status)
     if not success:
         return 0, 0, 0, 0, {}, {}, 0, False
-    
-    # DEBUG: Zeige tatsächliche Penalty-Werte
-    if prefer_fixed_cast.penalty_vars:
-        print("\n" + "="*80)
-        print("DEBUG: prefer_fixed_cast_events - Tatsächliche Penalty-Werte (Unadjusted)")
-        print("="*80)
-        total_penalty = 0
-        penalty_details = []
-        for penalty_var in prefer_fixed_cast.penalty_vars:
-            penalty_value = solver.Value(penalty_var)
-            total_penalty += penalty_value
-            if penalty_value > 0:
-                # Nur Penalties > 0 anzeigen (interessante Fälle)
-                penalty_details.append(f"  ⚠️  Penalty={penalty_value}: {penalty_var.name}")
-        
-        if penalty_details:
-            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(prefer_fixed_cast.penalty_vars)}):")
-            for detail in penalty_details:
-                print(detail)
-        else:
-            print(f"  ✅ Alle Penalties = 0 (alle bevorzugten Mitarbeiter wurden zugewiesen)")
-        
-        print(f"\nGesamtsumme Penalties: {total_penalty}")
-        print("="*80 + "\n")
+
     print_statistics(solver, None, unsigned_shifts.unassigned_shifts_per_event,
                      rel_shift_deviations.sum_assigned_shifts, rel_shift_deviations.sum_squared_deviations,
                      partner_location_prefs.penalty_vars, location_prefs.penalty_vars,
@@ -1845,11 +1685,8 @@ def test_plan(plan_id: UUID, cached_entities: 'Entities | None' = None) -> tuple
         
         # Befülle shifts_exclusive für Verfügbarkeitsprüfungen (z.B. fixed_cast_only_if_available)
         populate_shifts_exclusive(entities)
-    
-    # Erstelle Registry nur für Validierung (kein echtes Model nötig)
-    # Wir übergeben ein Dummy-Model, da wir apply() nicht aufrufen
-    model = cp_model.CpModel()
-    registry = ConstraintRegistry(model, entities)
+
+    registry = ConstraintRegistry(entities)
     registry.register_plan_test_constraints()
 
     # Validiere den Plan

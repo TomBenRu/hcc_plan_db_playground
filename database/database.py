@@ -13,7 +13,7 @@ db_path = os.path.join(db_folder, 'database.sqlite')
 if not os.path.exists(db_folder):
     os.makedirs(db_folder)
 
-db.bind(provider=provider, filename=db_path, create_db=True)
+db.bind(provider=provider, filename=db_path, create_db=True, check_same_thread=False)
 
 # Register the type converter with the database
 db.provider.converter_classes.append((Enum, EnumConverter))

@@ -205,7 +205,7 @@ class DlgCalculate(QDialog):
             self.tr('Calculating Plan'), 
             self.tr('Calculating plans.'),
             0, 
-            self.spin_num_plans.value() + self.num_actor_plan_periods + 2,
+            self.spin_num_plans.value() + self.num_actor_plan_periods + 3,
             self.tr('Cancel'), 
             signal_handling.handler_solver.cancel_solving
         )
@@ -261,6 +261,8 @@ class DlgCalculate(QDialog):
                 )
                 return
         
+        # 4. Lazy Import
+
         # 4. Lazy Import
         from sat_solver import solver_main
         
@@ -465,6 +467,7 @@ class DlgCalculate(QDialog):
         )
         
         self.accept()
+
 
     def fill_out_widgets(self):
         team = db_services.Team.get(self.team_id)

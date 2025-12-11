@@ -58,7 +58,7 @@ class ConstraintRegistry:
     Example:
         >>> model = cp_model.CpModel()
         >>> entities = Entities()
-        >>> registry = ConstraintRegistry(model, entities)
+        >>> registry = ConstraintRegistry(entities, model)
         >>> 
         >>> # Constraints registrieren
         >>> registry.register(LocationPrefsConstraint)
@@ -73,8 +73,8 @@ class ConstraintRegistry:
     
     def __init__(
         self,
-        model: cp_model.CpModel,
         entities: Entities,
+        model: cp_model.CpModel | None = None,
         config: SolverConfig | None = None
     ):
         """

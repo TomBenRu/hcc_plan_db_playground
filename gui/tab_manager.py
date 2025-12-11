@@ -138,10 +138,12 @@ class TabManager(QObject):
                 self.save_team_config(self.current_team.id)
             
             # Alle sichtbaren Tabs schließen
+            self.tabs_plans.currentChanged.disconnect(self._on_plan_tab_changed)
             if self._cache_enabled:
                 self._close_all_visible_tabs()  # Widgets behalten für Cache
             else:
                 self.close_all_tabs()  # Widgets wirklich löschen
+            self.tabs_plans.currentChanged.connect(self._on_plan_tab_changed)
             
             # Zu neuem Team wechseln
             # Hinweis: Entities-Cache wird NICHT mehr bei Team-Wechsel geleert,

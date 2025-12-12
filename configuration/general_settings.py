@@ -36,6 +36,26 @@ class DefenderSettings(BaseModel):
     exclusion_asked: bool = False
 
 
+class ExcelFolderDateFormatSettings(BaseModel):
+    """
+    Einstellungen für das Datumsformat im Excel-Ordnernamen.
+
+    Attribute:
+        day_format: Format für den Tag (%d = 01, %-d/%-#d = 1)
+        month_format: Format für den Monat (%m = 01, %-m = 1, %b = Jan, %B = Januar)
+        year_format: Format für das Jahr (%y = 24, %Y = 2024)
+        order: Reihenfolge der Komponenten (dmy, mdy, ymd)
+        component_separator: Trennzeichen zwischen Tag, Monat, Jahr (z.B. ".")
+        date_separator: Trennzeichen zwischen Start- und Enddatum (z.B. "-")
+    """
+    day_format: str = "%d"
+    month_format: str = "%m"
+    year_format: str = "%y"
+    order: str = "dmy"
+    component_separator: str = "."
+    date_separator: str = "-"
+
+
 class GeneralSettings(BaseModel):
     """
     General settings for the application.
@@ -44,6 +64,7 @@ class GeneralSettings(BaseModel):
     language: str = ''
     date_format_settings: DateFormatSettings = DateFormatSettings()
     defender_settings: DefenderSettings = DefenderSettings()
+    excel_folder_date_format: ExcelFolderDateFormatSettings = ExcelFolderDateFormatSettings()
 
 
 class GeneralSettingsHandler:

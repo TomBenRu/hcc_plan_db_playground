@@ -929,13 +929,19 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                      .format(error=e))
 
     def _get_excel_folder_output_path(self, plan_period: schemas.PlanPeriod) -> str:
+        from tools.excel_folder_date_formatter import format_excel_folder_date_range
+
         path_handler = project_paths.curr_user_path_handler
         if not (output_folder := path_handler.get_config().excel_output_path):
             output_folder = 'excel_output'
+
+        date_range_str = format_excel_folder_date_range(plan_period.start, plan_period.end)
+
         excel_output_path = os.path.join(
-            output_folder, plan_period.team.name,
-            f"{plan_period.start.strftime('%d.%m.%y')}-"
-            f"{plan_period.end.strftime('%d.%m.%y')}")
+            output_folder,
+            plan_period.team.name,
+            date_range_str
+        )
         return excel_output_path
 
     def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
@@ -1075,11 +1081,11 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             f'Verfügbarkeiten {plan_period.team.name} {plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}.xlsx'
         )
         create_dir_if_not_exist(excel_output_path)
-        
+
         # Lazy Import: Excel Export nur laden wenn benötigt (Performance-Optimierung)
         from export_to_file.avail_days_to_xlsx import export_avail_days_to_xlsx
         from xlsxwriter.exceptions import FileCreateError
-        
+
         try:
             export_avail_days_to_xlsx(self, plan_period.id, excel_output_path)
         except FileCreateError as e:

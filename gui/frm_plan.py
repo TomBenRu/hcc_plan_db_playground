@@ -326,8 +326,6 @@ class DlgMoveAppointment(QDialog):
     def accept(self):
         signal_handling.handler_plan_tabs.invalidate_entities_cache(
             self.appointment.event.location_plan_period.plan_period.id)
-        signal_handling.handler_plan_tabs.load_entities_from_cache(
-            self.appointment.event.location_plan_period.plan_period.id)
         super().accept()
 
 

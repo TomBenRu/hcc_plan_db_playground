@@ -112,6 +112,9 @@ class TabManager(QObject):
         signal_handling.handler_plan_tabs.signal_invalidate_entities_cache.connect(
             self.invalidate_entities_cache
         )
+        signal_handling.handler_plan_tabs.signal_load_entities_from_cache.connect(
+            self._start_entities_preload
+        )
         
         # Kontextmenü für Plan-Tabs
         # Note: Das muss in der MainWindow-Integration angepasst werden
@@ -615,6 +618,7 @@ class TabManager(QObject):
             plan_period_id = widget.plan.plan_period.id
             self._start_entities_preload(plan_period_id)
     
+    @Slot(UUID)
     def _start_entities_preload(self, plan_period_id: UUID):
         """
         Startet das Hintergrund-Laden der Entities für eine PlanPeriod.
@@ -688,6 +692,7 @@ class TabManager(QObject):
         """
         return self._entities_cache.get(plan_period_id)
     
+    @Slot(UUID)
     def invalidate_entities_cache(self, plan_period_id: UUID = None):
         """
         Invalidiert den Entities-Cache.

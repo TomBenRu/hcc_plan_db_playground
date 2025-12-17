@@ -662,49 +662,59 @@ class TabManager(QObject):
     @Slot(UUID, object)
     def _on_entities_loaded(self, plan_period_id: UUID, entities):
         """Callback wenn Entities erfolgreich geladen wurden."""
-        self._entities_loading.discard(plan_period_id)
         self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
+
+        # Wurde der Cache während des Ladens invalidiert?
+        if plan_period_id not in self._entities_loading:
+            return  # Ergebnis verwerfen
+
+        self._entities_loading.discard(plan_period_id)
         self._entities_cache[plan_period_id] = entities
-        
+
         # Statusmeldung
         self.status_message.emit(self.tr("Validation ready"))
-    
+
     @Slot(UUID, str)
     def _on_entities_load_error(self, plan_period_id: UUID, error_message: str):
         """Callback bei Fehler beim Entities-Laden."""
         self._entities_loading.discard(plan_period_id)
         self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
-        
+
         # Fehler loggen, aber nicht dem User anzeigen (Fallback funktioniert)
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"Entities-Preload fehlgeschlagen für {plan_period_id}: {error_message}")
-    
+
     def get_cached_entities(self, plan_period_id: UUID):
         """
         Gibt gecachte Entities zurück oder None wenn nicht gecacht.
-        
+
         Args:
             plan_period_id: UUID der PlanPeriod
-            
+
         Returns:
             Entities-Objekt oder None
         """
         return self._entities_cache.get(plan_period_id)
-    
+
     @Slot(UUID)
     def invalidate_entities_cache(self, plan_period_id: UUID = None):
         """
         Invalidiert den Entities-Cache.
-        
+
+        Wenn ein Ladevorgang für die betroffene PlanPeriod läuft,
+        wird dieser ebenfalls invalidiert, sodass das Ergebnis verworfen wird.
+
         Args:
             plan_period_id: Wenn angegeben, nur diese PlanPeriod invalidieren.
                            Wenn None, gesamten Cache leeren.
         """
         if plan_period_id is not None:
             self._entities_cache.pop(plan_period_id, None)
+            self._entities_loading.discard(plan_period_id)
         else:
             self._entities_cache.clear()
+            self._entities_loading.clear()
     
     def show_plans(self):
         """Wechselt zur Plan-Ansicht"""

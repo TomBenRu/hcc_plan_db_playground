@@ -1,6 +1,5 @@
 import datetime
-import json
-from typing import Optional, List, Protocol, runtime_checkable, Union, Any, Dict
+from typing import Optional, List, Protocol, runtime_checkable, Union, Any
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Json
@@ -72,7 +71,7 @@ class ModelWithFixedCast(Protocol):
 class ModelWithExcelSettings(Protocol):
     id: UUID
     name: str
-    excel_export_settings: ['ExcelExportSettings']
+    excel_export_settings: Optional['ExcelExportSettings']
 
 
 class PersonCreate(BaseModel):
@@ -118,6 +117,7 @@ class PersonShow(Person):
     @field_validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards',
                      'combination_locations_possibles', 'actor_location_prefs_defaults',
                      'actor_partner_location_prefs_defaults', 'team_actor_assigns', 'flags', 'skills')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -149,6 +149,7 @@ class ProjectShow(Project):
 
     @field_validator('teams', 'persons', 'time_of_days', 'time_of_day_standards', 'time_of_day_enums',
                      'time_of_day_enum_standards', 'skills', 'flags')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -176,6 +177,7 @@ class TeamShow(Team):
     combination_locations_possibles: List['CombinationLocationsPossible']
 
     @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -216,6 +218,7 @@ class PlanPeriodShow(PlanPeriod):
     project: Project
 
     @field_validator('actor_plan_periods', 'location_plan_periods', 'cast_groups')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -256,6 +259,7 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     @field_validator('time_of_days', 'avail_days', 'time_of_day_standards',
                      'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
                      'actor_location_prefs_defaults')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -289,6 +293,7 @@ class AvailDayGroupShow(AvailDayGroup):
     pass
 
     @field_validator('avail_day_groups')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -307,6 +312,7 @@ class RequiredAvailDayGroups(RequiredAvailDayGroupsCreate):
     id: UUID
 
     @field_validator('locations_of_work')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -335,6 +341,7 @@ class AvailDay(AvailDayCreate):
 
     @field_validator('time_of_days', 'combination_locations_possibles',
                      'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -345,6 +352,7 @@ class AvailDayShow(AvailDay):
 
     @field_validator('time_of_days', 'combination_locations_possibles',
                      'actor_partner_location_prefs_defaults', 'actor_location_prefs_defaults', 'skills')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -385,6 +393,7 @@ class TimeOfDayShow(TimeOfDay):
 
     @field_validator('persons_defaults', 'actor_plan_periods_defaults', 'location_plan_periods_defaults',
                      'avail_days_defaults', 'locations_of_work_defaults', 'events_defaults')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -410,6 +419,7 @@ class TimeOfDayEnumShow(TimeOfDayEnum):
     time_of_days: List[TimeOfDay]
 
     @field_validator('time_of_days')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -444,6 +454,7 @@ class LocationOfWorkShow(LocationOfWork):
     skill_groups: list['SkillGroup']
 
     @field_validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', 'skill_groups')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -528,6 +539,7 @@ class Event(EventCreate):
     prep_delete: Optional[datetime.datetime]
 
     @field_validator('flags')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -538,6 +550,7 @@ class EventShow(Event):
     skill_groups: list['SkillGroup']
 
     @field_validator('flags', 'skill_groups')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -590,6 +603,7 @@ class CastGroupShow(CastGroup):
     cast_rule: Optional['CastRule']
 
     @field_validator('parent_groups', 'child_groups')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -624,6 +638,7 @@ class CastRuleShow(CastRule):
     cast_groups: List[CastGroup]
 
     @field_validator('cast_groups')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -651,6 +666,7 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     project: Project
 
     @field_validator('time_of_days', 'time_of_day_standards', 'events')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -668,6 +684,7 @@ class Appointment(AppointmentCreate):
     id: UUID
 
     @field_validator('avail_days')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -676,6 +693,7 @@ class AppointmentShow(Appointment):
     pass
 
     @field_validator('avail_days')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -701,6 +719,7 @@ class ActorPartnerLocationPrefShow(ActorPartnerLocationPref):
     avail_days_defaults: list[AvailDay]
 
     @field_validator('actor_plan_periods_defaults', 'avail_days_defaults')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -761,9 +780,6 @@ class Skill(BaseModel):
     last_modified: datetime.datetime
     prep_delete: Optional[datetime.datetime]
 
-    def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
-
     def __eq__(self, other: 'Skill') -> bool:
         if not isinstance(other, Skill):
             return NotImplemented
@@ -776,10 +792,8 @@ class SkillShow(Skill):
     avail_days: list[AvailDay]
     skill_groups: list['SkillGroup']
 
-    def before_update(self):
-        self.last_modified = datetime.datetime.utcnow()
-
     @field_validator('persons', 'avail_days', 'skill_groups')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -820,6 +834,7 @@ class SkillGroupShow(SkillGroup):
     events: list[Event]
 
     @field_validator('events')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
@@ -837,6 +852,7 @@ class CombinationLocationsPossible(CombinationLocationsPossibleCreate):
     prep_delete: Optional[datetime.datetime]
 
     @field_validator('locations_of_work')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -846,6 +862,7 @@ class CombinationLocationsPossibleShow(CombinationLocationsPossible):
 
 
     @field_validator('locations_of_work')
+    @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 
@@ -869,6 +886,7 @@ class PlanShow(Plan):
     excel_export_settings: Optional['ExcelExportSettings']
 
     @field_validator('appointments')
+    @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
 

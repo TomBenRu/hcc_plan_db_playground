@@ -110,6 +110,9 @@ class TabManager(QObject):
         signal_handling.handler_plan_tabs.signal_invalidate_entities_cache.connect(
             self.invalidate_entities_cache
         )
+        signal_handling.handler_plan_tabs.signal_load_entities_from_cache.connect(
+            self._start_entities_preload
+        )
         
         # Kontextmenü für Plan-Tabs
         # Note: Das muss in der MainWindow-Integration angepasst werden

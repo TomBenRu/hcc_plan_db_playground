@@ -324,8 +324,6 @@ class DlgMoveAppointment(QDialog):
         return self.combo_time_of_day.currentData()
 
     def accept(self):
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(
-            self.appointment.event.location_plan_period.plan_period.id)
         super().accept()
 
 
@@ -756,6 +754,11 @@ class AppointmentField(QWidget):
             command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
             batch_command = BatchCommand(self, [command1, command2, command3])
             self.plan_widget.controller.execute(batch_command)
+            plan_period_id = self.appointment.event.location_plan_period.plan_period.id
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period_id)
+            self.execution_timer_post_cast_change.finished.connect(
+                lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(plan_period_id),
+                Qt.ConnectionType.SingleShotConnection)
             self.execution_timer_post_cast_change.start_timer()
 
     def _edit_notes(self):

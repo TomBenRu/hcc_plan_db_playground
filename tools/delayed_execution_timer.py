@@ -1,9 +1,11 @@
 from typing import Callable
 
-from PySide6.QtCore import QObject, QTimer
+from PySide6.QtCore import QObject, QTimer, Signal
 
 
 class DelayedTimerSingleShot(QObject):
+    finished = Signal()
+
     def __init__(self, delay: int, function: Callable[..., None], *args, **kwargs):
         super().__init__()
 
@@ -20,6 +22,7 @@ class DelayedTimerSingleShot(QObject):
 
     def _execute(self):
         self._function(*self._args, **self._kwargs)
+        self.finished.emit()
 
     def isActive(self):
         return self._timer.isActive()

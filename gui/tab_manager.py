@@ -1,27 +1,25 @@
 """
-TabManager - Verwaltung aller Tabs in hcc-plan
-Extrahiert Tab-Verwaltungslogik aus MainWindow
+TabManager - Verwaltung aller Tabs in hcc-plan.
+Extrahiert Tab-Verwaltungslogik aus MainWindow.
 Erweitert um intelligentes Tab-Caching für bessere Performance
 """
 
 import logging
-from traceback import TracebackException
+from typing import Optional, Dict, Any
 from uuid import UUID
-from typing import Optional, Dict, Any, List
 
 from PySide6.QtCore import QObject, Signal, Slot, QPoint
 from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu, QApplication
 from pydantic_core import ValidationError
 
 from commands import command_base_classes
-from gui.cache import CachedTab, TeamTabCache, TabCacheManager
-from gui.cache.performance_monitor import performance_monitor
-
 from configuration import team_start_config
 from database import db_services, schemas
+from gui.cache import CachedTab, TeamTabCache, TabCacheManager
+from gui.cache.performance_monitor import performance_monitor
 from gui.custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager
-from gui.observer import signal_handling
 from gui.custom_widgets.tabbars import TabBar
+from gui.observer import signal_handling
 from tools.actions import MenuToolbarAction
 from tools.helper_functions import date_to_string
 
@@ -111,9 +109,6 @@ class TabManager(QObject):
         # Entities-Cache Invalidierung bei Stammdaten-Änderungen
         signal_handling.handler_plan_tabs.signal_invalidate_entities_cache.connect(
             self.invalidate_entities_cache
-        )
-        signal_handling.handler_plan_tabs.signal_load_entities_from_cache.connect(
-            self._start_entities_preload
         )
         
         # Kontextmenü für Plan-Tabs
@@ -518,7 +513,9 @@ class TabManager(QObject):
             if plan_period_id is not None:
                 if self._count_plan_tabs_for_plan_period(plan_period_id) == 0:
                     self.invalidate_entities_cache(plan_period_id)
-            logger.debug(f'Plan-Tab geschlossen: Index {index}, noch geöffnet: {self._count_plan_tabs_for_plan_period(plan_period_id)}')
+
+            logger.debug(f'Plan-Tab geschlossen: Index {index}, '
+                         f'noch geöffnet: {self._count_plan_tabs_for_plan_period(plan_period_id)}')
             return True
         return False
     
@@ -617,8 +614,7 @@ class TabManager(QObject):
         if hasattr(widget, 'plan') and hasattr(widget.plan, 'plan_period'):
             plan_period_id = widget.plan.plan_period.id
             self._start_entities_preload(plan_period_id)
-    
-    @Slot(UUID)
+
     def _start_entities_preload(self, plan_period_id: UUID):
         """
         Startet das Hintergrund-Laden der Entities für eine PlanPeriod.

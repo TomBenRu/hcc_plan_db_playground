@@ -735,6 +735,12 @@ class AppointmentField(QWidget):
                                          dlg.new_time_of_day.name,
                                          self.appointment.event.location_plan_period.location_of_work.name_an_city))
                 return
+
+            # Alte Werte für Signal-Emission speichern
+            old_date = self.appointment.event.date
+            old_time_index = self.appointment.event.time_of_day.time_of_day_enum.time_index
+            location_plan_period_id = self.appointment.event.location_plan_period.id
+
             existing_event = db_services.Event.get_from__location_pp_date_time_index(
                 self.appointment.event.location_plan_period.id, dlg.new_date,
                 dlg.new_time_of_day.time_of_day_enum.time_index)
@@ -747,8 +753,10 @@ class AppointmentField(QWidget):
                                             dlg.new_time_of_day.time_of_day_enum.name,
                                             self.appointment.event.location_plan_period.location_of_work.name_an_city))
                 command1 = appointment_commands.UpdateEvent(self.appointment, existing_event.id)
+                moved_event_id = existing_event.id
             else:
                 command1 = appointment_commands.UpdateCurrEvent(self.appointment, dlg.new_date, dlg.new_time_of_day.id)
+                moved_event_id = self.appointment.event.id
 
             command2 = plan_commands.UpdateLocationColumns(self.plan_widget.plan.id, {})
             command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
@@ -756,6 +764,25 @@ class AppointmentField(QWidget):
             self.plan_widget.controller.execute(batch_command)
             plan_period_id = self.appointment.event.location_plan_period.plan_period.id
             signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period_id)
+
+            # Signal für LocationPlanPeriod emittieren
+            signal_handling.handler_location_plan_period.appointment_moved(
+                signal_handling.DataAppointmentMoved(
+                    event_id=moved_event_id,
+                    old_date=old_date,
+                    new_date=dlg.new_date,
+                    old_time_index=old_time_index,
+                    new_time_index=dlg.new_time_of_day.time_of_day_enum.time_index,
+                    location_plan_period_id=location_plan_period_id
+                )
+            )
+            signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                signal_handling.DataDate(plan_period_id, old_date)
+            )
+            signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                signal_handling.DataDate(plan_period_id, dlg.new_date)
+            )
+
             self.execution_timer_post_cast_change.finished.connect(
                 lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(plan_period_id),
                 Qt.ConnectionType.SingleShotConnection)

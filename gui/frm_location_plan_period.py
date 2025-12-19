@@ -72,6 +72,9 @@ class ButtonEvent(QPushButton):
         signal_handling.handler_location_plan_period.signal_event_update_num_employees.connect(
             self.update_num_employees
         )
+        signal_handling.handler_location_plan_period.signal_appointment_moved.connect(
+            self.on_appointment_moved
+        )
 
         self.group_mode = False
 
@@ -92,8 +95,8 @@ class ButtonEvent(QPushButton):
         self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
                            .replace('<<ObjectName>>', self.objectName()))
     
-    def get_curr_event(self) -> schemas.EventShow | None:
-        if self.isChecked():
+    def get_curr_event(self, state: Literal['checked', 'unchecked'] = 'checked') -> schemas.EventShow | None:
+        if (state == 'checked' and self.isChecked()) or (state == 'unchecked' and not self.isChecked()):
             return db_services.Event.get_from__location_pp_date_tod(
                 self.location_plan_period.id, self.date, self.time_of_day.id
             )
@@ -320,6 +323,46 @@ class ButtonEvent(QPushButton):
             self.location_plan_period = data.location_plan_period
         else:
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+
+    @Slot(object)
+    def on_appointment_moved(self, data: signal_handling.DataAppointmentMoved):
+        """Reagiert auf verschobene Appointments aus der Plan-Ansicht."""
+        # Prüfen ob dieses ButtonEvent betroffen ist
+        if data.location_plan_period_id != self.location_plan_period.id:
+            return
+
+        # Fall 1: Dieses ButtonEvent hatte das Event, das verschoben wurde
+        # -> Button muss deaktiviert werden (Event ist nicht mehr an diesem Datum/Zeit)
+        if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
+            # Event wurde von diesem Button wegverschoben
+            self.setChecked(False)
+            if self.action_num_employees:
+                self.context_menu.removeAction(self.action_num_employees)
+                self.action_num_employees = None
+            self.set_tooltip()
+            return
+
+        # Fall 2: Das Event wurde zu diesem ButtonEvent verschoben
+        # -> Button muss aktiviert werden (nur wenn er nicht bereits aktiviert ist)
+        if data.new_date == self.date and data.new_time_index == self.time_of_day.time_of_day_enum.time_index:
+            # Reload um das neue Event zu erhalten
+            self.reload_location_plan_period()
+            new_event = self.get_curr_event(state='unchecked')
+            if new_event and new_event.id == data.event_id:
+                # Event wurde zu diesem Button verschoben
+                # Nur aktivieren wenn der Button noch nicht aktiviert ist
+                if not self.isChecked():
+                    self.setChecked(True)
+                    self.time_of_day = new_event.time_of_day
+                    self.create_actions_times_of_day()
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.add_spin_box_num_employees()
+                else:
+                    # Button ist bereits aktiviert, nur time_of_day und Tooltip aktualisieren
+                    self.time_of_day = new_event.time_of_day
+                    self.create_actions_times_of_day()
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.set_tooltip()
 
     @Slot()
     def button_clicked(self):

@@ -47,6 +47,17 @@ class DataEventUpdateNumEmployees:
     location_plan_period_id: UUID | None = None
 
 
+@dataclass
+class DataAppointmentMoved:
+    """Daten für ein Appointment, das verschoben wurde (Datum oder Zeit geändert)."""
+    event_id: UUID
+    old_date: datetime.date
+    new_date: datetime.date
+    old_time_index: int
+    new_time_index: int
+    location_plan_period_id: UUID
+
+
 class HandlerActorPlanPeriod(QObject):
 
     signal_reload_actor_pp__avail_configs = Signal(object)
@@ -91,6 +102,7 @@ class HandlerLocationPlanPeriod(QObject):
     signal_reload_location_pp__frm_location_plan_period = Signal(object)
     signal_change_location_plan_period_group_mode = Signal(object)
     signal_reset_check_field = Signal(UUID)
+    signal_appointment_moved = Signal(object)
 
     def reload_location_pp__event_configs(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__event_configs.emit(data)
@@ -103,6 +115,11 @@ class HandlerLocationPlanPeriod(QObject):
 
     def reset_styling_skills_configs(self, data: DataDate):
         self.signal_reset_styling_skills_configs.emit(data)
+
+    def reset_styling_all_configs_at_day(self, data: DataDate):
+        self.reset_styling_fixed_cast_configs(data)
+        self.reset_styling_notes_configs(data)
+        self.reset_styling_skills_configs(data)
 
     def reload_location_pp__events(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__events.emit(data)
@@ -122,6 +139,9 @@ class HandlerLocationPlanPeriod(QObject):
 
     def reset_check_field(self, location_plan_period_id: UUID):
         self.signal_reset_check_field.emit(location_plan_period_id)
+
+    def appointment_moved(self, data: DataAppointmentMoved):
+        self.signal_appointment_moved.emit(data)
 
 
 class HandlerPlanPeriodTabs(QObject):

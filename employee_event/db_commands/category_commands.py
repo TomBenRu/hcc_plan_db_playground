@@ -7,6 +7,7 @@ from employee_event import CategoryCreate, db_service, CategoryDetail, ErrorResp
 
 class Create(Command):
     def __init__(self, category_create: CategoryCreate):
+        super().__init__()
         self.db_services = db_service.EmployeeEventService()
         self.category_create = category_create
         self.result: CategoryDetail | ErrorResponseSchema | None = None
@@ -14,19 +15,20 @@ class Create(Command):
     def execute(self):
         self.result = self.db_services.create_category(self.category_create)
 
-    def undo(self):
+    def _undo(self):
         if isinstance(self.result, CategoryDetail):
             self.db_services.delete_category(self.result.id)
         else:
             raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
-    def redo(self):
+    def _redo(self):
         if isinstance(self.result, CategoryDetail):
             self.result = self.db_services.undelete_category(self.result.id)
 
 
 class Update(Command):
     def __init__(self, category_update: CategoryUpdate):
+        super().__init__()
         self.db_services = db_service.EmployeeEventService()
         self.category_update = category_update
         self.result: CategoryDetail | ErrorResponseSchema | None = None
@@ -35,20 +37,21 @@ class Update(Command):
     def execute(self):
         self.result = self.db_services.update_category(self.category_update)
 
-    def undo(self):
+    def _undo(self):
         if isinstance(self.result, CategoryDetail):
             category_update = CategoryUpdate.model_validate(self.old_category)
             self.db_services.update_category(category_update)
         else:
             raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
-    def redo(self):
+    def _redo(self):
         if isinstance(self.result, CategoryDetail):
             self.db_services.update_category(self.category_update)
 
 
 class Delete(Command):
     def __init__(self, category_id: UUID):
+        super().__init__()
         self.db_services = db_service.EmployeeEventService()
         self.category_id = category_id
         self.result: SuccessResponseSchema | ErrorResponseSchema | None = None
@@ -56,12 +59,12 @@ class Delete(Command):
     def execute(self):
         self.result = self.db_services.delete_category(self.category_id)
 
-    def undo(self):
+    def _undo(self):
         if isinstance(self.result, SuccessResponseSchema):
             self.db_services.undelete_category(self.category_id)
         else:
             raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
-    def redo(self):
+    def _redo(self):
         if isinstance(self.result, SuccessResponseSchema):
             self.db_services.delete_category(self.category_id)

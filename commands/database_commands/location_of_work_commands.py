@@ -8,6 +8,7 @@ from commands.command_base_classes import Command, ContrExecUndoRedo
 
 class Update(Command):
     def __init__(self, location_of_work: schemas.LocationOfWorkShow):
+        super().__init__()
         self.new_data = location_of_work.model_copy()
         self.old_data = db_services.LocationOfWork.get(location_of_work.id)
         self.updated_location_of_work: schemas.LocationOfWorkShow | None = None
@@ -15,45 +16,48 @@ class Update(Command):
     def execute(self):
         self.updated_location_of_work = db_services.LocationOfWork.update(self.new_data)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.update(self.old_data)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.update(self.new_data)
 
 
 class PutInTimeOfDay(Command):
     def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
     def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
     def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.time_of_day_id = time_of_day_id
         self.old_t_o_d_standard_id = None
@@ -61,32 +65,34 @@ class NewTimeOfDayStandard(Command):
     def execute(self):
         _, self.old_t_o_d_standard_id = db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
             db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.old_t_o_d_standard_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
     def __init__(self, location_of_work_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
 
 class AssignToTeam(Command):
     def __init__(self, location_id: UUID, team_id: UUID, start: datetime.date):
+        super().__init__()
         self.location_id = location_id
         self.team_id = team_id
         self.location = db_services.LocationOfWork.get(location_id)
@@ -110,10 +116,10 @@ class AssignToTeam(Command):
         else:
             self.create_assignment()
 
-    def undo(self):
+    def _undo(self):
         self.controller.undo_all()
 
-    def redo(self):
+    def _redo(self):
         self.execute()
 
     def get_assignments_later_than_start(self) -> list[schemas.TeamLocationAssign]:
@@ -139,6 +145,7 @@ class AssignToTeam(Command):
 
 class LeaveTeam(Command):
     def __init__(self, location_id: UUID, start: datetime.date):
+        super().__init__()
         self.location_id = location_id
         self.location = db_services.LocationOfWork.get(location_id)
         self.start = start
@@ -153,10 +160,10 @@ class LeaveTeam(Command):
         if latest_assignment and (latest_assignment.end is None or latest_assignment.end > self.start):
             self.change_assignm_end_date(latest_assignment.id, self.start)
 
-    def undo(self):
+    def _undo(self):
         self.controller.undo_all()
 
-    def redo(self):
+    def _redo(self):
         self.execute()
 
     def get_assignments_later_than_start(self) -> list[schemas.TeamLocationAssign]:
@@ -178,6 +185,7 @@ class LeaveTeam(Command):
 
 class UpdateFixedCast(Command):
     def __init__(self, location_of_work_id: UUID, fixed_cast: str | None, fixed_cast_only_if_available: bool):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.fixed_cast = fixed_cast
         self.fixed_cast_only_if_available = fixed_cast_only_if_available
@@ -191,17 +199,18 @@ class UpdateFixedCast(Command):
         db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
                                                     self.fixed_cast_only_if_available)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old,
                                                     self.fixed_cast_only_if_available_old)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
                                                     self.fixed_cast_only_if_available)
 
 
 class AddSkillGroup(Command):
     def __init__(self, location_of_work_id: UUID, skill_group_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.skill_group_id = skill_group_id
         self.location_of_work: schemas.LocationOfWorkShow | None = None
@@ -210,17 +219,18 @@ class AddSkillGroup(Command):
         self.location_of_work = db_services.LocationOfWork.add_skill_group(
             self.location_of_work_id, self.skill_group_id)
 
-    def undo(self):
+    def _undo(self):
         if self.location_of_work:
             db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)
 
-    def redo(self):
+    def _redo(self):
         if self.location_of_work:
             db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
 
 
 class RemoveSkillGroup(Command):
     def __init__(self, location_of_work_id: UUID, skill_group_id: UUID):
+        super().__init__()
         self.location_of_work_id = location_of_work_id
         self.skill_group_id = skill_group_id
         self.location_of_work: schemas.LocationOfWorkShow | None = None
@@ -229,10 +239,10 @@ class RemoveSkillGroup(Command):
         self.location_of_work = db_services.LocationOfWork.remove_skill_group(
             self.location_of_work_id, self.skill_group_id)
 
-    def undo(self):
+    def _undo(self):
         if self.location_of_work:
             db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
 
-    def redo(self):
+    def _redo(self):
         if self.location_of_work:
             db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)

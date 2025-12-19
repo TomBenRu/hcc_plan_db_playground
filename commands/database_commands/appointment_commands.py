@@ -7,6 +7,7 @@ from commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, appointment: schemas.AppointmentCreate, plan_id: UUID):
+        super().__init__()
         self.appointment = appointment
         self.plan_id = plan_id
         self.appointment_created: schemas.AppointmentShow | None = None
@@ -14,15 +15,16 @@ class Create(Command):
     def execute(self):
         self.appointment_created = db_services.Appointment.create(self.appointment, self.plan_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.Appointment.delete(self.appointment_created.id)
 
-    def redo(self):
+    def _redo(self):
         db_services.Appointment.undelete(self.appointment_created.id)
 
 
 class UpdateAvailDays(Command):
     def __init__(self, appointment_id: UUID, avail_day_ids: list[UUID]):
+        super().__init__()
         self.appointment_id = appointment_id
         self.avail_day_ids = avail_day_ids
         self.appointment = db_services.Appointment.get(self.appointment_id)
@@ -31,15 +33,16 @@ class UpdateAvailDays(Command):
     def execute(self):
         self.updated_appointment = db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
-    def undo(self):
+    def _undo(self):
         db_services.Appointment.update_avail_days(self.appointment_id, [avd.id for avd in self.appointment.avail_days])
 
-    def redo(self):
+    def _redo(self):
         db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
 
 class UpdateNotes(Command):
     def __init__(self, appointment: schemas.Appointment, notes: str):
+        super().__init__()
         self.appointment = appointment
         self.notes = notes
         self.updated_appointment: schemas.AppointmentShow | None = None
@@ -47,15 +50,16 @@ class UpdateNotes(Command):
     def execute(self):
         self.updated_appointment = db_services.Appointment.update_notes(self.appointment.id, self.notes)
 
-    def undo(self):
+    def _undo(self):
         db_services.Appointment.update_notes(self.appointment.id, self.appointment.notes)
 
-    def redo(self):
+    def _redo(self):
         db_services.Appointment.update_notes(self.appointment.id, self.notes)
 
 
 class UpdateCurrEvent(Command):
     def __init__(self, appointment: schemas.Appointment, new_date: datetime.date, new_time_of_day_id: UUID):
+        super().__init__()
         self.appointment = appointment
         self.new_date = new_date
         self.new_time_of_day_id = new_time_of_day_id
@@ -65,17 +69,18 @@ class UpdateCurrEvent(Command):
         self.updated_event = db_services.Event.update_time_of_day_and_date(
             self.appointment.event.id, self.new_time_of_day_id, self.new_date)
 
-    def undo(self):
+    def _undo(self):
         db_services.Event.update_time_of_day_and_date(
             self.appointment.event.id, self.appointment.event.time_of_day.id, self.appointment.event.date)
 
-    def redo(self):
+    def _redo(self):
         db_services.Event.update_time_of_day_and_date(
             self.appointment.event.id, self.new_time_of_day_id, self.new_date)
 
 
 class UpdateEvent(Command):
     def __init__(self, appointment: schemas.Appointment, new_event_id: UUID):
+        super().__init__()
         self.appointment = appointment
         self.new_event_id = new_event_id
         self.updated_appointment: schemas.AppointmentShow | None = None
@@ -83,15 +88,16 @@ class UpdateEvent(Command):
     def execute(self):
         self.updated_appointment = db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.Appointment.update_event(self.appointment.id, self.appointment.event.id)
 
-    def redo(self):
+    def _redo(self):
         db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
 
 
 class UpdateGuests(Command):
     def __init__(self, appointment_id: UUID, guests: list[str]):
+        super().__init__()
         self.appointment_id = appointment_id
         self.guests = guests
         self.appointment = db_services.Appointment.get(self.appointment_id)
@@ -100,8 +106,8 @@ class UpdateGuests(Command):
     def execute(self):
         self.updated_appointment = db_services.Appointment.update_guests(self.appointment_id, self.guests)
 
-    def undo(self):
+    def _undo(self):
         db_services.Appointment.update_guests(self.appointment_id, self.appointment.guests)
 
-    def redo(self):
+    def _redo(self):
         db_services.Appointment.update_guests(self.appointment_id, self.guests)

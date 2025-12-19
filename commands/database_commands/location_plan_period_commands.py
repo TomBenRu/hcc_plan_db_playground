@@ -7,6 +7,7 @@ from commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, plan_period_id: UUID, location_of_work_id: UUID):
+        super().__init__()
         self.plan_period_id = plan_period_id
         self.location_of_work_id = location_of_work_id
         self.created_location_plan_period: schemas.LocationPlanPeriodShow | None = None
@@ -15,16 +16,17 @@ class Create(Command):
         self.created_location_plan_period = db_services.LocationPlanPeriod.create(
             self.plan_period_id, self.location_of_work_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.delete(self.created_location_plan_period.id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.create(self.plan_period_id, self.location_of_work_id,
                                               self.created_location_plan_period.id)
 
 
 class CreateLocationPlanPeriodsFromDate(Command):
     def __init__(self, start_date: datetime.date, location_id: UUID, team_id: UUID):
+        super().__init__()
         self.start_date = start_date
         self.location_id = location_id
         self.team_id = team_id
@@ -41,47 +43,50 @@ class CreateLocationPlanPeriodsFromDate(Command):
                 continue
             self.location_plan_periods.append(db_services.LocationPlanPeriod.create(pp.id, self.location_id))
 
-    def undo(self):
+    def _undo(self):
         for lpp in self.location_plan_periods:
             db_services.LocationPlanPeriod.delete(lpp.id)
 
-    def redo(self):
+    def _redo(self):
         for lpp in self.location_plan_periods:
             db_services.LocationPlanPeriod.create(lpp.plan_period.id, lpp.location_of_work.id, lpp.id)
 
 
 class PutInTimeOfDay(Command):
     def __init__(self, location_plan_period_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationPlanPeriod.put_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.remove_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.put_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
     def __init__(self, location_plan_period_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationPlanPeriod.remove_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.put_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.remove_in_time_of_day(self.location_plan_period_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
     def __init__(self, location_plan_period_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.time_of_day_id = time_of_day_id
         self.old_t_o_d_standard_id = None
@@ -90,98 +95,99 @@ class NewTimeOfDayStandard(Command):
         _, self.old_t_o_d_standard_id = db_services.LocationPlanPeriod.new_time_of_day_standard(
             self.location_plan_period_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.remove_time_of_day_standard(self.location_plan_period_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
             db_services.LocationPlanPeriod.new_time_of_day_standard(self.location_plan_period_id,
                                                                     self.old_t_o_d_standard_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.new_time_of_day_standard(self.location_plan_period_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
     def __init__(self, location_plan_period_id: UUID, time_of_day_id: UUID):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
         db_services.LocationPlanPeriod.remove_time_of_day_standard(self.location_plan_period_id, self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.new_time_of_day_standard(self.location_plan_period_id, self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.remove_time_of_day_standard(self.location_plan_period_id, self.time_of_day_id)
 
 
 class PutInCombLocPossible(Command):
     def __init__(self, actor_plan_period_id: UUID, comb_loc_poss_id: UUID):
-
+        super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
         db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
 
 class RemoveCombLocPossible(Command):
     def __init__(self, actor_plan_period_id: UUID, comb_loc_poss_id: UUID):
-
+        super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
         db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
 
 class PutInActorLocationPref(Command):
     def __init__(self, actor_plan_period_id: UUID, actor_loc_pref_id: UUID):
-
+        super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
         db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
 
 class RemoveActorLocationPref(Command):
     def __init__(self, actor_plan_period_id: UUID, actor_loc_pref_id: UUID):
-
+        super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
         db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
 
 class PutInActorPartnerLocationPref(Command):
     def __init__(self, actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID):
-
+        super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
@@ -189,17 +195,18 @@ class PutInActorPartnerLocationPref(Command):
         db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
 
 class RemoveActorPartnerLocationPref(Command):
     def __init__(self, actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID):
+        super().__init__()
 
         self.actor_plan_period_id = actor_plan_period_id
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
@@ -208,17 +215,18 @@ class RemoveActorPartnerLocationPref(Command):
         db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
 
 class UpdateFixedCast(Command):
     def __init__(self, location_plan_period_id: UUID, fixed_cast: str | None, fixed_cast_only_if_available: bool):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.fixed_cast = fixed_cast
         self.fixed_cast_only_if_available = fixed_cast_only_if_available
@@ -233,17 +241,18 @@ class UpdateFixedCast(Command):
         db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
                                                          self.fixed_cast_only_if_available)
 
-    def undo(self):
+    def _undo(self):
         db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old,
                                                          self.fixed_cast_only_if_available_old)
 
-    def redo(self):
+    def _redo(self):
         db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
                                                          self.fixed_cast_only_if_available)
 
 
 class UpdateNumActors(Command):
     def __init__(self, location_plan_period_id: UUID, num_actors: int):
+        super().__init__()
         self.location_plan_period_id = location_plan_period_id
         self.num_actors = num_actors
         self.num_actors_old = None
@@ -254,11 +263,11 @@ class UpdateNumActors(Command):
         self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
             self.location_plan_period_id, self.num_actors)
 
-    def undo(self):
+    def _undo(self):
         self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
             self.location_plan_period_id, self.num_actors_old)
 
-    def redo(self):
+    def _redo(self):
         self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
             self.location_plan_period_id, self.num_actors)
 

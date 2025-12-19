@@ -14,10 +14,10 @@ class Create(Command):
     def execute(self):
         self.created_comb_loc_poss = db_services.CombinationLocationsPossible.create(self.comb_loc_poss)
 
-    def undo(self):
+    def _undo(self):
         db_services.CombinationLocationsPossible.delete(self.created_comb_loc_poss.id)
 
-    def redo(self):
+    def _redo(self):
         db_services.CombinationLocationsPossible.undelete(self.created_comb_loc_poss.id)
 
 
@@ -30,8 +30,8 @@ class Delete(Command):
     def execute(self):
         db_services.CombinationLocationsPossible.delete(self.comb_loc_poss_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.CombinationLocationsPossible.undelete(self.comb_loc_poss_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.CombinationLocationsPossible.delete(self.comb_loc_poss_id)

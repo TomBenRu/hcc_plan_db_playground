@@ -14,10 +14,10 @@ class WriteProjectToDB(Command):
     def execute(self):
         self.created_project = db_services.EntitiesApiToDB.create_project(self.project)
 
-    def undo(self):
+    def _undo(self):
         db_services.EntitiesApiToDB.delete_project(self.created_project.id)
 
-    def redo(self):
+    def _redo(self):
         raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
 
@@ -30,10 +30,10 @@ class WritePersonToDB(Command):
     def execute(self):
         self.created_person = db_services.EntitiesApiToDB.create_person(self.person)
 
-    def undo(self):
+    def _undo(self):
         db_services.EntitiesApiToDB.delete_person(self.created_person.id)
 
-    def redo(self):
+    def _redo(self):
         raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
 
@@ -46,10 +46,10 @@ class WriteTeamToDB(Command):
     def execute(self):
         self.created_team = db_services.EntitiesApiToDB.create_team(self.team)
 
-    def undo(self):
+    def _undo(self):
         db_services.EntitiesApiToDB.delete_team(self.created_team.id)
 
-    def redo(self):
+    def _redo(self):
         raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')
 
 
@@ -76,8 +76,8 @@ class WritePlanPeriodToDB(Command):
             )
             db_services.EventGroup.create(location_plan_period_id=self.created_location_plan_periods[-1].id)
 
-    def undo(self):
+    def _undo(self):
         db_services.EntitiesApiToDB.delete_plan_period(self.created_plan_period.id)
 
-    def redo(self):
+    def _redo(self):
         raise NotImplementedError('Aktion kann nicht rückgängig gemacht werden.')

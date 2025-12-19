@@ -1,22 +1,40 @@
 from abc import ABC, abstractmethod
-from typing import Iterable
+from typing import Iterable, Callable
 
 from PySide6.QtWidgets import QWidget, QMessageBox
 
 
 class Command(ABC):
 
+    def __init__(self):
+        self.on_undo_callback: Callable[[], None] | None = None
+        self.on_redo_callback: Callable[[], None] | None = None
+
     @abstractmethod
     def execute(self):
         ...
 
     @abstractmethod
-    def undo(self):
+    def _undo(self):
+        """Interne Undo-Logik - muss von Subklassen implementiert werden."""
         ...
 
     @abstractmethod
-    def redo(self):
+    def _redo(self):
+        """Interne Redo-Logik - muss von Subklassen implementiert werden."""
         ...
+
+    def undo(self):
+        """Führt Undo aus und ruft anschließend den Callback auf."""
+        self._undo()
+        if self.on_undo_callback:
+            self.on_undo_callback()
+
+    def redo(self):
+        """Führt Redo aus und ruft anschließend den Callback auf."""
+        self._redo()
+        if self.on_redo_callback:
+            self.on_redo_callback()
 
 
 class Invoker(ABC):
@@ -77,6 +95,7 @@ class ContrExecUndoRedo(Invoker):
 
 class BatchCommand(Command):
     def __init__(self, parent_window: QWidget, commands: list[Command]):
+        super().__init__()
         self.parent_window = parent_window
         self.commands = commands
 
@@ -88,14 +107,14 @@ class BatchCommand(Command):
                 completed_commands.append(command)
         except Exception as e:
             for command in reversed(completed_commands):
-                command.undo()
+                command._undo()  # Direkter Aufruf ohne Callback bei Rollback
             QMessageBox.critical(self.parent_window, 'Fehler',
                                  f'Folgender Fehler trat auf:\n{e}\nDie Aktionen konnten nicht ausgeführt werden.')
 
-    def undo(self):
+    def _undo(self):
         for command in reversed(self.commands):
-            command.undo()
+            command._undo()  # Direkter Aufruf - BatchCommand handhabt eigenen Callback
 
-    def redo(self):
+    def _redo(self):
         for command in self.commands:
-            command.redo()
+            command._redo()  # Direkter Aufruf - BatchCommand handhabt eigenen Callback

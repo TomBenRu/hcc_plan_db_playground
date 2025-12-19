@@ -761,32 +761,42 @@ class AppointmentField(QWidget):
             command2 = plan_commands.UpdateLocationColumns(self.plan_widget.plan.id, {})
             command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
             batch_command = BatchCommand(self, [command1, command2, command3])
-            self.plan_widget.controller.execute(batch_command)
+
             plan_period_id = self.appointment.event.location_plan_period.plan_period.id
-            signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period_id)
+            new_date = dlg.new_date
+            new_time_index = dlg.new_time_of_day.time_of_day_enum.time_index
 
-            # Signal für LocationPlanPeriod emittieren
-            signal_handling.handler_location_plan_period.appointment_moved(
-                signal_handling.DataAppointmentMoved(
-                    event_id=moved_event_id,
-                    old_date=old_date,
-                    new_date=dlg.new_date,
-                    old_time_index=old_time_index,
-                    new_time_index=dlg.new_time_of_day.time_of_day_enum.time_index,
-                    location_plan_period_id=location_plan_period_id
+            def emit_ui_update_signals(from_date: datetime.date, to_date: datetime.date,
+                                       from_time_index: int, to_time_index: int):
+                signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period_id)
+                signal_handling.handler_location_plan_period.appointment_moved(
+                    signal_handling.DataAppointmentMoved(
+                        event_id=moved_event_id,
+                        old_date=from_date,
+                        new_date=to_date,
+                        old_time_index=from_time_index,
+                        new_time_index=to_time_index,
+                        location_plan_period_id=location_plan_period_id
+                    )
                 )
-            )
-            signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                signal_handling.DataDate(plan_period_id, old_date)
-            )
-            signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                signal_handling.DataDate(plan_period_id, dlg.new_date)
-            )
+                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                    signal_handling.DataDate(plan_period_id, from_date)
+                )
+                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                    signal_handling.DataDate(plan_period_id, to_date)
+                )
+                self.execution_timer_post_cast_change.finished.connect(
+                    lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(plan_period_id),
+                    Qt.ConnectionType.SingleShotConnection)
+                self.execution_timer_post_cast_change.start_timer()
 
-            self.execution_timer_post_cast_change.finished.connect(
-                lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(plan_period_id),
-                Qt.ConnectionType.SingleShotConnection)
-            self.execution_timer_post_cast_change.start_timer()
+            batch_command.on_undo_callback = lambda: emit_ui_update_signals(
+                new_date, old_date, new_time_index, old_time_index)
+            batch_command.on_redo_callback = lambda: emit_ui_update_signals(
+                old_date, new_date, old_time_index, new_time_index)
+
+            self.plan_widget.controller.execute(batch_command)
+            emit_ui_update_signals(old_date, new_date, old_time_index, new_time_index)
 
     def _edit_notes(self):
         dlg = DlgAppointmentNotes(self, self.appointment)

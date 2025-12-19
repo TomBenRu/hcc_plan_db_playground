@@ -6,16 +6,17 @@ from commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, actor_partner_loc_pref: schemas.ActorPartnerLocationPrefCreate):
+        super().__init__()
         self.actor_partner_loc_pref = actor_partner_loc_pref
         self.created_actor_partner_loc_pref: schemas.ActorPartnerLocationPrefShow | None = None
 
     def execute(self):
         self.created_actor_partner_loc_pref = db_services.ActorPartnerLocationPref.create(self.actor_partner_loc_pref)
 
-    def undo(self):
+    def _undo(self):
         db_services.ActorPartnerLocationPref.delete(self.created_actor_partner_loc_pref.id)
 
-    def redo(self):
+    def _redo(self):
         db_services.ActorPartnerLocationPref.undelete(self.created_actor_partner_loc_pref.id)
 
     def get_created_actor_partner_loc_pref(self) -> schemas.ActorPartnerLocationPrefShow:
@@ -44,15 +45,16 @@ class Create(Command):
 
 class DeleteUnused(Command):
     def __init__(self, person_id):
+        super().__init__()
         self.person_id = person_id
         self.deleted_pref_ids: list[UUID] = []
 
     def execute(self):
         self.deleted_pref_ids = db_services.ActorPartnerLocationPref.delete_unused(self.person_id)
 
-    def undo(self):
+    def _undo(self):
         for pref_id in self.deleted_pref_ids:
             db_services.ActorPartnerLocationPref.undelete(pref_id)
 
-    def redo(self):
+    def _redo(self):
         self.deleted_pref_ids = db_services.ActorPartnerLocationPref.delete_unused(self.person_id)

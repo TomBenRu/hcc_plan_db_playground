@@ -6,6 +6,7 @@ from commands.command_base_classes import Command
 
 class Create(Command):
     def __init__(self, time_of_day: schemas.TimeOfDayCreate, project_id: UUID):
+        super().__init__()
         self.project_id = project_id
         self.new_data = time_of_day.model_copy()
         self.time_of_day_id: UUID | None = None
@@ -14,10 +15,10 @@ class Create(Command):
         created_time_of_day = db_services.TimeOfDay.create(self.new_data, self.project_id)
         self.time_of_day_id = created_time_of_day.id
 
-    def undo(self):
+    def _undo(self):
         db_services.TimeOfDay.delete(self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.TimeOfDay.undo_delete(self.time_of_day_id)
 
     def get_created_time_of_day_id(self):
@@ -26,29 +27,31 @@ class Create(Command):
 
 class Update(Command):
     def __init__(self, time_of_day: schemas.TimeOfDay):
+        super().__init__()
         self.new_data = time_of_day.model_copy()
         self.old_data = db_services.TimeOfDay.get(time_of_day.id)
 
     def execute(self):
         db_services.TimeOfDay.update(self.new_data)
 
-    def undo(self):
+    def _undo(self):
         db_services.TimeOfDay.update(self.old_data)
 
-    def redo(self):
+    def _redo(self):
         db_services.TimeOfDay.update(self.new_data)
 
 
 class Delete(Command):
     def __init__(self, time_of_day_id: UUID):
+        super().__init__()
         self.time_of_day_id = time_of_day_id
         self.old_data = db_services.TimeOfDay.get(time_of_day_id)
 
     def execute(self):
         db_services.TimeOfDay.delete(self.time_of_day_id)
 
-    def undo(self):
+    def _undo(self):
         db_services.TimeOfDay.undo_delete(self.time_of_day_id)
 
-    def redo(self):
+    def _redo(self):
         db_services.TimeOfDay.delete(self.time_of_day_id)

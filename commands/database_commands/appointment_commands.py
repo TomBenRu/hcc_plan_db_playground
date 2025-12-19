@@ -80,7 +80,8 @@ class UpdateNotes(Command):
             else:
                 note_preview = self.notes or "(leer)"
             return (f"Notiz ändern für\n"
-                    f"{event_location} - {date_to_string(event_date)} ({event_time_of_day}): {note_preview}")
+                    f"{event_location} - {date_to_string(event_date)} ({event_time_of_day}):\n"
+                    f"{note_preview}")
         except (AttributeError, TypeError):
             return "Notiz ändern"
 

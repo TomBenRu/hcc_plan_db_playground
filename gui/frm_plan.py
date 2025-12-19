@@ -821,7 +821,8 @@ class AppointmentField(QWidget):
     def _edit_notes(self):
         dlg = DlgAppointmentNotes(self, self.appointment)
         if dlg.exec():
-            appointment_commands.UpdateNotes(self.appointment, dlg.notes).execute()
+            command = appointment_commands.UpdateNotes(self.appointment, dlg.notes)
+            self.plan_widget.controller.execute(command)
             self._reload_appointment_and_tooltip()
             QMessageBox.information(self, self.tr('Appointment Notes'),
                                     self.tr('The new notes have been applied.'))

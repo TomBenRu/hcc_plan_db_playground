@@ -105,6 +105,10 @@ class UpdateLocationColumns(Command):
     def _redo(self):
         db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
 
+    def __str__(self) -> str:
+        num_locations = sum(len(locs) for locs in self._location_columns.values())
+        return f"Spaltenlayout aktualisieren: {num_locations} Standort(e)"
+
 
 class UpdateNotes(Command):
     def __init__(self, plan_id, notes: str):

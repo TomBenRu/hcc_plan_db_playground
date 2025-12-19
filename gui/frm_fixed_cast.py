@@ -346,6 +346,9 @@ class DlgFixedCast(QDialog):
         self.button_box.addButton(self.bt_reset, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_undo, QDialogButtonBox.ButtonRole.ActionRole)
         self.button_box.addButton(self.bt_redo, QDialogButtonBox.ButtonRole.ActionRole)
+        # Tooltip-Updates für Undo/Redo-Buttons
+        self.controller.set_on_stacks_changed_callback(self._update_undo_redo_tooltips)
+        self._update_undo_redo_tooltips()  # Initial-Zustand setzen
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         
@@ -408,6 +411,28 @@ class DlgFixedCast(QDialog):
         if self.controller.redo_stack:
             self.controller.redo()
             self.reset_fixed_cast_plot()
+
+    def _update_undo_redo_tooltips(self):
+        """Aktualisiert Tooltips der Undo/Redo-Buttons basierend auf den Command-Stacks."""
+        # Undo-Tooltip
+        undo_command = self.controller.get_recent_undo_command()
+        if undo_command:
+            undo_text = f"Rückgängig:\n{str(undo_command)}"
+            self.bt_undo.setToolTip(undo_text)
+            self.bt_undo.setEnabled(True)
+        else:
+            self.bt_undo.setToolTip("Keine Aktion zum Rückgängigmachen")
+            self.bt_undo.setEnabled(False)
+
+        # Redo-Tooltip
+        redo_command = self.controller.get_recent_redo_command()
+        if redo_command:
+            redo_text = f"Wiederholen:\n{str(redo_command)}"
+            self.bt_redo.setToolTip(redo_text)
+            self.bt_redo.setEnabled(True)
+        else:
+            self.bt_redo.setToolTip("Keine Aktion zum Wiederholen")
+            self.bt_redo.setEnabled(False)
 
     def save_plot(self):
         if result_list := self.grid_to_list():

@@ -373,7 +373,16 @@ class SlideInMenu(QWidget):
 
     def add_button(self, button: QPushButton):
         """Add a button to the menu."""
-        button.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.color_buttons};
+                color: {self.color_text};
+            }}
+            QPushButton:disabled {{
+                background-color: #aeaeae;
+                color: #444444;
+            }}
+        """)
         self.layout_fields.addWidget(button)
         self._adjust_container_size()
 

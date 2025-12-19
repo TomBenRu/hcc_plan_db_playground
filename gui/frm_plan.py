@@ -257,6 +257,9 @@ class DlgEditAppointment(QDialog):
         """Returns a set of strings"""
         return {combo.currentText() for combo in self.combos_employees
                 if combo.currentData() and combo.currentData() == UUID('00000000000000000000000000000001')}
+    @property
+    def new_cast_clear_text(self) -> str:
+        return ', '.join(sorted(combo.currentText() for combo in self.combos_employees if combo.currentData()))
 
 
 class DlgMoveAppointment(QDialog):
@@ -627,7 +630,15 @@ class AppointmentField(QWidget):
             if not commands_to_batch:
                 return
 
-            self.batch_command = BatchCommand(self, commands_to_batch)
+            event_location = self.appointment.event.location_plan_period.location_of_work.name_an_city
+            event_date = date_to_string(self.appointment.event.date)
+            event_time = self.appointment.event.time_of_day.name
+            old_cast = (', '.join(sorted(avd.actor_plan_period.person.full_name
+                                         for avd in self.appointment.avail_days))) or '(keine)'
+            new_cast = dlg.new_cast_clear_text or '(keine)'
+            description = (f"Cast-Änderungen für\n{event_location} - {event_date} ({event_time})\n"
+                           f"{old_cast} → {new_cast}")
+            self.batch_command = BatchCommand(self, commands_to_batch, description=description)
             self.batch_command.appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
             self.plan_widget.controller.execute(self.batch_command)
             self.appointment = commands_to_batch[-1].updated_appointment
@@ -760,7 +771,16 @@ class AppointmentField(QWidget):
 
             command2 = plan_commands.UpdateLocationColumns(self.plan_widget.plan.id, {})
             command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
-            batch_command = BatchCommand(self, [command1, command2, command3])
+
+            event_location = self.appointment.event.location_plan_period.location_of_work.name_an_city
+            old_date_str = date_to_string(self.appointment.event.date)
+            new_date_str = date_to_string(dlg.new_date)
+            old_time = self.appointment.event.time_of_day.name
+            new_time = dlg.new_time_of_day.name
+            description = (f"Termin verschieben für\n"
+                           f"{event_location}\n"
+                           f"{old_date_str} ({old_time}) → {new_date_str} ({new_time})")
+            batch_command = BatchCommand(self, [command1, command2, command3], description=description)
 
             plan_period_id = self.appointment.event.location_plan_period.plan_period.id
             new_date = dlg.new_date
@@ -1047,6 +1067,9 @@ class FrmTabPlan(QWidget):
         self.bt_redo = QPushButton('Redo')
         self.bt_redo.clicked.connect(self._redo_shift_command)
         self.side_menu.add_button(self.bt_redo)
+        # Tooltip-Updates für Undo/Redo-Buttons
+        self.controller.set_on_stacks_changed_callback(self._update_undo_redo_tooltips)
+        self._update_undo_redo_tooltips()  # Initial-Zustand setzen
         self.bt_refresh = QPushButton(self.tr('Refresh view'))
         self.bt_refresh.clicked.connect(self.reload_and_refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
@@ -1198,6 +1221,28 @@ class FrmTabPlan(QWidget):
         self.reload_plan()
         self.refresh_plan()
         signal_handling.handler_plan_tabs.refresh_specific_plan_statistics_plan(self.plan.id)
+
+    def _update_undo_redo_tooltips(self):
+        """Aktualisiert Tooltips der Undo/Redo-Buttons basierend auf den Command-Stacks."""
+        # Undo-Tooltip
+        undo_command = self.controller.get_recent_undo_command()
+        if undo_command:
+            undo_text = f"Rückgängig:\n{str(undo_command)}"
+            self.bt_undo.setToolTip(undo_text)
+            self.bt_undo.setEnabled(True)
+        else:
+            self.bt_undo.setToolTip("Keine Aktion zum Rückgängigmachen")
+            self.bt_undo.setEnabled(False)
+
+        # Redo-Tooltip
+        redo_command = self.controller.get_recent_redo_command()
+        if redo_command:
+            redo_text = f"Wiederholen:\n{str(redo_command)}"
+            self.bt_redo.setToolTip(redo_text)
+            self.bt_redo.setEnabled(True)
+        else:
+            self.bt_redo.setToolTip("Keine Aktion zum Wiederholen")
+            self.bt_redo.setEnabled(False)
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
         def reset_button():

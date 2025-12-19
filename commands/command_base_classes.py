@@ -51,11 +51,22 @@ class ContrExecUndoRedo(Invoker):
     def __init__(self):
         self.undo_stack: list[Command] = []
         self.redo_stack: list[Command] = []
+        self._on_stacks_changed_callback: Callable[[], None] | None = None
+
+    def set_on_stacks_changed_callback(self, callback: Callable[[], None]):
+        """Registriert Callback für Stack-Änderungen (z.B. für Tooltip-Updates)."""
+        self._on_stacks_changed_callback = callback
+
+    def _notify_stacks_changed(self):
+        """Benachrichtigt über Stack-Änderungen."""
+        if self._on_stacks_changed_callback:
+            self._on_stacks_changed_callback()
 
     def execute(self, command: Command):
         command.execute()
         self.redo_stack.clear()
         self.undo_stack.append(command)
+        self._notify_stacks_changed()
 
     def undo(self):
         if not self.undo_stack:
@@ -63,6 +74,7 @@ class ContrExecUndoRedo(Invoker):
         command = self.undo_stack.pop()
         command.undo()
         self.redo_stack.append(command)
+        self._notify_stacks_changed()
 
     def redo(self):
         if not self.redo_stack:
@@ -70,6 +82,7 @@ class ContrExecUndoRedo(Invoker):
         command = self.redo_stack.pop()
         command.redo()
         self.undo_stack.append(command)
+        self._notify_stacks_changed()
 
     def undo_all(self):
         for command in reversed(self.undo_stack):
@@ -94,10 +107,11 @@ class ContrExecUndoRedo(Invoker):
 
 
 class BatchCommand(Command):
-    def __init__(self, parent_window: QWidget, commands: list[Command]):
+    def __init__(self, parent_window: QWidget, commands: list[Command], description: str | None = None):
         super().__init__()
         self.parent_window = parent_window
         self.commands = commands
+        self.description = description
 
     def execute(self):
         completed_commands: list[Command] = []
@@ -118,3 +132,22 @@ class BatchCommand(Command):
     def _redo(self):
         for command in self.commands:
             command._redo()  # Direkter Aufruf - BatchCommand handhabt eigenen Callback
+
+    def __str__(self) -> str:
+        # 1. Explizite Beschreibung nutzen
+        if self.description:
+            return self.description
+
+        # 2. Bei einem Command: dessen Beschreibung
+        if len(self.commands) == 1:
+            return str(self.commands[0])
+
+        # 3. Fallback: Liste der ersten 3 Commands
+        descriptions = [str(cmd) for cmd in self.commands[:3]]
+        result = "\n".join(f"  • {desc}" for desc in descriptions)
+
+        if len(self.commands) > 3:
+            remaining = len(self.commands) - 3
+            result += f"\n  ... +{remaining} weitere"
+
+        return result

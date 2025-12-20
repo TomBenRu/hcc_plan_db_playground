@@ -30,11 +30,18 @@ class LocationPlanPeriodData:
     def reset_check_field(self):
         signal_handling.handler_location_plan_period.reset_check_field(self.location_plan_period.id)
 
-    def save_event(self, date: datetime.date, time_of_day: schemas.TimeOfDay, mode: Literal['added', 'deleted']):
+    def save_event(self, date: datetime.date, time_of_day: schemas.TimeOfDay,
+                   mode: Literal['added', 'deleted']) -> bool:
+        """
+        Speichert oder löscht ein Event.
+        Returns: True wenn erfolgreich, False wenn abgebrochen.
+        """
         if mode == 'added':
             event = self._save_new_event(date, time_of_day)
         elif mode == 'deleted':
             event = self._delete_event(date, time_of_day)
+            if event is None:  # Löschung wurde abgebrochen
+                return False
         else:
             raise NameError('Keyword mode: only literals "added" or "deleted" are allowed.')
         self.reload_location_plan_period()
@@ -49,6 +56,7 @@ class LocationPlanPeriodData:
                 self._send_event_changes_to_plans(event, mode, existing_plans)
         else:
             self._send_event_changes_to_plans(event, mode, existing_plans)
+        return True
 
     def _save_new_event(self, date, t_o_d):
         existing_events_on_day = [event for event in self.location_plan_period.events
@@ -72,8 +80,34 @@ class LocationPlanPeriodData:
             )
         return created_event
 
-    def _delete_event(self, date, t_o_d):
+    def _delete_event(self, date, t_o_d) -> schemas.EventShow | None:
         event = db_services.Event.get_from__location_pp_date_tod(self.location_plan_period.id, date, t_o_d.id)
+
+        # Prüfung auf bestehende Appointments in Plänen
+        plan_counts = db_services.Appointment.get_plan_names_from__event(event.id)
+        if plan_counts:
+            total_appointments = sum(plan_counts.values())
+            plans_text = '\n'.join(
+                self.parent.tr('  - {name} ({count} appointment(s))').format(name=name, count=count)
+                for name, count in sorted(plan_counts.items())
+            )
+
+            reply = QMessageBox.warning(
+                self.parent,
+                self.parent.tr('Event in Plans'),
+                self.parent.tr(
+                    'This event is used in {count} appointment(s) in the following plan(s):\n\n'
+                    '{plans}\n\n'
+                    'Do you really want to delete the event?\n'
+                    'The corresponding appointments will also be removed from the plans.'
+                ).format(count=total_appointments, plans=plans_text),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply != QMessageBox.StandardButton.Yes:
+                return None  # Abbruch - Benutzer hat "Nein" gewählt
+
         del_command = event_commands.Delete(event.id)
         self.controller.execute(del_command)
         deleted_event = del_command.event_to_delete

@@ -178,7 +178,7 @@ class SlideInMenu(QWidget):
 
         self.set_positions()
 
-        self.color_buttons = '#e1e1e1'
+        self.color_buttons = '#cdc9ff'
         self.color_text = 'black'
 
         self._setup_ui()

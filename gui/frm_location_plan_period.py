@@ -1147,7 +1147,14 @@ class FrmLocationPlanPeriod(QWidget):
         date = bt.date
         t_o_d = bt.time_of_day
         mode: Literal['added', 'deleted'] = 'added' if bt.isChecked() else 'deleted'
-        self.data_processor.save_event(date, t_o_d, mode)
+
+        success = self.data_processor.save_event(date, t_o_d, mode)
+
+        if not success and mode == 'deleted':
+            # Löschung wurde abgebrochen - Button-Status zurücksetzen
+            bt.setChecked(True)
+            return
+
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def change_mode__event_group(self):

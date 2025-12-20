@@ -1,179 +1,86 @@
-﻿
-[Header]
-ProjectFileVersion = 1.1
-[General]
-Program name = hcc_plan
-Program version = 0.7.0
-Windows XP = 0
-Windows Server 2003 = 0
-Windows Vista = 0
-Windows Server 2008 = 0
-Windows 7 = 0
-Windows 8 = 0
-Windows 10 = 1
-Windows Server 2016 = 0
-Windows Server 2019 = 0
-Windows Server 2022 = 0
-Windows 11 = 1
-DoNotCheckOS = 0
-Company name = happy code company
-Website = https://
-SFA = 1
-DFA = 1
-Comp = 1
-[Graphics]
-Wizard image = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\gui\resources\hcc-dispo_klein.png
-Header image = <main>
-Show Label = 1
-VisualStylesEnabled = 1
-[Files]
-Installation path = <ProgramFiles>\<Company>\<AppName>\
-Autcip = 0
-[Uninstall]
-Vwau = 0
-Website = https://
-Include uninstaller = 1
-Uninstaller filename = Uninstall_hcc_plan
-UseCustomDisplayIcon = 0
-CustomDisplayIcon = <InstallPath>\
-[Licence]
-Licence dialog = 1
-[Finish]
-Sart program = 0
-Reboot computer = 0
-Program = <InstallPath>\
-ProgramArguments = 
-[Shortcuts]
-Allowtc = 1
-Shortcut path = <Company>\<AppName>\
-[Serialoptions]
-Allows = 0
-Number = 1000
-Mask = #####-#####-#####-#####
-[SplashScreen]
-Image = 
-Sound = 
-Time = 2
-PlaySound = 0
-Allow = 0
-[Build]
-File = C:\Users\tombe\OneDrive\Desktop\hcc_plan_installer.exe
-SetupIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
-UninstallIconPath = C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico
-CompressionMethod = 1
-CompressionLevel = 2
-[Updater]
-Allow = 0
-1 = <AppName>
-2 = <AppVersion>
-3 = http://
-4 = http://
-5 = http://
-6 = Update
-Language = 0
-RunProg = 
-RunProgs = 0
-Execdlls = 0
-[Languages]
-1
-2
-[Files/Dirs]
-C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal
-N/A
-[Folder]
-C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\hcc_plan.exe
-20.4 MB
-exe
-[Licence_Begin]
-7541
-{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deftab709{\fonttbl{\f0\fswiss\fprq2\fcharset0 Liberation Serif;}{\f1\froman\fprq2\fcharset0 Liberation Serif;}{\f2\fnil\fcharset2 Symbol;}}
-{\colortbl ;\red128\green128\blue128;}
-{\stylesheet{ Normal;}{\s1 heading 1;}{\s2 heading 2;}{\s3 heading 3;}}
-{\*\generator Riched20 10.0.26100}\viewkind4\uc1 
-\pard\keepn\hyphpar0\widctlpar\s1\sb240\sa120\kerning1\b\f0\fs36\lang1031 Endbenutzer-Lizenzvereinbarung (EULA)\fs48\par
+<?xml version="1.0" encoding="UTF-8"?>
 
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\fs24 1. Einleitung\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Diese Endbenutzer-Lizenzvereinbarung ("EULA") ist eine rechtliche Vereinbarung zwischen Ihnen (dem "Nutzer") und der \b happy code company\b0  ("Lizenzgeber") bez\'fcglich der Nutzung des Programms \b hcc-plan\b0  ("Software"). Mit der Installation, dem Zugriff auf oder der Nutzung der Software erkl\'e4ren Sie sich mit den Bedingungen dieser EULA einverstanden.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 2. Lizenzgew\'e4hrung\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  gew\'e4hrt dem Nutzer das nicht exklusive, nicht \'fcbertragbare und zeitlich begrenzte Recht, die Software f\'fcr den \b Probezeitraum von 6 Wochen\b0  zu testen. Nach Ablauf des Probezeitraums ist die weitere Nutzung der Software nur nach Erwerb einer \b j\'e4hrlichen Lizenz\b0  gestattet.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 3. Probezeit und Lizenzgeb\'fchr\fs28\par
-
-\pard\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\kerning0\b0\f1\fs24  1.\tab\kerning1\b\fs20 Probezeit\b0 : Die Software wird dem Nutzer f\'fcr eine Probezeit von 6 Wochen als \b Try-Out-Version\b0  zur Verf\'fcgung gestellt.\fs24\par
-\kerning0  2.\tab\kerning1\b\fs20 Lizenz nach der Probezeit\b0 : Nach Ablauf der Probezeit muss der Nutzer eine \b j\'e4hrliche Lizenz\b0  erwerben, um die Software weiterhin nutzen zu k\'f6nnen. Der Kauf einer j\'e4hrlichen Lizenz gew\'e4hrt auch Zugang zu einem zugeh\'f6rigen \b Online-Dienst\b0 .\fs24\par
-
-\pard\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\kerning0  3.\tab\kerning1\b\fs20 Lizenzgeb\'fchren\b0 : Die Lizenzgeb\'fchren sind auf der Webseite des Lizenzgebers oder \'fcber autorisierte Vertriebskan\'e4le ver\'f6ffentlicht.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 4. Funktionsweise des Online-Dienstes\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Mit der Software \b hcc-plan\b0  erh\'e4lt der Nutzer Zugang zu einem Online-Dienst, der die \b Planung von Einsatzzeiten\b0  freier Mitarbeiter unterst\'fctzt. Freie Mitarbeiter k\'f6nnen \'fcber diesen Dienst angeben, an welchen Tagen und zu welchen Zeiten sie f\'fcr Eins\'e4tze verf\'fcgbar sind. Die Software \b hcc-plan\b0  ist direkt mit diesem Dienst verbunden, um die Planungen zu erleichtern.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 5. Nutzungseinschr\'e4nkungen\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Der Nutzer erkl\'e4rt sich bereit, die Software nur f\'fcr den vorgesehenen Zweck zu verwenden und stimmt den folgenden Einschr\'e4nkungen zu:\fs24\par
-
-\pard{\pntext\f2\'B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\'B7}}\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\fs20 Die Software darf nicht \b vervielf\'e4ltigt\b0 , \b ver\'e4ndert\b0 , \b ver\'f6ffentlicht\b0  oder \b verbreitet\b0  werden, es sei denn, es wurde ausdr\'fccklich vom Lizenzgeber erlaubt.\fs24\par
-{\pntext\f2\'B7\tab}\fs20 Die Nutzung der Software f\'fcr \b illegale\b0  oder \b missbr\'e4uchliche Zwecke\b0  ist untersagt.\fs24\par
-
-\pard{\pntext\f2\'B7\tab}{\*\pn\pnlvlblt\pnf2\pnindent0{\pntxtb\'B7}}\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\fs20 Reverse Engineering, Dekompilierung oder das Ableiten des Quellcodes der Software ist streng untersagt.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 6. Online-Dienste\fs28\par
-
-\pard\hyphpar0\widctlpar\fi-283\li709\sl276\slmult1\tx709\kerning0\b0\f1\fs24  1.\tab\kerning1\b\fs20 Zugriff auf den Online-Dienst\b0 : Der Zugang zum Online-Dienst ist nur w\'e4hrend der G\'fcltigkeit der j\'e4hrlichen Lizenz m\'f6glich.\fs24\par
-\kerning0  2.\tab\kerning1\b\fs20 Verf\'fcgbarkeit\b0 : Der Lizenzgeber bem\'fcht sich, den Online-Dienst ohne Unterbrechungen zur Verf\'fcgung zu stellen, \'fcbernimmt jedoch keine Garantie f\'fcr die st\'e4ndige Verf\'fcgbarkeit.\fs24\par
-
-\pard\hyphpar0\widctlpar\fi-283\li709\sa140\sl276\slmult1\tx709\kerning0  3.\tab\kerning1\b\fs20 Datenverarbeitung\b0 : Der Nutzer erkennt an, dass im Rahmen der Nutzung des Online-Dienstes Daten der freien Mitarbeiter verarbeitet und gespeichert werden. Der Lizenzgeber verpflichtet sich, alle Daten gem\'e4\'df den geltenden Datenschutzbestimmungen zu sch\'fctzen.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 7. Eigentum\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  beh\'e4lt alle Eigentumsrechte und geistigen Eigentumsrechte an der Software. Diese EULA \'fcbertr\'e4gt dem Nutzer keine Eigentumsrechte an der Software oder an den Online-Diensten.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 8. Haftungsausschluss\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die Software wird "wie besehen" ohne M\'e4ngelgew\'e4hr zur Verf\'fcgung gestellt. Die \b happy code company\b0  \'fcbernimmt keine Gew\'e4hr f\'fcr die Fehlerfreiheit oder f\'fcr die Eignung der Software f\'fcr bestimmte Zwecke.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 9. Haftungsbegrenzung\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 In keinem Fall haftet die \b happy code company\b0  f\'fcr direkte oder indirekte Sch\'e4den, einschlie\'dflich entgangenen Gewinns, Datenverlust, Gesch\'e4ftsunterbrechungen oder anderer wirtschaftlicher Verluste, die aus der Nutzung oder der Unf\'e4higkeit zur Nutzung der Software oder des Online-Dienstes resultieren, es sei denn, dies ist gesetzlich vorgeschrieben.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 10. K\'fcndigung\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Der Lizenzgeber ist berechtigt, diese Lizenz mit sofortiger Wirkung zu k\'fcndigen, wenn der Nutzer gegen die Bedingungen dieser EULA verst\'f6\'dft. Bei K\'fcndigung ist der Nutzer verpflichtet, die Nutzung der Software sofort einzustellen und alle Kopien der Software zu l\'f6schen.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 11. \'c4nderungen der EULA\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Die \b happy code company\b0  beh\'e4lt sich das Recht vor, diese EULA jederzeit zu \'e4ndern. Der Nutzer wird \'fcber wesentliche \'c4nderungen informiert und hat die M\'f6glichkeit, die Nutzung der Software zu beenden, falls er den ge\'e4nderten Bedingungen nicht zustimmt.\fs24\par
-
-\pard\keepn\hyphpar0\widctlpar\s3\sb140\sa120\b\f0 12. Geltendes Recht\fs28\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b0\f1\fs20 Diese EULA unterliegt den Gesetzen der Bundesrepublik Deutschland. Der Gerichtsstand ist der Sitz der \b happy code company\b0 .\fs24\par
-
-\pard\brdrb\brdrdb\brdrw15\brdrcf1 \hyphpar0\widctlpar\sa283\fs12\par
-
-\pard\hyphpar0\widctlpar\sa140\sl276\slmult1\b\fs20 Datum der letzten Aktualisierung\b0 : 01.10.2024\fs24\par
-
-\pard\hyphpar0\widctlpar\par
-}
- [Licence_End]
-[Registry]
-[Variables]
-[SCs]
-Desktop
-hcc-plan
-<InstallPath>\hcc_plan.exe
-
-
-0
-Startmenu
-hcc-plan
-<InstallPath>\hcc_plan.exe
-
-
-0
-[IFP_End]
-[Serials]
-[Serials_End]
-[Commands]
+<InstallForgeProject>
+  <Metadata productVersion="1.6.0" projectFileVersion="2.0"/>
+  <ProductInformation>
+    <Name>hcc_plan</Name>
+    <Version>0.7.5</Version>
+    <CompanyName>happy code company</CompanyName>
+    <WebURI>https://</WebURI>
+  </ProductInformation>
+  <InstallerConfiguration>
+    <Prerequisites>
+      <OperatingSystem check="true">
+        <WindowsXP>false</WindowsXP>
+        <WindowsServer2003>false</WindowsServer2003>
+        <WindowsVista>false</WindowsVista>
+        <WindowsServer2008>false</WindowsServer2008>
+        <Windows7>false</Windows7>
+        <Windows8>false</Windows8>
+        <Windows10>true</Windows10>
+        <WindowsServer2016>false</WindowsServer2016>
+        <WindowsServer2019>false</WindowsServer2019>
+        <WindowsServer2022>false</WindowsServer2022>
+        <Windows11>true</Windows11>
+        <WindowsServer2025>false</WindowsServer2025>
+      </OperatingSystem>
+    </Prerequisites>
+    <UserInterface>
+      <WizardImage filePath="C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\gui\resources\hcc-dispo_klein.png"/>
+      <HeaderImage filePath="&lt;main&gt;"/>
+      <Label isEnabled="true"/>
+      <VisualStyle isEnabled="true"/>
+    </UserInterface>
+    <InstallationFiles defaultInstallationPath="&lt;ProgramFiles&gt;\&lt;Company&gt;\&lt;AppName&gt;\" isDefaultInstallationPathAlterable ="false">
+      <InstallationFile size="N/A" type="[Folder]">C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal</InstallationFile>
+      <InstallationFile size="20.4 MB" type="exe">C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\hcc_plan.exe</InstallationFile>
+    </InstallationFiles>
+    <Languages>
+      <Language>Deutsch</Language>
+      <Language>English</Language>
+    </Languages>
+    <Variables/>
+    <Commands/>
+    <Registry/>
+    <Shortcuts defaultPath="&lt;Company&gt;\&lt;AppName&gt;\" isDefaultPathAlterable="true" isCreateStartmenuShortcutsForAllUsers="true" isCreateDesktopShortcutsForAllUsers="true">
+      <Shortcut destination="Desktop" name="hcc-plan" targetFile="&lt;InstallPath&gt;\hcc_plan.exe" commandLineArguments="" iconFilePath="" iconIndex="0"/>
+      <Shortcut destination="Startmenu" name="hcc-plan" targetFile="&lt;InstallPath&gt;\hcc_plan.exe" commandLineArguments="" iconFilePath="" iconIndex="0"/>
+    </Shortcuts>
+    <Serials isDialogEnabled="false" count="1000" mask ="#####-#####-#####-#####"/>
+    <SplashScreen isDialogEnabled="false" delayTime="2">
+      <Image filePath=""/>
+      <Sound isEnabled="false" filePath=""/>
+    </SplashScreen>
+    <License isDialogEnabled="true">
+      <Data>e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjBcbm91aWNvbXBhdFxkZWZ0YWI3MDl7XGZvbnR0Ymx7XGYwXGZzd2lzc1xmcHJxMlxmY2hhcnNldDAgTGliZXJhdGlvbiBTZXJpZjt9e1xmMVxmcm9tYW5cZnBycTJcZmNoYXJzZXQwIExpYmVyYXRpb24gU2VyaWY7fXtcZjJcZm5pbFxmY2hhcnNldDIgU3ltYm9sO319DQp7XGNvbG9ydGJsIDtccmVkMTI4XGdyZWVuMTI4XGJsdWUxMjg7fQ0Ke1xzdHlsZXNoZWV0eyBOb3JtYWw7fXtcczEgaGVhZGluZyAxO317XHMyIGhlYWRpbmcgMjt9e1xzMyBoZWFkaW5nIDM7fX0NCntcKlxnZW5lcmF0b3IgUmljaGVkMjAgMTAuMC4yNjEwMH1cdmlld2tpbmQ0XHVjMSANClxwYXJkXGtlZXBuXGh5cGhwYXIwXHdpZGN0bHBhclxzMVxzYjI0MFxzYTEyMFxrZXJuaW5nMVxiXGYwXGZzMzZcbGFuZzEwMzEgRW5kYmVudXR6ZXItTGl6ZW56dmVyZWluYmFydW5nIChFVUxBKVxmczQ4XHBhcg0KDQpccGFyZFxrZWVwblxoeXBocGFyMFx3aWRjdGxwYXJcczNcc2IxNDBcc2ExMjBcZnMyNCAxLiBFaW5sZWl0dW5nXGZzMjhccGFyDQoNClxwYXJkXGh5cGhwYXIwXHdpZGN0bHBhclxzYTE0MFxzbDI3NlxzbG11bHQxXGIwXGYxXGZzMjAgRGllc2UgRW5kYmVudXR6ZXItTGl6ZW56dmVyZWluYmFydW5nICgiRVVMQSIpIGlzdCBlaW5lIHJlY2h0bGljaGUgVmVyZWluYmFydW5nIHp3aXNjaGVuIElobmVuIChkZW0gIk51dHplciIpIHVuZCBkZXIgXGIgaGFwcHkgY29kZSBjb21wYW55XGIwICAoIkxpemVuemdlYmVyIikgYmV6XCdmY2dsaWNoIGRlciBOdXR6dW5nIGRlcyBQcm9ncmFtbXMgXGIgaGNjLXBsYW5cYjAgICgiU29mdHdhcmUiKS4gTWl0IGRlciBJbnN0YWxsYXRpb24sIGRlbSBadWdyaWZmIGF1ZiBvZGVyIGRlciBOdXR6dW5nIGRlciBTb2Z0d2FyZSBlcmtsXCdlNHJlbiBTaWUgc2ljaCBtaXQgZGVuIEJlZGluZ3VuZ2VuIGRpZXNlciBFVUxBIGVpbnZlcnN0YW5kZW4uXGZzMjRccGFyDQoNClxwYXJkXGtlZXBuXGh5cGhwYXIwXHdpZGN0bHBhclxzM1xzYjE0MFxzYTEyMFxiXGYwIDIuIExpemVuemdld1wnZTRocnVuZ1xmczI4XHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcc2ExNDBcc2wyNzZcc2xtdWx0MVxiMFxmMVxmczIwIERpZSBcYiBoYXBweSBjb2RlIGNvbXBhbnlcYjAgIGdld1wnZTRocnQgZGVtIE51dHplciBkYXMgbmljaHQgZXhrbHVzaXZlLCBuaWNodCBcJ2ZjYmVydHJhZ2JhcmUgdW5kIHplaXRsaWNoIGJlZ3Jlbnp0ZSBSZWNodCwgZGllIFNvZnR3YXJlIGZcJ2ZjciBkZW4gXGIgUHJvYmV6ZWl0cmF1bSB2b24gNiBXb2NoZW5cYjAgIHp1IHRlc3Rlbi4gTmFjaCBBYmxhdWYgZGVzIFByb2JlemVpdHJhdW1zIGlzdCBkaWUgd2VpdGVyZSBOdXR6dW5nIGRlciBTb2Z0d2FyZSBudXIgbmFjaCBFcndlcmIgZWluZXIgXGIgalwnZTRocmxpY2hlbiBMaXplbnpcYjAgIGdlc3RhdHRldC5cZnMyNFxwYXINCg0KXHBhcmRca2VlcG5caHlwaHBhcjBcd2lkY3RscGFyXHMzXHNiMTQwXHNhMTIwXGJcZjAgMy4gUHJvYmV6ZWl0IHVuZCBMaXplbnpnZWJcJ2ZjaHJcZnMyOFxwYXINCg0KXHBhcmRcaHlwaHBhcjBcd2lkY3RscGFyXGZpLTI4M1xsaTcwOVxzbDI3NlxzbG11bHQxXHR4NzA5XGtlcm5pbmcwXGIwXGYxXGZzMjQgIDEuXHRhYlxrZXJuaW5nMVxiXGZzMjAgUHJvYmV6ZWl0XGIwIDogRGllIFNvZnR3YXJlIHdpcmQgZGVtIE51dHplciBmXCdmY3IgZWluZSBQcm9iZXplaXQgdm9uIDYgV29jaGVuIGFscyBcYiBUcnktT3V0LVZlcnNpb25cYjAgIHp1ciBWZXJmXCdmY2d1bmcgZ2VzdGVsbHQuXGZzMjRccGFyDQpca2VybmluZzAgIDIuXHRhYlxrZXJuaW5nMVxiXGZzMjAgTGl6ZW56IG5hY2ggZGVyIFByb2JlemVpdFxiMCA6IE5hY2ggQWJsYXVmIGRlciBQcm9iZXplaXQgbXVzcyBkZXIgTnV0emVyIGVpbmUgXGIgalwnZTRocmxpY2hlIExpemVuelxiMCAgZXJ3ZXJiZW4sIHVtIGRpZSBTb2Z0d2FyZSB3ZWl0ZXJoaW4gbnV0emVuIHp1IGtcJ2Y2bm5lbi4gRGVyIEthdWYgZWluZXIgalwnZTRocmxpY2hlbiBMaXplbnogZ2V3XCdlNGhydCBhdWNoIFp1Z2FuZyB6dSBlaW5lbSB6dWdlaFwnZjZyaWdlbiBcYiBPbmxpbmUtRGllbnN0XGIwIC5cZnMyNFxwYXINCg0KXHBhcmRcaHlwaHBhcjBcd2lkY3RscGFyXGZpLTI4M1xsaTcwOVxzYTE0MFxzbDI3NlxzbG11bHQxXHR4NzA5XGtlcm5pbmcwICAzLlx0YWJca2VybmluZzFcYlxmczIwIExpemVuemdlYlwnZmNocmVuXGIwIDogRGllIExpemVuemdlYlwnZmNocmVuIHNpbmQgYXVmIGRlciBXZWJzZWl0ZSBkZXMgTGl6ZW56Z2ViZXJzIG9kZXIgXCdmY2JlciBhdXRvcmlzaWVydGUgVmVydHJpZWJza2FuXCdlNGxlIHZlclwnZjZmZmVudGxpY2h0LlxmczI0XHBhcg0KDQpccGFyZFxrZWVwblxoeXBocGFyMFx3aWRjdGxwYXJcczNcc2IxNDBcc2ExMjBcYlxmMCA0LiBGdW5rdGlvbnN3ZWlzZSBkZXMgT25saW5lLURpZW5zdGVzXGZzMjhccGFyDQoNClxwYXJkXGh5cGhwYXIwXHdpZGN0bHBhclxzYTE0MFxzbDI3NlxzbG11bHQxXGIwXGYxXGZzMjAgTWl0IGRlciBTb2Z0d2FyZSBcYiBoY2MtcGxhblxiMCAgZXJoXCdlNGx0IGRlciBOdXR6ZXIgWnVnYW5nIHp1IGVpbmVtIE9ubGluZS1EaWVuc3QsIGRlciBkaWUgXGIgUGxhbnVuZyB2b24gRWluc2F0enplaXRlblxiMCAgZnJlaWVyIE1pdGFyYmVpdGVyIHVudGVyc3RcJ2ZjdHp0LiBGcmVpZSBNaXRhcmJlaXRlciBrXCdmNm5uZW4gXCdmY2JlciBkaWVzZW4gRGllbnN0IGFuZ2ViZW4sIGFuIHdlbGNoZW4gVGFnZW4gdW5kIHp1IHdlbGNoZW4gWmVpdGVuIHNpZSBmXCdmY3IgRWluc1wnZTR0emUgdmVyZlwnZmNnYmFyIHNpbmQuIERpZSBTb2Z0d2FyZSBcYiBoY2MtcGxhblxiMCAgaXN0IGRpcmVrdCBtaXQgZGllc2VtIERpZW5zdCB2ZXJidW5kZW4sIHVtIGRpZSBQbGFudW5nZW4genUgZXJsZWljaHRlcm4uXGZzMjRccGFyDQoNClxwYXJkXGtlZXBuXGh5cGhwYXIwXHdpZGN0bHBhclxzM1xzYjE0MFxzYTEyMFxiXGYwIDUuIE51dHp1bmdzZWluc2NoclwnZTRua3VuZ2VuXGZzMjhccGFyDQoNClxwYXJkXGh5cGhwYXIwXHdpZGN0bHBhclxzYTE0MFxzbDI3NlxzbG11bHQxXGIwXGYxXGZzMjAgRGVyIE51dHplciBlcmtsXCdlNHJ0IHNpY2ggYmVyZWl0LCBkaWUgU29mdHdhcmUgbnVyIGZcJ2ZjciBkZW4gdm9yZ2VzZWhlbmVuIFp3ZWNrIHp1IHZlcndlbmRlbiB1bmQgc3RpbW10IGRlbiBmb2xnZW5kZW4gRWluc2NoclwnZTRua3VuZ2VuIHp1OlxmczI0XHBhcg0KDQpccGFyZHtccG50ZXh0XGYyXCdCN1x0YWJ9e1wqXHBuXHBubHZsYmx0XHBuZjJccG5pbmRlbnQwe1xwbnR4dGJcJ0I3fX1caHlwaHBhcjBcd2lkY3RscGFyXGZpLTI4M1xsaTcwOVxzbDI3NlxzbG11bHQxXHR4NzA5XGZzMjAgRGllIFNvZnR3YXJlIGRhcmYgbmljaHQgXGIgdmVydmllbGZcJ2U0bHRpZ3RcYjAgLCBcYiB2ZXJcJ2U0bmRlcnRcYjAgLCBcYiB2ZXJcJ2Y2ZmZlbnRsaWNodFxiMCAgb2RlciBcYiB2ZXJicmVpdGV0XGIwICB3ZXJkZW4sIGVzIHNlaSBkZW5uLCBlcyB3dXJkZSBhdXNkclwnZmNja2xpY2ggdm9tIExpemVuemdlYmVyIGVybGF1YnQuXGZzMjRccGFyDQp7XHBudGV4dFxmMlwnQjdcdGFifVxmczIwIERpZSBOdXR6dW5nIGRlciBTb2Z0d2FyZSBmXCdmY3IgXGIgaWxsZWdhbGVcYjAgIG9kZXIgXGIgbWlzc2JyXCdlNHVjaGxpY2hlIFp3ZWNrZVxiMCAgaXN0IHVudGVyc2FndC5cZnMyNFxwYXINCg0KXHBhcmR7XHBudGV4dFxmMlwnQjdcdGFifXtcKlxwblxwbmx2bGJsdFxwbmYyXHBuaW5kZW50MHtccG50eHRiXCdCN319XGh5cGhwYXIwXHdpZGN0bHBhclxmaS0yODNcbGk3MDlcc2ExNDBcc2wyNzZcc2xtdWx0MVx0eDcwOVxmczIwIFJldmVyc2UgRW5naW5lZXJpbmcsIERla29tcGlsaWVydW5nIG9kZXIgZGFzIEFibGVpdGVuIGRlcyBRdWVsbGNvZGVzIGRlciBTb2Z0d2FyZSBpc3Qgc3RyZW5nIHVudGVyc2FndC5cZnMyNFxwYXINCg0KXHBhcmRca2VlcG5caHlwaHBhcjBcd2lkY3RscGFyXHMzXHNiMTQwXHNhMTIwXGJcZjAgNi4gT25saW5lLURpZW5zdGVcZnMyOFxwYXINCg0KXHBhcmRcaHlwaHBhcjBcd2lkY3RscGFyXGZpLTI4M1xsaTcwOVxzbDI3NlxzbG11bHQxXHR4NzA5XGtlcm5pbmcwXGIwXGYxXGZzMjQgIDEuXHRhYlxrZXJuaW5nMVxiXGZzMjAgWnVncmlmZiBhdWYgZGVuIE9ubGluZS1EaWVuc3RcYjAgOiBEZXIgWnVnYW5nIHp1bSBPbmxpbmUtRGllbnN0IGlzdCBudXIgd1wnZTRocmVuZCBkZXIgR1wnZmNsdGlna2VpdCBkZXIgalwnZTRocmxpY2hlbiBMaXplbnogbVwnZjZnbGljaC5cZnMyNFxwYXINClxrZXJuaW5nMCAgMi5cdGFiXGtlcm5pbmcxXGJcZnMyMCBWZXJmXCdmY2diYXJrZWl0XGIwIDogRGVyIExpemVuemdlYmVyIGJlbVwnZmNodCBzaWNoLCBkZW4gT25saW5lLURpZW5zdCBvaG5lIFVudGVyYnJlY2h1bmdlbiB6dXIgVmVyZlwnZmNndW5nIHp1IHN0ZWxsZW4sIFwnZmNiZXJuaW1tdCBqZWRvY2gga2VpbmUgR2FyYW50aWUgZlwnZmNyIGRpZSBzdFwnZTRuZGlnZSBWZXJmXCdmY2diYXJrZWl0LlxmczI0XHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcZmktMjgzXGxpNzA5XHNhMTQwXHNsMjc2XHNsbXVsdDFcdHg3MDlca2VybmluZzAgIDMuXHRhYlxrZXJuaW5nMVxiXGZzMjAgRGF0ZW52ZXJhcmJlaXR1bmdcYjAgOiBEZXIgTnV0emVyIGVya2VubnQgYW4sIGRhc3MgaW0gUmFobWVuIGRlciBOdXR6dW5nIGRlcyBPbmxpbmUtRGllbnN0ZXMgRGF0ZW4gZGVyIGZyZWllbiBNaXRhcmJlaXRlciB2ZXJhcmJlaXRldCB1bmQgZ2VzcGVpY2hlcnQgd2VyZGVuLiBEZXIgTGl6ZW56Z2ViZXIgdmVycGZsaWNodGV0IHNpY2gsIGFsbGUgRGF0ZW4gZ2VtXCdlNFwnZGYgZGVuIGdlbHRlbmRlbiBEYXRlbnNjaHV0emJlc3RpbW11bmdlbiB6dSBzY2hcJ2ZjdHplbi5cZnMyNFxwYXINCg0KXHBhcmRca2VlcG5caHlwaHBhcjBcd2lkY3RscGFyXHMzXHNiMTQwXHNhMTIwXGJcZjAgNy4gRWlnZW50dW1cZnMyOFxwYXINCg0KXHBhcmRcaHlwaHBhcjBcd2lkY3RscGFyXHNhMTQwXHNsMjc2XHNsbXVsdDFcYjBcZjFcZnMyMCBEaWUgXGIgaGFwcHkgY29kZSBjb21wYW55XGIwICBiZWhcJ2U0bHQgYWxsZSBFaWdlbnR1bXNyZWNodGUgdW5kIGdlaXN0aWdlbiBFaWdlbnR1bXNyZWNodGUgYW4gZGVyIFNvZnR3YXJlLiBEaWVzZSBFVUxBIFwnZmNiZXJ0clwnZTRndCBkZW0gTnV0emVyIGtlaW5lIEVpZ2VudHVtc3JlY2h0ZSBhbiBkZXIgU29mdHdhcmUgb2RlciBhbiBkZW4gT25saW5lLURpZW5zdGVuLlxmczI0XHBhcg0KDQpccGFyZFxrZWVwblxoeXBocGFyMFx3aWRjdGxwYXJcczNcc2IxNDBcc2ExMjBcYlxmMCA4LiBIYWZ0dW5nc2F1c3NjaGx1c3NcZnMyOFxwYXINCg0KXHBhcmRcaHlwaHBhcjBcd2lkY3RscGFyXHNhMTQwXHNsMjc2XHNsbXVsdDFcYjBcZjFcZnMyMCBEaWUgU29mdHdhcmUgd2lyZCAid2llIGJlc2VoZW4iIG9obmUgTVwnZTRuZ2VsZ2V3XCdlNGhyIHp1ciBWZXJmXCdmY2d1bmcgZ2VzdGVsbHQuIERpZSBcYiBoYXBweSBjb2RlIGNvbXBhbnlcYjAgIFwnZmNiZXJuaW1tdCBrZWluZSBHZXdcJ2U0aHIgZlwnZmNyIGRpZSBGZWhsZXJmcmVpaGVpdCBvZGVyIGZcJ2ZjciBkaWUgRWlnbnVuZyBkZXIgU29mdHdhcmUgZlwnZmNyIGJlc3RpbW10ZSBad2Vja2UuXGZzMjRccGFyDQoNClxwYXJkXGtlZXBuXGh5cGhwYXIwXHdpZGN0bHBhclxzM1xzYjE0MFxzYTEyMFxiXGYwIDkuIEhhZnR1bmdzYmVncmVuenVuZ1xmczI4XHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcc2ExNDBcc2wyNzZcc2xtdWx0MVxiMFxmMVxmczIwIEluIGtlaW5lbSBGYWxsIGhhZnRldCBkaWUgXGIgaGFwcHkgY29kZSBjb21wYW55XGIwICBmXCdmY3IgZGlyZWt0ZSBvZGVyIGluZGlyZWt0ZSBTY2hcJ2U0ZGVuLCBlaW5zY2hsaWVcJ2RmbGljaCBlbnRnYW5nZW5lbiBHZXdpbm5zLCBEYXRlbnZlcmx1c3QsIEdlc2NoXCdlNGZ0c3VudGVyYnJlY2h1bmdlbiBvZGVyIGFuZGVyZXIgd2lydHNjaGFmdGxpY2hlciBWZXJsdXN0ZSwgZGllIGF1cyBkZXIgTnV0enVuZyBvZGVyIGRlciBVbmZcJ2U0aGlna2VpdCB6dXIgTnV0enVuZyBkZXIgU29mdHdhcmUgb2RlciBkZXMgT25saW5lLURpZW5zdGVzIHJlc3VsdGllcmVuLCBlcyBzZWkgZGVubiwgZGllcyBpc3QgZ2VzZXR6bGljaCB2b3JnZXNjaHJpZWJlbi5cZnMyNFxwYXINCg0KXHBhcmRca2VlcG5caHlwaHBhcjBcd2lkY3RscGFyXHMzXHNiMTQwXHNhMTIwXGJcZjAgMTAuIEtcJ2ZjbmRpZ3VuZ1xmczI4XHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcc2ExNDBcc2wyNzZcc2xtdWx0MVxiMFxmMVxmczIwIERlciBMaXplbnpnZWJlciBpc3QgYmVyZWNodGlndCwgZGllc2UgTGl6ZW56IG1pdCBzb2ZvcnRpZ2VyIFdpcmt1bmcgenUga1wnZmNuZGlnZW4sIHdlbm4gZGVyIE51dHplciBnZWdlbiBkaWUgQmVkaW5ndW5nZW4gZGllc2VyIEVVTEEgdmVyc3RcJ2Y2XCdkZnQuIEJlaSBLXCdmY25kaWd1bmcgaXN0IGRlciBOdXR6ZXIgdmVycGZsaWNodGV0LCBkaWUgTnV0enVuZyBkZXIgU29mdHdhcmUgc29mb3J0IGVpbnp1c3RlbGxlbiB1bmQgYWxsZSBLb3BpZW4gZGVyIFNvZnR3YXJlIHp1IGxcJ2Y2c2NoZW4uXGZzMjRccGFyDQoNClxwYXJkXGtlZXBuXGh5cGhwYXIwXHdpZGN0bHBhclxzM1xzYjE0MFxzYTEyMFxiXGYwIDExLiBcJ2M0bmRlcnVuZ2VuIGRlciBFVUxBXGZzMjhccGFyDQoNClxwYXJkXGh5cGhwYXIwXHdpZGN0bHBhclxzYTE0MFxzbDI3NlxzbG11bHQxXGIwXGYxXGZzMjAgRGllIFxiIGhhcHB5IGNvZGUgY29tcGFueVxiMCAgYmVoXCdlNGx0IHNpY2ggZGFzIFJlY2h0IHZvciwgZGllc2UgRVVMQSBqZWRlcnplaXQgenUgXCdlNG5kZXJuLiBEZXIgTnV0emVyIHdpcmQgXCdmY2JlciB3ZXNlbnRsaWNoZSBcJ2M0bmRlcnVuZ2VuIGluZm9ybWllcnQgdW5kIGhhdCBkaWUgTVwnZjZnbGljaGtlaXQsIGRpZSBOdXR6dW5nIGRlciBTb2Z0d2FyZSB6dSBiZWVuZGVuLCBmYWxscyBlciBkZW4gZ2VcJ2U0bmRlcnRlbiBCZWRpbmd1bmdlbiBuaWNodCB6dXN0aW1tdC5cZnMyNFxwYXINCg0KXHBhcmRca2VlcG5caHlwaHBhcjBcd2lkY3RscGFyXHMzXHNiMTQwXHNhMTIwXGJcZjAgMTIuIEdlbHRlbmRlcyBSZWNodFxmczI4XHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcc2ExNDBcc2wyNzZcc2xtdWx0MVxiMFxmMVxmczIwIERpZXNlIEVVTEEgdW50ZXJsaWVndCBkZW4gR2VzZXR6ZW4gZGVyIEJ1bmRlc3JlcHVibGlrIERldXRzY2hsYW5kLiBEZXIgR2VyaWNodHNzdGFuZCBpc3QgZGVyIFNpdHogZGVyIFxiIGhhcHB5IGNvZGUgY29tcGFueVxiMCAuXGZzMjRccGFyDQoNClxwYXJkXGJyZHJiXGJyZHJkYlxicmRydzE1XGJyZHJjZjEgXGh5cGhwYXIwXHdpZGN0bHBhclxzYTI4M1xmczEyXHBhcg0KDQpccGFyZFxoeXBocGFyMFx3aWRjdGxwYXJcc2ExNDBcc2wyNzZcc2xtdWx0MVxiXGZzMjAgRGF0dW0gZGVyIGxldHp0ZW4gQWt0dWFsaXNpZXJ1bmdcYjAgOiAwMS4xMC4yMDI0XGZzMjRccGFyDQoNClxwYXJkXGh5cGhwYXIwXHdpZGN0bHBhclxwYXINCn0NCgA=</Data>
+    </License>
+    <Finish isRebootMachineEnabled="false">
+      <Program executableFilePath="&lt;InstallPath&gt;\" isLaunchEnabled="false" arguments=""/>
+    </Finish>
+  </InstallerConfiguration>
+  <UninstallerConfiguration isPackaged="true">
+    <UninstallerExecutableFileName>Uninstall_hcc_plan</UninstallerExecutableFileName>
+    <OpenWebURIAfterUninstallation isEnabled="false">https://</OpenWebURIAfterUninstallation>
+    <CustomDisplayIcon isEnabled="false" iconFilePath="&lt;InstallPath&gt;\"/>
+  </UninstallerConfiguration>
+  <VisualUpdateConfiguration isPackaged="false">
+    <ProductName>&lt;AppName&gt;</ProductName>
+    <ProductVersion>&lt;AppVersion&gt;</ProductVersion>
+    <Language>0</Language>
+    <UpdateScriptURIs>
+      <MainURI>http://</MainURI>
+      <FirstMirrorURI>http://</FirstMirrorURI>
+      <SecondMirrorURI>http://</SecondMirrorURI>
+    </UpdateScriptURIs>
+    <updateExecutableFileName>Update</updateExecutableFileName>
+    <proEditionLicenseKey/>
+    <Program executableFilePath="" isLaunchEnabled="false" isTerminationEnabled="false"/>
+  </VisualUpdateConfiguration>
+  <BuildConfiguration>
+    <SetupFilePath>C:\Users\tombe\OneDrive\Desktop\hcc_plan_installer.exe</SetupFilePath>
+    <SetupIconPath>C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico</SetupIconPath>
+    <UninstallerIconPath>C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico</UninstallerIconPath>
+    <Compression method="1" level="2"/>
+    <CodeSigning isEnabled="false" signToolCommandLine="/n &quot;Subject&quot; /tr http://timestamp.digicert.com /td sha256 /fd sha256 &quot;&lt;ExecutableFilePath&gt;&quot;"/>
+  </BuildConfiguration>
+</InstallForgeProject>

@@ -3001,3 +3001,23 @@ class Appointment:
         appointment_db.prep_delete = None
 
         return schemas.AppointmentShow.model_validate(appointment_db)
+
+    @classmethod
+    @db_session
+    def get_plan_names_from__event(cls, event_id: UUID) -> dict[str, int]:
+        """
+        Gibt ein Dictionary zurück mit Plan-Namen als Keys und
+        der Anzahl der Appointments als Values.
+        Nur für nicht-gelöschte Appointments und Pläne.
+        """
+        event_db = models.Event.get(id=event_id)
+        if not event_db:
+            return {}
+
+        plan_counts: dict[str, int] = {}
+        for app in event_db.appointments:
+            if not app.prep_delete and not app.plan.prep_delete:
+                plan_name = app.plan.name
+                plan_counts[plan_name] = plan_counts.get(plan_name, 0) + 1
+
+        return plan_counts

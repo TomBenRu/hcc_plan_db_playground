@@ -21,12 +21,12 @@ class SignalsLoadEntities(QObject):
     """Signals für den Entities-Lade-Worker."""
     
     # Signal wenn Entities erfolgreich geladen wurden
-    # Parameter: plan_period_id, entities
-    finished = Signal(UUID, object)
-    
+    # Parameter: plan_period_id, generation, entities
+    finished = Signal(UUID, int, object)
+
     # Signal bei Fehler
-    # Parameter: plan_period_id, error_message
-    error = Signal(UUID, str)
+    # Parameter: plan_period_id, generation, error_message
+    error = Signal(UUID, int, str)
 
 
 class WorkerLoadEntities(QRunnable):
@@ -41,9 +41,10 @@ class WorkerLoadEntities(QRunnable):
     - shifts_exclusive (populate_shifts_exclusive)
     """
     
-    def __init__(self, plan_period_id: UUID):
+    def __init__(self, plan_period_id: UUID, generation: int):
         super().__init__()
         self.plan_period_id = plan_period_id
+        self.generation = generation
         self.signals = SignalsLoadEntities()
     
     @Slot()
@@ -77,8 +78,8 @@ class WorkerLoadEntities(QRunnable):
             populate_shifts_exclusive(entities)
             
             # Erfolg signalisieren
-            self.signals.finished.emit(self.plan_period_id, entities)
+            self.signals.finished.emit(self.plan_period_id, self.generation, entities)
             
         except Exception as e:
             # Fehler signalisieren
-            self.signals.error.emit(self.plan_period_id, str(e))
+            self.signals.error.emit(self.plan_period_id, self.generation, str(e))

@@ -8,7 +8,7 @@ import logging
 from typing import Optional, Dict, Any
 from uuid import UUID
 
-from PySide6.QtCore import QObject, Signal, Slot, QPoint
+from PySide6.QtCore import QObject, Signal, Slot, QPoint, QTimer
 from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu, QApplication
 from pydantic_core import ValidationError
 
@@ -86,7 +86,9 @@ class TabManager(QObject):
         self._entities_cache: dict[UUID, object] = {}  # plan_period_id -> Entities
         self._entities_loading: set[UUID] = set()  # plan_period_ids die gerade laden
         self._entities_workers: dict[UUID, object] = {}  # Referenz auf Worker halten bis Signal verarbeitet
-        self._entities_preload_enabled = False  # Erst nach vollständigem Tab-Laden aktivieren  # Erst nach vollständigem Tab-Laden aktivieren  # plan_period_ids die gerade laden  # Kann zur Laufzeit deaktiviert werden
+        self._entities_generation: dict[UUID, int] = {}  # plan_period_id -> aktuelle Generation
+        self._entities_debounce_timers: dict[UUID, QTimer] = {}  # Debounce-Timer pro plan_period_id
+        self._entities_preload_enabled = False  # Erst nach vollständigem Tab-Laden aktivieren
         
     def initialize_tabs(self, tabs_left: TabBar, tabs_planungsmasken: TabBar, tabs_plans: TabBar):
         """
@@ -620,52 +622,80 @@ class TabManager(QObject):
 
     def _start_entities_preload(self, plan_period_id: UUID):
         """
-        Startet das Hintergrund-Laden der Entities für eine PlanPeriod.
-        
-        Wenn die Entities bereits geladen oder im Ladevorgang sind,
-        wird nichts unternommen.
+        Startet das Hintergrund-Laden der Entities für eine PlanPeriod mit Debouncing.
+
+        Bei schnellen aufeinanderfolgenden Anfragen (z.B. Undo/Redo) wird der Worker
+        erst nach einer kurzen Verzögerung gestartet. Kommt eine neue Anfrage während
+        der Verzögerung, wird der Timer zurückgesetzt.
+
+        Verwendet zusätzlich einen Generations-Counter, um sicherzustellen, dass
+        veraltete Ergebnisse verworfen werden.
         """
         # Bereits gecacht?
         if plan_period_id in self._entities_cache:
             return
-        
-        # Bereits im Ladevorgang?
-        if plan_period_id in self._entities_loading:
+
+        # Bestehenden Debounce-Timer abbrechen falls vorhanden
+        if plan_period_id in self._entities_debounce_timers:
+            self._entities_debounce_timers[plan_period_id].stop()
+            self._entities_debounce_timers[plan_period_id].deleteLater()
+
+        # Neuen Debounce-Timer erstellen
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: self._execute_entities_preload(plan_period_id))
+        timer.start(1000)  # 1 Sekunde Debounce-Verzögerung
+        self._entities_debounce_timers[plan_period_id] = timer
+
+    def _execute_entities_preload(self, plan_period_id: UUID):
+        """
+        Führt das tatsächliche Laden der Entities aus (nach Debounce-Verzögerung).
+        """
+        # Timer-Referenz entfernen
+        self._entities_debounce_timers.pop(plan_period_id, None)
+
+        # Nochmal prüfen ob noch benötigt (könnte zwischenzeitlich gecacht worden sein)
+        if plan_period_id in self._entities_cache:
             return
-        
+
+        # Aktuelle Generation holen (oder 0 wenn noch keine existiert)
+        generation = self._entities_generation.get(plan_period_id, 0)
+
         # Markiere als ladend
         self._entities_loading.add(plan_period_id)
-        
+
         # Statusmeldung
         self.status_message.emit(self.tr("Preparing validation..."))
-        
-        # Worker starten
+
+        # Worker starten MIT Generation
         from sat_solver.entities_cache import WorkerLoadEntities
         from PySide6.QtCore import QThreadPool, Qt
-        
-        worker = WorkerLoadEntities(plan_period_id)
+
+        worker = WorkerLoadEntities(plan_period_id, generation)
         worker.signals.finished.connect(
-            self._on_entities_loaded, 
+            self._on_entities_loaded,
             Qt.ConnectionType.QueuedConnection
         )
         worker.signals.error.connect(
             self._on_entities_load_error,
             Qt.ConnectionType.QueuedConnection
         )
-        
+
         # Referenz halten um vorzeitiges Löschen zu verhindern (Dangling Signal vermeiden)
         self._entities_workers[plan_period_id] = worker
-        
+
         QThreadPool.globalInstance().start(worker)
     
-    @Slot(UUID, object)
-    def _on_entities_loaded(self, plan_period_id: UUID, entities):
+    @Slot(UUID, int, object)
+    def _on_entities_loaded(self, plan_period_id: UUID, generation: int, entities):
         """Callback wenn Entities erfolgreich geladen wurden."""
         self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
 
-        # Wurde der Cache während des Ladens invalidiert?
-        if plan_period_id not in self._entities_loading:
-            return  # Ergebnis verwerfen
+        # Ist diese Generation noch aktuell?
+        current_generation = self._entities_generation.get(plan_period_id, 0)
+        if generation != current_generation:
+            # Veraltetes Ergebnis - verwerfen
+            return
 
         self._entities_loading.discard(plan_period_id)
         self._entities_cache[plan_period_id] = entities
@@ -673,11 +703,17 @@ class TabManager(QObject):
         # Statusmeldung
         self.status_message.emit(self.tr("Validation ready"))
 
-    @Slot(UUID, str)
-    def _on_entities_load_error(self, plan_period_id: UUID, error_message: str):
+    @Slot(UUID, int, str)
+    def _on_entities_load_error(self, plan_period_id: UUID, generation: int, error_message: str):
         """Callback bei Fehler beim Entities-Laden."""
-        self._entities_loading.discard(plan_period_id)
         self._entities_workers.pop(plan_period_id, None)  # Worker-Referenz freigeben
+
+        # Veraltete Fehler ignorieren
+        current_generation = self._entities_generation.get(plan_period_id, 0)
+        if generation != current_generation:
+            return
+
+        self._entities_loading.discard(plan_period_id)
 
         # Fehler loggen, aber nicht dem User anzeigen (Fallback funktioniert)
         import logging
@@ -701,19 +737,37 @@ class TabManager(QObject):
         """
         Invalidiert den Entities-Cache.
 
-        Wenn ein Ladevorgang für die betroffene PlanPeriod läuft,
-        wird dieser ebenfalls invalidiert, sodass das Ergebnis verworfen wird.
+        Erhöht die Generation, sodass laufende Worker als veraltet erkannt werden
+        und ihre Ergebnisse verworfen werden. Stoppt auch laufende Debounce-Timer.
 
         Args:
             plan_period_id: Wenn angegeben, nur diese PlanPeriod invalidieren.
                            Wenn None, gesamten Cache leeren.
         """
         if plan_period_id is not None:
+            # Generation erhöhen - macht laufende Worker ungültig
+            current_gen = self._entities_generation.get(plan_period_id, 0)
+            self._entities_generation[plan_period_id] = current_gen + 1
+
+            # Laufenden Debounce-Timer stoppen
+            if plan_period_id in self._entities_debounce_timers:
+                self._entities_debounce_timers[plan_period_id].stop()
+                self._entities_debounce_timers[plan_period_id].deleteLater()
+                self._entities_debounce_timers.pop(plan_period_id, None)
+
             self._entities_cache.pop(plan_period_id, None)
             self._entities_loading.discard(plan_period_id)
         else:
+            # Alle Debounce-Timer stoppen
+            for timer in self._entities_debounce_timers.values():
+                timer.stop()
+                timer.deleteLater()
+            self._entities_debounce_timers.clear()
+
+            # Gesamten Cache leeren
             self._entities_cache.clear()
             self._entities_loading.clear()
+            self._entities_generation.clear()
     
     def show_plans(self):
         """Wechselt zur Plan-Ansicht"""

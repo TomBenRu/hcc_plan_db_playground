@@ -5,6 +5,8 @@ from PySide6.QtWidgets import (QWidget, QApplication, QVBoxLayout, QPushButton, 
                                QGraphicsProxyWidget, QHBoxLayout, QLabel, QScrollArea, QCheckBox, QLayout, QTableWidget)
 from PySide6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QEvent, Slot, QTimer
 
+from gui.widget_styles import slide_menu as slide_menu_styles
+
 
 class RotatableContainer(QGraphicsView):
     def __init__(self, widget: QWidget, rotation: float):
@@ -178,9 +180,6 @@ class SlideInMenu(QWidget):
 
         self.set_positions()
 
-        self.color_buttons = '#cdc9ff'
-        self.color_text = 'black'
-
         self._setup_ui()
 
         self.animation = QPropertyAnimation(self, b"pos")
@@ -306,22 +305,7 @@ class SlideInMenu(QWidget):
         self.bt_pin_menu.setFixedSize(20, 20)
         self.bt_pin_menu.setCheckable(True)
         self.bt_pin_menu.setToolTip(self.tr("Keep menu open"))
-        self.bt_pin_menu.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 255, 255, 150);
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                font-size: 10px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 255, 255, 200);
-            }
-            QPushButton:checked {
-                background-color: #006d6d;
-                color: white;
-                border: 1px solid #004d4d;
-            }
-        """)
+        self.bt_pin_menu.setStyleSheet(slide_menu_styles.PIN_BUTTON_STYLE)
         self.bt_pin_menu.toggled.connect(self._pin_button_toggled)
 
     def _position_pin_button(self):
@@ -373,24 +357,17 @@ class SlideInMenu(QWidget):
 
     def add_button(self, button: QPushButton):
         """Add a button to the menu."""
-        button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {self.color_buttons};
-                color: {self.color_text};
-            }}
-            QPushButton:disabled {{
-                background-color: #aeaeae;
-                color: #444444;
-            }}
-        """)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setStyleSheet(slide_menu_styles.BUTTON_STYLE)
         self.layout_fields.addWidget(button)
         self._adjust_container_size()
 
     def add_check_box(self, check_box: QCheckBox):
         """Add a checkbox to the menu."""
         widget = QWidget()
-        widget.setStyleSheet(f"background-color: {self.color_buttons}; color: {self.color_text};")
-        widget.setContentsMargins(10, 2, 10, 2)
+        widget.setStyleSheet(slide_menu_styles.CHECKBOX_CONTAINER_STYLE)
+        widget.setContentsMargins(10, 6, 10, 6)
+        widget.setCursor(Qt.CursorShape.PointingHandCursor)
         widget_layout = QVBoxLayout(widget)
         widget_layout.setContentsMargins(0, 0, 0, 0)
         widget_layout.addWidget(check_box)

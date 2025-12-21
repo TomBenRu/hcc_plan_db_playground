@@ -545,7 +545,7 @@ class AppointmentField(QWidget):
         # Notiz-Icon Setup
         self._setup_note_icon()
 
-        self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
+        self.execution_timer_post_cast_change = DelayedTimerSingleShot(500, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -1103,9 +1103,6 @@ class FrmTabPlan(QWidget):
         self.column_assignments = self.generate_column_assignments()
         self.day_location_id_appointments = self.generate_day_appointments()
 
-        self.execution_handler_post_undo_redo = DelayedTimerSingleShot(
-            1000, self._post_undo_redo_actions)
-
     def _chk_permanent_plan_check_toggled(self, checked: bool):
         self.permanent_plan_check = checked
 
@@ -1213,10 +1210,20 @@ class FrmTabPlan(QWidget):
         if not hasattr(self, '_original_undo_redo_highlight_style_sheet'):
             self._original_undo_redo_highlight_style_sheet = appointment_field.styleSheet()
         appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
-        QTimer.singleShot(1500, reset_field)
+        if hasattr(self, '_undo_redo_highlight_timer') and self._undo_redo_highlight_timer.isActive():
+            self._undo_redo_highlight_timer.stop()
+        self._undo_redo_highlight_timer = QTimer(self)
+        self._undo_redo_highlight_timer.setSingleShot(True)
+        self._undo_redo_highlight_timer.timeout.connect(reset_field)
+        self._undo_redo_highlight_timer.start(1500)
 
     def _handle_post_undo_redo_actions(self):
-        self.execution_handler_post_undo_redo.start_timer()
+        if not hasattr(self, '_execution_handler_post_undo_redo'):
+            self._execution_handler_post_undo_redo = DelayedTimerSingleShot(
+                1000, self._post_undo_redo_actions)
+        if self._execution_handler_post_undo_redo.isActive():
+            self._execution_handler_post_undo_redo.stop()
+        self._execution_handler_post_undo_redo.start_timer()
 
     def _post_undo_redo_actions(self):
         self.reload_plan()

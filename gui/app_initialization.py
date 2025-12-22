@@ -7,21 +7,25 @@ mit Progress-Callback-Integration für den erweiterten SplashScreen.
 
 Folgt dem KEEP IT SIMPLE Prinzip - minimale Änderungen an bestehender Architektur.
 """
+from __future__ import annotations
 
 import logging
 import os
 import sys
 import time
 import traceback
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, QTranslator, QLocale
 from PySide6.QtGui import QIcon, QPalette, QColor
 from PySide6.QtWidgets import QApplication, QMessageBox, QSplashScreen
 
 from gui.custom_widgets.splash_screen import InitializationProgressCallback
-from gui.main_window import MainWindow
 from tools.logging.crash_handler import safe_execute
 from tools import proof_only_one_instance
+
+if TYPE_CHECKING:
+    from gui.main_window import MainWindow
 
 
 def is_development_environment() -> bool:

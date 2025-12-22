@@ -70,7 +70,7 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
     for app in plan_period.actor_plan_periods:
         if cancelled_check and cancelled_check():
             return None
-        entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)
+        entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)  # Todo: Nur die benötigten Felder laden
     entities.event_groups = {
         event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
         if event_group.children or event_group.event

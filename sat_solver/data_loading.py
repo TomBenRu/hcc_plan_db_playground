@@ -181,8 +181,8 @@ def preload_avail_days(entities: Entities) -> None:
     if not avail_day_ids:
         return
 
-    # Batch-Laden aller AvailDays
-    avail_days = db_services.AvailDay.get_batch(avail_day_ids)
+    # Batch-Laden aller AvailDays (optimiertes Schema für Solver)
+    avail_days = db_services.AvailDay.get_batch_minimal(avail_day_ids)
 
     # Cache in den Tree-Nodes setzen
     for adg in entities.avail_day_groups_with_avail_day.values():

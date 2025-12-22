@@ -347,6 +347,10 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
     def collect_schedule_versions(self):
         self._schedule_versions.append([])
 
+        # Sammle alle zugewiesenen adg_ids für diese Lösung
+        all_scheduled_adg_ids = []
+        event_group_adg_mapping = {}
+
         for event_group in sorted(list(entities.event_groups_with_event.values()),
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             if not self.Value(entities.event_group_vars[event_group.event_group_id]):
@@ -355,9 +359,25 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
             for (adg_id, eg_id), var in entities.shift_vars.items():
                 if eg_id == event_group.event_group_id and self.Value(var):
                     scheduled_adg_ids.append(adg_id)
-            event = event_group.event
-            avail_days = [entities.avail_day_groups_with_avail_day[agd_id].avail_day for agd_id in scheduled_adg_ids]
-            self._schedule_versions[-1].append(schemas.AppointmentCreate(avail_days=avail_days, event=event))
+                    all_scheduled_adg_ids.append(adg_id)
+            event_group_adg_mapping[event_group.event_group_id] = (event_group.event, scheduled_adg_ids)
+
+        # Vollständige AvailDays für alle zugewiesenen Schichten laden
+        avail_day_ids = [
+            entities.avail_day_groups_with_avail_day[adg_id]._avail_day_id
+            for adg_id in all_scheduled_adg_ids
+            if entities.avail_day_groups_with_avail_day[adg_id]._avail_day_id
+        ]
+        full_avail_days = db_services.AvailDay.get_batch(avail_day_ids)
+
+        # Appointments erstellen mit vollständigen AvailDays
+        for eg_id, (event, adg_ids) in event_group_adg_mapping.items():
+            avail_days_for_event = []
+            for adg_id in adg_ids:
+                avail_day_id = entities.avail_day_groups_with_avail_day[adg_id]._avail_day_id
+                if avail_day_id and avail_day_id in full_avail_days:
+                    avail_days_for_event.append(full_avail_days[avail_day_id])
+            self._schedule_versions[-1].append(schemas.AppointmentCreate(avail_days=avail_days_for_event, event=event))
 
     def print_results(self):
         return

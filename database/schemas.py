@@ -353,6 +353,96 @@ class AvailDayGroupTreeNode(BaseModel):
     avail_day_id: Optional[UUID] = None  # Nur ID, nicht vollständiges AvailDay
 
 
+# ============================================================================
+# Solver-optimierte Schemas für AvailDay
+# ============================================================================
+
+class TimeOfDayEnumSolver(BaseModel):
+    """Minimale TimeOfDayEnum-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    time_index: int
+
+
+class TimeOfDaySolver(BaseModel):
+    """Minimale TimeOfDay-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    start: datetime.time
+    end: datetime.time
+    time_of_day_enum: TimeOfDayEnumSolver
+
+
+class LocationOfWorkSolver(BaseModel):
+    """Minimale LocationOfWork-Daten für Solver (nur ID)."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+
+
+class ActorLocationPrefSolver(BaseModel):
+    """Minimale ActorLocationPref-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    score: Optional[float]
+    prep_delete: Optional[datetime.datetime]
+    location_of_work: LocationOfWorkSolver
+
+
+class ActorPartnerLocationPrefSolver(BaseModel):
+    """Minimale ActorPartnerLocationPref-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    score: float
+    partner: PersonSolver
+    location_of_work: LocationOfWorkSolver
+
+
+class ActorPlanPeriodRef(BaseModel):
+    """
+    Einfache Referenz auf ActorPlanPeriod für AvailDaySolverMinimal.
+
+    Enthält nur id und Person-Daten, keine berechneten Felder wie avail_day_group_ids.
+    """
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    person: PersonSolver
+
+
+class CombinationLocationsPossibleSolver(BaseModel):
+    """Minimale CombinationLocationsPossible-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    locations_of_work: List[LocationOfWorkSolver]
+    time_span_between: datetime.timedelta
+    prep_delete: Optional[datetime.datetime]
+
+    @field_validator('locations_of_work')
+    @classmethod
+    def set_to_list(cls, values):
+        return [v for v in values]
+
+
+class AvailDaySolverMinimal(BaseModel):
+    """
+    Optimiertes AvailDay-Schema für Solver-Berechnungen.
+
+    Enthält nur die für Solver-Constraints benötigten Felder.
+    NICHT enthalten: id, prep_delete, project, time_of_days, avail_day_group
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    date: datetime.date
+    time_of_day: TimeOfDaySolver
+    actor_plan_period: ActorPlanPeriodRef
+    skills: List['Skill']
+    actor_location_prefs_defaults: List[ActorLocationPrefSolver]
+    actor_partner_location_prefs_defaults: List[ActorPartnerLocationPrefSolver]
+    combination_locations_possibles: List[CombinationLocationsPossibleSolver]
+
+    @field_validator('skills', 'actor_location_prefs_defaults',
+                     'actor_partner_location_prefs_defaults',
+                     'combination_locations_possibles')
+    @classmethod
+    def set_to_list(cls, values):
+        return [v for v in values]
+
+
 class RequiredAvailDayGroupsCreate(BaseModel):
     num_avail_day_groups: Optional[int]
     avail_day_group: AvailDayGroup

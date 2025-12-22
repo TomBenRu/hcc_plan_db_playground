@@ -24,7 +24,7 @@ class AvailDayGroup(NodeMixin):
         self.avail_day_group_id = avail_day_group_db.id if avail_day_group_db else 0
         self.name = str(self.avail_day_group_id)
         self.avail_day_group_db = avail_day_group_db
-        self._avail_day: schemas.AvailDayShow | None = None
+        self._avail_day: schemas.AvailDayShow | schemas.AvailDaySolverMinimal | None = None
         self._avail_day_id: UUID | None = None  # Für TreeNode-Schema
         self.parent: Optional['AvailDayGroup'] = parent
         self.children: list['AvailDayGroup'] = children if children is not None else []
@@ -40,7 +40,7 @@ class AvailDayGroup(NodeMixin):
         self.weight = None
 
     @property
-    def avail_day(self) -> schemas.AvailDayShow:
+    def avail_day(self) -> schemas.AvailDayShow | schemas.AvailDaySolverMinimal:
         if self._avail_day is None:
             self._avail_day = self._get_avail_day_from_db()
         return self._avail_day

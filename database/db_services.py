@@ -2315,7 +2315,7 @@ class AvailDay:
 
     @classmethod
     @db_session
-    def get_batch(cls, avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDay]:
+    def get_batch(cls, avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDayShow]:
         """
         Lädt mehrere AvailDays in einer Batch-Abfrage.
 
@@ -2329,6 +2329,26 @@ class AvailDay:
             return {}
         avail_days_db = models.AvailDay.select(lambda ad: ad.id in avail_day_ids)
         return {ad.id: schemas.AvailDayShow.model_validate(ad) for ad in avail_days_db}
+
+    @classmethod
+    @db_session
+    def get_batch_minimal(cls, avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDaySolverMinimal]:
+        """
+        Lädt mehrere AvailDays mit minimalem Schema für Solver.
+
+        Optimierte Version von get_batch() die nur die für Solver-Constraints
+        benötigten Felder lädt. Reduziert Speicherverbrauch und Serialisierungszeit.
+
+        Args:
+            avail_day_ids: Liste der AvailDay UUIDs
+
+        Returns:
+            dict[UUID, AvailDaySolverMinimal] - avail_day_id -> AvailDaySolverMinimal
+        """
+        if not avail_day_ids:
+            return {}
+        avail_days_db = models.AvailDay.select(lambda ad: ad.id in avail_day_ids)
+        return {ad.id: schemas.AvailDaySolverMinimal.model_validate(ad) for ad in avail_days_db}
 
     @classmethod
     @db_session

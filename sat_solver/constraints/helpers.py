@@ -8,9 +8,12 @@ zu vermeiden.
 
 from database import schemas
 
+# Type-Alias für AvailDay-kompatible Schemas
+AvailDayType = schemas.AvailDayShow | schemas.AvailDaySolverMinimal
+
 
 def check_actor_location_prefs_fits_event(
-    avail_day: schemas.AvailDayShow,
+    avail_day: AvailDayType,
     location_of_work: schemas.LocationOfWork
 ) -> bool:
     """
@@ -31,8 +34,8 @@ def check_actor_location_prefs_fits_event(
 
 
 def check_time_span_avail_day_fits_event(
-    event: schemas.Event, 
-    avail_day: schemas.AvailDay, 
+    event: schemas.Event,
+    avail_day: AvailDayType,
     only_time_index: bool = True
 ) -> bool:
     """

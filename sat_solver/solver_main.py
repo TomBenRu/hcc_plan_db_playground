@@ -386,7 +386,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
                   f"in {event_group.event.location_plan_period.location_of_work.name}")
             for actor_plan_period in self._entities.actor_plan_periods.values():
                 if sum(self.Value(self._entities.shift_vars[(avd_id, event_group.event_group_id)])
-                       for avd_id in (avd.avail_day_group.id for avd in actor_plan_period.avail_days)):
+                       for avd_id in actor_plan_period.avail_day_group_ids):
                     print(f"   {actor_plan_period.person.f_name} "
                           f"works in {event_group.event.location_plan_period.location_of_work.name:}")
 
@@ -430,10 +430,9 @@ def create_vars(model: cp_model.CpModel, event_group_tree: EventGroupTree,
     entities.avail_day_group_vars = {
         avail_day_group.avail_day_group_id: model.NewBoolVar(f'')
         for avail_day_group in avail_day_group_tree.root.descendants
-        if avail_day_group.children or avail_day_group.avail_day
+        if avail_day_group.children or avail_day_group._avail_day_id
     }
 
-    # Befülle shifts_exclusive (Verfügbarkeitsmatrix)
     populate_shifts_exclusive(entities)
     
     # Erstelle shift_vars für den Solver
@@ -1682,8 +1681,9 @@ def test_plan(plan_id: UUID, cached_entities: 'Entities | None' = None) -> tuple
         avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
         cast_group_tree = get_cast_group_tree(plan.plan_period.id)
         entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
-        
-        # Befülle shifts_exclusive für Verfügbarkeitsprüfungen (z.B. fixed_cast_only_if_available)
+
+        # Preload AvailDays und befülle shifts_exclusive für Verfügbarkeitsprüfungen
+        preload_avail_days(entities)
         populate_shifts_exclusive(entities)
 
     registry = ConstraintRegistry(entities)

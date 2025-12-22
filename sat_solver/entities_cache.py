@@ -143,7 +143,7 @@ class WorkerLoadEntities(QRunnable):
                 return
 
             # Phase 5: Populate Shifts Exclusive
-            if self._check_cancelled("after_create_data_models"):
+            if self._check_cancelled("after_preload_avail_days"):
                 return
             start = time.perf_counter()
             populate_shifts_exclusive(entities)

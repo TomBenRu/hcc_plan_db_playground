@@ -12,6 +12,8 @@ Siehe HANDOVER_ortools_threading_crash_fix_december_2025 für Details.
 """
 
 import dataclasses
+import logging
+import time
 from typing import Callable, Optional, TYPE_CHECKING
 from uuid import UUID
 
@@ -24,6 +26,8 @@ from sat_solver.constraints.helpers import (
     check_time_span_avail_day_fits_event,
 )
 
+logger = logging.getLogger(__name__)
+
 # TYPE_CHECKING guard: IntVar wird nur für Type-Hints benötigt,
 # nicht zur Laufzeit. Dies verhindert den OR-Tools Import.
 if TYPE_CHECKING:
@@ -33,7 +37,7 @@ if TYPE_CHECKING:
 @dataclasses.dataclass
 class Entities:
     """Datencontainer für alle Solver-relevanten Entitäten."""
-    actor_plan_periods: dict[UUID, schemas.ActorPlanPeriodShow] = dataclasses.field(default_factory=dict)
+    actor_plan_periods: dict[UUID, schemas.ActorPlanPeriodSolver] = dataclasses.field(default_factory=dict)
     avail_day_groups: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
     avail_day_groups_with_avail_day: dict[UUID, AvailDayGroup] = dataclasses.field(default_factory=dict)
     avail_day_group_vars: dict[UUID, 'IntVar'] = dataclasses.field(default_factory=dict)
@@ -64,13 +68,11 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
     """
     entities = Entities()
 
-    plan_period = db_services.PlanPeriod.get(plan_period_id)
+    # ActorPlanPeriods laden - optimiert mit Batch-Abfrage statt N+1 Queries
+    entities.actor_plan_periods = db_services.ActorPlanPeriod.get_all_for_solver(plan_period_id)
+    if cancelled_check and cancelled_check():
+        return None
 
-    # ActorPlanPeriods laden - dies ist der langsamste Teil (viele DB-Abfragen)
-    for app in plan_period.actor_plan_periods:
-        if cancelled_check and cancelled_check():
-            return None
-        entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)  # Todo: Nur die benötigten Felder laden
     entities.event_groups = {
         event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
         if event_group.children or event_group.event
@@ -82,12 +84,12 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
 
     entities.avail_day_groups = {
         avail_day_group.avail_day_group_id: avail_day_group for avail_day_group in avail_day_group_tree.root.descendants
-        if avail_day_group.children or avail_day_group.avail_day
+        if avail_day_group.children or avail_day_group._avail_day_id
     }
     entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
                                  | entities.avail_day_groups)
     entities.avail_day_groups_with_avail_day = {
-        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
+        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave._avail_day_id
     }
 
     entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
@@ -96,7 +98,12 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
     }
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
-    
+
+    # Preload AvailDays (Batch-Laden für spätere Verwendung)
+    start = time.perf_counter()
+    preload_avail_days(entities)
+    logger.info(f"[Entities-Preload] preload_avail_days (innerhalb create_data_models): {time.perf_counter() - start:.3f}s")
+
     return entities
 
 
@@ -118,15 +125,13 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
         Gefülltes Entities-Objekt
     """
     entities = Entities()
-    
-    # Sammle ActorPlanPeriods von ALLEN PlanPeriods
-    entities.actor_plan_periods = {}
+
+    # Sammle ActorPlanPeriods von ALLEN PlanPeriods - optimiert mit Batch-Abfrage
     for pp_id in plan_period_ids:
-        plan_period = db_services.PlanPeriod.get(pp_id)
-        for app in plan_period.actor_plan_periods:
-            # ActorPlanPeriod ID ist unique, daher keine Duplikate möglich
-            entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)
-    
+        entities.actor_plan_periods.update(
+            db_services.ActorPlanPeriod.get_all_for_solver(pp_id)
+        )
+
     # Rest analog zu create_data_models() - Tree-Struktur ist bereits kombiniert
     entities.event_groups = {
         event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
@@ -139,13 +144,13 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
 
     entities.avail_day_groups = {
         avail_day_group.avail_day_group_id: avail_day_group for avail_day_group in avail_day_group_tree.root.descendants
-        if avail_day_group.children or avail_day_group.avail_day
+        if avail_day_group.children or avail_day_group._avail_day_id
     }
     entities.avail_day_groups = ({avail_day_group_tree.root.avail_day_group_id: avail_day_group_tree.root}
                                  | entities.avail_day_groups)
 
     entities.avail_day_groups_with_avail_day = {
-        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave.avail_day
+        leave.avail_day_group_id: leave for leave in avail_day_group_tree.root.leaves if leave._avail_day_id
     }
 
     entities.cast_groups = {cast_group_tree.root.cast_group_id: cast_group_tree.root} | {
@@ -154,8 +159,35 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
     }
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
-    
+
     return entities
+
+
+def preload_avail_days(entities: Entities) -> None:
+    """
+    Lädt alle AvailDays für die avail_day_groups_with_avail_day in einer Batch-Abfrage.
+
+    Dies verhindert N+1 Queries beim späteren Zugriff auf adg.avail_day.
+
+    Args:
+        entities: Entities-Objekt mit avail_day_groups_with_avail_day
+    """
+    # Sammle alle avail_day_ids
+    avail_day_ids = [
+        adg._avail_day_id for adg in entities.avail_day_groups_with_avail_day.values()
+        if adg._avail_day_id
+    ]
+
+    if not avail_day_ids:
+        return
+
+    # Batch-Laden aller AvailDays
+    avail_days = db_services.AvailDay.get_batch(avail_day_ids)
+
+    # Cache in den Tree-Nodes setzen
+    for adg in entities.avail_day_groups_with_avail_day.values():
+        if adg._avail_day_id and adg._avail_day_id in avail_days:
+            adg._avail_day = avail_days[adg._avail_day_id]
 
 
 def populate_shifts_exclusive(entities: Entities) -> None:
@@ -166,6 +198,8 @@ def populate_shifts_exclusive(entities: Entities) -> None:
     ob eine Zuweisung möglich ist (basierend auf Standort-Präferenzen und Zeitfenstern).
 
     Diese Funktion kann unabhängig vom Solver aufgerufen werden, z.B. für Plan-Validierung.
+
+    WICHTIG: preload_avail_days() sollte vorher aufgerufen werden, um N+1 Queries zu vermeiden.
 
     Args:
         entities: Entities-Objekt mit avail_day_groups_with_avail_day und event_groups_with_event

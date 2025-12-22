@@ -391,7 +391,7 @@ class PartialSolutionCallback(cp_model.CpSolverSolutionCallback):
                   f"in {event_group.event.location_plan_period.location_of_work.name}")
             for actor_plan_period in entities.actor_plan_periods.values():
                 if sum(self.Value(entities.shift_vars[(avd_id, event_group.event_group_id)])
-                       for avd_id in (avd.avail_day_group.id for avd in actor_plan_period.avail_days)):
+                       for avd_id in actor_plan_period.avail_day_group_ids):
                     print(f"   {actor_plan_period.person.f_name} "
                           f"works in {event_group.event.location_plan_period.location_of_work.name:}")
 

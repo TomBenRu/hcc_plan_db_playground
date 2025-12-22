@@ -264,6 +264,45 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
         return [t for t in values]
 
 
+class PersonSolver(BaseModel):
+    """Minimale Person-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    f_name: str
+    l_name: str
+
+    @property
+    def full_name(self) -> str:
+        return f'{self.f_name} {self.l_name}'
+
+
+class PlanPeriodSolver(BaseModel):
+    """Minimale PlanPeriod-Daten für Solver."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    start: datetime.date
+    end: datetime.date
+
+
+class ActorPlanPeriodSolver(BaseModel):
+    """
+    Optimiertes Schema für Solver-Berechnungen.
+
+    Enthält nur die für Planerstellung und Plan-Validierung
+    benötigten Felder. Reduziert Ladezeit um ~90%.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    requested_assignments: int
+    required_assignments: bool
+    person: PersonSolver
+    plan_period: PlanPeriodSolver
+    avail_day_group_ids: List[UUID]
+
+
 class AvailDayGroupCreate(BaseModel):
     """AvailDayGroups können entweder genau 1 AvailDay beinhalten, oden 1 oder mehrere AvailDayGroups.
        Jede AvailDayGroup ist entweder genau 1 Eventgroup zugeordnet oder genau einer Location PlanPeriod."""

@@ -1913,6 +1913,61 @@ class ActorPlanPeriod:
                 for a in actor_plan_periods_db]
 
     @classmethod
+    @db_session
+    def get_all_for_solver(cls, plan_period_id: UUID) -> dict[UUID, schemas.ActorPlanPeriodSolver]:
+        """
+        Lädt alle ActorPlanPeriods einer PlanPeriod mit minimalen Daten für den Solver.
+
+        Optimiert: Zwei Batch-Abfragen statt N+1 Queries.
+        Verwendet das minimale ActorPlanPeriodSolver Schema.
+
+        Args:
+            plan_period_id: UUID der PlanPeriod
+
+        Returns:
+            dict[UUID, ActorPlanPeriodSolver] - actor_plan_period_id -> Solver-Schema
+        """
+        # 1. Alle ActorPlanPeriods laden
+        actor_plan_periods_db = list(models.ActorPlanPeriod.select(
+            lambda a: a.plan_period.id == plan_period_id
+        ))
+
+        if not actor_plan_periods_db:
+            return {}
+
+        # 2. Alle avail_day_group_ids in einer Batch-Abfrage laden
+        app_ids = [app.id for app in actor_plan_periods_db]
+        avail_days_db = models.AvailDay.select(
+            lambda avd: avd.actor_plan_period.id in app_ids
+        )
+
+        # 3. Gruppiere avail_day_group_ids nach actor_plan_period_id
+        avail_day_group_ids_by_app: dict[UUID, list[UUID]] = {app_id: [] for app_id in app_ids}
+        for avd in avail_days_db:
+            avail_day_group_ids_by_app[avd.actor_plan_period.id].append(avd.avail_day_group.id)
+
+        # 4. Erstelle die Solver-Schemas
+        return {
+            app.id: schemas.ActorPlanPeriodSolver(
+                id=app.id,
+                requested_assignments=app.requested_assignments,
+                required_assignments=app.required_assignments,
+                person=schemas.PersonSolver(
+                    id=app.person.id,
+                    f_name=app.person.f_name,
+                    l_name=app.person.l_name
+                ),
+                plan_period=schemas.PlanPeriodSolver(
+                    id=app.plan_period.id,
+                    start=app.plan_period.start,
+                    end=app.plan_period.end
+                ),
+                avail_day_group_ids=avail_day_group_ids_by_app[app.id]
+            )
+            for app in actor_plan_periods_db
+        }
+
+    @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def create(cls, plan_period_id: UUID, person_id: UUID,
                actor_plan_period_id: UUID = None) -> schemas.ActorPlanPeriodShow:
@@ -2257,6 +2312,23 @@ class AvailDay:
     def get(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
         return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session
+    def get_batch(cls, avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDay]:
+        """
+        Lädt mehrere AvailDays in einer Batch-Abfrage.
+
+        Args:
+            avail_day_ids: Liste der AvailDay UUIDs
+
+        Returns:
+            dict[UUID, AvailDayShow] - avail_day_id -> AvailDayShow
+        """
+        if not avail_day_ids:
+            return {}
+        avail_days_db = models.AvailDay.select(lambda ad: ad.id in avail_day_ids)
+        return {ad.id: schemas.AvailDayShow.model_validate(ad) for ad in avail_days_db}
 
     @classmethod
     @db_session

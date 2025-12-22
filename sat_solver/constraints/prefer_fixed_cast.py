@@ -59,7 +59,6 @@ class PreferFixedCastConstraint(ConstraintBase):
             # 3. Verfügbarkeits-Prüfung (bei fixed_cast_only_if_available)
             fixed_cast_as_list = parse_and_filter_fixed_cast(cast_group, self.entities)
             if fixed_cast_as_list is None:
-                print("     ✗ Übersprungen: Event nicht besetzbar (keine verfügbaren Personen)")
                 continue
             
             # 4. Erstelle Preference-Variable basierend auf Operator-Typ

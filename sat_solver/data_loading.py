@@ -51,8 +51,7 @@ class Entities:
 
 
 def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-                       cast_group_tree: CastGroupTree, plan_period_id: UUID,
-                       cancelled_check: Optional[Callable[[], bool]] = None) -> Optional[Entities]:
+                       cast_group_tree: CastGroupTree, plan_period_id: UUID) -> Optional[Entities]:
     """
     Erstellt und füllt ein neues Entities-Objekt mit allen Solver-Daten.
 
@@ -70,8 +69,6 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
 
     # ActorPlanPeriods laden - optimiert mit Batch-Abfrage statt N+1 Queries
     entities.actor_plan_periods = db_services.ActorPlanPeriod.get_all_for_solver(plan_period_id)
-    if cancelled_check and cancelled_check():
-        return None
 
     entities.event_groups = {
         event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
@@ -100,9 +97,7 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
     # Preload AvailDays (Batch-Laden für spätere Verwendung)
-    start = time.perf_counter()
     preload_avail_days(entities)
-    logger.info(f"[Entities-Preload] preload_avail_days (innerhalb create_data_models): {time.perf_counter() - start:.3f}s")
 
     return entities
 

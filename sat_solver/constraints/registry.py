@@ -116,7 +116,6 @@ class ConstraintRegistry:
         constraint = constraint_class()
         constraint.registry = self
         self._constraints.append(constraint)
-        logger.debug(f"Constraint registriert: {constraint.name}")
         return constraint
     
     def register_instance(self, constraint: 'ConstraintBase') -> 'ConstraintBase':
@@ -165,7 +164,6 @@ class ConstraintRegistry:
                                     and obj is not ConstraintBase):
                                 self.register(obj)
                                 registered_count += 1
-                                logger.debug(f"Plan-Test-Constraint registriert: {obj.__name__}")
                         except Exception as e:
                             logger.warning(f"Fehler beim Prüfen von Klasse {member_name}: {e}")
                             
@@ -177,8 +175,6 @@ class ConstraintRegistry:
         except Exception as e:
             logger.error(f"Kritischer Fehler bei Plan-Test-Constraint-Registrierung: {e}")
             raise RuntimeError(f"Plan-Test-Constraint-Registrierung fehlgeschlagen: {e}") from e
-        
-        logger.info(f"{registered_count} Plan-Test-Constraints automatisch registriert")
 
     
     def apply_all(self) -> None:
@@ -191,23 +187,15 @@ class ConstraintRegistry:
         Raises:
             RuntimeError: Wenn ein Constraint fehlschlägt
         """
-        logger.info(f"Wende {len(self._constraints)} Constraints an...")
         
         for constraint in self._constraints:
             try:
-                logger.debug(f"Wende Constraint an: {constraint.name}")
                 constraint.apply()
-                logger.debug(
-                    f"Constraint '{constraint.name}' angewendet: "
-                    f"{len(constraint.penalty_vars)} Penalty-Variablen"
-                )
             except Exception as e:
                 logger.error(f"Fehler bei Constraint '{constraint.name}': {e}")
                 raise RuntimeError(
                     f"Constraint '{constraint.name}' fehlgeschlagen: {e}"
                 ) from e
-        
-        logger.info(f"Alle {len(self._constraints)} Constraints angewendet")
     
     def get_constraint(self, constraint_class: Type[ConstraintBase]) -> ConstraintBase | None:
         """
@@ -253,11 +241,6 @@ class ConstraintRegistry:
             if penalty_vars and weight != 0:
                 weighted_sum = weight * sum(penalty_vars)
                 total += weighted_sum
-                logger.debug(
-                    f"Constraint '{constraint.name}': "
-                    f"weight={weight}, "
-                    f"penalties={len(penalty_vars)}"
-                )
         
         return total
     
@@ -308,10 +291,6 @@ class ConstraintRegistry:
         """
         summary = self.get_penalty_summary(solver)
         
-        logger.info("=" * 60)
-        logger.info("Penalty-Zusammenfassung:")
-        logger.info("=" * 60)
-        
         total_weighted = 0
         for name, data in summary.items():
             if data["penalty_sum"] > 0:
@@ -321,10 +300,6 @@ class ConstraintRegistry:
                     f"weighted={data['weighted_sum']:.2f}"
                 )
                 total_weighted += data["weighted_sum"]
-        
-        logger.info("-" * 60)
-        logger.info(f"  GESAMT (gewichtet): {total_weighted:.2f}")
-        logger.info("=" * 60)
 
     def validate_plan(self, plan: 'schemas.PlanShow') -> tuple[list['ValidationError'], list['ValidationInfo']]:
         """
@@ -366,21 +341,6 @@ class ConstraintRegistry:
                             infos.append(result)
                         elif isinstance(result, ValidationError):
                             errors.append(result)
-                    
-                    error_count = sum(1 for r in results if isinstance(r, ValidationError))
-                    info_count = sum(1 for r in results if isinstance(r, ValidationInfo))
-                    if error_count or info_count:
-                        logger.debug(
-                            f"Constraint '{constraint.name}': {error_count} Fehler, {info_count} Hinweise"
-                        )
-        
-        if errors:
-            logger.info(f"Plan-Validierung: {len(errors)} Fehler gefunden")
-        else:
-            logger.debug("Plan-Validierung: keine Fehler gefunden")
-        
-        if infos:
-            logger.info(f"Plan-Validierung: {len(infos)} Hinweise")
         
         return errors, infos
     

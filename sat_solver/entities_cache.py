@@ -103,57 +103,38 @@ class WorkerLoadEntities(QRunnable):
                 populate_shifts_exclusive,
             )
 
-            total_start = time.perf_counter()
-
             # Phase 1: Event Group Tree
             if self._check_cancelled("before_event_group_tree"):
                 return
-            start = time.perf_counter()
             event_group_tree = get_event_group_tree(self.plan_period_id)
-            logger.info(f"[Entities-Preload] get_event_group_tree: {time.perf_counter() - start:.3f}s")
-
             # Phase 2: Avail Day Group Tree
             if self._check_cancelled("after_event_group_tree"):
                 return
-            start = time.perf_counter()
             avail_day_group_tree = get_avail_day_group_tree(self.plan_period_id)
-            logger.info(f"[Entities-Preload] get_avail_day_group_tree: {time.perf_counter() - start:.3f}s")
 
             # Phase 3: Cast Group Tree
             if self._check_cancelled("after_avail_day_group_tree"):
                 return
-            start = time.perf_counter()
             cast_group_tree = get_cast_group_tree(self.plan_period_id)
-            logger.info(f"[Entities-Preload] get_cast_group_tree: {time.perf_counter() - start:.3f}s")
 
             # Phase 4: Create Data Models (mit feinkörniger Abbruch-Prüfung)
             if self._check_cancelled("after_cast_group_tree"):
                 return
-            start = time.perf_counter()
             entities = create_data_models(
                 event_group_tree,
                 avail_day_group_tree,
                 cast_group_tree,
-                self.plan_period_id,
-                cancelled_check=self.is_cancelled
+                self.plan_period_id
             )
-            logger.info(f"[Entities-Preload] create_data_models: {time.perf_counter() - start:.3f}s")
-            if entities is None:
-                self.signals.cancelled.emit(self.plan_period_id, self.generation)
-                return
 
             # Phase 5: Populate Shifts Exclusive
             if self._check_cancelled("after_preload_avail_days"):
                 return
-            start = time.perf_counter()
             populate_shifts_exclusive(entities)
-            logger.info(f"[Entities-Preload] populate_shifts_exclusive: {time.perf_counter() - start:.3f}s")
 
             # Finale Prüfung vor Signal
             if self._check_cancelled("after_populate_shifts_exclusive"):
                 return
-
-            logger.info(f"[Entities-Preload] TOTAL: {time.perf_counter() - total_start:.3f}s")
 
             # Erfolg signalisieren
             self.signals.finished.emit(self.plan_period_id, self.generation, entities)

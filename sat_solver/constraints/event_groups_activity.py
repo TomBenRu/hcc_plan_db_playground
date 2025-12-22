@@ -10,7 +10,6 @@ from sat_solver.constraints.base import ConstraintBase, Validatable
 
 if TYPE_CHECKING:
     from database import schemas
-    from sat_solver.event_group_tree import EventGroup
 
 
 class EventGroupsActivityConstraint(ConstraintBase):

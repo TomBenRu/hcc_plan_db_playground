@@ -79,21 +79,15 @@ class AvailDayGroupTree:
     def _collect_all_nodes(self, root: AvailDayGroup) -> dict[UUID | int, AvailDayGroup]:
         """
         Sammelt alle Nodes aus einem bereits konstruierten Tree.
-        
+
         Args:
             root: Root-Node des Trees
-            
+
         Returns:
             Dictionary mit allen Nodes (avail_day_group_id -> AvailDayGroup)
         """
         nodes = {root.avail_day_group_id: root}
-        
-        def collect_recursive(node: AvailDayGroup):
-            for child in node.children:
-                nodes[child.avail_day_group_id] = child
-                collect_recursive(child)
-        
-        collect_recursive(root)
+        nodes.update({node.avail_day_group_id: node for node in root.descendants})
         return nodes
 
     def construct_root_node(self) -> AvailDayGroup:

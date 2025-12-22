@@ -67,21 +67,15 @@ class EventGroupTree:
     def _collect_all_nodes(self, root: EventGroup) -> dict[UUID | int, EventGroup]:
         """
         Sammelt alle Nodes aus einem bereits konstruierten Tree.
-        
+
         Args:
             root: Root-Node des Trees
-            
+
         Returns:
             Dictionary mit allen Nodes (event_group_id -> EventGroup)
         """
         nodes = {root.event_group_id: root}
-        
-        def collect_recursive(node: EventGroup):
-            for child in node.children:
-                nodes[child.event_group_id] = child
-                collect_recursive(child)
-        
-        collect_recursive(root)
+        nodes.update({node.event_group_id: node for node in root.descendants})
         return nodes
 
     def construct_root_node(self) -> EventGroup:

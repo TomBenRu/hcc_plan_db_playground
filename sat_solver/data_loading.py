@@ -12,7 +12,7 @@ Siehe HANDOVER_ortools_threading_crash_fix_december_2025 für Details.
 """
 
 import dataclasses
-from typing import TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 from uuid import UUID
 
 from database import db_services, schemas
@@ -47,24 +47,30 @@ class Entities:
 
 
 def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
-                       cast_group_tree: CastGroupTree, plan_period_id: UUID) -> Entities:
+                       cast_group_tree: CastGroupTree, plan_period_id: UUID,
+                       cancelled_check: Optional[Callable[[], bool]] = None) -> Optional[Entities]:
     """
     Erstellt und füllt ein neues Entities-Objekt mit allen Solver-Daten.
-    
+
     Args:
         event_group_tree: Baum der Event-Gruppen
         avail_day_group_tree: Baum der Verfügbarkeits-Tage-Gruppen
         cast_group_tree: Baum der Cast-Gruppen
         plan_period_id: ID der Planperiode
-        
+        cancelled_check: Optional - Callable die True zurückgibt wenn abgebrochen werden soll
+
     Returns:
-        Gefülltes Entities-Objekt
+        Gefülltes Entities-Objekt, oder None wenn abgebrochen
     """
     entities = Entities()
-    
+
     plan_period = db_services.PlanPeriod.get(plan_period_id)
-    entities.actor_plan_periods = {app.id: db_services.ActorPlanPeriod.get(app.id)
-                                   for app in plan_period.actor_plan_periods}
+
+    # ActorPlanPeriods laden - dies ist der langsamste Teil (viele DB-Abfragen)
+    for app in plan_period.actor_plan_periods:
+        if cancelled_check and cancelled_check():
+            return None
+        entities.actor_plan_periods[app.id] = db_services.ActorPlanPeriod.get(app.id)
     entities.event_groups = {
         event_group.event_group_id: event_group for event_group in event_group_tree.root.descendants
         if event_group.children or event_group.event
@@ -155,12 +161,12 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
 def populate_shifts_exclusive(entities: Entities) -> None:
     """
     Befüllt entities.shifts_exclusive mit Verfügbarkeitsinformationen.
-    
+
     Für jede Kombination aus AvailDayGroup und EventGroup wird geprüft,
     ob eine Zuweisung möglich ist (basierend auf Standort-Präferenzen und Zeitfenstern).
-    
+
     Diese Funktion kann unabhängig vom Solver aufgerufen werden, z.B. für Plan-Validierung.
-    
+
     Args:
         entities: Entities-Objekt mit avail_day_groups_with_avail_day und event_groups_with_event
     """

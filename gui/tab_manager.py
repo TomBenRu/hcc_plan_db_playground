@@ -5,7 +5,7 @@ Erweitert um intelligentes Tab-Caching für bessere Performance
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from uuid import UUID
 
 from PySide6.QtCore import QObject, Signal, Slot, QPoint, QTimer
@@ -650,7 +650,12 @@ class TabManager(QObject):
     def _execute_entities_preload(self, plan_period_id: UUID):
         """
         Führt das tatsächliche Laden der Entities aus (nach Debounce-Verzögerung).
+
+        Prüft ob bereits ein Worker läuft und bricht diesen ggf. ab wenn veraltet.
         """
+        from sat_solver.entities_cache import WorkerLoadEntities
+        from PySide6.QtCore import QThreadPool, Qt
+
         # Timer-Referenz entfernen
         self._entities_debounce_timers.pop(plan_period_id, None)
 
@@ -661,6 +666,22 @@ class TabManager(QObject):
         # Aktuelle Generation holen (oder 0 wenn noch keine existiert)
         generation = self._entities_generation.get(plan_period_id, 0)
 
+        # Prüfe ob bereits ein Worker läuft
+        existing_worker: WorkerLoadEntities = self._entities_workers.get(plan_period_id)
+        if existing_worker is not None:
+            # Worker läuft bereits - ist die Generation noch aktuell?
+            if existing_worker.generation == generation:
+                # Worker mit aktueller Generation läuft - nichts tun, warten lassen
+                logger.debug(f"Worker für {plan_period_id} läuft bereits mit aktueller "
+                             f"Generation {generation}, überspringe")
+                return
+            else:
+                # Worker mit veralteter Generation - abbrechen
+                logger.debug(f"Breche veralteten Worker für {plan_period_id} ab "
+                             f"(Generation {existing_worker.generation} vs {generation})")
+                existing_worker.cancel()
+                # Worker-Referenz wird in _on_entities_cancelled gelöscht
+
         # Markiere als ladend
         self._entities_loading.add(plan_period_id)
 
@@ -668,9 +689,6 @@ class TabManager(QObject):
         self.status_message.emit(self.tr("Preparing validation..."))
 
         # Worker starten MIT Generation
-        from sat_solver.entities_cache import WorkerLoadEntities
-        from PySide6.QtCore import QThreadPool, Qt
-
         worker = WorkerLoadEntities(plan_period_id, generation)
         worker.signals.finished.connect(
             self._on_entities_loaded,
@@ -678,6 +696,11 @@ class TabManager(QObject):
         )
         worker.signals.error.connect(
             self._on_entities_load_error,
+            Qt.ConnectionType.QueuedConnection
+        )
+        # Abbruch-Signal verbinden
+        worker.signals.cancelled.connect(
+            self._on_entities_cancelled,
             Qt.ConnectionType.QueuedConnection
         )
 
@@ -716,9 +739,32 @@ class TabManager(QObject):
         self._entities_loading.discard(plan_period_id)
 
         # Fehler loggen, aber nicht dem User anzeigen (Fallback funktioniert)
-        import logging
-        logger = logging.getLogger(__name__)
         logger.warning(f"Entities-Preload fehlgeschlagen für {plan_period_id}: {error_message}")
+
+    @Slot(UUID, int)
+    def _on_entities_cancelled(self, plan_period_id: UUID, generation: int):
+        """
+        Callback wenn Worker abgebrochen wurde.
+
+        Räumt Worker-Referenz auf und startet ggf. neuen Worker
+        falls eine neuere Generation angefordert wurde.
+        """
+        # Worker-Referenz nur löschen wenn es der gleiche Worker ist
+        existing_worker = self._entities_workers.get(plan_period_id)
+        if existing_worker is not None and existing_worker.generation == generation:
+            self._entities_workers.pop(plan_period_id, None)
+
+        self._entities_loading.discard(plan_period_id)
+
+        # Prüfe ob eine neuere Generation angefordert wurde
+        current_gen = self._entities_generation.get(plan_period_id, 0)
+        if current_gen > generation and plan_period_id not in self._entities_cache:
+            # Es wurde invalidiert während der Worker lief - neu starten
+            # Aber nur wenn kein neuer Worker bereits läuft
+            if plan_period_id not in self._entities_workers:
+                logger.debug(f"Starte neuen Worker nach Abbruch für {plan_period_id} "
+                             f"(Generation {current_gen})")
+                self._start_entities_preload(plan_period_id)
 
     def get_cached_entities(self, plan_period_id: UUID):
         """
@@ -738,7 +784,8 @@ class TabManager(QObject):
         Invalidiert den Entities-Cache.
 
         Erhöht die Generation, sodass laufende Worker als veraltet erkannt werden
-        und ihre Ergebnisse verworfen werden. Stoppt auch laufende Debounce-Timer.
+        und ihre Ergebnisse verworfen werden. Stoppt auch laufende Debounce-Timer
+        und bricht laufende Worker ab.
 
         Args:
             plan_period_id: Wenn angegeben, nur diese PlanPeriod invalidieren.
@@ -749,6 +796,13 @@ class TabManager(QObject):
             current_gen = self._entities_generation.get(plan_period_id, 0)
             self._entities_generation[plan_period_id] = current_gen + 1
 
+            # Laufenden Worker abbrechen
+            existing_worker = self._entities_workers.get(plan_period_id)
+            if existing_worker is not None:
+                logger.debug(f"Breche Worker bei Invalidierung ab für {plan_period_id}")
+                existing_worker.cancel()
+                # Worker-Referenz bleibt bis _on_entities_cancelled aufräumt
+
             # Laufenden Debounce-Timer stoppen
             if plan_period_id in self._entities_debounce_timers:
                 self._entities_debounce_timers[plan_period_id].stop()
@@ -758,6 +812,11 @@ class TabManager(QObject):
             self._entities_cache.pop(plan_period_id, None)
             self._entities_loading.discard(plan_period_id)
         else:
+            # Alle laufenden Worker abbrechen
+            for worker in self._entities_workers.values():
+                worker.cancel()
+            # Worker-Referenzen werden in _on_entities_cancelled aufgeräumt
+
             # Alle Debounce-Timer stoppen
             for timer in self._entities_debounce_timers.values():
                 timer.stop()

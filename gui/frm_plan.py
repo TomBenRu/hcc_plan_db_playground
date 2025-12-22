@@ -545,7 +545,7 @@ class AppointmentField(QWidget):
         # Notiz-Icon Setup
         self._setup_note_icon()
 
-        self.execution_timer_post_cast_change = DelayedTimerSingleShot(500, self._handle_post_cast_change_actions)
+        self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 

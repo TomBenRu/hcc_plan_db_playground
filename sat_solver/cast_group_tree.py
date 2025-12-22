@@ -66,21 +66,15 @@ class CastGroupTree:
     def _collect_all_nodes(self, root: CastGroup) -> dict[UUID | int, CastGroup]:
         """
         Sammelt alle Nodes aus einem bereits konstruierten Tree.
-        
+
         Args:
             root: Root-Node des Trees
-            
+
         Returns:
             Dictionary mit allen Nodes (cast_group_id -> CastGroup)
         """
         nodes = {root.cast_group_id: root}
-        
-        def collect_recursive(node: CastGroup):
-            for child in node.children:
-                nodes[child.cast_group_id] = child
-                collect_recursive(child)
-        
-        collect_recursive(root)
+        nodes.update({node.cast_group_id: node for node in root.descendants})
         return nodes
 
     def construct_cast_group_tree(self):

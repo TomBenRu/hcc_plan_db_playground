@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 
 from anytree import NodeMixin, RenderTree, ContRoundStyle
@@ -7,8 +7,15 @@ from database import schemas, db_services
 
 
 class AvailDayGroup(NodeMixin):
+    """
+    Tree-Node für AvailDayGroup.
+
+    Kann sowohl mit dem vollständigen AvailDayGroupShow-Schema als auch
+    mit dem minimalen AvailDayGroupTreeNode-Schema initialisiert werden.
+    """
+
     def __init__(self,
-                 avail_day_group_db: schemas.AvailDayGroupShow | None,
+                 avail_day_group_db: Union[schemas.AvailDayGroupShow, schemas.AvailDayGroupTreeNode, None],
                  children: list['AvailDayGroup'] = None,
                  parent: Optional['AvailDayGroup'] = None,
                  group_is_actor_plan_period_master_group: bool = False):
@@ -18,11 +25,16 @@ class AvailDayGroup(NodeMixin):
         self.name = str(self.avail_day_group_id)
         self.avail_day_group_db = avail_day_group_db
         self._avail_day: schemas.AvailDayShow | None = None
+        self._avail_day_id: UUID | None = None  # Für TreeNode-Schema
         self.parent: Optional['AvailDayGroup'] = parent
         self.children: list['AvailDayGroup'] = children if children is not None else []
         self.weight = avail_day_group_db.variation_weight if avail_day_group_db else None
         self.nr_of_active_children = avail_day_group_db.nr_avail_day_groups if avail_day_group_db else None
         self._required_avail_day_groups: schemas.RequiredAvailDayGroups | None = None
+
+        # Für TreeNode-Schema: avail_day_id speichern
+        if avail_day_group_db and isinstance(avail_day_group_db, schemas.AvailDayGroupTreeNode):
+            self._avail_day_id = avail_day_group_db.avail_day_id
 
     def _post_detach(self, parent):
         self.weight = None
@@ -35,7 +47,7 @@ class AvailDayGroup(NodeMixin):
 
     @property
     def required_avail_day_groups(self) -> schemas.RequiredAvailDayGroups | None:
-        if not self.avail_day_group_db:
+        if not self.avail_day_group_id:
             return None
         if self._required_avail_day_groups is None:
             self._required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(
@@ -43,8 +55,13 @@ class AvailDayGroup(NodeMixin):
         return self._required_avail_day_groups
 
     def _get_avail_day_from_db(self):
-        return (db_services.AvailDay.get(self.avail_day_group_db.avail_day.id)
-                if (self.avail_day_group_db and self.avail_day_group_db.avail_day) else None)
+        # Für TreeNode-Schema: nutze gespeicherte avail_day_id
+        if self._avail_day_id:
+            return db_services.AvailDay.get(self._avail_day_id)
+        # Für AvailDayGroupShow-Schema: nutze verschachteltes avail_day Objekt
+        if self.avail_day_group_db and hasattr(self.avail_day_group_db, 'avail_day') and self.avail_day_group_db.avail_day:
+            return db_services.AvailDay.get(self.avail_day_group_db.avail_day.id)
+        return None
 
     def __repr__(self):
         date = self.avail_day.date.strftime('%d.%m.%y') if self.avail_day else None
@@ -59,7 +76,7 @@ class AvailDayGroupTree:
                  from_root: AvailDayGroup = None):
         """
         Initialisiert einen AvailDayGroupTree.
-        
+
         Args:
             actor_plan_period_ids: Liste von ActorPlanPeriod UUIDs für Single-Period Tree
             from_root: Bereits konstruierter Root-Node für Combined Multi-Period Tree
@@ -70,11 +87,10 @@ class AvailDayGroupTree:
             self.nodes = self._collect_all_nodes(from_root)
             self.actor_plan_period_ids = []  # Leer bei Combined Tree
         else:
-            # Single-Period Mode: Bestehende Logik
+            # Single-Period Mode: Nutze Batch-Loading für bessere Performance
             self.actor_plan_period_ids = actor_plan_period_ids
             self.nodes: dict[UUID | int, AvailDayGroup] = {}
-            self.root: AvailDayGroup = self.construct_root_node()
-            self.construct_event_group_tree()
+            self._construct_with_batch_loading()
 
     def _collect_all_nodes(self, root: AvailDayGroup) -> dict[UUID | int, AvailDayGroup]:
         """
@@ -90,35 +106,59 @@ class AvailDayGroupTree:
         nodes.update({node.avail_day_group_id: node for node in root.descendants})
         return nodes
 
-    def construct_root_node(self) -> AvailDayGroup:
+    def _construct_with_batch_loading(self):
+        """
+        Konstruiert den Tree mit Batch-Loading für optimale Performance.
+
+        Lädt alle AvailDayGroups pro ActorPlanPeriod in einem Batch,
+        anstatt einzelne DB-Aufrufe pro Node zu machen.
+        """
+        # Batch-Load aller AvailDayGroups für alle ActorPlanPeriods
+        all_tree_nodes: dict[UUID, schemas.AvailDayGroupTreeNode] = {}
+        master_ids: list[UUID] = []
+
+        for app_id in self.actor_plan_period_ids:
+            batch = db_services.AvailDayGroup.get_all_for_tree(app_id)
+            all_tree_nodes.update(batch)
+            # Der Master ist der mit actor_plan_period (erster in der Hierarchie)
+            # Wir finden ihn als den Node ohne Parent in diesem Batch
+            for node_id, node in batch.items():
+                # Master hat keine child_ids die auf andere Nodes in diesem Batch zeigen als Parent
+                # Einfacher: Der Master ist der erste Node der geladen wurde
+                if node_id not in [child_id for n in batch.values() for child_id in n.child_ids]:
+                    master_ids.append(node_id)
+                    break
+
+        # Erstelle Tree-Nodes
+        node_map: dict[UUID, AvailDayGroup] = {}
+
+        def create_node_recursive(node_id: UUID, parent: AvailDayGroup = None) -> AvailDayGroup:
+            tree_node = all_tree_nodes[node_id]
+            node = AvailDayGroup(tree_node, None, parent)
+            node_map[node_id] = node
+            self.nodes[node_id] = node
+
+            # Rekursiv für alle Kinder
+            for child_id in tree_node.child_ids:
+                create_node_recursive(child_id, node)
+
+            return node
+
+        # Konstruiere Root basierend auf Anzahl der ActorPlanPeriods
         if len(self.actor_plan_period_ids) == 1:
-            avail_day_group_db = (db_services.AvailDayGroup
-                                  .get_master_from__actor_plan_period(self.actor_plan_period_ids[0]))
-            child_groups = [db_services.AvailDayGroup.get(adg.id) for adg in avail_day_group_db.avail_day_groups]
-            root = AvailDayGroup(avail_day_group_db,
-                                 [AvailDayGroup(child) for child in child_groups],
-                                 None,
-                                 True)
+            # Einzelner ActorPlanPeriod: Master direkt als Root
+            master_id = master_ids[0]
+            self.root = create_node_recursive(master_id, None)
+            self.root.group_is_actor_plan_period_master_group = True
         else:
-            child_groups = [db_services.AvailDayGroup.get_master_from__actor_plan_period(app_id)
-                            for app_id in self.actor_plan_period_ids]
-            root = AvailDayGroup(None, [AvailDayGroup(child) for child in child_groups])
-        self.nodes[0] = root
-        self.nodes.update({n.avail_day_group_id: n for n in root.children})
+            # Multiple ActorPlanPeriods: Container-Root erstellen
+            master_nodes = [create_node_recursive(mid, None) for mid in master_ids]
+            self.root = AvailDayGroup(None, master_nodes)
+            # Parent für alle Master-Nodes setzen
+            for master_node in master_nodes:
+                master_node.parent = self.root
 
-        return root
-
-    def construct_event_group_tree(self):
-
-        def construct_recursive(parent: AvailDayGroup):
-            for avail_day_group_db in parent.avail_day_group_db.avail_day_groups:
-                adg = db_services.AvailDayGroup.get(avail_day_group_db.id)
-                child = AvailDayGroup(adg, None, parent)
-                self.nodes[child.avail_day_group_id] = child
-                construct_recursive(child)
-
-        for child in self.root.children:
-            construct_recursive(child)
+        self.nodes[0] = self.root
 
 
 def get_avail_day_group_tree(plan_period_id: UUID) -> AvailDayGroupTree:

@@ -298,6 +298,22 @@ class AvailDayGroupShow(AvailDayGroup):
         return [t for t in values]
 
 
+class AvailDayGroupTreeNode(BaseModel):
+    """
+    Minimales Schema für Tree-Konstruktion.
+
+    Enthält nur die für den AvailDayGroupTree benötigten Felder,
+    um die Ladezeit zu minimieren.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    variation_weight: int = 1
+    nr_avail_day_groups: Optional[int] = None
+    child_ids: List[UUID] = []  # Nur IDs der Kinder, nicht vollständige Objekte
+    avail_day_id: Optional[UUID] = None  # Nur ID, nicht vollständiges AvailDay
+
+
 class RequiredAvailDayGroupsCreate(BaseModel):
     num_avail_day_groups: Optional[int]
     avail_day_group: AvailDayGroup

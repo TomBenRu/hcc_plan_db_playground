@@ -2089,6 +2089,45 @@ class AvailDayGroup:
         avail_day_group_db = models.AvailDayGroup.get_for_update(id=avail_day_group_id)
         return [schemas.AvailDayGroupShow.model_validate(adg) for adg in avail_day_group_db.avail_day_groups]
 
+    @classmethod
+    @db_session
+    def get_all_for_tree(cls, actor_plan_period_id: UUID) -> dict[UUID, schemas.AvailDayGroupTreeNode]:
+        """
+        Lädt alle AvailDayGroups für eine ActorPlanPeriod in einem Batch.
+
+        Optimiert für Tree-Konstruktion: Lädt nur die minimal benötigten Felder
+        und vermeidet N+1 Queries durch rekursives Sammeln in einer DB-Session.
+
+        Args:
+            actor_plan_period_id: ID der ActorPlanPeriod
+
+        Returns:
+            Dictionary mit allen AvailDayGroupTreeNode (id -> TreeNode)
+        """
+        result: dict[UUID, schemas.AvailDayGroupTreeNode] = {}
+
+        def collect_recursive(adg_db):
+            """Sammelt rekursiv alle AvailDayGroups."""
+            # Extrahiere nur die benötigten Felder
+            node = schemas.AvailDayGroupTreeNode(
+                id=adg_db.id,
+                variation_weight=adg_db.variation_weight or 1,
+                nr_avail_day_groups=adg_db.nr_avail_day_groups,
+                child_ids=[child.id for child in adg_db.avail_day_groups],
+                avail_day_id=adg_db.avail_day.id if adg_db.avail_day else None
+            )
+            result[adg_db.id] = node
+
+            # Rekursiv für alle Kinder
+            for child_db in adg_db.avail_day_groups:
+                collect_recursive(child_db)
+
+        # Starte beim Master-AvailDayGroup
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        master_adg_db = actor_plan_period_db.avail_day_group
+        collect_recursive(master_adg_db)
+
+        return result
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

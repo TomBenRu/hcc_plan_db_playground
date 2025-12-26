@@ -2,7 +2,7 @@ import datetime
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Literal
+from typing import Literal, Callable
 from uuid import UUID
 
 from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication, QLocale
@@ -14,7 +14,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTabl
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
-from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, plan_period_commands
+from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, \
+    plan_period_commands, event_commands
 from configuration.general_settings import general_settings_handler
 from database import schemas, db_services
 from gui import widget_styles
@@ -545,7 +546,7 @@ class AppointmentField(QWidget):
         # Notiz-Icon Setup
         self._setup_note_icon()
 
-        self.execution_timer_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
+        self.execution_timer_plan_post_cast_change = DelayedTimerSingleShot(200, self._handle_post_cast_change_actions)
         self.batch_command: BatchCommand | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -648,7 +649,7 @@ class AppointmentField(QWidget):
             if self.plan_widget.permanent_plan_check:
                 self._start_plan_check()
             else:
-                self.execution_timer_post_cast_change.start_timer()
+                self.execution_timer_plan_post_cast_change.start_timer()
 
     def _handle_post_cast_change_actions(self):
         signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.plan_widget.plan.plan_period.id)
@@ -712,7 +713,7 @@ class AppointmentField(QWidget):
     
     def _on_validation_accepted(self):
         """Wird aufgerufen wenn der User die Änderungen akzeptiert."""
-        self.execution_timer_post_cast_change.start_timer()
+        self.execution_timer_plan_post_cast_change.start_timer()
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         context_menu = QMenu(self)
@@ -735,6 +736,7 @@ class AppointmentField(QWidget):
 
     def _move_appointment(self):
         dlg = DlgMoveAppointment(self, self.appointment, self.plan_widget.plan.plan_period)
+
         if dlg.exec():
             if [a for a in self.plan_widget.plan.appointments
                 if a.event.date == dlg.new_date
@@ -747,76 +749,131 @@ class AppointmentField(QWidget):
                                          self.appointment.event.location_plan_period.location_of_work.name_an_city))
                 return
 
-            # Alte Werte für Signal-Emission speichern
-            old_date = self.appointment.event.date
-            old_time_index = self.appointment.event.time_of_day.time_of_day_enum.time_index
-            location_plan_period_id = self.appointment.event.location_plan_period.id
+            def handle_appointment_move(
+                    appointments_in_plan: list[schemas.Appointment],
+                    appointment: schemas.Appointment,
+                    new_date: datetime.date,
+                    new_time_of_day: schemas.TimeOfDay,
+                    batch_command_redo_undo_callback: Callable[[signal_handling.DataAppointmentMoved], None],
+                    controller: command_base_classes.ContrExecUndoRedo
+            ) -> Literal['move', 'flip', 'move_and_delete'] | None:
+                """
+                Verschiebt das Appointment.
+                Aktionen bei Verschiebung eines Appointments:
+                * in jedem Fall werden die AvailDays aus dem Appointment entfernt.
+                - Verschiebung auf einen Tag, auf dem kein anderes Event ist:
+                  Das Ausgangs-Event wird verschoben und bleibt dem Appointment zugeordnet.
+                - Verschiebung auf einen Tag, auf dem ein anderes Event der gleichen EventGroup ist:
+                  Kein Event wird verändert. Dem Appointment wird das neue Event zugeordnet.
+                - Verschiebung auf einen Tag, auf dem ein anderes Event einer anderen EventGroup ist:
+                  Das Ausgangs-Event verschoben und bleibt dem Appointment zugeordnet und das Ziel-Event wird gelöscht.
+                """
 
-            existing_event = db_services.Event.get_from__location_pp_date_time_index(
-                self.appointment.event.location_plan_period.id, dlg.new_date,
-                dlg.new_time_of_day.time_of_day_enum.time_index)
-            if existing_event:
-                QMessageBox.information(self, self.tr('Move appointment'),
-                                        self.tr('On %s (%s)\nan appointment for %s already exists.\n'
-                                                'This will be used for the change.\n'
-                                                'You may need to adjust the time of day variant.') % (
-                                            date_to_string(dlg.new_date),
-                                            dlg.new_time_of_day.time_of_day_enum.name,
-                                            self.appointment.event.location_plan_period.location_of_work.name_an_city))
-                command1 = appointment_commands.UpdateEvent(self.appointment, existing_event.id)
-                moved_event_id = existing_event.id
-            else:
-                command1 = appointment_commands.UpdateCurrEvent(self.appointment, dlg.new_date, dlg.new_time_of_day.id)
-                moved_event_id = self.appointment.event.id
+                old_date = appointment.event.date
+                old_time_index = appointment.event.time_of_day.time_of_day_enum.time_index
+                old_grand_parent_event_group_id = db_services.EventGroup.get_grand_parent_event_group_id_from_event(
+                    appointment.event.id)
+                location_plan_period_id = appointment.event.location_plan_period.id
+                new_time_index = new_time_of_day.time_of_day_enum.time_index
+                target_event = db_services.Event.get_from__location_pp_date_time_index(
+                    location_plan_period_id, new_date, new_time_index)
+                target_event_id = target_event.id if target_event else None
+                target_grand_parent_event_group_id = db_services.EventGroup.get_grand_parent_event_group_id_from_event(
+                    target_event_id) if target_event_id else None
 
-            command2 = plan_commands.UpdateLocationColumns(self.plan_widget.plan.id, {})
-            command3 = appointment_commands.UpdateAvailDays(self.appointment.id, [])
+                # Prüfe ob Appointment an Zielort bereits existiert
+                if [a for a in appointments_in_plan
+                    if a.event.date == new_date
+                       and a.event.time_of_day.time_of_day_enum.time_index == new_time_of_day.time_of_day_enum.time_index
+                       and a.event.location_plan_period.id == appointment.event.location_plan_period.id]:
+                    return None
 
-            event_location = self.appointment.event.location_plan_period.location_of_work.name_an_city
-            old_date_str = date_to_string(self.appointment.event.date)
-            new_date_str = date_to_string(dlg.new_date)
-            old_time = self.appointment.event.time_of_day.name
-            new_time = dlg.new_time_of_day.name
-            description = (f"Termin verschieben für\n"
-                           f"{event_location}\n"
-                           f"{old_date_str} ({old_time}) → {new_date_str} ({new_time})")
-            batch_command = BatchCommand(self, [command1, command2, command3], description=description)
+                batch_command = BatchCommand(self, [])
+                command_remove_avail_days = appointment_commands.UpdateAvailDays(appointment.id, [])
+                command_remove_guests = appointment_commands.UpdateGuests(appointment.id, [])
+                # location_columns leeren, damit sie beim Refresh neu generiert werden
+                command_reset_location_columns = plan_commands.UpdateLocationColumns(
+                    self.plan_widget.plan.id, {})
+                batch_command.commands.extend([command_remove_avail_days, command_remove_guests,
+                                               command_reset_location_columns])
 
-            plan_period_id = self.appointment.event.location_plan_period.plan_period.id
-            new_date = dlg.new_date
-            new_time_index = dlg.new_time_of_day.time_of_day_enum.time_index
+                data_undo = signal_handling.DataAppointmentMoved(
+                    undo=True,
+                    event_id=appointment.event.id,
+                    old_date=old_date,
+                    new_date=new_date,
+                    old_time_index=old_time_index,
+                    new_time_index=new_time_index,
+                    location_plan_period_id=location_plan_period_id
+                )
+                data_redo = signal_handling.DataAppointmentMoved(
+                    undo=False,
+                    event_id=appointment.event.id,
+                    old_date=old_date,
+                    new_date=new_date,
+                    old_time_index=old_time_index,
+                    new_time_index=new_time_index,
+                    location_plan_period_id=location_plan_period_id
+                )
 
-            def emit_ui_update_signals(from_date: datetime.date, to_date: datetime.date,
-                                       from_time_index: int, to_time_index: int):
-                signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period_id)
-                signal_handling.handler_location_plan_period.appointment_moved(
-                    signal_handling.DataAppointmentMoved(
-                        event_id=moved_event_id,
-                        old_date=from_date,
-                        new_date=to_date,
-                        old_time_index=from_time_index,
-                        new_time_index=to_time_index,
-                        location_plan_period_id=location_plan_period_id
-                    )
+                if not target_event_id:
+                    # Ziel-Event existiert nicht - verschiebe Ausgangs-Event
+                    event_move_command = event_commands.UpdateDateTimeOfDay(appointment.event, new_date, new_time_of_day.id)
+                    batch_command.commands.append(event_move_command)
+                    batch_command.on_undo_callback = lambda: batch_command_redo_undo_callback(
+                        data_undo.set_action_type('move'))
+                    batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
+                        data_redo.set_action_type('move'))
+
+                else:
+                    if target_grand_parent_event_group_id == old_grand_parent_event_group_id:
+                        # Ziel-Event ist Teil derselben EventGroup - ändere Appointment-Zuordnung
+                        appointment_flip_event_command = appointment_commands.UpdateEvent(appointment, target_event_id)
+                        batch_command.commands.append(appointment_flip_event_command)
+                        batch_command.on_undo_callback = lambda: batch_command_redo_undo_callback(
+                            data_undo.set_action_type('flip'))
+                        batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
+                            data_redo.set_action_type('flip'))
+                    else:
+                        # Ziel-Event ist Teil einer anderen EventGroup, da Ziel-Event nicht teil eines Appointments ist
+                        # - lösche Ziel-Event und verschiebe Ausgangs-Event
+                        event_delete_command = event_commands.Delete(target_event_id)
+                        event_move_command = event_commands.UpdateDateTimeOfDay(appointment.event, new_date, new_time_of_day.id)
+                        batch_command.commands.extend([event_delete_command, event_move_command])
+                        batch_command.on_undo_callback = lambda: batch_command_redo_undo_callback(
+                            data_undo.set_action_type('move_and_delete'))
+                        batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
+                            data_redo.set_action_type('move_and_delete'))
+
+                controller.execute(batch_command)
+                batch_command.on_redo_callback()
+
+                return data_redo.action_type
+
+            def batch_command_redo_undo_callback(data: signal_handling.DataAppointmentMoved):
+                signal_handling.handler_plan_tabs.invalidate_entities_cache(self.appointment.event.location_plan_period.plan_period.id)
+                signal_handling.handler_location_plan_period.appointment_moved(data)
+                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                    signal_handling.DataDate(self.appointment.event.location_plan_period.plan_period.id, data.old_date)
                 )
                 signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataDate(plan_period_id, from_date)
+                    signal_handling.DataDate(self.appointment.event.location_plan_period.plan_period.id, data.new_date)
                 )
-                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataDate(plan_period_id, to_date)
-                )
-                self.execution_timer_post_cast_change.finished.connect(
-                    lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(plan_period_id),
+                self.execution_timer_plan_post_cast_change.finished.connect(
+                    lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(self.appointment.event.location_plan_period.plan_period.id),
                     Qt.ConnectionType.SingleShotConnection)
-                self.execution_timer_post_cast_change.start_timer()
+                self.execution_timer_plan_post_cast_change.start_timer()
+                # todo: Methode frm_location_plan_period.ButtonEvent.on_appointment_moved() anpassen.
+                # todo: Grundsätzlich data in signal_handling.handler_location_plan_period.appointment_moved()
+                #       und anderen Methoden das Update der Config-Buttons betreffend überdenken
+                #       (besser: location_plan_period_id bzw. actor_plan_period_id als Parameter?)
 
-            batch_command.on_undo_callback = lambda: emit_ui_update_signals(
-                new_date, old_date, new_time_index, old_time_index)
-            batch_command.on_redo_callback = lambda: emit_ui_update_signals(
-                old_date, new_date, old_time_index, new_time_index)
-
-            self.plan_widget.controller.execute(batch_command)
-            emit_ui_update_signals(old_date, new_date, old_time_index, new_time_index)
+            handle_appointment_move(self.plan_widget.plan.appointments,
+                                    self.appointment,
+                                    dlg.new_date,
+                                    dlg.new_time_of_day,
+                                    batch_command_redo_undo_callback,
+                                    self.plan_widget.controller)
 
     def _edit_notes(self):
         dlg = DlgAppointmentNotes(self, self.appointment)

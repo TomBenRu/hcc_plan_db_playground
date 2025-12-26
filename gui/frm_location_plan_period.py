@@ -327,42 +327,59 @@ class ButtonEvent(QPushButton):
     @Slot(object)
     def on_appointment_moved(self, data: signal_handling.DataAppointmentMoved):
         """Reagiert auf verschobene Appointments aus der Plan-Ansicht."""
-        # Prüfen ob dieses ButtonEvent betroffen ist
         if data.location_plan_period_id != self.location_plan_period.id:
             return
-
-        # Fall 1: Dieses ButtonEvent hatte das Event, das verschoben wurde
-        # -> Button muss deaktiviert werden (Event ist nicht mehr an diesem Datum/Zeit)
-        if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
-            # Event wurde von diesem Button wegverschoben
-            self.setChecked(False)
-            if self.action_num_employees:
-                self.context_menu.removeAction(self.action_num_employees)
-                self.action_num_employees = None
-            self.set_tooltip()
+        if self.date != data.old_date and self.date != data.new_date:
             return
-
-        # Fall 2: Das Event wurde zu diesem ButtonEvent verschoben
-        # -> Button muss aktiviert werden (nur wenn er nicht bereits aktiviert ist)
-        if data.new_date == self.date and data.new_time_index == self.time_of_day.time_of_day_enum.time_index:
-            # Reload um das neue Event zu erhalten
-            self.reload_location_plan_period()
-            new_event = self.get_curr_event(state='unchecked')
-            if new_event and new_event.id == data.event_id:
-                # Event wurde zu diesem Button verschoben
-                # Nur aktivieren wenn der Button noch nicht aktiviert ist
-                if not self.isChecked():
+        if (self.time_of_day.time_of_day_enum.time_index != data.old_time_index
+                and self.time_of_day.time_of_day_enum.time_index != data.new_time_index):
+            return
+        if data.undo:
+            if data.action_type == 'move':
+                if data.new_date == self.date:
+                    self.setChecked(False)
+                    self.context_menu.removeAction(self.action_num_employees)
+                else:
                     self.setChecked(True)
-                    self.time_of_day = new_event.time_of_day
+                    self.create_actions_times_of_day()
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.add_spin_box_num_employees()
+                self.set_stylesheet()
+            elif data.action_type == 'move_and_delete':
+                if data.old_date == self.date:
+                    self.setChecked(True)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
                     self.add_spin_box_num_employees()
                 else:
-                    # Button ist bereits aktiviert, nur time_of_day und Tooltip aktualisieren
-                    self.time_of_day = new_event.time_of_day
+                    self.setChecked(False)
+                    self.context_menu.removeAction(self.action_num_employees)
+                self.set_stylesheet()
+            elif data.action_type == 'flip':
+                # Keine Änderungen erforderlich
+                pass
+        else:
+            if data.action_type == 'move':
+                if data.old_date == self.date:
+                    self.setChecked(False)
+                    self.context_menu.removeAction(self.action_num_employees)
+                else:
+                    self.setChecked(True)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.set_tooltip()
+                    self.add_spin_box_num_employees()
+                self.set_stylesheet()
+            elif data.action_type == 'move_and_delete':
+                if data.old_date == self.date:
+                    self.setChecked(False)
+                    self.context_menu.removeAction(self.action_num_employees)
+                else:
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.context_menu.addAction(self.action_num_employees)
+                    self.add_spin_box_num_employees()
+            elif data.action_type == 'flip':
+                # Keine Änderungen erforderlich
+                pass
 
     @Slot()
     def button_clicked(self):

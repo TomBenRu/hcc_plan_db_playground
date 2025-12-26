@@ -1470,8 +1470,13 @@ class EventGroup:
     @db_session
     def get_child_groups_from__parent_group(cls, event_group_id) -> list[schemas.EventGroupShow]:
         event_group_db = models.EventGroup.get_for_update(id=event_group_id)
-
         return [schemas.EventGroupShow.model_validate(e) for e in event_group_db.event_groups]
+
+    @classmethod
+    @db_session
+    def get_grand_parent_event_group_id_from_event(cls, event_id: UUID) -> UUID | None:
+        event_db = models.Event.get_for_update(id=event_id)
+        return event_db.event_group.event_group.id if event_db.event_group.event_group else None
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

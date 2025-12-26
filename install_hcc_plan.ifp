@@ -37,7 +37,6 @@
     </InstallationFiles>
     <Languages>
       <Language>Deutsch</Language>
-      <Language>English</Language>
     </Languages>
     <Variables/>
     <Commands/>
@@ -77,7 +76,7 @@
     <Program executableFilePath="" isLaunchEnabled="false" isTerminationEnabled="false"/>
   </VisualUpdateConfiguration>
   <BuildConfiguration>
-    <SetupFilePath>C:\Users\tombe\OneDrive\Desktop\hcc_plan_installer.exe</SetupFilePath>
+    <SetupFilePath>C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\hcc_plan_installer.exe</SetupFilePath>
     <SetupIconPath>C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico</SetupIconPath>
     <UninstallerIconPath>C:\Users\tombe\PycharmProjects\hcc_plan_db_playground\output\hcc_plan\_internal\favicon.ico</UninstallerIconPath>
     <Compression method="1" level="2"/>

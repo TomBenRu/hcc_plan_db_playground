@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Literal, Self
 from uuid import UUID
 
 from PySide6.QtCore import Signal, QObject
@@ -56,6 +57,16 @@ class DataAppointmentMoved:
     old_time_index: int
     new_time_index: int
     location_plan_period_id: UUID
+    action_type: Literal['move', 'flip', 'move_and_delete'] | None = None
+    undo: bool = False
+
+    def set_action_type(self, action_type: Literal['move', 'flip', 'move_and_delete']) -> Self:
+        self.action_type = action_type
+        return self
+
+    def set_undo(self, undo: bool) -> Self:
+        self.undo = undo
+        return self
 
 
 class HandlerActorPlanPeriod(QObject):

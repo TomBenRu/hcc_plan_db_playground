@@ -219,13 +219,13 @@ class LocationPlanPeriodData:
         )
 
         signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-            signal_handling.DataDate(self.location_plan_period.plan_period.id, date)
+            signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=date)
         )
         signal_handling.handler_location_plan_period.reset_styling_skills_configs(
-            signal_handling.DataDate(self.location_plan_period.plan_period.id, date)
+            signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=date)
         )
         signal_handling.handler_location_plan_period.reset_styling_notes_configs(
-            signal_handling.DataDate(self.location_plan_period.plan_period.id, date)
+            signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=date)
         )
 
     def _send_event_changes_to_plans(self, event: schemas.EventShow, mode: Literal['added', 'deleted'],

@@ -37,10 +37,35 @@ class DataGroupMode:
     location_pp__actor_pp_id: UUID | None = None  # location_plan_period_id or actor_plan_period_id
 
 
+# @dataclass
+# class DataDate:
+#     plan_period_id: UUID | None = None
+#     date: datetime.date | None = None
+
+
 @dataclass
-class DataDate:
+class DataLocationPlanPeriodDate:
+    """Optimierte Dataclass für LocationPlanPeriod-spezifische Signale.
+    Ermöglicht direkten Vergleich mit location_plan_period.id statt über plan_period.id.
+
+    Wenn location_plan_period_id gesetzt ist, wird nur diese spezifische LocationPlanPeriod benachrichtigt.
+    Wenn nur plan_period_id gesetzt ist, werden alle LocationPlanPeriods der PlanPeriod benachrichtigt."""
+    location_plan_period_id: UUID | None = None
     plan_period_id: UUID | None = None
     date: datetime.date | None = None
+
+
+@dataclass
+class DataActorPlanPeriodDate:
+    """Optimierte Dataclass für ActorPlanPeriod-spezifische Signale.
+    Ermöglicht direkten Vergleich mit actor_plan_period.id statt über plan_period.id.
+
+    Wenn actor_plan_period_id gesetzt ist, wird nur diese spezifische ActorPlanPeriod benachrichtigt.
+    Wenn nur plan_period_id gesetzt ist, werden alle ActorPlanPeriods der PlanPeriod benachrichtigt."""
+    actor_plan_period_id: UUID | None = None
+    plan_period_id: UUID | None = None
+    date: datetime.date | None = None
+
 
 @dataclass
 class DataEventUpdateNumEmployees:
@@ -91,7 +116,7 @@ class HandlerActorPlanPeriod(QObject):
     def change_actor_plan_period_group_mode(self, group_mode: DataGroupMode):
         self.signal_change_actor_plan_period_group_mode.emit(group_mode)
 
-    def reset_styling_skills_configs(self, data: DataDate):
+    def reset_styling_skills_configs(self, data: DataActorPlanPeriodDate):
         self.signal_reset_styling_skills_configs.emit(data)
 
     def update_app_in_app_tab_widget(self, data: schemas.ActorPlanPeriod):
@@ -118,16 +143,16 @@ class HandlerLocationPlanPeriod(QObject):
     def reload_location_pp__event_configs(self, data: DataLocationPPWithDate):
         self.signal_reload_location_pp__event_configs.emit(data)
 
-    def reset_styling_fixed_cast_configs(self, data: DataDate):
+    def reset_styling_fixed_cast_configs(self, data: DataLocationPlanPeriodDate):
         self.signal_reset_styling_fixed_cast_configs.emit(data)
 
-    def reset_styling_notes_configs(self, data: DataDate):
+    def reset_styling_notes_configs(self, data: DataLocationPlanPeriodDate):
         self.signal_reset_styling_notes_configs.emit(data)
 
-    def reset_styling_skills_configs(self, data: DataDate):
+    def reset_styling_skills_configs(self, data: DataLocationPlanPeriodDate):
         self.signal_reset_styling_skills_configs.emit(data)
 
-    def reset_styling_all_configs_at_day(self, data: DataDate):
+    def reset_styling_all_configs_at_day(self, data: DataLocationPlanPeriodDate):
         self.reset_styling_fixed_cast_configs(data)
         self.reset_styling_notes_configs(data)
         self.reset_styling_skills_configs(data)
@@ -145,7 +170,7 @@ class HandlerLocationPlanPeriod(QObject):
     def change_location_plan_period_group_mode(self, group_mode: DataGroupMode):
         self.signal_change_location_plan_period_group_mode.emit(group_mode)
 
-    def reload_cast_groups__cast_configs(self, data: DataDate):
+    def reload_cast_groups__cast_configs(self, data: DataLocationPlanPeriodDate):
         self.signal_reload_cast_groups__cast_configs.emit(data)
 
     def reset_check_field(self, location_plan_period_id: UUID):

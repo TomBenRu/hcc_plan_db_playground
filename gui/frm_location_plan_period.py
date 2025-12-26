@@ -236,7 +236,7 @@ class ButtonEvent(QPushButton):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, self.date)
             )
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
@@ -256,7 +256,7 @@ class ButtonEvent(QPushButton):
         if dlg.exec():
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, self.date)
             )
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
@@ -296,7 +296,7 @@ class ButtonEvent(QPushButton):
                         f"- {self.time_of_day.name}")
             signal_handling.handler_plan_tabs.event_changed(event.id, True)
             signal_handling.handler_location_plan_period.reset_styling_notes_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, self.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, self.date)
             )
 
 
@@ -421,11 +421,17 @@ class ButtonFixedCast(QPushButton):
 
         self.set_stylesheet_and_tooltip()
 
-    @Slot(signal_handling.DataDate)
-    def reload_cast_groups_at_day(self, data: signal_handling.DataDate = None):
+    @Slot(signal_handling.DataLocationPlanPeriodDate)
+    def reload_cast_groups_at_day(self, data: signal_handling.DataLocationPlanPeriodDate = None):
         if data:
-            if data.plan_period_id != self.location_plan_period.plan_period.id:
-                return
+            # Optimierter Pfad: Prüfe zuerst location_plan_period_id (schneller)
+            if data.location_plan_period_id is not None:
+                if data.location_plan_period_id != self.location_plan_period.id:
+                    return
+            # Fallback: Prüfe plan_period_id (für Plan-weite Updates)
+            elif data.plan_period_id is not None:
+                if data.plan_period_id != self.location_plan_period.plan_period.id:
+                    return
             if data.date is not None and data.date != self.date:
                 return
         self.cast_groups_at_day = db_services.CastGroup.get_all_from__location_plan_period_at_date(
@@ -510,10 +516,16 @@ class ButtonFixedCast(QPushButton):
         if (data.date and data.date == self.date) or not data.date:
             self.location_plan_period = data.location_plan_period
 
-    @Slot(signal_handling.DataDate)
-    def reset_styling(self, data: signal_handling.DataDate):
-        if data.plan_period_id != self.location_plan_period.plan_period.id:
-            return
+    @Slot(signal_handling.DataLocationPlanPeriodDate)
+    def reset_styling(self, data: signal_handling.DataLocationPlanPeriodDate):
+        # Optimierter Pfad: Prüfe zuerst location_plan_period_id (schneller)
+        if data.location_plan_period_id is not None:
+            if data.location_plan_period_id != self.location_plan_period.id:
+                return
+        # Fallback: Prüfe plan_period_id (für Plan-weite Updates)
+        elif data.plan_period_id is not None:
+            if data.plan_period_id != self.location_plan_period.plan_period.id:
+                return
         if (data.date and data.date == self.date) or not data.date:
             self.set_stylesheet_and_tooltip()
 
@@ -545,9 +557,17 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
         self._set_stylesheet()
         self._set_tooltip()
 
-    @Slot(object)
-    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
-        if data.plan_period_id == self.location_plan_period.plan_period.id and data.date == self.date:
+    @Slot(signal_handling.DataLocationPlanPeriodDate)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataLocationPlanPeriodDate):
+        # Optimierter Pfad: Prüfe zuerst location_plan_period_id (schneller)
+        if data.location_plan_period_id is not None:
+            if data.location_plan_period_id != self.location_plan_period.id:
+                return
+        # Fallback: Prüfe plan_period_id (für Plan-weite Updates)
+        elif data.plan_period_id is not None:
+            if data.plan_period_id != self.location_plan_period.plan_period.id:
+                return
+        if (data.date and data.date == self.date) or not data.date:
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
@@ -643,9 +663,17 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
         self._set_stylesheet()
         self._set_tooltip()
 
-    @Slot(object)
-    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
-        if data.plan_period_id == self.location_plan_period.plan_period.id and data.date == self.date:
+    @Slot(signal_handling.DataLocationPlanPeriodDate)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataLocationPlanPeriodDate):
+        # Optimierter Pfad: Prüfe zuerst location_plan_period_id (schneller)
+        if data.location_plan_period_id is not None:
+            if data.location_plan_period_id != self.location_plan_period.id:
+                return
+        # Fallback: Prüfe plan_period_id (für Plan-weite Updates)
+        elif data.plan_period_id is not None:
+            if data.plan_period_id != self.location_plan_period.plan_period.id:
+                return
+        if (data.date and data.date == self.date) or not data.date:
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
@@ -941,10 +969,10 @@ class FrmTabLocationPlanPeriods(QWidget):
         dlg = frm_cast_group.DlgCastGroups(self, self.plan_period, visible_plan_period_ids)
         if dlg.exec():
             signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
-                signal_handling.DataDate(self.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period.id)
             )
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(self.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period.id)
             )
             signal_handling.handler_location_plan_period.event_update_num_employees(
                 plan_period_id=self.plan_period.id, location_plan_period_id=None
@@ -1203,10 +1231,10 @@ class FrmLocationPlanPeriod(QWidget):
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
             signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id)
             )
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id)
             )
             signal_handling.handler_location_plan_period.event_update_num_employees(
                 plan_period_id=None, location_plan_period_id=self.location_plan_period.id
@@ -1304,7 +1332,7 @@ class FrmLocationPlanPeriod(QWidget):
                     self.controller.execute(command)
 
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=event.date)
             )
         QMessageBox.information(
             self,
@@ -1335,7 +1363,7 @@ class FrmLocationPlanPeriod(QWidget):
                     self.controller.execute(command_add)
 
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, event.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=event.date)
             )
         QMessageBox.information(
             self,
@@ -1353,7 +1381,7 @@ class FrmLocationPlanPeriod(QWidget):
                 signal_handling.DataLocationPPWithDate(self.location_plan_period)
             )
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(plan_period_id=self.location_plan_period.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id)
             )
 
     def reset_all_fixed_cast(self):
@@ -1381,7 +1409,7 @@ class FrmLocationPlanPeriod(QWidget):
                                                           self.location_plan_period.fixed_cast_only_if_available)
             self.controller.execute(command)
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataDate(self.location_plan_period.plan_period.id, c.event.date)
+                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, date=c.event.date)
             )
 
         QMessageBox.information(

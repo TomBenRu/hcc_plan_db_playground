@@ -153,7 +153,7 @@ class ButtonAvailDay(QPushButton):
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.actor_plan_period.plan_period.id, self.date))
+                signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=self.date))
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
         else:
             dlg.controller.undo_all()
@@ -630,9 +630,17 @@ class ButtonSkills(QPushButton):
         self._set_stylesheet()
         self._set_tooltip()
 
-    @Slot(object)
-    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataDate):
-        if data.plan_period_id == self.actor_plan_period.plan_period.id and data.date == self.date:
+    @Slot(signal_handling.DataActorPlanPeriodDate)
+    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataActorPlanPeriodDate):
+        # Optimierter Pfad: Prüfe zuerst actor_plan_period_id (schneller)
+        if data.actor_plan_period_id is not None:
+            if data.actor_plan_period_id != self.actor_plan_period.id:
+                return
+        # Fallback: Prüfe plan_period_id (für Plan-weite Updates)
+        elif data.plan_period_id is not None:
+            if data.plan_period_id != self.actor_plan_period.plan_period.id:
+                return
+        if (data.date and data.date == self.date) or not data.date:
             self.set_stylesheet_and_tooltip()
 
     def _set_avail_days_at_day(self):
@@ -1701,14 +1709,14 @@ class FrmActorPlanPeriod(QWidget):
                     self.controller.execute(command)
 
             signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+                signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_day.date)
             )
         QMessageBox.information(
             self,
             self.tr('Remove Skills'),
             self.tr('All skills have been successfully removed from all availabilities in this planning period.')
         )
-        
+
         # Entities-Cache invalidieren bei Skill-Änderungen
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
@@ -1733,7 +1741,7 @@ class FrmActorPlanPeriod(QWidget):
                     self.controller.execute(command_add)
 
             signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                signal_handling.DataDate(self.actor_plan_period.plan_period.id, avail_day.date)
+                signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_day.date)
             )
         QMessageBox.information(
             self,

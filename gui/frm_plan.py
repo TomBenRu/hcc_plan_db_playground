@@ -854,16 +854,15 @@ class AppointmentField(QWidget):
                 signal_handling.handler_plan_tabs.invalidate_entities_cache(self.appointment.event.location_plan_period.plan_period.id)
                 signal_handling.handler_location_plan_period.appointment_moved(data)
                 signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataDate(self.appointment.event.location_plan_period.plan_period.id, data.old_date)
+                    signal_handling.DataLocationPlanPeriodDate(self.appointment.event.location_plan_period.id, date=data.old_date)
                 )
                 signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataDate(self.appointment.event.location_plan_period.plan_period.id, data.new_date)
+                    signal_handling.DataLocationPlanPeriodDate(self.appointment.event.location_plan_period.id, date=data.new_date)
                 )
                 self.execution_timer_plan_post_cast_change.finished.connect(
                     lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(self.appointment.event.location_plan_period.plan_period.id),
                     Qt.ConnectionType.SingleShotConnection)
                 self.execution_timer_plan_post_cast_change.start_timer()
-                # todo: Methode frm_location_plan_period.ButtonEvent.on_appointment_moved() anpassen.
                 # todo: Grundsätzlich data in signal_handling.handler_location_plan_period.appointment_moved()
                 #       und anderen Methoden das Update der Config-Buttons betreffend überdenken
                 #       (besser: location_plan_period_id bzw. actor_plan_period_id als Parameter?)

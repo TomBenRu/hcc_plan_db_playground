@@ -738,17 +738,6 @@ class AppointmentField(QWidget):
         dlg = DlgMoveAppointment(self, self.appointment, self.plan_widget.plan.plan_period)
 
         if dlg.exec():
-            if [a for a in self.plan_widget.plan.appointments
-                if a.event.date == dlg.new_date
-                and a.event.time_of_day.time_of_day_enum.time_index == dlg.new_time_of_day.time_of_day_enum.time_index
-                    and a.event.location_plan_period.id == self.appointment.event.location_plan_period.id]:
-                QMessageBox.critical(self, self.tr('Move appointment'),
-                                     self.tr('On %s (%s)\nan appointment for %s already exists') % (
-                                         date_to_string(dlg.new_date),
-                                         dlg.new_time_of_day.name,
-                                         self.appointment.event.location_plan_period.location_of_work.name_an_city))
-                return
-
             def handle_appointment_move(
                     appointments_in_plan: list[schemas.Appointment],
                     appointment: schemas.Appointment,
@@ -863,16 +852,19 @@ class AppointmentField(QWidget):
                     lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(self.appointment.event.location_plan_period.plan_period.id),
                     Qt.ConnectionType.SingleShotConnection)
                 self.execution_timer_plan_post_cast_change.start_timer()
-                # todo: Grundsätzlich data in signal_handling.handler_location_plan_period.appointment_moved()
-                #       und anderen Methoden das Update der Config-Buttons betreffend überdenken
-                #       (besser: location_plan_period_id bzw. actor_plan_period_id als Parameter?)
 
-            handle_appointment_move(self.plan_widget.plan.appointments,
-                                    self.appointment,
-                                    dlg.new_date,
-                                    dlg.new_time_of_day,
-                                    batch_command_redo_undo_callback,
-                                    self.plan_widget.controller)
+            result = handle_appointment_move(self.plan_widget.plan.appointments,
+                                             self.appointment,
+                                             dlg.new_date,
+                                             dlg.new_time_of_day,
+                                             batch_command_redo_undo_callback,
+                                             self.plan_widget.controller)
+            if not result:
+                QMessageBox.critical(self, self.tr('Move appointment'),
+                                     self.tr('On %s (%s)\nan appointment for %s already exists') % (
+                                         date_to_string(dlg.new_date),
+                                         dlg.new_time_of_day.name,
+                                         self.appointment.event.location_plan_period.location_of_work.name_an_city))
 
     def _edit_notes(self):
         dlg = DlgAppointmentNotes(self, self.appointment)

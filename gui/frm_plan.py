@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import logging
 from collections import defaultdict
@@ -795,15 +796,7 @@ class AppointmentField(QWidget):
                     new_time_index=new_time_index,
                     location_plan_period_id=location_plan_period_id
                 )
-                data_redo = signal_handling.DataAppointmentMoved(
-                    undo=False,
-                    event_id=appointment.event.id,
-                    old_date=old_date,
-                    new_date=new_date,
-                    old_time_index=old_time_index,
-                    new_time_index=new_time_index,
-                    location_plan_period_id=location_plan_period_id
-                )
+                data_redo = dataclasses.replace(data_undo, undo=False)
 
                 if not target_event_id:
                     # Ziel-Event existiert nicht - verschiebe Ausgangs-Event
@@ -840,16 +833,23 @@ class AppointmentField(QWidget):
                 return data_redo.action_type
 
             def batch_command_redo_undo_callback(data: signal_handling.DataAppointmentMoved):
-                signal_handling.handler_plan_tabs.invalidate_entities_cache(self.appointment.event.location_plan_period.plan_period.id)
+                signal_handling.handler_plan_tabs.invalidate_entities_cache(
+                    self.appointment.event.location_plan_period.plan_period.id)
                 signal_handling.handler_location_plan_period.appointment_moved(data)
                 signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataLocationPlanPeriodDate(self.appointment.event.location_plan_period.id, date=data.old_date)
+                    signal_handling.DataLocationPlanPeriodDate(
+                        self.appointment.event.location_plan_period.id, date=data.old_date
+                    )
                 )
                 signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataLocationPlanPeriodDate(self.appointment.event.location_plan_period.id, date=data.new_date)
+                    signal_handling.DataLocationPlanPeriodDate(
+                        self.appointment.event.location_plan_period.id, date=data.new_date
+                    )
                 )
                 self.execution_timer_plan_post_cast_change.finished.connect(
-                    lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(self.appointment.event.location_plan_period.plan_period.id),
+                    lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(
+                        self.appointment.event.location_plan_period.plan_period.id
+                    ),
                     Qt.ConnectionType.SingleShotConnection)
                 self.execution_timer_plan_post_cast_change.start_timer()
 

@@ -259,6 +259,8 @@ class PreferFixedCastConstraint(ConstraintBase):
                         normal_event: schemas.Event = normal_event_info['event']
                         preferred_event = preferred_event_info['event']
                         preferred_cg = preferred_event_info['cast_group']
+                        location_name = (preferred_event.location_plan_period.location_of_work.name_an_city
+                                         .replace("-", "&#8209;"))
                         
                         # Finde Person(en) der festen Besetzung
                         fixed_cast_text = self._get_fixed_cast_persons_text(preferred_cg)
@@ -266,11 +268,13 @@ class PreferFixedCastConstraint(ConstraintBase):
                         errors.append(ValidationError(
                             category="Bevorzugtes Event nicht gewählt",
                             message=(
+                                f'<span style="white-space: nowrap;">'
                                 f'Statt {normal_event.date:%d.%m.%y} ({normal_event.time_of_day.name}), '
-                                f'{normal_event.location_plan_period.location_of_work.name_an_city}<br>'
+                                f'{normal_event.location_plan_period.location_of_work.name_an_city}</span><br>'
                                 f'hätte bevorzugt werden sollen: '
+                                f'<span style="white-space: nowrap;">'
                                 f'{preferred_event.date:%d.%m.%y} ({preferred_event.time_of_day.name}), '
-                                f'{preferred_event.location_plan_period.location_of_work.name_an_city}<br>'
+                                f'{location_name}</span><br>'
                                 f'Feste Besetzung: {fixed_cast_text}'
                             )
                         ))

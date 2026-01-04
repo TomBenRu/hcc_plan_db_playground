@@ -126,11 +126,13 @@ class SkillsConstraint(ConstraintBase):
                 
                 # Prüfe ob genug Mitarbeiter mit dem Skill vorhanden sind
                 if num_with_skill < num_required:
+                    location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
                     errors.append(ValidationError(
                         category="Fertigkeitskonflikt",
                         message=(
+                            f'<span style="white-space: nowrap;">'
                             f'{event.date:%d.%m.%y} ({event.time_of_day.name}), '
-                            f'{event.location_plan_period.location_of_work.name}: '
+                            f'{location_name}:</span><br>'
                             f'Benötigt {num_required} Mitarbeiter mit Fertigkeit "{skill.name}", '
                             f'aber nur {num_with_skill} zugewiesen'
                         )

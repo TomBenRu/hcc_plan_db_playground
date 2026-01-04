@@ -212,7 +212,7 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
                 continue
             
             location_id = event.location_plan_period.location_of_work.id
-            location_name = event.location_plan_period.location_of_work.name
+            location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
             
             # Prüfe beide Richtungen der Partner-Präferenz
             avd_0, avd_1 = avail_days[0], avail_days[1]
@@ -234,7 +234,8 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
                 errors.append(ValidationError(
                     category="Partner-Ausschluss verletzt",
                     message=(
-                        f'{event.date:%d.%m.%y} ({event.time_of_day.name}), {location_name}:<br>'
+                        f'<span style="white-space: nowrap;">'
+                        f'{event.date:%d.%m.%y} ({event.time_of_day.name}), {location_name}:</span><br>'
                         f'{" / ".join(exclusion_details)}<br>'
                         f'Bei Besetzungsstärke 2 dürfen beide nicht gemeinsam besetzt sein.'
                     )

@@ -55,6 +55,7 @@ class EmployeeAvailabilityConstraint(ConstraintBase):
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event = appointment.event
             event_group_id = db_services.Event.get(event.id).event_group.id
+            location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
             
             for avd in appointment.avail_days:
                 adg_id = avd.avail_day_group.id
@@ -67,9 +68,9 @@ class EmployeeAvailabilityConstraint(ConstraintBase):
                         errors.append(ValidationError(
                             category="Mitarbeiter-Verfügbarkeit",
                             message=(
-                                f'{person_name} ist am {event.date:%d.%m.%y} '
-                                f'({event.time_of_day.name}) nicht verfügbar für '
-                                f'{event.location_plan_period.location_of_work.name}'
+                                f'<span style="white-space: nowrap;">'
+                                f'{person_name} ist am<br>{event.date:%d.%m.%y} '
+                                f'({event.time_of_day.name}) nicht verfügbar für {location_name}</span>'
                             )
                         ))
         

@@ -237,8 +237,10 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
                 # Alle Kombinationen von Appointments zwischen den Locations prüfen
                 for (app_1, avd_1), (app_2, avd_2) in itertools.product(apps_loc_1, apps_loc_2):
                     if not self._is_combination_allowed(app_1, avd_1, app_2, avd_2):
-                        loc_name_1 = app_1.event.location_plan_period.location_of_work.name
-                        loc_name_2 = app_2.event.location_plan_period.location_of_work.name
+                        loc_name_1 = (app_1.event.location_plan_period.location_of_work.name_an_city
+                                      .replace("-", "&#8209;"))
+                        loc_name_2 = (app_2.event.location_plan_period.location_of_work.name_an_city
+                                      .replace("-", "&#8209;"))
                         time_1 = app_1.event.time_of_day.name
                         time_2 = app_2.event.time_of_day.name
                         
@@ -246,7 +248,8 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
                             category="Unerlaubte Location-Kombination",
                             message=(
                                 f'{date:%d.%m.%y}: {person_name}<br>'
-                                f'{loc_name_1} ({time_1}) und {loc_name_2} ({time_2}) '
+                                f'<span style="white-space: nowrap;">'
+                                f'{loc_name_1} ({time_1}) und {loc_name_2} ({time_2})</span><br>'
                                 f'sind am gleichen Tag nicht erlaubt.'
                             )
                         ))

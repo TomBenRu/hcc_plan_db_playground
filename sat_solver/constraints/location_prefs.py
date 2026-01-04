@@ -178,7 +178,7 @@ class LocationPrefsConstraint(ConstraintBase):
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event = appointment.event
             location_id = event.location_plan_period.location_of_work.id
-            location_name = event.location_plan_period.location_of_work.name
+            location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
             
             for avd in appointment.avail_days:
                 adg_id = avd.avail_day_group.id
@@ -202,9 +202,10 @@ class LocationPrefsConstraint(ConstraintBase):
                         errors.append(ValidationError(
                             category="Standort-Präferenz",
                             message=(
-                                f'{person_name} darf am {event.date:%d.%m.%y} '
-                                f'({event.time_of_day.name}) nicht in '
-                                f'{location_name} arbeiten (Score=0)'
+                                f'{person_name} darf am<br>'
+                                f'<span style="white-space: nowrap;">'
+                                f'{event.date:%d.%m.%y} ({event.time_of_day.name}) '
+                                f'nicht in {location_name} arbeiten (Score=0).</span>'
                             )
                         ))
         

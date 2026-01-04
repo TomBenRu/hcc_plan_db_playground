@@ -163,6 +163,7 @@ class FixedCastConflictsConstraint(ConstraintBase):
                     cast_group.prefer_fixed_cast_events
                 )
                 event = cast_group.event
+                location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
                 
                 # Zeige wer tatsächlich zugewiesen wurde
                 assigned_names = [
@@ -174,8 +175,9 @@ class FixedCastConflictsConstraint(ConstraintBase):
                 errors.append(ValidationError(
                     category="Feste Besetzung nicht erfüllt",
                     message=(
+                        f'<span style="white-space: nowrap;">'
                         f'{event.date:%d.%m.%y} ({event.time_of_day.name}), '
-                        f'{event.location_plan_period.location_of_work.name}:<br>'
+                        f'{location_name}:</span><br>'
                         f'Gefordert: {text_fixed_cast}<br>'
                         f'Zugewiesen: {assigned_text}'
                     )

@@ -144,7 +144,9 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
                 # Location-Hinweis falls relevant
                 location_hinweis = ""
                 if location_ids:
-                    location_names = [l.name for l in required.locations_of_work]
+                    location_names = [(f'<span style="white-space: nowrap;">{l.name_an_city.replace("-", "&#8209;")}'
+                                       f'</span>')
+                                      for l in required.locations_of_work]
                     location_hinweis = f" (nur für: {', '.join(location_names)})"
                 
                 fehlend = required.num_avail_day_groups - shift_count

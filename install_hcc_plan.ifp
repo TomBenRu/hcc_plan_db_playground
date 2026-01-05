@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <InstallForgeProject>
-  <Metadata productVersion="1.6.0" projectFileVersion="2.0"/>
+  <Metadata productVersion="1.6.1" projectFileVersion="2.0"/>
   <ProductInformation>
     <Name>hcc_plan</Name>
     <Version>0.7.5</Version>

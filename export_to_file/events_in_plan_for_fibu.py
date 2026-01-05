@@ -101,12 +101,12 @@ class EventsInPlanForFibu:
         max_num_chars_employees = 0
 
         # write data and calculate column widths
-        for row, calender_week_number in enumerate(sorted(calender_week_numbers)):
+        for row, (calender_week_number, appointments) in enumerate(calender_week_numbers.items()):
             worksheet.write(row + self.offset_y + 1, self.offset_x,
                             f'KW {calender_week_number}', self.format_vertical_header)
             date_and_time_strings = []
             employees_strings = []
-            for appointment in sorted(calender_week_numbers[calender_week_number],
+            for appointment in sorted(appointments,
                                       key=lambda x: (x.event.date, x.event.time_of_day.start)):
                 weekday = self.weekday_names[appointment.event.date.weekday()]
                 date = date_to_string(appointment.event.date)

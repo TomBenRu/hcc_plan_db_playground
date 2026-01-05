@@ -324,6 +324,16 @@ class ButtonEvent(QPushButton):
         else:
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
+    def _update_time_of_day_from_event(self, event_id: UUID):
+        """Aktualisiert die time_of_day des Buttons basierend auf dem Event aus der Datenbank.
+
+        Dies ist notwendig, wenn ein Appointment verschoben wird und die neue Tageszeit
+        nicht der Standard-Tageszeit des Buttons entspricht.
+        """
+        event = db_services.Event.get(event_id)
+        if event:
+            self.time_of_day = event.time_of_day
+
     @Slot(object)
     def on_appointment_moved(self, data: signal_handling.DataAppointmentMoved):
         """Reagiert auf verschobene Appointments aus der Plan-Ansicht."""
@@ -341,16 +351,20 @@ class ButtonEvent(QPushButton):
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
                     self.setChecked(True)
+                    self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
                     self.add_spin_box_num_employees()
+                    self.set_tooltip()
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
                 if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(True)
+                    self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
                     self.add_spin_box_num_employees()
+                    self.set_tooltip()
                 else:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
@@ -365,18 +379,22 @@ class ButtonEvent(QPushButton):
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
                     self.setChecked(True)
+                    self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
                     self.add_spin_box_num_employees()
+                    self.set_tooltip()
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
                 if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
+                    self._update_time_of_day_from_event(data.event_id)
                     self.reset_menu_times_of_day(self.location_plan_period)
                     self.context_menu.addAction(self.action_num_employees)
                     self.add_spin_box_num_employees()
+                    self.set_tooltip()
             elif data.action_type == 'flip':
                 # Keine Änderungen erforderlich
                 pass

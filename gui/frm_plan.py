@@ -820,6 +820,11 @@ class AppointmentField(QWidget):
                         # Ziel-Event ist Teil derselben EventGroup - ändere Appointment-Zuordnung
                         appointment_flip_event_command = appointment_commands.UpdateEvent(appointment, target_event_id)
                         batch_command.commands.append(appointment_flip_event_command)
+                        # Falls die Tageszeit des Ziel-Events von der gewählten abweicht, aktualisiere sie
+                        if target_event.time_of_day.id != new_time_of_day.id:
+                            event_update_time_of_day_command = event_commands.UpdateTimeOfDay(
+                                target_event, new_time_of_day.id)
+                            batch_command.commands.append(event_update_time_of_day_command)
                         batch_command.on_undo_callback = lambda: batch_command_redo_undo_callback(
                             data_undo.set_action_type('flip'))
                         batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(

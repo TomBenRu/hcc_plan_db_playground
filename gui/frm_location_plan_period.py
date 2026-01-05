@@ -334,6 +334,17 @@ class ButtonEvent(QPushButton):
         if event:
             self.time_of_day = event.time_of_day
 
+    def _update_time_of_day_from_position(self):
+        """Aktualisiert die time_of_day des Buttons basierend auf dem Event an dieser Position.
+
+        Wird bei 'flip' verwendet, da dort die event_id im Signal das Ausgangs-Event referenziert,
+        nicht das Ziel-Event an dieser Position.
+        """
+        event = db_services.Event.get_from__location_pp_date_time_index(
+            self.location_plan_period.id, self.date, self.time_of_day.time_of_day_enum.time_index)
+        if event:
+            self.time_of_day = event.time_of_day
+
     @Slot(object)
     def on_appointment_moved(self, data: signal_handling.DataAppointmentMoved):
         """Reagiert auf verschobene Appointments aus der Plan-Ansicht."""
@@ -370,8 +381,13 @@ class ButtonEvent(QPushButton):
                     self.context_menu.removeAction(self.action_num_employees)
                 self.set_stylesheet()
             elif data.action_type == 'flip':
-                # Keine Änderungen erforderlich
-                pass
+                # Bei flip: Button bleibt checked, aber time_of_day kann sich geändert haben
+                # Hier _update_time_of_day_from_position verwenden, da event_id das Ausgangs-Event ist
+                if self.date == data.new_date and self.time_of_day.time_of_day_enum.time_index == data.new_time_index:
+                    self._update_time_of_day_from_position()
+                    self.create_actions_times_of_day()
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.set_tooltip()
         else:
             if data.action_type == 'move':
                 if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
@@ -396,8 +412,13 @@ class ButtonEvent(QPushButton):
                     self.add_spin_box_num_employees()
                     self.set_tooltip()
             elif data.action_type == 'flip':
-                # Keine Änderungen erforderlich
-                pass
+                # Bei flip: Button bleibt checked, aber time_of_day kann sich geändert haben
+                # Hier _update_time_of_day_from_position verwenden, da event_id das Ausgangs-Event ist
+                if self.date == data.new_date and self.time_of_day.time_of_day_enum.time_index == data.new_time_index:
+                    self._update_time_of_day_from_position()
+                    self.create_actions_times_of_day()
+                    self.reset_menu_times_of_day(self.location_plan_period)
+                    self.set_tooltip()
 
     @Slot()
     def button_clicked(self):

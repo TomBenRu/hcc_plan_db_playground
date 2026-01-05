@@ -22,7 +22,7 @@ class Create(Command):
 
 
 class UpdateTimeOfDay(Command):
-    def __init__(self, event: schemas.EventShow, new_time_of_day_id: UUID):
+    def __init__(self, event: schemas.Event, new_time_of_day_id: UUID):
         super().__init__()
         self.event = event
         self.old_time_of_day_id = self.event.time_of_day.id

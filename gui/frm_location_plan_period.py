@@ -336,7 +336,7 @@ class ButtonEvent(QPushButton):
             return
         if data.undo:
             if data.action_type == 'move':
-                if data.new_date == self.date:
+                if data.new_date == self.date and data.new_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
@@ -346,7 +346,7 @@ class ButtonEvent(QPushButton):
                     self.add_spin_box_num_employees()
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
-                if data.old_date == self.date:
+                if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(True)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
@@ -360,7 +360,7 @@ class ButtonEvent(QPushButton):
                 pass
         else:
             if data.action_type == 'move':
-                if data.old_date == self.date:
+                if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
@@ -370,7 +370,7 @@ class ButtonEvent(QPushButton):
                     self.add_spin_box_num_employees()
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
-                if data.old_date == self.date:
+                if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
                 else:

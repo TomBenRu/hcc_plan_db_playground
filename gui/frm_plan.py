@@ -761,15 +761,23 @@ class AppointmentField(QWidget):
 
                 old_date = appointment.event.date
                 old_time_index = appointment.event.time_of_day.time_of_day_enum.time_index
+                old_time_of_day_name = appointment.event.time_of_day.name
                 old_grand_parent_event_group_id = db_services.EventGroup.get_grand_parent_event_group_id_from_event(
                     appointment.event.id)
                 location_plan_period_id = appointment.event.location_plan_period.id
                 new_time_index = new_time_of_day.time_of_day_enum.time_index
+                new_time_of_day_name = new_time_of_day.name
                 target_event = db_services.Event.get_from__location_pp_date_time_index(
                     location_plan_period_id, new_date, new_time_index)
                 target_event_id = target_event.id if target_event else None
                 target_grand_parent_event_group_id = db_services.EventGroup.get_grand_parent_event_group_id_from_event(
                     target_event_id) if target_event_id else None
+                description = (
+                    f"Verschiebe {appointment.event.location_plan_period.location_of_work.name_an_city}\n"
+                    f"von {date_to_string(old_date)} ({old_time_of_day_name}) "
+                    f"nach {date_to_string(new_date)} ({new_time_of_day_name}).\n"
+                    f"Entfernen der Cast-Zuweisungen."
+                )
 
                 # Prüfe ob Appointment an Zielort bereits existiert
                 if [a for a in appointments_in_plan
@@ -806,7 +814,7 @@ class AppointmentField(QWidget):
                         data_undo.set_action_type('move'))
                     batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
                         data_redo.set_action_type('move'))
-
+                    batch_command.description = description
                 else:
                     if target_grand_parent_event_group_id == old_grand_parent_event_group_id:
                         # Ziel-Event ist Teil derselben EventGroup - ändere Appointment-Zuordnung
@@ -816,6 +824,8 @@ class AppointmentField(QWidget):
                             data_undo.set_action_type('flip'))
                         batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
                             data_redo.set_action_type('flip'))
+                        batch_command.description = description
+
                     else:
                         # Ziel-Event ist Teil einer anderen EventGroup, da Ziel-Event nicht teil eines Appointments ist
                         # - lösche Ziel-Event und verschiebe Ausgangs-Event
@@ -826,6 +836,7 @@ class AppointmentField(QWidget):
                             data_undo.set_action_type('move_and_delete'))
                         batch_command.on_redo_callback = lambda: batch_command_redo_undo_callback(
                             data_redo.set_action_type('move_and_delete'))
+                        batch_command.description = description
 
                 controller.execute(batch_command)
                 batch_command.on_redo_callback()
@@ -1077,7 +1088,8 @@ class FrmTabPlan(QWidget):
 
         self._setup_side_menu()
         self._setup_bottom_menu()
-        
+        self._setup_rating_menu()
+
         # Hilfe-System Integration
         self._setup_help_integration()
         
@@ -1133,6 +1145,60 @@ class FrmTabPlan(QWidget):
                                                  True)
         self.plan_statistics = TblPlanStatistics(self, self, self.plan.id)
         self.bottom_menu.add_widget(self.plan_statistics)
+
+    def _setup_rating_menu(self):
+        """Erstellt das linke Slide-In-Menu für die Planbewertung."""
+        from gui.plan_rating.rating_widgets import PlanRatingWidget
+
+        self.rating_menu = side_menu.SlideInMenu(
+            self,
+            menu_size=280,      # Breiter für Karten-Layout
+            snap_size=10,
+            align='left',       # Linke Seite
+            content_margins=(15, 30, 15, 20),
+            menu_background=(130, 205, 203, 100),
+            pinnable=True
+        )
+
+        # Bewertungs-Widget
+        self.rating_widget = PlanRatingWidget()
+        self.rating_menu.add_widget(self.rating_widget)
+
+        # "Bewertung aktualisieren" Button
+        self.bt_calculate_rating = QPushButton(self.tr('Bewertung aktualisieren'))
+        self.bt_calculate_rating.setToolTip(self.tr('Berechnet die Qualitätsbewertung des aktuellen Plans'))
+        self.bt_calculate_rating.clicked.connect(self._calculate_rating)
+        self.rating_menu.add_button(self.bt_calculate_rating)
+
+        # Session-Cache für die Bewertung
+        self._cached_rating = None
+
+    def _calculate_rating(self):
+        """Startet die manuelle Bewertungsberechnung im Hintergrund."""
+        from gui.concurrency import general_worker
+
+        self.bt_calculate_rating.setEnabled(False)
+        self.bt_calculate_rating.setText(self.tr('Berechne...'))
+
+        worker = general_worker.WorkerCalculatePlanRating(self.plan)
+        worker.signals.finished.connect(self._on_rating_calculated)
+        QThreadPool.globalInstance().start(worker)
+
+    @Slot(object)
+    def _on_rating_calculated(self, rating):
+        """Callback wenn die Bewertung berechnet wurde."""
+        # Prüfe ob die Bewertung für diesen Plan ist
+        if rating.plan_id != self.plan.id:
+            return
+
+        self.rating_widget.set_rating(rating)
+        self._cached_rating = rating
+
+        # Container-Größe neu berechnen (wichtig für dynamische Inhalte)
+        self.rating_menu._adjust_container_size()
+
+        self.bt_calculate_rating.setEnabled(True)
+        self.bt_calculate_rating.setText(self.tr('Bewertung aktualisieren'))
 
     def _setup_help_integration(self):
         """Integriert das vereinfachte Hilfe-System in das Plan-Formular."""
@@ -1340,6 +1406,7 @@ class FrmTabPlan(QWidget):
         self._setup_table()
         self.side_menu.raise_()
         self.bottom_menu.raise_()
+        self.rating_menu.raise_()
         # Plan-Notizen Icon aktualisieren
         if hasattr(self, 'plan_note_icon'):
             self._update_plan_note_icon()

@@ -276,8 +276,6 @@ def initialize_main_application(app: QApplication,
         _update_progress(progress_callback, "Window display")
         window = safe_execute(MainWindow, "Creating main window", app, Screen.screen_width, Screen.screen_height)
         safe_execute(window.show, "Showing main window")
-        if splash_screen:
-            splash_screen.raise_()
         window.setEnabled(False)  # Window deaktivieren während Tab-Restoration
         window.tab_restoration_in_progress = True  # Schließen verhindern während Tab-Restoration
 

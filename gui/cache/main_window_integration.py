@@ -39,6 +39,7 @@ class TabCacheIntegration:
         tab_manager: TabManager
         main_menu: QMenuBar
         curr_team: Optional[object]
+        cache_monitoring: bool
 
         def statusBar(self) -> QStatusBar: ...
 
@@ -46,6 +47,8 @@ class TabCacheIntegration:
     
     def setup_cache_integration(self):
         """Initialisiert Cache-Integration für MainWindow"""
+        if not self.cache_monitoring:
+            return
         self._setup_cache_monitoring()
         self._setup_cache_menu_actions()
     
@@ -144,14 +147,8 @@ class TabCacheIntegration:
                 cache_submenu.setToolTip('Tab-Cache Management und Performance-Analyse')
                 
                 # Cache-Management Aktionen hinzufügen
-                cache_submenu.addAction(self.cache_actions['show_stats'])
-                cache_submenu.addAction(self.cache_actions['show_performance'])
-                cache_submenu.addSeparator()
-                cache_submenu.addAction(self.cache_actions['export_metrics'])
-                cache_submenu.addSeparator()
-                cache_submenu.addAction(self.cache_actions['clear_cache'])
-                cache_submenu.addAction(self.cache_actions['toggle_cache'])
-                cache_submenu.addAction(self.cache_actions['cache_config'])
+                for action in self.cache_actions.values():
+                    cache_submenu.addAction(action)
             else:
                 logger.warning("Extras-Menü nicht gefunden - Cache-Menü wird als eigenes Hauptmenü hinzugefügt")
                 
@@ -539,6 +536,9 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
             self.curr_team: schemas.TeamShow = team
             
             self.setWindowTitle(f'hcc-plan  —  Team: {self.curr_team.name}')
+
+            if not self.cache_monitoring:
+                return
             
             # Performance-Feedback aus letzter Metrik holen
             if performance_monitor.team_switch_metrics:
@@ -573,10 +573,7 @@ Cache-Fehlschläge: {summary_24h['cache_statistics']['misses']}
         try:
             if self.curr_team and hasattr(self, 'tab_manager'):
                 # Aktuelle Tabs vor dem Schließen cachen
-                if self.tab_manager._cache_enabled:
-                    self.tab_manager.save_team_config(self.curr_team.id)
-                else:
-                    self.tab_manager.save_team_config(self.curr_team.id)
+                self.tab_manager.save_team_config(self.curr_team.id)
             
             # Optional: Cache für nächsten Start persistieren
             # self.tab_manager.clear_cache()  # Uncomment um Cache zu leeren

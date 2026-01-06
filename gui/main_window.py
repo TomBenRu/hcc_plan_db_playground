@@ -71,7 +71,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     TabManager mit intelligentem Caching übernommen.
     """
 
-    def __init__(self, app: QApplication, screen_width: int, screen_height: int, choose_project: bool = False):
+    def __init__(self, app: QApplication, screen_width: int, screen_height: int, choose_project: bool = False,
+                 cache_monitoring: bool = False):
         super().__init__()
 
         # Flag für Tab-Restoration Status
@@ -377,6 +378,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.employee_events_window = None  # Employee Events Window Instance
 
         self._activate_signals()
+
+        # Cache-Monitoring Flag
+        self.cache_monitoring = cache_monitoring
 
         # === CACHE-INTEGRATION SETUP (nach Menu-Erstellung) ===
         self.setup_cache_integration()

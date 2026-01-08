@@ -17,14 +17,14 @@ class MinimizationWeights(BaseModel):
     constraints_weights_in_event_groups: float = 1
     constraints_location_prefs: float = 0.001  # bei Faktor 0.0001 hat location prefs keinen Einfluss, komisch!
     constraints_partner_loc_prefs: float = 0.1
-    constraints_fixed_casts_conflicts: float = 1_000_000_000
+    constraints_fixed_casts_conflicts: float = 10_000_000
     prefer_fixed_cast_events: float = 1000  # Bevorzugung von Events mit fixed_cast bei Auswahl
     constraints_cast_rule: float = 1000
     constraints_skills_match: float = 1000
 
 
 class ConstraintsMultipliers(BaseModel):
-    sliders_location_prefs: dict[float, int] = {0: 100_000_000_000_000, 0.5: 10, 1: 0, 1.5: -10, 2: -20} # WEIGHT_VARS_LOCATION_PREFS
+    sliders_location_prefs: dict[float, int] = {0: 100, 0.5: 10, 1: 0, 1.5: -10, 2: -20} # WEIGHT_VARS_LOCATION_PREFS; Slider 0=Hard-Constraint
     sliders_partner_loc_prefs: dict[float, int] = {0: 20, 0.5: 10, 1: 0, 1.5: -10, 2: -20}  # WEIGHT_VARS_PARTNER_LOC_PREFS
     group_depth_weights_event_groups: dict[float, int] = {1: 100, 2: 10, 3: 1}
     sliders_weights_event_groups: dict[float, int] = {0: 100, 1: 0, 2: -1}

@@ -204,6 +204,10 @@ class HandlerPlanTabs(QObject):
     signal_invalidate_entities_cache = Signal(UUID)
     signal_load_entities_from_cache = Signal(UUID)
 
+    # Signale für Planbewertung
+    signal_update_plan_rating = Signal(UUID)  # Trigger: Plan-Rating berechnen (plan_id)
+    signal_plan_rating_calculated = Signal(object)  # Ergebnis: PlanRating-Objekt
+
     def event_changed(self, event_id: UUID, notes_changed: bool = False):
         self.signal_event_changed.emit(event_id, notes_changed)
 
@@ -236,6 +240,14 @@ class HandlerPlanTabs(QObject):
 
     def load_entities_from_cache(self, plan_period_id: UUID):
         self.signal_load_entities_from_cache.emit(plan_period_id)
+
+    def update_plan_rating(self, plan_id: UUID):
+        """Triggert die Berechnung der Plan-Bewertung."""
+        self.signal_update_plan_rating.emit(plan_id)
+
+    def plan_rating_calculated(self, rating: 'PlanRating'):
+        """Sendet die berechnete Plan-Bewertung an alle Listener."""
+        self.signal_plan_rating_calculated.emit(rating)
 
 
 class HandlerShowDialog(QObject):

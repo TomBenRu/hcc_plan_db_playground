@@ -300,6 +300,94 @@ class LeaveTeam(Command):
         self.controller.execute(command)
 
 
+class AddToTeam(Command):
+    """Fügt eine Person zu einem weiteren Team hinzu, ohne bestehende Zuordnungen zu beenden.
+
+    Im Gegensatz zu AssignToTeam werden keine bestehenden Team-Zuordnungen gelöscht oder beendet.
+    Dies ermöglicht Multi-Team-Zuordnungen, bei denen eine Person gleichzeitig mehreren Teams
+    angehören kann.
+
+    Args:
+        person_id: Die UUID der Person
+        team_id: Die UUID des Teams, dem die Person hinzugefügt werden soll
+        start: Das Startdatum der Zuordnung
+
+    Raises:
+        ValueError: Wenn die Person bereits eine aktive Zuordnung zu diesem Team hat
+    """
+    def __init__(self, person_id: UUID, team_id: UUID, start: datetime.date):
+        super().__init__()
+        self.person_id = person_id
+        self.team_id = team_id
+        self.start = start
+        self.person = db_services.Person.get(person_id)
+        self.created_assignment: schemas.TeamActorAssignShow | None = None
+
+    def execute(self):
+        # Prüfe ob bereits eine aktive Zuordnung zu diesem Team besteht
+        existing = [a for a in self.person.team_actor_assigns
+                    if a.team.id == self.team_id
+                    and a.start <= self.start
+                    and (a.end is None or a.end > self.start)]
+        if existing:
+            raise ValueError('Person ist bereits diesem Team zugeordnet.')
+
+        taa = schemas.TeamActorAssignCreate(
+            start=self.start, end=None,
+            person=self.person, team=db_services.Team.get(self.team_id)
+        )
+        self.created_assignment = db_services.TeamActorAssign.create(taa)
+
+    def _undo(self):
+        if self.created_assignment:
+            db_services.TeamActorAssign.delete(self.created_assignment.id)
+
+    def _redo(self):
+        self.execute()
+
+
+class RemoveFromTeam(Command):
+    """Beendet die Zuordnung einer Person zu einem bestimmten Team ab einem Datum.
+
+    Im Gegensatz zu LeaveTeam wird nur die Zuordnung zu einem spezifischen Team beendet,
+    nicht alle Zuordnungen. Andere Team-Zuordnungen bleiben unberührt.
+
+    Args:
+        person_id: Die UUID der Person
+        team_id: Die UUID des Teams, dessen Zuordnung beendet werden soll
+        end_date: Das Enddatum der Zuordnung (exklusiv)
+
+    Raises:
+        ValueError: Wenn keine aktive Zuordnung zu diesem Team gefunden wird
+    """
+    def __init__(self, person_id: UUID, team_id: UUID, end_date: datetime.date):
+        super().__init__()
+        self.person_id = person_id
+        self.team_id = team_id
+        self.end_date = end_date
+        self.person = db_services.Person.get(person_id)
+        self.affected_assignment: schemas.TeamActorAssign | None = None
+        self.old_end_date: datetime.date | None = None
+
+    def execute(self):
+        for assignment in self.person.team_actor_assigns:
+            if (assignment.team.id == self.team_id
+                    and assignment.start <= self.end_date
+                    and (assignment.end is None or assignment.end > self.end_date)):
+                self.affected_assignment = assignment
+                self.old_end_date = assignment.end
+                db_services.TeamActorAssign.set_end_date(assignment.id, self.end_date)
+                return
+        raise ValueError('Keine aktive Zuordnung zu diesem Team gefunden.')
+
+    def _undo(self):
+        if self.affected_assignment:
+            db_services.TeamActorAssign.set_end_date(self.affected_assignment.id, self.old_end_date)
+
+    def _redo(self):
+        self.execute()
+
+
 class PutInFlag(Command):
     def __init__(self, person_id: UUID, flag_id: UUID):
         super().__init__()

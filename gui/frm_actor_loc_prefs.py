@@ -11,6 +11,7 @@ from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, \
     get_curr_assignment_of_person
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
+from gui.custom_widgets.team_selector import TeamSelectorWidget
 
 
 class DlgActorLocPref(QDialog):
@@ -57,6 +58,13 @@ class DlgActorLocPref(QDialog):
         self.layout_date.addWidget(self.lb_date)
         self.layout_date.addWidget(self.de_date)
 
+        # Team-Selektor für Multi-Team-Personen (nur bei PersonShow mit team_at_date_factory)
+        self.team_selector: TeamSelectorWidget | None = None
+        if self.team_at_date_factory and isinstance(self.curr_model, schemas.PersonShow):
+            self.team_selector = TeamSelectorWidget(self)
+            self.team_selector.teamChanged.connect(self._on_team_changed)
+            self.layout_date.addWidget(self.team_selector)
+
         self.lb_sliders: list[QWidget] = []
         self.sliders: dict[UUID, QSlider] = {}
 
@@ -70,18 +78,35 @@ class DlgActorLocPref(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
+        self.layout.addStretch(1)
         
         # Help-System Integration
         from tools.helper_functions import setup_form_help
         setup_form_help(self, "actor_loc_prefs", add_help_button=True)
 
     def date_changed(self):
+        # Bei Multi-Team: Team-Selektor aktualisieren
+        if self.team_selector:
+            self.team_selector.update_teams(self.curr_model.id, self.de_date.date().toPython())
+
+        self.set_new__locations()
+        self.setup_sliders()
+        self.autoload_data()
+
+    def _on_team_changed(self, team: schemas.TeamShow | None):
+        """Wird aufgerufen wenn der Benutzer ein anderes Team auswählt."""
         self.set_new__locations()
         self.setup_sliders()
         self.autoload_data()
 
     def set_new__locations(self):
-        self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
+        # Team vom Selektor oder von der Factory holen
+        if self.team_selector and self.team_selector.get_current_team():
+            self.curr_team = self.team_selector.get_current_team()
+        elif self.team_at_date_factory:
+            self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
+        else:
+            self.curr_team = None
         if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden
             self.union_locations_of_work()
         elif not self.curr_team:
@@ -97,6 +122,9 @@ class DlgActorLocPref(QDialog):
 
         self.location_id__location = {loc.id: loc for loc in self.locations_of_work}
         self.loc_id__prefs = {loc_pref.location_of_work.id: loc_pref for loc_pref in self.loc_prefs}
+        # loc_id__results muss bei Team-Wechsel neu initialisiert werden, damit keine
+        # Location-IDs vom vorherigen Team erhalten bleiben
+        self.loc_id__results = self.locations_of_team__defaults | self.locations_of_prefs__score
 
     def union_locations_of_work(self):
         """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""

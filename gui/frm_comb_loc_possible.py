@@ -15,6 +15,7 @@ from tools.helper_functions import setup_form_help
 from commands.database_commands import team_commands
 from commands.database_commands import actor_plan_period_commands, person_commands, avail_day_commands, \
     comb_loc_possible_commands
+from gui.custom_widgets.team_selector import TeamSelectorWidget
 
 
 class DlgNewCombLocPossible(QDialog):
@@ -108,10 +109,20 @@ class DlgCombLocPossibleEditList(QDialog):
 
         self.lb_date = QLabel(self.tr('Date'))
         self.de_date = QDateEdit()
-        self.de_date.dateChanged.connect(self.set_new__locations__parent_model)
-        self.de_date.setMinimumDate(datetime.date.today())
         self.layout.addWidget(self.lb_date, 1, 0)
         self.layout.addWidget(self.de_date, 1, 1)
+
+        # Team-Selektor für Multi-Team-Personen (nur bei PersonShow mit team_at_date_factory)
+        # WICHTIG: Muss VOR dateChanged-Connect initialisiert werden!
+        self.team_selector: TeamSelectorWidget | None = None
+        if self.team_at_date_factory and isinstance(self.curr_model, schemas.PersonShow):
+            self.team_selector = TeamSelectorWidget(self)
+            self.team_selector.teamChanged.connect(self._on_team_changed)
+            self.layout.addWidget(self.team_selector, 1, 2)
+
+        # Signal-Connect NACH team_selector Initialisierung
+        self.de_date.dateChanged.connect(self._on_date_changed)
+        self.de_date.setMinimumDate(datetime.date.today())
 
         self.bt_create = QPushButton(self.tr('New...'), clicked=self.new)
         self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)
@@ -129,9 +140,29 @@ class DlgCombLocPossibleEditList(QDialog):
         # F1 Help Integration
         setup_form_help(self, "comb_loc_possible_edit_list", add_help_button=True)
 
+    def _on_date_changed(self):
+        """Wird aufgerufen wenn das Datum geändert wird."""
+        # Bei Multi-Team: Team-Selektor aktualisieren
+        if self.team_selector:
+            self.team_selector.update_teams(self.curr_model.id, self.de_date.date().toPython())
+
+        self.set_new__locations__parent_model()
+
+    def _on_team_changed(self, team: schemas.TeamShow | None):
+        """Wird aufgerufen wenn der Benutzer ein anderes Team auswählt."""
+        self.set_new__locations__parent_model()
+
     def set_new__locations__parent_model(self):
         date = self.de_date.date().toPython()
-        self.curr_team = self.team_at_date_factory(date) if self.team_at_date_factory else self.curr_model
+
+        # Team vom Selektor oder von der Factory holen
+        if self.team_selector and self.team_selector.get_current_team():
+            self.curr_team = self.team_selector.get_current_team()
+        elif self.team_at_date_factory:
+            self.curr_team = self.team_at_date_factory(date)
+        else:
+            self.curr_team = self.curr_model
+
         if not self.curr_team:
             self.lb_info.setText(self.tr('No team is assigned to this person at this date.'))
             return
@@ -189,7 +220,13 @@ class DlgCombLocPossibleEditList(QDialog):
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
                                range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
         valid_days_of_actor = [date for date in days_of_plan_period
-                               if get_curr_assignment_of_person(person, date).team.id == self.curr_team.id]
+                               if (assignment := get_curr_assignment_of_person(person, date))
+                               and assignment.team.id == self.curr_team.id]
+
+        if not valid_days_of_actor:
+            self.locations_of_work = []
+            self.lb_info.setText(self.tr('No valid days found for this person in the selected team.'))
+            return
 
         curr_loc_of_work_ids = {loc.id
                                 for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}

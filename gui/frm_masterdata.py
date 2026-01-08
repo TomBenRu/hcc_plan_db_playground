@@ -17,7 +17,7 @@ from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
-    frm_assign_to_team, frm_skills
+    frm_assign_to_team, frm_skills, frm_team_assignments
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
     location_plan_period_commands, event_group_commands, address_commands
@@ -178,7 +178,7 @@ class WidgetPerson(QWidget):
                                 self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_person),
                                 QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
-            person_id = UUID(self.table_persons.item(row, 9).text())
+            person_id = self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole)
             try:
                 deleted_person = db_services.Person.delete(person_id)
                 QMessageBox.information(self, self.tr('Delete'), self.tr('Deleted:\n{}').format(deleted_person))
@@ -228,6 +228,9 @@ class TablePersons(QTableWidget):
         self.sortItems(sorting_column, Qt.SortOrder.AscendingOrder)
 
     def put_data_to_table(self):
+        # Sortierung temporär deaktivieren, um Daten-Mismatch zu vermeiden
+        self.setSortingEnabled(False)
+
         self.setRowCount(len(self.persons))
         for row, p in enumerate(self.persons):
             item_f_name = QTableWidgetItem(p.f_name)
@@ -240,14 +243,30 @@ class TablePersons(QTableWidget):
             self.setItem(row, 5, QTableWidgetItem(p.address.street if p.address else ''))
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
             self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
-            cb_team_of_actor = QComboBoxToFindData()
-            cb_team_of_actor.addItem(self.tr('No Team'), None)
-            for team in sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda t: t.name):
-                cb_team_of_actor.addItem(team.name, team.id)
-            curr_team = get_curr_team_of_person_at_date(person=p)
-            cb_team_of_actor.setCurrentText(curr_team.name if curr_team else '')
-            cb_team_of_actor.currentIndexChanged.connect(self.change_team)
-            self.setCellWidget(row, 8, cb_team_of_actor)
+
+            # Team-Spalte: Text mit allen Teams + Edit-Button für Multi-Team-Support
+            teams = db_services.TeamActorAssign.get_all_teams_at_date(p.id, datetime.date.today())
+            team_names = ', '.join([t.name for t in teams]) if teams else self.tr('No Team')
+
+            widget_teams = QWidget()
+            layout_teams = QHBoxLayout(widget_teams)
+            layout_teams.setContentsMargins(2, 2, 2, 2)
+            layout_teams.setSpacing(4)
+
+            lb_teams = QLabel(team_names)
+            lb_teams.setToolTip(team_names if teams else '')
+            bt_edit_teams = QPushButton('...')
+            bt_edit_teams.setMaximumWidth(30)
+            bt_edit_teams.setToolTip(self.tr('Edit team assignments'))
+            bt_edit_teams.clicked.connect(partial(self.edit_team_assignments, p.id))
+
+            layout_teams.addWidget(lb_teams, 1)
+            layout_teams.addWidget(bt_edit_teams, 0)
+
+            self.setCellWidget(row, 8, widget_teams)
+
+        # Sortierung wieder aktivieren
+        self.setSortingEnabled(True)
 
     def change_team(self, e):
         person_id = self.item(self.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
@@ -293,6 +312,21 @@ class TablePersons(QTableWidget):
         curr_team = get_curr_team_of_person_at_date(person=db_services.Person.get(person_id))
         sender.setCurrentIndex(sender.findData(curr_team.id if curr_team else None))
         sender.blockSignals(False)
+
+    def edit_team_assignments(self, person_id: UUID):
+        """Öffnet den Dialog zur Verwaltung der Team-Zuordnungen einer Person."""
+        person = db_services.Person.get(person_id)
+        dlg = frm_team_assignments.DlgTeamAssignments(self, self.project_id, person)
+        if dlg.exec():
+            # Tabelle aktualisieren
+            self.persons = [db_services.Person.get(p.id) for p in self.persons]
+            self.put_data_to_table()
+
+    def refresh_table(self):
+        """Aktualisiert die gesamte Tabelle mit aktuellen Daten."""
+        person_ids = [p.id for p in self.persons]
+        self.persons = [db_services.Person.get(pid) for pid in person_ids]
+        self.put_data_to_table()
 
 
 class DlgPersonData(QDialog):
@@ -411,6 +445,7 @@ class DlgPersonModify(DlgPersonData):
         self.le_id.setReadOnly(True)
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
+        self.bt_team_assignments = QPushButton(self.tr('Edit...'), clicked=self.edit_team_assignments)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_comb_loc_possible = QPushButton(self.tr('Edit...'), clicked=self.edit_comb_loc_possible)
         self.bt_actor_loc_prefs = QPushButton(self.tr('Edit...'), clicked=self.edit_location_prefs)
@@ -419,6 +454,7 @@ class DlgPersonModify(DlgPersonData):
         self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
         self.group_person_data_layout.addRow(self.tr('ID'), self.le_id)
+        self.group_specific_data_layout.addRow(self.tr('Team Assignments'), self.bt_team_assignments)
         self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
         self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
@@ -496,6 +532,13 @@ class DlgPersonModify(DlgPersonData):
 
     def fill_requested_assignm(self):
         self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
+
+    def edit_team_assignments(self):
+        """Öffnet den Dialog zur Verwaltung der Team-Zuordnungen."""
+        dlg = frm_team_assignments.DlgTeamAssignments(self, self.project_id, self.person)
+        if dlg.exec():
+            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            self.person = db_services.Person.get(self.person.id)
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderPerson(self, self.person).build()

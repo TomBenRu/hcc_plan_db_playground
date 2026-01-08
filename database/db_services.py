@@ -803,7 +803,7 @@ class TeamActorAssign:
         assignments_db = ((models.TeamActorAssign.select()
                           .filter(lambda taa: taa.team.id == team_id))
                           .filter(lambda taa: taa.start <= date_end)
-                          .filter(lambda taa: taa.end >= date_start or taa.end is None))
+                          .filter(lambda taa: taa.end > date_start or taa.end is None))  # taa.end is exclusive
         return {taa.person.id for taa in assignments_db}
 
     @classmethod
@@ -812,6 +812,33 @@ class TeamActorAssign:
         all_actor_location_assigns = models.TeamActorAssign.select(
             lambda tla: tla.start <= date and (tla.end is None or tla.end > date) and tla.team.id == team_id)
         return [schemas.TeamActorAssignShow.model_validate(tla) for tla in all_actor_location_assigns]
+
+    @classmethod
+    @db_session
+    def get_all_teams_at_date(
+            cls, person_id: UUID, date: datetime.date,
+            only_uuids: bool = False) -> list[schemas.TeamShow] | list[UUID]:
+        """Gibt alle Teams zurück, denen eine Person an einem bestimmten Datum zugeordnet ist.
+
+        Diese Methode ermöglicht Multi-Team-Zuordnungen, bei denen eine Person
+        gleichzeitig mehreren Teams angehören kann.
+
+        Args:
+            person_id: Die UUID der Person
+            date: Das Datum, für das die Team-Zuordnungen abgefragt werden
+            only_uuids: Wenn True, wird nur eine Liste von Team-UUIDs zurückgegeben
+
+        Returns:
+            Liste aller Teams, denen die Person am angegebenen Datum zugeordnet ist
+        """
+        all_assignments_db = models.TeamActorAssign.select(
+            lambda taa: taa.person.id == person_id
+            and taa.start <= date
+            and (taa.end is None or taa.end > date)
+        )
+        if only_uuids:
+            return [taa.team.id for taa in all_assignments_db]
+        return [schemas.TeamShow.model_validate(taa.team) for taa in all_assignments_db]
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

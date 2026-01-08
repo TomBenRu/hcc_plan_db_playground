@@ -17,6 +17,7 @@ from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
     avail_day_commands
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
+from gui.custom_widgets.team_selector import TeamSelectorWidget
 from gui.widget_styles.buttons import PartnerLocPrefs
 
 
@@ -409,6 +410,14 @@ class DlgPartnerLocationPrefs(QDialog):
         self.de_date.dateChanged.connect(self.on_date_change)
         self.layout_date.addWidget(self.de_date)
         self.de_date.setFixedWidth(100)
+
+        # Team-Selektor für Multi-Team-Personen (nur bei PersonShow)
+        self.team_selector: TeamSelectorWidget | None = None
+        if isinstance(self.curr_model, schemas.PersonShow):
+            self.team_selector = TeamSelectorWidget(self)
+            self.team_selector.teamChanged.connect(self._on_team_changed)
+            self.layout_date.addWidget(self.team_selector)
+
         self.layout_date.addWidget(self.lb_date)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save |
@@ -441,6 +450,24 @@ class DlgPartnerLocationPrefs(QDialog):
         self.timer.start()
 
     def date_changed(self):
+        self.updating_sliders = True
+
+        # Bei Multi-Team: Team-Selektor aktualisieren
+        if self.team_selector:
+            self.team_selector.update_teams(self.curr_model.id, self.de_date.date().toPython())
+
+        self.set_curr_team()
+        self.lb_info.clear()
+        self.set_new_locations()
+        self.set_new_partners()
+        self.clear_option_field()
+        self.setup_option_field()
+        self.setup_values()
+
+        self.updating_sliders = False
+
+    def _on_team_changed(self, team: schemas.TeamShow | None):
+        """Wird aufgerufen wenn der Benutzer ein anderes Team auswählt."""
         self.updating_sliders = True
 
         self.set_curr_team()
@@ -493,7 +520,11 @@ class DlgPartnerLocationPrefs(QDialog):
             self.bt_reset.setMenu(self.reset_menu)
 
     def set_curr_team(self):
-        self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
+        # Team vom Selektor oder von der Factory holen
+        if self.team_selector and self.team_selector.get_current_team():
+            self.curr_team = self.team_selector.get_current_team()
+        else:
+            self.curr_team = self.team_at_date_factory(self.de_date.date().toPython())
 
     def set_new_partners(self):
         if isinstance(self.curr_model, schemas.ActorPlanPeriod):  # wenn curr_model == ActorPlanPeriod, ist curr_team vorhanden

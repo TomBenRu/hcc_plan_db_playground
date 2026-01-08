@@ -90,7 +90,7 @@ def get_locations_of_team_at_date(team_id: UUID, date: datetime.date) -> list[sc
     # sourcery skip: inline-immediately-returned-variable
     team_loc_assignments_at_date = db_services.TeamLocationAssign.get_all_at__date(date, team_id)
     locations_at_date = sorted([tla.location_of_work for tla in team_loc_assignments_at_date
-                                if (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete > date)],
+                                if (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete.date() > date)],
                                key=lambda x: x.name)
     return locations_at_date
 
@@ -99,7 +99,7 @@ def get_locations_of_team_at_date_2(team: schemas.TeamShow, date: datetime.date)
     locations_at_date_ids = {
         tla.location_of_work.id for tla in team.team_location_assigns
         if tla.start <= date < (tla.end or date + datetime.timedelta(days=1))
-           and (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete > date)
+           and (not tla.location_of_work.prep_delete or tla.location_of_work.prep_delete.date() > date)
     }
     return locations_at_date_ids
 
@@ -116,14 +116,14 @@ def get_curr_persons_of_team(team: schemas.TeamShow) -> list[schemas.Person]:
 def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[schemas.Person]:
     team_actor_assignments_at_date = db_services.TeamActorAssign.get_all_at__date(date, team_id)
     persons_at_date = sorted([taa.person for taa in team_actor_assignments_at_date
-                              if (not taa.person.prep_delete or taa.person.prep_delete > date)],
+                              if (not taa.person.prep_delete or taa.person.prep_delete.date() > date)],
                              key=lambda x: x.f_name)
     return persons_at_date
 
 def get_persons_of_team_at_date_2(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
     persons_at_date_ids = {taa.person.id for taa in team.team_actor_assigns
                            if taa.start <= date < (taa.end or date + datetime.timedelta(days=1))
-                           and (not taa.person.prep_delete or taa.person.prep_delete > date)}
+                           and (not taa.person.prep_delete or taa.person.prep_delete.date() > date)}
     return persons_at_date_ids
 
 

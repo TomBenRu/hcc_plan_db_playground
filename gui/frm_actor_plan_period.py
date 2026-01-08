@@ -1128,9 +1128,9 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_skills_reset_all, row + 5, 0)
 
         for col, d in enumerate(self.days, start=1):
-            assignment_of_person = get_curr_assignment_of_person(person, d)
-            disable_buttons = ((assignment_of_person is None)
-                               or (assignment_of_person.team.id != self.actor_plan_period.team.id))
+            # Multi-Team-kompatibel: Prüfe ob Person an diesem Tag dem Team des ActorPlanPeriods zugeordnet ist
+            team_uuids_at_date = db_services.TeamActorAssign.get_all_teams_at_date(person.id, d, only_uuids=True)
+            disable_buttons = self.actor_plan_period.team.id not in set(team_uuids_at_date)
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)

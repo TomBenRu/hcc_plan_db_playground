@@ -191,3 +191,37 @@ class WorkerGetMaxFairShifts(QRunnable):
         max_shifts, fair_shifts = self.function(self.plan_period_id, self.time_calc_max_shifts,
                                                 self.time_calc_fair_distribution, False)
         self.signals.finished.emit(max_shifts, fair_shifts)
+
+
+class SignalsPlanRating(QObject):
+    """Signale für den PlanRating-Worker."""
+    finished = Signal(object)  # PlanRating-Objekt
+
+
+class WorkerCalculatePlanRating(QRunnable):
+    """
+    Worker für die asynchrone Berechnung der Plan-Bewertung.
+
+    Berechnet die Bewertung in einem separaten Thread, um die UI
+    nicht zu blockieren. Besonders wichtig bei großen Plänen.
+    """
+
+    def __init__(self, plan: schemas.PlanShow):
+        """
+        Initialisiert den Worker.
+
+        Args:
+            plan: Der zu bewertende Plan
+        """
+        super().__init__()
+        self.plan = plan
+        self.signals = SignalsPlanRating()
+
+    @Slot()
+    def run(self):
+        """Berechnet die Plan-Bewertung und emittiert das Ergebnis."""
+        from gui.plan_rating.rating_calculator import PlanRatingCalculator
+
+        calculator = PlanRatingCalculator(self.plan)
+        rating = calculator.calculate()
+        self.signals.finished.emit(rating)

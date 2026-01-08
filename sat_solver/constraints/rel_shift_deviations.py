@@ -70,8 +70,13 @@ class RelShiftDeviationsConstraint(ConstraintBase):
         )
         
         # Erstelle Summe der quadrierten Abweichungen als Penalty
+        # Bound: Summe über alle Mitarbeiter, theoretisch max = num_apps * 100M
+        # Realistisch viel kleiner, da Abweichungen sich verteilen
+        # Das Gewicht (100 / num_apps) kontrolliert den Einfluss auf die Objective
+        num_apps = len(self.entities.actor_plan_periods)
+        max_sum = num_apps * 100_000_000
         self.sum_squared_deviations = self.model.NewIntVar(
-            lb=0, ub=1_000_000_000, name='sum_squared_deviations'
+            lb=0, ub=max_sum, name='sum_squared_deviations'
         )
         self.model.AddAbsEquality(
             self.sum_squared_deviations, 
@@ -100,10 +105,12 @@ class RelShiftDeviationsConstraint(ConstraintBase):
         Returns:
             Dict mit relativen Abweichungs-Variablen pro ActorPlanPeriod
         """
+        # Relative Abweichung mit 1000er-Skalierung:
+        # -100% = -1000, +200% = +2000, realistisch begrenzt auf -5000 bis +5000
         relative_shift_deviations = {
             app.id: self.model.NewIntVar(
-                lb=-len(self.entities.event_groups_with_event) * 1_000_000,
-                ub=len(self.entities.event_groups_with_event) * 1_000_000,
+                lb=-5_000,
+                ub=5_000,
                 name=f'relative_shift_deviation_{app.person.f_name}'
             )
             for app in self.entities.actor_plan_periods.values()
@@ -196,18 +203,22 @@ class RelShiftDeviationsConstraint(ConstraintBase):
         Returns:
             Dict mit quadrierten Abweichungen pro ActorPlanPeriod
         """
+        # Quadrierte Abweichung vom Durchschnitt
+        # Bei max dif_average von 10.000 → max squared = 100.000.000
+        # Realistisch meist viel kleiner, da die Abweichungen sich um den Durchschnitt verteilen
         squared_deviations = {
             app.id: self.model.NewIntVar(
                 lb=0,
-                ub=(len(self.entities.event_groups_with_event) * 1_000_000) ** 2,
+                ub=100_000_000,
                 name=f'squared_deviation_{app.person.f_name}'
             )
             for app in self.entities.actor_plan_periods.values()
         }
         
         for app in self.entities.actor_plan_periods.values():
+            # Max Differenz: |5000 - (-5000)| = 10000, aber realistisch meist < 1000
             dif_average = self.model.NewIntVar(
-                lb=0, ub=1_000_000, 
+                lb=0, ub=10_000,
                 name=f'dif_average__relative_shift_deviation {app.id}'
             )
             self.model.AddAbsEquality(

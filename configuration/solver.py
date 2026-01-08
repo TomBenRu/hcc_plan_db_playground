@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Protocol
 
 import toml
 
@@ -11,26 +10,88 @@ from configuration.project_paths import curr_user_path_handler
 
 
 class MinimizationWeights(BaseModel):
-    unassigned_shifts: float = 100_000
-    sum_squared_deviations: float = 0.5
-    constraints_weights_in_avail_day_groups: float = 1
-    constraints_weights_in_event_groups: float = 1
-    constraints_location_prefs: float = 0.001  # bei Faktor 0.0001 hat location prefs keinen Einfluss, komisch!
-    constraints_partner_loc_prefs: float = 0.1
-    constraints_fixed_casts_conflicts: float = 10_000_000
-    prefer_fixed_cast_events: float = 1000  # Bevorzugung von Events mit fixed_cast bei Auswahl
-    constraints_cast_rule: float = 1000
-    constraints_skills_match: float = 1000
+    """
+    Gewichte für die Solver-Objective-Funktion.
+
+    Alle Gewichte sind Integer-basiert für konsistente CP-SAT-Verarbeitung.
+    Die Prioritätshierarchie (höher = wichtiger):
+
+    1. Pseudo-Hard-Constraints: 1.000.000+ (quasi unverhandelbar)
+    2. Kernfunktion (Schichten besetzen): 10.000
+    3. Wichtige Regeln (Skills, Cast-Rules): 1.000
+    4. Fairness (Schichtverteilung): 100
+    5. Gruppen-Gewichtungen: 10
+    6. Präferenzen (nice-to-have): 1
+    """
+    # Priorität 1: Pseudo-Hard-Constraints
+    constraints_fixed_casts_conflicts: int = 10_000_000
+
+    # Priorität 2: Kernfunktion
+    unassigned_shifts: int = 100_000
+
+    # Priorität 3: Wichtige Regeln
+    prefer_fixed_cast_events: int = 10_000
+    constraints_cast_rule: int = 10_000
+    constraints_skills_match: int = 10_000
+
+    # Priorität 4: Fairness (wird durch num_apps normalisiert)
+    sum_squared_deviations: int = 100
+
+    # Priorität 5: Gruppen-Gewichtungen
+    constraints_weights_in_avail_day_groups: int = 10
+    constraints_weights_in_event_groups: int = 10
+
+    # Priorität 6: Präferenzen
+    constraints_partner_loc_prefs: int = 1
+    constraints_location_prefs: int = 1
 
 
 class ConstraintsMultipliers(BaseModel):
-    sliders_location_prefs: dict[float, int] = {0: 100, 0.5: 10, 1: 0, 1.5: -10, 2: -20} # WEIGHT_VARS_LOCATION_PREFS; Slider 0=Hard-Constraint
-    sliders_partner_loc_prefs: dict[float, int] = {0: 20, 0.5: 10, 1: 0, 1.5: -10, 2: -20}  # WEIGHT_VARS_PARTNER_LOC_PREFS
-    group_depth_weights_event_groups: dict[float, int] = {1: 100, 2: 10, 3: 1}
-    sliders_weights_event_groups: dict[float, int] = {0: 100, 1: 0, 2: -1}
-    sliders_weights_avail_day_groups: dict[float, int] = {0: 100, 1: 0, 2: -1}
+    """
+    Multiplikatoren für Slider-basierte Constraints.
+
+    Alle Slider verwenden eine konsistente Skala von -100 bis +100:
+    - Positive Werte = Penalty (zu vermeiden)
+    - Negative Werte = Bonus (zu bevorzugen)
+    - 0 = Neutral
+
+    Bei Score 0 wird in LocationPrefs ein Hard-Constraint gesetzt (keine Penalty-Variable).
+    """
+    # Location-Präferenzen: Score 0 = Hard-Constraint (separat behandelt)
+    sliders_location_prefs: dict[float, int] = {
+        0: 0,       # Wird als Hard-Constraint behandelt, nicht als Penalty
+        0.5: 100,   # Ungern: hohe Penalty
+        1: 0,       # Neutral
+        1.5: -50,   # Gern: Bonus
+        2: -100     # Sehr gern: hoher Bonus
+    }
+
+    # Partner-Location-Präferenzen
+    sliders_partner_loc_prefs: dict[float, int] = {
+        0: 200,     # Nicht zusammen: sehr hohe Penalty
+        0.5: 100,   # Ungern zusammen
+        1: 0,       # Neutral
+        1.5: -50,   # Gern zusammen
+        2: -100     # Sehr gern zusammen
+    }
+
+    # Event-Gruppen Gewichtungen
+    group_depth_weights_event_groups: dict[int, int] = {1: 10, 2: 5, 3: 1}
+    sliders_weights_event_groups: dict[float, int] = {
+        0: 100,     # Bevorzugt
+        1: 0,       # Neutral
+        2: -100     # Nicht bevorzugt
+    }
+
+    # AvailDay-Gruppen Gewichtungen
+    sliders_weights_avail_day_groups: dict[float, int] = {
+        0: 100,     # Bevorzugt
+        1: 0,       # Neutral
+        2: -100     # Nicht bevorzugt
+    }
+
     partner_loc_prefs_levels: dict[float, int] = {}
-    # todo: bei mehr als 2 Mitarbeitern werden die Weight-Vars angepasst. Derzeit funktional implementiert
+    # TODO: Bei mehr als 2 Mitarbeitern werden die Weight-Vars angepasst
 
 
 class SolverConfig(BaseModel):

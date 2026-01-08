@@ -15,7 +15,7 @@ from gui.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas, schemas_plan_api
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
-    get_curr_team_of_location_at_date, get_next_assignment_of_location, get_next_assignment_of_person
+    get_curr_team_of_location_at_date, get_next_assignment_of_location
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team, frm_skills, frm_team_assignments
 from commands import command_base_classes
@@ -267,51 +267,6 @@ class TablePersons(QTableWidget):
 
         # Sortierung wieder aktivieren
         self.setSortingEnabled(True)
-
-    def change_team(self, e):
-        person_id = self.item(self.currentRow(), 0).data(Qt.ItemDataRole.UserRole)
-        sender: QComboBoxToFindData = self.sender()
-        team_id: UUID = sender.currentData()
-        curr_team = get_curr_team_of_person_at_date(db_services.Person.get(person_id))
-        dlg = frm_assign_to_team.DlgAssignDate(self, curr_team.id if curr_team else None, team_id)
-        if not dlg.exec():
-            sender.blockSignals(True)
-            idx = sender.findData(curr_team.id) if curr_team else 0
-            sender.setCurrentIndex(idx)
-            sender.blockSignals(False)
-            return
-        person_full_name = f'{self.item(self.currentRow(), 0).text()} {self.item(self.currentRow(), 1).text()}'
-        # fixme: existing ActorPlanPeriods need to be considered.
-        #  See also "CreateLocationPlanPeriodsFromDate(Command)".
-        if team_id:
-            person_commands.AssignToTeam(person_id, team_id, dlg.start_date_new_team).execute()
-            next_assignment = get_next_assignment_of_person(db_services.Person.get(person_id), datetime.date.today())
-            text_start = date_to_string(next_assignment.start) if next_assignment else self.tr('immediately')
-            text_team_name = db_services.Team.get(team_id).name
-            QMessageBox.information(self, self.tr('Person'),
-                self.tr('The person "{}" is assigned to team "{}" starting {}').format(
-                    person_full_name, text_team_name, text_start))
-            reply = QMessageBox.question(self, self.tr('New Employee'),
-                self.tr('Do you want to create planning periods for {}?').format(person_full_name))
-            if reply == QMessageBox.StandardButton.Yes:
-                plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__team(team_id)
-                                if pp.end > datetime.date.today()]
-                for plan_period in plan_periods:
-                    new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period.id, person_id)
-                    db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
-                QMessageBox.information(self, self.tr('New Planning Periods'),
-                    self.tr('The following planning periods were created for {}:\n{}').format(
-                        person_full_name, [pp.start for pp in plan_periods]))
-        else:
-            person_commands.LeaveTeam(person_id, dlg.start_date_new_team).execute()
-            QMessageBox.information(self, self.tr('Person'),
-                self.tr('The person "{}" is not assigned to any team starting {}').format(
-                    person_full_name, date_to_string(dlg.start_date_new_team)))
-
-        sender.blockSignals(True)
-        curr_team = get_curr_team_of_person_at_date(person=db_services.Person.get(person_id))
-        sender.setCurrentIndex(sender.findData(curr_team.id if curr_team else None))
-        sender.blockSignals(False)
 
     def edit_team_assignments(self, person_id: UUID):
         """Öffnet den Dialog zur Verwaltung der Team-Zuordnungen einer Person."""

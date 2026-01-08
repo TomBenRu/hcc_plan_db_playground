@@ -260,46 +260,6 @@ class AssignToTeam(Command):
             self.controller.execute(delete_command)
 
 
-class LeaveTeam(Command):
-    def __init__(self, person_id: UUID, start: datetime.date):
-        super().__init__()
-        self.person_id = person_id
-        self.person = db_services.Person.get(person_id)
-        self.start = start
-
-        self.controller = ContrExecUndoRedo()
-
-    def execute(self):
-        if not self.person.team_actor_assigns:
-            raise LookupError('Location ist keinem Team zugeordnet.')
-        self.delete_assignments(self.get_assignments_later_than_start())
-        latest_assignment = self.get_latest_assignment_before_start()
-        if latest_assignment and (latest_assignment.end is None or latest_assignment.end > self.start):
-            self.change_assignm_end_date(latest_assignment.id, self.start)
-
-    def _undo(self):
-        self.controller.undo_all()
-
-    def _redo(self):
-        self.execute()
-
-    def get_assignments_later_than_start(self) -> list[schemas.TeamActorAssign]:
-        return [a for a in self.person.team_actor_assigns if a.start >= self.start]
-
-    def get_latest_assignment_before_start(self) -> schemas.TeamActorAssign | None:
-        assignments_before_start = [a for a in self.person.team_actor_assigns if a.start < self.start]
-        return max(assignments_before_start, key=lambda x: x.start) if assignments_before_start else None
-
-    def delete_assignments(self, assignments: list[schemas.TeamActorAssign]):
-        for assignm in assignments:
-            delete_command = team_actor_assignment_commands.Delete(assignm.id)
-            self.controller.execute(delete_command)
-
-    def change_assignm_end_date(self, assignm_id: UUID, end_date: datetime.date | None):
-        command = team_actor_assignment_commands.ChangeEndDate(assignm_id, end_date)
-        self.controller.execute(command)
-
-
 class AddToTeam(Command):
     """Fügt eine Person zu einem weiteren Team hinzu, ohne bestehende Zuordnungen zu beenden.
 
@@ -349,8 +309,8 @@ class AddToTeam(Command):
 class RemoveFromTeam(Command):
     """Beendet die Zuordnung einer Person zu einem bestimmten Team ab einem Datum.
 
-    Im Gegensatz zu LeaveTeam wird nur die Zuordnung zu einem spezifischen Team beendet,
-    nicht alle Zuordnungen. Andere Team-Zuordnungen bleiben unberührt.
+    Diese Methode ist Multi-Team-kompatibel: Nur die Zuordnung zum spezifischen Team
+    wird beendet, andere Team-Zuordnungen bleiben unberührt.
 
     Args:
         person_id: Die UUID der Person

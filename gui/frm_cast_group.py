@@ -1021,18 +1021,19 @@ class DlgCastGroups(QDialog):
         self.update_all_items()
 
     def edit_item(self, item: QTreeWidgetItem):
-        if event := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-            event: schemas.Event
-            visible_location_plan_period_ids = {event.location_plan_period.id}
-        else:
-            visible_location_plan_period_ids = location_plan_period_ids__from_cast_group(
-                item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole))
-        dlg = DlgGroupProperties(self, item, visible_location_plan_period_ids)
+        cast_group: schemas.CastGroupShow = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
-        if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-            for widget in (dlg.lb_rule, dlg.combo_cast_rules, dlg.le_custom_rule, dlg.lb_new_rule, dlg.bt_new_rule,
-                           dlg.lb_strict_cast_pref, dlg.slider_strict_cast_pref, dlg.lb_strict_cast_pref_value_text):
-                widget.setParent(None)
+        if event := item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+            # Event -> DlgEventProperties verwenden
+            from gui.custom_widgets.dlg_event_properties import DlgEventProperties
+
+            event: schemas.Event
+            location_plan_period = db_services.LocationPlanPeriod.get(event.location_plan_period.id)
+            dlg = DlgEventProperties(self, cast_group, location_plan_period)
+        else:
+            # CastGroup -> DlgGroupProperties verwenden
+            visible_location_plan_period_ids = location_plan_period_ids__from_cast_group(cast_group)
+            dlg = DlgGroupProperties(self, item, visible_location_plan_period_ids)
 
         if not dlg.exec():
             return

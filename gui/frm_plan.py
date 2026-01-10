@@ -172,11 +172,18 @@ class DlgEditAppointment(QDialog):
     def __init__(self, parent: QWidget, appointment: schemas.Appointment):
         super().__init__(parent=parent)
         self.appointment = appointment
+        self._cleanup_cancelled = False
 
         self._setup_ui()
         self._setup_data()
+
+        # Overflow-Prüfung: Wenn mehr Zuweisungen als nr_actors vorhanden sind
+        if not self._check_and_fix_avail_day_overflow():
+            self._cleanup_cancelled = True
+            return
+
         self._setup_employee_combos()
-        
+
         # Help-Integration
         setup_form_help(self, "edit_appointment", add_help_button=True)
 
@@ -199,6 +206,15 @@ class DlgEditAppointment(QDialog):
         self.group_employees = QGroupBox(self.tr('Employees'))
         self.layout_body.addWidget(self.group_employees)
         self.form_employees = QFormLayout(self.group_employees)
+
+        # Button für Event-Eigenschaften
+        self.bt_event_properties = QPushButton(self.tr("Event Properties..."))
+        self.bt_event_properties.setToolTip(
+            self.tr("Edit Fixed Cast, Staff Count, and Preferences for this event")
+        )
+        self.bt_event_properties.clicked.connect(self.open_event_properties)
+        self.layout_body.addWidget(self.bt_event_properties)
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.layout_foot.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
@@ -213,6 +229,31 @@ class DlgEditAppointment(QDialog):
             {self.appointment.event.location_plan_period.location_of_work.id}
         )
         self.possible_avail_days.sort(key=lambda x: x.actor_plan_period.person.f_name)
+
+    def _check_and_fix_avail_day_overflow(self) -> bool:
+        """
+        Prüft ob das Appointment mehr Zuweisungen als nr_actors hat.
+        Wenn ja, wird DlgAvailDayCleanup geöffnet.
+
+        Returns:
+            True wenn alles ok oder Cleanup erfolgreich, False bei Abbruch
+        """
+        current_count = len(self.appointment.avail_days) + len(self.appointment.guests)
+        if current_count <= self.cast_group.nr_actors:
+            return True
+
+        excess = current_count - self.cast_group.nr_actors
+
+        from gui.custom_widgets.dlg_event_properties import DlgAvailDayCleanup
+
+        dlg = DlgAvailDayCleanup(self, self.appointment, self.cast_group.nr_actors, excess)
+
+        if dlg.exec():
+            # Appointment neu laden
+            self.appointment = db_services.Appointment.get(self.appointment.id)
+            return True
+
+        return False
 
     def _setup_employee_combos(self):
         self.combos_employees = []
@@ -262,6 +303,43 @@ class DlgEditAppointment(QDialog):
     @property
     def new_cast_clear_text(self) -> str:
         return ', '.join(sorted(combo.currentText() for combo in self.combos_employees if combo.currentData()))
+
+    def open_event_properties(self):
+        """Öffnet den DlgEventProperties Dialog für das Event dieses Appointments."""
+        from gui.custom_widgets.dlg_event_properties import DlgEventProperties
+
+        location_plan_period = db_services.LocationPlanPeriod.get(
+            self.appointment.event.location_plan_period.id
+        )
+
+        dlg = DlgEventProperties(
+            self,
+            self.cast_group,
+            location_plan_period,
+            self.appointment
+        )
+
+        if dlg.exec():
+            # Daten neu laden (nr_actors und AvailDays könnten sich geändert haben)
+            self.cast_group = db_services.CastGroup.get_cast_group_of_event(
+                self.appointment.event.id
+            )
+            self.appointment = db_services.Appointment.get(self.appointment.id)
+
+            # ComboBoxen neu aufbauen falls nr_actors geändert
+            self._rebuild_employee_combos()
+
+    def _rebuild_employee_combos(self):
+        """Baut die Mitarbeiter-ComboBoxen neu auf basierend auf aktuellem nr_actors."""
+        # Alle Rows aus dem FormLayout entfernen
+        while self.form_employees.rowCount() > 0:
+            self.form_employees.removeRow(0)
+
+        # ComboBox-Liste leeren
+        self.combos_employees.clear()
+
+        # Neu aufbauen
+        self._setup_employee_combos()
 
 
 class DlgMoveAppointment(QDialog):
@@ -618,6 +696,9 @@ class AppointmentField(QWidget):
         if event.button() != Qt.MouseButton.LeftButton:
             return
         dlg = DlgEditAppointment(self, self.appointment)
+        # Wenn der Cleanup-Dialog abgebrochen wurde, Dialog nicht anzeigen
+        if dlg._cleanup_cancelled:
+            return
         if dlg.exec():
 
             commands_to_batch = []

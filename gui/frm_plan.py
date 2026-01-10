@@ -173,14 +173,14 @@ class DlgEditAppointment(QDialog):
         super().__init__(parent=parent)
         self.appointment = appointment
 
-        self._setup_layout()
+        self._setup_ui()
         self._setup_data()
         self._setup_employee_combos()
         
         # Help-Integration
         setup_form_help(self, "edit_appointment", add_help_button=True)
 
-    def _setup_layout(self):
+    def _setup_ui(self):
         self.setStyleSheet('background-color: none;')
         self.layout = QVBoxLayout(self)
         self.layout_head = QVBoxLayout()

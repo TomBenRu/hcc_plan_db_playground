@@ -94,10 +94,18 @@ class ContrExecUndoRedo(Invoker):
         return self.undo_stack
 
     def add_to_undo_stack(self, value: Iterable[Command] | Command):
+        """Fügt bereits ausgeführte Commands zum Undo-Stack hinzu.
+
+        Wichtig: Leert den Redo-Stack, da eine neue Aktion die Redo-Historie invalidiert.
+                 Dies ist nötig, da im Deferred Mode die Commands bereits ausgeführt werden,
+                 bevor sie zum Controller hinzugefügt werden.
+        """
+        self.redo_stack.clear()
         if isinstance(value, Iterable):
             self.undo_stack.extend(value)
         else:
             self.undo_stack.append(value)
+        self._notify_stacks_changed()
 
     def get_recent_undo_command(self) -> Command | None:
         return self.undo_stack[-1] if self.undo_stack else None

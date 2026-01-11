@@ -2,6 +2,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from tools.helper_functions import generate_fixed_cast_clear_text
 
 
 class Create(Command):
@@ -94,6 +95,11 @@ class UpdateFixedCast(Command):
         db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast,
                                                 self.fixed_cast_only_if_available)
 
+    def __str__(self) -> str:
+        old_cast = generate_fixed_cast_clear_text(self.fixed_cast_old) or "(keine)"
+        new_cast = generate_fixed_cast_clear_text(self.fixed_cast) or "(keine)"
+        return f"Stammbesetzung: {old_cast} → {new_cast}"
+
 
 class UpdateNrActors(Command):
     def __init__(self, cast_group_id: UUID, nr_actors: int):
@@ -111,6 +117,9 @@ class UpdateNrActors(Command):
     def _redo(self):
         db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
 
+    def __str__(self) -> str:
+        return f"Anz. Mitarbeiter: {self.nr_actors_old} → {self.nr_actors}"
+
 
 class UpdateStrictCastPref(Command):
     def __init__(self, cast_group_id: UUID, strict_cast_pref: int):
@@ -127,6 +136,9 @@ class UpdateStrictCastPref(Command):
 
     def _redo(self):
         db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
+
+    def __str__(self) -> str:
+        return f"Strenge Besetzungspräferenz: {self.strict_cast_pref_old} → {self.strict_cast_pref}"
 
 
 class UpdatePreferFixedCastEvents(Command):
@@ -152,6 +164,11 @@ class UpdatePreferFixedCastEvents(Command):
             self.cast_group_id, self.prefer_fixed_cast_events
         )
 
+    def __str__(self) -> str:
+        old_val = "Ja" if self.prefer_fixed_cast_events_old else "Nein"
+        new_val = "Ja" if self.prefer_fixed_cast_events else "Nein"
+        return f"Stammbesetzung bevorzugen: {old_val} → {new_val}"
+
 
 class UpdateCustomRule(Command):
     def __init__(self, cast_group_id: UUID, custom_rule: str | None):
@@ -169,6 +186,11 @@ class UpdateCustomRule(Command):
     def _redo(self):
         db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule)
 
+    def __str__(self) -> str:
+        old_rule = self.custom_rule_old or "(keine)"
+        new_rule = self.custom_rule or "(keine)"
+        return f"Benutzerdefinierte Regel: {old_rule} → {new_rule}"
+
 
 class UpdateCastRule(Command):
     def __init__(self, cast_group_id: UUID, cast_rule_id: UUID | None):
@@ -177,15 +199,26 @@ class UpdateCastRule(Command):
         self.cast_group = db_services.CastGroup.get(cast_group_id)
         self.cast_rule_id = cast_rule_id
         self.cast_rule_id_old = self.cast_group.cast_rule.id if self.cast_group.cast_rule else None
+        # Namen für bessere Anzeige speichern
+        self._old_rule_name = self.cast_group.cast_rule.name if self.cast_group.cast_rule else None
+        self._new_rule_name: str | None = None
 
     def execute(self):
         db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id)
+        if self.cast_rule_id:
+            cast_rule = db_services.CastRule.get(self.cast_rule_id)
+            self._new_rule_name = cast_rule.name if cast_rule else None
 
     def _undo(self):
         db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id_old)
 
     def _redo(self):
         db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id)
+
+    def __str__(self) -> str:
+        old_rule = self._old_rule_name or "(keine)"
+        new_rule = self._new_rule_name or "(keine)"
+        return f"Besetzungsregel: {old_rule} → {new_rule}"
 
 
 

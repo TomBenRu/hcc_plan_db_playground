@@ -31,12 +31,16 @@ class DlgEventProperties(QDialog):
         cast_group: Die CastGroup des Events
         location_plan_period: LocationPlanPeriod für Fixed Cast Builder (optional)
         appointment: Das aktuelle Appointment für AvailDay-Cleanup (optional)
+        defer_execution: Wenn True, werden Commands gesammelt statt sofort ausgeführt.
+                        Bei reject() werden sie rückgängig gemacht.
+                        Der Aufrufer kann sie über get_pending_commands() abrufen.
     """
 
     def __init__(self, parent: QWidget,
                  cast_group: schemas.CastGroupShow,
                  location_plan_period: schemas.LocationPlanPeriodShow | None = None,
-                 appointment: schemas.Appointment | None = None):
+                 appointment: schemas.Appointment | None = None,
+                 defer_execution: bool = False):
         super().__init__(parent=parent)
 
         # Validierung: Dialog nur für Events verwenden
@@ -47,7 +51,17 @@ class DlgEventProperties(QDialog):
         self.event_data = db_services.Event.get(cast_group.event.id)
         self.location_plan_period = location_plan_period
         self.appointment = appointment
-        self.controller = command_base_classes.ContrExecUndoRedo()
+
+        # Deferred Execution Mode
+        self._defer_execution = defer_execution
+        self._pending_commands: list[command_base_classes.Command] = []
+
+        if defer_execution:
+            # Im deferred Mode: Kein Controller nötig (Commands werden gesammelt)
+            self.controller = None
+        else:
+            # Bisheriges Verhalten für Standalone-Nutzung (z.B. FrmCastGroup)
+            self.controller = command_base_classes.ContrExecUndoRedo()
 
         # Initialer nr_actors Wert für Vergleich
         self._initial_nr_actors = self.cast_group.nr_actors
@@ -147,6 +161,47 @@ class DlgEventProperties(QDialog):
         self._update_nr_actors_info()
 
     # -------------------------------------------------------------------------
+    # Command Execution (Deferred Mode Support)
+    # -------------------------------------------------------------------------
+
+    def _execute_or_defer(self, cmd: command_base_classes.Command):
+        """
+        Führt Command aus oder sammelt ihn für spätere Ausführung.
+
+        Im deferred Mode wird der Command ausgeführt (für sofortige UI-Änderung),
+        aber in _pending_commands gesammelt, damit er bei reject() rückgängig
+        gemacht werden kann und bei accept() an den Aufrufer übergeben wird.
+        """
+        if self._defer_execution:
+            cmd.execute()
+            self._pending_commands.append(cmd)
+        else:
+            self.controller.execute(cmd)
+
+    def _add_commands_to_pending(self, commands: list[command_base_classes.Command]):
+        """
+        Fügt bereits ausgeführte Commands zur pending-Liste hinzu (deferred Mode)
+        oder zum Controller (immediate Mode).
+        """
+        if self._defer_execution:
+            self._pending_commands.extend(commands)
+        else:
+            self.controller.add_to_undo_stack(commands)
+
+    def get_pending_commands(self) -> list[command_base_classes.Command]:
+        """
+        Gibt die gesammelten Commands zurück (nur im deferred Mode relevant).
+
+        Returns:
+            Kopie der pending Commands Liste
+        """
+        return self._pending_commands.copy()
+
+    def has_pending_commands(self) -> bool:
+        """Prüft ob es ausstehende Commands gibt."""
+        return bool(self._pending_commands)
+
+    # -------------------------------------------------------------------------
     # Fixed Cast
     # -------------------------------------------------------------------------
 
@@ -157,8 +212,8 @@ class DlgEventProperties(QDialog):
         ).build()
 
         if dlg.exec():
-            # Commands übernehmen
-            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            # Commands übernehmen (DlgFixedCast führt sie bereits aus)
+            self._add_commands_to_pending(list(dlg.controller.get_undo_stack()))
 
             # Daten neu laden
             self.cast_group = db_services.CastGroup.get(self.cast_group.id)
@@ -206,7 +261,7 @@ class DlgEventProperties(QDialog):
         # Auto-Deaktivierung wenn kein fixed_cast
         if not has_fixed_cast and self.cast_group.prefer_fixed_cast_events:
             cmd = cast_group_commands.UpdatePreferFixedCastEvents(self.cast_group.id, False)
-            self.controller.execute(cmd)
+            self._execute_or_defer(cmd)
             self.cast_group = cmd.result
             self.cb_prefer_fixed_cast_events.setChecked(False)
 
@@ -214,7 +269,7 @@ class DlgEventProperties(QDialog):
         """Handler für Änderungen an der Prefer-Checkbox."""
         new_value = self.cb_prefer_fixed_cast_events.isChecked()
         cmd = cast_group_commands.UpdatePreferFixedCastEvents(self.cast_group.id, new_value)
-        self.controller.execute(cmd)
+        self._execute_or_defer(cmd)
         self.cast_group = cmd.result
 
     def _check_fixed_cast_consistency(self):
@@ -275,7 +330,7 @@ class DlgEventProperties(QDialog):
 
         # Update ausführen
         cmd = cast_group_commands.UpdateNrActors(self.cast_group.id, new_nr_actors)
-        self.controller.execute(cmd)
+        self._execute_or_defer(cmd)
         self.cast_group = db_services.CastGroup.get(self.cast_group.id)
         self._update_nr_actors_info()
 
@@ -339,8 +394,8 @@ class DlgEventProperties(QDialog):
         dlg = DlgAvailDayCleanup(self, self.appointment, new_nr_actors, excess)
 
         if dlg.exec():
-            # Commands aus dem Dialog übernehmen
-            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+            # Commands aus dem Dialog übernehmen (DlgAvailDayCleanup führt sie bereits aus)
+            self._add_commands_to_pending(list(dlg.controller.get_undo_stack()))
 
             # Appointment neu laden
             self.appointment = db_services.Appointment.get(self.appointment.id)
@@ -359,7 +414,14 @@ class DlgEventProperties(QDialog):
 
     def reject(self):
         """Alle Änderungen rückgängig machen und schließen."""
-        self.controller.undo_all()
+        if self._defer_execution:
+            # Im deferred Mode: Pending Commands rückgängig machen
+            for cmd in reversed(self._pending_commands):
+                cmd._undo()
+            self._pending_commands.clear()
+        else:
+            # Bisheriges Verhalten
+            self.controller.undo_all()
         super().reject()
 
 

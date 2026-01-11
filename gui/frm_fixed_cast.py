@@ -378,17 +378,10 @@ class DlgFixedCast(QDialog):
 
     def accept(self) -> None:
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
-        
-        # Setze den Checkbox-Wert im Objekt
-        self.object_with_fixed_cast.fixed_cast_only_if_available = self.chk_only_if_available.isChecked()
         if self.object_with_fixed_cast.fixed_cast:
+            self.object_with_fixed_cast.fixed_cast_only_if_available = self.chk_only_if_available.isChecked()
             simplifier = SimplifyFixedCastAndInfo(self.object_with_fixed_cast.fixed_cast)
             self.fixed_cast_simplified = simplifier.simplified_fixed_cast
-            self.controller.execute(self.builder.update_command(
-                self.fixed_cast_simplified,
-                self.object_with_fixed_cast.fixed_cast_only_if_available)
-            )
-
             if self.object_with_fixed_cast.nr_actors < simplifier.min_nr_actors:
                 # fixme: für cast_groups ohne event
                 QMessageBox.warning(self, self.tr('Fixed Cast'),
@@ -396,6 +389,12 @@ class DlgFixedCast(QDialog):
                                             'planned staffing level ({actual_actors}).').format(
                                         min_actors=simplifier.min_nr_actors,
                                         actual_actors=self.object_with_fixed_cast.nr_actors))
+
+        self.controller.undo_all()
+        self.controller.execute(self.builder.update_command(
+            self.fixed_cast_simplified,
+            self.object_with_fixed_cast.fixed_cast_only_if_available
+        ))
         super().accept()
 
     def reject(self) -> None:

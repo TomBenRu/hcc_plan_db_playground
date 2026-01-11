@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTabl
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
 from commands.database_commands import plan_commands, appointment_commands, max_fair_shifts_per_app, \
-    plan_period_commands, event_commands
+    plan_period_commands, event_commands, cast_group_commands
 from configuration.general_settings import general_settings_handler
 from database import schemas, db_services
 from gui import widget_styles
@@ -169,10 +169,13 @@ class DlgGuest(QDialog):
 
 
 class DlgEditAppointment(QDialog):
-    def __init__(self, parent: QWidget, appointment: schemas.Appointment):
+    def __init__(self, parent: QWidget, appointment: schemas.Appointment,
+                 controller: command_base_classes.ContrExecUndoRedo):
         super().__init__(parent=parent)
         self.appointment = appointment
+        self.controller = controller
         self._cleanup_cancelled = False
+        self._event_properties_commands: list[command_base_classes.Command] = []
 
         self._setup_ui()
         self._setup_data()
@@ -316,10 +319,14 @@ class DlgEditAppointment(QDialog):
             self,
             self.cast_group,
             location_plan_period,
-            self.appointment
+            self.appointment,
+            defer_execution=True  # Commands werden gesammelt, nicht sofort committed
         )
 
         if dlg.exec():
+            # Commands für spätere Ausführung sammeln (bei OK von DlgEditAppointment)
+            self._event_properties_commands.extend(dlg.get_pending_commands())
+
             # Daten neu laden (nr_actors und AvailDays könnten sich geändert haben)
             self.cast_group = db_services.CastGroup.get_cast_group_of_event(
                 self.appointment.event.id
@@ -328,6 +335,18 @@ class DlgEditAppointment(QDialog):
 
             # ComboBoxen neu aufbauen falls nr_actors geändert
             self._rebuild_employee_combos()
+
+    def get_event_properties_commands(self) -> list[command_base_classes.Command]:
+        """Gibt die gesammelten Event-Properties-Commands zurück."""
+        return self._event_properties_commands.copy()
+
+    def reject(self):
+        """Bei Cancel: Event-Properties-Änderungen rückgängig machen."""
+        # Pending Event-Properties-Commands rückgängig machen
+        for cmd in reversed(self._event_properties_commands):
+            cmd._undo()
+        self._event_properties_commands.clear()
+        super().reject()
 
     def _rebuild_employee_combos(self):
         """Baut die Mitarbeiter-ComboBoxen neu auf basierend auf aktuellem nr_actors."""
@@ -695,40 +714,74 @@ class AppointmentField(QWidget):
     def mouseReleaseEvent(self, event):
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        dlg = DlgEditAppointment(self, self.appointment)
+        dlg = DlgEditAppointment(self, self.appointment, self.plan_widget.controller)
         # Wenn der Cleanup-Dialog abgebrochen wurde, Dialog nicht anzeigen
         if dlg._cleanup_cancelled:
             return
         if dlg.exec():
+            # Alle Commands sammeln (Event-Properties + Cast)
+            all_commands: list[command_base_classes.Command] = []
 
-            commands_to_batch = []
+            # 1. Event-Properties-Commands (bereits ausgeführt im deferred Mode)
+            event_props_commands = dlg.get_event_properties_commands()
+            all_commands.extend(event_props_commands)
+
+            # 2. Cast-Commands erstellen (noch nicht ausgeführt)
+            cast_commands: list[command_base_classes.Command] = []
             if (new_avail_days := sorted(dlg.new_avail_days)) != sorted(avd.id for avd in self.appointment.avail_days):
                 command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_days)
-                commands_to_batch.append(command_avail_days)
+                cast_commands.append(command_avail_days)
 
             if (new_guests := sorted(dlg.new_guests)) != sorted(self.appointment.guests):
                 command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
-                commands_to_batch.append(command_guests)
+                cast_commands.append(command_guests)
 
-            if not commands_to_batch:
+            all_commands.extend(cast_commands)
+
+            if not all_commands:
+                # Keine Änderungen - nichts zu tun
                 return
 
+            # Cast-Commands ausführen (Event-Properties sind bereits ausgeführt)
+            for cmd in cast_commands:
+                cmd.execute()
+
+            # Unified BatchCommand erstellen mit detaillierter Beschreibung
             event_location = self.appointment.event.location_plan_period.location_of_work.name_an_city
             event_date = date_to_string(self.appointment.event.date)
             event_time = self.appointment.event.time_of_day.name
-            old_cast = (', '.join(sorted(avd.actor_plan_period.person.full_name
-                                         for avd in self.appointment.avail_days))) or '(keine)'
-            new_cast = dlg.new_cast_clear_text or '(keine)'
-            description = (f"Cast-Änderungen für\n{event_location} - {event_date} ({event_time})\n"
-                           f"{old_cast} → {new_cast}")
-            self.batch_command = BatchCommand(self, commands_to_batch, description=description)
-            self.batch_command.appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
-            self.plan_widget.controller.execute(self.batch_command)
-            self.appointment = commands_to_batch[-1].updated_appointment
-            self.batch_command.updated_appointment = self.appointment  # notwendig für undo/redo im Plan-Widget
+
+            description_lines = [f"{event_location} - {event_date} ({event_time})"]
+
+            # Event-Properties-Änderungen detailliert aufführen
+            for cmd in event_props_commands:
+                # Nutze __str__-Methode der Commands (falls vorhanden)
+                description_lines.append(f"  • {cmd}")
+
+            # Cast-Änderungen aufführen
+            for cmd in cast_commands:
+                if isinstance(cmd, appointment_commands.UpdateAvailDays):
+                    description_lines.append("  • Besetzung geändert")
+                elif isinstance(cmd, appointment_commands.UpdateGuests):
+                    description_lines.append("  • Gäste geändert")
+
+            description = "\n".join(description_lines)
+
+            self.batch_command = BatchCommand(self, all_commands, description=description)
+            self.batch_command.appointment = self.appointment  # notwendig für undo/redo Highlighting
+            self.plan_widget.controller.add_to_undo_stack(self.batch_command)
+
+            # Appointment neu laden
+            if cast_commands:
+                self.appointment = cast_commands[-1].updated_appointment
+            else:
+                self.appointment = db_services.Appointment.get(self.appointment.id)
+            self.batch_command.updated_appointment = self.appointment
+
+            # UI aktualisieren
             fill_in_data(self)
 
-            if self.plan_widget.permanent_plan_check:
+            if self.plan_widget.permanent_plan_check and cast_commands:
                 self._start_plan_check()
             else:
                 self.execution_timer_plan_post_cast_change.start_timer()

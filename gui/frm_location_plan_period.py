@@ -678,7 +678,8 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
 
 class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow):
+                 location_plan_period: schemas.LocationPlanPeriodShow,
+                 controller: command_base_classes.ContrExecUndoRedo):
         super().__init__(parent=parent)
 
         self.setObjectName(f'skill_groups: {date}')
@@ -694,7 +695,7 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
 
         self.date = date
         self.location_plan_period = location_plan_period
-        self.controller = command_base_classes.ContrExecUndoRedo()
+        self.controller = controller
         self.set_stylesheet_and_tooltip()
 
     def set_stylesheet_and_tooltip(self):
@@ -1196,7 +1197,7 @@ class FrmLocationPlanPeriod(QWidget):
             bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller)
             bt_notes.setDisabled(disable_buttons)
             self.layout.addWidget(bt_notes, row + 3, col)
-            bt_skills = ButtonSkillGroups(self, d, 24, self.location_plan_period)
+            bt_skills = ButtonSkillGroups(self, d, 24, self.location_plan_period, self.controller)
             bt_skills.setDisabled(disable_buttons)
             self.layout.addWidget(bt_skills, row + 4, col)
 

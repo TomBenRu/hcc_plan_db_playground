@@ -7,7 +7,7 @@ from typing import Literal, Callable
 from uuid import UUID
 
 from PySide6.QtCore import Qt, Slot, QTimer, QThreadPool, Signal, QDate, QCoreApplication, QLocale
-from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent
+from PySide6.QtGui import QContextMenuEvent, QColor, QMouseEvent, QAction
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
                                QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame,
@@ -1270,6 +1270,11 @@ class FrmTabPlan(QWidget):
         # Tooltip-Updates für Undo/Redo-Buttons
         self.controller.set_on_stacks_changed_callback(self._update_undo_redo_tooltips)
         self._update_undo_redo_tooltips()  # Initial-Zustand setzen
+        # Rechtsklick-Kontextmenüs für Undo/Redo-History
+        self.bt_undo.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.bt_undo.customContextMenuRequested.connect(self._show_undo_context_menu)
+        self.bt_redo.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.bt_redo.customContextMenuRequested.connect(self._show_redo_context_menu)
         self.bt_refresh = QPushButton(self.tr('Refresh view'))
         self.bt_refresh.clicked.connect(self.reload_and_refresh_plan)
         self.side_menu.add_button(self.bt_refresh)
@@ -1451,24 +1456,12 @@ class FrmTabPlan(QWidget):
         self._handle_post_undo_redo_actions()
 
     def _highlight_undo_redo_appointment_field(self, appointment_field: AppointmentField):
-        def reset_field():
-            try:
-                appointment_field.setStyleSheet(self._original_undo_redo_highlight_style_sheet)
-            except RuntimeError:
-                # Da das AppointmentField schon gelöscht wurde, ignorieren wir den Fehler.
-                pass
+        """Setzt Highlight auf ein AppointmentField.
 
-        # Verhindert, dass auch bei mehrfach schnellem Auslösen der Action immer auf das originale Stylesheet
-        # zurückgesetzt wird:
-        if not hasattr(self, '_original_undo_redo_highlight_style_sheet'):
-            self._original_undo_redo_highlight_style_sheet = appointment_field.styleSheet()
+        Das Highlight wird automatisch durch refresh_plan() entfernt,
+        das nach 1000ms via _handle_post_undo_redo_actions() aufgerufen wird.
+        """
         appointment_field.setStyleSheet('background-color: rgba(0, 0, 255, 128);')
-        if hasattr(self, '_undo_redo_highlight_timer') and self._undo_redo_highlight_timer.isActive():
-            self._undo_redo_highlight_timer.stop()
-        self._undo_redo_highlight_timer = QTimer(self)
-        self._undo_redo_highlight_timer.setSingleShot(True)
-        self._undo_redo_highlight_timer.timeout.connect(reset_field)
-        self._undo_redo_highlight_timer.start(1500)
 
     def _handle_post_undo_redo_actions(self):
         if not hasattr(self, '_execution_handler_post_undo_redo'):
@@ -1504,6 +1497,81 @@ class FrmTabPlan(QWidget):
         else:
             self.bt_redo.setToolTip("Keine Aktion zum Wiederholen")
             self.bt_redo.setEnabled(False)
+
+    def _show_undo_context_menu(self, pos):
+        """Zeigt Kontextmenü mit Undo-History (max. 10 Einträge, neueste oben)."""
+        undo_stack = self.controller.get_undo_stack()
+        if not undo_stack:
+            return
+
+        menu = QMenu(self)
+        menu.setStyleSheet(widget_styles.context_menu_undo_redo.undo_redo_context_menu_style)
+        # Neueste oben: reversed(undo_stack), begrenzt auf 10
+        for i, command in enumerate(reversed(undo_stack[-10:])):
+            action_text = f"{i + 1}. {str(command)}"
+            # Truncate lange Texte
+            if len(action_text) > 80:
+                action_text = action_text[:77] + "..."
+            action: QAction = menu.addAction(action_text)
+            # steps_back = Anzahl der Schritte vom Ende des Stacks
+            steps_back = i + 1
+            action.triggered.connect(partial(self._undo_multiple_steps, steps_back))
+
+        # Hinweis wenn mehr als 10 Aktionen
+        if len(undo_stack) > 10:
+            menu.addSeparator()
+            info_action = menu.addAction(f"... und {len(undo_stack) - 10} weitere")
+            info_action.setEnabled(False)
+
+        menu.exec(self.bt_undo.mapToGlobal(pos))
+
+    def _show_redo_context_menu(self, pos):
+        """Zeigt Kontextmenü mit Redo-History (max. 10 Einträge, nächste Aktion oben)."""
+        redo_stack = self.controller.redo_stack
+        if not redo_stack:
+            return
+
+        menu = QMenu(self)
+        menu.setStyleSheet(widget_styles.context_menu_undo_redo.undo_redo_context_menu_style)
+        # Nächste Redo-Aktion oben: reversed(redo_stack), begrenzt auf 10
+        for i, command in enumerate(reversed(redo_stack[-10:])):
+            action_text = f"{i + 1}. {str(command)}"
+            if len(action_text) > 80:
+                action_text = action_text[:77] + "..."
+            action: QAction = menu.addAction(action_text)
+            steps_forward = i + 1
+            action.triggered.connect(partial(self._redo_multiple_steps, steps_forward))
+
+        if len(redo_stack) > 10:
+            menu.addSeparator()
+            info_action = menu.addAction(f"... und {len(redo_stack) - 10} weitere")
+            info_action.setEnabled(False)
+
+        menu.exec(self.bt_redo.mapToGlobal(pos))
+
+    def _undo_multiple_steps(self, steps: int):
+        """Führt mehrere Undo-Schritte auf einmal aus.
+
+        Nutzt die bestehende _undo_shift_command() Methode, um Code-Duplizierung
+        zu vermeiden. Der DelayedTimerSingleShot in _handle_post_undo_redo_actions()
+        wird bei jedem Aufruf neu gestartet, sodass refresh_plan() erst nach
+        dem letzten Schritt ausgeführt wird.
+        """
+        undo_stack = self.controller.get_undo_stack()
+        if steps > len(undo_stack):
+            steps = len(undo_stack)
+
+        for _ in range(steps):
+            self._undo_shift_command()
+
+    def _redo_multiple_steps(self, steps: int):
+        """Führt mehrere Redo-Schritte auf einmal aus."""
+        redo_stack = self.controller.redo_stack
+        if steps > len(redo_stack):
+            steps = len(redo_stack)
+
+        for _ in range(steps):
+            self._redo_shift_command()
 
     def _undo_redo_no_more_action(self, button: QPushButton, action: Literal['undo', 'redo']):
         def reset_button():

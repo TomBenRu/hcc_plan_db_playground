@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Callable
+from uuid import UUID
 
 from PySide6.QtWidgets import QWidget, QMessageBox
+
+from database import schemas
 
 
 class Command(ABC):
@@ -9,6 +12,8 @@ class Command(ABC):
     def __init__(self):
         self.on_undo_callback: Callable[[], None] | None = None
         self.on_redo_callback: Callable[[], None] | None = None
+        self.appointment: schemas.Appointment | None = None  # notwendig für undo undo nach automatischer Validierung und für undo/redo Highlighting
+        self.appointment_ids: list[UUID] | None = None # notwendig
 
     @abstractmethod
     def execute(self):

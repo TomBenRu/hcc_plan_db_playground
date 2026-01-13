@@ -727,7 +727,7 @@ class AppointmentField(QWidget):
             all_commands.extend(event_props_commands)
 
             # 2. Cast-Commands erstellen (noch nicht ausgeführt)
-            cast_commands: list[command_base_classes.Command] = []
+            cast_commands: list[appointment_commands.UpdateAvailDays | appointment_commands.UpdateGuests] = []
             if (new_avail_days := sorted(dlg.new_avail_days)) != sorted(avd.id for avd in self.appointment.avail_days):
                 command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_days)
                 cast_commands.append(command_avail_days)
@@ -768,15 +768,15 @@ class AppointmentField(QWidget):
             description = "\n".join(description_lines)
 
             self.batch_command = BatchCommand(self, all_commands, description=description)
-            self.batch_command.appointment = self.appointment  # notwendig für undo/redo Highlighting
+            self.batch_command.appointment = self.appointment  # notwendig für undo undo nach automatischer Validierung und für undo/redo Highlighting
             self.plan_widget.controller.add_to_undo_stack(self.batch_command)
 
             # Appointment neu laden
             if cast_commands:
+                # Letztes Command enthält das aktualisierte Appointment
                 self.appointment = cast_commands[-1].updated_appointment
             else:
                 self.appointment = db_services.Appointment.get(self.appointment.id)
-            self.batch_command.updated_appointment = self.appointment
 
             # UI aktualisieren
             fill_in_data(self)
@@ -977,6 +977,7 @@ class AppointmentField(QWidget):
                             data_redo.set_action_type('move_and_delete'))
                         batch_command.description = description
 
+                batch_command.appointment = appointment  # notwendig für undo/redo Highlighting
                 controller.execute(batch_command)
                 batch_command.on_redo_callback()
 
@@ -1431,7 +1432,7 @@ class FrmTabPlan(QWidget):
         if command is None:
             self._undo_redo_no_more_action(self.bt_undo, 'undo')
             return
-        if hasattr(command, 'appointment'):
+        if command.appointment:
             appointment = command.appointment
             appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
             self._highlight_undo_redo_appointment_field(appointment_field)
@@ -1446,8 +1447,7 @@ class FrmTabPlan(QWidget):
         if command is None:
             self._undo_redo_no_more_action(self.bt_redo, 'redo')
             return
-        if hasattr(command, 'updated_appointment'):
-            appointment = command.updated_appointment
+        if appointment := command.appointment:
             appointment_field: AppointmentField = self.findChild(AppointmentField, str(appointment.id))
             self._highlight_undo_redo_appointment_field(appointment_field)
             appointment_field.appointment = appointment

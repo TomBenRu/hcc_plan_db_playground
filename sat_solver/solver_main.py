@@ -659,7 +659,7 @@ def solve_model_with_solver_solution_callback(
                                                entities,
                                                collect_schedule_versions)
 
-    status = solver.Solve(model, solution_printer)
+    status = solver.solve(model, solution_printer)
 
     return solver, solution_printer, status
 
@@ -677,7 +677,7 @@ def solve_model_to_optimum(model: cp_model.CpModel, max_search_time: int,
     solver.parameters.enumerate_all_solutions = False
     solver.parameters.max_time_in_seconds = max_search_time
 
-    status = solver.Solve(model)
+    status = solver.solve(model)
 
     return solver, status
 

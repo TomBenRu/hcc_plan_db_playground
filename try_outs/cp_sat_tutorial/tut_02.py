@@ -69,7 +69,7 @@ def multi_resource_scheduling_1():
 
     # Lösung finden
     solver = cp_model.CpSolver()
-    status = solver.Solve(model)
+    status = solver.solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Optimaler Zeitplan gefunden:')
@@ -147,7 +147,7 @@ def multi_resource_scheduling_2():
 
     # Lösung finden
     solver = cp_model.CpSolver()
-    status = solver.Solve(model)
+    status = solver.solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Optimaler Zeitplan gefunden:')

@@ -50,7 +50,7 @@ def simple_scheduling(min_makespan: bool = False, min_average_completion_time: b
 
     # Lösung finden
     solver = cp_model.CpSolver()
-    status = solver.Solve(model)
+    status = solver.solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Optimaler Zeitplan gefunden:')

@@ -130,7 +130,7 @@ def demo_registry_usage():
     
     # 6. Solver ausführen
     # solver = cp_model.CpSolver()
-    # status = solver.Solve(model)
+    # status = solver.solve(model)
     
     # 7. Ergebnisse analysieren
     # registry.log_penalty_summary(solver)

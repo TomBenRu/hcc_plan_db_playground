@@ -90,7 +90,7 @@ model.Maximize(sum(assignments.values()))
 
 # Löse das Modell
 solver = cp_model.CpSolver()
-status = solver.Solve(model)
+status = solver.solve(model)
 
 if status == cp_model.OPTIMAL:
     print("\nOptimale Lösung gefunden:")

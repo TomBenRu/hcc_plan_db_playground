@@ -74,7 +74,9 @@ def fill_in_data(appointment_field: 'AppointmentField'):
         missing_txt = QCoreApplication.translate("AppointmentField", "unfilled: %d") % missing
         appointment_field.lb_missing.setText(missing_txt)
         appointment_field.layout.addWidget(appointment_field.lb_missing)
+        appointment_field.lb_missing.show()
     else:
+        appointment_field.lb_missing.hide()
         appointment_field.lb_missing.setParent(None)
 
     if nr_required_persons:

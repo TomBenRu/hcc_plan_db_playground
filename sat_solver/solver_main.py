@@ -996,9 +996,6 @@ def call_solver_with_adjusted_requested_assignments(
     
     # DEBUG: Zeige tatsächliche Penalty-Werte
     if prefer_fixed_cast.penalty_vars:
-        print("\n" + "="*80)
-        print("DEBUG: prefer_fixed_cast_events - Tatsächliche Penalty-Werte")
-        print("="*80)
         total_penalty = 0
         penalty_details = []
         for penalty_var in prefer_fixed_cast.penalty_vars:
@@ -1007,16 +1004,7 @@ def call_solver_with_adjusted_requested_assignments(
             if penalty_value > 0:
                 # Nur Penalties > 0 anzeigen (interessante Fälle)
                 penalty_details.append(f"  ⚠️  Penalty={penalty_value}: {penalty_var.name}")
-        
-        if penalty_details:
-            print(f"  Penalties > 0 gefunden ({len(penalty_details)} von {len(prefer_fixed_cast.penalty_vars)}):")
-            for detail in penalty_details:
-                print(detail)
-        else:
-            print(f"  ✅ Alle Penalties = 0 (alle bevorzugten Mitarbeiter wurden zugewiesen)")
-        
-        print(f"\nGesamtsumme Penalties: {total_penalty}")
-        print("="*80 + "\n")
+
     print_statistics(solver, None, unsigned_shifts.unassigned_shifts_per_event,
                      rel_shift_deviations.sum_assigned_shifts, rel_shift_deviations.sum_squared_deviations,
                      partner_location_prefs.penalty_vars, location_prefs.penalty_vars,

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Event-Eigenschaften - HCC Plan Hilfe</title>
+    <link rel="stylesheet" href="../styles/help.css">
+    <meta name="keywords" content="Event-Eigenschaften, Fixed Cast, Anzahl Mitarbeiter, Besetzung, Event Properties">
+    <meta name="description" content="Hilfe zur Bearbeitung von Event-spezifischen Eigenschaften in HCC Plan">
+</head>
+<body>
+    <div class="help-header">
+        <h1>Event-Eigenschaften</h1>
+        <div class="breadcrumb"><a href="../index.html">Hilfe</a> &gt; Event-Eigenschaften</div>
+    </div>
+
+    <div class="help-content">
+        <h2>Übersicht</h2>
+        <p>Der Event-Eigenschaften-Dialog ermöglicht die Bearbeitung von Einstellungen, die spezifisch für ein einzelnes Event gelten. Hier können Sie die feste Besetzung (Fixed Cast), die Anzahl der benötigten Mitarbeiter und Präferenz-Einstellungen konfigurieren.</p>
+
+        <h2>Zugriff auf den Dialog</h2>
+        <p>Sie erreichen diesen Dialog auf zwei Wegen:</p>
+        <ul class="feature-list">
+            <li><strong>Aus der Plan-Ansicht</strong> - Doppelklick auf einen Termin, dann "Event-Eigenschaften..." klicken</li>
+            <li><strong>Aus den Cast-Gruppen</strong> - Doppelklick auf ein Event im Cast-Gruppen-Baum</li>
+        </ul>
+
+        <h2>Hauptfunktionen</h2>
+
+        <h3>Fixed Cast (Feste Besetzung)</h3>
+        <p>Mit der festen Besetzung legen Sie fest, welche Mitarbeiter für dieses Event eingeteilt werden müssen oder können.</p>
+        <ul>
+            <li><strong>Bearbeiten-Button</strong> - Öffnet den Fixed Cast Builder für detaillierte Konfiguration</li>
+            <li><strong>Anzeige</strong> - Zeigt die aktuelle Fixed Cast Konfiguration an</li>
+        </ul>
+        <p>Weitere Informationen finden Sie unter <a href="fixed_cast.html">Fixed Cast Builder</a>.</p>
+
+        <h3>Events mit Fixed Cast bevorzugen</h3>
+        <p>Diese Checkbox ist nur aktiv, wenn:</p>
+        <ol>
+            <li>Ein Fixed Cast für das Event definiert ist</li>
+            <li>Das Event zu einer Event-Gruppe gehört, bei der nicht alle Events gleichzeitig stattfinden</li>
+        </ol>
+        <p>Wenn aktiviert, wird der Solver Events mit Fixed Cast gegenüber anderen Events bevorzugen.</p>
+
+        <h3>Anzahl Mitarbeiter</h3>
+        <p>Legt fest, wie viele Mitarbeiter für dieses Event benötigt werden.</p>
+        <ul>
+            <li><strong>Minimalwert</strong> - 0 (kein Mitarbeiter erforderlich)</li>
+            <li><strong>Maximalwert</strong> - 99</li>
+        </ul>
+
+        <div class="warning-box">
+            <h4>Wichtiger Hinweis bei Reduzierung</h4>
+            <p>Wenn Sie die Anzahl der Mitarbeiter reduzieren und bereits mehr Personen zugewiesen sind als die neue Anzahl erlaubt, werden Sie aufgefordert auszuwählen, welche Zuweisungen entfernt werden sollen.</p>
+        </div>
+
+        <h2>Konsistenzprüfungen</h2>
+        <p>Der Dialog führt automatische Prüfungen durch:</p>
+        <ul>
+            <li><strong>Fixed Cast vs. Anzahl Mitarbeiter</strong> - Die Anzahl der Mitarbeiter wird automatisch angepasst, wenn der Fixed Cast mehr Personen erfordert</li>
+            <li><strong>Überzählige Zuweisungen</strong> - Bei Reduzierung der Mitarbeiterzahl werden Sie zur Bereinigung aufgefordert</li>
+        </ul>
+
+        <h2>Tastaturkürzel</h2>
+        <div class="keyboard-shortcuts">
+            <ul>
+                <li><strong>F1</strong> - Diese Hilfe öffnen</li>
+                <li><strong>Enter</strong> - Speichern und schließen</li>
+                <li><strong>Escape</strong> - Änderungen verwerfen und schließen</li>
+            </ul>
+        </div>
+
+        <h2>Verwandte Funktionen</h2>
+        <ul>
+            <li><a href="fixed_cast.html">Fixed Cast Builder</a> - Detaillierte Konfiguration der festen Besetzung</li>
+            <li><a href="edit_appointment.html">Termin bearbeiten</a> - Zuweisung von Mitarbeitern zu Terminen</li>
+            <li><a href="cast_group_properties.html">Cast-Gruppen-Eigenschaften</a> - Eigenschaften von Cast-Gruppen (mit zusätzlichen Optionen wie Cast-Regeln)</li>
+        </ul>
+
+        <h2>Unterschied zu Cast-Gruppen-Eigenschaften</h2>
+        <p>Der Event-Eigenschaften-Dialog ist eine vereinfachte Version der Cast-Gruppen-Eigenschaften. Er enthält <strong>nur</strong> die für einzelne Events relevanten Einstellungen:</p>
+        <table class="info-table">
+            <tr>
+                <th>Einstellung</th>
+                <th>Event-Eigenschaften</th>
+                <th>Cast-Gruppen-Eigenschaften</th>
+            </tr>
+            <tr>
+                <td>Fixed Cast</td>
+                <td>Ja</td>
+                <td>Ja</td>
+            </tr>
+            <tr>
+                <td>Events mit Fixed Cast bevorzugen</td>
+                <td>Ja</td>
+                <td>Ja</td>
+            </tr>
+            <tr>
+                <td>Anzahl Mitarbeiter</td>
+                <td>Ja</td>
+                <td>Ja</td>
+            </tr>
+            <tr>
+                <td>Cast-Regeln</td>
+                <td>Nein</td>
+                <td>Ja</td>
+            </tr>
+            <tr>
+                <td>Strenge der Regelbefolgung</td>
+                <td>Nein</td>
+                <td>Ja</td>
+            </tr>
+            <tr>
+                <td>Kind-Elemente korrigieren</td>
+                <td>Nein</td>
+                <td>Ja</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

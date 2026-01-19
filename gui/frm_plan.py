@@ -1425,7 +1425,7 @@ class FrmTabPlan(QWidget):
                                                                       fair_shifts=fair_shifts[app_id],
                                                                       actor_plan_period_id=app_id)
             command = max_fair_shifts_per_app.Create(max_fair_shifts_create)
-            self.controller.execute(command)
+            command.execute()
         signal_handling.handler_plan_tabs.refresh_plan_statistics(self.plan.plan_period.id)
 
     def _undo_shift_command(self):

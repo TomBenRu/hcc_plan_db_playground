@@ -408,7 +408,6 @@ class ButtonEvent(QPushButton):
                 else:
                     self._update_time_of_day_from_event(data.event_id)
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.context_menu.addAction(self.action_num_employees)
                     self.add_spin_box_num_employees()
                     self.set_tooltip()
             elif data.action_type == 'flip':

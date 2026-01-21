@@ -771,7 +771,6 @@ class AppointmentField(QWidget):
 
             self.batch_command = BatchCommand(self, all_commands, description=description)
             self.batch_command.appointment = self.appointment  # notwendig für undo undo nach automatischer Validierung und für undo/redo Highlighting
-            self.plan_widget.controller.add_to_undo_stack(self.batch_command)
 
             # Appointment neu laden
             if cast_commands:
@@ -783,10 +782,22 @@ class AppointmentField(QWidget):
             # UI aktualisieren
             fill_in_data(self)
 
-            if self.plan_widget.permanent_plan_check and cast_commands:
+            if event_props_commands:
+                # event-cache muss invalidiert und neu geladen werden
+                self._send_signals_invalidate_and_reload_entities()
+                self.batch_command.on_redo_callback = self._send_signals_invalidate_and_reload_entities
+                self.batch_command.on_undo_callback = self._send_signals_invalidate_and_reload_entities
+
+            self.plan_widget.controller.add_to_undo_stack(self.batch_command)
+
+            if self.plan_widget.permanent_plan_check and (cast_commands or event_props_commands):
                 self._start_plan_check()
             else:
                 self.execution_timer_plan_post_cast_change.start_timer()
+
+    def _send_signals_invalidate_and_reload_entities(self):
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.appointment.event.location_plan_period.plan_period.id)
+        signal_handling.handler_plan_tabs.load_entities_from_cache(self.appointment.event.location_plan_period.plan_period.id)
 
     def _handle_post_cast_change_actions(self):
         signal_handling.handler_plan_tabs.reload_and_refresh_plan_tab(self.plan_widget.plan.plan_period.id)

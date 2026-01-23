@@ -27,7 +27,7 @@ from commands.database_commands import event_commands, cast_group_commands, loca
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
-from tools.helper_functions import time_to_string, date_to_string, setup_form_help
+from tools.helper_functions import time_to_string, date_to_string, setup_form_help, warn_and_clear_undo_redo_if_plans_open
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +183,19 @@ class ButtonEvent(QPushButton):
             self.action_num_employees.setText(new_text)
 
     def change_num_employees(self, new_value: int = None):
+        # Warnung für Undo/Redo VOR der DB-Operation
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         event = self.get_curr_event()
         cast_group = event.cast_group
-        
+
         # Wenn new_value gegeben, verwende diesen, sonst Fallback (sollte nicht passieren)
         value = new_value if new_value is not None else cast_group.nr_actors
-        
+
         self.controller.execute(
             cast_group_commands.UpdateNrActors(cast_group.id, value))
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
@@ -212,6 +219,12 @@ class ButtonEvent(QPushButton):
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return
+
             event = self.get_curr_event()
             event_commands.UpdateTimeOfDay(event, new_time_of_day.id).execute()
 
@@ -233,6 +246,13 @@ class ButtonEvent(QPushButton):
             return
         dlg = DlgSkillGroups(self, event)
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                return
+
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_skills_configs(
@@ -254,6 +274,12 @@ class ButtonEvent(QPushButton):
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
                 signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id, self.date)
@@ -543,6 +569,12 @@ class ButtonFixedCast(QPushButton):
         cast_group = next((cg for cg in self.cast_groups_at_day if cg.fixed_cast), self.cast_groups_at_day[0])
         dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
             for cg in self.cast_groups_at_day:
                 cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified,
                                                    dlg.object_with_fixed_cast.fixed_cast_only_if_available).execute()
@@ -792,6 +824,13 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
         event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
         dlg = DlgSkillGroups(self, event)
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                return
+
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             for event in self.events_at_day:
                 for skill_group in event.skill_groups:
@@ -1228,6 +1267,14 @@ class FrmLocationPlanPeriod(QWidget):
         self.layout_controllers.addWidget(self.bt_cast_group_mode)
 
     def save_event(self, bt: ButtonEvent):
+        # WARNUNG AM ANFANG - VOR DB-Operation
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end,
+            on_cancel=bt.toggle  # Button-Status zurücksetzen
+        ):
+            return
+
         date = bt.date
         t_o_d = bt.time_of_day
         mode: Literal['added', 'deleted'] = 'added' if bt.isChecked() else 'deleted'
@@ -1244,6 +1291,15 @@ class FrmLocationPlanPeriod(QWidget):
     def change_mode__event_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderLocationPlanPeriod(self, self.location_plan_period).build()
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
+                    signal_handling.DataGroupMode(False))
+                return
+
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             self.reload_location_plan_period()
@@ -1264,6 +1320,11 @@ class FrmLocationPlanPeriod(QWidget):
         plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)
         dlg = frm_cast_group.DlgCastGroups(self, plan_period, {self.location_plan_period.id})
         if dlg.exec():
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
             self.reload_location_plan_period()
@@ -1316,6 +1377,13 @@ class FrmLocationPlanPeriod(QWidget):
         dlg = frm_event_planing_rules.DlgEventPlanningRules(
             self, self.location_plan_period.id, True)
         if dlg.exec():
+            plan_period = self.location_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                return
+
             self.data_processor.make_events_from_planning_rules(dlg)
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
@@ -1334,6 +1402,13 @@ class FrmLocationPlanPeriod(QWidget):
 
     def reset_all_event_t_o_ds(self):
         """übernimmt bei allen events die time_of_days der Planperiode."""
+        # Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         events = [e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
                   if not e.prep_delete]
         for event in events:
@@ -1364,6 +1439,13 @@ class FrmLocationPlanPeriod(QWidget):
         if reply == QMessageBox.StandardButton.No:
             return
 
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
             if not event.prep_delete:
                 for skill_group in event.skill_groups:
@@ -1389,6 +1471,13 @@ class FrmLocationPlanPeriod(QWidget):
             )
         )
         if reply == QMessageBox.StandardButton.No:
+            return
+
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
             return
 
         for event in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
@@ -1434,6 +1523,14 @@ class FrmLocationPlanPeriod(QWidget):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
+
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.location_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         cast_groups_of_plan_period = db_services.CastGroup.get_all_from__plan_period(
             self.location_plan_period.plan_period.id)
         event_cast_groups = (

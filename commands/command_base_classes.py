@@ -88,6 +88,12 @@ class ContrExecUndoRedo(Invoker):
         self.undo_stack.append(command)
         self._notify_stacks_changed()
 
+    def clear_history(self):
+        """Löscht den gesamten Undo-/Redo-Verlauf."""
+        self.undo_stack.clear()
+        self.redo_stack.clear()
+        self._notify_stacks_changed()
+
     def undo_all(self):
         for command in reversed(self.undo_stack):
             command.undo()

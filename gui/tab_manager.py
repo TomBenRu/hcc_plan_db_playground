@@ -516,11 +516,11 @@ class TabManager(QObject):
             
             # Entities-Cache invalidieren, wenn dies der letzte Tab dieser PlanPeriod war
             if plan_period_id is not None:
-                if self._count_plan_tabs_for_plan_period(plan_period_id) == 0:
+                if self.count_plan_tabs_for_plan_period(plan_period_id) == 0:
                     self.invalidate_entities_cache(plan_period_id)
 
             logger.debug(f'Plan-Tab geschlossen: Index {index}, '
-                         f'noch geöffnet: {self._count_plan_tabs_for_plan_period(plan_period_id)}')
+                         f'noch geöffnet: {self.count_plan_tabs_for_plan_period(plan_period_id)}')
             return True
         return False
     
@@ -1050,13 +1050,13 @@ class TabManager(QObject):
                 return True
         return False
 
-    def _count_plan_tabs_for_plan_period(self, plan_period_id: UUID) -> int:
+    def count_plan_tabs_for_plan_period(self, plan_period_id: UUID) -> int:
         """
         Zählt wie viele Plan-Tabs für eine bestimmte PlanPeriod geöffnet sind.
-        
+
         Args:
             plan_period_id: Die ID der PlanPeriod
-            
+
         Returns:
             Anzahl der offenen Plan-Tabs für diese PlanPeriod
         """

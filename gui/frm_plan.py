@@ -1223,6 +1223,7 @@ class FrmTabPlan(QWidget):
         signal_handling.handler_plan_tabs.signal_reload_all_plan_period_plans_from_db.connect(self.reload_plan_period_plan)
         signal_handling.handler_plan_tabs.signal_refresh_all_plan_period_plans_from_db.connect(self.refresh_plan_period_plan)
         signal_handling.handler_plan_tabs.signal_refresh_plan.connect(self.refresh_specific_plan)
+        signal_handling.handler_plan_tabs.signal_clear_undo_redo_history.connect(self._on_clear_undo_redo_history)
 
         self.plan = plan
 
@@ -1659,6 +1660,12 @@ class FrmTabPlan(QWidget):
     def reload_plan_period_plan(self, plan_period_id: UUID):
         if self.plan.plan_period.id == plan_period_id:
             self.reload_plan()
+
+    @Slot(UUID)
+    def _on_clear_undo_redo_history(self, plan_period_id: UUID):
+        """Löscht den Undo-/Redo-Verlauf, wenn die Planungsperiode übereinstimmt."""
+        if self.plan.plan_period.id == plan_period_id:
+            self.controller.clear_history()
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:

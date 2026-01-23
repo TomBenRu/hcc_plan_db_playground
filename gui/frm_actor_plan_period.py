@@ -27,7 +27,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
 from gui.observer import signal_handling
-from tools.helper_functions import date_to_string, time_to_string, setup_form_help
+from tools.helper_functions import date_to_string, time_to_string, setup_form_help, warn_and_clear_undo_redo_if_plans_open
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +130,12 @@ class ButtonAvailDay(QPushButton):
 
     def set_new_time_of_day(self, new_time_of_day: schemas.TimeOfDay):
         if self.isChecked():
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return
+
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(
                 self.actor_plan_period.id, self.date, self.time_of_day.id)
             avail_day_commands.UpdateTimeOfDay(avail_day, new_time_of_day.id).execute()
@@ -151,6 +157,13 @@ class ButtonAvailDay(QPushButton):
             return
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
         if dlg.exec():
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                return
+
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
                 signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=self.date))
@@ -270,6 +283,12 @@ class ButtonCombLocPossible(QPushButton):
         dlg.de_date.setDate(self.date)
         dlg.de_date.setDisabled(True)
         if dlg.exec():
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
             '''avail_days_at_date[0].combination_locations_possibles wurden geändert.
             nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst'''
             avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
@@ -436,6 +455,12 @@ class ButtonActorLocationPref(QPushButton):
                 if not pref_new.prep_delete:
                     db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
 
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
         self.reload_actor_plan_period()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
@@ -574,6 +599,12 @@ class ButtonActorPartnerLocationPref(QPushButton):
         dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
+
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
         '''avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
         nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst'''
@@ -719,6 +750,13 @@ class ButtonSkills(QPushButton):
         avail_day = next((ad for ad in self.avail_days_at_day if ad.skills), self.avail_days_at_day[0])
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
         if dlg.exec():
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                return
+
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             for avail_day in self.avail_days_at_day:
                 for skill in avail_day.skills:
@@ -1183,6 +1221,14 @@ class FrmActorPlanPeriod(QWidget):
 
 
     def save_avail_day(self, bt: ButtonAvailDay):
+        # WARNUNG AM ANFANG - VOR DB-Operation
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end,
+            on_cancel=bt.toggle  # Button-Status zurücksetzen
+        ):
+            return
+
         date = bt.date
         t_o_d = bt.time_of_day
         if bt.isChecked():
@@ -1258,6 +1304,15 @@ class FrmActorPlanPeriod(QWidget):
     def change_mode__avd_group(self):
         dlg = frm_group_mode.DlgGroupModeBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end,
+                on_cancel=dlg.controller.undo_all
+            ):
+                signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode(
+                    signal_handling.DataGroupMode(False))
+                return
+
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
             self.reload_actor_plan_period()
@@ -1316,6 +1371,13 @@ class FrmActorPlanPeriod(QWidget):
 
     def reset_all_avail_t_o_ds(self):
         """übernimmt bei allen avail_days die time_of_days der Planperiode."""
+        # Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         avail_days = [ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
                       if not ad.prep_delete]
         for avail_day in avail_days:
@@ -1368,6 +1430,13 @@ class FrmActorPlanPeriod(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
 
         if not all_avail_dates:
@@ -1406,6 +1475,14 @@ class FrmActorPlanPeriod(QWidget):
         dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
+
+        # Warnung für Undo/Redo NACH Dialog
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
         for loc_id, score in dlg.loc_id__results.items():
             if loc_id in dlg.loc_id__prefs:
                 if dlg.loc_id__prefs[loc_id].score == score:
@@ -1450,6 +1527,13 @@ class FrmActorPlanPeriod(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
         if not all_avail_dates:
             QMessageBox.critical(
@@ -1482,6 +1566,13 @@ class FrmActorPlanPeriod(QWidget):
         dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
         dlg.de_date.setDisabled(True)
         if dlg.exec():
+            # Warnung für Undo/Redo NACH Dialog
+            plan_period = self.actor_plan_period.plan_period
+            if not warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end
+            ):
+                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
@@ -1496,6 +1587,13 @@ class FrmActorPlanPeriod(QWidget):
                     'to the default values of the planning period?')
         )
         if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
             return
 
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
@@ -1523,8 +1621,16 @@ class FrmActorPlanPeriod(QWidget):
 
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
                                                    *args, **kwargs) -> bool:
-        controller = command_base_classes.ContrExecUndoRedo()
         actor_plan_period = actor_plan_period or self.actor_plan_period
+
+        # VOR den DB-Änderungen: Warnung für Undo/Redo
+        plan_period = actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return False
+
+        controller = command_base_classes.ContrExecUndoRedo()
         try:
             avail_days_on_server_and_notes = plan_api_handler.fetch_avail_days(
                 actor_plan_period.plan_period.id, actor_plan_period.person.id)
@@ -1702,6 +1808,13 @@ class FrmActorPlanPeriod(QWidget):
         if reply == QMessageBox.StandardButton.No:
             return
 
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
         for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
             if not avail_day.prep_delete:
                 for skill in avail_day.skills:
@@ -1728,6 +1841,13 @@ class FrmActorPlanPeriod(QWidget):
                     'to the employee\'s default values?')
         )
         if reply == QMessageBox.StandardButton.No:
+            return
+
+        # NEU: Warnung für Undo/Redo VOR den Änderungen
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
             return
 
         for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):

@@ -203,6 +203,7 @@ class HandlerPlanTabs(QObject):
     signal_refresh_plan_statistics = Signal(UUID)
     signal_invalidate_entities_cache = Signal(UUID)
     signal_load_entities_from_cache = Signal(UUID)
+    signal_clear_undo_redo_history = Signal(UUID)
 
     # Signale für Planbewertung
     signal_update_plan_rating = Signal(UUID)  # Trigger: Plan-Rating berechnen (plan_id)
@@ -240,6 +241,10 @@ class HandlerPlanTabs(QObject):
 
     def load_entities_from_cache(self, plan_period_id: UUID):
         self.signal_load_entities_from_cache.emit(plan_period_id)
+
+    def clear_undo_redo_history(self, plan_period_id: UUID):
+        """Löscht Undo-/Redo-Verlauf aller geöffneten Pläne dieser Planungsperiode."""
+        self.signal_clear_undo_redo_history.emit(plan_period_id)
 
     def update_plan_rating(self, plan_id: UUID):
         """Triggert die Berechnung der Plan-Bewertung."""

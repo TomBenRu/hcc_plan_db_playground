@@ -290,12 +290,9 @@ class TreeWidget(QTreeWidget):
         # Kontextmenü aktivieren
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
-        
-        self.invisibleRootItem().setData(
-            TREE_ITEM_DATA_COLUMN__GROUP,
-            Qt.ItemDataRole.UserRole,
-            self.builder.master_group
-        )
+
+        # Master-Group-Daten werden über builder.master_group verwaltet
+        # (kein setData auf invisibleRootItem, um Qt-Warnung zu vermeiden)
 
         self.slot_item_moved = slot_item_moved
         self.slot_add_group = slot_add_group
@@ -584,8 +581,12 @@ class DlgGroupProperties(QDialog):
             else self.tr("Properties of Main Group")
         )
 
-        self.group = self.builder.get_group_from_id(
-            self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+        # Für invisibleRootItem: builder.master_group verwenden (da keine Daten auf item gespeichert)
+        item_group_data = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+        if item_group_data:
+            self.group = self.builder.get_group_from_id(item_group_data.id)
+        else:
+            self.group = self.builder.get_group_from_id(self.builder.master_group.id)
         self.child_items: [TreeWidgetItem] = [self.item.child(i) for i in range(self.item.childCount())]
         self.child_groups = [
             self.builder.get_group_from_id(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
@@ -1015,9 +1016,7 @@ class DlgGroupMode(QDialog):
             else:
                 index = self.tree_groups.indexOfTopLevelItem(selected_item)
                 self.tree_groups.takeTopLevelItem(index)
-                parent_group = self.builder.get_group_from_id(
-                    self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
-                )
+                parent_group = self.builder.get_group_from_id(self.builder.master_group.id)
             self.controller.execute(self.builder.delete_group_command(data.id))
 
             # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:
@@ -1026,7 +1025,9 @@ class DlgGroupMode(QDialog):
             if parent_item:
                 parent_item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
             else:
-                self.tree_groups.invisibleRootItem().setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
+                # Button-Text aktualisieren statt invisibleRootItem (vermeidet Qt-Warnung)
+                self.bt_edit_main_group.setText(
+                    self.text_template_master_group.format(count=text_nr_groups))
 
     def item_moved(self, moved_item: TreeWidgetItem, moved_to: TreeWidgetItem, previous_parent: TreeWidgetItem):
         object_to_move = moved_item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
@@ -1034,14 +1035,12 @@ class DlgGroupMode(QDialog):
         if moved_to:
             obj_to_move_to: group_type = moved_to.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
         else:
-            obj_to_move_to = self.tree_groups.invisibleRootItem().data(TREE_ITEM_DATA_COLUMN__GROUP,
-                                                                       Qt.ItemDataRole.UserRole)
+            obj_to_move_to = self.builder.master_group
 
         self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
 
         if not previous_parent:
-            parent_group = self.tree_groups.invisibleRootItem().data(
-                TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            parent_group = self.builder.master_group
         else:
             parent_group = previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
@@ -1077,13 +1076,18 @@ class DlgGroupMode(QDialog):
             self.update_items_after_edit(item)
 
     def update_items_after_edit(self, item: TreeWidgetItem):
-        new_group_data = self.builder.get_group_from_id(
-            item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-        text_nr_groups = text_num_avail_groups(new_group_data, self.builder)
         if item == self.tree_groups.invisibleRootItem():
+            # Für invisibleRootItem: builder.master_group aktualisieren (vermeidet Qt-Warnung)
+            new_group_data = self.builder.get_group_from_id(self.builder.master_group.id)
+            self.builder.master_group = new_group_data
+            text_nr_groups = text_num_avail_groups(new_group_data, self.builder)
             self.bt_edit_main_group.setText(self.text_template_master_group.format(count=text_nr_groups))
-        item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)
-        item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
+        else:
+            new_group_data = self.builder.get_group_from_id(
+                item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            text_nr_groups = text_num_avail_groups(new_group_data, self.builder)
+            item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, new_group_data)
+            item.setText(TREE_HEAD_COLUMN__NR_GROUPS, text_nr_groups)
         child_items = (item.child(i) for i in range(item.childCount()))
         for child_item in child_items:
             new_group_data = self.builder.get_group_from_id(

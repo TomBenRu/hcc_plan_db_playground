@@ -252,10 +252,14 @@ class RemoveActorPartnerLocationPref(Command):
 
 
 class ClearActorPartnerLocationPrefs(Command):
-    def __init__(self, avail_day_id: UUID, existing_actor_partner_loc_pref_ids: list[UUID]):
+    def __init__(self, avail_day_id: UUID, existing_actor_partner_loc_pref_ids: list[UUID] | None = None):
         super().__init__()
         self.avail_day_id = avail_day_id
-        self.existing_actor_partner_loc_pref_ids = existing_actor_partner_loc_pref_ids
+        if existing_actor_partner_loc_pref_ids is None:
+            self.existing_actor_partner_loc_pref_ids = db_services.ActorPartnerLocationPref.get_all_from__avail_day(
+                self.avail_day_id)
+        else:
+            self.existing_actor_partner_loc_pref_ids = existing_actor_partner_loc_pref_ids
 
     def execute(self):
         db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
@@ -265,6 +269,33 @@ class ClearActorPartnerLocationPrefs(Command):
 
     def _redo(self):
         db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
+
+
+class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
+    def __init__(self, actor_plan_period_id: UUID):
+        super().__init__()
+        self.actor_plan_period_id = actor_plan_period_id
+        self.existing_actor_partner_loc_pref_ids_per_avail_day: dict[UUID, list[UUID]] = {}
+        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period_id):
+            self.existing_actor_partner_loc_pref_ids_per_avail_day[avail_day.id] = [
+                pref.id for pref in avail_day.actor_partner_location_prefs_defaults]
+        self.actor_plan_period_new: schemas.ActorPlanPeriodShow | None = None
+
+    def execute(self):
+        self.actor_plan_period_new = (db_services.AvailDay.
+                                      reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+            self.actor_plan_period_id))
+
+    def _undo(self):
+        for avail_day_id, actor_partner_loc_pref_ids in self.existing_actor_partner_loc_pref_ids_per_avail_day.items():
+            db_services.AvailDay.clear_partner_location_prefs(avail_day_id)
+            db_services.AvailDay.put_in_partner_location_prefs(avail_day_id, actor_partner_loc_pref_ids)
+
+    def _redo(self):
+        db_services.AvailDay.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+            self.actor_plan_period_id)
+
+
 
 
 

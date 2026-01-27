@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session, commit, select, desc, show
+from pony.orm import db_session, commit, flush
 from pydantic import EmailStr
 import pandas as pd
 
@@ -2612,6 +2612,20 @@ class AvailDay:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+            cls, actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodShow:
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        for avail_day_db in actor_plan_period_db.avail_days:
+            avail_day_db.actor_partner_location_prefs_defaults.clear()
+            for partner_location_pref_db in actor_plan_period_db.actor_partner_location_prefs_defaults:
+                avail_day_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
+        flush()
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2724,6 +2738,14 @@ class ActorPartnerLocationPref:
     def get(cls, actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPrefShow:
         actor_partner_loc_pref_db = models.ActorPartnerLocationPref.get_for_update(id=actor_partner_loc_pref_id)
         return schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
+
+    @classmethod
+    @db_session
+    def get_all_from__avail_day(cls, avail_day_id: UUID) -> list[schemas.ActorPartnerLocationPrefShow]:
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        actor_partner_loc_prefs_db = avail_day_db.actor_partner_location_prefs_defaults
+        return [schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
+                for actor_partner_loc_pref_db in actor_partner_loc_prefs_db]
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

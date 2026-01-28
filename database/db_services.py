@@ -2622,6 +2622,30 @@ class AvailDay:
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
+            cls, actor_plan_period_id: UUID) -> None:
+        """Setzt Location-Prefs aller AvailDays auf ActorPlanPeriod-Defaults zurück (Bulk-Operation)."""
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        defaults = actor_plan_period_db.actor_location_prefs_defaults
+        for avail_day_db in actor_plan_period_db.avail_days:
+            avail_day_db.actor_location_prefs_defaults.clear()
+            avail_day_db.actor_location_prefs_defaults.add(defaults)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
+            cls, actor_plan_period_id: UUID) -> None:
+        """Setzt CombLocPossibles aller AvailDays auf ActorPlanPeriod-Defaults zurück (Bulk-Operation)."""
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        defaults = actor_plan_period_db.combination_locations_possibles
+        for avail_day_db in actor_plan_period_db.avail_days:
+            avail_day_db.combination_locations_possibles.clear()
+            avail_day_db.combination_locations_possibles.add(defaults)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def add_skill(cls, avail_day_id: UUID, skill_id: UUID) -> schemas.AvailDayShow:
         log_function_info(cls)
         avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
@@ -2669,6 +2693,16 @@ class CombinationLocationsPossible:
         comb_loc_poss_db.prep_delete = None
 
         return schemas.CombinationLocationsPossibleShow.model_validate(comb_loc_poss_db)
+
+    @classmethod
+    @db_session
+    def get_comb_loc_poss_ids_per_avail_day_of_actor_plan_period(cls, actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
+        """Liefert nur die IDs der CombLocPossibles pro AvailDay – ohne teure Pydantic-Serialisierung."""
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return {
+            avail_day_db.id: [comb.id for comb in avail_day_db.combination_locations_possibles]
+            for avail_day_db in actor_plan_period_db.avail_days
+        }
 
 
 class ActorLocationPref:
@@ -2726,6 +2760,16 @@ class ActorLocationPref:
         for a_l_pref in a_l_prefs_form__project:
             if a_l_pref.prep_delete:
                 a_l_pref.delete()
+
+    @classmethod
+    @db_session
+    def get_loc_pref_ids_per_avail_day_of_actor_plan_period(cls, actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
+        """Liefert nur die IDs der Location-Prefs pro AvailDay – ohne teure Pydantic-Serialisierung."""
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return {
+            avail_day_db.id: [pref.id for pref in avail_day_db.actor_location_prefs_defaults]
+            for avail_day_db in actor_plan_period_db.avail_days
+        }
 
 
 class ActorPartnerLocationPref:

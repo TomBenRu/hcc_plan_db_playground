@@ -6,7 +6,6 @@ from datetime import timedelta
 from typing import Callable
 from uuid import UUID
 
-import line_profiler
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QIcon
@@ -1406,6 +1405,34 @@ class FrmActorPlanPeriod(QWidget):
     def reset_all_avail_combs(self):
         """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
+        def refresh_ui():
+            """Gemeinsamer UI-Refresh für Execute, Undo und Redo."""
+            button_comb_loc_possibles: list[ButtonLocationCombinations] = self.findChildren(ButtonLocationCombinations)
+            for button_comb_loc_possible in button_comb_loc_possibles:
+                if button_comb_loc_possible.date in all_avail_dates:
+                    button_comb_loc_possible.refresh(signal_handling.DataActorPPWithDate(
+                        self.actor_plan_period))
+            self.set_instance_variables()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+
+        def handle_reset():
+            """Callback für Execute und Redo – schnelles In-Place-Patching."""
+            defaults = list(self.actor_plan_period.combination_locations_possibles)
+            for avail_day in self.actor_plan_period.avail_days:
+                if not avail_day.prep_delete:
+                    avail_day.combination_locations_possibles = list(defaults)
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        def handle_undo():
+            """Callback für Undo – muss aus DB laden (individuelle Original-Werte)."""
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        # --- User-Interaktion ---
         reply = QMessageBox.question(
             self,
             self.tr('Reset Location Combinations'),
@@ -1415,7 +1442,6 @@ class FrmActorPlanPeriod(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # NEU: Warnung für Undo/Redo VOR den Änderungen
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
@@ -1423,7 +1449,6 @@ class FrmActorPlanPeriod(QWidget):
             return
 
         all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
-
         if not all_avail_dates:
             QMessageBox.critical(
                 self,
@@ -1434,16 +1459,10 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
 
-        button_comb_loc_possibles: list[ButtonLocationCombinations] = self.findChildren(ButtonLocationCombinations)
-
-        for button_comb_loc_possible in button_comb_loc_possibles:
-            if button_comb_loc_possible.date in all_avail_dates:
-                button_comb_loc_possible._reset_to_defaults()
-                button_comb_loc_possible.refresh()  # Lädt Daten und aktualisiert Stylesheet
-        self.reload_actor_plan_period_and_set_instance_variables()
-        
-        # Entities-Cache invalidieren bei Standort-Kombinationsänderungen
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+        # --- Ausführung ---
+        self._reset_all_avail_days_comb_loc_possibles_to_defaults(
+            on_undo_callback=handle_undo, on_redo_callback=handle_reset)
+        handle_reset()
 
 
     def edit_location_prefs(self):
@@ -1499,10 +1518,37 @@ class FrmActorPlanPeriod(QWidget):
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
-    @line_profiler.profile
     def reset_all_loc_prefs(self, e=None):
         """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
+        def refresh_ui():
+            """Gemeinsamer UI-Refresh für Execute, Undo und Redo."""
+            button_actor_location_prefs: list[ButtonLocationPreferences] = self.findChildren(ButtonLocationPreferences)
+            for button_actor_location_pref in button_actor_location_prefs:
+                if button_actor_location_pref.date in all_avail_dates:
+                    button_actor_location_pref.refresh(signal_handling.DataActorPPWithDate(
+                        self.actor_plan_period))
+            self.set_instance_variables()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+
+        def handle_reset():
+            """Callback für Execute und Redo – schnelles In-Place-Patching."""
+            defaults = self.actor_plan_period.actor_location_prefs_defaults
+            for avail_day in self.actor_plan_period.avail_days:
+                if not avail_day.prep_delete:
+                    avail_day.actor_location_prefs_defaults = defaults
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        def handle_undo():
+            """Callback für Undo – muss aus DB laden (individuelle Original-Werte)."""
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        # --- User-Interaktion ---
         reply = QMessageBox.question(
             self,
             self.tr('Reset Location Preferences'),
@@ -1512,7 +1558,6 @@ class FrmActorPlanPeriod(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # NEU: Warnung für Undo/Redo VOR den Änderungen
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
@@ -1530,16 +1575,10 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
 
-        button_actor_location_prefs: list[ButtonLocationPreferences] = self.findChildren(ButtonLocationPreferences)
-
-        for button_actor_location_pref in button_actor_location_prefs:
-            if button_actor_location_pref.date in all_avail_dates:
-                button_actor_location_pref._reset_to_defaults()
-                button_actor_location_pref.refresh()  # Lädt Daten und aktualisiert Stylesheet
-        self.reload_actor_plan_period_and_set_instance_variables()
-        
-        # Entities-Cache invalidieren bei Standort-Präferenzänderungen
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+        # --- Ausführung ---
+        self._reset_all_avail_days_location_prefs_to_defaults(
+            on_undo_callback=handle_undo, on_redo_callback=handle_reset)
+        handle_reset()
 
     def edit_partner_loc_prefs(self):
         person = db_services.Person.get(self.actor_plan_period.person.id)
@@ -1576,10 +1615,10 @@ class FrmActorPlanPeriod(QWidget):
 
         def handle_reset():
             # In-place Patch: bestehende Pydantic-Schemas aktualisieren, statt kompletten Objektgraphen neu aus DB zu laden
-            defaults = list(self.actor_plan_period.actor_partner_location_prefs_defaults)
+            defaults = self.actor_plan_period.actor_partner_location_prefs_defaults
             for avail_day in self.actor_plan_period.avail_days:
                 if not avail_day.prep_delete:
-                    avail_day.actor_partner_location_prefs_defaults = list(defaults)
+                    avail_day.actor_partner_location_prefs_defaults = defaults
             warn_and_clear_undo_redo_if_plans_open(
                 self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
             refresh_ui()
@@ -1626,6 +1665,22 @@ class FrmActorPlanPeriod(QWidget):
             self, on_undo_callback=None, on_redo_callback=None) -> None:
         """Setzt Partner/Standort-Präferenzen für alle AvailDays der ActorPlanPeriod auf Defaults zurück."""
         command = avail_day_commands.ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(self.actor_plan_period.id)
+        self.controller.execute(command)
+        command.on_undo_callback = on_undo_callback
+        command.on_redo_callback = on_redo_callback
+
+    def _reset_all_avail_days_location_prefs_to_defaults(
+            self, on_undo_callback=None, on_redo_callback=None) -> None:
+        """Setzt Standort-Präferenzen für alle AvailDays der ActorPlanPeriod auf Defaults zurück."""
+        command = avail_day_commands.ResetAllAvailDaysActorLocationPrefsToDefaults(self.actor_plan_period.id)
+        self.controller.execute(command)
+        command.on_undo_callback = on_undo_callback
+        command.on_redo_callback = on_redo_callback
+
+    def _reset_all_avail_days_comb_loc_possibles_to_defaults(
+            self, on_undo_callback=None, on_redo_callback=None) -> None:
+        """Setzt Standort-Kombinationen für alle AvailDays der ActorPlanPeriod auf Defaults zurück."""
+        command = avail_day_commands.ResetAllAvailDaysCombLocPossiblesToDefaults(self.actor_plan_period.id)
         self.controller.execute(command)
         command.on_undo_callback = on_undo_callback
         command.on_redo_callback = on_redo_callback

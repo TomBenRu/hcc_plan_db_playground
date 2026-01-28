@@ -103,6 +103,7 @@ class HandlerActorPlanPeriod(QObject):
     signal_reset_styling_skills_configs = Signal(object)
     signal_update_app_in_app_tab_widget = Signal(object)
     signal_reload_app_notes_in_app_tab_widget = Signal(UUID, UUID)
+    signal_reset_partner_location_prefs_to_defaults = Signal(object)
 
     def reload_actor_pp__avail_configs(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_configs.emit(data)
@@ -124,6 +125,9 @@ class HandlerActorPlanPeriod(QObject):
 
     def reload_app_notes_in_app_tab_widget(self, plan_period_id: UUID, person_id: UUID):
         self.signal_reload_app_notes_in_app_tab_widget.emit(plan_period_id, person_id)
+
+    def reset_partner_location_prefs_to_defaults(self, data: DataActorPlanPeriodDate):
+        self.signal_reset_partner_location_prefs_to_defaults.emit(data)
 
 
 class HandlerLocationPlanPeriod(QObject):

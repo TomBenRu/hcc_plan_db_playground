@@ -7833,7 +7833,7 @@ Click on the corresponding row.</source>
     </message>
 </context>
 <context>
-    <name>parent_widget</name>
+    <name>HelperFunctions</name>
     <message>
         <location filename="../../tools/helper_functions.py" line="421"/>
         <source>Undo/Redo</source>
@@ -7847,7 +7847,7 @@ Should the changes still be made?</source>
     </message>
 </context>
 <context>
-    <name>self.parent</name>
+    <name>LocationPlanPeriodData</name>
     <message>
         <location filename="../data_processing.py" line="91"/>
         <source>  - {name} ({count} appointment(s))</source>

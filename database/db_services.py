@@ -5,8 +5,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from pony.orm import db_session, commit, flush
-from pydantic import EmailStr
+from pony.orm import db_session, commit
 import pandas as pd
 
 from . import schemas, schemas_plan_api
@@ -2613,16 +2612,13 @@ class AvailDay:
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
-            cls, actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodShow:
+            cls, actor_plan_period_id: UUID) -> None:
         log_function_info(cls)
         actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        defaults = actor_plan_period_db.actor_partner_location_prefs_defaults
         for avail_day_db in actor_plan_period_db.avail_days:
             avail_day_db.actor_partner_location_prefs_defaults.clear()
-            for partner_location_pref_db in actor_plan_period_db.actor_partner_location_prefs_defaults:
-                avail_day_db.actor_partner_location_prefs_defaults.add(partner_location_pref_db)
-        flush()
-        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
-        return schemas.ActorPlanPeriodShow.model_validate(actor_plan_period_db)
+            avail_day_db.actor_partner_location_prefs_defaults.add(defaults)
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
@@ -2746,6 +2742,16 @@ class ActorPartnerLocationPref:
         actor_partner_loc_prefs_db = avail_day_db.actor_partner_location_prefs_defaults
         return [schemas.ActorPartnerLocationPrefShow.model_validate(actor_partner_loc_pref_db)
                 for actor_partner_loc_pref_db in actor_partner_loc_prefs_db]
+
+    @classmethod
+    @db_session
+    def get_ids_per_avail_day_of_actor_plan_period(cls, actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
+        """Liefert nur die IDs der Partner-Location-Prefs pro AvailDay – ohne teure Pydantic-Serialisierung."""
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return {
+            avail_day_db.id: [pref.id for pref in avail_day_db.actor_partner_location_prefs_defaults]
+            for avail_day_db in actor_plan_period_db.avail_days
+        }
 
     @classmethod
     @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)

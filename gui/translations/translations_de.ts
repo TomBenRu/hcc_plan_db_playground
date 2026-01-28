@@ -232,23 +232,23 @@ Besetzung der Veranstaltungen an diesem Tag:
     <message>
         <location filename="../frm_actor_plan_period.py" line="213"/>
         <source>Location combinations on %s</source>
-        <translation type="unfinished">Einrichtungskombinationen am %s</translation>
+        <translation>Einrichtungskombinationen am %s</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="226"/>
         <location filename="../frm_actor_plan_period.py" line="273"/>
         <source>Location Combinations</source>
-        <translation type="unfinished">Einrichtungskombinationen</translation>
+        <translation>Einrichtungskombinationen</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="227"/>
         <source>The location combinations of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
-        <translation type="unfinished"></translation>
+        <translation>Die Einrichtungskombinationen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="274"/>
         <source>No location combinations can be set up, as no availability has been selected for this day.</source>
-        <translation type="unfinished">Es können keine Einrichtungskombinationen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+        <translation>Es können keine Einrichtungskombinationen eingerichtet werden, da an diesem Tag noch keine Verfügbarkeit gewählt wurde.</translation>
     </message>
 </context>
 <context>
@@ -256,23 +256,23 @@ Besetzung der Veranstaltungen an diesem Tag:
     <message>
         <location filename="../frm_actor_plan_period.py" line="331"/>
         <source>Location preferences on %s</source>
-        <translation type="unfinished">Einrichtungspräferenzen am %s</translation>
+        <translation>Einrichtungspräferenzen am %s</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="344"/>
         <location filename="../frm_actor_plan_period.py" line="404"/>
         <source>Location Preferences</source>
-        <translation type="unfinished">Einrichtungspräferenzen</translation>
+        <translation>Einrichtungspräferenzen</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="345"/>
         <source>The location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
-        <translation type="unfinished">Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+        <translation>Die Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="405"/>
         <source>No location preferences can be set up, as no availability has been selected for this day.</source>
-        <translation type="unfinished">Es können keine Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+        <translation>Es können keine Einrichtungspräferenzen eingerichtet werden, da an diesem Tag noch keine Verfügbarkeit gewählt wurde.</translation>
     </message>
 </context>
 <context>
@@ -327,23 +327,23 @@ Unterschiedliche Anmerkungen.</translation>
     <message>
         <location filename="../frm_actor_plan_period.py" line="483"/>
         <source>Employee / Location Preferences on %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Partner- / Einrichtungspräferenzen am %s</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="496"/>
         <location filename="../frm_actor_plan_period.py" line="563"/>
         <source>Employee / Location Preferences</source>
-        <translation type="unfinished">Partner- / Einrichtungspräferenzen</translation>
+        <translation>Partner- / Einrichtungspräferenzen</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="497"/>
         <source>The employee / location preferences of the availabilities for this day have been reset to the default values of the planning period of %s %s.</source>
-        <translation type="unfinished">Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
+        <translation>Die Partner- / Einrichtungspräferenzen der Verfügbarkeiten dieses Tages wurden auf die Standardwerte des Planungszeitraums von %s %s zurückgesetzt.</translation>
     </message>
     <message>
         <location filename="../frm_actor_plan_period.py" line="564"/>
         <source>No employee / location preferences can be set up, as no availability has been selected for this day.</source>
-        <translation type="unfinished">Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, da an diesen Tag noch keine Verfügbarkeit gewählt wurde.</translation>
+        <translation>Es können keine Partner- / Einrichtungspräferenzen eingerichtet werden, da an diesem Tag noch keine Verfügbarkeit gewählt wurde.</translation>
     </message>
 </context>
 <context>
@@ -746,37 +746,37 @@ Wählen Sie zwischen der Erstellung eines persönlichen Kalenders, eines Teamkal
     <message>
         <location filename="../frm_team_assignments.py" line="200"/>
         <source>Add Team</source>
-        <translation type="unfinished"></translation>
+        <translation>Team hinzufügen</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="219"/>
         <source>Team:</source>
-        <translation type="unfinished">Team:</translation>
+        <translation>Team:</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="224"/>
         <source>Start:</source>
-        <translation type="unfinished">Start:</translation>
+        <translation>Start:</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="253"/>
         <source>This person is already assigned to all available teams.</source>
-        <translation type="unfinished"></translation>
+        <translation>Diese Person ist bereits allen verfügbaren Teams zugeordnet.</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="257"/>
         <source>Select a team to which the person should be additionally assigned.</source>
-        <translation type="unfinished"></translation>
+        <translation>Wählen Sie ein Team, dem die Person zusätzlich zugeordnet werden soll.</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="266"/>
         <source>Error</source>
-        <translation type="unfinished">Fehler</translation>
+        <translation>Fehler</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="266"/>
         <source>Please select a team.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bitte wählen Sie ein Team aus.</translation>
     </message>
 </context>
 <context>
@@ -1001,29 +1001,31 @@ sind folgende Mitarbeiter verfügbar.</translation>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="494"/>
         <source>Remove Assignments</source>
-        <translation type="unfinished"></translation>
+        <translation>Zuordnungen entfernen</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="502"/>
         <source>Reducing the number of staff to {nr} requires removing {excess} assignment(s).
 
 Please select which assignments should be removed:</source>
-        <translation type="unfinished"></translation>
+        <translation>Die Reduzierung der Mitarbeiteranzahl auf {nr} erfordert das Entfernen von {excess} Zuordnung(en).
+
+Bitte wählen Sie, welche Zuordnungen entfernt werden sollen:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="532"/>
         <source>Select exactly {n} assignment(s) to remove.</source>
-        <translation type="unfinished"></translation>
+        <translation>Wählen Sie genau {n} Zuordnung(en) zum Entfernen aus.</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="552"/>
         <source>Selection</source>
-        <translation type="unfinished"></translation>
+        <translation>Auswahl</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="553"/>
         <source>Please select exactly {n} assignment(s) to remove.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bitte wählen Sie genau {n} Zuordnung(en) zum Entfernen aus.</translation>
     </message>
 </context>
 <context>
@@ -1448,7 +1450,7 @@ Sie ist unter dem Namen &quot;{name}&quot; gespeichert.</translation>
     <message>
         <location filename="../frm_comb_loc_possible.py" line="228"/>
         <source>No valid days found for this person in the selected team.</source>
-        <translation type="unfinished"></translation>
+        <translation>Keine gültigen Tage für diese Person im gewählten Team gefunden.</translation>
     </message>
     <message>
         <location filename="../frm_comb_loc_possible.py" line="234"/>
@@ -1556,12 +1558,12 @@ Hier können Sie die Besetzung ändern.</translation>
     <message>
         <location filename="../frm_plan.py" line="216"/>
         <source>Event Properties...</source>
-        <translation type="unfinished"></translation>
+        <translation>Termin-Eigenschaften...</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="218"/>
         <source>Edit Fixed Cast, Staff Count, and Preferences for this event</source>
-        <translation type="unfinished"></translation>
+        <translation>Feste Besetzung, Mitarbeiteranzahl und Präferenzen für diesen Termin bearbeiten</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="266"/>
@@ -2214,17 +2216,17 @@ Ende: {end_date} {end_time}</translation>
     <message>
         <location filename="../frm_team_assignments.py" line="278"/>
         <source>End Team Assignment</source>
-        <translation type="unfinished"></translation>
+        <translation>Teamzuordnung beenden</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="292"/>
         <source>End assignment to team &quot;{}&quot;:</source>
-        <translation type="unfinished"></translation>
+        <translation>Zuordnung zum Team &quot;{}&quot; beenden:</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="303"/>
         <source>End from:</source>
-        <translation type="unfinished"></translation>
+        <translation>Beenden ab:</translation>
     </message>
 </context>
 <context>
@@ -2442,77 +2444,79 @@ Möchen Sie fortfahren?</translation>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="77"/>
         <source>Event Properties</source>
-        <translation type="unfinished">Eigenschaften des Termins</translation>
+        <translation>Eigenschaften des Termins</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="89"/>
         <source>Event: {location}
 {date}, {time_of_day}</source>
-        <translation type="unfinished"></translation>
+        <translation>Termin: {location}
+{date}, {time_of_day}</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="106"/>
         <source>Fixed Cast:</source>
-        <translation type="unfinished"></translation>
+        <translation>Feste Besetzung:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="107"/>
         <source>Edit...</source>
-        <translation type="unfinished">Bearbeiten...</translation>
+        <translation>Bearbeiten...</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="117"/>
         <source>Prefer Events with Fixed Cast</source>
-        <translation type="unfinished">Bevorzuge Events mit fester Besetzung</translation>
+        <translation>Bevorzuge Events mit fester Besetzung</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="119"/>
         <source>If checked, events with a fixed cast are preferred over other events.
 Works best with non-nested casts.</source>
-        <translation type="unfinished">Wenn diese Option aktiviert ist, werden Events mit einer festen Besetzung anderen Events vorgezogen.
+        <translation>Wenn diese Option aktiviert ist, werden Events mit einer festen Besetzung anderen Events vorgezogen.
 Funktioniert am besten mit nicht verschachtelten Besetzungen.</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="125"/>
         <source>Number of Staff:</source>
-        <translation type="unfinished"></translation>
+        <translation>Anzahl Mitarbeiter:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="235"/>
         <source>(not set)</source>
-        <translation type="unfinished"></translation>
+        <translation>(nicht festgelegt)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="286"/>
         <location filename="../custom_widgets/dlg_event_properties.py" line="311"/>
         <source>Number of Staff</source>
-        <translation type="unfinished">Anzahl Mitarbeiter</translation>
+        <translation>Anzahl Mitarbeiter</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="287"/>
         <source>Fixed Cast requires at least {n} employees.
 Number of Staff will be adjusted.</source>
-        <translation type="unfinished"></translation>
+        <translation>Feste Besetzung erfordert mindestens {n} Mitarbeiter.
+Anzahl Mitarbeiter wird angepasst.</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="312"/>
         <source>Fixed Cast requires at least {n} employees.</source>
-        <translation type="unfinished"></translation>
+        <translation>Feste Besetzung erfordert mindestens {n} Mitarbeiter.</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="345"/>
         <source>{count} assigned (overflow!)</source>
-        <translation type="unfinished"></translation>
+        <translation>{count} zugeordnet (Überlauf!)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="350"/>
         <source>{count} assigned (complete)</source>
-        <translation type="unfinished"></translation>
+        <translation>{count} zugeordnet (vollständig)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/dlg_event_properties.py" line="355"/>
         <source>{count} of {total} assigned</source>
-        <translation type="unfinished"></translation>
+        <translation>{count} von {total} zugeordnet</translation>
     </message>
 </context>
 <context>
@@ -2778,7 +2782,7 @@ hinzufügen oder löschen.</translation>
     <message>
         <location filename="../frm_general_settings.py" line="87"/>
         <source>Excel Export Folder Format</source>
-        <translation type="unfinished"></translation>
+        <translation>Excel-Export Ordnerformat</translation>
     </message>
     <message>
         <location filename="../frm_general_settings.py" line="131"/>
@@ -3736,7 +3740,7 @@ Email: {email}</source>
     <message>
         <location filename="../frm_masterdata.py" line="412"/>
         <source>Team Assignments</source>
-        <translation type="unfinished"></translation>
+        <translation>Teamzuordnungen</translation>
     </message>
     <message>
         <location filename="../frm_masterdata.py" line="413"/>
@@ -4416,73 +4420,73 @@ so nah wie möglich der Anzahl gewünschter Einsätze anzunähern.</translation>
     <message>
         <location filename="../frm_team_assignments.py" line="36"/>
         <source>Team Assignments</source>
-        <translation type="unfinished"></translation>
+        <translation>Teamzuordnungen</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="64"/>
         <source>Team</source>
-        <translation type="unfinished">Team</translation>
+        <translation>Team</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="64"/>
         <source>Start</source>
-        <translation type="unfinished">Start</translation>
+        <translation>Start</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="64"/>
         <source>End</source>
-        <translation type="unfinished">Ende</translation>
+        <translation>Ende</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="64"/>
         <source>Action</source>
-        <translation type="unfinished"></translation>
+        <translation>Aktion</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="78"/>
         <source>Add Team...</source>
-        <translation type="unfinished"></translation>
+        <translation>Team hinzufügen...</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="123"/>
         <source>End...</source>
-        <translation type="unfinished"></translation>
+        <translation>Beenden...</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="141"/>
         <source>Planning Periods</source>
-        <translation type="unfinished">Planungsperioden</translation>
+        <translation>Planungsperioden</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="142"/>
         <source>Do you want to create planning periods for {} in team &quot;{}&quot;?</source>
-        <translation type="unfinished"></translation>
+        <translation>Möchten Sie Planungsperioden für {} im Team &quot;{}&quot; erstellen?</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="161"/>
         <source>Planning Periods Created</source>
-        <translation type="unfinished"></translation>
+        <translation>Planungsperioden erstellt</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="162"/>
         <source>{} planning period(s) have been created.</source>
-        <translation type="unfinished"></translation>
+        <translation>{} Planungsperiode(n) wurden erstellt.</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="167"/>
         <source>No New Planning Periods</source>
-        <translation type="unfinished"></translation>
+        <translation>Keine neuen Planungsperioden</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="168"/>
         <source>No new planning periods were created (already exist or no active periods in team).</source>
-        <translation type="unfinished"></translation>
+        <translation>Es wurden keine neuen Planungsperioden erstellt (bereits vorhanden oder keine aktiven Perioden im Team).</translation>
     </message>
     <message>
         <location filename="../frm_team_assignments.py" line="174"/>
         <location filename="../frm_team_assignments.py" line="186"/>
         <source>Error</source>
-        <translation type="unfinished">Fehler</translation>
+        <translation>Fehler</translation>
     </message>
 </context>
 <context>
@@ -4877,60 +4881,60 @@ Team: {team}</translation>
     <message>
         <location filename="../frm_plan.py" line="1113"/>
         <source>Verification of plan</source>
-        <translation type="unfinished">Überprüfung des Plans</translation>
+        <translation>Überprüfung des Plans</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1130"/>
         <source>&lt;h3&gt;No errors were found in this plan.&lt;/h3&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;h3&gt;In diesem Plan wurden keine Fehler gefunden.&lt;/h3&gt;</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1132"/>
         <source>&lt;h3&gt;Conflicts were found in this plan.&lt;/h3&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;h3&gt;In diesem Plan wurden Konflikte gefunden.&lt;/h3&gt;</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1141"/>
         <source>&lt;h4&gt;Incompatibilities:&lt;/h4&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;h4&gt;Unvereinbarkeiten:&lt;/h4&gt;</translation>
     </message>
     <message numerus="yes">
         <location filename="../frm_plan.py" line="1156"/>
         <source>&lt;i&gt;There are %n note(s) available.&lt;/i&gt;</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>&lt;i&gt;Es ist %n Anmerkung verfügbar.&lt;/i&gt;</numerusform>
+            <numerusform>&lt;i&gt;Es sind %n Anmerkungen verfügbar.&lt;/i&gt;</numerusform>
         </translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1165"/>
         <source>Show notes</source>
-        <translation type="unfinished"></translation>
+        <translation>Anmerkungen anzeigen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1171"/>
         <source>Undo</source>
-        <translation type="unfinished">Rückgängig</translation>
+        <translation>Rückgängig</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1175"/>
         <source>Keep changes</source>
-        <translation type="unfinished"></translation>
+        <translation>Änderungen beibehalten</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1180"/>
         <source>Close</source>
-        <translation type="unfinished"></translation>
+        <translation>Schließen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1192"/>
         <source>Notes</source>
-        <translation type="unfinished">Anmerkungen</translation>
+        <translation>Anmerkungen</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1193"/>
         <source>&lt;h3&gt;Notes from plan verification&lt;/h3&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;h3&gt;Anmerkungen aus der Planüberprüfung&lt;/h3&gt;</translation>
     </message>
 </context>
 <context>
@@ -5072,119 +5076,119 @@ Die Datenbank-E-Mail bleibt unverändert.</translation>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="52"/>
         <source>Day - Month - Year</source>
-        <translation type="unfinished"></translation>
+        <translation>Tag - Monat - Jahr</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="53"/>
         <source>Month - Day - Year</source>
-        <translation type="unfinished"></translation>
+        <translation>Monat - Tag - Jahr</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="54"/>
         <source>Year - Month - Day</source>
-        <translation type="unfinished"></translation>
+        <translation>Jahr - Monat - Tag</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="55"/>
         <source>Order:</source>
-        <translation type="unfinished"></translation>
+        <translation>Reihenfolge:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="60"/>
         <source>Day format:</source>
-        <translation type="unfinished"></translation>
+        <translation>Tagesformat:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="65"/>
         <source>Month format:</source>
-        <translation type="unfinished"></translation>
+        <translation>Monatsformat:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="69"/>
         <source>Two digits (24)</source>
-        <translation type="unfinished"></translation>
+        <translation>Zweistellig (24)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="70"/>
         <source>Four digits (2024)</source>
-        <translation type="unfinished"></translation>
+        <translation>Vierstellig (2024)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="71"/>
         <source>Year format:</source>
-        <translation type="unfinished"></translation>
+        <translation>Jahresformat:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="77"/>
         <source>Date separator:</source>
-        <translation type="unfinished"></translation>
+        <translation>Datumstrenner:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="83"/>
         <source>Range separator:</source>
-        <translation type="unfinished"></translation>
+        <translation>Bereichstrenner:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="97"/>
         <source>Custom</source>
-        <translation type="unfinished"></translation>
+        <translation>Benutzerdefiniert</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="98"/>
         <source>German (DD.MM.YY)</source>
-        <translation type="unfinished"></translation>
+        <translation>Deutsch (TT.MM.JJ)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="99"/>
         <source>German long (DD.MM.YYYY)</source>
-        <translation type="unfinished"></translation>
+        <translation>Deutsch lang (TT.MM.JJJJ)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="100"/>
         <source>ISO 8601 (YYYY-MM-DD)</source>
-        <translation type="unfinished"></translation>
+        <translation>ISO 8601 (JJJJ-MM-TT)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="101"/>
         <source>US Format (MM/DD/YY)</source>
-        <translation type="unfinished"></translation>
+        <translation>US-Format (MM/TT/JJ)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="102"/>
         <source>US Format long (MM/DD/YYYY)</source>
-        <translation type="unfinished"></translation>
+        <translation>US-Format lang (MM/TT/JJJJ)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="103"/>
         <source>Presets:</source>
-        <translation type="unfinished"></translation>
+        <translation>Vorlagen:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="109"/>
         <source>Preview:</source>
-        <translation type="unfinished"></translation>
+        <translation>Vorschau:</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="122"/>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="129"/>
         <source>With leading zero (01)</source>
-        <translation type="unfinished"></translation>
+        <translation>Mit führender Null (01)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="125"/>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="131"/>
         <source>Without leading zero (1)</source>
-        <translation type="unfinished"></translation>
+        <translation>Ohne führende Null (1)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="132"/>
         <source>Abbreviated (Jan)</source>
-        <translation type="unfinished"></translation>
+        <translation>Abgekürzt (Jan)</translation>
     </message>
     <message>
         <location filename="../custom_widgets/excel_folder_date_format_selector.py" line="133"/>
         <source>Full name (January)</source>
-        <translation type="unfinished"></translation>
+        <translation>Vollständiger Name (Januar)</translation>
     </message>
 </context>
 <context>
@@ -6258,17 +6262,17 @@ Eventuell haben Sie nachträglich &quot;{}&quot; aus den Standards gelöscht.</t
         <location filename="../frm_plan.py" line="1327"/>
         <location filename="../frm_plan.py" line="1360"/>
         <source>Bewertung aktualisieren</source>
-        <translation type="unfinished"></translation>
+        <translation>Bewertung aktualisieren</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1328"/>
         <source>Berechnet die Qualitätsbewertung des aktuellen Plans</source>
-        <translation type="unfinished"></translation>
+        <translation>Berechnet die Qualitätsbewertung des aktuellen Plans</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1340"/>
         <source>Berechne...</source>
-        <translation type="unfinished"></translation>
+        <translation>Berechne...</translation>
     </message>
     <message>
         <location filename="../frm_plan.py" line="1383"/>
@@ -7419,7 +7423,7 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
     <message>
         <location filename="../plan_rating/rating_widgets.py" line="128"/>
         <source>Planbewertung</source>
-        <translation type="unfinished"></translation>
+        <translation>Planbewertung</translation>
     </message>
     <message>
         <location filename="../plan_rating/rating_widgets.py" line="157"/>
@@ -7427,17 +7431,20 @@ Versuchen Sie es später noch einmal oder kontaktieren Sie den Support.</transla
 
 Klicken Sie auf
 &apos;Bewertung aktualisieren&apos;.</source>
-        <translation type="unfinished"></translation>
+        <translation>Noch keine Bewertung.
+
+Klicken Sie auf
+&apos;Bewertung aktualisieren&apos;.</translation>
     </message>
     <message>
         <location filename="../plan_rating/rating_widgets.py" line="193"/>
         <source>Solver</source>
-        <translation type="unfinished"></translation>
+        <translation>Solver</translation>
     </message>
     <message>
         <location filename="../plan_rating/rating_widgets.py" line="193"/>
         <source>manuell</source>
-        <translation type="unfinished"></translation>
+        <translation>manuell</translation>
     </message>
 </context>
 <context>
@@ -7514,12 +7521,12 @@ Klicken Sie auf
     <message>
         <location filename="../tab_manager.py" line="689"/>
         <source>Preparing validation...</source>
-        <translation type="unfinished"></translation>
+        <translation>Validierung wird vorbereitet...</translation>
     </message>
     <message>
         <location filename="../tab_manager.py" line="727"/>
         <source>Validation ready</source>
-        <translation type="unfinished"></translation>
+        <translation>Validierung abgeschlossen</translation>
     </message>
 </context>
 <context>
@@ -7635,7 +7642,7 @@ Klicken Sie auf
     <message>
         <location filename="../frm_masterdata.py" line="260"/>
         <source>Edit team assignments</source>
-        <translation type="unfinished"></translation>
+        <translation>Teamzuordnungen bearbeiten</translation>
     </message>
 </context>
 <context>
@@ -7704,7 +7711,7 @@ im Plan markieren.</translation>
     <message>
         <location filename="../custom_widgets/team_selector.py" line="44"/>
         <source>Team:</source>
-        <translation type="unfinished">Team:</translation>
+        <translation>Team:</translation>
     </message>
 </context>
 <context>
@@ -8055,30 +8062,31 @@ Klicken Sie dafür in die entsprechende Zeile.</translation>
     </message>
 </context>
 <context>
-    <name>parent_widget</name>
+    <name>HelperFunctions</name>
     <message>
         <location filename="../../tools/helper_functions.py" line="421"/>
         <source>Undo/Redo</source>
-        <translation type="unfinished"></translation>
+        <translation>Rückgängig/Wiederherstellen</translation>
     </message>
     <message>
         <location filename="../../tools/helper_functions.py" line="422"/>
         <source>The changes made must delete the redo/undo history of the open plans in the planning period {plan_period_name}.
 Should the changes still be made?</source>
-        <translation type="unfinished"></translation>
+        <translation>Die vorgenommenen Änderungen erfordern das Löschen des Rückgängig/Wiederherstellen-Verlaufs der geöffneten Pläne im Planungszeitraum {plan_period_name}.
+Sollen die Änderungen trotzdem vorgenommen werden?</translation>
     </message>
 </context>
 <context>
-    <name>self.parent</name>
+    <name>LocationPlanPeriodData</name>
     <message>
         <location filename="../data_processing.py" line="91"/>
         <source>  - {name} ({count} appointment(s))</source>
-        <translation type="unfinished"></translation>
+        <translation>  - {name} ({count} Termin(e))</translation>
     </message>
     <message>
         <location filename="../data_processing.py" line="97"/>
         <source>Event in Plans</source>
-        <translation type="unfinished"></translation>
+        <translation>Termin in Plänen</translation>
     </message>
     <message>
         <location filename="../data_processing.py" line="99"/>
@@ -8088,7 +8096,12 @@ Should the changes still be made?</source>
 
 Do you really want to delete the event?
 The corresponding appointments will also be removed from the plans.</source>
-        <translation type="unfinished"></translation>
+        <translation>Dieser Termin wird in {count} Termin(en) in folgendem/folgenden Plan/Plänen verwendet:
+
+{plans}
+
+Möchten Sie den Termin wirklich löschen?
+Die entsprechenden Termine werden ebenfalls aus den Plänen entfernt.</translation>
     </message>
 </context>
 </TS>

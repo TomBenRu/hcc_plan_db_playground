@@ -88,14 +88,15 @@ class LocationPlanPeriodData:
         if plan_counts:
             total_appointments = sum(plan_counts.values())
             plans_text = '\n'.join(
-                self.parent.tr('  - {name} ({count} appointment(s))').format(name=name, count=count)
+                QCoreApplication.translate('LocationPlanPeriodData',
+                    '  - {name} ({count} appointment(s))').format(name=name, count=count)
                 for name, count in sorted(plan_counts.items())
             )
 
             reply = QMessageBox.warning(
                 self.parent,
-                self.parent.tr('Event in Plans'),
-                self.parent.tr(
+                QCoreApplication.translate('LocationPlanPeriodData', 'Event in Plans'),
+                QCoreApplication.translate('LocationPlanPeriodData',
                     'This event is used in {count} appointment(s) in the following plan(s):\n\n'
                     '{plans}\n\n'
                     'Do you really want to delete the event?\n'

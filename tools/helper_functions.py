@@ -394,7 +394,8 @@ def warn_and_clear_undo_redo_if_plans_open(
     plan_period_id: UUID,
     plan_period_start: datetime.date,
     plan_period_end: datetime.date,
-    on_cancel: Callable[[], None] | None = None
+    on_cancel: Callable[[], None] | None = None,
+    show_warning: bool = True
 ) -> bool:
     """
     Prüft ob Pläne geöffnet sind, zeigt Warnung und löscht ggf. Undo-/Redo-Verlauf.
@@ -405,31 +406,35 @@ def warn_and_clear_undo_redo_if_plans_open(
         plan_period_start: Startdatum für Anzeige
         plan_period_end: Enddatum für Anzeige
         on_cancel: Callback bei Ablehnung (z.B. dlg.controller.undo_all oder button.toggle)
+        show_warning: Wenn False, wird der Verlauf ohne Rückfrage gelöscht (z.B. bei Undo/Redo-Callbacks)
 
     Returns:
         True wenn fortgefahren werden soll, False wenn abgebrochen
     """
+    from PySide6.QtCore import QCoreApplication
     from PySide6.QtWidgets import QMessageBox
 
     tab_manager = parent_widget.window().tab_manager
     if tab_manager.count_plan_tabs_for_plan_period(plan_period_id) == 0:
         return True  # Keine Pläne offen, fortfahren
 
-    plan_period_name = f'{date_to_string(plan_period_start)} - {date_to_string(plan_period_end)}'
-    reply = QMessageBox.warning(
-        parent_widget,
-        parent_widget.tr('Undo/Redo'),
-        parent_widget.tr('The changes made must delete the redo/undo history of the open plans '
-                        'in the planning period {plan_period_name}.\n'
-                        'Should the changes still be made?').format(plan_period_name=plan_period_name),
-        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        QMessageBox.StandardButton.No
-    )
+    if show_warning:
+        plan_period_name = f'{date_to_string(plan_period_start)} - {date_to_string(plan_period_end)}'
+        reply = QMessageBox.warning(
+            parent_widget,
+            QCoreApplication.translate('HelperFunctions', 'Undo/Redo'),
+            QCoreApplication.translate('HelperFunctions',
+                            'The changes made must delete the redo/undo history of the open plans '
+                            'in the planning period {plan_period_name}.\n'
+                            'Should the changes still be made?').format(plan_period_name=plan_period_name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
 
-    if reply == QMessageBox.StandardButton.No:
-        if on_cancel:
-            on_cancel()
-        return False
+        if reply == QMessageBox.StandardButton.No:
+            if on_cancel:
+                on_cancel()
+            return False
 
     # Lazy import um zirkuläre Abhängigkeiten zu vermeiden
     from gui.observer import signal_handling

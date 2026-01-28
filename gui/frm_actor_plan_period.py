@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Callable
 from uuid import UUID
 
+import line_profiler
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QIcon
@@ -21,7 +22,7 @@ from database.special_schema_requests import get_locations_of_team_at_date, get_
 from export_to_file import avail_days_to_xlsx
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
-from gui.custom_widgets import side_menu
+from gui.custom_widgets import side_menu, BaseConfigButton
 from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
@@ -185,52 +186,73 @@ class ButtonAvailDay(QPushButton):
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
 
 
-class ButtonCombLocPossible(QPushButton):
-    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow):
-        super().__init__(parent)
+class ButtonLocationCombinations(BaseConfigButton):
+    """Button für Standort-Kombinationen pro Tag.
 
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            self.reload_actor_plan_period)
+    Zeigt an, ob die Standort-Kombinationen am jeweiligen Tag den Defaults
+    der ActorPlanPeriod entsprechen.
+    """
 
-        self.setObjectName(f'comb_loc_poss: {date}')
-        self.setMaximumWidth(width_height)
-        self.setMinimumWidth(width_height)
-        self.setMaximumHeight(width_height)
-        self.setMinimumHeight(width_height)
-
-        self.actor_plan_period = actor_plan_period
+    def __init__(self, parent, date: datetime.date, width_height: int,
+                 actor_plan_period: schemas.ActorPlanPeriodShow):
+        # Eigenes Attribut vor super().__init__() setzen
         self.person: schemas.PersonShow | None = None
-        self.date = date
 
+        super().__init__(parent, date, width_height, actor_plan_period)
+        self.setObjectName(f'comb_loc_poss: {date}')
+
+        # Klick-Handler für Dialog-Öffnung
+        self.clicked.connect(self._open_edit_dialog)
+
+    # === Template Method Implementierungen ===
+
+    def _check_matches_defaults(self) -> bool | None:
+        """Prüft ob Standort-Kombinationen den Defaults entsprechen (reine Query)."""
+        return self._check_comb_of_day__eq__comb_of_actor_pp()
+
+    def _setup_tooltip(self) -> None:
         self.setToolTip(self.tr('Location combinations on %s') % date_to_string(self.date))
 
-        self.set_stylesheet()  # sollte beschleunigt werden!
+    # === CQS-konforme Methoden ===
 
-    # def deleteLater(self):
-    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
-    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-    #         self.reload_actor_plan_period)
-    #     super().deleteLater()
-
-    def check_comb_of_day__eq__comb_of_actor_pp(self):
-        avail_days = self.actor_plan_period.avail_days
-        avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+    def _ensure_consistency(self) -> None:
+        """Prüft auf Inkonsistenzen zwischen AvailDays und resettet bei Bedarf."""
+        avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             return
-        comb_of_idx0 = {comb.id for comb in avail_days_at_date[0].combination_locations_possibles}
-        if len(avail_days_at_date) > 1:
-            for avd in avail_days_at_date[1:]:
-                if {comb.id for comb in avd.combination_locations_possibles} != comb_of_idx0:
-                    self.reset_combs_of_day(avail_days_at_date)
-                    return True
 
+        if self._has_internal_inconsistency(avail_days_at_date):
+            self._reset_to_defaults(avail_days_at_date)
+            QMessageBox.critical(
+                self, self.tr('Location Combinations'),
+                self.tr('The location combinations of the availabilities for this day '
+                        'have been reset to the default values of the planning period of '
+                        '%s %s.') % (self.actor_plan_period.person.f_name,
+                                     self.actor_plan_period.person.l_name)
+            )
+
+    def _has_internal_inconsistency(self, avail_days_at_date: list[schemas.AvailDay]) -> bool:
+        """Prüft ob AvailDays am Tag untereinander inkonsistent sind (reine Query)."""
+        if len(avail_days_at_date) <= 1:
+            return False
+        comb_of_idx0 = {comb.id for comb in avail_days_at_date[0].combination_locations_possibles}
+        for avd in avail_days_at_date[1:]:
+            if {comb.id for comb in avd.combination_locations_possibles} != comb_of_idx0:
+                return True
+        return False
+
+    def _check_comb_of_day__eq__comb_of_actor_pp(self) -> bool | None:
+        """Prüft ob Standort-Kombinationen am Tag den ActorPlanPeriod-Defaults entsprechen (reine Query)."""
+        avail_days_at_date = self.avail_days_at_date()
+        if not avail_days_at_date:
+            return None
+        comb_of_idx0 = {comb.id for comb in avail_days_at_date[0].combination_locations_possibles}
         return {comb_locs.id for comb_locs in self.actor_plan_period.combination_locations_possibles} == comb_of_idx0
 
-    def reset_combs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
+    def _reset_to_defaults(self, avail_days_at_date: list[schemas.AvailDay] | None = None) -> None:
+        """Setzt Standort-Kombinationen auf ActorPlanPeriod-Defaults zurück."""
         if not avail_days_at_date:
-            avail_days = self.actor_plan_period.avail_days
-            avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+            avail_days_at_date = self.avail_days_at_date()
 
         for avd in avail_days_at_date:
             for comb_avd in avd.combination_locations_possibles:
@@ -238,36 +260,15 @@ class ButtonCombLocPossible(QPushButton):
             for comb_app in self.actor_plan_period.combination_locations_possibles:
                 db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_app.id)
 
-    def set_stylesheet(self):
-        check_comb_of_day__eq__comb_of_actor_pp = self.check_comb_of_day__eq__comb_of_actor_pp()
-        if check_comb_of_day__eq__comb_of_actor_pp is None:
-            self.setStyleSheet(
-                f"ButtonCombLocPossible {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
-                f"ButtonCombLocPossible::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
-        elif check_comb_of_day__eq__comb_of_actor_pp:
-            self.setStyleSheet(
-                f"ButtonCombLocPossible {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
-                f"ButtonCombLocPossible::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
-        else:
-            self.setStyleSheet(
-                f"ButtonCombLocPossible {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
-                f"ButtonCombLocPossible::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
-
-    def avail_days_at_date(self) -> list[schemas.AvailDay]:
-        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
 
     def get_person(self) -> schemas.PersonShow:
+        """Gibt die Person der ActorPlanPeriod zurück (lazy loading)."""
         if self.person is None:
             self.person = db_services.Person.get(self.actor_plan_period.person.id)
         return self.person
 
-    def mouseReleaseEvent(self, e) -> None:
+    def _open_edit_dialog(self) -> None:
+        """Öffnet den Dialog zur Bearbeitung der Standort-Kombinationen."""
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             QMessageBox.critical(self, self.tr('Location Combinations'),
@@ -289,8 +290,8 @@ class ButtonCombLocPossible(QPushButton):
             ):
                 return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
-            '''avail_days_at_date[0].combination_locations_possibles wurden geändert.
-            nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst'''
+            # avail_days_at_date[0].combination_locations_possibles wurden geändert.
+            # nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst
             avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
             for avd in avail_days_at_date[1:]:
                 for comb in avd.combination_locations_possibles:
@@ -299,51 +300,81 @@ class ButtonCombLocPossible(QPushButton):
                     db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
 
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
-            self.reload_actor_plan_period()
+            self.refresh()
             signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
 
-    @Slot(signal_handling.DataActorPPWithDate)
-    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
-        """Entweder das Signal kommt ohne Datumsangabe von ButtonCombLocPossible
-        oder mit Datumsangabe von ButtonAvailDay"""
-        if data is None:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet()
-        elif data.actor_plan_period.id == self.actor_plan_period.id:
-            if data.date is None or data.date == self.date:
-                self.actor_plan_period = data.actor_plan_period
-                self.set_stylesheet()
 
+class ButtonLocationPreferences(BaseConfigButton):
+    """Button für Standort-Präferenzen pro Tag.
 
-class ButtonActorLocationPref(QPushButton):
-    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow,
-                 team: schemas.TeamShow):
-        super().__init__(parent)
+    Zeigt an, ob die Standort-Präferenzen am jeweiligen Tag den Defaults
+    der ActorPlanPeriod entsprechen.
+    """
 
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            self.reload_actor_plan_period)
-
-        self.setObjectName(f'act_loc_pref: {date}')
-        self.setMaximumWidth(width_height)
-        self.setMinimumWidth(width_height)
-        self.setMaximumHeight(width_height)
-        self.setMinimumHeight(width_height)
-
-        self.actor_plan_period = actor_plan_period
+    def __init__(self, parent, date: datetime.date, width_height: int,
+                 actor_plan_period: schemas.ActorPlanPeriodShow, team: schemas.TeamShow):
+        # Eigenes Attribut vor super().__init__() setzen
         self.team = team
-        self.date = date
 
-        self.setToolTip(self.tr('Location preferences on %s') % date_to_string(date))
+        super().__init__(parent, date, width_height, actor_plan_period)
+        self.setObjectName(f'act_loc_pref: {date}')
 
-        self.set_stylesheet()  # sollte beschleunigt werden!
+        # Klick-Handler für Dialog-Öffnung
+        self.clicked.connect(self._open_edit_dialog)
 
-    def check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self):
-        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
-        avail_days = self.actor_plan_period.avail_days
-        avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+    # === Template Method Implementierungen ===
+
+    def _check_matches_defaults(self) -> bool | None:
+        """Prüft ob Standort-Präferenzen den Defaults entsprechen (reine Query)."""
+        return self._check_loc_pref_of_day__eq__loc_pref_of_actor_pp()
+
+    def _setup_tooltip(self) -> None:
+        self.setToolTip(self.tr('Location preferences on %s') % date_to_string(self.date))
+
+    # === CQS-konforme Methoden ===
+
+    def _ensure_consistency(self) -> None:
+        """Prüft auf Inkonsistenzen zwischen AvailDays und resettet bei Bedarf."""
+        avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             return
+
+        if self._has_internal_inconsistency(avail_days_at_date):
+            self._reset_to_defaults(avail_days_at_date)
+            QMessageBox.critical(
+                self, self.tr('Location Preferences'),
+                self.tr('The location preferences of the availabilities for this day have been reset to '
+                        'the default values of the planning period of '
+                        '%s %s.') % (self.actor_plan_period.person.f_name,
+                                     self.actor_plan_period.person.l_name)
+            )
+
+    def _has_internal_inconsistency(self, avail_days_at_date: list[schemas.AvailDay]) -> bool:
+        """Prüft ob AvailDays am Tag untereinander inkonsistent sind (reine Query)."""
+        if len(avail_days_at_date) <= 1:
+            return False
+        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        pref_of_idx0 = {
+            (pref.location_of_work.id, pref.score) for pref in avail_days_at_date[0].actor_location_prefs_defaults
+            if (not pref.prep_delete or pref.prep_delete > self.date)
+               and pref.location_of_work.id in locations_at_date_ids
+        }
+        for avd in avail_days_at_date[1:]:
+            avd_prefs = {
+                (pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults
+                if (not pref.prep_delete or pref.prep_delete > self.date)
+                   and pref.location_of_work.id in locations_at_date_ids
+            }
+            if avd_prefs != pref_of_idx0:
+                return True
+        return False
+
+    def _check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self) -> bool | None:
+        """Prüft ob Standort-Präferenzen am Tag den ActorPlanPeriod-Defaults entsprechen (reine Query)."""
+        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        avail_days_at_date = self.avail_days_at_date()
+        if not avail_days_at_date:
+            return None
         prefs_actor_plan_period = {
             (pref.location_of_work.id, pref.score) for pref in self.actor_plan_period.actor_location_prefs_defaults
             if (not pref.prep_delete or pref.prep_delete > self.date)
@@ -354,30 +385,12 @@ class ButtonActorLocationPref(QPushButton):
             if (not pref.prep_delete or pref.prep_delete > self.date)
                and pref.location_of_work.id in locations_at_date_ids
         }
-        if len(avail_days_at_date) > 1:
-            for avd in avail_days_at_date[1:]:
-                avd_prefs = {
-                    (pref.location_of_work.id, pref.score) for pref in avd.actor_location_prefs_defaults
-                    if (not pref.prep_delete or pref.prep_delete > self.date)
-                       and pref.location_of_work.id in locations_at_date_ids
-                }
-                if avd_prefs != pref_of_idx0:
-                    self.reset_prefs_of_day(avail_days_at_date)
-                    QMessageBox.critical(
-                        self, self.tr('Location Preferences'),
-                        self.tr('The location preferences of the availabilities for this day have been reset to '
-                                'the default values of the planning period of '
-                                '%s %s.') % (self.actor_plan_period.person.f_name,
-                                             self.actor_plan_period.person.l_name)
-                    )
-                    return True
-
         return prefs_actor_plan_period == pref_of_idx0
 
-    def reset_prefs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
+    def _reset_to_defaults(self, avail_days_at_date: list[schemas.AvailDay] | None = None) -> None:
+        """Setzt Standort-Präferenzen auf ActorPlanPeriod-Defaults zurück."""
         if not avail_days_at_date:
-            avail_days = self.actor_plan_period.avail_days
-            avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+            avail_days_at_date = self.avail_days_at_date()
 
         for avd in avail_days_at_date:
             for pref_avd in avd.actor_location_prefs_defaults:
@@ -385,31 +398,8 @@ class ButtonActorLocationPref(QPushButton):
             for pref_app in self.actor_plan_period.actor_location_prefs_defaults:
                 db_services.AvailDay.put_in_location_pref(avd.id, pref_app.id)
 
-    def set_stylesheet(self):
-        check_loc_pref__eq__loc_pref_of_actor_pp = self.check_loc_pref_of_day__eq__loc_pref_of_actor_pp()
-        if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(
-                f"ButtonActorLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors};}}"
-                f"ButtonActorLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
-        elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(
-                f"ButtonActorLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default};}}"
-                f"ButtonActorLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
-        else:
-            self.setStyleSheet(
-                f"ButtonActorLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different};}}"
-                f"ButtonActorLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
-
-    def avail_days_at_date(self) -> list[schemas.AvailDay]:
-        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
-
-    def mouseReleaseEvent(self, e) -> None:
+    def _open_edit_dialog(self) -> None:
+        """Öffnet den Dialog zur Bearbeitung der Standort-Präferenzen."""
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             QMessageBox.critical(self, self.tr('Location Preferences'),
@@ -444,9 +434,8 @@ class ButtonActorLocationPref(QPushButton):
                 created_pref = db_services.ActorLocationPref.create(new_loc_pref)
                 db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
 
-
-        '''avail_days_at_date[0].actor_location_prefs_defaults wurden geändert.
-        nun werden die actor_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst'''
+        # avail_days_at_date[0].actor_location_prefs_defaults wurden geändert.
+        # nun werden die actor_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst
         avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
         for avd in avail_days_at_date[1:]:
             for pref in avd.actor_location_prefs_defaults:
@@ -462,59 +451,85 @@ class ButtonActorLocationPref(QPushButton):
             return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
         db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
-        self.reload_actor_plan_period()
+        self.refresh()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
-    @Slot(signal_handling.DataActorPPWithDate)
-    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
-        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if data is None:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet()
-        elif data.actor_plan_period.id == self.actor_plan_period.id:
-            if data.date is None or data.date == self.date:
-                self.actor_plan_period = data.actor_plan_period
-                self.set_stylesheet()
 
+class ButtonPartnerPreferences(BaseConfigButton):
+    """Button für Mitarbeiter/Standort-Präferenzen pro Tag.
 
-class ButtonActorPartnerLocationPref(QPushButton):
-    def __init__(self, parent, date: datetime.date, width_height: int, actor_plan_period: schemas.ActorPlanPeriodShow,
-                 team: schemas.TeamShow):
-        super().__init__(parent)
+    Zeigt an, ob die Partner/Standort-Präferenzen am jeweiligen Tag den Defaults
+    der ActorPlanPeriod entsprechen.
+    """
 
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            self.reload_actor_plan_period)
-
-        self.setObjectName(f'act_partner_loc_pref: {date}')
-        self.setMaximumWidth(width_height)
-        self.setMinimumWidth(width_height)
-        self.setMaximumHeight(width_height)
-        self.setMinimumHeight(width_height)
-
-        self.actor_plan_period = actor_plan_period
+    def __init__(self, parent, date: datetime.date, width_height: int,
+                 actor_plan_period: schemas.ActorPlanPeriodShow, team: schemas.TeamShow):
+        # Eigenes Attribut vor super().__init__() setzen
         self.team = team
-        self.date = date
 
-        self.setToolTip('Employee / Location Preferences on %s' % date_to_string(date))
+        super().__init__(parent, date, width_height, actor_plan_period)
+        self.setObjectName(f'act_partner_loc_pref: {date}')
 
-        self.set_stylesheet()  # sollte beschleunigt werden!
+        # Klick-Handler für Dialog-Öffnung
+        self.clicked.connect(self._open_edit_dialog)
 
-    # def deleteLater(self):
-    #     # Trenne die Signale explizit, bevor das Widget gelöscht wird
-    #     signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.disconnect(
-    #         self.reload_actor_plan_period)
-    #     super().deleteLater()
+    # === Template Method Implementierungen ===
 
-    def check_pref_of_day__eq__pref_of_actor_pp(self):
+    def _check_matches_defaults(self) -> bool | None:
+        """Prüft ob Partner/Standort-Präferenzen den Defaults entsprechen (reine Query)."""
+        return self._check_pref_of_day__eq__pref_of_actor_pp()
+
+    def _setup_tooltip(self) -> None:
+        self.setToolTip(self.tr('Employee / Location Preferences on %s') % date_to_string(self.date))
+
+    # === CQS-konforme Methoden ===
+
+    def _ensure_consistency(self) -> None:
+        """Prüft auf Inkonsistenzen zwischen AvailDays und resettet bei Bedarf."""
+        avail_days_at_date = self.avail_days_at_date()
+        if not avail_days_at_date:
+            return
+
+        if self._has_internal_inconsistency(avail_days_at_date):
+            self._reset_to_defaults(avail_days_at_date)
+            QMessageBox.critical(
+                self, self.tr('Employee / Location Preferences'),
+                self.tr('The employee / location preferences of the availabilities for this day '
+                        'have been reset to the default values of the planning period of '
+                        '%s %s.') % (
+                    self.actor_plan_period.person.f_name, self.actor_plan_period.person.l_name)
+            )
+
+    def _has_internal_inconsistency(self, avail_days_at_date: list[schemas.AvailDay]) -> bool:
+        """Prüft ob AvailDays am Tag untereinander inkonsistent sind (reine Query)."""
+        if len(avail_days_at_date) <= 1:
+            return False
+        partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
+        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        pref_of_idx0 = {
+            (pref.location_of_work.id, pref.partner.id, pref.score)
+            for pref in avail_days_at_date[0].actor_partner_location_prefs_defaults
+            if not pref.prep_delete
+               and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)
+        }
+        for avd in avail_days_at_date[1:]:
+            avd_prefs = {(pref.location_of_work.id, pref.partner.id, pref.score)
+                         for pref in avd.actor_partner_location_prefs_defaults
+                         if not pref.prep_delete
+                         and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)}
+            if avd_prefs != pref_of_idx0:
+                return True
+        return False
+
+    def _check_pref_of_day__eq__pref_of_actor_pp(self) -> bool | None:
+        """Prüft ob Partner/Standort-Präferenzen am Tag den ActorPlanPeriod-Defaults entsprechen (reine Query)."""
         partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
         locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
 
-        avail_days = self.actor_plan_period.avail_days
-        avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+        avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
-            return
+            return None
         prefs_actor_plan_period = {
             (pref.location_of_work.id, pref.partner.id, pref.score)
             for pref in self.actor_plan_period.actor_partner_location_prefs_defaults
@@ -527,61 +542,23 @@ class ButtonActorPartnerLocationPref(QPushButton):
             if not pref.prep_delete
                and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)
         }
-        if len(avail_days_at_date) > 1:
-            for avd in avail_days_at_date[1:]:
-                avd_prefs = {(pref.location_of_work.id, pref.partner.id, pref.score)
-                             for pref in avd.actor_partner_location_prefs_defaults
-                             if not pref.prep_delete
-                             and (pref.location_of_work.id in locations_at_date_ids and pref.partner.id in partner_at_date_ids)}
-                if avd_prefs != pref_of_idx0:
-                    self.reset_prefs_of_day(avail_days_at_date)
-                    QMessageBox.critical(
-                        self, self.tr('Employee / Location Preferences'),
-                        self.tr('The employee / location preferences of the availabilities for this day '
-                                'have been reset to the default values of the planning period of '
-                                '%s %s.') % (
-                            self.actor_plan_period.person.f_name, self.actor_plan_period.person.l_name)
-                    )
-                    return True
-
         return prefs_actor_plan_period == pref_of_idx0
 
-    def reset_prefs_of_day(self, avail_days_at_date: list[schemas.AvailDay] | None = None):
+    def _reset_to_defaults(self, avail_days_at_date: list[schemas.AvailDay] | None = None) -> None:
+        """Setzt Partner/Standort-Präferenzen auf ActorPlanPeriod-Defaults zurück."""
         if not avail_days_at_date:
-            avail_days = self.actor_plan_period.avail_days
-            avail_days_at_date = [avd for avd in avail_days if avd.date == self.date]
+            avail_days_at_date = self.avail_days_at_date()
 
         for avd in avail_days_at_date:
-            for pref_avd in avd.actor_partner_location_prefs_defaults:
-                db_services.AvailDay.remove_partner_location_pref(avd.id, pref_avd.id)
-            for pref_app in self.actor_plan_period.actor_partner_location_prefs_defaults:
-                db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_app.id)
+            remove_command = avail_day_commands.ClearActorPartnerLocationPrefs(avd.id,
+                [apl.id for apl in avd.actor_partner_location_prefs_defaults])
+            add_command = avail_day_commands.PutInActorPartnerLocationPrefs(avd.id,
+                [apl.id for apl in self.actor_plan_period.actor_partner_location_prefs_defaults])
+            batch_command = command_base_classes.BatchCommand(self, [remove_command, add_command])
+            self.controller.execute(batch_command)
 
-    def set_stylesheet(self):
-        check_loc_pref__eq__loc_pref_of_actor_pp = self.check_pref_of_day__eq__pref_of_actor_pp()
-        if check_loc_pref__eq__loc_pref_of_actor_pp is None:
-            self.setStyleSheet(
-                f"ButtonActorPartnerLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
-                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
-        elif check_loc_pref__eq__loc_pref_of_actor_pp:
-            self.setStyleSheet(
-                f"ButtonActorPartnerLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
-                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
-        else:
-            self.setStyleSheet(
-                f"ButtonActorPartnerLocationPref {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
-                f"ButtonActorPartnerLocationPref::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
-
-    def avail_days_at_date(self) -> list[schemas.AvailDay]:
-        return [avd for avd in self.actor_plan_period.avail_days if not avd.prep_delete and avd.date == self.date]
-
-    def mouseReleaseEvent(self, e) -> None:
+    def _open_edit_dialog(self) -> None:
+        """Öffnet den Dialog zur Bearbeitung der Partner/Standort-Präferenzen."""
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             QMessageBox.critical(self, self.tr('Employee / Location Preferences'),
@@ -606,8 +583,8 @@ class ButtonActorPartnerLocationPref(QPushButton):
         ):
             return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
-        '''avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
-        nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst'''
+        # avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
+        # nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst
         avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
         for avd in avail_days_at_date[1:]:
             for pref in avd.actor_partner_location_prefs_defaults:
@@ -616,53 +593,87 @@ class ButtonActorPartnerLocationPref(QPushButton):
                 if not pref_new.prep_delete:
                     db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
 
-        self.reload_actor_plan_period()
+        self.refresh()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
+
+class ButtonSkills(BaseConfigButton):
+    """Button für Skills pro Tag.
+
+    Zeigt an, ob die Skills der AvailDays am jeweiligen Tag den Person-Skills entsprechen.
+    Besonderheiten:
+    - Verwendet set_stylesheet_and_tooltip() statt nur set_stylesheet()
+    - Hat eigenes Signal signal_reset_styling_skills_configs
+    - Verwendet clicked-Signal statt mouseReleaseEvent
+    """
+
+    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
+                 actor_plan_period: schemas.ActorPlanPeriodShow):
+        # Eigene Attribute vor super().__init__() setzen
+        self._cached_avail_days: list[schemas.AvailDayShow] = []
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
+        super().__init__(parent, date, width_height, actor_plan_period)
+        self.setObjectName(f'skill_groups: {date}')
+
+        # Klick-Handler für Dialog-Öffnung
+        self.clicked.connect(self.edit_skills_of_day)
+
+    # === Template Method Implementierungen ===
+
+    def _check_matches_defaults(self) -> bool | None:
+        """Prüft ob Skills den Person-Skills entsprechen (reine Query).
+
+        Returns:
+            None: Keine AvailDays vorhanden
+            True: Skills gleich UND entsprechen Person-Skills
+            False: Skills unterschiedlich ODER entsprechen nicht Person-Skills
+        """
+        all_equal = self._check_skills_all_equal()
+        if all_equal is None:
+            return None
+        if all_equal and self._check_skills_all_equal_to_person_skills():
+            return True
+        return False
+
+    def _connect_signals(self) -> None:
+        """Verbindet das zusätzliche Signal für Skill-Styling-Reset."""
+        signal_handling.handler_actor_plan_period.signal_reset_styling_skills_configs.connect(
+            self._reset_stylesheet_and_tooltip)
+
+    def _on_stylesheet_updated(self) -> None:
+        """Aktualisiert den Tooltip nach jedem Stylesheet-Update."""
+        self._update_tooltip()
+
+    # === Überschriebene Methoden ===
+
+    def set_stylesheet(self) -> None:
+        """Überschrieben um avail_days_at_date vor dem Check zu laden."""
+        self._load_avail_days_at_date()
+        super().set_stylesheet()
+
     @Slot(signal_handling.DataActorPPWithDate)
-    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
-        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
+    def refresh(self, data: signal_handling.DataActorPPWithDate | None = None) -> None:
+        """Überschrieben um set_stylesheet_and_tooltip() aufzurufen."""
         if data is None:
             self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet()
+            self.set_stylesheet_and_tooltip()
         elif data.actor_plan_period.id == self.actor_plan_period.id:
             if data.date is None or data.date == self.date:
                 self.actor_plan_period = data.actor_plan_period
-                self.set_stylesheet()
+                self.set_stylesheet_and_tooltip()
 
+    # === Klassenspezifische Methoden ===
 
-class ButtonSkills(QPushButton):
-    def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow):
-        super().__init__(parent=parent)
-
-        self.setObjectName(f'skill_groups: {date}')
-        self.setMaximumWidth(width_height)
-        self.setMinimumWidth(width_height)
-        self.setMaximumHeight(width_height)
-        self.setMinimumHeight(width_height)
-
-        signal_handling.handler_actor_plan_period.signal_reset_styling_skills_configs.connect(
-            self.reset_stylesheet_and_tooltip)
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__avail_configs.connect(
-            self.reload_actor_plan_period)
-
-        self.clicked.connect(self.edit_skills_of_day)
-
-        self.date = date
-        self.actor_plan_period = actor_plan_period
-        self.controller = command_base_classes.ContrExecUndoRedo()
-        self.set_stylesheet_and_tooltip()
-
-
-    def set_stylesheet_and_tooltip(self):
-        self._set_avail_days_at_day()
-        self._set_stylesheet()
-        self._set_tooltip()
+    def set_stylesheet_and_tooltip(self) -> None:
+        """Aktualisiert Stylesheet und Tooltip gemeinsam."""
+        self._load_avail_days_at_date()
+        super().set_stylesheet()  # Ruft _on_stylesheet_updated() auf, das den Tooltip setzt
 
     @Slot(signal_handling.DataActorPlanPeriodDate)
-    def reset_stylesheet_and_tooltip(self, data: signal_handling.DataActorPlanPeriodDate):
+    def _reset_stylesheet_and_tooltip(self, data: signal_handling.DataActorPlanPeriodDate) -> None:
+        """Handler für signal_reset_styling_skills_configs."""
         # Optimierter Pfad: Prüfe zuerst actor_plan_period_id (schneller)
         if data.actor_plan_period_id is not None:
             if data.actor_plan_period_id != self.actor_plan_period.id:
@@ -674,53 +685,37 @@ class ButtonSkills(QPushButton):
         if (data.date and data.date == self.date) or not data.date:
             self.set_stylesheet_and_tooltip()
 
-    def _set_avail_days_at_day(self):
-        self.avail_days_at_day = db_services.AvailDay.get_from__actor_pp_date(self.actor_plan_period.id, self.date)
+    def _load_avail_days_at_date(self) -> None:
+        """Lädt und cached die AvailDays am Button-Datum."""
+        self._cached_avail_days = db_services.AvailDay.get_from__actor_pp_date(self.actor_plan_period.id, self.date)
 
     def _check_skills_all_equal(self) -> bool | None:
-        if not self.avail_days_at_day:
-            return
-        if len({len(ad.skills) for ad in self.avail_days_at_day}) > 1:
+        """Prüft ob alle AvailDays am Tag die gleichen Skills haben."""
+        if not self._cached_avail_days:
+            return None
+        if len({len(ad.skills) for ad in self._cached_avail_days}) > 1:
             return False
         return all(sorted(ad.skills, key=lambda x: x.id)
-                   == sorted(self.avail_days_at_day[0].skills, key=lambda x: x.id)
-                   for ad in self.avail_days_at_day)
+                   == sorted(self._cached_avail_days[0].skills, key=lambda x: x.id)
+                   for ad in self._cached_avail_days)
 
     def _check_skills_all_equal_to_person_skills(self) -> bool | None:
-        if not self.avail_days_at_day:
-            return
-        if len({len(ad.skills) for ad in self.avail_days_at_day}) > 1:
+        """Prüft ob die Skills der AvailDays den Person-Skills entsprechen."""
+        if not self._cached_avail_days:
+            return None
+        if len({len(ad.skills) for ad in self._cached_avail_days}) > 1:
             return False
         person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
         return all(sorted(ad.skills, key=lambda x: x.id)
                    == sorted(person_skills, key=lambda x: x.id)
-                   for ad in self.avail_days_at_day)
+                   for ad in self._cached_avail_days)
 
-    def _set_stylesheet(self):
-        if (all_equal := self._check_skills_all_equal()) is None:
-            self.setStyleSheet(
-                f"ButtonSkills {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
-                f"ButtonSkills::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
-        elif all_equal and self._check_skills_all_equal_to_person_skills():
-            self.setStyleSheet(
-                f"ButtonSkills {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
-                f"ButtonSkills::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
-        else:
-            self.setStyleSheet(
-                f"ButtonSkills {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
-                f"ButtonSkills::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
-
-    def _set_tooltip(self):
-        if not self.avail_days_at_day:
+    def _update_tooltip(self) -> None:
+        """Aktualisiert den Tooltip basierend auf dem aktuellen Skill-Status."""
+        if not self._cached_avail_days:
             additional_txt = ''
         elif self._check_skills_all_equal():
-            if not self.avail_days_at_day[0].skills:
+            if not self._cached_avail_days[0].skills:
                 additional_txt = (
                     self.tr('\nNo skills selected.\n'
                             'This is the default setting for this employee.')
@@ -741,13 +736,14 @@ class ButtonSkills(QPushButton):
                 date_to_string(self.date), additional_txt)
         )
 
-    def edit_skills_of_day(self):
-        if not self.avail_days_at_day:
+    def edit_skills_of_day(self) -> None:
+        """Öffnet den Dialog zur Bearbeitung der Skills für diesen Tag."""
+        if not self._cached_avail_days:
             QMessageBox.information(
                 self, self.tr('Skills for the day'),
                 self.tr('No availabilities exist for %s') % date_to_string(self.date))
             return
-        avail_day = next((ad for ad in self.avail_days_at_day if ad.skills), self.avail_days_at_day[0])
+        avail_day = next((ad for ad in self._cached_avail_days if ad.skills), self._cached_avail_days[0])
         dlg = frm_skills.DlgSelectSkills(self, avail_day)
         if dlg.exec():
             plan_period = self.actor_plan_period.plan_period
@@ -758,7 +754,7 @@ class ButtonSkills(QPushButton):
                 return
 
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            for avail_day in self.avail_days_at_day:
+            for avail_day in self._cached_avail_days:
                 for skill in avail_day.skills:
                     command_remove = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
                     self.controller.execute(command_remove)
@@ -772,17 +768,6 @@ class ButtonSkills(QPushButton):
                 self.tr('The skills for day %s have been modified.') % date_to_string(self.date))
         else:
             dlg.controller.undo_all()
-
-    @Slot(signal_handling.DataActorPPWithDate)
-    def reload_actor_plan_period(self, data: signal_handling.DataActorPPWithDate = None):
-        """Entweder das Signal kommt ohne Datumsangabe oder mit Datumsangabe von ButtonAvailDay"""
-        if data is None:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
-            self.set_stylesheet_and_tooltip()
-        elif data.actor_plan_period.id == self.actor_plan_period.id:
-            if data.date is None or data.date == self.date:
-                self.actor_plan_period = data.actor_plan_period
-                self.set_stylesheet_and_tooltip()
 
 
 class FrmTabActorPlanPeriods(QWidget):
@@ -1006,7 +991,7 @@ class FrmActorPlanPeriod(QWidget):
         self.parent = parent
         self.layout_controllers = parent.layout_controllers
 
-        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period)
+        signal_handling.handler_actor_plan_period.signal_reload_actor_pp__frm_actor_plan_period.connect(self.reload_actor_plan_period_and_set_instance_variables)
 
         self.layout = QGridLayout(self)
         self.layout.setVerticalSpacing(0)
@@ -1083,7 +1068,7 @@ class FrmActorPlanPeriod(QWidget):
             )
         )
 
-    def reload_actor_plan_period(self, event=None):
+    def reload_actor_plan_period_and_set_instance_variables(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
         self.set_instance_variables()
         signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
@@ -1193,13 +1178,13 @@ class FrmActorPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet(
                     f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string};')
             self.layout.addWidget(lb_weekday, row + 1, col)
-            bt_comb_loc_poss = ButtonCombLocPossible(self, d, 24, self.actor_plan_period)
+            bt_comb_loc_poss = ButtonLocationCombinations(self, d, 24, self.actor_plan_period)
             bt_comb_loc_poss.setDisabled(disable_buttons)
             self.layout.addWidget(bt_comb_loc_poss, row + 2, col)
-            bt_loc_prefs = ButtonActorLocationPref(self, d, 24, self.actor_plan_period, team)
+            bt_loc_prefs = ButtonLocationPreferences(self, d, 24, self.actor_plan_period, team)
             bt_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_loc_prefs, row + 3, col)
-            bt_partner_loc_prefs = ButtonActorPartnerLocationPref(self, d, 24, self.actor_plan_period, team)
+            bt_partner_loc_prefs = ButtonPartnerPreferences(self, d, 24, self.actor_plan_period, team)
             bt_partner_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_partner_loc_prefs, row + 4, col)
             bt_skills = ButtonSkills(self, d, 24, self.actor_plan_period)
@@ -1272,13 +1257,13 @@ class FrmActorPlanPeriod(QWidget):
                     )
                 )
 
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
 
         else:
             avail_day = db_services.AvailDay.get_from__actor_pp_date_tod(self.actor_plan_period.id, date, t_o_d.id)
             del_command = avail_day_commands.Delete(avail_day.id)
             self.controller_avail_days.execute(del_command)
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
             if not (master_group := del_command.avail_day_to_delete.avail_day_group.avail_day_group).actor_plan_period:
                 if len(childs := db_services.AvailDayGroup.get_child_groups_from__parent_group(master_group.id)) < 2:
                     solo_avail_day = db_services.AvailDay.get_from__avail_day_group(childs[0].id)
@@ -1315,7 +1300,7 @@ class FrmActorPlanPeriod(QWidget):
 
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('All changes have been applied.'))
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_days(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
         else:
@@ -1360,13 +1345,13 @@ class FrmActorPlanPeriod(QWidget):
     def set_requested_assignments(self):
         dlg = frm_requested_assignments.DlgRequestedAssignments(self, self.actor_plan_period.id)
         if dlg.exec():
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
             self.set_text_bt_requested_assignments()
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderActorPlanPeriod(self, self.actor_plan_period).build()
         if dlg.exec():
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
             self.reset_chk_field()
 
     def reset_all_avail_t_o_ds(self):
@@ -1414,7 +1399,7 @@ class FrmActorPlanPeriod(QWidget):
         dlg.de_date.setDisabled(True)
 
         if dlg.exec():
-            self.reload_actor_plan_period()
+            self.reload_actor_plan_period_and_set_instance_variables()
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
@@ -1449,14 +1434,13 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
 
-        button_comb_loc_possibles: list[ButtonCombLocPossible] = self.findChildren(ButtonCombLocPossible)
+        button_comb_loc_possibles: list[ButtonLocationCombinations] = self.findChildren(ButtonLocationCombinations)
 
         for button_comb_loc_possible in button_comb_loc_possibles:
             if button_comb_loc_possible.date in all_avail_dates:
-                button_comb_loc_possible.reset_combs_of_day()
-                button_comb_loc_possible.reload_actor_plan_period()
-                button_comb_loc_possible.set_stylesheet()
-        self.reload_actor_plan_period()
+                button_comb_loc_possible._reset_to_defaults()
+                button_comb_loc_possible.refresh()  # Lädt Daten und aktualisiert Stylesheet
+        self.reload_actor_plan_period_and_set_instance_variables()
         
         # Entities-Cache invalidieren bei Standort-Kombinationsänderungen
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
@@ -1511,10 +1495,11 @@ class FrmActorPlanPeriod(QWidget):
                     actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
 
         self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
-        self.reload_actor_plan_period()
+        self.reload_actor_plan_period_and_set_instance_variables()
         signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
             signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
+    @line_profiler.profile
     def reset_all_loc_prefs(self, e=None):
         """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
 
@@ -1545,14 +1530,13 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
 
-        button_actor_location_prefs: list[ButtonActorLocationPref] = self.findChildren(ButtonActorLocationPref)
+        button_actor_location_prefs: list[ButtonLocationPreferences] = self.findChildren(ButtonLocationPreferences)
 
         for button_actor_location_pref in button_actor_location_prefs:
             if button_actor_location_pref.date in all_avail_dates:
-                button_actor_location_pref.reset_prefs_of_day()
-                button_actor_location_pref.reload_actor_plan_period()
-                button_actor_location_pref.set_stylesheet()
-        self.reload_actor_plan_period()
+                button_actor_location_pref._reset_to_defaults()
+                button_actor_location_pref.refresh()  # Lädt Daten und aktualisiert Stylesheet
+        self.reload_actor_plan_period_and_set_instance_variables()
         
         # Entities-Cache invalidieren bei Standort-Präferenzänderungen
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
@@ -1579,6 +1563,33 @@ class FrmActorPlanPeriod(QWidget):
 
     def reset_all_partner_loc_prefs(self, e):
         """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
+
+        def refresh_ui():
+            button_partner_location_prefs: list[ButtonPartnerPreferences] = self.findChildren(ButtonPartnerPreferences)
+            for button_partner_location_pref in button_partner_location_prefs:
+                if button_partner_location_pref.date in all_avail_dates:
+                    button_partner_location_pref.refresh(signal_handling.DataActorPPWithDate(
+                        self.actor_plan_period))  # Lädt Daten und aktualisiert Stylesheet
+            self.set_instance_variables()
+            # Entities-Cache invalidieren bei Partner-Präferenzänderungen
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+
+        def handle_reset():
+            # In-place Patch: bestehende Pydantic-Schemas aktualisieren, statt kompletten Objektgraphen neu aus DB zu laden
+            defaults = list(self.actor_plan_period.actor_partner_location_prefs_defaults)
+            for avail_day in self.actor_plan_period.avail_days:
+                if not avail_day.prep_delete:
+                    avail_day.actor_partner_location_prefs_defaults = list(defaults)
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        def handle_undo():
+            # Bei Undo müssen die individuellen Original-Werte aus der DB geladen werden
+            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
 
         reply = QMessageBox.question(
             self,
@@ -1607,17 +1618,17 @@ class FrmActorPlanPeriod(QWidget):
             )
             return
 
-        button_partner_location_prefs: list[ButtonActorPartnerLocationPref] = self.findChildren(ButtonActorPartnerLocationPref)
+        self._reset_all_avail_days_partner_location_prefs_to_defaults(
+            on_undo_callback=handle_undo, on_redo_callback=handle_reset)
+        handle_reset()
 
-        for button_partner_location_pref in button_partner_location_prefs:  # todo: Kann mit einem Signal an die buttons evt. schneller gemacht werden
-            if button_partner_location_pref.date in all_avail_dates:
-                button_partner_location_pref.reset_prefs_of_day()
-                button_partner_location_pref.reload_actor_plan_period()
-                button_partner_location_pref.set_stylesheet()
-        self.reload_actor_plan_period()
-        
-        # Entities-Cache invalidieren bei Partner-Präferenzänderungen
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+    def _reset_all_avail_days_partner_location_prefs_to_defaults(
+            self, on_undo_callback=None, on_redo_callback=None) -> None:
+        """Setzt Partner/Standort-Präferenzen für alle AvailDays der ActorPlanPeriod auf Defaults zurück."""
+        command = avail_day_commands.ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(self.actor_plan_period.id)
+        self.controller.execute(command)
+        command.on_undo_callback = on_undo_callback
+        command.on_redo_callback = on_redo_callback
 
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
                                                    *args, **kwargs) -> bool:
@@ -1774,7 +1785,7 @@ class FrmActorPlanPeriod(QWidget):
             return False
         finally:
             if actor_plan_period.id == self.actor_plan_period.id:
-                self.reload_actor_plan_period()
+                self.reload_actor_plan_period_and_set_instance_variables()
                 signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                     signal_handling.DataActorPPWithDate(self.actor_plan_period))
                 # Entities-Cache invalidieren bei Verfügbarkeitsänderungen von API

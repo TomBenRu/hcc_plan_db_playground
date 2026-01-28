@@ -275,16 +275,13 @@ class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
     def __init__(self, actor_plan_period_id: UUID):
         super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
-        self.existing_actor_partner_loc_pref_ids_per_avail_day: dict[UUID, list[UUID]] = {}
-        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period_id):
-            self.existing_actor_partner_loc_pref_ids_per_avail_day[avail_day.id] = [
-                pref.id for pref in avail_day.actor_partner_location_prefs_defaults]
-        self.actor_plan_period_new: schemas.ActorPlanPeriodShow | None = None
+        self.existing_actor_partner_loc_pref_ids_per_avail_day: dict[UUID, list[UUID]] = (
+            db_services.ActorPartnerLocationPref.get_ids_per_avail_day_of_actor_plan_period(self.actor_plan_period_id)
+        )
 
     def execute(self):
-        self.actor_plan_period_new = (db_services.AvailDay.
-                                      reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
-            self.actor_plan_period_id))
+        db_services.AvailDay.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+            self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, actor_partner_loc_pref_ids in self.existing_actor_partner_loc_pref_ids_per_avail_day.items():

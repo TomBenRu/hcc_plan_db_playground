@@ -2662,6 +2662,53 @@ class AvailDay:
         avail_day_db.skills.remove(skill_db)
         return schemas.AvailDayShow.model_validate(avail_day_db)
 
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def clear_skills(cls, avail_day_id: UUID) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        avail_day_db.skills.clear()
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def put_in_skills(cls, avail_day_id: UUID, skill_ids: list[UUID]) -> schemas.AvailDayShow:
+        log_function_info(cls)
+        avail_day_db = models.AvailDay.get_for_update(id=avail_day_id)
+        skills_db = [models.Skill.get_for_update(id=skill_id) for skill_id in skill_ids]
+        avail_day_db.skills.add(skills_db)
+        return schemas.AvailDayShow.model_validate(avail_day_db)
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def clear_all_skills_of_actor_plan_period(cls, actor_plan_period_id: UUID) -> None:
+        """Entfernt alle Skills von allen AvailDays einer ActorPlanPeriod (Bulk-Operation)."""
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        for avail_day_db in actor_plan_period_db.avail_days:
+            avail_day_db.skills.clear()
+
+    @classmethod
+    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
+    def reset_all_skills_of_actor_plan_period_to_person_defaults(cls, actor_plan_period_id: UUID) -> None:
+        """Setzt Skills aller AvailDays auf Person-Defaults zurück (Bulk-Operation)."""
+        log_function_info(cls)
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        person_skills = actor_plan_period_db.person.skills
+        for avail_day_db in actor_plan_period_db.avail_days:
+            avail_day_db.skills.clear()
+            avail_day_db.skills.add(person_skills)
+
+    @classmethod
+    @db_session
+    def get_skill_ids_per_avail_day_of_actor_plan_period(cls, actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
+        """Liefert nur die IDs der Skills pro AvailDay – ohne teure Pydantic-Serialisierung."""
+        actor_plan_period_db = models.ActorPlanPeriod.get_for_update(id=actor_plan_period_id)
+        return {
+            avail_day_db.id: [skill.id for skill in avail_day_db.skills]
+            for avail_day_db in actor_plan_period_db.avail_days
+        }
+
 
 class CombinationLocationsPossible:
     @classmethod

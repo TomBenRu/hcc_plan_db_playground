@@ -1685,6 +1685,22 @@ class FrmActorPlanPeriod(QWidget):
         command.on_undo_callback = on_undo_callback
         command.on_redo_callback = on_redo_callback
 
+    def _remove_all_skills_from_all_avail_days(
+            self, on_undo_callback=None, on_redo_callback=None) -> None:
+        """Entfernt alle Skills von allen AvailDays der ActorPlanPeriod."""
+        command = avail_day_commands.RemoveAllSkillsFromAllAvailDays(self.actor_plan_period.id)
+        self.controller.execute(command)
+        command.on_undo_callback = on_undo_callback
+        command.on_redo_callback = on_redo_callback
+
+    def _reset_all_skills_of_all_avail_days_to_person_defaults(
+            self, on_undo_callback=None, on_redo_callback=None) -> None:
+        """Setzt Skills aller AvailDays der ActorPlanPeriod auf Person-Defaults zurück."""
+        command = avail_day_commands.ResetAllSkillsOfAllAvailDaysToPersonDefaults(self.actor_plan_period.id)
+        self.controller.execute(command)
+        command.on_undo_callback = on_undo_callback
+        command.on_redo_callback = on_redo_callback
+
     def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
                                                    *args, **kwargs) -> bool:
         actor_plan_period = actor_plan_period or self.actor_plan_period
@@ -1866,6 +1882,23 @@ class FrmActorPlanPeriod(QWidget):
         )
 
     def remove_skills_from_every_avail_day(self):
+        """Entfernt alle Skills von allen AvailDays in dieser Planperiode."""
+
+        def refresh_ui():
+            """Gemeinsamer UI-Refresh für Execute, Undo und Redo."""
+            for avail_date in all_avail_dates:
+                signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                    signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_date)
+                )
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+
+        def handle_change():
+            """Callback für Execute, Undo und Redo – UI-Refresh (kein Patching nötig, da AvailDay kein skills-Feld hat)."""
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        # --- User-Interaktion ---
         reply = QMessageBox.question(
             self,
             self.tr('Remove Skills'),
@@ -1874,32 +1907,45 @@ class FrmActorPlanPeriod(QWidget):
         if reply == QMessageBox.StandardButton.No:
             return
 
-        # NEU: Warnung für Undo/Redo VOR den Änderungen
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
         ):
             return
 
-        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
-            if not avail_day.prep_delete:
-                for skill in avail_day.skills:
-                    command = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
-                    self.controller.execute(command)
+        all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
+        if not all_avail_dates:
+            return
 
-            signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_day.date)
-            )
+        # --- Ausführung ---
+        self._remove_all_skills_from_all_avail_days(
+            on_undo_callback=handle_change, on_redo_callback=handle_change)
+        handle_change()
+
         QMessageBox.information(
             self,
             self.tr('Remove Skills'),
             self.tr('All skills have been successfully removed from all availabilities in this planning period.')
         )
 
-        # Entities-Cache invalidieren bei Skill-Änderungen
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
-
     def reset_skills_of_every_avail_day(self):
+        """Setzt Skills aller AvailDays auf die Person-Defaults zurück."""
+
+        def refresh_ui():
+            """Gemeinsamer UI-Refresh für Execute, Undo und Redo."""
+            for avail_date in all_avail_dates:
+                signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
+                    signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_date)
+                )
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+
+        def handle_change():
+            """Callback für Execute, Undo und Redo – UI-Refresh (kein Patching nötig, da AvailDay kein skills-Feld hat)."""
+            warn_and_clear_undo_redo_if_plans_open(
+                self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
+            refresh_ui()
+
+        # --- User-Interaktion ---
         reply = QMessageBox.question(
             self,
             self.tr('Reset Skills'),
@@ -1909,35 +1955,27 @@ class FrmActorPlanPeriod(QWidget):
         if reply == QMessageBox.StandardButton.No:
             return
 
-        # NEU: Warnung für Undo/Redo VOR den Änderungen
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
         ):
             return
 
-        for avail_day in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id):
-            if not avail_day.prep_delete:
-                for skill in avail_day.skills:
-                    command_remove = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
-                    self.controller.execute(command_remove)
-                person = db_services.Person.get(self.actor_plan_period.person.id)
-                for skill in person.skills:
-                    command_add = avail_day_commands.AddSkill(avail_day.id, skill.id)
-                    self.controller.execute(command_add)
+        all_avail_dates = {avd.date for avd in self.actor_plan_period.avail_days if not avd.prep_delete}
+        if not all_avail_dates:
+            return
 
-            signal_handling.handler_actor_plan_period.reset_styling_skills_configs(
-                signal_handling.DataActorPlanPeriodDate(self.actor_plan_period.id, date=avail_day.date)
-            )
+        # --- Ausführung ---
+        self._reset_all_skills_of_all_avail_days_to_person_defaults(
+            on_undo_callback=handle_change, on_redo_callback=handle_change)
+        handle_change()
+
         QMessageBox.information(
             self,
             self.tr('Reset Skills'),
             self.tr('All skills have been successfully reset to default values '
                     'for all availabilities in this planning period.')
         )
-        
-        # Entities-Cache invalidieren bei Skill-Änderungen
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
 if __name__ == '__main__':
     app = QApplication()

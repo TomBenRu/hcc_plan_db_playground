@@ -380,3 +380,52 @@ class RemoveSkill(Command):
     def _redo(self):
         if self.updated_object:
             db_services.AvailDay.remove_skill(self.updated_object.id, self.skill_id)
+
+
+class RemoveAllSkillsFromAllAvailDays(Command):
+    """Entfernt alle Skills von allen AvailDays einer ActorPlanPeriod."""
+
+    def __init__(self, actor_plan_period_id: UUID):
+        super().__init__()
+        self.actor_plan_period_id = actor_plan_period_id
+        # Leichtgewichtige ID-Abfrage für Undo-Daten (keine Pydantic-Serialisierung!)
+        self.existing_skill_ids_per_avail_day: dict[UUID, list[UUID]] = (
+            db_services.AvailDay.get_skill_ids_per_avail_day_of_actor_plan_period(
+                self.actor_plan_period_id)
+        )
+
+    def execute(self):
+        db_services.AvailDay.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+
+    def _undo(self):
+        for avail_day_id, skill_ids in self.existing_skill_ids_per_avail_day.items():
+            db_services.AvailDay.put_in_skills(avail_day_id, skill_ids)
+
+    def _redo(self):
+        db_services.AvailDay.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+
+
+class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
+    """Setzt Skills aller AvailDays einer ActorPlanPeriod auf Person-Defaults zurück."""
+
+    def __init__(self, actor_plan_period_id: UUID):
+        super().__init__()
+        self.actor_plan_period_id = actor_plan_period_id
+        # Leichtgewichtige ID-Abfrage für Undo-Daten (keine Pydantic-Serialisierung!)
+        self.existing_skill_ids_per_avail_day: dict[UUID, list[UUID]] = (
+            db_services.AvailDay.get_skill_ids_per_avail_day_of_actor_plan_period(
+                self.actor_plan_period_id)
+        )
+
+    def execute(self):
+        db_services.AvailDay.reset_all_skills_of_actor_plan_period_to_person_defaults(
+            self.actor_plan_period_id)
+
+    def _undo(self):
+        for avail_day_id, skill_ids in self.existing_skill_ids_per_avail_day.items():
+            db_services.AvailDay.clear_skills(avail_day_id)
+            db_services.AvailDay.put_in_skills(avail_day_id, skill_ids)
+
+    def _redo(self):
+        db_services.AvailDay.reset_all_skills_of_actor_plan_period_to_person_defaults(
+            self.actor_plan_period_id)

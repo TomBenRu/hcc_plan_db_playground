@@ -1121,6 +1121,10 @@ class FrmLocationPlanPeriod(QWidget):
             self.tr('Reset Time of Day Input Field'),
             clicked=self.reset_all_event_t_o_ds
         )
+        bt_reset_all_event_t_o_ds.setToolTip(
+            self.tr("Adopts the time of day standards of the facility's planning period "
+                    "for all events in this planning period.")
+        )
         self.side_menu.add_button(bt_reset_all_event_t_o_ds)
         bt_fixed_cast = QPushButton(self.tr('Fixed Cast'), clicked=self.edit_fixed_cast)
         self.side_menu.add_button(bt_fixed_cast)
@@ -1401,7 +1405,7 @@ class FrmLocationPlanPeriod(QWidget):
             self.reset_chk_field()
 
     def reset_all_event_t_o_ds(self):
-        """übernimmt bei allen events die time_of_days der Planperiode."""
+        """übernimmt für alle Events der LocationPlanPeriod die TimeOfDays-Standards der LocationPlanPeriod."""
         # Warnung für Undo/Redo VOR den Änderungen
         plan_period = self.location_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(

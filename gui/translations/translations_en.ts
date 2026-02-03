@@ -5171,107 +5171,102 @@ The database email remains unchanged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1044"/>
-        <source>Reset Time Input Field</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../frm_actor_plan_period.py" line="1046"/>
-        <location filename="../frm_actor_plan_period.py" line="1429"/>
+        <location filename="../frm_actor_plan_period.py" line="1053"/>
+        <location filename="../frm_actor_plan_period.py" line="1464"/>
         <source>Location Combinations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1048"/>
-        <location filename="../frm_actor_plan_period.py" line="1524"/>
+        <location filename="../frm_actor_plan_period.py" line="1055"/>
+        <location filename="../frm_actor_plan_period.py" line="1580"/>
         <source>Location Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1050"/>
+        <location filename="../frm_actor_plan_period.py" line="1057"/>
         <source>Partner/Location Prefs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1052"/>
-        <location filename="../frm_actor_plan_period.py" line="1054"/>
+        <location filename="../frm_actor_plan_period.py" line="1059"/>
+        <location filename="../frm_actor_plan_period.py" line="1061"/>
         <source>Fetch Availabilities from API</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1059"/>
+        <location filename="../frm_actor_plan_period.py" line="1066"/>
         <source>Fetch for this employee</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1065"/>
+        <location filename="../frm_actor_plan_period.py" line="1072"/>
         <source>Fetch for all employees</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1108"/>
+        <location filename="../frm_actor_plan_period.py" line="1115"/>
         <source>Location Combinations -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1111"/>
+        <location filename="../frm_actor_plan_period.py" line="1118"/>
         <source>Reset location combinations for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1114"/>
+        <location filename="../frm_actor_plan_period.py" line="1121"/>
         <source>Location Prefs -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1116"/>
+        <location filename="../frm_actor_plan_period.py" line="1123"/>
         <source>Reset location preferences for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1120"/>
+        <location filename="../frm_actor_plan_period.py" line="1127"/>
         <source>Partner/Location Prefs -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1123"/>
+        <location filename="../frm_actor_plan_period.py" line="1130"/>
         <source>Reset partner/location preferences for all availabilities in this period to the default values</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1126"/>
+        <location filename="../frm_actor_plan_period.py" line="1133"/>
         <source>Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1127"/>
+        <location filename="../frm_actor_plan_period.py" line="1134"/>
         <source>Edit skills for all availabilities in this period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1136"/>
+        <location filename="../frm_actor_plan_period.py" line="1143"/>
         <source>Remove Skill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1137"/>
+        <location filename="../frm_actor_plan_period.py" line="1144"/>
         <source>Remove all skills from availabilities in this period</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1144"/>
+        <location filename="../frm_actor_plan_period.py" line="1151"/>
         <source>Reset all skills from availabilities in this period to person defaults</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1638"/>
+        <location filename="../frm_actor_plan_period.py" line="1744"/>
         <source>No available days found on server for
 {name} in the period {start} - {end}.
 Do you want to delete all available days from the planning mask?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1674"/>
+        <location filename="../frm_actor_plan_period.py" line="1780"/>
         <source>Available days already exist in the planning mask for
 {name} in the period {start} - {end}.
 Do you want to delete these available days from the planning mask
@@ -5279,189 +5274,200 @@ before downloading the new available days?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1723"/>
+        <location filename="../frm_actor_plan_period.py" line="1829"/>
         <source>Available days for
 {name} in the period {start} - {end}
 were successfully downloaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1750"/>
+        <location filename="../frm_actor_plan_period.py" line="1856"/>
         <source>The following error occurred while downloading available days:
 {error}
 The changes for {name} were not applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1778"/>
+        <location filename="../frm_actor_plan_period.py" line="1884"/>
         <source>Available days for {num_downloads} employees in
 the period {start} - {end}
 were successfully downloaded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1143"/>
-        <location filename="../frm_actor_plan_period.py" line="1824"/>
-        <location filename="../frm_actor_plan_period.py" line="1853"/>
+        <location filename="../frm_actor_plan_period.py" line="1150"/>
+        <location filename="../frm_actor_plan_period.py" line="1960"/>
+        <location filename="../frm_actor_plan_period.py" line="1984"/>
         <source>Reset Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1162"/>
+        <location filename="../frm_actor_plan_period.py" line="1044"/>
+        <source>Reset Time of Day Input Field</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="1046"/>
+        <source>Adopts the time of day standards of the employee&apos;s planning period
+for all of the employee&apos;s availabilities between {start} - {end}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_actor_plan_period.py" line="1169"/>
         <source>Availabilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1164"/>
+        <location filename="../frm_actor_plan_period.py" line="1171"/>
         <source>No default time-of-day values are defined for this planning period of {first} {last}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1202"/>
+        <location filename="../frm_actor_plan_period.py" line="1209"/>
         <source>Switch to Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1271"/>
+        <location filename="../frm_actor_plan_period.py" line="1278"/>
         <source>Availability Groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1273"/>
+        <location filename="../frm_actor_plan_period.py" line="1280"/>
         <source>Deleting this appointment left a group with only one date: {date}
 Please correct this in the following dialog.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1300"/>
-        <location filename="../frm_actor_plan_period.py" line="1306"/>
+        <location filename="../frm_actor_plan_period.py" line="1307"/>
+        <location filename="../frm_actor_plan_period.py" line="1313"/>
         <source>Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1300"/>
+        <location filename="../frm_actor_plan_period.py" line="1307"/>
         <source>All changes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1306"/>
+        <location filename="../frm_actor_plan_period.py" line="1313"/>
         <source>No changes were made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1317"/>
+        <location filename="../frm_actor_plan_period.py" line="1324"/>
         <source>Missing Standards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1318"/>
+        <location filename="../frm_actor_plan_period.py" line="1325"/>
         <source>Error:
 Cannot display available times.
 You may have subsequently deleted &quot;{time_of_day_name}&quot; from the standards.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1338"/>
+        <location filename="../frm_actor_plan_period.py" line="1345"/>
         <source>Requested assignm. (curr.: {count}{required})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1340"/>
+        <location filename="../frm_actor_plan_period.py" line="1347"/>
         <source>, required</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1410"/>
+        <location filename="../frm_actor_plan_period.py" line="1447"/>
         <source>Reset Location Combinations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1411"/>
+        <location filename="../frm_actor_plan_period.py" line="1448"/>
         <source>Do you want to reset all location combinations of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1430"/>
-        <location filename="../frm_actor_plan_period.py" line="1525"/>
-        <location filename="../frm_actor_plan_period.py" line="1586"/>
+        <location filename="../frm_actor_plan_period.py" line="1465"/>
+        <location filename="../frm_actor_plan_period.py" line="1581"/>
+        <location filename="../frm_actor_plan_period.py" line="1663"/>
         <source>No availabilities exist in this planning period for {name}.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1506"/>
+        <location filename="../frm_actor_plan_period.py" line="1563"/>
         <source>Reset Location Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1507"/>
+        <location filename="../frm_actor_plan_period.py" line="1564"/>
         <source>Do you want to reset all location preferences of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1567"/>
+        <location filename="../frm_actor_plan_period.py" line="1644"/>
         <source>Reset Partner Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1568"/>
+        <location filename="../frm_actor_plan_period.py" line="1645"/>
         <source>Do you want to reset all partner preferences of availabilities to the default values of the planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1585"/>
+        <location filename="../frm_actor_plan_period.py" line="1662"/>
         <source>Partner Preferences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1627"/>
-        <location filename="../frm_actor_plan_period.py" line="1637"/>
-        <location filename="../frm_actor_plan_period.py" line="1661"/>
-        <location filename="../frm_actor_plan_period.py" line="1673"/>
-        <location filename="../frm_actor_plan_period.py" line="1722"/>
+        <location filename="../frm_actor_plan_period.py" line="1733"/>
+        <location filename="../frm_actor_plan_period.py" line="1743"/>
+        <location filename="../frm_actor_plan_period.py" line="1767"/>
+        <location filename="../frm_actor_plan_period.py" line="1779"/>
+        <location filename="../frm_actor_plan_period.py" line="1828"/>
         <source>Available Days ({name})</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1662"/>
+        <location filename="../frm_actor_plan_period.py" line="1768"/>
         <source>No available days found on server for
 {name} in the period {start} - {end}.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1749"/>
-        <location filename="../frm_actor_plan_period.py" line="1777"/>
+        <location filename="../frm_actor_plan_period.py" line="1855"/>
+        <location filename="../frm_actor_plan_period.py" line="1883"/>
         <source>Available Days</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1628"/>
+        <location filename="../frm_actor_plan_period.py" line="1734"/>
         <source>The following error occurred while downloading available days:
 {error}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1790"/>
-        <location filename="../frm_actor_plan_period.py" line="1814"/>
+        <location filename="../frm_actor_plan_period.py" line="1913"/>
+        <location filename="../frm_actor_plan_period.py" line="1936"/>
         <source>Remove Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1791"/>
+        <location filename="../frm_actor_plan_period.py" line="1914"/>
         <source>Do you want to remove skills from all availabilities in this planning period?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1815"/>
+        <location filename="../frm_actor_plan_period.py" line="1937"/>
         <source>All skills have been successfully removed from all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1825"/>
+        <location filename="../frm_actor_plan_period.py" line="1961"/>
         <source>Do you want to reset all skills of availabilities in this planning period to the employee&apos;s default values?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_actor_plan_period.py" line="1854"/>
+        <location filename="../frm_actor_plan_period.py" line="1985"/>
         <source>All skills have been successfully reset to default values for all availabilities in this planning period.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5851,144 +5857,150 @@ Time: {start_time} - {end_time}</source>
     </message>
     <message>
         <location filename="../frm_location_plan_period.py" line="1125"/>
+        <source>Adopts the time of day standards of the facility&apos;s planning period
+for all of the facility&apos;s events between {start} - {end}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../frm_location_plan_period.py" line="1132"/>
         <source>Fixed Cast</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1169"/>
+        <location filename="../frm_location_plan_period.py" line="1176"/>
         <source>Cast -&gt; Reset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1171"/>
+        <location filename="../frm_location_plan_period.py" line="1178"/>
         <source>Reset fixed cast for all availabilities in this period to the standard values of the planning period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1175"/>
+        <location filename="../frm_location_plan_period.py" line="1182"/>
         <source>Notes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1178"/>
+        <location filename="../frm_location_plan_period.py" line="1185"/>
         <source>Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1179"/>
+        <location filename="../frm_location_plan_period.py" line="1186"/>
         <source>Edit skills for all availabilities in this period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1186"/>
-        <location filename="../frm_location_plan_period.py" line="1434"/>
-        <location filename="../frm_location_plan_period.py" line="1460"/>
+        <location filename="../frm_location_plan_period.py" line="1193"/>
+        <location filename="../frm_location_plan_period.py" line="1441"/>
+        <location filename="../frm_location_plan_period.py" line="1467"/>
         <source>Remove Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1187"/>
+        <location filename="../frm_location_plan_period.py" line="1194"/>
         <source>Remove all skills from events in this period.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1193"/>
-        <location filename="../frm_location_plan_period.py" line="1468"/>
-        <location filename="../frm_location_plan_period.py" line="1498"/>
+        <location filename="../frm_location_plan_period.py" line="1200"/>
+        <location filename="../frm_location_plan_period.py" line="1475"/>
+        <location filename="../frm_location_plan_period.py" line="1505"/>
         <source>Reset Skills</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1194"/>
+        <location filename="../frm_location_plan_period.py" line="1201"/>
         <source>Reset all skills from events in this period to the standard values of the facility.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1215"/>
+        <location filename="../frm_location_plan_period.py" line="1222"/>
         <source>Availabilities</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1216"/>
+        <location filename="../frm_location_plan_period.py" line="1223"/>
         <source>Error:
 No time of day standards are defined for this planning period of {name} {city}</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1259"/>
+        <location filename="../frm_location_plan_period.py" line="1266"/>
         <source>Switch to Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1264"/>
+        <location filename="../frm_location_plan_period.py" line="1271"/>
         <source>Switch to Fixed Cast Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1303"/>
-        <location filename="../frm_location_plan_period.py" line="1309"/>
-        <location filename="../frm_location_plan_period.py" line="1328"/>
-        <location filename="../frm_location_plan_period.py" line="1343"/>
+        <location filename="../frm_location_plan_period.py" line="1310"/>
+        <location filename="../frm_location_plan_period.py" line="1316"/>
+        <location filename="../frm_location_plan_period.py" line="1335"/>
+        <location filename="../frm_location_plan_period.py" line="1350"/>
         <source>Group Mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1303"/>
-        <location filename="../frm_location_plan_period.py" line="1328"/>
+        <location filename="../frm_location_plan_period.py" line="1310"/>
+        <location filename="../frm_location_plan_period.py" line="1335"/>
         <source>All changes have been applied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1309"/>
-        <location filename="../frm_location_plan_period.py" line="1343"/>
+        <location filename="../frm_location_plan_period.py" line="1316"/>
+        <location filename="../frm_location_plan_period.py" line="1350"/>
         <source>No changes were made.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1353"/>
+        <location filename="../frm_location_plan_period.py" line="1360"/>
         <source>Missing Standards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1354"/>
+        <location filename="../frm_location_plan_period.py" line="1361"/>
         <source>Error:
 Cannot display available times.
 You may have subsequently deleted &quot;{}&quot; from the standards.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1435"/>
+        <location filename="../frm_location_plan_period.py" line="1442"/>
         <source>Do you really want to remove all skills from all events in this planning period of {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1461"/>
+        <location filename="../frm_location_plan_period.py" line="1468"/>
         <source>All skills have been successfully removed from all events.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1469"/>
+        <location filename="../frm_location_plan_period.py" line="1476"/>
         <source>Do you really want to reset all skills of all events in this planning period of {} to the facility&apos;s standard values?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1499"/>
+        <location filename="../frm_location_plan_period.py" line="1506"/>
         <source>All skills have been successfully reset for all events.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1518"/>
-        <location filename="../frm_location_plan_period.py" line="1553"/>
+        <location filename="../frm_location_plan_period.py" line="1525"/>
+        <location filename="../frm_location_plan_period.py" line="1560"/>
         <source>Reset Cast</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1519"/>
+        <location filename="../frm_location_plan_period.py" line="1526"/>
         <source>Do you really want to reset the fixed cast of all events to the cast standard of this planning period of {} {}?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../frm_location_plan_period.py" line="1554"/>
+        <location filename="../frm_location_plan_period.py" line="1561"/>
         <source>The cast of all events has been successfully reset.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6308,6 +6320,20 @@ You must first synchronize with the server database to successfully complete thi
     </message>
 </context>
 <context>
+    <name>HelperFunctions</name>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="425"/>
+        <source>Undo/Redo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../tools/helper_functions.py" line="426"/>
+        <source>The changes made must delete the redo/undo history of the open plans in the planning period {plan_period_name}.
+Should the changes still be made?</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>LabelDayNr</name>
     <message>
         <location filename="../frm_plan.py" line="468"/>
@@ -6368,38 +6394,58 @@ Open planning mask for %s</source>
 <context>
     <name>LocationPlanPeriodData</name>
     <message>
-        <location filename="../data_processing.py" line="130"/>
-        <location filename="../data_processing.py" line="151"/>
+        <location filename="../data_processing.py" line="131"/>
+        <location filename="../data_processing.py" line="152"/>
         <source>event groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../data_processing.py" line="132"/>
+        <location filename="../data_processing.py" line="133"/>
         <source>By deleting the appointment, a group only has a single appointment:
 {event_date} ({event_name}) at {location}
 Should this group be deleted?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../data_processing.py" line="152"/>
-        <location filename="../data_processing.py" line="199"/>
+        <location filename="../data_processing.py" line="153"/>
+        <location filename="../data_processing.py" line="200"/>
         <source>By deleting the appointment, a group only has a single appointment:
 {event_date} ({event_name}) at {location}
 Please correct this in the following dialog.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../data_processing.py" line="170"/>
-        <location filename="../data_processing.py" line="198"/>
+        <location filename="../data_processing.py" line="171"/>
+        <location filename="../data_processing.py" line="199"/>
         <source>cast groups</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../data_processing.py" line="171"/>
+        <location filename="../data_processing.py" line="172"/>
         <source>By deleting the appointment, a group only has a single appointment:
 {event_date} ({event_name}) at {location}
 Should this group be deleted?
 The appointment will then be merged into a higher-level group or not assigned to any group.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="91"/>
+        <source>  - {name} ({count} appointment(s))</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="98"/>
+        <source>Event in Plans</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../data_processing.py" line="99"/>
+        <source>This event is used in {count} appointment(s) in the following plan(s):
+
+{plans}
+
+Do you really want to delete the event?
+The corresponding appointments will also be removed from the plans.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -7829,43 +7875,6 @@ Click on the corresponding row.</source>
     <message>
         <location filename="../../tools/helper_functions.py" line="85"/>
         <source>if available</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>HelperFunctions</name>
-    <message>
-        <location filename="../../tools/helper_functions.py" line="421"/>
-        <source>Undo/Redo</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../tools/helper_functions.py" line="422"/>
-        <source>The changes made must delete the redo/undo history of the open plans in the planning period {plan_period_name}.
-Should the changes still be made?</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>LocationPlanPeriodData</name>
-    <message>
-        <location filename="../data_processing.py" line="91"/>
-        <source>  - {name} ({count} appointment(s))</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../data_processing.py" line="97"/>
-        <source>Event in Plans</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../data_processing.py" line="99"/>
-        <source>This event is used in {count} appointment(s) in the following plan(s):
-
-{plans}
-
-Do you really want to delete the event?
-The corresponding appointments will also be removed from the plans.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

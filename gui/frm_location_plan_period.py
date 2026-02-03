@@ -1082,7 +1082,6 @@ class FrmLocationPlanPeriod(QWidget):
         self.layout.setHorizontalSpacing(2)
 
         self.side_menu = side_menu
-        self.setup_side_menu()
 
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.data_processor = data_processing.LocationPlanPeriodData(self, location_plan_period, self.controller)
@@ -1091,6 +1090,7 @@ class FrmLocationPlanPeriod(QWidget):
         self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
         self.days: list[datetime.date] = []
         self.set_instance_variables()
+        self.setup_side_menu()
 
         self.weekdays = {0: self.tr('Mon'), 1: self.tr('Tue'), 2: self.tr('Wed'), 3: self.tr('Thu'),
                          4: self.tr('Fri'), 5: self.tr('Sat'), 6: self.tr('Sun')}
@@ -1122,8 +1122,11 @@ class FrmLocationPlanPeriod(QWidget):
             clicked=self.reset_all_event_t_o_ds
         )
         bt_reset_all_event_t_o_ds.setToolTip(
-            self.tr("Adopts the time of day standards of the facility's planning period "
-                    "for all events in this planning period.")
+            self.tr("Adopts the time of day standards of the facility's planning period\n"
+                    "for all of the facility's events between {start} - {end}.").format(
+                start=date_to_string(self.location_plan_period.plan_period.start),
+                end=date_to_string(self.location_plan_period.plan_period.end)
+            )
         )
         self.side_menu.add_button(bt_reset_all_event_t_o_ds)
         bt_fixed_cast = QPushButton(self.tr('Fixed Cast'), clicked=self.edit_fixed_cast)

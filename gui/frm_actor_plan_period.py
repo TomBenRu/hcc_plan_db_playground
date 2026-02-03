@@ -1041,10 +1041,13 @@ class FrmActorPlanPeriod(QWidget):
         self.side_menu.add_button(self.bt_requested_assignments)
         self.bt_time_of_days = QPushButton(self.tr('Times of Day...'), clicked=self.edit_time_of_days)
         self.side_menu.add_button(self.bt_time_of_days)
-        self.bt_reset_all_avail_t_o_ds = QPushButton(self.tr('Reset Time Input Field'), clicked=self.reset_all_avail_t_o_ds)
+        self.bt_reset_all_avail_t_o_ds = QPushButton(self.tr('Reset Time of Day Input Field'), clicked=self.reset_all_avail_t_o_ds)
         self.bt_reset_all_avail_t_o_ds.setToolTip(
-            self.tr("Adopts the time of day standards of the employee's planning period "
-                    "for all of the employee's availabilities.")
+            self.tr("Adopts the time of day standards of the employee's planning period\n"
+                    "for all of the employee's availabilities between {start} - {end}.").format(
+                start=date_to_string(self.actor_plan_period.plan_period.start),
+                end=date_to_string(self.actor_plan_period.plan_period.end)
+            )
         )
         self.side_menu.add_button(self.bt_reset_all_avail_t_o_ds)
         self.bt_comb_loc_possibles = QPushButton(self.tr('Location Combinations'), clicked=self.edit_comb_loc_possibles)

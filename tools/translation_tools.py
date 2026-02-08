@@ -9,11 +9,11 @@ class TranslationManager:
     def __init__(self, project_dir: str = "."):
             
         # Translations-Verzeichnis ist jetzt im source-Ordner
-        self.translations_dir = os.path.join('gui', "translations")
-        self.languages = ["en", "de"]
+        self.translations_dir = os.path.join('../gui', "translations")
+        self.languages = ["en", "de", "fr"]
         
         # Get venv path for Qt tools, relativ zum Projektverzeichnis
-        self.venv_pyside_dir = os.path.join(".venv", "Lib", "site-packages", "PySide6")
+        self.venv_pyside_dir = os.path.join("../.venv", "Lib", "site-packages", "PySide6")
         
         # Find lupdate and lrelease executables
         self.lupdate_path = os.path.join(self.venv_pyside_dir, "lupdate.exe")

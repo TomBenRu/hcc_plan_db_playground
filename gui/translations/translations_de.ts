@@ -7167,8 +7167,7 @@ Die entsprechenden Termine werden ebenfalls aus den Plänen entfernt.</translati
     <message>
         <location filename="../main_window.py" line="429"/>
         <source>Opened Planning-Tab: {name}</source>
-        <translatorcomment>Geöffneter Plan-Tab: {name}</translatorcomment>
-        <translation>Opened Planning-Tab: {name}</translation>
+        <translation>Geöffneter Plan-Tab: {name}</translation>
     </message>
     <message>
         <location filename="../main_window.py" line="437"/>

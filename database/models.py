@@ -53,8 +53,12 @@ class Person(db.Entity):
     actor_partner_location_prefs = Set('ActorPartnerLocationPref', reverse='person')  # Es müssen nicht zu allen Kombinationen von Actor u. Location Präferenzen vorhanden sein. Fehlende Präferenzen bedeuten das gleiche, wie: score = 1
     actor_partner_location_prefs__as_partner = Set('ActorPartnerLocationPref', reverse='partner')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref', reverse='person_default')
+    # ActorPartnerLocationPref-Instanzen, bei denen person_default auf diese Person zeigt.
+    # Werden bei Erstellung einer ActorPlanPeriod automatisch kopiert (before_insert).
     actor_location_prefs = Set('ActorLocationPref')
     actor_location_prefs_defaults = Set('ActorLocationPref', reverse='person_default')
+    # ActorLocationPref-Instanzen, bei denen person_default auf diese Person zeigt.
+    # Werden bei Erstellung einer ActorPlanPeriod automatisch kopiert (before_insert).
     flags = Set('Flag')
     skills = Set('Skill')
     combination_locations_possibles = Set('CombinationLocationsPossible')
@@ -195,7 +199,9 @@ class ActorPlanPeriod(db.Entity):
     required_assignments = Required(bool, default=False)
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
+    # Kopie der Person.actor_partner_location_prefs_defaults (wird in before_insert automatisch gesetzt).
     actor_location_prefs_defaults = Set('ActorLocationPref')
+    # Kopie der Person.actor_location_prefs_defaults (wird in before_insert automatisch gesetzt).
     avail_days = Set('AvailDay')
     time_of_day_standards = Set('TimeOfDay', reverse='actor_plan_periods_standard')
     # Standard-Tageszeiten, die verwendet werden, um das Check-Field in der ActorPlanPeriod-View aufzubauen.
@@ -280,8 +286,10 @@ class AvailDay(db.Entity):
     appointments = Set('Appointment')
     combination_locations_possibles = Set('CombinationLocationsPossible')
     actor_partner_location_prefs_defaults = Set('ActorPartnerLocationPref')
+    # Kopie der ActorPlanPeriod.actor_partner_location_prefs_defaults (wird in before_insert automatisch gesetzt).
     # actor_partner_location_prefs, die nicht im Set vorkommen werden mit Score=1 gewertet.
     actor_location_prefs_defaults = Set('ActorLocationPref')
+    # Kopie der ActorPlanPeriod.actor_location_prefs_defaults (wird in before_insert automatisch gesetzt).
 
     composite_key(actor_plan_period, date, time_of_day)
 
@@ -623,7 +631,16 @@ class ActorPartnerLocationPref(db.Entity):
     ActorPlanPeriod übernimmt automatisch von Person, AvailDay übernimmt automatisch von ActorPlanPeriod.
     Spezialfall: Wenn der Actor in einer Einrichtung 0 bei allen Partnern hat, kann er trotzdem solo eingesetzt werden,
     und die Bewertung des Plans wird nicht schlechter. Einstellungen, die grundsätzlich die Einrichtungen betreffen,
-    müssen in ActorLocationPref vorgenommen werden."""
+    müssen in ActorLocationPref vorgenommen werden.
+
+    Default-Vererbungssystem (analog zu ActorLocationPref):
+    Die Präferenz kann als Standard für eine Person markiert werden (person_default-Feld).
+    Standard-Präferenzen werden wie folgt vererbt:
+    1. Person.actor_partner_location_prefs_defaults → ActorPlanPeriod.actor_partner_location_prefs_defaults
+    2. ActorPlanPeriod.actor_partner_location_prefs_defaults → AvailDay.actor_partner_location_prefs_defaults
+    3. AvailDay.actor_partner_location_prefs_defaults wird vom Solver für die Partner-Location-Optimierung verwendet.
+
+    Die Vererbung erfolgt automatisch in den before_insert-Methoden der jeweiligen Klassen."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
     created_at = Required(datetime.datetime, default=utcnow_naive)
@@ -635,6 +652,8 @@ class ActorPartnerLocationPref(db.Entity):
     location_of_work = Required(LocationOfWork)
 
     person_default = Optional(Person, reverse='actor_partner_location_prefs_defaults')
+    # Die Person, für die diese Präferenz als Standard gilt.
+    # Wenn dieses Feld gesetzt ist, erscheint diese Präferenz in Person.actor_partner_location_prefs_defaults.
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
     avail_days_defaults = Set(AvailDay)
 
@@ -730,7 +749,16 @@ class CombinationLocationsPossible(db.Entity):
 class ActorLocationPref(db.Entity):
     """Score 0: Person möchte keinen Einsatz in dieser Einrichtung.
     Score 1: Gerne in dieser Einrichtung.
-    Score 2: bevorzugt in dieser Einrichtung."""
+    Score 2: bevorzugt in dieser Einrichtung.
+
+    Default-Vererbungssystem:
+    Die Präferenz kann als Standard für eine Person markiert werden (person_default-Feld).
+    Standard-Präferenzen werden wie folgt vererbt:
+    1. Person.actor_location_prefs_defaults → ActorPlanPeriod.actor_location_prefs_defaults
+    2. ActorPlanPeriod.actor_location_prefs_defaults → AvailDay.actor_location_prefs_defaults
+    3. AvailDay.actor_location_prefs_defaults wird vom Solver für die Location-Optimierung verwendet.
+
+    Die Vererbung erfolgt automatisch in den before_insert-Methoden der jeweiligen Klassen."""
     id = PrimaryKey(UUID, auto=True)
     score = Required(float, default=1)
     created_at = Required(datetime.datetime, default=utcnow_naive)
@@ -740,6 +768,8 @@ class ActorLocationPref(db.Entity):
     person = Required(Person)
     location_of_work = Required(LocationOfWork)
     person_default = Optional(Person, reverse='actor_location_prefs_defaults')
+    # Die Person, für die diese Präferenz als Standard gilt.
+    # Wenn dieses Feld gesetzt ist, erscheint diese Präferenz in Person.actor_location_prefs_defaults.
     actor_plan_periods_defaults = Set(ActorPlanPeriod)
     avail_days_defaults = Set(AvailDay)
 

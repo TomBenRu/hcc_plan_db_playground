@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCC Plan — DB Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --panel: #1a1d27; --border: #2a2d3e; --text: #e2e8f0;
+    --text-dim: #8892a4; --text-bright: #f8fafc;
+    --blue: #3b82f6; --blue-dim: #1e3a5f; --blue-node: #1d3461;
+    --green: #22c55e; --green-dim: #14532d; --green-node: #14432a;
+    --yellow: #eab308; --yellow-dim: #713f12; --yellow-node: #3d2900;
+    --orange: #f97316; --orange-dim: #7c2d12; --orange-node: #4a1a00;
+    --purple: #a855f7; --purple-dim: #4a1d96; --purple-node: #2e1065;
+    --gray: #6b7280; --gray-dim: #1f2937; --gray-node: #1a1e2a;
+    --accent: #60a5fa; --danger: #ef4444;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; font-size: 13px; }
+  #sidebar { width: 280px; min-width: 280px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  #sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); }
+  #sidebar-header h1 { font-size: 15px; font-weight: 700; color: var(--text-bright); letter-spacing: 0.03em; }
+  #sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  #search-box { margin: 12px 12px 0; padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; width: calc(100% - 24px); outline: none; }
+  #search-box:focus { border-color: var(--accent); }
+  #search-box::placeholder { color: var(--text-dim); }
+  #controls { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .ctrl-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .ctrl-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+  .toggle-btn { padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toggle-btn.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+  .preset-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .preset-btn { padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .preset-btn:hover { background: var(--border); color: var(--text); }
+  #layer-filters { display: flex; flex-direction: column; gap: 4px; }
+  .layer-check { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+  .layer-check:hover { background: rgba(255,255,255,0.04); }
+  .layer-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .layer-check input { display: none; }
+  .layer-check.disabled .layer-label { opacity: 0.4; }
+  #entity-list { flex: 1; overflow-y: auto; padding: 8px; }
+  #entity-list::-webkit-scrollbar { width: 4px; }
+  #entity-list::-webkit-scrollbar-track { background: transparent; }
+  #entity-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .entity-item { padding: 6px 8px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: 1px; transition: background 0.1s; }
+  .entity-item:hover { background: rgba(255,255,255,0.05); }
+  .entity-item.selected { background: var(--blue-dim); }
+  .entity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .entity-name { font-size: 12px; font-weight: 500; }
+  .entity-item.hidden-filter { display: none; }
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #canvas-area { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+  #canvas-area svg { width: 100%; height: 100%; cursor: grab; }
+  #canvas-area svg.dragging { cursor: grabbing; }
+  #zoom-controls { position: absolute; bottom: 14px; right: 14px; display: flex; gap: 5px; }
+  .zoom-btn { width: 30px; height: 30px; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #legend { position: absolute; bottom: 14px; left: 14px; background: rgba(26,29,39,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+  #legend-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 10px; color: var(--text-dim); }
+  .legend-line { width: 22px; height: 2px; }
+  .legend-line.solid { background: var(--text-dim); }
+  .legend-line.dashed { background: repeating-linear-gradient(90deg, var(--text-dim) 0, var(--text-dim) 4px, transparent 4px, transparent 7px); }
+  .legend-line.double { border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); height: 4px; background: transparent; }
+  #detail-panel { width: 300px; min-width: 300px; background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; display: none; flex-direction: column; }
+  #detail-panel.visible { display: flex; }
+  #detail-panel::-webkit-scrollbar { width: 4px; }
+  #detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #detail-header { padding: 14px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); z-index: 10; }
+  #detail-close { float: right; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; line-height: 1; }
+  #detail-close:hover { color: var(--text); }
+  #detail-name { font-size: 15px; font-weight: 700; color: var(--text-bright); }
+  #detail-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; margin-top: 4px; }
+  #detail-body { padding: 12px 16px; }
+  .detail-section { margin-bottom: 14px; }
+  .detail-section-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .field-row { display: flex; align-items: baseline; gap: 6px; padding: 3px 0; border-radius: 3px; }
+  .field-name { font-size: 11px; font-weight: 600; color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; }
+  .field-type { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+  .field-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--border); color: var(--text-dim); }
+  .field-badge.pk { background: #1e3a2e; color: #4ade80; }
+  .field-badge.req { background: #1e2a3a; color: #60a5fa; }
+  .field-badge.opt { background: #2a2420; color: #fb923c; }
+  .rel-row { display: flex; align-items: center; gap: 7px; padding: 3px 5px; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
+  .rel-row:hover { background: rgba(255,255,255,0.06); }
+  .rel-type { font-size: 9px; padding: 1px 5px; border-radius: 3px; min-width: 40px; text-align: center; }
+  .rel-type.required { background: #1e2a3a; color: #60a5fa; }
+  .rel-type.optional { background: #2a2420; color: #fb923c; }
+  .rel-type.set { background: #1a2e1a; color: #4ade80; }
+  .rel-target { font-size: 11px; color: var(--text); font-family: monospace; }
+  .rel-field { font-size: 10px; color: var(--text-dim); }
+  #prompt-area { background: var(--panel); border-top: 1px solid var(--border); padding: 12px 16px; max-height: 140px; display: flex; flex-direction: column; gap: 8px; }
+  #prompt-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+  #prompt-text { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 8px; min-height: 50px; max-height: 80px; overflow-y: auto; resize: none; flex: 1; }
+  #prompt-row { display: flex; gap: 8px; align-items: center; }
+  #copy-btn { padding: 5px 14px; background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 5px; color: var(--blue); font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  #copy-btn:hover { background: var(--blue); color: white; }
+  .node-rect { rx: 6; cursor: pointer; transition: filter 0.15s; }
+  .node-title { font-family: system-ui, sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .node-subtitle { font-family: system-ui, sans-serif; font-size: 9px; cursor: pointer; }
+  text { user-select: none; }
+  .conn-label { font-size: 8px; fill: #4a5568; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>HCC Plan — DB Explorer</h1>
+    <p>30 Entitäten · Pony ORM</p>
+  </div>
+  <input id="search-box" type="text" placeholder="Entität suchen…" oninput="filterEntities(this.value)">
+  <div id="controls">
+    <div class="ctrl-label">Ansicht</div>
+    <div class="ctrl-row">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text-dim)">
+        <input type="checkbox" id="toggle-fields" checked onchange="updateAll()"> Felder
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text-dim)">
+        <input type="checkbox" id="toggle-rels" checked onchange="updateAll()"> Beziehungen
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--text-dim)">
+        <input type="checkbox" id="toggle-labels" checked onchange="updateAll()"> Labels
+      </label>
+    </div>
+    <div class="ctrl-label" style="margin-top:8px">Preset</div>
+    <div class="preset-row">
+      <button class="preset-btn" onclick="applyPreset('all')">Alle</button>
+      <button class="preset-btn" onclick="applyPreset('core')">Kern</button>
+      <button class="preset-btn" onclick="applyPreset('planning')">Planung</button>
+      <button class="preset-btn" onclick="applyPreset('avail')">Verfügb.</button>
+      <button class="preset-btn" onclick="applyPreset('prefs')">Präf.</button>
+    </div>
+    <div class="ctrl-label" style="margin-top:8px">Gruppen</div>
+    <div id="layer-filters"></div>
+  </div>
+  <div id="entity-list"></div>
+</div>
+
+<div id="main">
+  <div id="canvas-area">
+    <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="zoom-controls">
+      <button class="zoom-btn" onclick="zoom(1.2)" title="Vergrößern">+</button>
+      <button class="zoom-btn" onclick="zoom(1/1.2)" title="Verkleinern">−</button>
+      <button class="zoom-btn" onclick="resetView()" title="Zurücksetzen" style="font-size:11px">⊡</button>
+    </div>
+    <div id="legend">
+      <div id="legend-title">Beziehungstypen</div>
+      <div class="legend-row"><div class="legend-line solid"></div> Required</div>
+      <div class="legend-row"><div class="legend-line dashed"></div> Optional</div>
+      <div class="legend-row"><div class="legend-line double"></div> Set (1→N)</div>
+    </div>
+  </div>
+  <div id="prompt-area">
+    <div id="prompt-row">
+      <div id="prompt-label">Prompt-Ausgabe</div>
+      <button id="copy-btn" onclick="copyPrompt()">Kopieren</button>
+    </div>
+    <textarea id="prompt-text" readonly></textarea>
+  </div>
+</div>
+
+<div id="detail-panel">
+  <div id="detail-header">
+    <button id="detail-close" onclick="closeDetail()">×</button>
+    <div id="detail-name"></div>
+    <div id="detail-badge"></div>
+  </div>
+  <div id="detail-body"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// DATA MODEL
+// ─────────────────────────────────────────────────────────────
+const GROUPS = {
+  core:    { label: 'Kern',           color: '#3b82f6', bg: '#1d3461', textColor: '#93c5fd' },
+  events:  { label: 'Events/Termine', color: '#22c55e', bg: '#14432a', textColor: '#86efac' },
+  avail:   { label: 'Verfügbarkeit',  color: '#eab308', bg: '#3d2900', textColor: '#fde047' },
+  prefs:   { label: 'Präferenzen',    color: '#f97316', bg: '#4a1a00', textColor: '#fdba74' },
+  time:    { label: 'Zeit',           color: '#a855f7', bg: '#2e1065', textColor: '#d8b4fe' },
+  misc:    { label: 'Sonstiges',      color: '#6b7280', bg: '#1a1e2a', textColor: '#9ca3af' },
+};
+
+const ENTITIES = [
+  { id: 'Project', group: 'core', x: 600, y: 60,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'active', type: 'bool', req: true },
+      { name: 'created_at', type: 'datetime' },
+      { name: 'last_modified', type: 'datetime', req: true },
+    ],
+    rels: [
+      { type: 'optional', field: 'admin', target: 'Person' },
+      { type: 'optional', field: 'excel_export_settings', target: 'ExcelExportSettings' },
+      { type: 'set', field: 'teams', target: 'Team' },
+      { type: 'set', field: 'persons', target: 'Person' },
+      { type: 'set', field: 'locations_of_work', target: 'LocationOfWork' },
+      { type: 'set', field: 'time_of_days_all', target: 'TimeOfDay' },
+      { type: 'set', field: 'time_of_day_enums', target: 'TimeOfDayEnum' },
+      { type: 'set', field: 'skills', target: 'Skill' },
+      { type: 'set', field: 'flags', target: 'Flag' },
+      { type: 'set', field: 'cast_rules', target: 'CastRule' },
+      { type: 'set', field: 'employee_events', target: 'EmployeeEvent' },
+      { type: 'set', field: 'employee_event_categories', target: 'EmployeeEventCategory' },
+    ]
+  },
+  { id: 'Person', group: 'core', x: 300, y: 60,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'f_name', type: 'str(50)', req: true },
+      { name: 'l_name', type: 'str(50)', req: true },
+      { name: 'gender', type: 'Gender(enum)', opt: true },
+      { name: 'role', type: 'Role(enum)', opt: true },
+      { name: 'email', type: 'str(50)', req: true },
+      { name: 'username', type: 'str(50)', req: true },
+      { name: 'password', type: 'str', req: true },
+      { name: 'requested_assignments', type: 'uint16', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'optional', field: 'address', target: 'Address' },
+      { type: 'set', field: 'team_actor_assigns', target: 'TeamActorAssign' },
+      { type: 'set', field: 'actor_plan_periods', target: 'ActorPlanPeriod' },
+      { type: 'set', field: 'skills', target: 'Skill' },
+      { type: 'set', field: 'flags', target: 'Flag' },
+      { type: 'set', field: 'actor_location_prefs', target: 'ActorLocationPref' },
+      { type: 'set', field: 'actor_partner_location_prefs', target: 'ActorPartnerLocationPref' },
+      { type: 'set', field: 'employee_events', target: 'EmployeeEvent' },
+    ]
+  },
+  { id: 'Team', group: 'core', x: 900, y: 60,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'optional', field: 'dispatcher', target: 'Person' },
+      { type: 'optional', field: 'excel_export_settings', target: 'ExcelExportSettings' },
+      { type: 'set', field: 'team_actor_assigns', target: 'TeamActorAssign' },
+      { type: 'set', field: 'team_location_assigns', target: 'TeamLocationAssign' },
+      { type: 'set', field: 'plan_periods', target: 'PlanPeriod' },
+      { type: 'set', field: 'employee_events', target: 'EmployeeEvent' },
+    ]
+  },
+  { id: 'PlanPeriod', group: 'core', x: 900, y: 240,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'start', type: 'date', req: true },
+      { name: 'end', type: 'date', req: true },
+      { name: 'deadline', type: 'date', req: true },
+      { name: 'closed', type: 'bool', req: true },
+      { name: 'remainder', type: 'bool', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'notes_for_employees', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'team', target: 'Team' },
+      { type: 'set', field: 'actor_plan_periods', target: 'ActorPlanPeriod' },
+      { type: 'set', field: 'location_plan_periods', target: 'LocationPlanPeriod' },
+      { type: 'set', field: 'cast_groups', target: 'CastGroup' },
+      { type: 'set', field: 'plans', target: 'Plan' },
+    ]
+  },
+  { id: 'Plan', group: 'core', x: 1150, y: 240,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'location_columns', type: 'Json', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'plan_period', target: 'PlanPeriod' },
+      { type: 'optional', field: 'excel_export_settings', target: 'ExcelExportSettings' },
+      { type: 'set', field: 'appointments', target: 'Appointment' },
+    ]
+  },
+  { id: 'ActorPlanPeriod', group: 'avail', x: 300, y: 240,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'requested_assignments', type: 'uint16', req: true },
+      { name: 'required_assignments', type: 'bool', req: true },
+      { name: 'notes', type: 'str', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'plan_period', target: 'PlanPeriod' },
+      { type: 'required', field: 'person', target: 'Person' },
+      { type: 'optional', field: 'avail_day_group', target: 'AvailDayGroup' },
+      { type: 'set', field: 'avail_days', target: 'AvailDay' },
+      { type: 'set', field: 'actor_partner_location_prefs_defaults', target: 'ActorPartnerLocationPref' },
+      { type: 'set', field: 'actor_location_prefs_defaults', target: 'ActorLocationPref' },
+      { type: 'set', field: 'max_fair_shifts_of_apps', target: 'MaxFairShiftsOfApp' },
+    ]
+  },
+  { id: 'AvailDay', group: 'avail', x: 60, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'date', type: 'date', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'actor_plan_period', target: 'ActorPlanPeriod' },
+      { type: 'required', field: 'avail_day_group', target: 'AvailDayGroup' },
+      { type: 'required', field: 'time_of_day', target: 'TimeOfDay' },
+      { type: 'set', field: 'skills', target: 'Skill' },
+      { type: 'set', field: 'appointments', target: 'Appointment' },
+      { type: 'set', field: 'actor_partner_location_prefs_defaults', target: 'ActorPartnerLocationPref' },
+      { type: 'set', field: 'actor_location_prefs_defaults', target: 'ActorLocationPref' },
+    ]
+  },
+  { id: 'AvailDayGroup', group: 'avail', x: 300, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'nr_avail_day_groups', type: 'uint', opt: true },
+      { name: 'variation_weight', type: 'uint8', req: true },
+    ],
+    rels: [
+      { type: 'optional', field: 'actor_plan_period', target: 'ActorPlanPeriod' },
+      { type: 'optional', field: 'avail_day_group (parent)', target: 'AvailDayGroup' },
+      { type: 'optional', field: 'avail_day', target: 'AvailDay' },
+      { type: 'set', field: 'avail_day_groups (children)', target: 'AvailDayGroup' },
+    ]
+  },
+  { id: 'LocationOfWork', group: 'events', x: 600, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'nr_actors', type: 'uint8', req: true },
+      { name: 'fixed_cast', type: 'str', opt: true },
+      { name: 'fixed_cast_only_if_available', type: 'bool', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'optional', field: 'address', target: 'Address' },
+      { type: 'set', field: 'team_location_assigns', target: 'TeamLocationAssign' },
+      { type: 'set', field: 'location_plan_periods', target: 'LocationPlanPeriod' },
+      { type: 'set', field: 'skill_groups', target: 'SkillGroup' },
+      { type: 'set', field: 'actor_location_prefs', target: 'ActorLocationPref' },
+    ]
+  },
+  { id: 'LocationPlanPeriod', group: 'events', x: 900, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'nr_actors', type: 'uint8', opt: true },
+      { name: 'fixed_cast', type: 'str', opt: true },
+      { name: 'fixed_cast_only_if_available', type: 'bool', req: true },
+      { name: 'notes', type: 'str', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'plan_period', target: 'PlanPeriod' },
+      { type: 'required', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'optional', field: 'event_group', target: 'EventGroup' },
+      { type: 'set', field: 'events', target: 'Event' },
+    ]
+  },
+  { id: 'Event', group: 'events', x: 900, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', opt: true },
+      { name: 'date', type: 'date', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'location_plan_period', target: 'LocationPlanPeriod' },
+      { type: 'required', field: 'time_of_day', target: 'TimeOfDay' },
+      { type: 'required', field: 'event_group', target: 'EventGroup' },
+      { type: 'required', field: 'cast_group', target: 'CastGroup' },
+      { type: 'set', field: 'appointments', target: 'Appointment' },
+      { type: 'set', field: 'flags', target: 'Flag' },
+      { type: 'set', field: 'skill_groups', target: 'SkillGroup' },
+    ]
+  },
+  { id: 'EventGroup', group: 'events', x: 1150, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'nr_event_groups', type: 'uint', opt: true },
+      { name: 'variation_weight', type: 'uint8', req: true },
+    ],
+    rels: [
+      { type: 'optional', field: 'location_plan_period', target: 'LocationPlanPeriod' },
+      { type: 'optional', field: 'event_group (parent)', target: 'EventGroup' },
+      { type: 'optional', field: 'event', target: 'Event' },
+      { type: 'set', field: 'event_groups (children)', target: 'EventGroup' },
+    ]
+  },
+  { id: 'CastGroup', group: 'events', x: 1150, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'nr_actors', type: 'uint16', req: true },
+      { name: 'fixed_cast', type: 'str', opt: true },
+      { name: 'fixed_cast_only_if_available', type: 'bool', req: true },
+      { name: 'prefer_fixed_cast_events', type: 'bool', req: true },
+      { name: 'strict_cast_pref', type: 'uint8', req: true },
+      { name: 'custom_rule', type: 'str', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'plan_period', target: 'PlanPeriod' },
+      { type: 'optional', field: 'event', target: 'Event' },
+      { type: 'optional', field: 'cast_rule', target: 'CastRule' },
+      { type: 'set', field: 'parent_groups', target: 'CastGroup' },
+      { type: 'set', field: 'child_groups', target: 'CastGroup' },
+    ]
+  },
+  { id: 'Appointment', group: 'events', x: 600, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'guests', type: 'Json[list[str]]', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'event', target: 'Event' },
+      { type: 'required', field: 'plan', target: 'Plan' },
+      { type: 'set', field: 'avail_days', target: 'AvailDay' },
+    ]
+  },
+  { id: 'CastRule', group: 'events', x: 1400, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'rule', type: 'str', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'cast_groups', target: 'CastGroup' },
+    ]
+  },
+  { id: 'TimeOfDay', group: 'time', x: 60, y: 600,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', opt: true },
+      { name: 'start', type: 'time', req: true },
+      { name: 'end', type: 'time', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'time_of_day_enum', target: 'TimeOfDayEnum' },
+      { type: 'required', field: 'project', target: 'Project' },
+    ]
+  },
+  { id: 'TimeOfDayEnum', group: 'time', x: 60, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', req: true },
+      { name: 'abbreviation', type: 'str(10)', req: true },
+      { name: 'time_index', type: 'uint8', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'time_of_days', target: 'TimeOfDay' },
+    ]
+  },
+  { id: 'TeamActorAssign', group: 'misc', x: 300, y: 170,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'start', type: 'date', req: true },
+      { name: 'end', type: 'date', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'person', target: 'Person' },
+      { type: 'required', field: 'team', target: 'Team' },
+    ]
+  },
+  { id: 'TeamLocationAssign', group: 'misc', x: 1150, y: 170,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'start', type: 'date', req: true },
+      { name: 'end', type: 'date', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'required', field: 'team', target: 'Team' },
+    ]
+  },
+  { id: 'Address', group: 'misc', x: 60, y: 240,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(50)', opt: true },
+      { name: 'street', type: 'str(50)', opt: true },
+      { name: 'postal_code', type: 'str(20)', opt: true },
+      { name: 'city', type: 'str(40)', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'persons', target: 'Person' },
+      { type: 'optional', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'set', field: 'employee_events', target: 'EmployeeEvent' },
+    ]
+  },
+  { id: 'ActorLocationPref', group: 'prefs', x: 60, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'score', type: 'float', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'required', field: 'person', target: 'Person' },
+      { type: 'required', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'optional', field: 'person_default', target: 'Person' },
+    ]
+  },
+  { id: 'ActorPartnerLocationPref', group: 'prefs', x: 300, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'score', type: 'float', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'person', target: 'Person' },
+      { type: 'required', field: 'partner (Person)', target: 'Person' },
+      { type: 'required', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'optional', field: 'person_default', target: 'Person' },
+    ]
+  },
+  { id: 'CombinationLocationsPossible', group: 'prefs', x: 600, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'time_span_between', type: 'timedelta', req: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'optional', field: 'team', target: 'Team' },
+      { type: 'set', field: 'locations_of_work', target: 'LocationOfWork' },
+      { type: 'set', field: 'persons', target: 'Person' },
+      { type: 'set', field: 'actor_plan_periods', target: 'ActorPlanPeriod' },
+      { type: 'set', field: 'avail_days', target: 'AvailDay' },
+    ]
+  },
+  { id: 'Skill', group: 'prefs', x: 900, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str', req: true },
+      { name: 'notes', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'persons', target: 'Person' },
+      { type: 'set', field: 'avail_days', target: 'AvailDay' },
+      { type: 'set', field: 'skill_groups', target: 'SkillGroup' },
+    ]
+  },
+  { id: 'SkillGroup', group: 'prefs', x: 1150, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'nr_actors', type: 'int16', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'skill', target: 'Skill' },
+      { type: 'optional', field: 'location_of_work', target: 'LocationOfWork' },
+      { type: 'set', field: 'events', target: 'Event' },
+    ]
+  },
+  { id: 'Flag', group: 'prefs', x: 1400, y: 770,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(30)', req: true },
+      { name: 'category', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'persons', target: 'Person' },
+      { type: 'set', field: 'events', target: 'Event' },
+    ]
+  },
+  { id: 'MaxFairShiftsOfApp', group: 'avail', x: 60, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'max_shifts', type: 'uint16', req: true },
+      { name: 'fair_shifts', type: 'float', req: true },
+    ],
+    rels: [
+      { type: 'required', field: 'actor_plan_period', target: 'ActorPlanPeriod' },
+    ]
+  },
+  { id: 'RequiredAvailDayGroups', group: 'avail', x: 300, y: 590,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'num_avail_day_groups', type: 'uint8', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'avail_day_group', target: 'AvailDayGroup' },
+      { type: 'set', field: 'locations_of_work', target: 'LocationOfWork' },
+    ]
+  },
+  { id: 'ExcelExportSettings', group: 'misc', x: 1400, y: 240,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'color_head_weekdays_1', type: 'str(15)', opt: true },
+      { name: 'color_head_weekdays_2', type: 'str(15)', opt: true },
+      { name: 'color_head_locations_1', type: 'str(15)', opt: true },
+      { name: 'color_head_locations_2', type: 'str(15)', opt: true },
+      { name: 'color_day_nrs_1', type: 'str(15)', opt: true },
+      { name: 'color_day_nrs_2', type: 'str(15)', opt: true },
+    ],
+    rels: [
+      { type: 'optional', field: 'project', target: 'Project' },
+      { type: 'set', field: 'teams', target: 'Team' },
+      { type: 'set', field: 'plans', target: 'Plan' },
+    ]
+  },
+  { id: 'EmployeeEvent', group: 'misc', x: 1400, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'title', type: 'str(40)', req: true },
+      { name: 'description', type: 'str', req: true },
+      { name: 'start', type: 'datetime', req: true },
+      { name: 'end', type: 'datetime', req: true },
+      { name: 'google_calendar_event_id', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'optional', field: 'address', target: 'Address' },
+      { type: 'set', field: 'teams', target: 'Team' },
+      { type: 'set', field: 'participants', target: 'Person' },
+      { type: 'set', field: 'employee_event_categories', target: 'EmployeeEventCategory' },
+    ]
+  },
+  { id: 'EmployeeEventCategory', group: 'misc', x: 1650, y: 420,
+    fields: [
+      { name: 'id', type: 'UUID', pk: true },
+      { name: 'name', type: 'str(40)', req: true },
+      { name: 'description', type: 'str', opt: true },
+      { name: 'prep_delete', type: 'datetime', opt: true },
+    ],
+    rels: [
+      { type: 'required', field: 'project', target: 'Project' },
+      { type: 'set', field: 'employee_events', target: 'EmployeeEvent' },
+    ]
+  },
+];
+
+// Connections: only draw "upward" or "to the right" connections to avoid duplication
+// format: { from, to, type: 'required'|'optional'|'set', label }
+const CONNECTIONS = [
+  { from: 'Team', to: 'Project', type: 'required' },
+  { from: 'Person', to: 'Project', type: 'required' },
+  { from: 'PlanPeriod', to: 'Team', type: 'required' },
+  { from: 'Plan', to: 'PlanPeriod', type: 'required' },
+  { from: 'ActorPlanPeriod', to: 'PlanPeriod', type: 'required' },
+  { from: 'ActorPlanPeriod', to: 'Person', type: 'required' },
+  { from: 'AvailDay', to: 'ActorPlanPeriod', type: 'required' },
+  { from: 'AvailDay', to: 'TimeOfDay', type: 'required' },
+  { from: 'AvailDayGroup', to: 'ActorPlanPeriod', type: 'optional' },
+  { from: 'AvailDayGroup', to: 'AvailDay', type: 'optional' },
+  { from: 'TeamActorAssign', to: 'Person', type: 'required' },
+  { from: 'TeamActorAssign', to: 'Team', type: 'required' },
+  { from: 'TeamLocationAssign', to: 'LocationOfWork', type: 'required' },
+  { from: 'TeamLocationAssign', to: 'Team', type: 'required' },
+  { from: 'LocationOfWork', to: 'Project', type: 'required' },
+  { from: 'LocationPlanPeriod', to: 'PlanPeriod', type: 'required' },
+  { from: 'LocationPlanPeriod', to: 'LocationOfWork', type: 'required' },
+  { from: 'Event', to: 'LocationPlanPeriod', type: 'required' },
+  { from: 'Event', to: 'TimeOfDay', type: 'required' },
+  { from: 'EventGroup', to: 'LocationPlanPeriod', type: 'optional' },
+  { from: 'CastGroup', to: 'PlanPeriod', type: 'required' },
+  { from: 'Appointment', to: 'Event', type: 'required' },
+  { from: 'Appointment', to: 'Plan', type: 'required' },
+  { from: 'CastRule', to: 'Project', type: 'required' },
+  { from: 'TimeOfDay', to: 'TimeOfDayEnum', type: 'required' },
+  { from: 'TimeOfDay', to: 'Project', type: 'required' },
+  { from: 'TimeOfDayEnum', to: 'Project', type: 'required' },
+  { from: 'Address', to: 'Project', type: 'required' },
+  { from: 'ActorLocationPref', to: 'Person', type: 'required' },
+  { from: 'ActorLocationPref', to: 'LocationOfWork', type: 'required' },
+  { from: 'ActorPartnerLocationPref', to: 'Person', type: 'required' },
+  { from: 'ActorPartnerLocationPref', to: 'LocationOfWork', type: 'required' },
+  { from: 'CombinationLocationsPossible', to: 'Project', type: 'required' },
+  { from: 'Skill', to: 'Project', type: 'required' },
+  { from: 'SkillGroup', to: 'Skill', type: 'required' },
+  { from: 'Flag', to: 'Project', type: 'required' },
+  { from: 'MaxFairShiftsOfApp', to: 'ActorPlanPeriod', type: 'required' },
+  { from: 'RequiredAvailDayGroups', to: 'AvailDayGroup', type: 'required' },
+  { from: 'EmployeeEvent', to: 'Project', type: 'required' },
+  { from: 'EmployeeEventCategory', to: 'Project', type: 'required' },
+  { from: 'ExcelExportSettings', to: 'Project', type: 'optional' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+const state = {
+  selectedEntity: null,
+  visibleGroups: { core: true, events: true, avail: true, prefs: true, time: true, misc: true },
+  showFields: true,
+  showRels: true,
+  showLabels: true,
+  scale: 1,
+  offsetX: 20,
+  offsetY: 20,
+  comments: [],
+  searchTerm: '',
+};
+
+const PRESETS = {
+  all:      { core: true, events: true, avail: true, prefs: true, time: true, misc: true },
+  core:     { core: true, events: false, avail: false, prefs: false, time: false, misc: false },
+  planning: { core: true, events: true, avail: true, prefs: false, time: true, misc: false },
+  avail:    { core: true, events: false, avail: true, prefs: true, time: true, misc: false },
+  prefs:    { core: true, events: true, avail: false, prefs: true, time: false, misc: false },
+};
+
+// ─────────────────────────────────────────────────────────────
+// NODE DIMENSIONS
+// ─────────────────────────────────────────────────────────────
+function nodeWidth(ent) { return 160; }
+function nodeHeight(ent) {
+  if (!state.showFields) return 32;
+  return 32 + ent.fields.length * 16;
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────
+function renderDiagram() {
+  const svg = document.getElementById('diagram');
+  const W = svg.parentElement.clientWidth;
+  const H = svg.parentElement.clientHeight;
+
+  const visibleIds = new Set(
+    ENTITIES.filter(e => state.visibleGroups[e.group]).map(e => e.id)
+  );
+
+  let html = `
+    <defs>
+      <marker id="arr-req" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#60a5fa" opacity="0.8"/>
+      </marker>
+      <marker id="arr-opt" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#fb923c" opacity="0.8"/>
+      </marker>
+      <marker id="arr-set" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#4ade80" opacity="0.8"/>
+      </marker>
+    </defs>
+    <g id="transform-group" transform="translate(${state.offsetX},${state.offsetY}) scale(${state.scale})">
+  `;
+
+  // Draw connections
+  if (state.showRels) {
+    for (const conn of CONNECTIONS) {
+      if (!visibleIds.has(conn.from) || !visibleIds.has(conn.to)) continue;
+      const fromEnt = ENTITIES.find(e => e.id === conn.from);
+      const toEnt = ENTITIES.find(e => e.id === conn.to);
+      if (!fromEnt || !toEnt) continue;
+
+      const fw = nodeWidth(fromEnt), fh = nodeHeight(fromEnt);
+      const tw = nodeWidth(toEnt), th = nodeHeight(toEnt);
+      const fx = fromEnt.x + fw/2, fy = fromEnt.y + fh/2;
+      const tx = toEnt.x + tw/2, ty = toEnt.y + th/2;
+
+      // Find best edge attachment points
+      const pts = getEdgePoints(fromEnt, toEnt, fw, fh, tw, th);
+
+      let stroke, dash, marker, strokeW;
+      if (conn.type === 'required') {
+        stroke = '#60a5fa'; dash = 'none'; marker = 'arr-req'; strokeW = 1.5;
+      } else if (conn.type === 'optional') {
+        stroke = '#fb923c'; dash = '5,3'; marker = 'arr-opt'; strokeW = 1.2;
+      } else {
+        stroke = '#4ade80'; dash = 'none'; marker = 'arr-set'; strokeW = 1.5;
+      }
+
+      const [x1,y1,x2,y2] = pts;
+      const cx = (x1+x2)/2, cy = (y1+y2)/2;
+      const dx = x2-x1, dy = y2-y1;
+      const mx = cx - dy*0.2, my = cy + dx*0.2;
+
+      html += `<path d="M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}"
+        fill="none" stroke="${stroke}" stroke-width="${strokeW}"
+        stroke-dasharray="${dash}" marker-end="url(#${marker})" opacity="0.6"/>`;
+
+      if (conn.type === 'set') {
+        html += `<path d="M ${x1} ${y1} Q ${mx-1} ${my+1} ${x2} ${y2}"
+          fill="none" stroke="${stroke}" stroke-width="${strokeW}"
+          opacity="0.3"/>`;
+      }
+    }
+  }
+
+  // Draw nodes
+  for (const ent of ENTITIES) {
+    if (!visibleIds.has(ent.id)) continue;
+    const g = GROUPS[ent.group];
+    const w = nodeWidth(ent), h = nodeHeight(ent);
+    const isSelected = state.selectedEntity === ent.id;
+    const hasComment = state.comments.some(c => c.target === ent.id);
+
+    const borderColor = isSelected ? g.color : (hasComment ? '#fbbf24' : '#2a2d3e');
+    const borderW = isSelected ? 2 : 1;
+    const glow = isSelected ? `filter="url(#glow)"` : '';
+
+    html += `<g class="entity-node" data-id="${ent.id}" onclick="selectEntity('${ent.id}')">`;
+    html += `<rect x="${ent.x}" y="${ent.y}" width="${w}" height="${h}" rx="6"
+      fill="${g.bg}" stroke="${borderColor}" stroke-width="${borderW}" style="cursor:pointer"/>`;
+
+    // Header bar
+    html += `<rect x="${ent.x}" y="${ent.y}" width="${w}" height="22" rx="6"
+      fill="${g.color}" opacity="0.85"/>`;
+    html += `<rect x="${ent.x}" y="${ent.y+16}" width="${w}" height="6" fill="${g.color}" opacity="0.85"/>`;
+
+    // Title
+    html += `<text x="${ent.x + w/2}" y="${ent.y + 14}" text-anchor="middle"
+      fill="white" font-weight="700" font-size="11" font-family="system-ui,sans-serif"
+      style="cursor:pointer">${ent.id}</text>`;
+
+    // Comment indicator
+    if (hasComment) {
+      html += `<circle cx="${ent.x+w-6}" cy="${ent.y+6}" r="4" fill="#fbbf24"/>`;
+    }
+
+    // Fields
+    if (state.showFields) {
+      let fy = ent.y + 32;
+      for (const f of ent.fields) {
+        const fcolor = f.pk ? '#4ade80' : f.req ? '#93c5fd' : '#9ca3af';
+        const badge = f.pk ? '🔑' : f.req ? '●' : '○';
+        html += `<text x="${ent.x+8}" y="${fy}" fill="${fcolor}" font-size="9"
+          font-family="'SF Mono','Fira Code',monospace" style="cursor:pointer">
+          ${badge} ${f.name}</text>`;
+        html += `<text x="${ent.x+w-6}" y="${fy}" text-anchor="end" fill="#4a5568" font-size="8"
+          font-family="monospace" style="cursor:pointer">${f.type}</text>`;
+        fy += 16;
+      }
+    }
+
+    html += `</g>`;
+  }
+
+  html += `</g>`;
+  svg.innerHTML = html;
+
+  // Re-attach drag
+  setupDrag();
+}
+
+function getEdgePoints(fromEnt, toEnt, fw, fh, tw, th) {
+  const fcx = fromEnt.x + fw/2, fcy = fromEnt.y + fh/2;
+  const tcx = toEnt.x + tw/2, tcy = toEnt.y + th/2;
+
+  // Determine which edges to use
+  const dx = tcx - fcx, dy = tcy - fcy;
+
+  let x1, y1, x2, y2;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal connection
+    if (dx > 0) {
+      x1 = fromEnt.x + fw; y1 = Math.max(fromEnt.y+11, Math.min(fromEnt.y+fh-6, fcy + dy*0.1));
+      x2 = toEnt.x; y2 = Math.max(toEnt.y+11, Math.min(toEnt.y+th-6, tcy - dy*0.1));
+    } else {
+      x1 = fromEnt.x; y1 = Math.max(fromEnt.y+11, Math.min(fromEnt.y+fh-6, fcy + dy*0.1));
+      x2 = toEnt.x + tw; y2 = Math.max(toEnt.y+11, Math.min(toEnt.y+th-6, tcy - dy*0.1));
+    }
+  } else {
+    // Vertical connection
+    if (dy > 0) {
+      x1 = Math.max(fromEnt.x+10, Math.min(fromEnt.x+fw-10, fcx + dx*0.1)); y1 = fromEnt.y + fh;
+      x2 = Math.max(toEnt.x+10, Math.min(toEnt.x+tw-10, tcx - dx*0.1)); y2 = toEnt.y;
+    } else {
+      x1 = Math.max(fromEnt.x+10, Math.min(fromEnt.x+fw-10, fcx + dx*0.1)); y1 = fromEnt.y;
+      x2 = Math.max(toEnt.x+10, Math.min(toEnt.x+tw-10, tcx - dx*0.1)); y2 = toEnt.y + th;
+    }
+  }
+  return [x1,y1,x2,y2];
+}
+
+// ─────────────────────────────────────────────────────────────
+// SIDEBAR ENTITY LIST
+// ─────────────────────────────────────────────────────────────
+function renderEntityList() {
+  const container = document.getElementById('entity-list');
+  const term = state.searchTerm.toLowerCase();
+  container.innerHTML = '';
+  for (const ent of ENTITIES) {
+    const g = GROUPS[ent.group];
+    const hidden = term && !ent.id.toLowerCase().includes(term);
+    const div = document.createElement('div');
+    div.className = 'entity-item' +
+      (state.selectedEntity === ent.id ? ' selected' : '') +
+      (hidden ? ' hidden-filter' : '');
+    div.setAttribute('data-id', ent.id);
+    div.onclick = () => selectEntity(ent.id);
+    div.innerHTML = `<div class="entity-dot" style="background:${g.color}"></div>
+      <span class="entity-name">${ent.id}</span>`;
+    container.appendChild(div);
+  }
+}
+
+function renderLayerFilters() {
+  const container = document.getElementById('layer-filters');
+  container.innerHTML = '';
+  for (const [key, g] of Object.entries(GROUPS)) {
+    const label = document.createElement('label');
+    label.className = 'layer-check' + (!state.visibleGroups[key] ? ' disabled' : '');
+    label.innerHTML = `
+      <input type="checkbox" ${state.visibleGroups[key] ? 'checked' : ''} onchange="toggleGroup('${key}', this.checked)">
+      <div class="layer-dot" style="background:${g.color}"></div>
+      <span class="layer-label" style="font-size:11px;color:var(--text-dim)">${g.label}</span>`;
+    container.appendChild(label);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DETAIL PANEL
+// ─────────────────────────────────────────────────────────────
+function renderDetailPanel(entityId) {
+  const ent = ENTITIES.find(e => e.id === entityId);
+  if (!ent) return;
+  const g = GROUPS[ent.group];
+
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('visible');
+
+  document.getElementById('detail-name').textContent = ent.id;
+  const badge = document.getElementById('detail-badge');
+  badge.textContent = g.label;
+  badge.style.background = g.bg;
+  badge.style.color = g.textColor;
+  badge.style.border = `1px solid ${g.color}40`;
+
+  const comment = state.comments.find(c => c.target === entityId);
+
+  let html = '';
+
+  html += `<div class="detail-section">
+    <div class="detail-section-title">Felder (${ent.fields.length})</div>`;
+  for (const f of ent.fields) {
+    const badgeHtml = f.pk
+      ? '<span class="field-badge pk">PK</span>'
+      : f.req
+        ? '<span class="field-badge req">Required</span>'
+        : '<span class="field-badge opt">Optional</span>';
+    html += `<div class="field-row">
+      <span class="field-name">${f.name}</span>
+      <span class="field-type">${f.type}</span>
+      ${badgeHtml}
+    </div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="detail-section">
+    <div class="detail-section-title">Beziehungen (${ent.rels.length})</div>`;
+  for (const r of ent.rels) {
+    const typeClass = r.type;
+    const typeLabel = r.type === 'required' ? 'Req' : r.type === 'optional' ? 'Opt' : 'Set';
+    html += `<div class="rel-row" onclick="selectEntity('${r.target}')">
+      <span class="rel-type ${typeClass}">${typeLabel}</span>
+      <span class="rel-field">${r.field}</span>
+      <span style="color:var(--text-dim);margin:0 2px">→</span>
+      <span class="rel-target">${r.target}</span>
+    </div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="detail-section">
+    <div class="detail-section-title">Notiz</div>
+    <textarea id="entity-note" style="width:100%;padding:7px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:11px;resize:vertical;min-height:60px;font-family:system-ui,sans-serif"
+      placeholder="Notiz zu dieser Entität…"
+      onchange="saveComment('${entityId}', this.value)">${comment ? comment.text : ''}</textarea>
+  </div>`;
+
+  document.getElementById('detail-body').innerHTML = html;
+}
+
+function closeDetail() {
+  state.selectedEntity = null;
+  document.getElementById('detail-panel').classList.remove('visible');
+  updateAll();
+}
+
+function saveComment(entityId, text) {
+  const idx = state.comments.findIndex(c => c.target === entityId);
+  if (!text.trim()) {
+    if (idx >= 0) state.comments.splice(idx, 1);
+  } else {
+    const ent = ENTITIES.find(e => e.id === entityId);
+    if (idx >= 0) {
+      state.comments[idx].text = text;
+    } else {
+      state.comments.push({ id: Date.now(), target: entityId, targetLabel: entityId, text });
+    }
+  }
+  updatePrompt();
+  renderDiagram();
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────────────────────────
+function selectEntity(id) {
+  state.selectedEntity = id;
+  renderDetailPanel(id);
+  renderEntityList();
+  renderDiagram();
+  updatePrompt();
+
+  // Scroll entity into view in list
+  const el = document.querySelector(`#entity-list [data-id="${id}"]`);
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+function toggleGroup(key, val) {
+  state.visibleGroups[key] = val;
+  renderLayerFilters();
+  updateAll();
+}
+
+function filterEntities(term) {
+  state.searchTerm = term;
+  renderEntityList();
+}
+
+function applyPreset(name) {
+  Object.assign(state.visibleGroups, PRESETS[name]);
+  renderLayerFilters();
+  updateAll();
+}
+
+function zoom(factor) {
+  state.scale = Math.max(0.2, Math.min(3, state.scale * factor));
+  renderDiagram();
+}
+
+function resetView() {
+  state.scale = 0.65;
+  state.offsetX = 20;
+  state.offsetY = 20;
+  renderDiagram();
+}
+
+// ─────────────────────────────────────────────────────────────
+// DRAG / PAN
+// ─────────────────────────────────────────────────────────────
+function setupDrag() {
+  const svg = document.getElementById('diagram');
+  let dragging = false, startX, startY, startOX, startOY;
+
+  svg.onmousedown = (e) => {
+    if (e.target.closest('.entity-node')) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startOX = state.offsetX; startOY = state.offsetY;
+    svg.classList.add('dragging');
+  };
+  svg.onmousemove = (e) => {
+    if (!dragging) return;
+    state.offsetX = startOX + (e.clientX - startX);
+    state.offsetY = startOY + (e.clientY - startY);
+    document.getElementById('transform-group').setAttribute('transform',
+      `translate(${state.offsetX},${state.offsetY}) scale(${state.scale})`);
+  };
+  svg.onmouseup = svg.onmouseleave = () => {
+    dragging = false;
+    svg.classList.remove('dragging');
+  };
+  svg.onwheel = (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    zoom(factor);
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// PROMPT
+// ─────────────────────────────────────────────────────────────
+function updatePrompt() {
+  const lines = [];
+  const visGroups = Object.entries(state.visibleGroups).filter(([,v]) => v).map(([k]) => GROUPS[k].label);
+  const allGroups = Object.values(GROUPS).map(g => g.label);
+  const isAll = visGroups.length === allGroups.length;
+
+  if (!isAll) {
+    lines.push(`Sichtbare Gruppen: ${visGroups.join(', ')}.`);
+  }
+
+  if (state.selectedEntity) {
+    const ent = ENTITIES.find(e => e.id === state.selectedEntity);
+    const g = GROUPS[ent.group];
+    lines.push(`Ausgewählte Entität: ${ent.id} (Gruppe: ${g.label})`);
+    lines.push(`  - ${ent.fields.length} Felder, ${ent.rels.length} Beziehungen`);
+    const reqRels = ent.rels.filter(r => r.type === 'required').map(r => r.target);
+    if (reqRels.length) lines.push(`  - Required: ${reqRels.join(', ')}`);
+  }
+
+  if (state.comments.length > 0) {
+    lines.push('\nNotizen zu Entitäten:');
+    for (const c of state.comments) {
+      lines.push(`\n[${c.targetLabel}]: ${c.text}`);
+    }
+  }
+
+  if (lines.length === 0) {
+    document.getElementById('prompt-text').value = 'Klicke auf eine Entität, um Details zu sehen und Notizen zu hinterlassen.';
+  } else {
+    document.getElementById('prompt-text').value = lines.join('\n');
+  }
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').value;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Kopiert!';
+    setTimeout(() => btn.textContent = 'Kopieren', 1500);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN UPDATE
+// ─────────────────────────────────────────────────────────────
+function updateAll() {
+  state.showFields = document.getElementById('toggle-fields').checked;
+  state.showRels = document.getElementById('toggle-rels').checked;
+  state.showLabels = document.getElementById('toggle-labels').checked;
+  renderEntityList();
+  renderDiagram();
+  updatePrompt();
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  renderLayerFilters();
+  renderEntityList();
+  resetView();
+  updatePrompt();
+});
+
+window.addEventListener('resize', () => renderDiagram());
+</script>
+</body>
+</html>

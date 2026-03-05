@@ -38,7 +38,7 @@ class EmailService:
         plan_id: str,
         recipient_ids: Optional[List[str]] = None,
         include_attachments: bool = True
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Sendet Benachrichtigungen über einen neuen oder aktualisierten Einsatzplan.
         
@@ -113,18 +113,20 @@ class EmailService:
                 )
                 
                 # Sende die E-Mail
-                success = self.sender.send_email(
+                result = self.sender.send_email(
                     recipients=[{'email': person.email, 'name': person.full_name}],
                     subject=subject,
                     text_content=text,
                     html_content=html,
                     attachments=attachments
                 )
-                
-                if success:
+
+                if result.successfully_sent:
                     stats['success'] += 1
                 else:
                     stats['failed'] += 1
+                    if result.error_message and 'error' not in stats:
+                        stats['error'] = result.error_message
             
             return stats
             
@@ -139,7 +141,7 @@ class EmailService:
         recipient_ids: Optional[List[str]] = None,
         url_base: Optional[str] = None,
         notes: Optional[str] = None
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Sendet Verfügbarkeitsanfragen an Mitarbeiter für einen Planungszeitraum.
         
@@ -203,17 +205,19 @@ class EmailService:
                 )
                 
                 # Sende die E-Mail
-                success = self.sender.send_email(
+                result = self.sender.send_email(
                     recipients=[{'email': person.email, 'name': person.full_name}],
                     subject=subject,
                     text_content=text,
                     html_content=html
                 )
-                
-                if success:
+
+                if result.successfully_sent:
                     stats['success'] += 1
                 else:
                     stats['failed'] += 1
+                    if result.error_message and 'error' not in stats:
+                        stats['error'] = result.error_message
             
             return stats
             
@@ -228,7 +232,7 @@ class EmailService:
         html_content: Optional[str] = None,
         recipients: Optional[List[schemas.Person]] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Sendet eine benutzerdefinierte E-Mail an ausgewählte Mitarbeiter.
         
@@ -272,7 +276,7 @@ class EmailService:
         cc: Optional[List[schemas.Person]] = None,
         bcc: Optional[List[schemas.Person]] = None,
         attachments: Optional[List[Dict[str, Any]]] = None
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Sendet eine einzelne E-Mail an mehrere Empfänger mit Unterstützung für To/CC/BCC.
         
@@ -294,7 +298,7 @@ class EmailService:
                 return {'success': 0, 'failed': 0}
 
             # Hier senden wir eine einzelne E-Mail an alle Empfänger
-            success = self.sender.send_email(
+            result = self.sender.send_email(
                 recipients=recipients or [],
                 cc=cc or [],
                 bcc=bcc or [],
@@ -303,9 +307,12 @@ class EmailService:
                 html_content=html_content,
                 attachments=attachments
             )
-            
+
             # Statistik basierend auf Erfolg oder Misserfolg zurückgeben
-            return {'success': len(success.successfully_sent), 'failed': len(success.failed_to_send)}
+            stats = {'success': len(result.successfully_sent), 'failed': len(result.failed_to_send)}
+            if result.error_message:
+                stats['error'] = result.error_message
+            return stats
             
         except Exception as e:
             logger.error(f"Fehler beim Senden der benutzerdefinierten E-Mail: {str(e)}")

@@ -6,12 +6,13 @@ Enthält den Dialog für Verfügbarkeitsanfragen.
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
     QPushButton, QCheckBox, QGroupBox, QListWidget, QListWidgetItem,
-    QProgressDialog, QMessageBox
+    QProgressDialog
 )
 from PySide6.QtCore import Qt
 
 from database import db_services
 from email_to_users.service import email_service
+from gui.email_to_users.shared_dialogs import show_email_send_result
 from tools.helper_functions import setup_form_help
 
 
@@ -162,12 +163,5 @@ class AvailabilityRequestDialog(QDialog):
         progress.setValue(100)
         
         # Ergebnis anzeigen
-        QMessageBox.information(
-            self,
-            "E-Mail-Versand abgeschlossen",
-            f"Ergebnis des E-Mail-Versands:\n\n"
-            f"Erfolgreich gesendet: {stats['success']}\n"
-            f"Fehlgeschlagen: {stats['failed']}"
-        )
-        
-        self.accept()
+        if show_email_send_result(self, stats):
+            self.accept()

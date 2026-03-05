@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 class EmailSendSuccess:
     successfully_sent: list[str]
     failed_to_send: list[str]
+    error_message: Optional[str] = None
 
 
 class EmailSender:
@@ -146,23 +147,24 @@ class EmailSender:
         Returns:
             True, wenn die E-Mail erfolgreich gesendet wurde, sonst False
         """
-        # Überprüfe das Rate-Limit
-        if not self._check_rate_limit():
-            return False
-        
-        # Überprüfe Debug-Modus
-        if self.config.debug_mode:
-            self._send_debug(message, recipients, cc, bcc)
-            return True
-
-        email_send_success = EmailSendSuccess(successfully_sent=[], failed_to_send=[])
-        
-        # Alle Empfänger für SMTP
+        # Alle Empfänger für SMTP (wird für alle Pfade benötigt)
         all_recipients = recipients.copy()
         if cc:
             all_recipients.extend(cc)
         if bcc:
             all_recipients.extend(bcc)
+
+        # Überprüfe das Rate-Limit
+        if not self._check_rate_limit():
+            return EmailSendSuccess(successfully_sent=[], failed_to_send=all_recipients,
+                                    error_message="rate_limit_exceeded")
+
+        # Überprüfe Debug-Modus
+        if self.config.debug_mode:
+            self._send_debug(message, recipients, cc, bcc)
+            return EmailSendSuccess(successfully_sent=all_recipients, failed_to_send=[])
+
+        email_send_success = EmailSendSuccess(successfully_sent=[], failed_to_send=[])
         
         # Sende die E-Mail
         try:
@@ -200,6 +202,11 @@ class EmailSender:
                     email_send_success.failed_to_send.extend(all_recipients)
                     return email_send_success
                 
+        except smtplib.SMTPAuthenticationError:
+            logger.error("SMTP-Authentifizierungsfehler: Anmeldedaten ungültig")
+            email_send_success.failed_to_send.extend(all_recipients)
+            email_send_success.error_message = "smtp_authentication_error"
+            return email_send_success
         except Exception as e:
             logger.error(f"Fehler beim Senden der E-Mail: {str(e)}")
             email_send_success.failed_to_send.extend(all_recipients)
@@ -281,7 +288,7 @@ class EmailSender:
         attachments: Optional[List[Dict[str, Any]]] = None,
         template_params: Optional[Dict[str, Any]] = None,
         delay: float = 0.0
-    ) -> Dict[str, int]:
+    ) -> Dict[str, Any]:
         """
         Sendet personalisierte E-Mails an mehrere Empfänger.
         
@@ -347,6 +354,8 @@ class EmailSender:
                 stats['success'] += 1
             else:
                 stats['failed'] += 1
+                if success.error_message and 'error' not in stats:
+                    stats['error'] = success.error_message
                 
             # Verzögerung, um den Server nicht zu überlasten
             if delay > 0 and i < len(all_recipients['recipients']) - 1:

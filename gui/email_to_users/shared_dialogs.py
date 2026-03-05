@@ -48,44 +48,42 @@ def show_email_send_result(parent: QWidget, stats: dict[str, Any]) -> bool:
         error_text = QCoreApplication.translate(
             "EmailSender",
             "Authentication error: Username or password is invalid.\n"
-            "Please check your email configuration.",
-            None)
+            "Please check your email configuration.")
     elif error_code == "rate_limit_exceeded":
         error_text = QCoreApplication.translate(
             "EmailSender",
-            "Rate limit reached: Too many emails sent in a short period of time.",
-            None)
+            "Rate limit reached: Too many emails sent in a short period of time.")
     elif error_code:
-        error_text = (QCoreApplication.translate("EmailSender", "Technical error: ", None)
+        error_text = (QCoreApplication.translate("EmailSender", "Technical error: ")
                       + error_code)
     else:
         error_text = None
 
     if failed_count > 0 and success_count == 0:
-        msg = QCoreApplication.translate("EmailSender", "Email sending failed.", None)
+        msg = QCoreApplication.translate("EmailSender", "Email sending failed.")
         if error_text:
             msg += "\n\n" + error_text
         QMessageBox.critical(
             parent,
-            QCoreApplication.translate("EmailSender", "Email sending failed", None),
+            QCoreApplication.translate("EmailSender", "Email sending failed"),
             msg)
         return False  # Dialog bleibt offen
 
     elif failed_count > 0:
-        msg = (QCoreApplication.translate("EmailSender", "Successfully sent: {}", None).format(success_count)
+        msg = (QCoreApplication.translate("EmailSender", "Successfully sent: {}").format(success_count)
                + "\n"
-               + QCoreApplication.translate("EmailSender", "Failed: {}", None).format(failed_count))
+               + QCoreApplication.translate("EmailSender", "Failed: {}").format(failed_count))
         if error_text:
             msg += "\n\n" + error_text
         QMessageBox.warning(
             parent,
-            QCoreApplication.translate("EmailSender", "Email sending partially failed", None),
+            QCoreApplication.translate("EmailSender", "Email sending partially failed"),
             msg)
         return True
 
     else:
         QMessageBox.information(
             parent,
-            QCoreApplication.translate("EmailSender", "Email sending completed", None),
-            QCoreApplication.translate("EmailSender", "All emails sent successfully: {}", None).format(success_count))
+            QCoreApplication.translate("EmailSender", "Email sending completed"),
+            QCoreApplication.translate("EmailSender", "All emails sent successfully: {}").format(success_count))
         return True

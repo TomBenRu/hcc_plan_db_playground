@@ -4979,6 +4979,61 @@ L&apos;e-mail de la base de données reste inchangé.</translation>
     </message>
 </context>
 <context>
+    <name>EmailSender</name>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="48"/>
+        <source>Authentication error: Username or password is invalid.
+Please check your email configuration.</source>
+        <translation>Erreur d&apos;authentification : Le nom d&apos;utilisateur ou le mot de passe est invalide.
+Veuillez vérifier votre configuration e-mail.</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="54"/>
+        <source>Rate limit reached: Too many emails sent in a short period of time.</source>
+        <translation>Limite d&apos;envoi atteinte : Trop d&apos;e-mails ont été envoyés en peu de temps.</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="59"/>
+        <source>Technical error: </source>
+        <translation>Erreur technique : </translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="65"/>
+        <source>Email sending failed.</source>
+        <translation>L&apos;envoi de l&apos;e-mail a échoué.</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="70"/>
+        <source>Email sending failed</source>
+        <translation>Échec de l&apos;envoi d&apos;e-mail</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="75"/>
+        <source>Successfully sent: {}</source>
+        <translation>Envoyé avec succès : {}</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="77"/>
+        <source>Failed: {}</source>
+        <translation>Échec : {}</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="82"/>
+        <source>Email sending partially failed</source>
+        <translation>Envoi d&apos;e-mail partiellement échoué</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="89"/>
+        <source>Email sending completed</source>
+        <translation>Envoi d&apos;e-mail terminé</translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="90"/>
+        <source>All emails sent successfully: {}</source>
+        <translation>Tous les e-mails ont été envoyés avec succès : {}</translation>
+    </message>
+</context>
+<context>
     <name>EmployeeEventsExcelExporter</name>
     <message>
         <location filename="../../export_to_file/employee_events_to_xlsx.py" line="57"/>

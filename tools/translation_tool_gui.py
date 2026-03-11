@@ -5,6 +5,8 @@ import subprocess
 import sys
 from typing import List, Optional
 
+from PySide6.QtCore import QThread, Signal
+
 
 class TranslationLogic:
     """Reine Logik ohne Qt-Abhängigkeit – vollständig testbar."""
@@ -114,3 +116,21 @@ class TranslationLogic:
                 success = False
 
         return success, "\n".join(output_parts)
+
+
+class TranslationWorker(QThread):
+    finished = Signal(bool, str)   # (success, output)
+
+    def __init__(self, logic: TranslationLogic, operation: str,
+                 no_obsolete: bool = False):
+        super().__init__()
+        self.logic = logic
+        self.operation = operation      # "update" | "compile"
+        self.no_obsolete = no_obsolete
+
+    def run(self):
+        if self.operation == "update":
+            success, output = self.logic.run_update(self.no_obsolete)
+        else:
+            success, output = self.logic.run_compile()
+        self.finished.emit(success, output)

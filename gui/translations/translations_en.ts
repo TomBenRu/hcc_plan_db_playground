@@ -4825,6 +4825,60 @@ The database email remains unchanged.</source>
     </message>
 </context>
 <context>
+    <name>EmailSender</name>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="48"/>
+        <source>Authentication error: Username or password is invalid.
+Please check your email configuration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="54"/>
+        <source>Rate limit reached: Too many emails sent in a short period of time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="59"/>
+        <source>Technical error: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="65"/>
+        <source>Email sending failed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="70"/>
+        <source>Email sending failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="75"/>
+        <source>Successfully sent: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="77"/>
+        <source>Failed: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="82"/>
+        <source>Email sending partially failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="89"/>
+        <source>Email sending completed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../email_to_users/shared_dialogs.py" line="90"/>
+        <source>All emails sent successfully: {}</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>EmployeeEventsExcelExporter</name>
     <message>
         <location filename="../../export_to_file/employee_events_to_xlsx.py" line="57"/>

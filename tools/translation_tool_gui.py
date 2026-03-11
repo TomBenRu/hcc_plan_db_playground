@@ -6,6 +6,11 @@ import sys
 from typing import List, Optional
 
 from PySide6.QtCore import QThread, Signal
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QPushButton, QCheckBox, QTextEdit, QFileDialog,
+    QGroupBox,
+)
 
 
 class TranslationLogic:
@@ -134,3 +139,217 @@ class TranslationWorker(QThread):
         else:
             success, output = self.logic.run_compile()
         self.finished.emit(success, output)
+
+
+class TranslationToolWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Translation Tool")
+        self.setMinimumWidth(700)
+
+        # Default-Pfade
+        self._project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self._translations_dir = os.path.join(self._project_dir, "gui", "translations")
+
+        self._worker: Optional[TranslationWorker] = None
+        self._setup_ui()
+        self._refresh_languages()
+        self._check_tools()
+
+    def _setup_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+        layout.setSpacing(10)
+        layout.setContentsMargins(12, 12, 12, 12)
+
+        # --- Verzeichnis-Gruppe ---
+        dir_group = QGroupBox("Verzeichnisse")
+        dir_layout = QVBoxLayout(dir_group)
+
+        # Projektverzeichnis
+        proj_row = QHBoxLayout()
+        proj_row.addWidget(QLabel("Projektverzeichnis:"))
+        self.le_project = QLineEdit(self._project_dir)
+        self.le_project.textChanged.connect(self._on_project_dir_changed)
+        proj_row.addWidget(self.le_project)
+        btn_proj = QPushButton("...")
+        btn_proj.setFixedWidth(30)
+        btn_proj.clicked.connect(self._browse_project_dir)
+        proj_row.addWidget(btn_proj)
+        dir_layout.addLayout(proj_row)
+
+        # Translations-Ordner
+        trans_row = QHBoxLayout()
+        trans_row.addWidget(QLabel("Translations-Ordner:"))
+        self.le_translations = QLineEdit(self._translations_dir)
+        self.le_translations.textChanged.connect(self._on_translations_dir_changed)
+        trans_row.addWidget(self.le_translations)
+        btn_trans = QPushButton("...")
+        btn_trans.setFixedWidth(30)
+        btn_trans.clicked.connect(self._browse_translations_dir)
+        trans_row.addWidget(btn_trans)
+        dir_layout.addLayout(trans_row)
+
+        layout.addWidget(dir_group)
+
+        # --- Sprachen-Anzeige ---
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(QLabel("Erkannte Sprachen:"))
+        self.lbl_languages = QLabel("–")
+        lang_row.addWidget(self.lbl_languages)
+        lang_row.addStretch()
+        layout.addLayout(lang_row)
+
+        # --- Aktionen ---
+        action_group = QGroupBox("Aktionen")
+        action_layout = QVBoxLayout(action_group)
+
+        self.chk_no_obsolete = QCheckBox("Obsolete Übersetzungen entfernen (--no-obsolete)")
+        action_layout.addWidget(self.chk_no_obsolete)
+
+        btn_row = QHBoxLayout()
+        self.btn_update = QPushButton("Translations aktualisieren (lupdate)")
+        self.btn_update.clicked.connect(self._on_update)
+        btn_row.addWidget(self.btn_update)
+
+        self.btn_compile = QPushButton("Translations kompilieren (lrelease)")
+        self.btn_compile.clicked.connect(self._on_compile)
+        btn_row.addWidget(self.btn_compile)
+        action_layout.addLayout(btn_row)
+
+        layout.addWidget(action_group)
+
+        # --- Neue Sprache ---
+        new_lang_group = QGroupBox("Neue Sprache anlegen")
+        new_lang_layout = QHBoxLayout(new_lang_group)
+        new_lang_layout.addWidget(QLabel('Sprachcode (z.B. "es"):'))
+        self.le_new_lang = QLineEdit()
+        self.le_new_lang.setMaximumWidth(80)
+        self.le_new_lang.setPlaceholderText("es")
+        new_lang_layout.addWidget(self.le_new_lang)
+        self.btn_add_lang = QPushButton("Anlegen")
+        self.btn_add_lang.clicked.connect(self._on_add_language)
+        new_lang_layout.addWidget(self.btn_add_lang)
+        new_lang_layout.addStretch()
+        layout.addWidget(new_lang_group)
+
+        # --- Ausgabe ---
+        output_group = QGroupBox("Ausgabe")
+        output_layout = QVBoxLayout(output_group)
+        self.txt_output = QTextEdit()
+        self.txt_output.setReadOnly(True)
+        self.txt_output.setMinimumHeight(200)
+        output_layout.addWidget(self.txt_output)
+        layout.addWidget(output_group)
+
+    # --- Verzeichnis-Callbacks ---
+    def _browse_project_dir(self):
+        path = QFileDialog.getExistingDirectory(self, "Projektverzeichnis wählen",
+                                                self.le_project.text())
+        if path:
+            self.le_project.setText(path)
+
+    def _browse_translations_dir(self):
+        path = QFileDialog.getExistingDirectory(self, "Translations-Ordner wählen",
+                                                self.le_translations.text())
+        if path:
+            self.le_translations.setText(path)
+
+    def _on_project_dir_changed(self, text: str):
+        self._project_dir = text
+        self._check_tools()
+
+    def _on_translations_dir_changed(self, text: str):
+        self._translations_dir = text
+        self._refresh_languages()
+
+    # --- Sprachen ---
+    def _refresh_languages(self):
+        logic = self._make_logic()
+        langs = logic.scan_languages()
+        self.lbl_languages.setText(", ".join(langs) if langs else "(keine .ts-Dateien gefunden)")
+
+    # --- Tool-Verfügbarkeit ---
+    def _check_tools(self):
+        logic = self._make_logic()
+        lupdate_ok = logic.find_lupdate() is not None
+        lrelease_ok = logic.find_lrelease() is not None
+        self.btn_update.setEnabled(lupdate_ok)
+        self.btn_compile.setEnabled(lrelease_ok)
+        if not lupdate_ok:
+            self._append_output(False,
+                "Warnung: lupdate nicht gefunden unter "
+                f"{os.path.join(self._project_dir, '.venv', 'Lib', 'site-packages', 'PySide6', 'lupdate.exe')}")
+        if not lrelease_ok:
+            self._append_output(False,
+                "Warnung: lrelease nicht gefunden unter "
+                f"{os.path.join(self._project_dir, '.venv', 'Lib', 'site-packages', 'PySide6', 'lrelease.exe')}")
+
+    # --- Hilfsfunktionen ---
+    def _make_logic(self) -> TranslationLogic:
+        return TranslationLogic(self._project_dir, self._translations_dir)
+
+    def _set_buttons_enabled(self, enabled: bool):
+        self.btn_update.setEnabled(enabled)
+        self.btn_compile.setEnabled(enabled)
+        self.btn_add_lang.setEnabled(enabled)
+
+    def _append_output(self, success: bool, text: str):
+        if success:
+            self.txt_output.append(text)
+        else:
+            self.txt_output.append(
+                f'<span style="color:red;">{text.replace(chr(10), "<br>")}</span>')
+
+    # --- Aktionen ---
+    def _on_update(self):
+        self._set_buttons_enabled(False)
+        self.txt_output.append("→ Translations werden aktualisiert...")
+        worker = TranslationWorker(self._make_logic(), "update",
+                                   self.chk_no_obsolete.isChecked())
+        worker.finished.connect(self._on_worker_finished)
+        worker.finished.connect(worker.deleteLater)
+        self._worker = worker
+        worker.start()
+
+    def _on_compile(self):
+        self._set_buttons_enabled(False)
+        self.txt_output.append("→ Translations werden kompiliert...")
+        worker = TranslationWorker(self._make_logic(), "compile")
+        worker.finished.connect(self._on_worker_finished)
+        worker.finished.connect(worker.deleteLater)
+        self._worker = worker
+        worker.start()
+
+    def _on_worker_finished(self, success: bool, output: str):
+        self._append_output(success, output)
+        logic = self._make_logic()
+        lupdate_ok = logic.find_lupdate() is not None
+        lrelease_ok = logic.find_lrelease() is not None
+        self.btn_update.setEnabled(lupdate_ok)
+        self.btn_compile.setEnabled(lrelease_ok)
+        self.btn_add_lang.setEnabled(True)
+
+    def _on_add_language(self):
+        lang = self.le_new_lang.text().strip().lower()
+        if not lang or not re.match(r"^[a-z]{2,5}$", lang):
+            self._append_output(False, "Fehler: Ungültiger Sprachcode (2-5 Kleinbuchstaben).")
+            return
+        os.makedirs(self._translations_dir, exist_ok=True)
+        ts_path = os.path.join(self._translations_dir, f"translations_{lang}.ts")
+        if os.path.exists(ts_path):
+            self._append_output(False, f"Fehler: '{os.path.basename(ts_path)}' existiert bereits.")
+            return
+        logic = self._make_logic()
+        logic.create_ts_file(ts_path, lang)
+        self.le_new_lang.clear()
+        self._refresh_languages()
+        self._append_output(True, f"Sprache '{lang}' angelegt: {ts_path}")
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = TranslationToolWindow()
+    window.show()
+    sys.exit(app.exec())

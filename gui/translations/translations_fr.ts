@@ -4988,47 +4988,47 @@ Please check your email configuration.</source>
 Veuillez vérifier votre configuration e-mail.</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="54"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="53"/>
         <source>Rate limit reached: Too many emails sent in a short period of time.</source>
         <translation>Limite d&apos;envoi atteinte : Trop d&apos;e-mails ont été envoyés en peu de temps.</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="59"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="57"/>
         <source>Technical error: </source>
         <translation>Erreur technique : </translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="65"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="63"/>
         <source>Email sending failed.</source>
         <translation>L&apos;envoi de l&apos;e-mail a échoué.</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="70"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="68"/>
         <source>Email sending failed</source>
         <translation>Échec de l&apos;envoi d&apos;e-mail</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="75"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="73"/>
         <source>Successfully sent: {}</source>
         <translation>Envoyé avec succès : {}</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="77"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="75"/>
         <source>Failed: {}</source>
         <translation>Échec : {}</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="82"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="80"/>
         <source>Email sending partially failed</source>
         <translation>Envoi d&apos;e-mail partiellement échoué</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="89"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="87"/>
         <source>Email sending completed</source>
         <translation>Envoi d&apos;e-mail terminé</translation>
     </message>
     <message>
-        <location filename="../email_to_users/shared_dialogs.py" line="90"/>
+        <location filename="../email_to_users/shared_dialogs.py" line="88"/>
         <source>All emails sent successfully: {}</source>
         <translation>Tous les e-mails ont été envoyés avec succès : {}</translation>
     </message>

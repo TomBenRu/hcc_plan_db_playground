@@ -93,6 +93,9 @@ class TranslationLogic:
         if not lrelease:
             return False, "Fehler: lrelease nicht gefunden."
 
+        if not os.path.isdir(self.translations_dir):
+            return False, f"Fehler: Translations-Ordner nicht gefunden: {self.translations_dir}"
+
         output_parts = []
         success = True
         for fname in os.listdir(self.translations_dir):

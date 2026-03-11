@@ -1,6 +1,4 @@
 # tests/unit/test_translation_tool_gui.py
-import os
-import tempfile
 import pytest
 from tools.translation_tool_gui import TranslationLogic
 

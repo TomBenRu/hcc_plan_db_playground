@@ -5,7 +5,7 @@ import subprocess
 import sys
 from typing import List, Optional
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QCheckBox, QTextEdit, QFileDialog,
@@ -71,9 +71,13 @@ class TranslationLogic:
         if not py_files:
             return False, "Fehler: Keine Python-Dateien gefunden."
 
+        languages = self.scan_languages()
+        if not languages:
+            return False, "Keine Sprachen gefunden. Bitte erst eine Sprache anlegen."
+
         output_parts = []
         success = True
-        for lang in self.scan_languages():
+        for lang in languages:
             ts_file = os.path.join(self.translations_dir, f"translations_{lang}.ts")
             if not os.path.exists(ts_file):
                 self.create_ts_file(ts_file, lang)
@@ -193,6 +197,11 @@ class TranslationToolWindow(QMainWindow):
 
         layout.addWidget(dir_group)
 
+        # --- Tool-Status ---
+        self.lbl_tool_status = QLabel("")
+        self.lbl_tool_status.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(self.lbl_tool_status)
+
         # --- Sprachen-Anzeige ---
         lang_row = QHBoxLayout()
         lang_row.addWidget(QLabel("Erkannte Sprachen:"))
@@ -277,23 +286,28 @@ class TranslationToolWindow(QMainWindow):
         lrelease_ok = logic.find_lrelease() is not None
         self.btn_update.setEnabled(lupdate_ok)
         self.btn_compile.setEnabled(lrelease_ok)
+
+        warnings = []
         if not lupdate_ok:
-            self._append_output(False,
-                "Warnung: lupdate nicht gefunden unter "
-                f"{os.path.join(self._project_dir, '.venv', 'Lib', 'site-packages', 'PySide6', 'lupdate.exe')}")
+            warnings.append("lupdate nicht gefunden")
         if not lrelease_ok:
-            self._append_output(False,
-                "Warnung: lrelease nicht gefunden unter "
-                f"{os.path.join(self._project_dir, '.venv', 'Lib', 'site-packages', 'PySide6', 'lrelease.exe')}")
+            warnings.append("lrelease nicht gefunden")
+
+        if warnings:
+            self.lbl_tool_status.setText(
+                f'<span style="color:orange;">⚠ {", ".join(warnings)}</span>')
+        else:
+            self.lbl_tool_status.setText(
+                '<span style="color:green;">✓ Qt-Tools gefunden</span>')
 
     # --- Hilfsfunktionen ---
     def _make_logic(self) -> TranslationLogic:
         return TranslationLogic(self._project_dir, self._translations_dir)
 
-    def _set_buttons_enabled(self, enabled: bool):
-        self.btn_update.setEnabled(enabled)
-        self.btn_compile.setEnabled(enabled)
-        self.btn_add_lang.setEnabled(enabled)
+    def _set_running(self, running: bool):
+        self.btn_update.setEnabled(not running)
+        self.btn_compile.setEnabled(not running)
+        self.btn_add_lang.setEnabled(not running)
 
     def _append_output(self, success: bool, text: str):
         if success:
@@ -304,7 +318,7 @@ class TranslationToolWindow(QMainWindow):
 
     # --- Aktionen ---
     def _on_update(self):
-        self._set_buttons_enabled(False)
+        self._set_running(True)
         self.txt_output.append("→ Translations werden aktualisiert...")
         worker = TranslationWorker(self._make_logic(), "update",
                                    self.chk_no_obsolete.isChecked())
@@ -314,7 +328,7 @@ class TranslationToolWindow(QMainWindow):
         worker.start()
 
     def _on_compile(self):
-        self._set_buttons_enabled(False)
+        self._set_running(True)
         self.txt_output.append("→ Translations werden kompiliert...")
         worker = TranslationWorker(self._make_logic(), "compile")
         worker.finished.connect(self._on_worker_finished)

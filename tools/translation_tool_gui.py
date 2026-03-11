@@ -167,6 +167,26 @@ class TranslationToolWindow(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(12, 12, 12, 12)
 
+        # --- Anleitung ---
+        help_group = QGroupBox("Anleitung")
+        help_layout = QVBoxLayout(help_group)
+        help_text = QLabel(
+            "<b>1. Verzeichnisse</b> – Projektroot und Translations-Ordner einstellen.<br>"
+            "<b>2. Translations aktualisieren</b> – Durchsucht alle .py-Dateien nach "
+            "<code>tr()</code>-Aufrufen und schreibt neue Strings in die .ts-Dateien (lupdate).<br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;<i>Option &bdquo;Obsolete entfernen&ldquo;</i>: "
+            "L&ouml;scht Strings aus den .ts-Dateien, die im Code nicht mehr vorkommen.<br>"
+            "<b>3. Translations kompilieren</b> &ndash; Erzeugt aus den .ts-Dateien die "
+            "bin&auml;ren .qm-Dateien, die die Anwendung l&auml;dt (lrelease).<br>"
+            "<b>4. Neue Sprache</b> &ndash; Legt eine leere .ts-Datei f&uuml;r einen neuen "
+            "Sprachcode an (z.B. <code>es</code> f&uuml;r Spanisch). "
+            "Danach &bdquo;Translations aktualisieren&ldquo; ausf&uuml;hren."
+        )
+        help_text.setWordWrap(True)
+        help_text.setTextFormat(Qt.TextFormat.RichText)
+        help_layout.addWidget(help_text)
+        layout.addWidget(help_group)
+
         # --- Verzeichnis-Gruppe ---
         dir_group = QGroupBox("Verzeichnisse")
         dir_layout = QVBoxLayout(dir_group)

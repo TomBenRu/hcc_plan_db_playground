@@ -1,3 +1,4 @@
+import datetime
 from uuid import UUID
 
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QFormLayout, QLabel, QCheckBox, QDialogButtonBox, \
@@ -88,12 +89,15 @@ class DlgUndeletePlans(QDialog):
             self.table_plans.setItem(row, 0, item_name)
             date_start = date_to_string(plan.plan_period.start)
             date_end = date_to_string(plan.plan_period.end)
-            date_deleted = date_to_string(plan.prep_delete.date())
-            time_deleted = time_to_string(plan.prep_delete.time())
+            prep_delete = plan.prep_delete
+            if prep_delete.tzinfo is None:
+                prep_delete = prep_delete.replace(tzinfo=datetime.timezone.utc)
+            date_deleted = date_to_string(prep_delete.date())
+            time_deleted = time_to_string(prep_delete.time())
             date_time_deleted = f"{date_deleted} {time_deleted}"
             item_date_start = SortableTableWidgetItem(date_start, None, plan.plan_period.start)
             item_date_end = SortableTableWidgetItem(date_end, None, plan.plan_period.end)
-            item_date_deleted = SortableTableWidgetItem(date_time_deleted, None, plan.prep_delete)
+            item_date_deleted = SortableTableWidgetItem(date_time_deleted, None, prep_delete)
             self.table_plans.setItem(row, 1, item_date_start)
             self.table_plans.setItem(row, 2, item_date_end)
             self.table_plans.setItem(row, 3, item_date_deleted)

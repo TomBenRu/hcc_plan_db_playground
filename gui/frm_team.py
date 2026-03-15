@@ -3,7 +3,7 @@ import os
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QHBoxLayout, QPushButton, \
     QMessageBox, QFormLayout, QCheckBox, QDialogButtonBox
-from pony.orm import TransactionIntegrityError
+from sqlalchemy.exc import IntegrityError
 
 from database import schemas, db_services
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
@@ -93,8 +93,8 @@ class FrmTeam(QDialog):
             try:
                 team_created = db_services.Team.create(team_name=self.le_name.text(), project_id=self.project.id,
                                                        dispatcher_id=dispatcher_id)
-            except TransactionIntegrityError as e:
-                if str(e.original_exc).startswith('UNIQUE constraint failed'):
+            except IntegrityError as e:
+                if e.orig and str(e.orig).startswith('UNIQUE constraint failed'):
                     QMessageBox.critical(self, self.tr('Error'),
                                        self.tr('A team named "{name}" already exists but is marked for deletion.\n'
                                              'You must first synchronize with the server database '

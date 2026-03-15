@@ -389,9 +389,10 @@ class TabManager(QObject):
             self.tab_opened.emit("plan", new_widget)
             return True
             
-        except ValidationError:
+        except ValidationError as e:
+            logger.exception(f"ValidationError beim Öffnen des Plans {plan_id}: {e}")
             self.error_occurred.emit(
-                'Plan öffnen', 
+                'Plan öffnen',
                 f'Der Plan mit der ID {plan_id} konnte nicht geöffnet werden.'
             )
             return False

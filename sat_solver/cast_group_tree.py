@@ -99,6 +99,7 @@ class CastGroupTree:
             top_nodes, lower_nodes = lower_nodes, []
 
 
+
 def get_cast_group_tree(plan_period_id: UUID) -> CastGroupTree:
     return CastGroupTree(plan_period_id)
 

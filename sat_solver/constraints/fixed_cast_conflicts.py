@@ -121,28 +121,27 @@ class FixedCastConflictsConstraint(ConstraintBase):
             for cg in self.entities.cast_groups_with_event.values()
             if cg.event is not None
         }
-        
         # Lookup: event_id -> zugewiesene Person-IDs (aus dem Plan)
         assigned_persons_by_event: dict[UUID, set[UUID]] = {}
         for appointment in plan.appointments:
             event_id = appointment.event.id
             person_ids = {
-                avd.actor_plan_period.person.id 
+                avd.actor_plan_period.person.id
                 for avd in appointment.avail_days
             }
             assigned_persons_by_event[event_id] = person_ids
-        
+
         for appointment in sorted(plan.appointments,
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event_id = appointment.event.id
             cast_group = cast_group_by_event_id.get(event_id)
-            
+
             if not cast_group or not cast_group.fixed_cast:
                 continue
-            
+
             # Parse fixed_cast String
             fixed_cast_as_list = parse_fixed_cast_string(cast_group.fixed_cast)
-            
+
             # Wenn only_if_available: Filtere nicht verfügbare Personen
             if cast_group.fixed_cast_only_if_available:
                 fixed_cast_as_list = filter_unavailable_persons(

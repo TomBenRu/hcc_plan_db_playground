@@ -89,7 +89,7 @@ class EmploymentStatisticsService:
         Returns:
             EmploymentStatistics: Komplette Statistiken für den Zeitraum
         """
-        log_function_info(cls)
+        log_function_info()
 
         if not team_id and not project_id:
             raise ValueError("Entweder team_id oder project_id muss angegeben werden")

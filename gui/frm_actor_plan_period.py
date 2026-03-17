@@ -742,8 +742,8 @@ class ButtonSkills(BaseConfigButton):
                 self, self.tr('Skills for the day'),
                 self.tr('No availabilities exist for %s') % date_to_string(self.date))
             return
-        avail_day = next((ad for ad in self._cached_avail_days if ad.skills), self._cached_avail_days[0])
-        dlg = frm_skills.DlgSelectSkills(self, avail_day)
+        dialog_avail_day = next((ad for ad in self._cached_avail_days if ad.skills), self._cached_avail_days[0])
+        dlg = frm_skills.DlgSelectSkills(self, dialog_avail_day)
         if dlg.exec():
             plan_period = self.actor_plan_period.plan_period
             if not warn_and_clear_undo_redo_if_plans_open(
@@ -754,6 +754,8 @@ class ButtonSkills(BaseConfigButton):
 
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             for avail_day in self._cached_avail_days:
+                if avail_day.id == dialog_avail_day.id:
+                    continue  # bereits durch den Dialog bearbeitet, Befehle schon im Undo-Stack
                 for skill in avail_day.skills:
                     command_remove = avail_day_commands.RemoveSkill(avail_day.id, skill.id)
                     self.controller.execute(command_remove)

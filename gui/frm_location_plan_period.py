@@ -821,8 +821,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             )
             return
 
-        event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
-        dlg = DlgSkillGroups(self, event)
+        dialog_event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
+        dlg = DlgSkillGroups(self, dialog_event)
         if dlg.exec():
             plan_period = self.location_plan_period.plan_period
             if not warn_and_clear_undo_redo_if_plans_open(
@@ -833,6 +833,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
 
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             for event in self.events_at_day:
+                if event.id == dialog_event.id:
+                    continue  # bereits durch den Dialog bearbeitet, Befehle schon im Undo-Stack
                 for skill_group in event.skill_groups:
                     command_remove = event_commands.RemoveSkillGroup(event.id, skill_group.id)
                     self.controller.execute(command_remove)

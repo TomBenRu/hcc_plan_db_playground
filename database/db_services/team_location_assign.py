@@ -1,3 +1,10 @@
+"""Service-Funktionen für TeamLocationAssign (Standort-Team-Zuweisung).
+
+Speichert, in welchem Zeitraum (start bis end) ein Arbeitsort einem Team
+zugeordnet ist. Analog zu TeamActorAssign mit datumsbezogenen Überschneidungs-
+abfragen. Wird u. a. genutzt, um in `location_of_work.get_all_possible_from__plan_period_minimal`
+die für eine PlanPeriod relevanten Standorte zu ermitteln.
+"""
 import datetime
 from uuid import UUID
 

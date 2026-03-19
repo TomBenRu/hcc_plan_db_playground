@@ -1,3 +1,11 @@
+"""Service-Funktionen für AvailDay (Verfügbarkeitstag eines Akteurs).
+
+Speichert, an welchem Datum und zu welcher Tageszeit ein Akteur verfügbar ist.
+Enthält umfangreiche Hilfsfunktionen zum Verwalten von Standortpräferenzen,
+Partner-Präferenzen, Standortkombinationen und Skills auf Tagesbasis.
+Das Löschen eines AvailDay löscht automatisch auch die zugehörige AvailDayGroup.
+Bietet außerdem batch-optimierte Abfragen für den Solver.
+"""
 import datetime
 from uuid import UUID
 

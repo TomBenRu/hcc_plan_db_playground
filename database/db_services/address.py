@@ -1,3 +1,9 @@
+"""Service-Funktionen für Address (Anschrift).
+
+CRUD-Operationen für Adressen innerhalb eines Projekts. Unterstützt sowohl
+Soft-Delete (setzt `prep_delete`-Timestamp) als auch hartes Löschen
+(`soft_delete=False`).
+"""
 import datetime
 from uuid import UUID
 

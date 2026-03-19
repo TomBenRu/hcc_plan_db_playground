@@ -1,3 +1,10 @@
+"""Command-Klassen für Address (Anschrift).
+
+Enthält:
+- `Create`: Legt eine neue Adresse an; Undo/Redo via Soft-Delete.
+- `Update`: Aktualisiert Felder einer bestehenden Adresse; speichert Vorher-Zustand.
+- `Delete`: Soft-löscht eine Adresse (setzt `prep_delete`); reversibel.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

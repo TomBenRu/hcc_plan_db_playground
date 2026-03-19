@@ -1,3 +1,13 @@
+"""Command-Klassen für AvailDay (Verfügbarkeitstag).
+
+Das umfangreichste Command-Modul — kapselt alle Änderungen an AvailDays:
+Erstellen (legt implizit auch eine AvailDayGroup an), Löschen, Tageszeit-Wechsel
+sowie sämtliche Verwaltungsoperationen für Standortpräferenzen, Partner-Präferenzen,
+Standortkombinationen und Skills.
+
+Bulk-Reset-Commands (z. B. `ResetAllAvailDaysActorLocationPrefsToDefaults`) lesen
+vorab IDs im Konstruktor, um das Undo effizient ohne Pydantic-Overhead durchzuführen.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

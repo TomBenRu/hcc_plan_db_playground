@@ -1,3 +1,10 @@
+"""Service-Funktionen für TeamActorAssign (Akteur-Team-Zuweisung).
+
+Speichert, in welchem Zeitraum (start bis end) eine Person einem Team angehört.
+Abfragen berücksichtigen datumsbezogene Überschneidungen (mit `or_`-Filter auf
+`end IS NULL`). `get_at__date` gibt die aktive Zuweisung zu einem konkreten Datum
+zurück und liefert `None`, wenn keine gültige Zuweisung existiert.
+"""
 import datetime
 from uuid import UUID
 

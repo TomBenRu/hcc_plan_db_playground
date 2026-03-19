@@ -1,3 +1,13 @@
+"""Command-Klassen für Plan (Dienstplan).
+
+Verwaltet den Lebenszyklus eines Plans: Erstellen, Soft-Delete, Wiederherstellen
+(`Undelete`) und endgültiges Löschen (`DeletePrepDeleted`, kein Undo möglich).
+Außerdem: Namensänderung, Notizen, Spaltenlayout (JSON-serialisiert) und
+Excel-Export-Einstellungen.
+
+`UpdateLocationColumns` serialisiert das `dict[int, list[UUID]]` in JSON,
+bevor es in der DB gespeichert wird.
+"""
 import json
 from uuid import UUID
 

@@ -1,3 +1,10 @@
+"""Command-Klassen für EventGroup (Veranstaltungsgruppen-Baum).
+
+Analoges Pendant zu `avail_day_group_commands` für Events. Beim `Delete`- und
+`SetNewParent`-Command wird `nr_event_groups` des Elternknotens bei Inkonsistenz
+automatisch auf `None` gesetzt und beim Undo wiederhergestellt. `Create` nutzt
+`undo_group_id`, um beim Redo exakt dieselbe UUID zu vergeben.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

@@ -1,3 +1,13 @@
+"""Command-Klassen für Event (Veranstaltungstermin).
+
+Verwaltet alle Änderungen an Events: Erstellen (legt automatisch EventGroup und
+CastGroup an), Löschen (bereinigt beide), Datum-/Tageszeit-Änderungen, Notizen,
+Flags und SkillGroups.
+
+`Delete` speichert die komplette Event-Instanz, da beim Undo ein neues Event mit
+denselben Daten neu erstellt werden muss (EventGroup und CastGroup werden separat
+gelöscht und können nicht direkt wiederhergestellt werden).
+"""
 import datetime
 from uuid import UUID
 

@@ -1,3 +1,10 @@
+"""Service-Funktionen für CombinationLocationsPossible (mögliche Standortkombination).
+
+Definiert, welche Kombination aus mehreren Arbeitsorten an einem Tag für einen
+Akteur zulässig ist und welche Zeitspanne zwischen den Einsätzen eingehalten
+werden muss. Unterstützt Soft-Delete. Abfrage aller Kombinations-IDs je
+AvailDay für eine ActorPlanPeriod per Hilfsfunktion.
+"""
 import datetime
 from uuid import UUID
 

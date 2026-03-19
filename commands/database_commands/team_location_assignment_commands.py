@@ -1,3 +1,13 @@
+"""Command-Klassen für TeamLocationAssign (Standort-Team-Zuweisung).
+
+Analoges Pendant zu `team_actor_assignment_commands` für Standorte statt Personen.
+Wird intern von `location_of_work_commands.AssignToTeam` und `LeaveTeam` über
+`ContrExecUndoRedo` als atomare Unter-Commands verwendet.
+
+- `Create`: Erstellt eine Standort-Zuweisung; Undo löscht hart.
+- `ChangeEndDate`: Setzt Enddatum (oder `None`); speichert Vorher-Wert.
+- `Delete`: Löscht hart; Undo re-erstellt mit der Original-ID.
+"""
 import datetime
 from uuid import UUID
 

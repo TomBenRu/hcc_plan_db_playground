@@ -1,3 +1,10 @@
+"""Service-Funktionen für SkillGroup (Qualifikationsgruppe).
+
+Eine SkillGroup bündelt einen Skill mit einer Mindestanzahl benötigter Akteure
+(`nr_actors`) und kann sowohl einem Arbeitsort als auch einem Event zugewiesen
+werden. Wird vom Solver genutzt, um qualifikationsbasierte Besetzungsanforderungen
+auszuwerten.
+"""
 import datetime
 from uuid import UUID
 

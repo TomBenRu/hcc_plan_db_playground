@@ -1,3 +1,11 @@
+"""Command-Klassen für RequiredAvailDayGroups (Pflicht-Verfügbarkeitstag-Gruppen).
+
+Enthält:
+- `Create`: Legt eine neue Pflicht-Mindestbesetzungsregel an; Redo übergibt die
+  Original-ID für referenzielle Stabilität.
+- `Update`: Ändert Anzahl und Standortliste; Vorher-Zustand wird gespeichert.
+- `Delete`: Hartes Löschen; Undo re-erstellt den Eintrag mit der Original-ID.
+"""
 from uuid import UUID
 
 from commands.command_base_classes import Command

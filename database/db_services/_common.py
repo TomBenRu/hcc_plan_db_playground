@@ -1,3 +1,9 @@
+"""Gemeinsame Hilfsmittel für alle db_services-Module.
+
+Stellt `log_function_info` bereit, das beim Aufruf den Modulnamen und
+Funktionsnamen sowie die lokalen Argumente ins Logging schreibt.
+`LOGGING_ENABLED` schaltet dieses Verhalten ein oder aus.
+"""
 import inspect
 import logging
 

@@ -1,3 +1,9 @@
+"""Service-Funktionen für ExcelExportSettings (Excel-Exporteinstellungen).
+
+Speichert und aktualisiert die projektspezifischen Einstellungen für den
+Excel-Export (z. B. Spaltenbreiten, Formatierungen). Einfaches CRUD ohne
+Soft-Delete, da die Einstellungen direkt an einen Plan oder ein Team gebunden sind.
+"""
 import datetime
 from uuid import UUID
 

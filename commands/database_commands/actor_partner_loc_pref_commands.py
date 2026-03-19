@@ -1,3 +1,12 @@
+"""Command-Klassen für ActorPartnerLocationPref (Partner-Standortpräferenz).
+
+Enthält:
+- `Create`: Erstellt eine neue Partner-Standortpräferenz (Akteur + Partner + Ort);
+  Undo/Redo via Soft-Delete (`prep_delete`).
+- `DeleteUnused`: Bereinigt alle ungenutzten Partner-Präferenzen einer Person.
+
+Hinweis: Die auskommentierte `Modify`-Klasse ist derzeit nicht in Verwendung.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

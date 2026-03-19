@@ -1,3 +1,10 @@
+"""Synchronisations-Funktionen zwischen der externen Plan-API und der lokalen DB.
+
+Dieses Modul übersetzt eingehende `schemas_plan_api`-Objekte (externe API-Daten)
+in lokale SQLModel-Datenbankeinträge. Es wird verwendet, wenn Projekte, Personen,
+Teams oder Planperioden über die API angelegt oder entfernt werden müssen.
+Neu erstellte Personen erhalten dabei automatisch eine Platzhalter-Adresse.
+"""
 import datetime
 from uuid import UUID
 

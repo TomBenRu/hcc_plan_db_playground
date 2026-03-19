@@ -1,3 +1,12 @@
+"""Command-Klassen für Team.
+
+Enthält Commands für teamweite Konfigurationen:
+- `PutInCombLocPossible` / `RemoveCombLocPossible`: Standortkombinationen.
+- `NewExcelExportSettings`: Erstellt neue Einstellungen und verknüpft sie;
+  Undo schaltet auf die vorherigen Einstellungen zurück.
+- `PutInExcelExportSettings`: Verknüpft bestehende Einstellungen.
+- `UpdateNotes`: Ändert Team-Notizen.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

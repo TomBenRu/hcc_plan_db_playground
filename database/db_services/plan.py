@@ -1,3 +1,12 @@
+"""Service-Funktionen für Plan (Dienstplan).
+
+Ein Plan ist das Ergebnis eines Solver-Durchlaufs und gehört zu einer
+PlanPeriod. Er enthält Appointments (Besetzungen), Notizen und
+Excel-Exporteinstellungen. Soft-Delete erlaubt das vorübergehende Ausblenden;
+`delete_prep_deletes_from__team` führt das endgültige Bereinigen durch.
+Bietet mehrere Abfragevarianten (nach Team, PlanPeriod, Name) in minimaler
+und vollständiger Form.
+"""
 import datetime
 from uuid import UUID
 

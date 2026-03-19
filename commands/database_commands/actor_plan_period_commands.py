@@ -1,3 +1,11 @@
+"""Command-Klassen für ActorPlanPeriod (Akteur-Planperiode).
+
+Verwaltet sämtliche Änderungen an der Verknüpfung zwischen Person und PlanPeriod,
+darunter Tageszeiten, Tageszeit-Standards, Standortpräferenzen, Partner-Präferenzen,
+Standortkombinationen, gewünschte Einsätze und Notizen.
+
+Redo bei `Create` übergibt die original ID, um referenzielle Integrität zu wahren.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

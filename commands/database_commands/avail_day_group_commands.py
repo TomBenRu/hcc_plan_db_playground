@@ -1,3 +1,12 @@
+"""Command-Klassen für AvailDayGroup (Verfügbarkeitstag-Gruppe / Baum).
+
+Verwaltet die Baumstruktur der AvailDayGroups unterhalb einer ActorPlanPeriod.
+Besonderheit beim `Delete`- und `SetNewParent`-Command: Wird durch die Änderung
+der Kinderzahl die `nr_avail_day_groups` des Elternknotens inkonsistent, wird sie
+automatisch auf `None` gesetzt und beim Undo wiederhergestellt.
+`Create` akzeptiert entweder eine `actor_plan_period_id` (Master) oder eine
+`avail_day_group_id` (Kind-Knoten) — nie beides gleichzeitig.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

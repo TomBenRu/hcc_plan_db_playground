@@ -1,3 +1,15 @@
+"""Command-Klassen für LocationOfWork (Arbeitsort).
+
+Neben einfachen Feldupdates (Tageszeiten, fixed_cast, SkillGroups) enthält dieses
+Modul zwei komplexe Commands:
+
+- `AssignToTeam`: Weist einen Standort ab einem Datum einem Team zu. Löscht dabei
+  spätere Zuordnungen und passt ggf. das Enddatum der vorherigen Zuweisung an.
+  Verwendet intern einen eigenen `ContrExecUndoRedo`-Controller, um alle
+  Unter-Commands als eine einzige Undo-Einheit zu kapseln.
+- `LeaveTeam`: Beendet die aktive Team-Zuweisung eines Standorts ab einem Datum;
+  verwendet denselben Controller-Mechanismus.
+"""
 import datetime
 from uuid import UUID
 

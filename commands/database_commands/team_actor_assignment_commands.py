@@ -1,3 +1,12 @@
+"""Command-Klassen für TeamActorAssign (Akteur-Team-Zuweisung).
+
+Primitive Bausteine für Zuordnungsoperationen, die von `person_commands.AssignToTeam`,
+`AddToTeam` und `RemoveFromTeam` intern über `ContrExecUndoRedo` orchestriert werden.
+
+- `Create`: Erstellt eine Zuweisung; Undo löscht hart.
+- `ChangeEndDate`: Setzt das Enddatum (auch `None` für unbegrenzt); speichert Vorher-Wert.
+- `Delete`: Löscht hart; Undo re-erstellt mit der Original-ID.
+"""
 import datetime
 from uuid import UUID
 

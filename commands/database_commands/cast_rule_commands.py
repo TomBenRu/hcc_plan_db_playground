@@ -1,3 +1,11 @@
+"""Command-Klassen für CastRule (Besetzungsregel).
+
+Enthält:
+- `Create`: Erstellt eine benannte Regel mit Regel-String; Undo löscht hart,
+  Redo übergibt die Original-ID für referenzielle Stabilität.
+- `Update`: Ändert Name und/oder Regel-String; speichert Vorher-Zustand.
+- `SetPrepDelete`: Soft-löscht eine CastRule; Undo hebt die Markierung auf.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

@@ -1,3 +1,10 @@
+"""Command-Klassen für Appointment (Dienstplan-Eintrag / Besetzung).
+
+Kapselt alle Änderungen an einem Appointment: Erstellen, Löschen (Soft-Delete),
+sowie das Ändern von zugewiesenen AvailDays, Notizen, Gästen und dem verknüpften
+Event. Viele Klassen implementieren `__str__` für menschenlesbare Undo-Historie
+(Standort, Datum, Tageszeit werden im Text angezeigt).
+"""
 import datetime
 from uuid import UUID
 

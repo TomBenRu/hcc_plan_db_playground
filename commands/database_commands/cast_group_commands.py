@@ -1,3 +1,13 @@
+"""Command-Klassen für CastGroup (Besetzungsgruppe).
+
+Verwaltet alle Eigenschaften einer CastGroup: Anzahl Akteure, fixed_cast,
+strict_cast_pref, prefer_fixed_cast_events, custom_rule sowie die zugewiesene
+CastRule. Eltern-Kind-Verknüpfungen werden über `SetNewParent`/`RemoveFromParent`
+gesteuert. Mehrere Klassen implementieren `__str__` für die Undo-Anzeige (Alt → Neu).
+
+`Delete` nutzt den Restore-Modus von `CastGroup.create`, um beim Undo die exakt
+gleiche Hierarchie inkl. parent/child-Verknüpfungen wiederherzustellen.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

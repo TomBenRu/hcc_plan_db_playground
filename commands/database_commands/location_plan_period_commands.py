@@ -1,3 +1,17 @@
+"""Command-Klassen für LocationPlanPeriod (Standort-Planperiode).
+
+Enthält neben einfachen Commands (Tageszeiten, fixed_cast, Akteursanzahl,
+Standortkombinationen, Präferenzen) auch:
+
+- `CreateLocationPlanPeriodsFromDate`: Erstellt für alle PlanPeriods eines Teams,
+  deren Ende nach `start_date` liegt, automatisch eine LocationPlanPeriod für den
+  gegebenen Standort — sofern noch keine existiert. Wird beim Team-Beitritt eines
+  Standorts aufgerufen.
+
+Hinweis: `PutInCombLocPossible` / `Remove...` und die Präferenz-Commands in
+diesem Modul delegieren intern an `ActorPlanPeriod` (nicht an LocationPlanPeriod),
+da Präferenzen akteursbezogen gespeichert werden.
+"""
 import datetime
 from uuid import UUID
 

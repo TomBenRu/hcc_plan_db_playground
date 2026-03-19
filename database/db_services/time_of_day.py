@@ -1,3 +1,12 @@
+"""Service-Funktionen für TimeOfDay (konkrete Tageszeit-Instanz).
+
+Eine TimeOfDay ist eine konkrete, projektspezifische Instanz eines TimeOfDayEnum
+mit Name, Start- und Endzeit. Sie wird Personen, Standorten, Events und AvailDays
+zugeordnet. `delete_unused` markiert alle TimeOfDay-Einträge als gelöscht, die
+in keiner der relevanten Beziehungen mehr referenziert werden.
+`put_to_model` ist eine generische Hilfsfunktion zum Hinzufügen einer Tageszeit
+zu einem beliebigen kompatiblen Schema-Objekt.
+"""
 import datetime
 from uuid import UUID
 

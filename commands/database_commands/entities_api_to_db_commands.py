@@ -1,3 +1,13 @@
+"""Command-Klassen für die Synchronisation von externen API-Daten in die lokale DB.
+
+Diese Commands werden bei der Ersteinrichtung oder Synchronisierung mit dem
+externen Plan-API-Server verwendet. `WritePlanPeriodToDB` erstellt neben der
+PlanPeriod selbst auch ActorPlanPeriods, AvailDayGroup-Master-Knoten,
+LocationPlanPeriods und EventGroup-Master-Knoten in einem atomaren Schritt.
+
+Alle Redo-Methoden werfen `NotImplementedError`, da eine Wiederkehr nach API-Sync
+fachlich keinen Sinn ergibt.
+"""
 from uuid import UUID
 
 from commands.command_base_classes import Command

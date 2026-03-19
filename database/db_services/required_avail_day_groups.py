@@ -1,3 +1,10 @@
+"""Service-Funktionen für RequiredAvailDayGroups (Pflicht-Verfügbarkeitstag-Gruppen).
+
+Verknüpft eine AvailDayGroup mit einer Mindestzahl benötigter Verfügbarkeitstage
+und einer Liste von Arbeitsorten. Wird vom Solver verwendet, um standortbezogene
+Mindestbesetzungsregeln abzubilden. Unterstützt einen optionalen `undo_id`-Parameter
+für Undo-Operationen.
+"""
 import datetime
 from uuid import UUID
 

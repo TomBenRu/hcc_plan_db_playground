@@ -1,3 +1,10 @@
+"""Service-Funktionen für EventGroup (Veranstaltungsgruppen-Baum).
+
+EventGroups bilden wie AvailDayGroups eine Baumstruktur. Jeder Blattknoten
+referenziert ein einzelnes Event; interne Knoten steuern über `nr_event_groups`
+und `variation_weight`, wie viele Events aus der Gruppe geplant werden müssen.
+Der Master-Knoten gehört zur LocationPlanPeriod.
+"""
 import datetime
 from typing import Optional
 from uuid import UUID

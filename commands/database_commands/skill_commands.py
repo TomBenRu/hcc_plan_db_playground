@@ -1,3 +1,13 @@
+"""Command-Klassen für Skill (Qualifikation).
+
+Enthält den vollständigen Skill-Lebenszyklus:
+- `Create`: Hartes Löschen im Undo; Redo übergibt die Original-ID.
+- `Update`: Name und Notizen; speichert Vorher-Zustand.
+- `Delete`: Hartes Löschen; Undo re-erstellt inkl. eventuell vorhandenem
+  `prep_delete`-Timestamp (für den Fall, dass der Skill bereits als gelöscht
+  markiert war).
+- `PrepDelete` / `Undelete`: Soft-Delete-Zyklus für den zweistufigen Löschvorgang.
+"""
 from uuid import UUID
 
 from commands.command_base_classes import Command

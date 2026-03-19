@@ -1,3 +1,9 @@
+"""Service-Funktionen für CastRule (Besetzungsregel).
+
+CastRules sind benannte, wiederverwendbare Regelausdrücke (als String gespeichert),
+die CastGroups zugewiesen werden können. Unterstützt Soft-Delete sowie einen
+optionalen Restore-ID-Parameter für Undo-Operationen.
+"""
 import datetime
 from uuid import UUID
 

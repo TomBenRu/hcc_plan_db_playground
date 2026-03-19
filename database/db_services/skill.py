@@ -1,3 +1,10 @@
+"""Service-Funktionen für Skill (Qualifikation).
+
+Verwaltet projektbezogene Qualifikationen, die Personen und AvailDays zugewiesen
+werden können. Unterstützt Soft-Delete mit separatem Bereinigen aller markierten
+Skills eines Projekts. `is_used` prüft, ob ein Skill noch referenziert wird,
+bevor er endgültig gelöscht werden kann.
+"""
 import datetime
 from uuid import UUID
 

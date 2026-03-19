@@ -1,3 +1,10 @@
+"""Service-Funktionen für ActorLocationPref (Standortpräferenz eines Akteurs).
+
+Verwaltet die Präferenz-Scores, mit denen ein Akteur (Person) einzelne
+Arbeitsorte bewertet. Unterstützt Soft-Delete via `prep_delete`-Timestamp
+sowie das Bereinigen ungenutzter Präferenzen (kein Bezug zu ActorPlanPeriod,
+AvailDay oder Person-Default).
+"""
 import datetime
 from uuid import UUID
 

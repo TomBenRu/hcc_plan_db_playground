@@ -1,3 +1,11 @@
+"""Service-Funktionen für PlanPeriod (Planungszeitraum).
+
+Eine PlanPeriod definiert den Zeitraum (Start, Ende, Deadline), für den ein
+Team geplant wird. Bei einer Datumsänderung (`update`) werden automatisch alle
+AvailDays und Events außerhalb des neuen Zeitraums soft-gelöscht.
+`delete_prep_deletes` entfernt endgültig alle als gelöscht markierten Perioden
+eines Teams.
+"""
 import datetime
 from uuid import UUID
 

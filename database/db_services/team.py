@@ -1,3 +1,10 @@
+"""Service-Funktionen für Team.
+
+Ein Team gehört zu einem Projekt, hat einen optionalen Dispatcher (Person) und
+verwaltet seine eigenen Standortkombinationen und Excel-Exporteinstellungen.
+Soft-Delete via `prep_delete`. Abfragen liefern Teams eines Projekts entweder
+vollständig oder als kompakte (Name, ID)-Liste für Dropdown-Menüs.
+"""
 import datetime
 from uuid import UUID
 

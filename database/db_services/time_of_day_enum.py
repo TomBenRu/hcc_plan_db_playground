@@ -1,3 +1,10 @@
+"""Service-Funktionen für TimeOfDayEnum (Tageszeit-Kategorie).
+
+TimeOfDayEnum definiert die abstrakten Tageszeitkategorien eines Projekts
+(z. B. „Vormittag", „Nachmittag") mit Name, Abkürzung und numerischem
+`time_index` für die Sortierung. `consolidate_indexes` normalisiert die Indizes
+aller nicht gelöschten Enums eines Projekts auf eine lückenlose Folge ab 1.
+"""
 import datetime
 from uuid import UUID
 

@@ -1,3 +1,10 @@
+"""Command-Klassen für Project (Projekt / Mandant).
+
+Verwaltet projektweite Konfigurationen: Name, allgemeine Einstellungen (via `Update`),
+Tageszeiten (`PutInTimeOfDay`/`RemoveTimeOfDay`), Tageszeit-Standards und
+Tageszeit-Enum-Standards. Die `NewTimeOfDayStandard`-Logik speichert ggf. eine
+verdrängte alte Standard-ID, um das Undo vollständig rückgängig zu machen.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

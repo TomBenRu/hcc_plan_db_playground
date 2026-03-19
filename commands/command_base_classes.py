@@ -1,3 +1,22 @@
+"""Basisklassen für das Command-Pattern im gesamten Anwendungs-Layer.
+
+Enthält:
+- `Command`: Abstrakte Basisklasse für alle Commands. Subklassen implementieren
+  `execute()`, `_undo()` und `_redo()`. Optional können `on_undo_callback` und
+  `on_redo_callback` gesetzt werden, um nach Undo/Redo UI-Aktualisierungen
+  auszulösen. Das `appointment`-Feld dient als UI-Hinweis für Highlighting nach
+  automatischer Validierung.
+- `Invoker`: Abstrakte Basisklasse für Command-Invoker.
+- `ContrExecUndoRedo`: Konkreter Invoker mit zwei Stacks (Undo / Redo). `execute()`
+  löscht stets den Redo-Stack. `add_to_undo_stack()` ermöglicht einen „Deferred
+  Mode", in dem Commands bereits ausgeführt sind, bevor sie dem Controller übergeben
+  werden (z.B. beim Laden aus der DB). Unterstützt einen `on_stacks_changed`-Callback
+  für Tooltip-Updates in der UI.
+- `BatchCommand`: Führt eine Liste von Commands als eine atomare Einheit aus.
+  Bei einem Fehler während `execute()` werden alle bereits ausgeführten Unter-Commands
+  automatisch in umgekehrter Reihenfolge zurückgerollt (Mini-Transaktion). `__str__`
+  liefert eine lesbare Zusammenfassung für den Verlaufs-Tooltip.
+"""
 from abc import ABC, abstractmethod
 from typing import Iterable, Callable
 from uuid import UUID
@@ -44,8 +63,13 @@ class Command(ABC):
 class Invoker(ABC):
 
     @abstractmethod
-    def execute(self, command: Command):
-        ...
+    def execute(self, command: Command): ...
+
+    @abstractmethod
+    def undo(self): ...
+
+    @abstractmethod
+    def redo(self): ...
 
 ########################################################################################################################
 

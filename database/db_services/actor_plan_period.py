@@ -1,3 +1,10 @@
+"""Service-Funktionen für ActorPlanPeriod (Akteur-Planperiode).
+
+Verknüpft eine Person mit einer PlanPeriod und speichert deren individuelle
+Einstellungen wie gewünschte Einsätze, Tageszeiten, Standortpräferenzen und
+Standortkombinationen. Enthält auch eine speziell optimierte Abfrage für den
+Solver (`get_all_for_solver`).
+"""
 import datetime
 from uuid import UUID
 

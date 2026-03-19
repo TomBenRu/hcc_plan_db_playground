@@ -1,3 +1,11 @@
+"""Service-Funktionen für CastGroup (Besetzungsgruppe).
+
+Eine CastGroup definiert, wie viele Akteure für ein Event benötigt werden und
+welche Regeln (CastRule, fixed_cast, strict_cast_pref) dabei gelten. CastGroups
+können hierarchisch verschachtelt sein (parent/child). Das Erstellen unterstützt
+einen Restore-Modus, um bei Undo-Operationen exakt die gleiche Struktur
+wiederherzustellen.
+"""
 import datetime
 from uuid import UUID
 

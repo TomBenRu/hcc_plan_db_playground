@@ -1,3 +1,15 @@
+"""Command-Klassen für Person (Akteur / Mitarbeiter).
+
+Neben Standard-CRUD (Create, Update) und Präferenz-/Skill-Verwaltung enthält
+dieses Modul drei Commands für Team-Zuordnungen:
+
+- `AssignToTeam`: Hauptzuweisung — beendet ggf. Vorgänger-Zuordnungen und löscht
+  spätere. Nutzt intern `ContrExecUndoRedo` für atomares Undo.
+- `AddToTeam`: Fügt die Person einem weiteren Team hinzu, ohne bestehende
+  Zuordnungen zu ändern (Multi-Team-Unterstützung).
+- `RemoveFromTeam`: Beendet die Zuordnung zu einem bestimmten Team ab einem Datum,
+  ohne andere Team-Zuordnungen zu berühren.
+"""
 import datetime
 from uuid import UUID
 

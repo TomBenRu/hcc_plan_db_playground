@@ -1,3 +1,10 @@
+"""Command-Klassen für CombinationLocationsPossible (Standortkombination).
+
+Enthält:
+- `Create`: Erstellt eine neue Standortkombination; Undo/Redo via Soft-Delete
+  (kein hartes Löschen, da die ID von anderen Entitäten referenziert wird).
+- `Delete`: Soft-löscht eine Standortkombination; Undo hebt die Markierung auf.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

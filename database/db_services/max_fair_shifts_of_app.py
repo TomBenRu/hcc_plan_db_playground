@@ -1,3 +1,10 @@
+"""Service-Funktionen für MaxFairShiftsOfApp (Max./faire Einsätze je ActorPlanPeriod).
+
+Speichert für jede ActorPlanPeriod die Obergrenzen für maximale (`max_shifts`)
+und faire (`fair_shifts`) Schichtzuteilungen, die der Solver zur Fairness-
+Optimierung verwendet. Die minimale Abfrage (`get_all_from__plan_period_minimal`)
+liefert ein kompaktes Dict für den Solver-Zugriff ohne Schema-Overhead.
+"""
 import datetime
 from uuid import UUID
 

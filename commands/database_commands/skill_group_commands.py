@@ -1,3 +1,11 @@
+"""Command-Klassen für SkillGroup (Qualifikationsgruppe).
+
+Enthält:
+- `Create`: Erstellt eine SkillGroup (Skill + Mindestanzahl Akteure); Redo
+  übergibt die Original-ID.
+- `Update`: Ändert Skill-Referenz und/oder `nr_persons`; speichert Vorher-Zustand
+  und rekonstruiert beim Undo ein `SkillGroupUpdate`-Schema aus dem Original.
+"""
 from commands.command_base_classes import Command
 from database import schemas, db_services
 

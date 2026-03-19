@@ -1,3 +1,9 @@
+"""Service-Funktionen für ActorPartnerLocationPref (Partner-Standortpräferenz).
+
+Verwaltet Präferenz-Scores für die Kombination aus Akteur, Partner-Person und
+Arbeitsort. Unterstützt Soft-Delete, Abfragen per AvailDay sowie das Bereinigen
+ungenutzter Einträge ohne Bezug zu ActorPlanPeriod, AvailDay oder Person-Default.
+"""
 import datetime
 from uuid import UUID
 

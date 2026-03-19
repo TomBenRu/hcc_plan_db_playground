@@ -1,3 +1,11 @@
+"""Service-Funktionen für Person (Akteur / Mitarbeiter).
+
+Verwaltet Personen innerhalb eines Projekts inklusive Adresse, Tageszeiten,
+Standortpräferenzen, Skills und Flags. Passwörter werden vor dem Speichern
+gehasht. Bietet einen Bulk-Import aus Excel-Dateien (`create_persons_from_xlsx`).
+Soft-Delete via `prep_delete`-Timestamp. Spezielle Abfragen filtern Personen
+nach PlanPeriod oder nach aktiven TeamActorAssign-Zeiträumen.
+"""
 import datetime
 from uuid import UUID
 

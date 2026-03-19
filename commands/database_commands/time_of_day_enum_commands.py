@@ -1,3 +1,11 @@
+"""Command-Klassen für TimeOfDayEnum (Tageszeit-Kategorie).
+
+Enthält:
+- `Create`: Erstellt eine neue Tageszeit-Kategorie; Undo löscht hart, Redo
+  übergibt die Original-ID. Bietet `get_created_time_of_day_enum_id()`.
+- `Update`: Ändert Name, Abkürzung und `time_index`; speichert Vorher-Zustand.
+- `PrepDelete`: Soft-löscht; Undo via `undo_prep_delete`.
+"""
 from uuid import UUID
 
 from database import schemas, db_services

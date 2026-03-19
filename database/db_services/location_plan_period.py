@@ -1,3 +1,10 @@
+"""Service-Funktionen für LocationPlanPeriod (Standort-Planperiode).
+
+Verknüpft einen Arbeitsort mit einer PlanPeriod und übernimmt standortspezifische
+Konfigurationen wie Tageszeiten, Tageszeit-Standards, Besetzungsvorgaben
+(fixed_cast) und die Anzahl benötigter Akteure. Hartes Löschen ohne Soft-Delete,
+da LocationPlanPeriod den Lebenszyklus ihrer Events bestimmt.
+"""
 import datetime
 from uuid import UUID
 

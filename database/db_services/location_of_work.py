@@ -1,3 +1,10 @@
+"""Service-Funktionen für LocationOfWork (Arbeitsort).
+
+Verwaltet Arbeitsorte innerhalb eines Projekts inklusive optionaler Adresse,
+Tageszeiten, Standortkombinationen, fixed_cast und SkillGroups. Unterstützt
+Soft-Delete. Spezielle Abfragen liefern alle zu einer PlanPeriod passenden
+Orte (inkl. Zeitraumprüfung gegen TeamLocationAssign) für Dropdown-Auswahlen.
+"""
 import datetime
 from uuid import UUID
 

@@ -1,3 +1,12 @@
+"""Command-Klassen für TimeOfDay (konkrete Tageszeit-Instanz).
+
+Enthält:
+- `Create`: Erstellt eine neue Tageszeit; Undo setzt `prep_delete`
+  (via `TimeOfDay.delete`), Redo hebt es auf (`undo_delete`).
+  Bietet `get_created_time_of_day_id()` für nachfolgende Commands.
+- `Update`: Ändert Name, Start, Ende und TimeOfDayEnum; speichert Vorher-Zustand.
+- `Delete`: Soft-löscht; Undo via `undo_delete`.
+"""
 from uuid import UUID
 
 from database import schemas, db_services

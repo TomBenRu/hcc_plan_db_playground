@@ -1,3 +1,10 @@
+"""Service-Funktionen für Appointment (Termin / Besetzungseintrag).
+
+Ein Appointment verbindet ein Event mit einem Plan und speichert die
+zugewiesenen AvailDays (Akteure), Gäste (JSON-Liste) und Notizen.
+Unterstützt Soft-Delete sowie die Abfrage aller Plan-Namen, in denen ein
+bestimmtes Event bereits verplant ist.
+"""
 import datetime
 import json
 from uuid import UUID

@@ -1,3 +1,10 @@
+"""Command-Klassen für MaxFairShiftsOfApp (Max./faire Einsätze je ActorPlanPeriod).
+
+Enthält:
+- `Create`: Erstellt einen neuen Fairness-Grenzwert-Eintrag für eine ActorPlanPeriod.
+  Nach dem Erstellen wird die generierte ID ins Schema zurückgeschrieben, damit Redo
+  dieselbe ID wiederverwenden kann.
+"""
 from commands.command_base_classes import Command
 from database import schemas, db_services
 

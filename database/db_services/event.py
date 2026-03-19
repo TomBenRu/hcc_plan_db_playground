@@ -1,3 +1,11 @@
+"""Service-Funktionen für Event (Veranstaltungstermin).
+
+Ein Event repräsentiert einen konkreten Termin an einem Datum und zu einer
+Tageszeit an einem Standort (LocationPlanPeriod). Das Erstellen legt automatisch
+eine EventGroup (Baumknoten) und eine CastGroup (Besetzungsvorgabe) an — beides
+wird beim Löschen wieder bereinigt. Unterstützt Flags und SkillGroups als
+Metadaten-Verknüpfungen.
+"""
 import datetime
 from uuid import UUID
 

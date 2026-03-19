@@ -1,3 +1,11 @@
+"""Command-Klassen für PlanPeriod (Planungszeitraum).
+
+Enthält:
+- `Create` / `Delete`: Soft-Delete-Zyklus; `Create`-Undo setzt `prep_delete`.
+- `Update`: Ändert Zeitraum, Deadline und Notizen; beim Service-Aufruf werden
+  automatisch AvailDays und Events außerhalb des neuen Zeitraums soft-gelöscht.
+- `UpdateNotes`: Isoliertes Command für reine Notizänderungen.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

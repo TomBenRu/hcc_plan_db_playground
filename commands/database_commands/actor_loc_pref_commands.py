@@ -1,3 +1,10 @@
+"""Command-Klassen für ActorLocationPref (Standortpräferenz eines Akteurs).
+
+Enthält:
+- `Create`: Erstellt eine neue Standortpräferenz; Undo setzt `prep_delete`, Redo hebt es auf.
+- `DeleteUnused`: Markiert alle ungenutzten Präferenzen eines Projekts als gelöscht;
+  Undo stellt alle betroffenen IDs wieder her.
+"""
 from uuid import UUID
 
 from database import db_services, schemas

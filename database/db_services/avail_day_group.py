@@ -1,3 +1,11 @@
+"""Service-Funktionen für AvailDayGroup (Verfügbarkeitstag-Gruppe).
+
+AvailDayGroups bilden eine Baumstruktur unterhalb eines ActorPlanPeriod-Masters.
+Jeder Blattknoten referenziert genau einen AvailDay. Interne Knoten steuern
+über `nr_avail_day_groups` und `variation_weight`, wie viele Tage aus der
+Gruppe gefordert werden und wie stark Variationen gewichtet sind.
+`get_all_for_tree` lädt den kompletten Baum in einem einzigen Session-Kontext.
+"""
 import datetime
 from typing import Optional
 from uuid import UUID

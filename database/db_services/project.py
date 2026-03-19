@@ -1,3 +1,10 @@
+"""Service-Funktionen für Project (Projekt / Mandant).
+
+Ein Projekt ist die oberste Organisationsebene und enthält Teams, Personen,
+Standorte und Tageszeit-Definitionen. Verwaltet projektweite Tageszeit-Defaults
+(`time_of_day_standards`, `time_of_day_enum_standards`) die als Vorlage für
+neue Entitäten dienen.
+"""
 import datetime
 from uuid import UUID
 

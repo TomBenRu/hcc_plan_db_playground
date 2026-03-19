@@ -16,6 +16,7 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import plan_show_options
 
 
 def create(plan_period_id: UUID, name: str, notes: str = '') -> schemas.PlanShow:
@@ -56,13 +57,17 @@ def undelete(plan_id: UUID) -> schemas.PlanShow:
 
 def get(plan_id: UUID, small: bool = False) -> schemas.PlanShow | schemas.Plan:
     with get_session() as session:
-        plan = session.get(models.Plan, plan_id)
-        return schemas.Plan.model_validate(plan) if small else schemas.PlanShow.model_validate(plan)
+        if small:
+            return schemas.Plan.model_validate(session.get(models.Plan, plan_id))
+        stmt = select(models.Plan).where(models.Plan.id == plan_id).options(*plan_show_options())
+        plan = session.exec(stmt).unique().one()
+        return schemas.PlanShow.model_validate(plan)
 
 
 def get_from__name(plan_name: str) -> schemas.PlanShow | None:
     with get_session() as session:
-        plan = session.exec(select(models.Plan).where(models.Plan.name == plan_name)).first()
+        stmt = select(models.Plan).where(models.Plan.name == plan_name).options(*plan_show_options())
+        plan = session.exec(stmt).unique().first()
         return schemas.PlanShow.model_validate(plan) if plan else None
 
 
@@ -70,8 +75,10 @@ def get_all_from__team(team_id: UUID,
                        minimal: bool = False, inclusive_prep_deleted=False) -> list[schemas.PlanShow] | dict[str, UUID]:
     with get_session() as session:
         if not minimal:
-            plans = session.exec(select(models.Plan).join(models.PlanPeriod)
-                                 .where(models.PlanPeriod.team_id == team_id)).all()
+            stmt = (select(models.Plan).join(models.PlanPeriod)
+                    .where(models.PlanPeriod.team_id == team_id)
+                    .options(*plan_show_options()))
+            plans = session.exec(stmt).unique().all()
             return [schemas.PlanShow.model_validate(p) for p in plans]
         stmt = select(models.Plan).join(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)
         if not inclusive_prep_deleted:
@@ -91,7 +98,9 @@ def get_prep_deleted_from__team(team_id: UUID) -> list[UUID]:
 
 def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PlanShow]:
     with get_session() as session:
-        plans = session.exec(select(models.Plan).where(models.Plan.plan_period_id == plan_period_id)).all()
+        stmt = (select(models.Plan).where(models.Plan.plan_period_id == plan_period_id)
+                .options(*plan_show_options()))
+        plans = session.exec(stmt).unique().all()
         return [schemas.PlanShow.model_validate(p) for p in plans]
 
 

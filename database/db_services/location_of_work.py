@@ -22,6 +22,21 @@ def get(location_id: UUID) -> schemas.LocationOfWorkShow:
         return schemas.LocationOfWorkShow.model_validate(session.get(models.LocationOfWork, location_id))
 
 
+def get_many(location_ids: list[UUID]) -> dict[UUID, schemas.LocationOfWorkShow]:
+    """Lädt mehrere Locations in einer einzigen Query.
+
+    Ersetzt N einzelne get()-Aufrufe in get_weekdays_locations() durch
+    eine Batch-Abfrage. Gibt {location_id: LocationOfWorkShow} zurück.
+    """
+    if not location_ids:
+        return {}
+    with get_session() as session:
+        locs = session.exec(
+            select(models.LocationOfWork).where(models.LocationOfWork.id.in_(location_ids))
+        ).all()
+        return {loc.id: schemas.LocationOfWorkShow.model_validate(loc) for loc in locs}
+
+
 def get_all_from__project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
     with get_session() as session:
         locs = session.exec(select(models.LocationOfWork).where(

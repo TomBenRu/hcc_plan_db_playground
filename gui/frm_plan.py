@@ -66,8 +66,11 @@ def fill_in_data(appointment_field: 'AppointmentField'):
                                              key=lambda x: (x.actor_plan_period.person.f_name,
                                                             x.actor_plan_period.person.l_name))]
                           + appointment_field.appointment.guests)
-    nr_required_persons = db_services.CastGroup.get_cast_group_of_event(
-        appointment_field.appointment.event.id).nr_actors
+    event_id = appointment_field.appointment.event.id
+    if event_id in appointment_field.plan_widget.cast_group_nr_actors:
+        nr_required_persons = appointment_field.plan_widget.cast_group_nr_actors[event_id]
+    else:
+        nr_required_persons = db_services.CastGroup.get_cast_group_of_event(event_id).nr_actors
 
     if missing := (nr_required_persons - len(appointment_field.appointment.avail_days)
                    - len(appointment_field.appointment.guests)):
@@ -1371,6 +1374,11 @@ class FrmTabPlan(QWidget):
         self.week_num_rows = self.generate_week_num_row()
         self.weekday_cols = self.generate_weekday_col()
 
+        event_ids = [a.event.id for a in self.plan.appointments]
+        self.cast_group_nr_actors: dict[UUID, int] = (
+            db_services.CastGroup.get_nr_actors_by_event_ids(event_ids) if event_ids else {}
+        )
+
         self.week_num_weekday = self.generate_week_num_weekday()
         self.weekdays_locations = self.get_weekdays_locations()
         self.column_assignments = self.generate_column_assignments()
@@ -1669,8 +1677,9 @@ class FrmTabPlan(QWidget):
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:
-            return {k: [db_services.LocationOfWork.get(u) for u in v]
-                    for k, v in self.plan.location_columns.items()}
+            all_ids = list({u for v in self.plan.location_columns.values() for u in v})
+            loc_map = db_services.LocationOfWork.get_many(all_ids)
+            return {k: [loc_map[u] for u in v] for k, v in self.plan.location_columns.items()}
 
         weekdays_locations = self.generate_weekdays_locations()
 

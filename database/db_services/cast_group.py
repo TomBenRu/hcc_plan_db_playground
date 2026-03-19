@@ -9,6 +9,7 @@ wiederherzustellen.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -42,6 +43,22 @@ def get_all_from__location_plan_period_at_date(
 def get_cast_group_of_event(event_id: UUID) -> schemas.CastGroupShow:
     with get_session() as session:
         return schemas.CastGroupShow.model_validate(session.get(models.Event, event_id).cast_group)
+
+
+def get_nr_actors_by_event_ids(event_ids: list[UUID]) -> dict[UUID, int]:
+    """Gibt {event_id: nr_actors} in einer einzigen Query zurück.
+
+    Ersetzt N einzelne get_cast_group_of_event()-Aufrufe durch eine
+    Batch-Abfrage. Für den Plan-Tab deutlich schneller bei vielen Events.
+    """
+    if not event_ids:
+        return {}
+    with get_session() as session:
+        stmt = (select(models.Event)
+                .where(models.Event.id.in_(event_ids))
+                .options(joinedload(models.Event.cast_group)))
+        events = session.exec(stmt).unique().all()
+        return {e.id: e.cast_group.nr_actors for e in events}
 
 
 def create(*, plan_period_id: UUID, restore_cast_group: schemas.CastGroupShow = None) -> schemas.CastGroupShow:

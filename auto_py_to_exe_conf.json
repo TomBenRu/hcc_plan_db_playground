@@ -62,14 +62,6 @@
    "value": false
   },
   {
-   "optionDest": "hiddenimports",
-   "value": "pony.orm.dbproviders"
-  },
-  {
-   "optionDest": "hiddenimports",
-   "value": "pony.orm.dbproviders.sqlite"
-  },
-  {
    "optionDest": "datas",
    "value": "C:/Users/tombe/PycharmProjects/hcc_plan_db_playground/gui/resources;gui/resources/"
   },

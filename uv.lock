@@ -601,7 +601,6 @@ name = "hcc-plan"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "alembic" },
     { name = "anytree" },
     { name = "bcrypt" },
     { name = "google-api-python-client" },
@@ -626,6 +625,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "alembic" },
     { name = "auto-py-to-exe" },
     { name = "icecream" },
     { name = "line-profiler-pycharm" },
@@ -636,7 +636,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.18.4" },
     { name = "anytree", specifier = ">=2.12" },
     { name = "bcrypt", specifier = "~=5.0" },
     { name = "google-api-python-client", specifier = ">=2.149.0" },
@@ -661,6 +660,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "alembic", specifier = ">=1.18.4" },
     { name = "auto-py-to-exe", specifier = ">=2.5" },
     { name = "icecream", specifier = ">=2.1" },
     { name = "line-profiler-pycharm", specifier = ">=1.2.0" },

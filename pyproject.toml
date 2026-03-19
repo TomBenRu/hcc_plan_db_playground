@@ -25,7 +25,6 @@ dependencies = [
     "jinja2>=3.1.2",
     "pytz>=2025.2",
     "sqlmodel>=0.0.37",
-    "alembic>=1.18.4",
 ]
 
 [dependency-groups]
@@ -36,6 +35,7 @@ dev = [
     "icecream>=2.1",
     "mypy>=1.17.0",
     "PySide6-stubs",
+    "alembic>=1.18.4",
 ]
 
 [tool.pytest.ini_options]

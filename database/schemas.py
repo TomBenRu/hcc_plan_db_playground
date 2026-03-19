@@ -1,8 +1,9 @@
 import datetime
+import json
 from typing import Optional, List, Protocol, runtime_checkable, Union, Any
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, Json
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 from database.enums import Gender, Role
 
@@ -824,9 +825,16 @@ class AppointmentCreate(BaseModel):
 
 class Appointment(AppointmentCreate):
     model_config = ConfigDict(from_attributes=True)
-    guests: Json[list[str]]
+    guests: list[str] = []
 
     id: UUID
+
+    @field_validator('guests', mode='before')
+    @classmethod
+    def parse_guests(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
     @field_validator('avail_days')
     @classmethod
@@ -1021,9 +1029,16 @@ class PlanCreate(BaseModel):
 class Plan(PlanCreate):
     model_config = ConfigDict(from_attributes=True)
     prep_delete: Optional[datetime.datetime]
-    location_columns: Json[dict[int, list[UUID]]]
+    location_columns: dict[int, list[UUID]] = {}
 
     id: UUID
+
+    @field_validator('location_columns', mode='before')
+    @classmethod
+    def parse_location_columns(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
 
 class PlanShow(Plan):

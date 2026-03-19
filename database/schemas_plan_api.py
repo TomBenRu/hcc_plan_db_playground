@@ -47,7 +47,7 @@ class PersonShow(Person):
     team_of_actor: Optional['Team'] = None
 
     @field_validator('teams_of_dispatcher')
-    def pony_set_to_list(cls, values):
+    def ensure_list(cls, values):
         return [v for v in values]
 
 
@@ -83,7 +83,7 @@ class AvailablesShow(Availables):
     avail_days: List['AvailDay']
 
     @field_validator('avail_days')
-    def pony_set_to_list(cls, values):
+    def ensure_list(cls, values):
         return [v for v in values]
 
 
@@ -137,7 +137,7 @@ class PlanPeriodShow(PlanPeriod):
         return kw__day_wd
 
     @field_validator('availabless')
-    def pony_set_to_list(cls, values):
+    def ensure_list(cls, values):
         return [v for v in values]
 
 

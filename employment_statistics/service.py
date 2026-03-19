@@ -10,10 +10,13 @@ from typing import Optional, Dict, List, Tuple
 from uuid import UUID
 from collections import defaultdict, Counter
 
-from pony.orm import db_session, select, desc
+from sqlmodel import select
+from sqlalchemy import desc
+
 from pydantic import BaseModel
 
 from database import models
+from database.database import get_session
 from database.db_services import log_function_info, LOGGING_ENABLED
 
 logger = logging.getLogger(__name__)
@@ -67,7 +70,6 @@ class EmploymentStatisticsService:
     """Service für Einsatzstatistiken"""
 
     @classmethod
-    @db_session(sql_debug=LOGGING_ENABLED, show_values=LOGGING_ENABLED)
     def get_employment_statistics(
         cls,
         start_date: datetime.date,
@@ -77,151 +79,151 @@ class EmploymentStatisticsService:
     ) -> EmploymentStatistics:
         """
         Hauptmethode für Einsatzstatistiken.
-        
+
         Args:
             start_date: Startdatum für die Statistik
             end_date: Enddatum für die Statistik
             team_id: Optional - für team-spezifische Statistiken
             project_id: Optional - für projekt-weite Statistiken (wenn kein team_id)
-            
+
         Returns:
             EmploymentStatistics: Komplette Statistiken für den Zeitraum
         """
-        log_function_info(cls)
-        
+        log_function_info()
+
         if not team_id and not project_id:
             raise ValueError("Entweder team_id oder project_id muss angegeben werden")
-            
-        # Bestimme Kontext (Team oder Projekt)
-        if team_id:
-            team_db = models.Team.get(id=team_id)
-            project_db = team_db.project
-            team_name = team_db.name
-            context_name = f"Team: {team_name}"
-        else:
-            project_db = models.Project.get(id=project_id)
-            team_name = None
-            context_name = f"Projekt: {project_db.name}"
-            
-        # Hole relevante Planperioden
-        plan_periods = cls._get_plan_periods_in_range(
-            start_date, end_date, team_id, project_id
-        )
-        
-        if not plan_periods:
-            return cls._create_empty_statistics(
-                team_name, project_db.name, start_date, end_date
+
+        with get_session() as session:
+            # Bestimme Kontext (Team oder Projekt)
+            if team_id:
+                team_db = session.get(models.Team, team_id)
+                project_db = team_db.project
+                team_name = team_db.name
+            else:
+                project_db = session.get(models.Project, project_id)
+                team_name = None
+
+            # Hole relevante Planperioden
+            plan_periods = cls._get_plan_periods_in_range(
+                session, start_date, end_date, team_id, project_id
             )
-            
-        # Hole aktuellste Pläne pro Planperiode
-        latest_plans = cls._get_latest_plans_per_period(plan_periods)
-        
-        # Sammle alle Appointments aus den aktuellsten Plänen
-        all_appointments = cls._get_appointments_from_plans(latest_plans)
-        
-        # Berechne Statistiken
-        employee_stats = cls._calculate_employee_statistics(all_appointments, plan_periods)
-        location_stats = cls._calculate_location_statistics(all_appointments)
-        period_stats = cls._calculate_period_statistics(plan_periods, latest_plans)
-        
-        # Gesamtstatistiken
-        total_assignments = len(all_appointments)
-        total_employees = len(employee_stats)
-        total_locations = len(location_stats)
-        
-        avg_assignments_per_employee = (
-            total_assignments / total_employees if total_employees > 0 else 0
-        )
-        avg_assignments_per_period = (
-            total_assignments / len(period_stats) if period_stats else 0
-        )
-        
-        return EmploymentStatistics(
-            team_name=team_name,
-            project_name=project_db.name,
-            start_date=start_date,
-            end_date=end_date,
-            total_assignments=total_assignments,
-            total_employees=total_employees,
-            total_locations=total_locations,
-            employee_statistics=employee_stats,
-            location_statistics=location_stats,
-            period_statistics=period_stats,
-            average_assignments_per_employee=avg_assignments_per_employee,
-            average_assignments_per_period=avg_assignments_per_period
-        )
+
+            if not plan_periods:
+                return cls._create_empty_statistics(
+                    team_name, project_db.name, start_date, end_date
+                )
+
+            # Hole aktuellste Pläne pro Planperiode
+            latest_plans = cls._get_latest_plans_per_period(session, plan_periods)
+
+            # Sammle alle Appointments aus den aktuellsten Plänen
+            all_appointments = cls._get_appointments_from_plans(session, latest_plans)
+
+            # Berechne Statistiken
+            employee_stats = cls._calculate_employee_statistics(all_appointments, plan_periods)
+            location_stats = cls._calculate_location_statistics(all_appointments)
+            period_stats = cls._calculate_period_statistics(session, plan_periods, latest_plans)
+
+            # Gesamtstatistiken
+            total_assignments = len(all_appointments)
+            total_employees = len(employee_stats)
+            total_locations = len(location_stats)
+
+            avg_assignments_per_employee = (
+                total_assignments / total_employees if total_employees > 0 else 0
+            )
+            avg_assignments_per_period = (
+                total_assignments / len(period_stats) if period_stats else 0
+            )
+
+            return EmploymentStatistics(
+                team_name=team_name,
+                project_name=project_db.name,
+                start_date=start_date,
+                end_date=end_date,
+                total_assignments=total_assignments,
+                total_employees=total_employees,
+                total_locations=total_locations,
+                employee_statistics=employee_stats,
+                location_statistics=location_stats,
+                period_statistics=period_stats,
+                average_assignments_per_employee=avg_assignments_per_employee,
+                average_assignments_per_period=avg_assignments_per_period
+            )
 
     @classmethod
-    @db_session
     def _get_plan_periods_in_range(
         cls,
+        session,
         start_date: datetime.date,
         end_date: datetime.date,
         team_id: Optional[UUID],
         project_id: Optional[UUID]
     ) -> List[models.PlanPeriod]:
         """Ermittelt alle Planperioden im angegebenen Zeitraum"""
-        
+
         if team_id:
-            # Team-spezifische Planperioden
-            plan_periods = select(
-                pp for pp in models.PlanPeriod
-                if pp.team.id == team_id
-                and pp.start <= end_date
-                and pp.end >= start_date
-                and not pp.prep_delete
-            ).order_by(models.PlanPeriod.start)
+            plan_periods = session.exec(
+                select(models.PlanPeriod).where(
+                    models.PlanPeriod.team_id == team_id,
+                    models.PlanPeriod.start <= end_date,
+                    models.PlanPeriod.end >= start_date,
+                    models.PlanPeriod.prep_delete.is_(None)
+                ).order_by(models.PlanPeriod.start)
+            ).all()
         else:
-            # Projekt-weite Planperioden
-            plan_periods = select(
-                pp for pp in models.PlanPeriod
-                if pp.team.project.id == project_id
-                and pp.start <= end_date
-                and pp.end >= start_date
-                and not pp.prep_delete
-            ).order_by(models.PlanPeriod.start)
-            
+            plan_periods = session.exec(
+                select(models.PlanPeriod).join(models.Team).where(
+                    models.Team.project_id == project_id,
+                    models.PlanPeriod.start <= end_date,
+                    models.PlanPeriod.end >= start_date,
+                    models.PlanPeriod.prep_delete.is_(None)
+                ).order_by(models.PlanPeriod.start)
+            ).all()
+
         return list(plan_periods)
 
     @classmethod
-    @db_session
     def _get_latest_plans_per_period(
         cls,
+        session,
         plan_periods: List[models.PlanPeriod]
     ) -> List[models.Plan]:
         """Ermittelt den jeweils aktuellsten Plan pro Planperiode"""
         latest_plans = []
-        
+
         for plan_period in plan_periods:
-            # Suche den aktuellsten Plan (nach last_modified) für diese Planperiode
-            latest_plan = select(
-                p for p in models.Plan
-                if p.plan_period == plan_period
-                and not p.prep_delete
-            ).order_by(desc(models.Plan.last_modified)).first()
-            
+            latest_plan = session.exec(
+                select(models.Plan).where(
+                    models.Plan.plan_period_id == plan_period.id,
+                    models.Plan.prep_delete.is_(None)
+                ).order_by(desc(models.Plan.last_modified))
+            ).first()
+
             if latest_plan:
                 latest_plans.append(latest_plan)
-                
+
         return latest_plans
 
     @classmethod
-    @db_session
     def _get_appointments_from_plans(
         cls,
+        session,
         plans: List[models.Plan]
     ) -> List[models.Appointment]:
         """Sammelt alle Appointments aus den gegebenen Plänen"""
         all_appointments = []
-        
+
         for plan in plans:
-            appointments = select(
-                a for a in models.Appointment
-                if a.plan == plan
-                and not a.prep_delete
-            )
+            appointments = session.exec(
+                select(models.Appointment).where(
+                    models.Appointment.plan_id == plan.id,
+                    models.Appointment.prep_delete.is_(None)
+                )
+            ).all()
             all_appointments.extend(appointments)
-            
+
         return all_appointments
 
     @classmethod
@@ -231,40 +233,43 @@ class EmploymentStatisticsService:
         plan_periods: List[models.PlanPeriod]
     ) -> List[EmployeeStatistics]:
         """Berechnet Statistiken pro Mitarbeiter"""
-        
+
         # Gruppiere Appointments nach Mitarbeitern
         employee_appointments = defaultdict(list)
-        
+
         for appointment in appointments:
             for avail_day in appointment.avail_days:
                 person = avail_day.actor_plan_period.person
+                location = appointment.event.location_plan_period.location_of_work
+                plan_period = appointment.event.location_plan_period.plan_period
                 employee_appointments[person.id].append({
                     'appointment': appointment,
                     'person': person,
-                    'location': appointment.event.location_plan_period.location_of_work,
-                    'plan_period': appointment.event.location_plan_period.plan_period
+                    'location': location,
+                    'plan_period': plan_period
                 })
-        
+
         employee_stats = []
-        
+
         for person_id, person_appointments in employee_appointments.items():
             if not person_appointments:
                 continue
-                
+
             person = person_appointments[0]['person']
-            
+
             # Zähle Einsätze nach Standorten
             location_counts = Counter()
             for pa in person_appointments:
-                location_name = pa['location'].name_and_city
+                loc = pa['location']
+                location_name = f"{loc.name} ({loc.address.city})" if loc.address and loc.address.city else loc.name
                 location_counts[location_name] += 1
-            
+
             # Zähle Einsätze nach Planperioden
             period_counts = Counter()
             for pa in person_appointments:
                 period_name = f"{pa['plan_period'].start} - {pa['plan_period'].end}"
                 period_counts[period_name] += 1
-            
+
             employee_stats.append(EmployeeStatistics(
                 person_id=person.id,
                 person_name=person.full_name,
@@ -272,7 +277,7 @@ class EmploymentStatisticsService:
                 assignments_by_location=dict(location_counts),
                 assignments_by_period=dict(period_counts)
             ))
-            
+
         # Sortiere nach Anzahl Einsätze (absteigend)
         employee_stats.sort(key=lambda x: x.total_assignments, reverse=True)
         return employee_stats
@@ -283,39 +288,40 @@ class EmploymentStatisticsService:
         appointments: List[models.Appointment]
     ) -> List[LocationStatistics]:
         """Berechnet Statistiken pro Standort"""
-        
+
         # Gruppiere nach Standorten
         location_data = defaultdict(lambda: {'appointments': [], 'employees': set()})
-        
+
         for appointment in appointments:
             location = appointment.event.location_plan_period.location_of_work
             location_data[location.id]['appointments'].append(appointment)
             location_data[location.id]['location'] = location
-            
+
             # Sammle eindeutige Mitarbeiter für diesen Standort
             for avail_day in appointment.avail_days:
                 person = avail_day.actor_plan_period.person
                 location_data[location.id]['employees'].add(person.id)
-        
+
         location_stats = []
-        
+
         for location_id, data in location_data.items():
             location = data['location']
             assignments_count = len(data['appointments'])
             employees_count = len(data['employees'])
-            
+
             avg_assignments = (
                 assignments_count / employees_count if employees_count > 0 else 0
             )
-            
+
+            loc_name = f"{location.name} ({location.address.city})" if location.address and location.address.city else location.name
             location_stats.append(LocationStatistics(
                 location_id=location.id,
-                location_name=location.name_and_city,
+                location_name=loc_name,
                 total_assignments=assignments_count,
                 employees_count=employees_count,
                 average_assignments_per_employee=avg_assignments
             ))
-            
+
         # Sortiere nach Anzahl Einsätze (absteigend)
         location_stats.sort(key=lambda x: x.total_assignments, reverse=True)
         return location_stats
@@ -323,43 +329,46 @@ class EmploymentStatisticsService:
     @classmethod
     def _calculate_period_statistics(
         cls,
+        session,
         plan_periods: List[models.PlanPeriod],
         plans: List[models.Plan]
     ) -> List[PeriodStatistics]:
         """Berechnet Statistiken pro Planperiode"""
-        
+
         period_stats = []
-        
+
         for plan_period in plan_periods:
             # Finde den entsprechenden Plan
-            plan = next((p for p in plans if p.plan_period == plan_period), None)
+            plan = next((p for p in plans if p.plan_period_id == plan_period.id), None)
             if not plan:
                 continue
-                
+
             # Zähle Appointments in diesem Plan
-            appointments = select(
-                a for a in models.Appointment
-                if a.plan == plan and not a.prep_delete
-            )
-            
+            appointments = session.exec(
+                select(models.Appointment).where(
+                    models.Appointment.plan_id == plan.id,
+                    models.Appointment.prep_delete.is_(None)
+                )
+            ).all()
+
             # Sammle eindeutige Mitarbeiter und Standorte
             employees = set()
             locations = set()
-            
+
             for appointment in appointments:
                 for avail_day in appointment.avail_days:
-                    employees.add(avail_day.actor_plan_period.person.id)
-                locations.add(appointment.event.location_plan_period.location_of_work.id)
-            
+                    employees.add(avail_day.actor_plan_period.person_id)
+                locations.add(appointment.event.location_plan_period.location_of_work_id)
+
             period_stats.append(PeriodStatistics(
                 period_name=f"{plan_period.start} - {plan_period.end}",
                 period_start=plan_period.start,
                 period_end=plan_period.end,
-                total_assignments=len(list(appointments)),
+                total_assignments=len(appointments),
                 employees_count=len(employees),
                 locations_count=len(locations)
             ))
-            
+
         # Sortiere nach Startdatum
         period_stats.sort(key=lambda x: x.period_start)
         return period_stats
@@ -373,7 +382,7 @@ class EmploymentStatisticsService:
         end_date: datetime.date
     ) -> EmploymentStatistics:
         """Erstellt leere Statistiken wenn keine Daten vorhanden"""
-        
+
         return EmploymentStatistics(
             team_name=team_name,
             project_name=project_name,
@@ -390,42 +399,47 @@ class EmploymentStatisticsService:
         )
 
     @classmethod
-    @db_session
     def get_available_teams_for_project(cls, project_id: UUID) -> List[Tuple[UUID, str]]:
         """Liefert verfügbare Teams für ein Projekt"""
-        teams = select(
-            t for t in models.Team
-            if t.project.id == project_id and not t.prep_delete
-        ).order_by(models.Team.name)
-        
-        return [(team.id, team.name) for team in teams]
+        with get_session() as session:
+            teams = session.exec(
+                select(models.Team).where(
+                    models.Team.project_id == project_id,
+                    models.Team.prep_delete.is_(None)
+                ).order_by(models.Team.name)
+            ).all()
+            return [(team.id, team.name) for team in teams]
 
     @classmethod
-    @db_session
     def get_date_range_for_context(
         cls,
         team_id: Optional[UUID] = None,
         project_id: Optional[UUID] = None
     ) -> Tuple[Optional[datetime.date], Optional[datetime.date]]:
         """Ermittelt den verfügbaren Datumsbereich für Team oder Projekt"""
-        
-        if team_id:
-            plan_periods = select(
-                pp for pp in models.PlanPeriod
-                if pp.team.id == team_id and not pp.prep_delete
-            )
-        elif project_id:
-            plan_periods = select(
-                pp for pp in models.PlanPeriod
-                if pp.team.project.id == project_id and not pp.prep_delete
-            )
-        else:
-            return None, None
-            
-        if not plan_periods:
-            return None, None
-            
-        min_date = min(pp.start for pp in plan_periods)
-        max_date = max(pp.end for pp in plan_periods)
-        
-        return min_date, max_date
+
+        with get_session() as session:
+            if team_id:
+                plan_periods = session.exec(
+                    select(models.PlanPeriod).where(
+                        models.PlanPeriod.team_id == team_id,
+                        models.PlanPeriod.prep_delete.is_(None)
+                    )
+                ).all()
+            elif project_id:
+                plan_periods = session.exec(
+                    select(models.PlanPeriod).join(models.Team).where(
+                        models.Team.project_id == project_id,
+                        models.PlanPeriod.prep_delete.is_(None)
+                    )
+                ).all()
+            else:
+                return None, None
+
+            if not plan_periods:
+                return None, None
+
+            min_date = min(pp.start for pp in plan_periods)
+            max_date = max(pp.end for pp in plan_periods)
+
+            return min_date, max_date

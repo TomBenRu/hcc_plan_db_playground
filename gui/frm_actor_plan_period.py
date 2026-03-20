@@ -608,9 +608,13 @@ class ButtonSkills(BaseConfigButton):
     """
 
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow):
+                 actor_plan_period: schemas.ActorPlanPeriodShow,
+                 avail_days_show: list[schemas.AvailDayShow] | None = None,
+                 person_skills: list | None = None):
         # Eigene Attribute vor super().__init__() setzen
         self._cached_avail_days: list[schemas.AvailDayShow] = []
+        self._prefetched_avail_days_show = avail_days_show
+        self._prefetched_person_skills = person_skills
         self.controller = command_base_classes.ContrExecUndoRedo()
 
         super().__init__(parent, date, width_height, actor_plan_period)
@@ -682,11 +686,17 @@ class ButtonSkills(BaseConfigButton):
             if data.plan_period_id != self.actor_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
+            self._prefetched_avail_days_show = None  # Bei Reload immer frisch aus DB lesen
+            self._prefetched_person_skills = None
             self.set_stylesheet_and_tooltip()
 
     def _load_avail_days_at_date(self) -> None:
         """Lädt und cached die AvailDays am Button-Datum."""
-        self._cached_avail_days = db_services.AvailDay.get_from__actor_pp_date(self.actor_plan_period.id, self.date)
+        if self._prefetched_avail_days_show is not None:
+            self._cached_avail_days = self._prefetched_avail_days_show
+        else:
+            self._cached_avail_days = db_services.AvailDay.get_from__actor_pp_date(
+                self.actor_plan_period.id, self.date)
 
     def _check_skills_all_equal(self) -> bool | None:
         """Prüft ob alle AvailDays am Tag die gleichen Skills haben."""
@@ -704,7 +714,9 @@ class ButtonSkills(BaseConfigButton):
             return None
         if len({len(ad.skills) for ad in self._cached_avail_days}) > 1:
             return False
-        person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
+        person_skills = (self._prefetched_person_skills
+                         if self._prefetched_person_skills is not None
+                         else db_services.Skill.get_all_from__person(self.actor_plan_period.person.id))
         return all(sorted(ad.skills, key=lambda x: x.id)
                    == sorted(person_skills, key=lambda x: x.id)
                    for ad in self._cached_avail_days)
@@ -784,10 +796,11 @@ class FrmTabActorPlanPeriods(QWidget):
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.actor_plan_periods = self.plan_period.actor_plan_periods
+        active_person_ids = db_services.TeamActorAssign.get_all_actor_ids_between_dates(
+            plan_period.team.id, plan_period.start, plan_period.end)
         self.pers_id__actor_pp = {
             str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods
-            if db_services.TeamActorAssign.get_all_between_dates(a_pp.person.id, plan_period.team.id,
-                                                                 plan_period.start, plan_period.end)}
+            if a_pp.person.id in active_person_ids}
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
 
@@ -1109,7 +1122,7 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Umsetzung automatisch über Group-Mode.
-        person = db_services.Person.get(self.actor_plan_period.person.id)
+        person = self.actor_plan_period.person
         team = db_services.Team.get(self.actor_plan_period.team.id)
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
@@ -1158,10 +1171,15 @@ class FrmActorPlanPeriod(QWidget):
             self.menu_bt_skills_reset_all.addAction(action)
         self.layout.addWidget(bt_skills_reset_all, row + 5, 0)
 
+        team_uuids_by_date = db_services.TeamActorAssign.get_all_teams_at_dates(person.id, self.days)
+        all_avail_days_show = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+        avail_days_show_by_date: dict = {}
+        for avd in all_avail_days_show:
+            avail_days_show_by_date.setdefault(avd.date, []).append(avd)
+        person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
         for col, d in enumerate(self.days, start=1):
             # Multi-Team-kompatibel: Prüfe ob Person an diesem Tag dem Team des ActorPlanPeriods zugeordnet ist
-            team_uuids_at_date = db_services.TeamActorAssign.get_all_teams_at_date(person.id, d, only_uuids=True)
-            disable_buttons = self.actor_plan_period.team.id not in set(team_uuids_at_date)
+            disable_buttons = self.actor_plan_period.team.id not in set(team_uuids_by_date.get(d, []))
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -1195,7 +1213,9 @@ class FrmActorPlanPeriod(QWidget):
             bt_partner_loc_prefs = ButtonPartnerPreferences(self, d, 24, self.actor_plan_period, team)
             bt_partner_loc_prefs.setDisabled(disable_buttons)
             self.layout.addWidget(bt_partner_loc_prefs, row + 4, col)
-            bt_skills = ButtonSkills(self, d, 24, self.actor_plan_period)
+            bt_skills = ButtonSkills(self, d, 24, self.actor_plan_period,
+                                     avail_days_show=avail_days_show_by_date.get(d, []),
+                                     person_skills=person_skills)
             bt_skills.setDisabled(disable_buttons)
             self.layout.addWidget(bt_skills, row + 5, col)
 

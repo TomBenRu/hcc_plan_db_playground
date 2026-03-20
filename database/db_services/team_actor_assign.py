@@ -77,6 +77,31 @@ def get_all_teams_at_date(person_id: UUID, date: datetime.date,
         return [schemas.TeamShow.model_validate(a.team) for a in assigns]
 
 
+def get_all_teams_at_dates(person_id: UUID, dates: list[datetime.date]) -> dict[datetime.date, list[UUID]]:
+    """Gibt {date: [team_id, ...]} für alle übergebenen Dates in einer einzigen Query zurück.
+
+    Ersetzt N einzelne get_all_teams_at_date()-Aufrufe pro Tag durch eine
+    Batch-Abfrage. Deckt den gesamten Datumsbereich mit einem WHERE-Filter ab
+    und verteilt die Ergebnisse in Python auf die einzelnen Tage.
+    """
+    if not dates:
+        return {}
+    date_min, date_max = min(dates), max(dates)
+    with get_session() as session:
+        assigns = session.exec(select(models.TeamActorAssign).where(
+            models.TeamActorAssign.person_id == person_id,
+            models.TeamActorAssign.start <= date_max,
+            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_min))).all()
+        # Primitive Werte innerhalb der Session extrahieren, bevor die Session schließt
+        assign_data = [(a.start, a.end, a.team_id) for a in assigns]
+    result: dict[datetime.date, list[UUID]] = {d: [] for d in dates}
+    for d in dates:
+        for start, end, team_id in assign_data:
+            if start <= d and (end is None or end > d):
+                result[d].append(team_id)
+    return result
+
+
 def create(team_actor_assign: schemas.TeamActorAssignCreate,
            assign_id: UUID | None = None) -> schemas.TeamActorAssignShow:
     log_function_info()

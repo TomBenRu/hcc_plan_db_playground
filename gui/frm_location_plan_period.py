@@ -603,7 +603,8 @@ class ButtonFixedCast(QPushButton):
 class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow,
-                 controller: command_base_classes.ContrExecUndoRedo):
+                 controller: command_base_classes.ContrExecUndoRedo,
+                 events_at_day: list | None = None):
         super().__init__(parent=parent)
 
         signal_handling.handler_location_plan_period.signal_reset_styling_notes_configs.connect(
@@ -620,6 +621,7 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
         self.date = date
         self.location_plan_period = location_plan_period
         self.controller = controller
+        self._prefetched_events = events_at_day
         self.set_stylesheet_and_tooltip()
 
     def set_stylesheet_and_tooltip(self):
@@ -638,10 +640,14 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
+            self._prefetched_events = None  # Bei Reload immer frisch aus DB lesen
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
-        self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
+        if self._prefetched_events is not None:
+            self.events_at_day = self._prefetched_events
+        else:
+            self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
 
     def _check_notes_all_equal(self):
         if not self.events_at_day:
@@ -710,7 +716,9 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
 class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags der Events am Tag
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  location_plan_period: schemas.LocationPlanPeriodShow,
-                 controller: command_base_classes.ContrExecUndoRedo):
+                 controller: command_base_classes.ContrExecUndoRedo,
+                 events_at_day: list | None = None,
+                 location_skill_groups: list | None = None):
         super().__init__(parent=parent)
 
         self.setObjectName(f'skill_groups: {date}')
@@ -727,6 +735,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
         self.date = date
         self.location_plan_period = location_plan_period
         self.controller = controller
+        self._prefetched_events = events_at_day
+        self._prefetched_location_skill_groups = location_skill_groups
         self.set_stylesheet_and_tooltip()
 
     def set_stylesheet_and_tooltip(self):
@@ -745,10 +755,15 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
+            self._prefetched_events = None  # Bei Reload immer frisch aus DB lesen
+            self._prefetched_location_skill_groups = None
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
-        self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
+        if self._prefetched_events is not None:
+            self.events_at_day = self._prefetched_events
+        else:
+            self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
 
     def _check_skill_groups_all_equal(self) -> bool | None:
         if not self.events_at_day:
@@ -764,8 +779,10 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             return
         if len({len(e.skill_groups) for e in self.events_at_day}) > 1:
             return False
-        location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
-            self.location_plan_period.location_of_work.id)
+        location_skill_groups = (self._prefetched_location_skill_groups
+                                 if self._prefetched_location_skill_groups is not None
+                                 else db_services.SkillGroup.get_all_from__location_of_work(
+                                     self.location_plan_period.location_of_work.id))
         return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
                    == sorted(location_skill_groups, key=lambda x: x.skill.id)
                    for e in self.events_at_day)
@@ -868,10 +885,14 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
         self.location_plan_periods = self.plan_period.location_plan_periods
+        active_location_ids = {
+            tla.location_of_work.id
+            for tla in db_services.TeamLocationAssign.get_all_between_dates(
+                plan_period.team.id, plan_period.start, plan_period.end)
+        }
         self.location_id__location_pp = {
             str(loc_pp.location_of_work.id): loc_pp for loc_pp in self.plan_period.location_plan_periods
-            if db_services.TeamLocationAssign.get_all_of_location_between_dates(
-                loc_pp.location_of_work.id, plan_period.team.id, plan_period.start, plan_period.end)
+            if loc_pp.location_of_work.id in active_location_ids
         }
         self.location_id: UUID | None = None
         self.location: schemas.LocationOfWorkShow | None = None
@@ -1169,6 +1190,12 @@ class FrmLocationPlanPeriod(QWidget):
         location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
         cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(
             self.location_plan_period.plan_period.id)
+        all_events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
+        events_by_date: dict = {}
+        for e in all_events:
+            events_by_date.setdefault(e.date, []).append(e)
+        location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
+            self.location_plan_period.location_of_work.id)
 
         # Time of day row labels
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
@@ -1241,10 +1268,13 @@ class FrmLocationPlanPeriod(QWidget):
             bt_fixed_cast = ButtonFixedCast(self, d, 24, self.location_plan_period, cast_groups_of_pp)
             bt_fixed_cast.setDisabled(disable_buttons)
             self.layout.addWidget(bt_fixed_cast, row + 2, col)
-            bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller)
+            bt_notes = ButtonNotes(self, d, 24, self.location_plan_period, self.controller,
+                                   events_at_day=events_by_date.get(d, []))
             bt_notes.setDisabled(disable_buttons)
             self.layout.addWidget(bt_notes, row + 3, col)
-            bt_skills = ButtonSkillGroups(self, d, 24, self.location_plan_period, self.controller)
+            bt_skills = ButtonSkillGroups(self, d, 24, self.location_plan_period, self.controller,
+                                          events_at_day=events_by_date.get(d, []),
+                                          location_skill_groups=location_skill_groups)
             bt_skills.setDisabled(disable_buttons)
             self.layout.addWidget(bt_skills, row + 4, col)
 

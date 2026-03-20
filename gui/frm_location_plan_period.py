@@ -647,12 +647,12 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
-            self._prefetched_events = None  # Bei Reload immer frisch aus DB lesen
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
         if self._prefetched_events is not None:
             self.events_at_day = self._prefetched_events
+            self._prefetched_events = None  # Consume-once: danach immer aus DB laden
         else:
             self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
 
@@ -762,13 +762,12 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
-            self._prefetched_events = None  # Bei Reload immer frisch aus DB lesen
-            self._prefetched_location_skill_groups = None
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
         if self._prefetched_events is not None:
             self.events_at_day = self._prefetched_events
+            self._prefetched_events = None  # Consume-once: danach immer aus DB laden
         else:
             self.events_at_day = db_services.Event.get_from__location_pp_date(self.location_plan_period.id, self.date)
 
@@ -786,10 +785,12 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             return
         if len({len(e.skill_groups) for e in self.events_at_day}) > 1:
             return False
-        location_skill_groups = (self._prefetched_location_skill_groups
-                                 if self._prefetched_location_skill_groups is not None
-                                 else db_services.SkillGroup.get_all_from__location_of_work(
-                                     self.location_plan_period.location_of_work.id))
+        if self._prefetched_location_skill_groups is not None:
+            location_skill_groups = self._prefetched_location_skill_groups
+            self._prefetched_location_skill_groups = None  # Consume-once
+        else:
+            location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
+                self.location_plan_period.location_of_work.id)
         return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
                    == sorted(location_skill_groups, key=lambda x: x.skill.id)
                    for e in self.events_at_day)

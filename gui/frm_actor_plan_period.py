@@ -698,6 +698,7 @@ class ButtonSkills(BaseConfigButton):
         """Lädt und cached die AvailDays am Button-Datum."""
         if self._prefetched_avail_days_show is not None:
             self._cached_avail_days = self._prefetched_avail_days_show
+            self._prefetched_avail_days_show = None  # Consume-once: danach immer aus DB laden
         else:
             self._cached_avail_days = db_services.AvailDay.get_with_skills__actor_pp_date(
                 self.actor_plan_period.id, self.date)

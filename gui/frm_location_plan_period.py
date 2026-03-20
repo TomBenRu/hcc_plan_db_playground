@@ -456,7 +456,8 @@ class ButtonEvent(QPushButton):
 
 class ButtonFixedCast(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 location_plan_period: schemas.LocationPlanPeriodShow, cast_groups_of_pp: list[schemas.CastGroupShow]):
+                 location_plan_period: schemas.LocationPlanPeriodShow,
+                 cast_groups_of_pp: list[schemas.CastGroupForButton]):
         super().__init__(parent=parent)
 
         signal_handling.handler_location_plan_period.signal_reload_location_pp__event_configs.connect(
@@ -474,16 +475,19 @@ class ButtonFixedCast(QPushButton):
         self.parent = parent
         self.location_plan_period = location_plan_period
         self.date = date
-        self.cast_groups_at_day = [c for c in cast_groups_of_pp if c.event
-                                   and c.event.location_plan_period.id == self.location_plan_period.id
-                                   and c.event.date == self.date]
+        self.cast_groups_at_day: list[schemas.CastGroupForButton] = [
+            c for c in cast_groups_of_pp if c.event
+            and c.event.location_plan_period_id == self.location_plan_period.id
+            and c.event.date == self.date]
         self.setObjectName(f'fixed_cast: {date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
         self.setMinimumHeight(width_height)
 
-        self.set_stylesheet_and_tooltip()
+        # Prefetched Daten bereits gesetzt – kein DB-Reload nötig
+        self.set_stylesheet()
+        self.set_tooltip()
 
     @Slot(signal_handling.DataLocationPlanPeriodDate)
     def reload_cast_groups_at_day(self, data: signal_handling.DataLocationPlanPeriodDate = None):
@@ -498,7 +502,7 @@ class ButtonFixedCast(QPushButton):
                     return
             if data.date is not None and data.date != self.date:
                 return
-        self.cast_groups_at_day = db_services.CastGroup.get_all_from__location_plan_period_at_date(
+        self.cast_groups_at_day = db_services.CastGroup.get_all_for_button__location_plan_period_at_date(
             self.location_plan_period.id, self.date)
 
     def check_fixed_cast__eq_to__local_pp(self):
@@ -566,7 +570,10 @@ class ButtonFixedCast(QPushButton):
             )
             return
 
-        cast_group = next((cg for cg in self.cast_groups_at_day if cg.fixed_cast), self.cast_groups_at_day[0])
+        # Für den Dialog volle CastGroupShow laden (benötigt parent_groups, cast_rule etc.)
+        cast_groups_show = db_services.CastGroup.get_all_from__location_plan_period_at_date(
+            self.location_plan_period.id, self.date)
+        cast_group = next((cg for cg in cast_groups_show if cg.fixed_cast), cast_groups_show[0])
         dlg = DlgFixedCastBuilderCastGroup(self.parent, cast_group, self.location_plan_period).build()
         if dlg.exec():
             plan_period = self.location_plan_period.plan_period
@@ -575,7 +582,7 @@ class ButtonFixedCast(QPushButton):
             ):
                 return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
-            for cg in self.cast_groups_at_day:
+            for cg in cast_groups_show:
                 cast_group_commands.UpdateFixedCast(cg.id, dlg.fixed_cast_simplified,
                                                    dlg.object_with_fixed_cast.fixed_cast_only_if_available).execute()
             self.set_stylesheet_and_tooltip()
@@ -1188,7 +1195,7 @@ class FrmLocationPlanPeriod(QWidget):
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
         location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
-        cast_groups_of_pp = db_services.CastGroup.get_all_from__plan_period(
+        cast_groups_of_pp = db_services.CastGroup.get_all_for_button__plan_period(
             self.location_plan_period.plan_period.id)
         all_events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
         events_by_date: dict = {}

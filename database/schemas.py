@@ -770,6 +770,31 @@ class CastGroupShow(CastGroup):
         return [t for t in values]
 
 
+class EventForCastGroupButton(BaseModel):
+    """Minimales Event-Schema für CastGroupForButton – nur FK + date, kein Relationship-Loading."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    date: datetime.date
+    location_plan_period_id: UUID  # Direkt-FK statt Relationship – spart joinedload
+
+
+class CastGroupForButton(BaseModel):
+    """Minimales Projektionsschema für ButtonFixedCast.
+
+    Enthält nur die für Styling und Tooltip benötigten Felder.
+    Verzichtet auf parent_groups, child_groups, cast_rule, plan_period-Chains
+    und nutzt location_plan_period_id als FK statt Relationship in Event.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    fixed_cast: Optional[str]
+    fixed_cast_only_if_available: bool = False
+    prefer_fixed_cast_events: bool = False
+    event: Optional[EventForCastGroupButton]
+
+
 class CastRuleCreate(BaseModel):
     name: str
     rule: Optional[str] = None

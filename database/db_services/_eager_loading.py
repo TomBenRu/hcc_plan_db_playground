@@ -203,3 +203,91 @@ def avail_day_show_options() -> list:
         partner_prefs_person, partner_prefs_partner, partner_prefs_low,
         skills,
     ]
+
+
+def cast_group_show_options() -> list:
+    """Gibt SQLAlchemy Loader-Optionen für CastGroupShow-Objekte zurück.
+
+    Abdeckt alle Relationship-Pfade, die schemas.CastGroupShow.model_validate()
+    traversiert:
+    - plan_period → team → project + dispatcher
+    - event → location_plan_period → plan_period → team, location_of_work → address + project
+    - event → time_of_day → time_of_day_enum
+    - event → flags
+    - parent_groups + child_groups → plan_period → team
+    - cast_rule → project
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    # ── plan_period (M:1) → team → project + dispatcher ──────────────────────
+    pp_team = (
+        joinedload(models.CastGroup.plan_period)
+        .joinedload(models.PlanPeriod.team)
+    )
+    pp_team_project = (
+        joinedload(models.CastGroup.plan_period)
+        .joinedload(models.PlanPeriod.team)
+        .joinedload(models.Team.project)
+    )
+    pp_team_dispatcher = (
+        joinedload(models.CastGroup.plan_period)
+        .joinedload(models.PlanPeriod.team)
+        .joinedload(models.Team.dispatcher)
+    )
+
+    # ── event (1:1, optional) ─────────────────────────────────────────────────
+    ev = joinedload(models.CastGroup.event)
+
+    # event → location_plan_period → plan_period → team → project
+    ev_lpp_pp_team = (
+        ev.joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team)
+        .joinedload(models.Team.project)
+    )
+    # event → location_plan_period → location_of_work → address + project
+    ev_lpp_low_address = (
+        ev.joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.location_of_work)
+        .joinedload(models.LocationOfWork.address)
+    )
+    ev_lpp_low_project = (
+        ev.joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.location_of_work)
+        .joinedload(models.LocationOfWork.project)
+    )
+    # event → time_of_day → time_of_day_enum
+    ev_tod = (
+        ev.joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum)
+    )
+    # event → flags (M:N)
+    ev_flags = ev.selectinload(models.Event.flags)
+
+    # ── parent_groups + child_groups (M:N) → plan_period → team ──────────────
+    parent_pp_team = (
+        selectinload(models.CastGroup.parent_groups)
+        .joinedload(models.CastGroup.plan_period)
+        .joinedload(models.PlanPeriod.team)
+        .joinedload(models.Team.project)
+    )
+    child_pp_team = (
+        selectinload(models.CastGroup.child_groups)
+        .joinedload(models.CastGroup.plan_period)
+        .joinedload(models.PlanPeriod.team)
+        .joinedload(models.Team.project)
+    )
+
+    # ── cast_rule (M:1, optional) → project ───────────────────────────────────
+    cast_rule_project = (
+        joinedload(models.CastGroup.cast_rule)
+        .joinedload(models.CastRule.project)
+    )
+
+    return [
+        pp_team, pp_team_project, pp_team_dispatcher,
+        ev_lpp_pp_team, ev_lpp_low_address, ev_lpp_low_project,
+        ev_tod, ev_flags,
+        parent_pp_team, child_pp_team,
+        cast_rule_project,
+    ]

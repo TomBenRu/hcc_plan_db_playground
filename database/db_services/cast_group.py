@@ -9,13 +9,14 @@ wiederherzustellen.
 import datetime
 from uuid import UUID
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import cast_group_show_options
 
 
 def get(cast_group_id: UUID) -> schemas.CastGroupShow:
@@ -25,8 +26,40 @@ def get(cast_group_id: UUID) -> schemas.CastGroupShow:
 
 def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.CastGroupShow]:
     with get_session() as session:
-        return [schemas.CastGroupShow.model_validate(cg)
-                for cg in session.get(models.PlanPeriod, plan_period_id).cast_groups]
+        stmt = (select(models.CastGroup)
+                .where(models.CastGroup.plan_period_id == plan_period_id)
+                .options(*cast_group_show_options()))
+        cast_groups = session.exec(stmt).unique().all()
+        return [schemas.CastGroupShow.model_validate(cg) for cg in cast_groups]
+
+
+def get_all_for_button__plan_period(plan_period_id: UUID) -> list[schemas.CastGroupForButton]:
+    """Lädt alle CastGroups eines PlanPeriods als minimales CastGroupForButton-Schema.
+
+    Verwendet nur selectinload(event) ohne tiefe Relationship-Chains – spart
+    parent_groups, child_groups, cast_rule, plan_period-Ketten vollständig ein.
+    Für ButtonFixedCast geeignet, da nur id, fixed_cast* und event.location_plan_period_id
+    + event.date benötigt werden.
+    """
+    with get_session() as session:
+        stmt = (select(models.CastGroup)
+                .where(models.CastGroup.plan_period_id == plan_period_id)
+                .options(selectinload(models.CastGroup.event)))
+        cast_groups = session.exec(stmt).all()
+        return [schemas.CastGroupForButton.model_validate(cg) for cg in cast_groups]
+
+
+def get_all_for_button__location_plan_period_at_date(
+        location_plan_period_id: UUID, date: datetime.date) -> list[schemas.CastGroupForButton]:
+    """Minimale CastGroupForButton-Variante für ButtonFixedCast-Reload nach Signalauslösung."""
+    with get_session() as session:
+        stmt = (select(models.CastGroup)
+                .join(models.Event)
+                .where(models.Event.date == date,
+                       models.Event.location_plan_period_id == location_plan_period_id)
+                .options(selectinload(models.CastGroup.event)))
+        cgs = session.exec(stmt).all()
+        return [schemas.CastGroupForButton.model_validate(cg) for cg in cgs]
 
 
 def get_all_from__location_plan_period_at_date(

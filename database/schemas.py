@@ -503,6 +503,22 @@ class AvailDayShow(AvailDay):
         return [t for t in values]
 
 
+class AvailDayWithSkills(BaseModel):
+    """Minimales Projektionsschema für ButtonSkills – enthält nur die für den Skill-Vergleich
+    benötigten Felder. Reduziert Pydantic-Validierungsoverhead gegenüber AvailDayShow drastisch."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    date: datetime.date
+    prep_delete: Optional[datetime.datetime] = None
+    skills: list['Skill']
+
+    @field_validator('skills')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
 class TimeOfDayCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True, revalidate_instances='always')
     # id: UUID | None = None

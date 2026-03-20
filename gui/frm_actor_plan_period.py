@@ -60,7 +60,7 @@ class ButtonAvailDay(QPushButton):
 
         self.set_stylesheet()
 
-        self._setup_context_menu()
+        self.context_menu: QMenu | None = None  # Lazy – wird erst beim ersten Rechtsklick aufgebaut
 
         # self.actions = []
         # self.create_actions()
@@ -119,11 +119,15 @@ class ButtonAvailDay(QPushButton):
         self.context_menu.addAction(self.action_skills)
 
     def contextMenuEvent(self, pos):
+        if self.context_menu is None:
+            self._setup_context_menu()
         self.context_menu.exec(pos.globalPos())
 
     def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
         self.actor_plan_period = actor_plan_period
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
+        if self.context_menu is None:
+            return  # Noch nie geöffnet – kein Reset nötig
         for action in self.context_menu.actions():
             self.context_menu.removeAction(action)
         self._setup_context_menu()
@@ -609,10 +613,10 @@ class ButtonSkills(BaseConfigButton):
 
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
                  actor_plan_period: schemas.ActorPlanPeriodShow,
-                 avail_days_show: list[schemas.AvailDayShow] | None = None,
+                 avail_days_show: list[schemas.AvailDayWithSkills] | None = None,
                  person_skills: list | None = None):
         # Eigene Attribute vor super().__init__() setzen
-        self._cached_avail_days: list[schemas.AvailDayShow] = []
+        self._cached_avail_days: list[schemas.AvailDayWithSkills] = []
         self._prefetched_avail_days_show = avail_days_show
         self._prefetched_person_skills = person_skills
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -695,7 +699,7 @@ class ButtonSkills(BaseConfigButton):
         if self._prefetched_avail_days_show is not None:
             self._cached_avail_days = self._prefetched_avail_days_show
         else:
-            self._cached_avail_days = db_services.AvailDay.get_from__actor_pp_date(
+            self._cached_avail_days = db_services.AvailDay.get_with_skills__actor_pp_date(
                 self.actor_plan_period.id, self.date)
 
     def _check_skills_all_equal(self) -> bool | None:
@@ -754,7 +758,9 @@ class ButtonSkills(BaseConfigButton):
                 self, self.tr('Skills for the day'),
                 self.tr('No availabilities exist for %s') % date_to_string(self.date))
             return
-        dialog_avail_day = next((ad for ad in self._cached_avail_days if ad.skills), self._cached_avail_days[0])
+        # Für den Dialog volle AvailDayShow laden (benötigt actor_plan_period.person, time_of_day, project)
+        avail_days_show = db_services.AvailDay.get_from__actor_pp_date(self.actor_plan_period.id, self.date)
+        dialog_avail_day = next((ad for ad in avail_days_show if ad.skills), avail_days_show[0])
         dlg = frm_skills.DlgSelectSkills(self, dialog_avail_day)
         if dlg.exec():
             plan_period = self.actor_plan_period.plan_period
@@ -765,7 +771,7 @@ class ButtonSkills(BaseConfigButton):
                 return
 
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            for avail_day in self._cached_avail_days:
+            for avail_day in avail_days_show:
                 if avail_day.id == dialog_avail_day.id:
                     continue  # bereits durch den Dialog bearbeitet, Befehle schon im Undo-Stack
                 for skill in avail_day.skills:
@@ -795,6 +801,7 @@ class FrmTabActorPlanPeriods(QWidget):
         signal_handling.handler_actor_plan_period.signal_reload_app_notes_in_app_tab_widget.connect(self.reload_actor_plan_period_notes)
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
+        self.team = db_services.Team.get(plan_period.team.id)
         self.actor_plan_periods = self.plan_period.actor_plan_periods
         active_person_ids = db_services.TeamActorAssign.get_all_actor_ids_between_dates(
             plan_period.team.id, plan_period.start, plan_period.end)
@@ -946,7 +953,7 @@ class FrmTabActorPlanPeriods(QWidget):
             f'Verfügbarkeiten: {actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
         if self.frame_availables:
             self.delete_actor_plan_period_widgets()
-        self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu)
+        self.frame_availables = FrmActorPlanPeriod(self, actor_plan_period_show, self.side_menu, self.team)
         self.scroll_area_availables.setWidget(self.frame_availables)
         self.scroll_area_availables.setMinimumHeight(10000)  # brauche ich seltsamerweise, damit die Scrollarea expandieren kann.
         self.scroll_area_availables.setMinimumHeight(0)
@@ -997,7 +1004,7 @@ class FrmTabActorPlanPeriods(QWidget):
 
 class FrmActorPlanPeriod(QWidget):
     def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodShow,
-                 side_menu: side_menu.SlideInMenu):
+                 side_menu: side_menu.SlideInMenu, team: schemas.TeamShow):
         super().__init__(parent)
 
         self.setContentsMargins(0, 0, 0, 10)
@@ -1017,6 +1024,7 @@ class FrmActorPlanPeriod(QWidget):
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
+        self.team = team
         self.t_o_d_standards: list[schemas.TimeOfDay] = []
         self.t_o_d_enums: list[schemas.TimeOfDayEnum] = []
         self.days: list[datetime.date] = []
@@ -1123,7 +1131,7 @@ class FrmActorPlanPeriod(QWidget):
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Umsetzung automatisch über Group-Mode.
         person = self.actor_plan_period.person
-        team = db_services.Team.get(self.actor_plan_period.team.id)
+        team = self.team
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
 
@@ -1172,9 +1180,10 @@ class FrmActorPlanPeriod(QWidget):
         self.layout.addWidget(bt_skills_reset_all, row + 5, 0)
 
         team_uuids_by_date = db_services.TeamActorAssign.get_all_teams_at_dates(person.id, self.days)
-        all_avail_days_show = db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
+        all_avail_days_with_skills = db_services.AvailDay.get_all_with_skills__actor_plan_period(
+            self.actor_plan_period.id)
         avail_days_show_by_date: dict = {}
-        for avd in all_avail_days_show:
+        for avd in all_avail_days_with_skills:
             avail_days_show_by_date.setdefault(avd.date, []).append(avd)
         person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
         for col, d in enumerate(self.days, start=1):

@@ -9,12 +9,14 @@ Bietet außerdem batch-optimierte Abfragen für den Solver.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import avail_day_show_options
 
 
 def get(avail_day_id: UUID) -> schemas.AvailDayShow:
@@ -65,9 +67,40 @@ def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.AvailDayShow
 
 def get_all_from__actor_plan_period(actor_plan_period_id: UUID) -> list[schemas.AvailDayShow]:
     with get_session() as session:
-        ads = session.exec(select(models.AvailDay).where(
-            models.AvailDay.actor_plan_period_id == actor_plan_period_id)).all()
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.actor_plan_period_id == actor_plan_period_id)
+                .options(*avail_day_show_options()))
+        ads = session.exec(stmt).unique().all()
         return [schemas.AvailDayShow.model_validate(ad) for ad in ads]
+
+
+def get_with_skills__actor_pp_date(actor_plan_period_id: UUID, date: datetime.date) -> list[schemas.AvailDayWithSkills]:
+    """Lädt AvailDays eines ActorPlanPeriods an einem bestimmten Datum – nur mit Skills.
+
+    Fallback-Variante für ButtonSkills ohne Prefetch (z.B. nach Reload einzelner Buttons).
+    """
+    with get_session() as session:
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.actor_plan_period_id == actor_plan_period_id,
+                       models.AvailDay.date == date)
+                .options(selectinload(models.AvailDay.skills)))
+        ads = session.exec(stmt).all()
+        return [schemas.AvailDayWithSkills.model_validate(ad) for ad in ads]
+
+
+def get_all_with_skills__actor_plan_period(actor_plan_period_id: UUID) -> list[schemas.AvailDayWithSkills]:
+    """Lädt alle AvailDays eines ActorPlanPeriods mit nur Skills-Daten.
+
+    Verwendet das schlanke AvailDayWithSkills-Schema statt AvailDayShow,
+    um Pydantic-Validierungsoverhead für unbenötigte Nested-Schemas zu vermeiden.
+    Geeignet für ButtonSkills, das ausschließlich .skills benötigt.
+    """
+    with get_session() as session:
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.actor_plan_period_id == actor_plan_period_id)
+                .options(selectinload(models.AvailDay.skills)))
+        ads = session.exec(stmt).all()
+        return [schemas.AvailDayWithSkills.model_validate(ad) for ad in ads]
 
 
 def get_all_from__plan_period_date(plan_period_id: UUID, date: datetime.date) -> list[schemas.AvailDayShow]:

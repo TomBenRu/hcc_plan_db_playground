@@ -1,7 +1,11 @@
 """Datenbank-Engine und Session-Management (SQLModel / SQLAlchemy 2.x).
 
 Ersetzt die bisherige PonyORM-Initialisierung.
-Wird beim Import ausgeführt — erzeugt Engine, erstellt Tabellen und registriert Event Listeners.
+Wird beim Import ausgeführt — erzeugt Engine und registriert Event Listeners.
+
+Datenbankauswahl (Priorität):
+    1. Env-Var DATABASE_URL → PostgreSQL (render.com oder lokale PG-Instanz)
+    2. Fallback → SQLite unter dem plattformspezifischen AppData-Pfad
 
 Verwendung in Services:
     from database.database import get_session
@@ -15,9 +19,9 @@ import os
 from contextlib import contextmanager
 from collections.abc import Generator
 
+from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel, create_engine
 
-from configuration.project_paths import curr_user_path_handler
 from database.event_listeners import register_listeners
 
 # Alle Modelle importieren, damit SQLModel.metadata vollständig ist
@@ -25,21 +29,33 @@ from database.models import *  # noqa: F401, F403
 
 # ── Engine-Konfiguration ─────────────────────────────────────────────────────
 
-db_folder = curr_user_path_handler.get_config().db_file_path
-db_path = os.path.join(db_folder, "database.sqlite")
+# .env laden (nur falls Vars noch nicht gesetzt — explizite Env-Vars haben Vorrang)
+load_dotenv()
+_database_url = os.environ.get("DATABASE_URL")
 
-if not os.path.exists(db_folder):
-    os.makedirs(db_folder)
+if _database_url:
+    # PostgreSQL: render.com setzt DATABASE_URL automatisch
+    engine = create_engine(_database_url, echo=False)
+else:
+    # SQLite-Fallback für lokale Entwicklung (kein DATABASE_URL gesetzt)
+    from configuration.project_paths import curr_user_path_handler
 
-engine = create_engine(
-    f"sqlite:///{db_path}",
-    echo=False,
-    connect_args={"check_same_thread": False},
-)
+    db_folder = curr_user_path_handler.get_config().db_file_path
+    db_path = os.path.join(db_folder, "database.sqlite")
 
-# ── Tabellen erstellen & Listeners registrieren ──────────────────────────────
+    if not os.path.exists(db_folder):
+        os.makedirs(db_folder)
 
-SQLModel.metadata.create_all(engine)
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        echo=False,
+        connect_args={"check_same_thread": False},
+    )
+    # SQLite-Fallback: Tabellen direkt anlegen (kein Alembic-Deployment)
+    SQLModel.metadata.create_all(engine)
+
+# ── Listeners registrieren ───────────────────────────────────────────────────
+
 register_listeners()
 
 

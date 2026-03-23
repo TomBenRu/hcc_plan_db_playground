@@ -1,0 +1,29 @@
+[project]
+name = "hcc-plan-gui"
+version = "0.1.0"
+description = "Desktop planning tool (PySide6)"
+requires-python = ">=3.12"
+dependencies = [
+    "hcc-plan",
+    "google-api-python-client>=2.149.0",
+    "google-auth-oauthlib>=1.2.1",
+    "google-auth>=2.35.0",
+    "httplib2>=0.22.0",
+    "keyring>=25.4",
+    "openpyxl>=3.0",
+    "ortools>=9.11.4210",
+    "pandas>=2.2",
+    "pyside6>=6.8",
+    "sympy>=1.13",
+    "xlsxwriter>=3.2",
+]
+
+[dependency-groups]
+dev = [
+    "auto-py-to-exe>=2.5",
+    "line-profiler-pycharm>=1.2.0",
+    "PySide6-stubs",
+]
+
+[tool.uv.sources]
+hcc-plan = {workspace = true}

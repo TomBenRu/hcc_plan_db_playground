@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    /* ── Hintergrundmuster ──────────────────────────────────────── */
+    .dash-bg {
+        background-color: #F8FAFC;
+        background-image:
+            repeating-linear-gradient(0deg,   transparent, transparent 39px, rgba(148,163,184,0.12) 39px, rgba(148,163,184,0.12) 40px),
+            repeating-linear-gradient(90deg,  transparent, transparent 39px, rgba(148,163,184,0.12) 39px, rgba(148,163,184,0.12) 40px);
+    }
+
+    /* ── Kachel-Animations-Setup ───────────────────────────────── */
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.4s ease-out both; }
+
+    /* ── Tile ───────────────────────────────────────────────────── */
+    .tile {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.375rem 1.5rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .tile::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: var(--tile-color);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.22s ease;
+    }
+    .tile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+        border-color: var(--tile-color);
+    }
+    .tile:hover::before { transform: scaleX(1); }
+
+    .tile-icon {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 8px;
+        background: var(--tile-color-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .tile-icon svg { color: var(--tile-color); }
+
+    .tile-arrow {
+        margin-left: auto;
+        color: #CBD5E1;
+        transition: transform 0.18s ease, color 0.18s ease;
+    }
+    .tile:hover .tile-arrow {
+        transform: translateX(4px);
+        color: var(--tile-color);
+    }
+</style>
+{% endblock %}
+
+{% block nav %}
+    {% include "partials/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen dash-bg">
+<div class="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+
+    {# ── Begrüßung ─────────────────────────────────────────────────────────── #}
+    <div class="mb-10 anim" style="animation-delay: 0.05s">
+        <p class="text-slate-400 text-xs uppercase tracking-widest font-medium mb-2">{{ today }}</p>
+        <h1 class="font-display text-3xl sm:text-4xl font-light text-slate-900 leading-tight">
+            Herzlich willkommen,<br>
+            <em class="not-italic font-semibold text-navy">{{ display_name }}</em>
+        </h1>
+        <p class="mt-2 text-slate-400 text-sm">Wählen Sie einen Bereich, mit dem Sie arbeiten möchten.</p>
+    </div>
+
+    {# ── Rollen-Sektionen ──────────────────────────────────────────────────── #}
+    {% set ns = namespace(tile_index=0) %}
+
+    {% for section in sections %}
+    <div class="mb-10 anim" style="animation-delay: {{ 0.1 + loop.index0 * 0.06 }}s">
+
+        {# Sektions-Überschrift mit farbigem Akzent-Punkt #}
+        <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 rounded-full" style="background: {{ section.color }}"></div>
+            <h2 class="text-xs uppercase tracking-widest font-semibold text-slate-400">{{ section.label }}</h2>
+        </div>
+
+        {# Kachel-Raster: 1 Spalte → 2 (sm) → 3 (lg) #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {% for tile in section.tiles %}
+            {% set ns.tile_index = ns.tile_index + 1 %}
+            <a href="{{ tile.url }}"
+               class="tile anim"
+               style="--tile-color: {{ tile.color }};
+                      --tile-color-light: {{ tile.color_light }};
+                      animation-delay: {{ 0.12 + ns.tile_index * 0.04 }}s">
+
+                {# Icon + Pfeil in einer Zeile #}
+                <div class="flex items-start justify-between">
+                    <div class="tile-icon">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                             stroke-width="1.75" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ tile.icon }}"/>
+                        </svg>
+                    </div>
+                    <div class="tile-arrow mt-0.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                {# Text #}
+                <div>
+                    <p class="font-medium text-slate-800 text-[15px] leading-snug">{{ tile.title }}</p>
+                    <p class="text-slate-400 text-xs mt-0.5 leading-relaxed">{{ tile.desc }}</p>
+                </div>
+
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {# Fallback: keine Rollen #}
+    {% if not sections %}
+    <div class="text-center py-20 text-slate-400">
+        <svg class="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-sm">Ihr Konto hat noch keine Berechtigungen.<br>Bitte wenden Sie sich an Ihren Administrator.</p>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

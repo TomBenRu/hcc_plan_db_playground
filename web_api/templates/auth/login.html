@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Anmelden — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    /* ── Hintergrund-Raster (linkes Panel) ─────────────────── */
+    .grid-bg {
+        background-image:
+            repeating-linear-gradient(0deg,   transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px),
+            repeating-linear-gradient(90deg,  transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px);
+    }
+
+    /* ── Schichtblock-Animationen (gestaffelt) ─────────────── */
+    @keyframes shiftPulse {
+        0%, 100% { opacity: var(--base-opacity, 0.65); }
+        50%       { opacity: calc(var(--base-opacity, 0.65) + 0.25); }
+    }
+    .shift { animation: shiftPulse 4s ease-in-out infinite; }
+    .s1  { animation-delay: 0.0s;  --base-opacity: 0.70; }
+    .s2  { animation-delay: 0.5s;  --base-opacity: 0.55; }
+    .s3  { animation-delay: 1.0s;  --base-opacity: 0.65; }
+    .s4  { animation-delay: 1.5s;  --base-opacity: 0.60; }
+    .s5  { animation-delay: 0.8s;  --base-opacity: 0.50; }
+    .s6  { animation-delay: 0.3s;  --base-opacity: 0.70; }
+    .s7  { animation-delay: 1.2s;  --base-opacity: 0.55; }
+    .s8  { animation-delay: 0.6s;  --base-opacity: 0.65; }
+    .s9  { animation-delay: 1.8s;  --base-opacity: 0.60; }
+    .s10 { animation-delay: 0.2s;  --base-opacity: 0.45; }
+    .s11 { animation-delay: 1.4s;  --base-opacity: 0.65; }
+    .s12 { animation-delay: 0.9s;  --base-opacity: 0.55; }
+
+    /* ── Formular-Einblendung ──────────────────────────────── */
+    .animate-fade-up { animation: fadeUp 0.5s ease-out both; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Input-Fokus-Ring ──────────────────────────────────── */
+    .field-input {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #0f172a;
+        background: #fff;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        outline: none;
+    }
+    .field-input::placeholder { color: #94a3b8; }
+    .field-input:focus {
+        border-color: #F97316;
+        box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex">
+
+    {# ── Linkes Panel: Branding + Schicht-Visualisierung ─────────────────── #}
+    <div class="hidden lg:flex lg:w-[46%] flex-col justify-between p-12 bg-navy grid-bg relative overflow-hidden">
+
+        {# Leuchtendes Oval im Hintergrund #}
+        <div class="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full"
+             style="background: radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 70%);"></div>
+        <div class="pointer-events-none absolute bottom-0 right-0 w-[360px] h-[360px] rounded-full"
+             style="background: radial-gradient(circle, rgba(56,189,248,0.07) 0%, transparent 70%);"></div>
+
+        {# Marke #}
+        <div class="relative z-10 flex items-center gap-3">
+            <div class="flex flex-col gap-[3px]">
+                <div class="w-1.5 h-5 bg-brand rounded-full"></div>
+                <div class="w-1.5 h-3 bg-brand/40 rounded-full"></div>
+            </div>
+            <span class="font-display text-white text-2xl font-light tracking-wide">hcc plan</span>
+        </div>
+
+        {# Schicht-Visualisierung (SVG Wochenplan) #}
+        <div class="relative z-10 flex flex-col items-start gap-3 my-auto">
+            <p class="text-slate-500 text-xs font-light uppercase tracking-[0.18em] mb-1">Aktuelle Woche</p>
+
+            <svg viewBox="0 0 284 230" fill="none" xmlns="http://www.w3.org/2000/svg"
+                 class="w-full max-w-sm" aria-hidden="true">
+
+                {# Stundenlinien (sehr dezent) #}
+                {% for i in range(0, 231, 23) %}
+                <line x1="0" y1="{{ i }}" x2="284" y2="{{ i }}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                {% endfor %}
+
+                {# Tagesspalten: Breite 38px, Gap 6px → (38+6)*6 = 264, Offset je Tag = i*44 #}
+
+                {# Montag (x=0) — Frühdienst + Spätdienst #}
+                <rect class="shift s1" x="0"   y="23"  width="38" height="92"  rx="4" fill="#F97316"/>
+                <rect class="shift s2" x="0"   y="138" width="38" height="92"  rx="4" fill="#38BDF8"/>
+
+                {# Dienstag (x=44) — Frühdienst + Nachmittag #}
+                <rect class="shift s3" x="44"  y="0"   width="38" height="69"  rx="4" fill="#2DD4BF"/>
+                <rect class="shift s4" x="44"  y="92"  width="38" height="115" rx="4" fill="#F97316"/>
+
+                {# Mittwoch (x=88) — Langer Block #}
+                <rect class="shift s5" x="88"  y="46"  width="38" height="138" rx="4" fill="#60A5FA"/>
+
+                {# Donnerstag (x=132) — Zwei Dienste #}
+                <rect class="shift s6" x="132" y="23"  width="38" height="115" rx="4" fill="#2DD4BF"/>
+                <rect class="shift s7" x="132" y="161" width="38" height="69"  rx="4" fill="#F97316"/>
+
+                {# Freitag (x=176) — Früh + Spät #}
+                <rect class="shift s8" x="176" y="0"   width="38" height="92"  rx="4" fill="#60A5FA"/>
+                <rect class="shift s9" x="176" y="115" width="38" height="92"  rx="4" fill="#F97316"/>
+
+                {# Samstag (x=220) — Kurzschicht #}
+                <rect class="shift s10" x="220" y="46"  width="38" height="69"  rx="4" fill="#2DD4BF"/>
+                <rect class="shift s11" x="220" y="138" width="38" height="46"  rx="4" fill="#F97316"/>
+
+                {# Sonntag (x=264) — Rufbereitschaft #}
+                <rect class="shift s12" x="264" y="69"  width="20" height="92"  rx="4" fill="#94A3B8"/>
+
+                {# Wochentag-Labels #}
+                {% for label, x in [('Mo', 6), ('Di', 50), ('Mi', 94), ('Do', 138), ('Fr', 182), ('Sa', 226), ('So', 267)] %}
+                <text x="{{ x }}" y="222" fill="rgba(255,255,255,0.25)" font-size="9" font-family="Outfit, sans-serif" font-weight="400">{{ label }}</text>
+                {% endfor %}
+            </svg>
+
+            {# Legende #}
+            <div class="flex items-center gap-5 mt-2">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-[#F97316]"></div>
+                    <span class="text-slate-500 text-[11px]">Früh/Spät</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-[#2DD4BF]"></div>
+                    <span class="text-slate-500 text-[11px]">Nacht</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2 h-2 rounded-full bg-[#60A5FA]"></div>
+                    <span class="text-slate-500 text-[11px]">Ganztag</span>
+                </div>
+            </div>
+        </div>
+
+        {# Tagline #}
+        <div class="relative z-10">
+            <p class="text-slate-500 text-sm font-light leading-relaxed">
+                Einsatzplanung.<br>
+                <em class="font-display text-slate-400 not-italic">Präzise und menschlich.</em>
+            </p>
+        </div>
+    </div>
+
+    {# ── Rechtes Panel: Login-Formular ───────────────────────────────────── #}
+    <div class="flex-1 flex items-center justify-center bg-white px-8 py-12">
+        <div class="w-full max-w-sm animate-fade-up">
+
+            {# Mobile-Logo (nur sichtbar wenn linkes Panel versteckt) #}
+            <div class="flex items-center gap-2 mb-10 lg:hidden">
+                <div class="flex flex-col gap-[3px]">
+                    <div class="w-1 h-4 bg-brand rounded-full"></div>
+                    <div class="w-1 h-2.5 bg-brand/40 rounded-full"></div>
+                </div>
+                <span class="font-display text-navy text-xl font-light">hcc plan</span>
+            </div>
+
+            <h1 class="font-display text-3xl font-semibold text-slate-900 leading-tight mb-1">
+                Willkommen zurück
+            </h1>
+            <p class="text-slate-400 text-sm mb-8">Bitte melden Sie sich mit Ihren Zugangsdaten an.</p>
+
+            {# Fehlermeldung #}
+            {% if error %}
+            <div class="mb-5 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+                <svg class="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <line x1="12" y1="8" x2="12" y2="12" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                </svg>
+                <span class="text-red-700 text-sm">{{ error }}</span>
+            </div>
+            {% endif %}
+
+            {# Login-Formular #}
+            <form method="post"
+                  action="/auth/login{% if next_url %}?next={{ next_url | urlencode }}{% endif %}"
+                  class="space-y-4" id="login-form">
+
+                <div>
+                    <label for="username" class="block text-sm font-medium text-slate-700 mb-1.5">
+                        E-Mail-Adresse
+                    </label>
+                    <input
+                        class="field-input"
+                        type="email"
+                        id="username"
+                        name="username"
+                        autocomplete="email"
+                        required
+                        placeholder="name@organisation.de"
+                        value="{{ prefill_email or '' }}">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Passwort
+                    </label>
+                    <input
+                        class="field-input"
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                        placeholder="••••••••">
+                </div>
+
+                <button
+                    type="submit"
+                    class="mt-2 w-full py-2.5 px-4 bg-brand hover:bg-brand-600 active:bg-brand-700
+                           text-white font-medium text-sm rounded-lg
+                           transition-colors duration-150
+                           focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2
+                           disabled:opacity-60 disabled:cursor-not-allowed"
+                    id="submit-btn">
+                    Anmelden
+                </button>
+            </form>
+
+            {# Footer #}
+            <p class="mt-8 text-center text-xs text-slate-400">
+                Kein Zugang? Bitte wenden Sie sich an Ihren Administrator.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Button während des Absende-Vorgangs deaktivieren
+    document.getElementById('login-form').addEventListener('submit', function () {
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.textContent = 'Anmelden …';
+    });
+</script>
+{% endblock %}

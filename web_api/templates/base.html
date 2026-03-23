@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}hcc plan{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['"Fraunces"', 'Georgia', 'serif'],
+                        'sans':    ['"Outfit"', '"Helvetica Neue"', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand':     '#F97316',
+                        'brand-600': '#EA580C',
+                        'brand-700': '#C2410C',
+                        'navy':      '#0C1628',
+                        'navy-800':  '#111F38',
+                        'navy-700':  '#162846',
+                    },
+                    animation: {
+                        'fade-up': 'fadeUp 0.45s ease-out both',
+                    },
+                    keyframes: {
+                        fadeUp: {
+                            '0%':   { opacity: '0', transform: 'translateY(14px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+
+    <style>
+        /* Tailwind-Klassen für Farben die nicht im Standard-Palette sind */
+        .bg-navy  { background-color: #0C1628; }
+        .text-navy { color: #0C1628; }
+        .border-navy { border-color: #0C1628; }
+        .bg-brand  { background-color: #F97316; }
+        .text-brand { color: #F97316; }
+        .ring-brand { --tw-ring-color: #F97316; }
+        .hover\:bg-brand-600:hover { background-color: #EA580C; }
+        .hover\:bg-brand-700:hover { background-color: #C2410C; }
+
+        /* Subtiles Hintergrund-Raster (Login linkes Panel) */
+        .grid-bg {
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px),
+                repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px);
+        }
+
+        /* Formularfelder */
+        .field-input {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #fff;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            font-family: 'Outfit', sans-serif;
+        }
+        .field-input::placeholder { color: #94a3b8; }
+        .field-input:focus {
+            border-color: #F97316;
+            box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full font-sans antialiased bg-slate-50 text-slate-900">
+
+    {% block nav %}{% endblock %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

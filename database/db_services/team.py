@@ -14,11 +14,16 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import team_show_options
 
 
 def get(team_id: UUID) -> schemas.TeamShow:
     with get_session() as session:
-        return schemas.TeamShow.model_validate(session.get(models.Team, team_id))
+        stmt = (select(models.Team)
+                .where(models.Team.id == team_id)
+                .options(*team_show_options()))
+        team = session.exec(stmt).unique().one()
+        return schemas.TeamShow.model_validate(team)
 
 
 def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.TeamShow | tuple[str, UUID]]:

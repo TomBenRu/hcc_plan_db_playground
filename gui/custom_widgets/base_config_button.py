@@ -54,7 +54,7 @@ class BaseConfigButton(QPushButton):
         parent: QWidget,
         date: datetime.date,
         width_height: int,
-        actor_plan_period: schemas.ActorPlanPeriodShow,
+        actor_plan_period: schemas.ActorPlanPeriodForMask,
         connect_to_avail_configs_signal: bool = True
     ):
         """Initialisiert den Config-Button.
@@ -226,7 +226,7 @@ class BaseConfigButton(QPushButton):
         """
         if data is None:
             # Direkter Aufruf: Lade aus DB
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             self.set_stylesheet()
         elif data.actor_plan_period.id == self.actor_plan_period.id:
             # Signal mit passender ActorPlanPeriod

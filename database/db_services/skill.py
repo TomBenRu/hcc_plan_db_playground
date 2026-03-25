@@ -8,6 +8,7 @@ bevor er endgültig gelöscht werden kann.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -36,6 +37,23 @@ def get(skill_id: UUID) -> schemas.Skill:
 def get_all_from__person(person_id: UUID) -> list[schemas.Skill]:
     with get_session() as session:
         return [schemas.Skill.model_validate(s) for s in session.get(models.Person, person_id).skills]
+
+
+def get_person_skills__plan_period(plan_period_id: UUID) -> dict[UUID, list[schemas.Skill]]:
+    """Lädt Skills aller Personen einer PlanPeriode in einem Batch-Query.
+
+    Ersetzt N einzelne get_all_from__person()-Calls (je ~148ms) durch einen JOIN-Query.
+    Rückgabe: dict[person_id → list[Skill]]
+    """
+    with get_session() as session:
+        persons = session.exec(
+            select(models.Person)
+            .join(models.ActorPlanPeriod,
+                  models.ActorPlanPeriod.person_id == models.Person.id)
+            .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+            .options(selectinload(models.Person.skills))
+        ).unique().all()
+        return {p.id: [schemas.Skill.model_validate(s) for s in p.skills] for p in persons}
 
 
 def get_all_from__project(project_id: UUID) -> list[schemas.Skill]:

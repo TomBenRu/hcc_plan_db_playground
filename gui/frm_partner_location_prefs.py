@@ -26,7 +26,7 @@ def factory_for_put_in_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
     curr_model_name = curr_model.__class__.__name__
     curr_model_name__put_in_command = {
         'PersonShow': person_commands.PutInActorPartnerLocationPref,
-        'ActorPlanPeriodShow': actor_plan_period_commands.PutInActorPartnerLocationPref,
+        'ActorPlanPeriodForMask': actor_plan_period_commands.PutInActorPartnerLocationPref,
         'AvailDay': avail_day_commands.PutInActorPartnerLocationPref,
         'AvailDayShow': avail_day_commands.PutInActorPartnerLocationPref}
 
@@ -43,7 +43,7 @@ def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
     curr_model_name = curr_model.__class__.__name__
     curr_model_name__remove_command = {
         'PersonShow': person_commands.RemoveActorPartnerLocationPref,
-        'ActorPlanPeriodShow': actor_plan_period_commands.RemoveActorPartnerLocationPref,
+        'ActorPlanPeriodForMask': actor_plan_period_commands.RemoveActorPartnerLocationPref,
         'AvailDay': avail_day_commands.RemoveActorPartnerLocationPref,
         'AvailDayShow': avail_day_commands.RemoveActorPartnerLocationPref}
     try:
@@ -58,7 +58,7 @@ def factory_for_remove_prefs(curr_model: schemas.ModelWithPartnerLocPrefs,
 def factory_for_reload_curr_model(curr_model: schemas.ModelWithPartnerLocPrefs) -> Callable:
     curr_model_name = curr_model.__class__.__name__
     curr_model_get = {'PersonShow': db_services.Person.get,
-                      'ActorPlanPeriodShow': db_services.ActorPlanPeriod.get,
+                      'ActorPlanPeriodForMask': db_services.ActorPlanPeriod.get_for_mask,
                       'AvailDay': db_services.AvailDay.get,
                       'AvailDayShow': db_services.AvailDay.get}
     return curr_model_get[curr_model_name]

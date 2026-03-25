@@ -1,4 +1,5 @@
 import datetime
+import functools
 import logging
 from collections import defaultdict
 from itertools import zip_longest
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
 # date_to_string cache:
 _locale_cache = {}
 _position_separator_cache = {}
+
+# Person-Namen-Cache für generate_fixed_cast_clear_text (vermeidet wiederholte DB-Queries)
+_person_name_cache: dict[UUID, str] = {}
 
 
 def get_cached_locale(country: QLocale.Country, language: QLocale.Language) -> QLocale:
@@ -53,6 +57,18 @@ def backtranslate_eval_str(fixed_cast: str, str_for_team: str = 'team'):
     return form
 
 
+def _collect_person_uuids(item_list: list) -> set[UUID]:
+    """Sammelt rekursiv alle Person-UUIDs aus einem backtranslate_eval_str-Ergebnis."""
+    result = set()
+    for item in item_list:
+        if isinstance(item, UUID):
+            result.add(item)
+        elif isinstance(item, list):
+            result.update(_collect_person_uuids(item))
+    return result
+
+
+@functools.lru_cache(maxsize=256)
 def generate_fixed_cast_clear_text(fixed_cast: str | None,
                                    only_if_available: bool = False,
                                    prefer_fixed_cast_events: bool = False):
@@ -65,13 +81,20 @@ def generate_fixed_cast_clear_text(fixed_cast: str | None,
             if isinstance(item, str):
                 clear_list.append(replace_map[item])
             elif isinstance(item, UUID):
-                person = db_services.Person.get(item)
-                clear_list.append(f'{person.f_name} {person.l_name}')
+                clear_list.append(_person_name_cache[item])
             else:
                 clear_list.append(str(generate_recursive(item)))
         return clear_list[0] if len(clear_list) == 1 else '(' + ' '.join(clear_list) + ')'
+
     item = backtranslate_eval_str(fixed_cast)
-    clear_text = generate_recursive(item or [])
+    items = item or []
+
+    # Alle fehlenden Person-UUIDs in einer einzigen Batch-Abfrage laden
+    missing_ids = _collect_person_uuids(items) - _person_name_cache.keys()
+    if missing_ids:
+        _person_name_cache.update(db_services.Person.get_full_names_for_ids(list(missing_ids)))
+
+    clear_text = generate_recursive(items)
     if clear_text.startswith('('):
         clear_text = clear_text[1:]
     if clear_text.endswith(')'):

@@ -14,19 +14,75 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import actor_plan_period_show_options, actor_plan_period_mask_options
+
+
+def get_multiple(actor_plan_period_ids: list[UUID]) -> list[schemas.ActorPlanPeriodShow]:
+    """Lädt mehrere ActorPlanPeriodShow-Objekte in einer Batch-Abfrage.
+
+    Effizient für das Vorabladen mehrerer aktiver ActorPlanPeriods — spart
+    N einzelne get()-Roundtrips durch einen einzigen IN-Query.
+    """
+    if not actor_plan_period_ids:
+        return []
+    with get_session() as session:
+        stmt = (select(models.ActorPlanPeriod)
+                .where(models.ActorPlanPeriod.id.in_(actor_plan_period_ids))
+                .options(*actor_plan_period_show_options()))
+        apps = session.exec(stmt).unique().all()
+        return [schemas.ActorPlanPeriodShow.model_validate(a) for a in apps]
 
 
 def get(actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodShow:
     with get_session() as session:
-        return schemas.ActorPlanPeriodShow.model_validate(session.get(models.ActorPlanPeriod, actor_plan_period_id))
+        stmt = (select(models.ActorPlanPeriod)
+                .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+                .options(*actor_plan_period_show_options()))
+        app = session.exec(stmt).unique().one()
+        return schemas.ActorPlanPeriodShow.model_validate(app)
+
+
+def get_multiple_for_mask(actor_plan_period_ids: list[UUID]) -> list[schemas.ActorPlanPeriodForMask]:
+    """Lädt mehrere ActorPlanPeriodForMask-Objekte in einer Batch-Abfrage.
+
+    Für Hintergrund-Vorladen aller Akteure einer Planperiode — spart N einzelne
+    get_for_mask()-Roundtrips durch einen einzigen IN-Query.
+    """
+    if not actor_plan_period_ids:
+        return []
+    with get_session() as session:
+        stmt = (select(models.ActorPlanPeriod)
+                .where(models.ActorPlanPeriod.id.in_(actor_plan_period_ids))
+                .options(*actor_plan_period_mask_options()))
+        apps = session.exec(stmt).unique().all()
+        return [schemas.ActorPlanPeriodForMask.model_validate(a) for a in apps]
+
+
+def get_for_mask(actor_plan_period_id: UUID) -> schemas.ActorPlanPeriodForMask:
+    """Lädt ActorPlanPeriodForMask für die Masken-Anzeige.
+
+    Verwendet actor_plan_period_mask_options() statt actor_plan_period_show_options().
+    Reduziert SQL-Queries von ~20 auf ~10 pro Aktor-Laden.
+    """
+    with get_session() as session:
+        stmt = (select(models.ActorPlanPeriod)
+                .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+                .options(*actor_plan_period_mask_options()))
+        app = session.exec(stmt).unique().one()
+        return schemas.ActorPlanPeriodForMask.model_validate(app)
 
 
 def get_all_from__plan_period(plan_period_id: UUID, maximal: bool = False) -> list[schemas.ActorPlanPeriod | schemas.ActorPlanPeriodShow]:
     with get_session() as session:
+        if maximal:
+            stmt = (select(models.ActorPlanPeriod)
+                    .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+                    .options(*actor_plan_period_show_options()))
+            apps = session.exec(stmt).unique().all()
+            return [schemas.ActorPlanPeriodShow.model_validate(a) for a in apps]
         apps = session.exec(select(models.ActorPlanPeriod).where(
             models.ActorPlanPeriod.plan_period_id == plan_period_id)).all()
-        schema_cls = schemas.ActorPlanPeriodShow if maximal else schemas.ActorPlanPeriod
-        return [schema_cls.model_validate(a) for a in apps]
+        return [schemas.ActorPlanPeriod.model_validate(a) for a in apps]
 
 
 def get_all_for_solver(plan_period_id: UUID) -> dict[UUID, schemas.ActorPlanPeriodSolver]:

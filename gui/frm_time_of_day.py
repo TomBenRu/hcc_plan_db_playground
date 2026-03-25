@@ -132,10 +132,10 @@ class DlgTimeOfDayEditListBuilderLocation(DlgTimeOfDayEditListBuilderABC):
 
 
 class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC):
-    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodForMask):
         super().__init__(parent=parent, object_with_time_of_days=actor_plan_period)
 
-        self.object_with_time_of_days: schemas.ActorPlanPeriodShow = actor_plan_period.model_copy()
+        self.object_with_time_of_days: schemas.ActorPlanPeriodForMask = actor_plan_period.model_copy()
 
     def _generate_field_values(self):
         self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for planning period, {} {}").format(
@@ -157,7 +157,7 @@ class DlgTimeOfDayEditListBuilderActorPlanPeriod(DlgTimeOfDayEditListBuilderABC)
                                                            self.object_with_time_of_days.id)
 
     def reload_object_with_time_of_days(self):
-        self.object_with_time_of_days = db_services.ActorPlanPeriod.get(self.object_with_time_of_days.id)
+        self.object_with_time_of_days = db_services.ActorPlanPeriod.get_for_mask(self.object_with_time_of_days.id)
 
 
 class DlgTimeOfDayEditListBuilderLocationPlanPeriod(DlgTimeOfDayEditListBuilderABC):

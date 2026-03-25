@@ -37,7 +37,7 @@ VARIATION_WEIGHT_TEXT = {
 }
 
 
-object_with_group_type: TypeAlias = schemas.ActorPlanPeriodShow | schemas.LocationPlanPeriodShow
+object_with_group_type: TypeAlias = schemas.ActorPlanPeriodForMask | schemas.LocationPlanPeriodShow
 group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.EventGroupShow
 date_object_type: TypeAlias = schemas.AvailDayShow | schemas.EventShow
 create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_group_commands.Create]
@@ -125,10 +125,10 @@ class DlgGroupModeBuilderABC(ABC):
 
 
 class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
-    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodForMask):
         super().__init__(parent=parent, object_with_groups=actor_plan_period)
 
-        self.object_with_groups: schemas.ActorPlanPeriodShow = actor_plan_period
+        self.object_with_groups: schemas.ActorPlanPeriodForMask = actor_plan_period
 
     def _generate_field_values(self):
         self.master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.object_with_groups.id)
@@ -146,7 +146,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.num_required_group_field = True
 
     def reload_object_with_groups(self):
-        self.object_with_groups = db_services.ActorPlanPeriod.get(self.object_with_groups.id)
+        self.object_with_groups = db_services.ActorPlanPeriod.get_for_mask(self.object_with_groups.id)
 
     def get_required_avail_day_groups(self, avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:
         return db_services.RequiredAvailDayGroups.get_from__avail_day_group(avail_day_group_id)

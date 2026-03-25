@@ -13,7 +13,6 @@ from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayo
     QMenu, QSpinBox, QWidgetAction
 
 from database import schemas, db_services
-from database.special_schema_requests import get_curr_assignment_of_location
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
     frm_event_planing_rules, frm_num_actors_app
 from gui.custom_widgets import side_menu
@@ -87,13 +86,14 @@ class ButtonEvent(QPushButton):
         self.context_menu = QMenu()
         self.add_context_menu_items()
 
-        self.set_stylesheet()
+        self.setProperty('time_index', str(self.time_of_day.time_of_day_enum.time_index))
 
         self.set_tooltip()
 
     def set_stylesheet(self):
-        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
-                           .replace('<<ObjectName>>', self.objectName()))
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
     
     def get_curr_event(self, state: Literal['checked', 'unchecked'] = 'checked') -> schemas.EventShow | None:
         if (state == 'checked' and self.isChecked()) or (state == 'unchecked' and not self.isChecked()):
@@ -145,9 +145,9 @@ class ButtonEvent(QPushButton):
         for text, slot in actions:
             self.context_menu.addAction(MenuToolbarAction(self, None, text, None, slot))
 
-    def add_spin_box_num_employees(self):
+    def add_spin_box_num_employees(self, nr_actors: int | None = None):
         # Threading-sichere Lösung: Standard QAction mit Dialog statt QWidgetAction
-        current_num = self.get_curr_event().cast_group.nr_actors
+        current_num = nr_actors if nr_actors is not None else self.get_curr_event().cast_group.nr_actors
         action_text = self.tr('Employees: {num_employees}').format(num_employees=current_num)
 
         self.action_num_employees = MenuToolbarAction(self, None, action_text, None, self.show_num_employees_dialog)
@@ -326,9 +326,12 @@ class ButtonEvent(QPushButton):
             )
 
 
-    def set_tooltip(self):
-        event = self.get_curr_event()
-        num_employees = event.cast_group.nr_actors if event else self.location_plan_period.nr_actors
+    def set_tooltip(self, nr_actors: int | None = None):
+        if nr_actors is not None:
+            num_employees = nr_actors
+        else:
+            event = self.get_curr_event()
+            num_employees = event.cast_group.nr_actors if event else self.location_plan_period.nr_actors
         self.setToolTip(
             self.tr('Right click:\n'
                     'Change options for time of day "{time_of_day}" on {date}.\n'
@@ -359,6 +362,7 @@ class ButtonEvent(QPushButton):
         event = db_services.Event.get(event_id)
         if event:
             self.time_of_day = event.time_of_day
+            self.setProperty('time_index', str(self.time_of_day.time_of_day_enum.time_index))
 
     def _update_time_of_day_from_position(self):
         """Aktualisiert die time_of_day des Buttons basierend auf dem Event an dieser Position.
@@ -370,6 +374,7 @@ class ButtonEvent(QPushButton):
             self.location_plan_period.id, self.date, self.time_of_day.time_of_day_enum.time_index)
         if event:
             self.time_of_day = event.time_of_day
+            self.setProperty('time_index', str(self.time_of_day.time_of_day_enum.time_index))
 
     @Slot(object)
     def on_appointment_moved(self, data: signal_handling.DataAppointmentMoved):
@@ -479,7 +484,7 @@ class ButtonFixedCast(QPushButton):
             c for c in cast_groups_of_pp if c.event
             and c.event.location_plan_period_id == self.location_plan_period.id
             and c.event.date == self.date]
-        self.setObjectName(f'fixed_cast: {date}')
+        self.setObjectName(f'fixed_cast_{date}')
         self.setMaximumWidth(width_height)
         self.setMinimumWidth(width_height)
         self.setMaximumHeight(width_height)
@@ -522,24 +527,18 @@ class ButtonFixedCast(QPushButton):
 
     def set_stylesheet(self):
         check_all_equal = self.check_fixed_cast__eq_to__local_pp()
+        _c = widget_styles.buttons.ConfigButtonsInCheckFields
         if check_all_equal is None:
-            self.setStyleSheet(
-                f"ButtonFixedCast {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors}}}"
-                f"ButtonFixedCast::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.standard_colors_disabled}; }}")
+            color, disabled_color = _c.standard_colors, _c.standard_colors_disabled
         elif check_all_equal:
-            self.setStyleSheet(
-                f"ButtonFixedCast {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default}}}"
-                f"ButtonFixedCast::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.all_properties_are_default_disabled}; }}")
+            color, disabled_color = _c.all_properties_are_default, _c.all_properties_are_default_disabled
         else:
-            self.setStyleSheet(
-                f"ButtonFixedCast {{background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different}}}"
-                f"ButtonFixedCast::disabled {{ background-color: "
-                f"{widget_styles.buttons.ConfigButtonsInCheckFields.any_properties_are_different_disabled}; }}")
+            color, disabled_color = _c.any_properties_are_different, _c.any_properties_are_different_disabled
+        name = self.objectName()
+        self.setStyleSheet(
+            f"#{name} {{background-color: {color}; }}"
+            f"#{name}:disabled {{background-color: {disabled_color}; }}"
+        )
 
     def set_tooltip(self):
         if not self.cast_groups_at_day:
@@ -706,7 +705,9 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             return
 
         event = next((e for e in self.events_at_day if e.notes), self.events_at_day[0])
-        dlg = DlgEventNotes(self, event, True)
+        # Vollständiges EventShow für den Dialog laden (einmaliger DB-Call beim Öffnen)
+        event_show = db_services.Event.get(event.id)
+        dlg = DlgEventNotes(self, event_show, True)
         if dlg.exec():
             for event in self.events_at_day:
                 command = event_commands.UpdateNotes(event, dlg.notes)
@@ -787,10 +788,10 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             return False
         if self._prefetched_location_skill_groups is not None:
             location_skill_groups = self._prefetched_location_skill_groups
-            self._prefetched_location_skill_groups = None  # Consume-once
         else:
             location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
                 self.location_plan_period.location_of_work.id)
+            self._prefetched_location_skill_groups = location_skill_groups
         return all(sorted(e.skill_groups, key=lambda x: x.skill.id)
                    == sorted(location_skill_groups, key=lambda x: x.skill.id)
                    for e in self.events_at_day)
@@ -847,7 +848,9 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             return
 
         dialog_event = next((e for e in self.events_at_day if e.skill_groups), self.events_at_day[0])
-        dlg = DlgSkillGroups(self, dialog_event)
+        # Vollständiges EventShow für den Dialog laden (einmaliger DB-Call beim Öffnen des Dialogs)
+        dialog_event_show = db_services.Event.get(dialog_event.id)
+        dlg = DlgSkillGroups(self, dialog_event_show)
         if dlg.exec():
             plan_period = self.location_plan_period.plan_period
             if not warn_and_clear_undo_redo_if_plans_open(
@@ -891,17 +894,27 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 
-        self.plan_period = db_services.PlanPeriod.get(plan_period.id)
-        self.location_plan_periods = self.plan_period.location_plan_periods
+        # Alle Anzeigedaten in einer einzigen DB-Session laden
+        mask_data = db_services.LocationPlanPeriod.get_location_mask_data(plan_period.id)
+
+        self.plan_period_id: UUID = mask_data.plan_period_id
+        self.plan_period_start = mask_data.plan_period_start
+        self.plan_period_end = mask_data.plan_period_end
+        self.team_location_assigns = mask_data.team_location_assigns
+        self.cast_groups_of_pp: list[schemas.CastGroupForButton] = mask_data.cast_groups_of_pp
+        self.lpp_id__events_for_buttons: dict[UUID, list[schemas.EventForButton]] = mask_data.lpp_id__events_for_buttons
+        self.location_id__skill_groups: dict[UUID, list[schemas.SkillGroup]] = mask_data.location_id__skill_groups
+        self.location_plan_periods = mask_data.location_plan_periods
+
         active_location_ids = {
-            tla.location_of_work.id
-            for tla in db_services.TeamLocationAssign.get_all_between_dates(
-                plan_period.team.id, plan_period.start, plan_period.end)
+            tla.location_of_work_id for tla in self.team_location_assigns
+            if tla.start <= self.plan_period_end and (tla.end is None or tla.end >= self.plan_period_start)
         }
         self.location_id__location_pp = {
-            str(loc_pp.location_of_work.id): loc_pp for loc_pp in self.plan_period.location_plan_periods
-            if loc_pp.location_of_work.id in active_location_ids
+            str(lpp.location_of_work.id): lpp for lpp in self.location_plan_periods
+            if lpp.location_of_work.id in active_location_ids
         }
+        self.loc_id__location_pp_show: dict[str, schemas.LocationPlanPeriodForMask] = mask_data.loc_id__location_pp_for_mask
         self.location_id: UUID | None = None
         self.location: schemas.LocationOfWorkShow | None = None
         self.frame_events: FrmLocationPlanPeriod | None = None
@@ -1027,9 +1040,12 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.location_id = location_id
         self.te_notes_location.setEnabled(True)
         self.te_notes_pp.setEnabled(True)
-        self.location = db_services.LocationOfWork.get(self.location_id)
         location_plan_period = self.location_id__location_pp[str(self.location_id)]
-        location_plan_period_show = db_services.LocationPlanPeriod.get(location_plan_period.id)
+        location_plan_period_show = (
+            self.loc_id__location_pp_show.get(str(self.location_id))
+            or db_services.LocationPlanPeriod.get(location_plan_period.id))
+        # location_of_work aus bereits geladenem LPP-Show (kein separater DB-Call)
+        self.location = location_plan_period_show.location_of_work
         self.lb_title_name.setText(
             self.tr('Events: {location_name} {location_city}').format(
                 location_name=location_plan_period_show.location_of_work.name,
@@ -1074,27 +1090,29 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.location_id, self.te_notes_location.toPlainText())
 
     def edit_cast_groups_plan_period(self):
-        visible_plan_period_ids = {location_pp.id for location_pp in self.plan_period.location_plan_periods}
-        dlg = frm_cast_group.DlgCastGroups(self, self.plan_period, visible_plan_period_ids)
+        visible_plan_period_ids = {location_pp.id for location_pp in self.location_plan_periods}
+        dlg = frm_cast_group.DlgCastGroups(
+            self, db_services.PlanPeriod.get(self.plan_period_id), visible_plan_period_ids)
         if dlg.exec():
             signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
-                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period_id)
             )
             signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period.id)
+                signal_handling.DataLocationPlanPeriodDate(plan_period_id=self.plan_period_id)
             )
             signal_handling.handler_location_plan_period.event_update_num_employees(
-                plan_period_id=self.plan_period.id, location_plan_period_id=None
+                plan_period_id=self.plan_period_id, location_plan_period_id=None
             )
 
     @Slot(UUID)
     def _edit_cast_groups_plan_period(self, plan_period_id: UUID):
-        if plan_period_id == self.plan_period.id:
+        if plan_period_id == self.plan_period_id:
             self.edit_cast_groups_plan_period()
 
 
 class FrmLocationPlanPeriod(QWidget):
-    def __init__(self, parent: FrmTabLocationPlanPeriods, location_plan_period: schemas.LocationPlanPeriodShow,
+    def __init__(self, parent: FrmTabLocationPlanPeriods,
+                 location_plan_period: schemas.LocationPlanPeriodShow | schemas.LocationPlanPeriodForMask,
                  side_menu: side_menu.SlideInMenu):
         super().__init__(parent)
 
@@ -1131,6 +1149,7 @@ class FrmLocationPlanPeriod(QWidget):
                        12: self.tr('December')}
 
         self.set_headers_months()
+        self.setStyleSheet(widget_styles.buttons.avail_day__event_parent_css)
         self.set_chk_field()
         self.bt_event_group_mode: QPushButton | None = None
         self.bt_cast_group_mode: QPushButton | None = None
@@ -1195,15 +1214,32 @@ class FrmLocationPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Wird automatisch über Group-Mode gelöst
-        location_of_work = db_services.LocationOfWork.get(self.location_plan_period.location_of_work.id)
-        cast_groups_of_pp = db_services.CastGroup.get_all_for_button__plan_period(
-            self.location_plan_period.plan_period.id)
-        all_events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
+        self.setUpdatesEnabled(False)
+        try:
+            self._set_chk_field()
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def _set_chk_field(self):
+        # Aus Startup-Caches lesen (kein DB-Call) – Fallback auf DB wenn Cache invalidiert
+        cast_groups_of_pp = self.parent.cast_groups_of_pp
+        all_events = self.parent.lpp_id__events_for_buttons.get(self.location_plan_period.id)
+        if all_events is None:
+            all_events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
         events_by_date: dict = {}
         for e in all_events:
             events_by_date.setdefault(e.date, []).append(e)
-        location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
+        location_skill_groups = self.parent.location_id__skill_groups.get(
             self.location_plan_period.location_of_work.id)
+        if location_skill_groups is None:
+            location_skill_groups = db_services.SkillGroup.get_all_from__location_of_work(
+                self.location_plan_period.location_of_work.id)
+        # TeamLocationAssigns für diesen Standort aus Team-Cache (kein DB-Call)
+        location_id = self.location_plan_period.location_of_work.id
+        location_assigns = [
+            tla for tla in self.parent.team_location_assigns
+            if tla.location_of_work_id == location_id
+        ]
 
         # Time of day row labels
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
@@ -1245,11 +1281,10 @@ class FrmLocationPlanPeriod(QWidget):
 
         # Day config buttons
         for col, d in enumerate(self.days, start=1):
-            curr_assignment_of_location = get_curr_assignment_of_location(location_of_work, d)
-            if curr_assignment_of_location is None:
-                disable_buttons = True
-            else:
-                disable_buttons = curr_assignment_of_location.team.id != self.location_plan_period.team.id
+            disable_buttons = not any(
+                tla.start <= d and (tla.end is None or tla.end > d)
+                for tla in location_assigns
+            )
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -1287,7 +1322,11 @@ class FrmLocationPlanPeriod(QWidget):
             self.layout.addWidget(bt_skills, row + 4, col)
 
     def reset_chk_field(self):
-        self.parent.data_setup(location_id=self.location_plan_period.location_of_work.id)
+        loc_id = self.location_plan_period.location_of_work.id
+        # Caches invalidieren: nächstes data_setup lädt frische Daten vom DB
+        self.parent.lpp_id__events_for_buttons.pop(self.location_plan_period.id, None)
+        self.parent.loc_id__location_pp_show.pop(str(loc_id), None)
+        self.parent.data_setup(location_id=loc_id)
 
     @Slot(UUID)
     def _reset_chk_field(self, location_plan_period_id: UUID):
@@ -1390,8 +1429,19 @@ class FrmLocationPlanPeriod(QWidget):
             QMessageBox.information(self, self.tr('Group Mode'), self.tr('No changes were made.'))
 
     def get_events(self):
-        events = (e for e in db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
-                  if not e.prep_delete)
+        cached = self.parent.lpp_id__events_for_buttons.get(self.location_plan_period.id)
+        if cached is not None:
+            raw_events = cached
+            # nr_actors aus Cast-Group-Cache — vermeidet DB-Call pro Event
+            event_id__nr_actors: dict = {
+                cg.event.id: cg.nr_actors
+                for cg in self.parent.cast_groups_of_pp
+                if cg.event is not None
+            }
+        else:
+            raw_events = db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id)
+            event_id__nr_actors = {}
+        events = (e for e in raw_events if not e.prep_delete)
         for event in events:
             button: ButtonEvent = self.findChild(ButtonEvent, f'{event.date}-{event.time_of_day.time_of_day_enum.name}')
             if not button:
@@ -1403,12 +1453,13 @@ class FrmLocationPlanPeriod(QWidget):
                     )
                 )
                 return
+            nr_actors = event_id__nr_actors.get(event.id)
             button.setChecked(True)
             button.time_of_day = event.time_of_day
             button.create_actions_times_of_day()
             button.reset_menu_times_of_day(self.location_plan_period)
-            button.add_spin_box_num_employees()
-            button.set_tooltip()
+            button.add_spin_box_num_employees(nr_actors)
+            button.set_tooltip(nr_actors)
 
     def set_nr_actors(self):
         dlg = frm_num_actors_app.DlgNumActorsApp(self, self.location_plan_period.id)

@@ -9,24 +9,43 @@ eines Teams.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import plan_period_show_options
 
 
 def get(plan_period_id: UUID) -> schemas.PlanPeriodShow:
     with get_session() as session:
-        return schemas.PlanPeriodShow.model_validate(session.get(models.PlanPeriod, plan_period_id))
+        stmt = (select(models.PlanPeriod)
+                .where(models.PlanPeriod.id == plan_period_id)
+                .options(*plan_period_show_options()))
+        pp = session.exec(stmt).unique().one()
+        return schemas.PlanPeriodShow.model_validate(pp)
 
 
-def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriodShow]:
+def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriod]:
+    """Gibt alle PlanPeriod-Basis-Objekte eines Projekts zurück.
+
+    Verwendet bewusst das Basis-Schema (nicht PlanPeriodShow), da Aufrufer
+    nur id, start, end, prep_delete und team benötigen — kein Deep-Loading
+    von actor_plan_periods, location_plan_periods oder cast_groups.
+    """
     with get_session() as session:
-        pps = session.exec(select(models.PlanPeriod).join(models.Team)
-                           .where(models.Team.project_id == project_id)).all()
-        return [schemas.PlanPeriodShow.model_validate(p) for p in pps]
+        stmt = (select(models.PlanPeriod)
+                .join(models.Team)
+                .where(models.Team.project_id == project_id)
+                .options(
+                    joinedload(models.PlanPeriod.team).joinedload(models.Team.project),
+                    joinedload(models.PlanPeriod.team).joinedload(models.Team.dispatcher),
+                    joinedload(models.PlanPeriod.team).joinedload(models.Team.excel_export_settings),
+                ))
+        pps = session.exec(stmt).unique().all()
+        return [schemas.PlanPeriod.model_validate(p) for p in pps]
 
 
 def get_all_from__team(team_id: UUID) -> list[schemas.PlanPeriodShow]:

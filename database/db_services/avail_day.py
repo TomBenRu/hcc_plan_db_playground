@@ -103,6 +103,31 @@ def get_all_with_skills__actor_plan_period(actor_plan_period_id: UUID) -> list[s
         return [schemas.AvailDayWithSkills.model_validate(ad) for ad in ads]
 
 
+def get_avail_days_skills__plan_period(plan_period_id: UUID) -> dict[UUID, list[schemas.AvailDayWithSkills]]:
+    """Lädt Skills aller AvailDays einer gesamten PlanPeriode in einem Batch-Query.
+
+    Ersetzt N einzelne get_all_with_skills__actor_plan_period()-Calls (je ~161ms) durch
+    zwei Queries: einen IN-Query für ActorPlanPeriod-IDs und einen für AvailDays+Skills.
+    Rückgabe: dict[actor_plan_period_id → list[AvailDayWithSkills]]
+    """
+    with get_session() as session:
+        app_ids = session.exec(
+            select(models.ActorPlanPeriod.id).where(
+                models.ActorPlanPeriod.plan_period_id == plan_period_id
+            )
+        ).all()
+        if not app_ids:
+            return {}
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.actor_plan_period_id.in_(app_ids))
+                .options(selectinload(models.AvailDay.skills)))
+        avail_days = session.exec(stmt).all()
+        result: dict[UUID, list[schemas.AvailDayWithSkills]] = {aid: [] for aid in app_ids}
+        for ad in avail_days:
+            result[ad.actor_plan_period_id].append(schemas.AvailDayWithSkills.model_validate(ad))
+        return result
+
+
 def get_all_from__plan_period_date(plan_period_id: UUID, date: datetime.date) -> list[schemas.AvailDayShow]:
     with get_session() as session:
         ads = session.exec(select(models.AvailDay).join(models.ActorPlanPeriod)

@@ -1,5 +1,6 @@
 import datetime
 import json
+from dataclasses import dataclass
 from typing import Optional, List, Protocol, runtime_checkable, Union, Any
 from uuid import UUID
 
@@ -170,16 +171,26 @@ class Team(TeamCreate):
     excel_export_settings: Optional['ExcelExportSettings']
 
 
-class TeamShow(Team):
+class TeamWithAssigns(Team):
+    """Team mit actor- und location assigns — für PlanPeriodShow (Planungsmasken)."""
 
     team_actor_assigns: List['TeamActorAssign']
     team_location_assigns: List['TeamLocationAssign']
+
+    @field_validator('team_actor_assigns', 'team_location_assigns')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
+class TeamShow(TeamWithAssigns):
+
     plan_periods: List['PlanPeriod']
     combination_locations_possibles: List['CombinationLocationsPossible']
 
-    @field_validator('plan_periods', 'combination_locations_possibles', 'team_actor_assigns', 'team_location_assigns')
+    @field_validator('plan_periods', 'combination_locations_possibles')
     @classmethod
-    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+    def set_to_list_show(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
 
 
@@ -211,7 +222,7 @@ class PlanPeriod(PlanPeriodCreate):
 
 class PlanPeriodShow(PlanPeriod):
 
-    team: Team
+    team: TeamWithAssigns
     fixed_cast: Optional[str] = None
     actor_plan_periods: List['ActorPlanPeriod']
     location_plan_periods: List['LocationPlanPeriod']
@@ -263,6 +274,90 @@ class ActorPlanPeriodShow(ActorPlanPeriod):
     @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
+
+
+class CombLocPossibleForMask(BaseModel):
+    """Schema für CombinationLocationsPossible in AvailDay.
+
+    Enthält locations_of_work und time_span_between für Dialog-Anzeige
+    (DlgCombLocPossibleEditList). Lässt project weg (nur für Create-Ops nötig).
+    """
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    prep_delete: Optional[datetime.datetime] = None
+    time_span_between: datetime.timedelta
+    locations_of_work: List['LocationOfWork']
+
+    @field_validator('locations_of_work')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
+class ActorLocationPrefForMask(BaseModel):
+    """Minimales Schema für ActorLocationPref — ohne person/project."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    score: Optional[float]
+    prep_delete: Optional[datetime.datetime] = None
+    location_of_work: 'LocationOfWork'
+
+
+class ActorPartnerLocationPrefForMask(BaseModel):
+    """Minimales Schema für ActorPartnerLocationPref — ohne person."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    score: float
+    prep_delete: Optional[datetime.datetime] = None
+    partner: Person
+    location_of_work: 'LocationOfWork'
+
+
+class AvailDayForMask(BaseModel):
+    """Minimales AvailDay-Schema für die Akteur-Planungsmaske.
+
+    Enthält die für Button-Checks und Masken-Setup nötigen Felder.
+    Reduziert Pydantic-Validierungsoverhead gegenüber AvailDay drastisch.
+    """
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    date: datetime.date
+    prep_delete: Optional[datetime.datetime] = None
+    time_of_day: 'TimeOfDay'
+    combination_locations_possibles: List[CombLocPossibleForMask]
+    actor_location_prefs_defaults: List[ActorLocationPrefForMask]
+    actor_partner_location_prefs_defaults: List[ActorPartnerLocationPrefForMask]
+
+    @field_validator('combination_locations_possibles',
+                     'actor_location_prefs_defaults',
+                     'actor_partner_location_prefs_defaults')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
+class ActorPlanPeriodForMask(ActorPlanPeriod):
+    """Optimiertes ActorPlanPeriod-Schema für die Akteur-Planungsmaske.
+
+    Verwendet AvailDayForMask statt AvailDay — reduziert SQL-Queries von ~20 auf ~10.
+    Entfernt unnötige person/project-Relationships in AvailDay-Sub-Schemas.
+    """
+    person: Person
+    time_of_days: List['TimeOfDay']
+    time_of_day_standards: List['TimeOfDay']
+    combination_locations_possibles: List['CombinationLocationsPossible']
+    actor_location_prefs_defaults: List[ActorLocationPrefForMask]
+    actor_partner_location_prefs_defaults: List[ActorPartnerLocationPrefForMask]
+    avail_days: List[AvailDayForMask]
+    team: Team
+    project: Project
+
+    @field_validator('time_of_days', 'avail_days', 'time_of_day_standards',
+                     'combination_locations_possibles', 'actor_partner_location_prefs_defaults',
+                     'actor_location_prefs_defaults')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
 
 class PersonSolver(BaseModel):
@@ -657,6 +752,19 @@ class TeamLocationAssignShow(TeamLocationAssign):
     pass
 
 
+class TeamLocationAssignForMask(BaseModel):
+    """Minimales TLA-Schema für Standort-Maske — nur start, end und location_of_work_id (FK).
+
+    Vermeidet teure Pydantic-Validierung von Team + LocationOfWork + Project + Address.
+    Einsatz: get_location_mask_data() → LocationMaskData.team_location_assigns.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    start: datetime.date
+    end: Optional[datetime.date]
+    location_of_work_id: UUID
+
+
 class AddressCreate(BaseModel):
     name: Optional[str] = None
     project_id: UUID
@@ -715,6 +823,28 @@ class EventShow(Event):
     @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
+
+
+class EventForButton(BaseModel):
+    """Schema für Buttons und get_events() der Standort-Planungsmaske.
+
+    Enthält date, notes, time_of_day, prep_delete und skill_groups —
+    kein event_group / cast_group-Overhead.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    date: datetime.date
+    notes: Optional[str] = None
+    prep_delete: Optional[datetime.datetime] = None
+    location_plan_period_id: UUID
+    time_of_day: 'TimeOfDay'
+    skill_groups: list['SkillGroup']
+
+    @field_validator('skill_groups')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
 
 class EventGroupCreate(BaseModel):
@@ -789,6 +919,7 @@ class CastGroupForButton(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    nr_actors: int
     fixed_cast: Optional[str]
     fixed_cast_only_if_available: bool = False
     prefer_fixed_cast_events: bool = False
@@ -853,6 +984,23 @@ class LocationPlanPeriodShow(LocationPlanPeriod):
     project: Project
 
     @field_validator('time_of_days', 'time_of_day_standards', 'events')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
+class LocationPlanPeriodForMask(LocationPlanPeriod):
+    """LPP-Schema für Standort-Masken-Startup — ohne events/project.
+
+    Überschreibt plan_period mit PlanPeriodMinimal (kein team: Team),
+    um Pydantic-Overhead für 10× redundante Team-Validierungen zu vermeiden.
+    """
+    plan_period: PlanPeriodMinimal  # Override: spart Team-Validierung pro LPP
+    time_of_days: List[TimeOfDay]
+    time_of_day_standards: List[TimeOfDay]
+    team: Team
+
+    @field_validator('time_of_days', 'time_of_day_standards')
     @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
@@ -1136,6 +1284,20 @@ class ExcelExportSettingsShow(ExcelExportSettings):
     pass
 
 
+@dataclass
+class LocationMaskData:
+    """Aggregat für get_location_mask_data() — alle Startup-Daten der Standort-Maske."""
+    plan_period_id: UUID
+    plan_period_start: datetime.date
+    plan_period_end: datetime.date
+    location_plan_periods: list['LocationPlanPeriod']
+    loc_id__location_pp_for_mask: dict  # dict[str, LocationPlanPeriodForMask]
+    team_location_assigns: list['TeamLocationAssignForMask']
+    cast_groups_of_pp: list['CastGroupForButton']
+    lpp_id__events_for_buttons: dict  # dict[UUID, list[EventForButton]]
+    location_id__skill_groups: dict  # dict[UUID, list[SkillGroup]]
+
+
 PersonCreate.model_rebuild()
 Person.model_rebuild()
 PersonShow.model_rebuild()
@@ -1144,6 +1306,11 @@ PlanPeriod.model_rebuild()
 PlanPeriodShow.model_rebuild()
 ActorPlanPeriodCreate.model_rebuild()
 ActorPlanPeriodShow.model_rebuild()
+CombLocPossibleForMask.model_rebuild()
+ActorLocationPrefForMask.model_rebuild()
+ActorPartnerLocationPrefForMask.model_rebuild()
+AvailDayForMask.model_rebuild()
+ActorPlanPeriodForMask.model_rebuild()
 AvailDayGroupCreate.model_rebuild()
 AvailDayGroup.model_rebuild()
 AvailDayGroupShow.model_rebuild()

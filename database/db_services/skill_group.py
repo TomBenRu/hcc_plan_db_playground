@@ -8,6 +8,7 @@ auszuwerten.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload, joinedload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -25,6 +26,29 @@ def get_all_from__location_of_work(location_of_work_id: UUID) -> list[schemas.Sk
     with get_session() as session:
         return [schemas.SkillGroupShow.model_validate(sg)
                 for sg in session.get(models.LocationOfWork, location_of_work_id).skill_groups]
+
+
+def get_skill_groups__plan_period(plan_period_id: UUID) -> dict[UUID, list[schemas.SkillGroup]]:
+    """Lädt SkillGroups aller Arbeitsorte einer PlanPeriode in einem Batch-Query.
+
+    Ersetzt N einzelne get_all_from__location_of_work()-Calls durch einen JOIN-Query.
+    Rückgabe: dict[location_of_work_id → list[SkillGroup]]
+    """
+    with get_session() as session:
+        lows = session.exec(
+            select(models.LocationOfWork)
+            .join(models.LocationPlanPeriod,
+                  models.LocationPlanPeriod.location_of_work_id == models.LocationOfWork.id)
+            .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+            .options(
+                selectinload(models.LocationOfWork.skill_groups)
+                .joinedload(models.SkillGroup.skill)
+            )
+        ).unique().all()
+        return {
+            low.id: [schemas.SkillGroup.model_validate(sg) for sg in low.skill_groups]
+            for low in lows
+        }
 
 
 def get_all_from__event(event_id: UUID) -> list[schemas.SkillGroupShow]:

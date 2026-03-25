@@ -9,6 +9,7 @@ Metadaten-Verknüpfungen.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload, joinedload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -47,6 +48,27 @@ def get_all_from__location_plan_period(location_plan_period_id) -> list[schemas.
         events = session.exec(select(models.Event).where(
             models.Event.location_plan_period_id == location_plan_period_id)).all()
         return [schemas.EventShow.model_validate(e) for e in events]
+
+
+def get_events_for_buttons__plan_period(plan_period_id: UUID) -> dict[UUID, list[schemas.EventForButton]]:
+    """Lädt Events aller LocationPlanPeriods einer PlanPeriode mit SkillGroups in einem Batch-Query.
+
+    Ersetzt N einzelne get_all_from__location_plan_period()-Calls durch einen einzigen
+    JOIN-Query mit selectinload für skill_groups.skill.
+    Rückgabe: dict[location_plan_period_id → list[EventForButton]]
+    """
+    with get_session() as session:
+        stmt = (select(models.Event)
+                .join(models.LocationPlanPeriod)
+                .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+                .options(selectinload(models.Event.skill_groups)
+                         .joinedload(models.SkillGroup.skill)))
+        events = session.exec(stmt).all()
+        result: dict[UUID, list[schemas.EventForButton]] = {}
+        for e in events:
+            result.setdefault(e.location_plan_period_id, []).append(
+                schemas.EventForButton.model_validate(e))
+        return result
 
 
 def get_from__event_group(event_group_id) -> schemas.EventShow | None:

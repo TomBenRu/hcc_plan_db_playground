@@ -8,17 +8,39 @@ da LocationPlanPeriod den Lebenszyklus ihrer Events bestimmt.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import location_plan_period_show_options, location_mask_lpp_options
 
 
 def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
     with get_session() as session:
-        return schemas.LocationPlanPeriodShow.model_validate(session.get(models.LocationPlanPeriod, location_plan_period_id))
+        stmt = (select(models.LocationPlanPeriod)
+                .where(models.LocationPlanPeriod.id == location_plan_period_id)
+                .options(*location_plan_period_show_options()))
+        lpp = session.exec(stmt).unique().one()
+        return schemas.LocationPlanPeriodShow.model_validate(lpp)
+
+
+def get_multiple(location_plan_period_ids: list[UUID]) -> list[schemas.LocationPlanPeriodShow]:
+    """Lädt mehrere LocationPlanPeriodShow-Objekte in einer Batch-Abfrage.
+
+    Ersetzt N einzelne get()-Roundtrips durch einen einzigen IN-Query mit
+    vollständigem Eager Loading — für das Startup-Vorladen aller aktiven Standorte.
+    """
+    if not location_plan_period_ids:
+        return []
+    with get_session() as session:
+        stmt = (select(models.LocationPlanPeriod)
+                .where(models.LocationPlanPeriod.id.in_(location_plan_period_ids))
+                .options(*location_plan_period_show_options()))
+        lpps = session.exec(stmt).unique().all()
+        return [schemas.LocationPlanPeriodShow.model_validate(lpp) for lpp in lpps]
 
 
 def create(plan_period_id: UUID, location_id: UUID, location_plan_period_id: UUID = None) -> schemas.LocationPlanPeriodShow:
@@ -109,3 +131,92 @@ def update_num_actors(location_plan_period_id: UUID, num_actors: int) -> schemas
         lpp.nr_actors = num_actors
         session.flush()
         return schemas.LocationPlanPeriodShow.model_validate(lpp)
+
+
+def get_location_mask_data(plan_period_id: UUID) -> schemas.LocationMaskData:
+    """Lädt alle Anzeigedaten der Standort-Maske in einer einzigen Session mit 7 Queries.
+
+    Query-Struktur:
+      Q3  (1+3): LPPs + team + TLAs (selectinload) + time_of_days + tod_standards
+      Q4  (1):   CastGroups mit joinedload(event)
+      Q5  (1):   Events mit joinedload(skill_groups → skill)
+      Q6  (1):   LocationOfWork mit joinedload(skill_groups → skill)
+    Q1 (PlanPeriod) und Q2 (TeamLocationAssigns separat) sind eliminiert:
+      - pp_start/pp_end aus lpps[0].plan_period (Q3 lädt plan_period via joinedload)
+      - TLAs aus lpps[0].plan_period.team.team_location_assigns (Q3 selectinload-Kette)
+    """
+    with get_session() as session:
+        # Q3 (1 Haupt-Query + 3 selectinloads): LPPs + team + TLAs + time_of_days + tod_standards
+        lpps = session.exec(
+            select(models.LocationPlanPeriod)
+            .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+            .options(*location_mask_lpp_options())
+        ).unique().all()
+
+        # PlanPeriod-Daten aus Q3-Ergebnissen ableiten (kein separater Q1-Query)
+        if lpps:
+            pp_start = lpps[0].plan_period.start
+            pp_end = lpps[0].plan_period.end
+            tla_models = lpps[0].plan_period.team.team_location_assigns
+        else:
+            # Fallback für leere PlanPeriods (sehr ungewöhnlich)
+            pp = session.get(models.PlanPeriod, plan_period_id)
+            pp_start = pp.start
+            pp_end = pp.end
+            tla_models = []
+
+        # Q4: CastGroups für Buttons (joinedload event — 1:1-Beziehung)
+        cast_groups = session.exec(
+            select(models.CastGroup)
+            .where(models.CastGroup.plan_period_id == plan_period_id)
+            .options(joinedload(models.CastGroup.event))
+        ).all()
+
+        # Q5: Events mit time_of_day + skill_groups — kein separater Round-Trip
+        events = session.exec(
+            select(models.Event)
+            .join(models.LocationPlanPeriod)
+            .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+            .options(
+                joinedload(models.Event.time_of_day)
+                .joinedload(models.TimeOfDay.time_of_day_enum),
+                joinedload(models.Event.skill_groups)
+                .joinedload(models.SkillGroup.skill),
+            )
+        ).unique().all()
+
+        # Q6: LocationOfWork-SkillGroups mit joinedload — kein separater selectinload-Roundtrip
+        lows = session.exec(
+            select(models.LocationOfWork)
+            .join(models.LocationPlanPeriod,
+                  models.LocationPlanPeriod.location_of_work_id == models.LocationOfWork.id)
+            .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+            .options(
+                joinedload(models.LocationOfWork.skill_groups)
+                .joinedload(models.SkillGroup.skill)
+            )
+        ).unique().all()
+
+        # Events nach LPP gruppieren
+        lpp_id__events: dict[UUID, list[schemas.EventForButton]] = {}
+        for e in events:
+            lpp_id__events.setdefault(e.location_plan_period_id, []).append(
+                schemas.EventForButton.model_validate(e))
+
+        return schemas.LocationMaskData(
+            plan_period_id=plan_period_id,
+            plan_period_start=pp_start,
+            plan_period_end=pp_end,
+            location_plan_periods=[schemas.LocationPlanPeriod.model_validate(lpp) for lpp in lpps],
+            loc_id__location_pp_for_mask={
+                str(lpp.location_of_work.id): schemas.LocationPlanPeriodForMask.model_validate(lpp)
+                for lpp in lpps
+            },
+            team_location_assigns=[schemas.TeamLocationAssignForMask.model_validate(tla) for tla in tla_models],
+            cast_groups_of_pp=[schemas.CastGroupForButton.model_validate(cg) for cg in cast_groups],
+            lpp_id__events_for_buttons=lpp_id__events,
+            location_id__skill_groups={
+                low.id: [schemas.SkillGroup.model_validate(sg) for sg in low.skill_groups]
+                for low in lows
+            },
+        )

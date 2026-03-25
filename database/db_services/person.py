@@ -20,17 +20,32 @@ from ..database import get_session
 from ..models import _utcnow
 from ..enums import Gender
 from ._common import log_function_info
+from ._eager_loading import person_show_options
 
 
 def get(person_id: UUID) -> schemas.PersonShow:
     with get_session() as session:
-        return schemas.PersonShow.model_validate(session.get(models.Person, person_id))
+        stmt = (select(models.Person)
+                .where(models.Person.id == person_id)
+                .options(*person_show_options()))
+        person = session.exec(stmt).unique().one()
+        return schemas.PersonShow.model_validate(person)
 
 
 def get_full_name_of_person(person_id: UUID) -> str:
     with get_session() as session:
         p = session.get(models.Person, person_id)
         return f'{p.f_name} {p.l_name}'
+
+
+def get_full_names_for_ids(person_ids: list[UUID]) -> dict[UUID, str]:
+    """Batch-Abfrage: Lädt Vor- und Nachnamen für mehrere Personen in einer einzigen DB-Session."""
+    with get_session() as session:
+        persons = session.exec(
+            select(models.Person.id, models.Person.f_name, models.Person.l_name)
+            .where(models.Person.id.in_(person_ids))
+        ).all()
+        return {p_id: f'{f_name} {l_name}' for p_id, f_name, l_name in persons}
 
 
 def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.PersonShow | tuple[str, UUID]]:

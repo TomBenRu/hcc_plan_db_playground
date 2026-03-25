@@ -258,7 +258,7 @@ class DlgCombLocPossibleEditList(QDialog):
         if dlg.comb_location_ids not in curr_model_c_l_p_ids:
             locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
             time_span_between = dlg.time_span_between
-            comb_to_create = schemas.CombinationLocationsPossibleCreate(project=self.curr_model.project,
+            comb_to_create = schemas.CombinationLocationsPossibleCreate(project=self.curr_team.project,
                                                                         locations_of_work=locations_work,
                                                                         time_span_between=time_span_between)
             create_command = comb_loc_possible_commands.Create(comb_to_create)
@@ -309,9 +309,10 @@ class DlgCombLocPossibleEditList(QDialog):
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__put_in_command = {'TeamShow': team_commands.PutInCombLocPossible,
                                            'PersonShow': person_commands.PutInCombLocPossible,
-                                           'ActorPlanPeriodShow': actor_plan_period_commands.PutInCombLocPossible,
+                                           'ActorPlanPeriodForMask': actor_plan_period_commands.PutInCombLocPossible,
                                            'AvailDay': avail_day_commands.PutInCombLocPossible,
-                                           'AvailDayShow': avail_day_commands.PutInCombLocPossible}
+                                           'AvailDayShow': avail_day_commands.PutInCombLocPossible,
+                                           'AvailDayForMask': avail_day_commands.PutInCombLocPossible}
 
         try:
             return curr_model_name__put_in_command[curr_model_name](curr_model.id, comb_to_put_i_id)
@@ -323,9 +324,10 @@ class DlgCombLocPossibleEditList(QDialog):
         curr_model_name = curr_model.__class__.__name__
         curr_model_name__remove_command = {'TeamShow': team_commands.RemoveCombLocPossible,
                                            'PersonShow': person_commands.RemoveCombLocPossible,
-                                           'ActorPlanPeriodShow': actor_plan_period_commands.RemoveCombLocPossible,
+                                           'ActorPlanPeriodForMask': actor_plan_period_commands.RemoveCombLocPossible,
                                            'AvailDay': avail_day_commands.RemoveCombLocPossible,
-                                           'AvailDayShow': avail_day_commands.RemoveCombLocPossible}
+                                           'AvailDayShow': avail_day_commands.RemoveCombLocPossible,
+                                           'AvailDayForMask': avail_day_commands.RemoveCombLocPossible}
         try:
             command_to_remove = curr_model_name__remove_command[curr_model_name]
             return command_to_remove(curr_model.id, comb_to_put_i_id)

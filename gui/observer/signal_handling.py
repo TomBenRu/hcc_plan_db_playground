@@ -18,7 +18,7 @@ gui.tools.clear_layout erfolgen, Bevor das Parent-Widget gelöscht wird."""
 
 @dataclass
 class DataActorPPWithDate:
-    actor_plan_period: schemas.ActorPlanPeriodShow
+    actor_plan_period: schemas.ActorPlanPeriodForMask
     date: datetime.date | None = None
 
 
@@ -111,7 +111,7 @@ class HandlerActorPlanPeriod(QObject):
     def reload_actor_pp__avail_days(self, data: DataActorPPWithDate):
         self.signal_reload_actor_pp__avail_days.emit(data)
 
-    def reload_actor_pp__frm_actor_plan_period(self, data: schemas.ActorPlanPeriodShow = None):
+    def reload_actor_pp__frm_actor_plan_period(self, data: schemas.ActorPlanPeriodForMask = None):
         self.signal_reload_actor_pp__frm_actor_plan_period.emit(data)
 
     def change_actor_plan_period_group_mode(self, group_mode: DataGroupMode):

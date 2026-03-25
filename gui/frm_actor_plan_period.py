@@ -2,6 +2,7 @@ import datetime
 import functools
 import logging
 import os.path
+import threading
 from datetime import timedelta
 from typing import Callable
 from uuid import UUID
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 class ButtonAvailDay(QPushButton):
     def __init__(self, parent: QWidget, date: datetime.date, time_of_day: schemas.TimeOfDay, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow, slot__avail_day_toggled: Callable):
+                 actor_plan_period: schemas.ActorPlanPeriodForMask, slot__avail_day_toggled: Callable):
         super().__init__(parent)
         self.setObjectName(f'{date}-{time_of_day.time_of_day_enum.name}')
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -58,6 +59,7 @@ class ButtonAvailDay(QPushButton):
         self.time_of_day = time_of_day
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
 
+        self.setProperty('time_index', str(self.time_of_day.time_of_day_enum.time_index))
         self.set_stylesheet()
 
         self.context_menu: QMenu | None = None  # Lazy – wird erst beim ersten Rechtsklick aufgebaut
@@ -68,8 +70,9 @@ class ButtonAvailDay(QPushButton):
         self.set_tooltip()
 
     def set_stylesheet(self):
-        self.setStyleSheet(widget_styles.buttons.avail_day__event[self.time_of_day.time_of_day_enum.time_index]
-                           .replace('<<ObjectName>>', self.objectName()))
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
 
     @Slot(signal_handling.DataGroupMode)
     def set_group_mode(self, group_mode: signal_handling.DataGroupMode):
@@ -123,7 +126,7 @@ class ButtonAvailDay(QPushButton):
             self._setup_context_menu()
         self.context_menu.exec(pos.globalPos())
 
-    def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodShow):
+    def reset_context_menu(self, actor_plan_period: schemas.ActorPlanPeriodForMask):
         self.actor_plan_period = actor_plan_period
         self.t_o_d_for_selection = self.get_t_o_d_for_selection()
         if self.context_menu is None:
@@ -186,7 +189,7 @@ class ButtonAvailDay(QPushButton):
         if data is not None:
             self.actor_plan_period = data.actor_plan_period
         else:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
 
 
 class ButtonLocationCombinations(BaseConfigButton):
@@ -197,7 +200,7 @@ class ButtonLocationCombinations(BaseConfigButton):
     """
 
     def __init__(self, parent, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow):
+                 actor_plan_period: schemas.ActorPlanPeriodForMask):
         # Eigenes Attribut vor super().__init__() setzen
         self.person: schemas.PersonShow | None = None
 
@@ -315,7 +318,7 @@ class ButtonLocationPreferences(BaseConfigButton):
     """
 
     def __init__(self, parent, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow, team: schemas.TeamShow):
+                 actor_plan_period: schemas.ActorPlanPeriodForMask, team: schemas.TeamShow):
         # Eigenes Attribut vor super().__init__() setzen
         self.team = team
 
@@ -467,7 +470,7 @@ class ButtonPartnerPreferences(BaseConfigButton):
     """
 
     def __init__(self, parent, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow, team: schemas.TeamShow):
+                 actor_plan_period: schemas.ActorPlanPeriodForMask, team: schemas.TeamShow):
         # Eigenes Attribut vor super().__init__() setzen
         self.team = team
 
@@ -612,7 +615,7 @@ class ButtonSkills(BaseConfigButton):
     """
 
     def __init__(self, parent: QWidget, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodShow,
+                 actor_plan_period: schemas.ActorPlanPeriodForMask,
                  avail_days_show: list[schemas.AvailDayWithSkills] | None = None,
                  person_skills: list | None = None):
         # Eigene Attribute vor super().__init__() setzen
@@ -664,7 +667,7 @@ class ButtonSkills(BaseConfigButton):
     def refresh(self, data: signal_handling.DataActorPPWithDate | None = None) -> None:
         """Überschrieben um set_stylesheet_and_tooltip() aufzurufen."""
         if data is None:
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             self.set_stylesheet_and_tooltip()
         elif data.actor_plan_period.id == self.actor_plan_period.id:
             if data.date is None or data.date == self.date:
@@ -802,13 +805,22 @@ class FrmTabActorPlanPeriods(QWidget):
         signal_handling.handler_actor_plan_period.signal_reload_app_notes_in_app_tab_widget.connect(self.reload_actor_plan_period_notes)
 
         self.plan_period = db_services.PlanPeriod.get(plan_period.id)
-        self.team = db_services.Team.get(plan_period.team.id)
+        self.team = self.plan_period.team
         self.actor_plan_periods = self.plan_period.actor_plan_periods
-        active_person_ids = db_services.TeamActorAssign.get_all_actor_ids_between_dates(
-            plan_period.team.id, plan_period.start, plan_period.end)
+        active_person_ids = {
+            taa.person.id for taa in self.plan_period.team.team_actor_assigns
+            if taa.start <= plan_period.end and (taa.end is None or taa.end > plan_period.start)
+        }
         self.pers_id__actor_pp = {
             str(a_pp.person.id): a_pp for a_pp in self.plan_period.actor_plan_periods
             if a_pp.person.id in active_person_ids}
+        # ActorPlanPeriodForMask wird lazy on demand geladen (erstes data_setup) und dann gecacht
+        self.pers_id__actor_pp_show: dict[str, schemas.ActorPlanPeriodForMask] = {}
+        # Batch-Vorabladen: AvailDay-Skills und Person-Skills für alle aktiven Akteure
+        self.app_id__avail_days_with_skills: dict[UUID, list[schemas.AvailDayWithSkills]] = (
+            db_services.AvailDay.get_avail_days_skills__plan_period(plan_period.id))
+        self.person_id__skills: dict[UUID, list[schemas.Skill]] = (
+            db_services.Skill.get_person_skills__plan_period(plan_period.id))
         self.person_id: UUID | None = None
         self.person: schemas.PersonShow | None = None
 
@@ -891,6 +903,8 @@ class FrmTabActorPlanPeriods(QWidget):
         # Die Planungsmaske der alphabetisch 1. Person wird als erstes angezeigt
         self.data_setup(None, None,
                         sorted(self.plan_period.actor_plan_periods, key=lambda x: x.person.f_name)[0].person.id)
+        # Restliche Akteure im Hintergrund vorladen
+        self._start_prefetch_remaining_actors()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -942,14 +956,12 @@ class FrmTabActorPlanPeriods(QWidget):
             self.person_id = person_id
         self.te_notes_actor.setEnabled(True)
         self.te_notes_pp.setEnabled(True)
-        try:
-            self.person = db_services.Person.get(self.person_id)
-        except ValidationError as e:
-            QMessageBox.critical(self, 'Planungsmaske',
-                                 f'Planungsmaske der Person konnte nicht geladen werden.\n\n{e}')
-            return
         actor_plan_period = self.pers_id__actor_pp[str(self.person_id)]
-        actor_plan_period_show = db_services.ActorPlanPeriod.get(actor_plan_period.id)
+        actor_plan_period_show = self.pers_id__actor_pp_show.get(str(self.person_id))
+        if actor_plan_period_show is None:
+            actor_plan_period_show = db_services.ActorPlanPeriod.get_for_mask(actor_plan_period.id)
+            self.pers_id__actor_pp_show[str(self.person_id)] = actor_plan_period_show
+        self.person = actor_plan_period_show.person
         self.lb_title_name.setText(
             f'Verfügbarkeiten: {actor_plan_period.person.f_name} {actor_plan_period.person.l_name}')
         if self.frame_availables:
@@ -995,16 +1007,40 @@ class FrmTabActorPlanPeriods(QWidget):
     @Slot(schemas.ActorPlanPeriod)
     def update_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriod):
         if actor_plan_period.plan_period.id == self.plan_period.id:
-            self.pers_id__actor_pp[str(actor_plan_period.person.id)] = actor_plan_period
+            person_key = str(actor_plan_period.person.id)
+            self.pers_id__actor_pp[person_key] = actor_plan_period
+            # Show-Cache und Skills-Caches invalidieren: nächstes data_setup lädt fresh vom DB
+            self.pers_id__actor_pp_show.pop(person_key, None)
+            self.app_id__avail_days_with_skills.pop(actor_plan_period.id, None)
+            self.person_id__skills.pop(actor_plan_period.person.id, None)
 
     @Slot(UUID, UUID)
     def reload_actor_plan_period_notes(self, plan_period_id: UUID, person_id: UUID):
         if plan_period_id == self.plan_period.id and person_id == self.person_id:
             self.notes_app_setup()
 
+    def _start_prefetch_remaining_actors(self):
+        """Startet Hintergrund-Vorladen aller noch nicht gecachten ActorPlanPeriodForMask."""
+        thread = threading.Thread(target=self._prefetch_actor_plan_periods, daemon=True)
+        thread.start()
+
+    def _prefetch_actor_plan_periods(self):
+        """Läuft im Hintergrund-Thread. Lädt alle verbleibenden ActorPlanPeriodForMask per Batch."""
+        remaining_ids = [
+            a_pp.id for pers_id_str, a_pp in self.pers_id__actor_pp.items()
+            if pers_id_str not in self.pers_id__actor_pp_show
+        ]
+        if not remaining_ids:
+            return
+        results = db_services.ActorPlanPeriod.get_multiple_for_mask(remaining_ids)
+        for app in results:
+            pers_id_str = str(app.person.id)
+            if pers_id_str not in self.pers_id__actor_pp_show:
+                self.pers_id__actor_pp_show[pers_id_str] = app
+
 
 class FrmActorPlanPeriod(QWidget):
-    def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodShow,
+    def __init__(self, parent: FrmTabActorPlanPeriods, actor_plan_period: schemas.ActorPlanPeriodForMask,
                  side_menu: side_menu.SlideInMenu, team: schemas.TeamShow):
         super().__init__(parent)
 
@@ -1052,6 +1088,7 @@ class FrmActorPlanPeriod(QWidget):
                        12: self.tr("December")}
 
         self.set_headers_months()
+        self.setStyleSheet(widget_styles.buttons.avail_day__event_parent_css)
         self.set_chk_field()
         self.bt_toggle__avd_group_mode: QPushButton | None = None
         self.setup_controllers()
@@ -1099,7 +1136,7 @@ class FrmActorPlanPeriod(QWidget):
         )
 
     def reload_actor_plan_period_and_set_instance_variables(self, event=None):
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
         self.set_instance_variables()
         signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
         signal_handling.handler_plan_tabs.refresh_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
@@ -1131,6 +1168,13 @@ class FrmActorPlanPeriod(QWidget):
             col += count
 
     def set_chk_field(self):  # todo: Config-Zeile Anzahl der Termine am Tag. Umsetzung automatisch über Group-Mode.
+        self.setUpdatesEnabled(False)
+        try:
+            self._set_chk_field()
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def _set_chk_field(self):
         person = self.actor_plan_period.person
         team = self.team
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
@@ -1180,16 +1224,28 @@ class FrmActorPlanPeriod(QWidget):
             self.menu_bt_skills_reset_all.addAction(action)
         self.layout.addWidget(bt_skills_reset_all, row + 5, 0)
 
-        team_uuids_by_date = db_services.TeamActorAssign.get_all_teams_at_dates(person.id, self.days)
-        all_avail_days_with_skills = db_services.AvailDay.get_all_with_skills__actor_plan_period(
-            self.actor_plan_period.id)
+        # Berechne aktive Tage aus bereits geladenem team.team_actor_assigns (kein DB-Call)
+        person_id = person.id
+        active_in_team_dates = {
+            d for taa in self.team.team_actor_assigns
+            if taa.person.id == person_id
+            for d in self.days
+            if taa.start <= d and (taa.end is None or taa.end > d)
+        }
+        # Aus Startup-Cache lesen (kein DB-Call), Fallback auf DB wenn Cache invalidiert
+        cached_avd_skills = self.parent.app_id__avail_days_with_skills.get(self.actor_plan_period.id)
+        if cached_avd_skills is None:
+            cached_avd_skills = db_services.AvailDay.get_all_with_skills__actor_plan_period(
+                self.actor_plan_period.id)
         avail_days_show_by_date: dict = {}
-        for avd in all_avail_days_with_skills:
+        for avd in cached_avd_skills:
             avail_days_show_by_date.setdefault(avd.date, []).append(avd)
-        person_skills = db_services.Skill.get_all_from__person(self.actor_plan_period.person.id)
+        cached_person_skills = self.parent.person_id__skills.get(self.actor_plan_period.person.id)
+        person_skills = (cached_person_skills if cached_person_skills is not None
+                         else db_services.Skill.get_all_from__person(self.actor_plan_period.person.id))
         for col, d in enumerate(self.days, start=1):
             # Multi-Team-kompatibel: Prüfe ob Person an diesem Tag dem Team des ActorPlanPeriods zugeordnet ist
-            disable_buttons = self.actor_plan_period.team.id not in set(team_uuids_by_date.get(d, []))
+            disable_buttons = d not in active_in_team_dates
             label = QLabel(f'{d.day}')
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             self.layout.addWidget(label, 1, col)
@@ -1367,10 +1423,9 @@ class FrmActorPlanPeriod(QWidget):
         return button
 
     def get_avail_days(self):
-        avail_days = (ad for ad in db_services.AvailDay.get_all_from__actor_plan_period(self.actor_plan_period.id)
-                      if not ad.prep_delete)
-        for ad in avail_days:
-            self.set_button_avail_day_to_checked_and_configure(ad.date, ad.time_of_day)
+        for ad in self.actor_plan_period.avail_days:
+            if not ad.prep_delete:
+                self.set_button_avail_day_to_checked_and_configure(ad.date, ad.time_of_day)
 
     def set_text_bt_requested_assignments(self):
         self.bt_requested_assignments.setText(
@@ -1419,7 +1474,7 @@ class FrmActorPlanPeriod(QWidget):
         db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
         db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
 
-        self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+        self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
         self.reset_chk_field()
         
         # Entities-Cache invalidieren bei TimeOfDay-Änderungen
@@ -1468,7 +1523,7 @@ class FrmActorPlanPeriod(QWidget):
 
         def handle_undo():
             """Callback für Undo – muss aus DB laden (individuelle Original-Werte)."""
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             warn_and_clear_undo_redo_if_plans_open(
                 self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
             refresh_ui()
@@ -1584,7 +1639,7 @@ class FrmActorPlanPeriod(QWidget):
 
         def handle_undo():
             """Callback für Undo – muss aus DB laden (individuelle Original-Werte)."""
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             warn_and_clear_undo_redo_if_plans_open(
                 self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
             refresh_ui()
@@ -1637,7 +1692,7 @@ class FrmActorPlanPeriod(QWidget):
             ):
                 return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
                 signal_handling.DataActorPPWithDate(self.actor_plan_period))
 
@@ -1666,7 +1721,7 @@ class FrmActorPlanPeriod(QWidget):
 
         def handle_undo():
             # Bei Undo müssen die individuellen Original-Werte aus der DB geladen werden
-            self.actor_plan_period = db_services.ActorPlanPeriod.get(self.actor_plan_period.id)
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             warn_and_clear_undo_redo_if_plans_open(
                 self, plan_period.id, plan_period.start, plan_period.end, show_warning=False)
             refresh_ui()
@@ -1742,7 +1797,7 @@ class FrmActorPlanPeriod(QWidget):
         command.on_undo_callback = on_undo_callback
         command.on_redo_callback = on_redo_callback
 
-    def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodShow = None,
+    def fetch_avail_days_from_api_for_one_employee(self, actor_plan_period: schemas.ActorPlanPeriodForMask = None,
                                                    *args, **kwargs) -> bool:
         actor_plan_period = actor_plan_period or self.actor_plan_period
 

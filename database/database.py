@@ -35,7 +35,17 @@ _database_url = os.environ.get("DATABASE_URL")
 
 if _database_url:
     # PostgreSQL: render.com setzt DATABASE_URL automatisch
-    engine = create_engine(_database_url, echo=False)
+    # pool_pre_ping: Erkennt serverseitig geschlossene Verbindungen (render.com Idle-Timeout)
+    # pool_recycle: Verbindungen nach 30 min zwingend erneuern
+    engine = create_engine(
+        _database_url,
+        echo=False,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+        pool_timeout=30,
+        pool_recycle=1800,
+    )
 else:
     # SQLite-Fallback für lokale Entwicklung (kein DATABASE_URL gesetzt)
     from configuration.project_paths import curr_user_path_handler

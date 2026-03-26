@@ -103,14 +103,20 @@ class WorkerLoadEntities(QRunnable):
                 populate_shifts_exclusive,
             )
 
+            # Vorab: LPP- und APP-IDs in einer Session laden (ersetzt 2× PlanPeriod.get())
+            from database import db_services as _db
+            from sat_solver.event_group_tree import EventGroupTree
+            from sat_solver.avail_day_group_tree import AvailDayGroupTree
+            lpp_ids, app_ids = _db.PlanPeriod.get_lpp_and_app_ids(self.plan_period_id)
+
             # Phase 1: Event Group Tree
             if self._check_cancelled("before_event_group_tree"):
                 return
-            event_group_tree = get_event_group_tree(self.plan_period_id)
+            event_group_tree = EventGroupTree(lpp_ids)
             # Phase 2: Avail Day Group Tree
             if self._check_cancelled("after_event_group_tree"):
                 return
-            avail_day_group_tree = get_avail_day_group_tree(self.plan_period_id)
+            avail_day_group_tree = AvailDayGroupTree(app_ids)
 
             # Phase 3: Cast Group Tree
             if self._check_cancelled("after_avail_day_group_tree"):

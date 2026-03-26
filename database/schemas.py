@@ -449,6 +449,22 @@ class AvailDayGroupTreeNode(BaseModel):
     avail_day_id: Optional[UUID] = None  # Nur ID, nicht vollständiges AvailDay
 
 
+class EventGroupTreeNode(BaseModel):
+    """
+    Minimales Schema für EventGroupTree-Konstruktion.
+
+    Enthält nur die für den EventGroupTree benötigten Felder, um die schwere
+    EventGroupShow-Validierung (20 Eager-Loading-Optionen, rekursive event_group-Kette)
+    zu vermeiden.
+    """
+    id: UUID
+    variation_weight: int = 1
+    nr_event_groups: Optional[int] = None
+    child_ids: List[UUID] = []  # IDs der Kinder (event_groups[].id)
+    event_id: Optional[UUID] = None  # Nur die Event-ID, nicht das vollständige Event-Objekt
+    location_plan_period_id: Optional[UUID] = None  # Für Master-Node-Identifikation
+
+
 # ============================================================================
 # Solver-optimierte Schemas für AvailDay
 # ============================================================================
@@ -807,6 +823,7 @@ class Event(EventCreate):
 
     id: UUID
     prep_delete: Optional[datetime.datetime]
+    event_group_id: Optional[UUID] = None  # FK direkt auf Event-Tabelle, für Solver-Lookups
 
     @field_validator('flags')
     @classmethod
@@ -823,6 +840,32 @@ class EventShow(Event):
     @classmethod
     def set_to_set(cls, values):  # sourcery skip: identity-comprehension
         return [t for t in values]
+
+
+class EventGroupForSolver(BaseModel):
+    """Minimales EventGroup-Schema für Solver — nur id, verhindert rekursive Eltern-Kette."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+
+
+class CastGroupForSolver(BaseModel):
+    """Minimales CastGroup-Schema für Solver — id + nr_actors, ohne plan_period-Kette."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    nr_actors: int
+
+
+class EventForSolver(Event):
+    """Solver-Schema: event_group/cast_group/skill_groups ohne rekursive Ketten."""
+    model_config = ConfigDict(from_attributes=True)
+    event_group: Optional[EventGroupForSolver] = None
+    cast_group: Optional[CastGroupForSolver] = None
+    skill_groups: List['SkillGroup'] = []
+
+    @field_validator('skill_groups')
+    @classmethod
+    def set_skill_groups_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
 
 
 class EventForButton(BaseModel):

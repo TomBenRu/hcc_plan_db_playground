@@ -113,18 +113,17 @@ class AvailDayGroupTree:
         Lädt alle AvailDayGroups pro ActorPlanPeriod in einem Batch,
         anstatt einzelne DB-Aufrufe pro Node zu machen.
         """
-        # Batch-Load aller AvailDayGroups für alle ActorPlanPeriods
+        # Batch-Load aller AvailDayGroups für alle ActorPlanPeriods in EINER Session
+        batch_result = db_services.AvailDayGroup.get_all_for_trees_batch(self.actor_plan_period_ids)
+
         all_tree_nodes: dict[UUID, schemas.AvailDayGroupTreeNode] = {}
         master_ids: list[UUID] = []
 
         for app_id in self.actor_plan_period_ids:
-            batch = db_services.AvailDayGroup.get_all_for_tree(app_id)
+            batch = batch_result.get(app_id, {})
             all_tree_nodes.update(batch)
-            # Der Master ist der mit actor_plan_period (erster in der Hierarchie)
-            # Wir finden ihn als den Node ohne Parent in diesem Batch
+            # Master = der Node, der von keinem anderen in diesem Batch als Kind referenziert wird
             for node_id, node in batch.items():
-                # Master hat keine child_ids die auf andere Nodes in diesem Batch zeigen als Parent
-                # Einfacher: Der Master ist der erste Node der geladen wurde
                 if node_id not in [child_id for n in batch.values() for child_id in n.child_ids]:
                     master_ids.append(node_id)
                     break

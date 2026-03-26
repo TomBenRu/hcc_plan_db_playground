@@ -17,15 +17,264 @@ from ..models import _utcnow
 from ._common import log_function_info
 
 
+def _build_tree_nodes_from_ids(adg_ids: list[UUID], session) -> dict[UUID, schemas.EventGroupTreeNode]:
+    """Baut EventGroupTreeNode-Dicts aus EventGroup-IDs mit minimalem SQL (3 Queries).
+
+    Der FK event_group_id liegt auf der Event-Seite, deshalb 3 separate Queries:
+    1. EventGroup-Skalare (id, variation_weight, nr_event_groups, location_plan_period_id)
+    2. Event.id WHERE event_group_id IN (...) → event_id pro Node
+    3. Kinder-IDs WHERE event_group_id IN (...)
+    Kein ORM-Mapping auf Relationships, kein Pydantic model_validate.
+    """
+    if not adg_ids:
+        return {}
+    # Query 1: EventGroup-Skalare
+    rows = session.exec(
+        select(models.EventGroup.id,
+               models.EventGroup.variation_weight,
+               models.EventGroup.nr_event_groups,
+               models.EventGroup.location_plan_period_id)
+        .where(models.EventGroup.id.in_(adg_ids))
+    ).all()
+    nodes: dict[UUID, schemas.EventGroupTreeNode] = {
+        row.id: schemas.EventGroupTreeNode(
+            id=row.id,
+            variation_weight=row.variation_weight or 1,
+            nr_event_groups=row.nr_event_groups,
+            location_plan_period_id=row.location_plan_period_id,
+        )
+        for row in rows
+    }
+    # Query 2: Event-IDs (FK liegt auf Event-Seite)
+    event_rows = session.exec(
+        select(models.Event.id, models.Event.event_group_id)
+        .where(models.Event.event_group_id.in_(adg_ids))
+    ).all()
+    for event_row in event_rows:
+        node = nodes.get(event_row.event_group_id)
+        if node is not None:
+            node.event_id = event_row.id
+    # Query 3: Kinder-IDs (event_group_id FK = Parent-ID)
+    child_rows = session.exec(
+        select(models.EventGroup.id, models.EventGroup.event_group_id)
+        .where(models.EventGroup.event_group_id.in_(adg_ids))
+    ).all()
+    for child_row in child_rows:
+        parent_node = nodes.get(child_row.event_group_id)
+        if parent_node is not None:
+            parent_node.child_ids.append(child_row.id)
+    return nodes
+
+
+def get_batch_for_tree(event_group_ids: list[UUID]) -> dict[UUID, schemas.EventGroupTreeNode]:
+    """Lädt mehrere EventGroups als leichtgewichtige TreeNodes für den EventGroupTree.
+
+    Ersetzt get_batch() (20 Eager-Loading-Optionen + EventGroupShow.model_validate) durch
+    direkten Scalar-SELECT ohne Pydantic-Relationen. 3 SQL-Queries statt komplexer JOINs.
+    """
+    if not event_group_ids:
+        return {}
+    with get_session() as session:
+        return _build_tree_nodes_from_ids(event_group_ids, session)
+
+
+def get_batch_masters_for_tree(location_plan_period_ids: list[UUID]) -> dict[UUID, schemas.EventGroupTreeNode]:
+    """Lädt Master-EventGroupTreeNodes für mehrere LocationPlanPeriods.
+
+    Ersetzt get_batch_masters_from__location_plan_periods() (EventGroupShow) durch
+    direkten Scalar-SELECT (3 Queries). Rückgabe: location_plan_period_id → EventGroupTreeNode.
+    """
+    if not location_plan_period_ids:
+        return {}
+    with get_session() as session:
+        # Query 1: Master-Skalare (WHERE location_plan_period_id IN ...)
+        master_rows = session.exec(
+            select(models.EventGroup.id,
+                   models.EventGroup.variation_weight,
+                   models.EventGroup.nr_event_groups,
+                   models.EventGroup.location_plan_period_id)
+            .where(models.EventGroup.location_plan_period_id.in_(location_plan_period_ids))
+        ).all()
+        nodes_by_lpp: dict[UUID, schemas.EventGroupTreeNode] = {
+            row.location_plan_period_id: schemas.EventGroupTreeNode(
+                id=row.id,
+                variation_weight=row.variation_weight or 1,
+                nr_event_groups=row.nr_event_groups,
+                location_plan_period_id=row.location_plan_period_id,
+            )
+            for row in master_rows
+        }
+        master_ids = [n.id for n in nodes_by_lpp.values()]
+        if not master_ids:
+            return nodes_by_lpp
+        # Query 2: Event-IDs (Masters sind Root-Nodes ohne Event, aber sicherheitshalber)
+        event_rows = session.exec(
+            select(models.Event.id, models.Event.event_group_id)
+            .where(models.Event.event_group_id.in_(master_ids))
+        ).all()
+        master_by_id = {n.id: n for n in nodes_by_lpp.values()}
+        for event_row in event_rows:
+            node = master_by_id.get(event_row.event_group_id)
+            if node is not None:
+                node.event_id = event_row.id
+        # Query 3: Kinder-IDs für alle Master
+        child_rows = session.exec(
+            select(models.EventGroup.id, models.EventGroup.event_group_id)
+            .where(models.EventGroup.event_group_id.in_(master_ids))
+        ).all()
+        for child_row in child_rows:
+            parent_node = master_by_id.get(child_row.event_group_id)
+            if parent_node is not None:
+                parent_node.child_ids.append(child_row.id)
+        return nodes_by_lpp
+
+
 def get(event_group_id: UUID) -> schemas.EventGroupShow:
     with get_session() as session:
         return schemas.EventGroupShow.model_validate(session.get(models.EventGroup, event_group_id))
 
 
-def get_master_from__location_plan_period(location_plan_period_id: UUID) -> schemas.EventGroupShow:
+def _event_group_show_options():
+    """Vollständige Eager-Loading-Optionen für EventGroupShow.model_validate() ohne Lazy-Loads.
+
+    EventGroupShow traversiert beim model_validate() folgende Chains (3 Ebenen tief):
+    - event → time_of_day → time_of_day_enum
+    - event → location_plan_period → plan_period → team
+    - event → flags
+    - location_plan_period → plan_period → team  (Root-Nodes)
+    - event_group (Parent-Referenz, Ebene 1)
+      ↳ .location_plan_period → plan_period → team
+      ↳ .event → time_of_day → time_of_day_enum
+      ↳ .event → location_plan_period → plan_period → team
+      ↳ .event → flags
+      ↳ .event_group (Großeltern, Ebene 2)
+           ↳ .location_plan_period → plan_period → team
+           ↳ .event_group (Ebene 3, = NULL für Root → kein Lazy-Load mehr)
+    Kinder (event_groups): Selbe Chains über Sub-Optionen von selectinload.
+    """
+    from sqlalchemy.orm import selectinload, joinedload
+    return [
+        # ── Kinder (selectinload + alle Sub-Chains) ──────────────────────────
+        selectinload(models.EventGroup.event_groups)
+        .joinedload(models.EventGroup.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        selectinload(models.EventGroup.event_groups)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum),
+        selectinload(models.EventGroup.event_groups)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        selectinload(models.EventGroup.event_groups)
+        .joinedload(models.EventGroup.event)
+        .selectinload(models.Event.flags),
+        # ── Haupt-Node: event-Chain ───────────────────────────────────────────
+        joinedload(models.EventGroup.event)
+        .joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum),
+        joinedload(models.EventGroup.event)
+        .joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        joinedload(models.EventGroup.event)
+        .selectinload(models.Event.flags),
+        # ── Haupt-Node: location_plan_period (Root-Nodes) ────────────────────
+        joinedload(models.EventGroup.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        # ── Haupt-Node: event_group Ebene 1 (Parent) mit Sub-Chains ──────────
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .selectinload(models.Event.flags),
+        # ── event_group Ebene 2 (Großeltern) mit Sub-Chains ──────────────────
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .joinedload(models.Event.location_plan_period)
+        .joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team),
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event)
+        .selectinload(models.Event.flags),
+        # ── event_group Ebene 3 (Root-Parent = NULL → verhindert Lazy-Load) ──
+        joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group)
+        .joinedload(models.EventGroup.event_group),
+    ]
+
+
+def get_batch(event_group_ids: list[UUID]) -> dict[UUID, schemas.EventGroupShow]:
+    """Lädt mehrere EventGroups in einer Batch-Abfrage ohne Lazy-Loads.
+
+    Ersetzt N einzelne get()-Aufrufe (N Sessions) durch eine einzige Query.
+    Vollständiges Eager-Loading via _event_group_show_options().
+    """
+    if not event_group_ids:
+        return {}
     with get_session() as session:
-        lpp = session.get(models.LocationPlanPeriod, location_plan_period_id)
-        return schemas.EventGroupShow.model_validate(lpp.event_group)
+        stmt = (select(models.EventGroup)
+                .where(models.EventGroup.id.in_(event_group_ids))
+                .options(*_event_group_show_options()))
+        groups = session.exec(stmt).unique().all()
+        return {g.id: schemas.EventGroupShow.model_validate(g) for g in groups}
+
+
+def get_master_from__location_plan_period(location_plan_period_id: UUID) -> schemas.EventGroupShow:
+    """Lädt den Root-EventGroup einer LocationPlanPeriod mit vollständigem Eager-Loading."""
+    with get_session() as session:
+        stmt = (select(models.EventGroup)
+                .where(models.EventGroup.location_plan_period_id == location_plan_period_id)
+                .options(*_event_group_show_options()))
+        eg = session.exec(stmt).first()
+        return schemas.EventGroupShow.model_validate(eg)
+
+
+def get_batch_masters_from__location_plan_periods(
+        location_plan_period_ids: list[UUID]) -> dict[UUID, schemas.EventGroupShow]:
+    """Lädt Root-EventGroups für mehrere LocationPlanPeriods in einer einzigen Batch-Abfrage.
+
+    Ersetzt N× get_master_from__location_plan_period() (N Sessions) durch eine einzige Query.
+    Verwendet WHERE location_plan_period_id IN (...) mit vollem Eager-Loading.
+
+    Returns:
+        Dict: location_plan_period_id → EventGroupShow
+    """
+    if not location_plan_period_ids:
+        return {}
+    with get_session() as session:
+        stmt = (select(models.EventGroup)
+                .where(models.EventGroup.location_plan_period_id.in_(location_plan_period_ids))
+                .options(*_event_group_show_options()))
+        groups = session.exec(stmt).unique().all()
+        return {g.location_plan_period_id: schemas.EventGroupShow.model_validate(g)
+                for g in groups}
 
 
 def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGroupShow]:

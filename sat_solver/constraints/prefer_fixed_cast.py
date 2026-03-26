@@ -80,7 +80,7 @@ class PreferFixedCastConstraint(ConstraintBase):
             return False
         
         # Hole die zugehörige EventGroup
-        event_group_id = cast_group.event.event_group.id
+        event_group_id = cast_group.event.event_group_id
         event_group = self.entities.event_groups_with_event.get(event_group_id)
         if not event_group or not event_group.parent:
             return False
@@ -157,7 +157,7 @@ class PreferFixedCastConstraint(ConstraintBase):
         Eine einzige Penalty-Variable die 1 ist wenn das Event NICHT ausgewählt wurde.
         """
         
-        event_group_id = cast_group.event.event_group.id
+        event_group_id = cast_group.event.event_group_id
         
         penalty_var = self.model.NewIntVar(0, 1, 
             f'Prefer: {cast_group.event.date:%d.%m.%y} '

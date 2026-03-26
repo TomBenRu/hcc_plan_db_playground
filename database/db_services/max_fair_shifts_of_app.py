@@ -30,6 +30,22 @@ def get_all_from__plan_period_minimal(plan_period_id: UUID) -> dict[UUID, tuple[
         return {m.actor_plan_period_id: (m.max_shifts, m.fair_shifts) for m in mfs_list}
 
 
+def get_by_actor_plan_period_ids(actor_plan_period_ids: list[UUID]) -> dict[UUID, tuple[int, int]]:
+    """Lädt MaxFairShifts direkt per ID-Liste — kein JOIN, keine Pydantic-Validierung.
+
+    Schneller als get_all_from__plan_period_minimal() wenn die actor_plan_period_ids
+    bereits bekannt sind (kein JOIN über ActorPlanPeriod nötig).
+    """
+    if not actor_plan_period_ids:
+        return {}
+    with get_session() as session:
+        mfs_list = session.exec(
+            select(models.MaxFairShiftsOfApp)
+            .where(models.MaxFairShiftsOfApp.actor_plan_period_id.in_(actor_plan_period_ids))
+        ).all()
+        return {m.actor_plan_period_id: (m.max_shifts, m.fair_shifts) for m in mfs_list}
+
+
 def create(max_fair_shifts_per_app: schemas.MaxFairShiftsOfAppCreate) -> schemas.MaxFairShiftsOfAppShow:
     log_function_info()
     with get_session() as session:

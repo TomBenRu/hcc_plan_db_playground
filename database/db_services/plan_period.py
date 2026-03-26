@@ -19,13 +19,61 @@ from ._common import log_function_info
 from ._eager_loading import plan_period_show_options
 
 
-def get(plan_period_id: UUID) -> schemas.PlanPeriodShow:
+def get(plan_period_id: UUID, minimal: bool = False) -> schemas.PlanPeriodShow | schemas.PlanPeriod:
+    """Lädt eine PlanPeriod.
+
+    minimal=True gibt schemas.PlanPeriod (id, start, end, team) zurück ohne
+    actor_plan_periods, location_plan_periods und cast_groups — für Aufrufer,
+    die nur Datum und ID benötigen (~120ms statt ~490ms).
+    """
     with get_session() as session:
+        if minimal:
+            stmt = (select(models.PlanPeriod)
+                    .where(models.PlanPeriod.id == plan_period_id)
+                    .options(
+                        joinedload(models.PlanPeriod.team).joinedload(models.Team.project),
+                        joinedload(models.PlanPeriod.team).joinedload(models.Team.dispatcher),
+                        joinedload(models.PlanPeriod.team).joinedload(models.Team.excel_export_settings),
+                    ))
+            pp = session.exec(stmt).unique().one()
+            return schemas.PlanPeriod.model_validate(pp)
         stmt = (select(models.PlanPeriod)
                 .where(models.PlanPeriod.id == plan_period_id)
                 .options(*plan_period_show_options()))
         pp = session.exec(stmt).unique().one()
         return schemas.PlanPeriodShow.model_validate(pp)
+
+
+def get_lpp_and_app_ids(plan_period_id: UUID) -> tuple[list[UUID], list[UUID]]:
+    """Lädt ausschließlich die LocationPlanPeriod- und ActorPlanPeriod-ID-Listen.
+
+    Ersetzt 2× PlanPeriod.get() (je ~700ms mit vollem Eager-Loading) durch
+    2 einfache SELECT-Queries (~10ms gesamt). Verwendet kein model_validate.
+    Für den Solver-Tree-Aufbau, der nur die IDs benötigt.
+
+    Returns:
+        (lpp_ids, app_ids)
+    """
+    with get_session() as session:
+        lpp_ids = session.exec(
+            select(models.LocationPlanPeriod.id)
+            .where(models.LocationPlanPeriod.plan_period_id == plan_period_id)
+        ).all()
+        app_ids = session.exec(
+            select(models.ActorPlanPeriod.id)
+            .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+        ).all()
+    return list(lpp_ids), list(app_ids)
+
+
+def exists_any_from__project(project_id: UUID) -> bool:
+    """Gibt True zurück, wenn das Projekt mindestens einen Planungszeitraum hat (kein model_validate)."""
+    with get_session() as session:
+        stmt = (select(models.PlanPeriod)
+                .join(models.Team)
+                .where(models.Team.project_id == project_id)
+                .limit(1))
+        return session.exec(stmt).first() is not None
 
 
 def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriod]:

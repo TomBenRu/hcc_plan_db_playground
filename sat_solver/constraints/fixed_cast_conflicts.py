@@ -92,7 +92,7 @@ class FixedCastConflictsConstraint(ConstraintBase):
                 cast_group
             )
             (self.model.Add(self.fixed_cast_vars[key] == proof_var.Not())
-             .OnlyEnforceIf(self.entities.event_group_vars[cast_group.event.event_group.id]))
+             .OnlyEnforceIf(self.entities.event_group_vars[cast_group.event.event_group_id]))
         
         # Penalty-Variablen für Registry
         self.penalty_vars = list(self.fixed_cast_vars.values())

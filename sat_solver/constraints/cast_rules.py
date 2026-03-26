@@ -72,12 +72,16 @@ class CastRulesConstraint(ConstraintBase):
             
             # Wende Regeln auf aufeinanderfolgende Cast Groups an
             for idx in range(len(cast_groups) - 1):
-                event_group_1 = cast_groups[idx].event.event_group
-                event_group_2 = cast_groups[idx + 1].event.event_group
-                
+                event_group_1 = self.entities.event_groups_with_event.get(
+                    cast_groups[idx].event.event_group_id)
+                event_group_2 = self.entities.event_groups_with_event.get(
+                    cast_groups[idx + 1].event.event_group_id)
+                if event_group_1 is None or event_group_2 is None:
+                    continue
+
                 # Regel-Symbol aus zyklischem Pattern ermitteln
                 rule_symbol = rule[idx % len(rule)]
-                
+
                 if rule_symbol == '-':
                     # Different Cast Regel anwenden
                     self.penalty_vars.extend(
@@ -166,8 +170,8 @@ class CastRulesConstraint(ConstraintBase):
         """
         broken_rules_vars: list[IntVar] = []
         
-        event_group_1_id = cast_group_1.event.event_group.id
-        event_group_2_id = cast_group_2.event.event_group.id
+        event_group_1_id = cast_group_1.event.event_group_id
+        event_group_2_id = cast_group_2.event.event_group_id
         
         # Erstelle Boolean-Arrays für tatsächliche Schicht-Zuweisungen
         applied_shifts_1: list[IntVar] = [

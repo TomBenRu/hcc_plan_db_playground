@@ -64,11 +64,21 @@ def get(plan_id: UUID, small: bool = False) -> schemas.PlanShow | schemas.Plan:
         return schemas.PlanShow.model_validate(plan)
 
 
-def get_from__name(plan_name: str) -> schemas.PlanShow | None:
+def get_from__name(plan_name: str, minimal: bool = False) -> schemas.PlanShow | schemas.Plan | None:
+    """Sucht einen Plan nach Name.
+
+    minimal=True gibt schemas.Plan (id, name, prep_delete) zurück ohne
+    Eager-Loading der tiefen Relationen — für Existenzprüfungen und
+    Operationen, die nur plan.id benötigen (~120ms statt ~2400ms).
+    """
     with get_session() as session:
-        stmt = select(models.Plan).where(models.Plan.name == plan_name).options(*plan_show_options())
-        plan = session.exec(stmt).unique().first()
-        return schemas.PlanShow.model_validate(plan) if plan else None
+        stmt = select(models.Plan).where(models.Plan.name == plan_name)
+        if not minimal:
+            stmt = stmt.options(*plan_show_options())
+            plan = session.exec(stmt).unique().first()
+            return schemas.PlanShow.model_validate(plan) if plan else None
+        plan = session.exec(stmt).first()
+        return schemas.Plan.model_validate(plan) if plan else None
 
 
 def get_all_from__team(team_id: UUID,

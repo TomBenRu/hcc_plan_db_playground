@@ -14,18 +14,35 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import project_show_options
 
 
 def get(project_id: UUID) -> schemas.ProjectShow:
     with get_session() as session:
-        project_db = session.get(models.Project, project_id)
-        return schemas.ProjectShow.model_validate(project_db)
+        stmt = (select(models.Project)
+                .where(models.Project.id == project_id)
+                .options(*project_show_options()))
+        project = session.exec(stmt).unique().one()
+        return schemas.ProjectShow.model_validate(project)
 
 
 def get_all() -> list[schemas.ProjectShow]:
     with get_session() as session:
         projects = session.exec(select(models.Project)).all()
         return [schemas.ProjectShow.model_validate(p) for p in projects]
+
+
+def exists_any() -> bool:
+    """Gibt True zurück, wenn mindestens ein Projekt existiert (kein model_validate)."""
+    with get_session() as session:
+        return session.exec(select(models.Project).limit(1)).first() is not None
+
+
+def get_first_id() -> 'UUID | None':
+    """Gibt die ID des ersten Projekts zurück ohne model_validate (schneller Startup-Pfad)."""
+    with get_session() as session:
+        project = session.exec(select(models.Project).limit(1)).first()
+        return project.id if project else None
 
 
 def create(name: str) -> schemas.ProjectShow:

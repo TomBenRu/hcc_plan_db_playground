@@ -34,7 +34,9 @@ def is_person_available_for_event(person_id: UUID, cast_group, entities) -> bool
     if cast_group.nr_actors == 0:
         return False
     event = cast_group.event
-    event_group_id = event.event_group.id
+    # event.event_group_id ist direkter FK auf der Event-Tabelle (schemas.Event);
+    # event.event_group.id (EventShow) ist nicht mehr verfügbar seit get_batch_for_solver → Event-Schema
+    event_group_id = event.event_group_id
 
     available = next(
         (bool(val) for (adg_id, eg_id), val in entities.shifts_exclusive.items()
@@ -194,7 +196,7 @@ def check_pers_id_in_shift_vars(
     var = model.NewBoolVar('')
     model.Add(var == sum(
         shift_var for (adg_id, eg_id), shift_var in entities.shift_vars.items()
-        if eg_id == cast_group.event.event_group.id
+        if eg_id == cast_group.event.event_group_id
         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == pers_id
     ))
     return var

@@ -905,3 +905,146 @@ def location_mask_lpp_options() -> list:
         low_address, low_project,
         time_of_days, tod_standards,
     ]
+
+
+def location_of_work_show_options() -> list:
+    """Loader-Optionen für vollständige LocationOfWorkShow-Objekte.
+
+    Deckt alle Relationship-Pfade ab, die schemas.LocationOfWorkShow.model_validate()
+    traversiert — inkl. team_location_assigns (→ team → project/dispatcher/excel),
+    time_of_days/standards (→ time_of_day_enum + project), skill_groups (→ skill)
+    sowie address und project der Location selbst.
+
+    Ersetzt ~50+ Lazy-Load-Queries pro Objekt durch ~10 Batch-Queries.
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    # ── LocationOfWork-Basis (M:1) → address + project ───────────────────────
+    address = joinedload(models.LocationOfWork.address)
+    project = joinedload(models.LocationOfWork.project)
+
+    # ── team_location_assigns (1:N) → team → project + dispatcher + excel ────
+    tla_team_project = (
+        selectinload(models.LocationOfWork.team_location_assigns)
+        .joinedload(models.TeamLocationAssign.team)
+        .joinedload(models.Team.project)
+    )
+    tla_team_dispatcher = (
+        selectinload(models.LocationOfWork.team_location_assigns)
+        .joinedload(models.TeamLocationAssign.team)
+        .joinedload(models.Team.dispatcher)
+    )
+    tla_team_excel = (
+        selectinload(models.LocationOfWork.team_location_assigns)
+        .joinedload(models.TeamLocationAssign.team)
+        .joinedload(models.Team.excel_export_settings)
+    )
+
+    # ── time_of_days (M:N) → time_of_day_enum + project ──────────────────────
+    tod_enum = (
+        selectinload(models.LocationOfWork.time_of_days)
+        .joinedload(models.TimeOfDay.time_of_day_enum)
+    )
+    tod_project = (
+        selectinload(models.LocationOfWork.time_of_days)
+        .joinedload(models.TimeOfDay.project)
+    )
+
+    # ── time_of_day_standards (M:N) → time_of_day_enum + project ─────────────
+    tod_std_enum = (
+        selectinload(models.LocationOfWork.time_of_day_standards)
+        .joinedload(models.TimeOfDay.time_of_day_enum)
+    )
+    tod_std_project = (
+        selectinload(models.LocationOfWork.time_of_day_standards)
+        .joinedload(models.TimeOfDay.project)
+    )
+
+    # ── skill_groups (1:N) → skill ────────────────────────────────────────────
+    skill_groups_skill = (
+        selectinload(models.LocationOfWork.skill_groups)
+        .joinedload(models.SkillGroup.skill)
+    )
+
+    return [
+        address, project,
+        tla_team_project, tla_team_dispatcher, tla_team_excel,
+        tod_enum, tod_project,
+        tod_std_enum, tod_std_project,
+        skill_groups_skill,
+    ]
+
+
+def project_show_options() -> list:
+    """Loader-Optionen für vollständige ProjectShow-Objekte.
+
+    Deckt alle Relationship-Pfade ab, die schemas.ProjectShow.model_validate()
+    traversiert — inkl. teams (mit vollständiger team_show_options()-Kette),
+    persons (→ address), time_of_days/standards/enums und einfacher Collections.
+
+    Ersetzt mehrere hundert Lazy-Load-Queries durch ~20 Batch-Queries.
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    # ── Project-Basis (M:1) → excel_export_settings ──────────────────────────
+    excel = joinedload(models.Project.excel_export_settings)
+
+    # ── admin → Person (M:1, optional) → address ─────────────────────────────
+    admin = joinedload(models.Project.admin)
+    admin_address = admin.joinedload(models.Person.address)
+
+    # ── teams (1:N) — vollständige team_show_options()-Kette ─────────────────
+    teams = selectinload(models.Project.teams)
+    teams_dispatcher = teams.joinedload(models.Team.dispatcher)
+    teams_excel = teams.joinedload(models.Team.excel_export_settings)
+    teams_taa_person = (
+        teams.selectinload(models.Team.team_actor_assigns)
+        .joinedload(models.TeamActorAssign.person)
+    )
+    teams_tla_low = (
+        teams.selectinload(models.Team.team_location_assigns)
+        .joinedload(models.TeamLocationAssign.location_of_work)
+    )
+    teams_plan_periods = teams.selectinload(models.Team.plan_periods)
+    teams_clp_project = (
+        teams.selectinload(models.Team.combination_locations_possibles)
+        .joinedload(models.CombinationLocationsPossible.project)
+    )
+    teams_clp_low = (
+        teams.selectinload(models.Team.combination_locations_possibles)
+        .selectinload(models.CombinationLocationsPossible.locations_of_work)
+    )
+
+    # ── persons (1:N, FK Person.project_id) → address ────────────────────────
+    persons = selectinload(models.Project.persons)
+    persons_address = persons.joinedload(models.Person.address)
+
+    # ── time_of_days (M:N via FK project_defaults_id) → time_of_day_enum ─────
+    time_of_days = selectinload(models.Project.time_of_days)
+    tod_enum = time_of_days.joinedload(models.TimeOfDay.time_of_day_enum)
+
+    # ── time_of_day_standards (M:N via FK project_standard_id) → enum ────────
+    tod_standards = selectinload(models.Project.time_of_day_standards)
+    tod_std_enum = tod_standards.joinedload(models.TimeOfDay.time_of_day_enum)
+
+    # ── time_of_day_enums + time_of_day_enum_standards (1:N / M:N) ───────────
+    time_of_day_enums = selectinload(models.Project.time_of_day_enums)
+    tod_enum_standards = selectinload(models.Project.time_of_day_enum_standards)
+
+    # ── einfache Collections (keine Sub-Relationen im Schema nötig) ───────────
+    skills = selectinload(models.Project.skills)
+    flags = selectinload(models.Project.flags)
+    cast_rules = selectinload(models.Project.cast_rules)
+
+    return [
+        excel,
+        admin, admin_address,
+        teams, teams_dispatcher, teams_excel,
+        teams_taa_person, teams_tla_low,
+        teams_plan_periods,
+        teams_clp_project, teams_clp_low,
+        persons, persons_address,
+        time_of_days, tod_enum,
+        tod_standards, tod_std_enum,
+        time_of_day_enums,
+        tod_enum_standards,
+        skills, flags, cast_rules,
+    ]

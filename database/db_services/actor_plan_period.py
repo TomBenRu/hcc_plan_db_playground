@@ -8,6 +8,7 @@ Solver (`get_all_for_solver`).
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -80,15 +81,37 @@ def get_all_from__plan_period(plan_period_id: UUID, maximal: bool = False) -> li
                     .options(*actor_plan_period_show_options()))
             apps = session.exec(stmt).unique().all()
             return [schemas.ActorPlanPeriodShow.model_validate(a) for a in apps]
-        apps = session.exec(select(models.ActorPlanPeriod).where(
-            models.ActorPlanPeriod.plan_period_id == plan_period_id)).all()
+        # Alle Pflichtfelder des schemas.ActorPlanPeriod eager laden:
+        #   ActorPlanPeriodCreate.person  → joinedload(person)
+        #   ActorPlanPeriodCreate.plan_period → PlanPeriodCreate.team → TeamCreate.project/dispatcher/excel
+        # Ohne diese Kette entstehen 5 lazy-load Queries pro Session (plan_period→team→project usw.)
+        plan_period_chain = (
+            joinedload(models.ActorPlanPeriod.plan_period)
+            .joinedload(models.PlanPeriod.team)
+        )
+        stmt = (select(models.ActorPlanPeriod)
+                .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+                .options(
+                    joinedload(models.ActorPlanPeriod.person),
+                    plan_period_chain.joinedload(models.Team.project),
+                    plan_period_chain.joinedload(models.Team.dispatcher),
+                    plan_period_chain.joinedload(models.Team.excel_export_settings),
+                ))
+        apps = session.exec(stmt).unique().all()
         return [schemas.ActorPlanPeriod.model_validate(a) for a in apps]
 
 
 def get_all_for_solver(plan_period_id: UUID) -> dict[UUID, schemas.ActorPlanPeriodSolver]:
+    from sqlalchemy.orm import joinedload
     with get_session() as session:
-        apps = list(session.exec(select(models.ActorPlanPeriod).where(
-            models.ActorPlanPeriod.plan_period_id == plan_period_id)).all())
+        apps = list(session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+            .options(
+                joinedload(models.ActorPlanPeriod.person),
+                joinedload(models.ActorPlanPeriod.plan_period),
+            )
+        ).unique().all())
         if not apps:
             return {}
         app_ids = [a.id for a in apps]

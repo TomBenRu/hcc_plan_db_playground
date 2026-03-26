@@ -7,7 +7,7 @@ from database import schemas, db_services
 
 
 class EventGroup(NodeMixin):
-    def __init__(self, event_group_db: schemas.EventGroupShow | None,
+    def __init__(self, event_group_db: schemas.EventGroupTreeNode | schemas.EventGroupShow | None,
                  children: list['EventGroup'] = None,
                  parent: Optional['EventGroup'] = None,
                  root_is_location_plan_period_master_group: bool = False):
@@ -32,8 +32,13 @@ class EventGroup(NodeMixin):
         return self._event
 
     def get_event_from_db(self):
+        if not self.event_group_db:
+            return None
+        # EventGroupTreeNode hat event_id (UUID); EventGroupShow hat event (Objekt)
+        if isinstance(self.event_group_db, schemas.EventGroupTreeNode):
+            return db_services.Event.get(self.event_group_db.event_id) if self.event_group_db.event_id else None
         return (db_services.Event.get(self.event_group_db.event.id)
-                if (self.event_group_db and self.event_group_db.event) else None)
+                if self.event_group_db.event else None)
 
     def __repr__(self):
         event_date = self.event.date.strftime('%d.%m.%y') if self.event else None
@@ -79,31 +84,58 @@ class EventGroupTree:
         return nodes
 
     def construct_root_node(self) -> EventGroup:
+        # Alle Master-Nodes in einem Batch laden (single oder multiple LPPs)
+        masters_by_lpp = db_services.EventGroup.get_batch_masters_for_tree(
+            self.location_plan_period_ids)
         if len(self.location_plan_period_ids) == 1:
-            event_group_db = (db_services.EventGroup
-                              .get_master_from__location_plan_period(self.location_plan_period_ids[0]))
-            child_groups = [db_services.EventGroup.get(evg.id) for evg in event_group_db.event_groups]
-            root = EventGroup(event_group_db, [EventGroup(child) for child in child_groups], None, True)
+            lpp_id = self.location_plan_period_ids[0]
+            master = masters_by_lpp.get(lpp_id)
+            if master is None:
+                root = EventGroup(None)
+            else:
+                # child_ids bereits im TreeNode befüllt
+                child_map = db_services.EventGroup.get_batch_for_tree(master.child_ids)
+                child_nodes = [child_map[cid] for cid in master.child_ids if cid in child_map]
+                root = EventGroup(master, [EventGroup(child) for child in child_nodes], None, True)
         else:
-            child_groups = [db_services.EventGroup.get_master_from__location_plan_period(lpp_id)
-                            for lpp_id in self.location_plan_period_ids]
-            root = EventGroup(None, [EventGroup(child) for child in child_groups])
+            child_nodes = [masters_by_lpp[lpp_id] for lpp_id in self.location_plan_period_ids
+                           if lpp_id in masters_by_lpp]
+            root = EventGroup(None, [EventGroup(child) for child in child_nodes])
         self.nodes[0] = root
         self.nodes.update({n.event_group_id: n for n in root.children})
 
         return root
 
     def construct_event_group_tree(self):
+        """Baut den Baum Level-by-Level mit Batch-Queries: O(depth) statt O(N) Sessions."""
+        current_level = list(self.root.children)
 
-        def construct_recursive(parent: EventGroup):
-            for event_group_db in parent.event_group_db.event_groups:
-                evg = db_services.EventGroup.get(event_group_db.id)
-                child = EventGroup(evg, None, parent)
-                self.nodes[child.event_group_id] = child
-                construct_recursive(child)
+        while current_level:
+            # EventGroupTreeNode: child_ids ist direkt verfügbar (kein event_groups-Objekt mehr)
+            next_ids = [
+                child_id
+                for node in current_level
+                if node.event_group_db and node.event_group_db.child_ids
+                for child_id in node.event_group_db.child_ids
+            ]
+            if not next_ids:
+                break
 
-        for child in self.root.children:
-            construct_recursive(child)
+            next_map = db_services.EventGroup.get_batch_for_tree(next_ids)
+
+            next_level = []
+            for node in current_level:
+                if not (node.event_group_db and node.event_group_db.child_ids):
+                    continue
+                for child_id in node.event_group_db.child_ids:
+                    evg = next_map.get(child_id)
+                    if evg is None:
+                        continue
+                    child = EventGroup(evg, None, node)
+                    self.nodes[child.event_group_id] = child
+                    next_level.append(child)
+
+            current_level = next_level
 
 
 def get_event_group_tree(plan_period_id: UUID) -> EventGroupTree:

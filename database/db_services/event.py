@@ -23,6 +23,45 @@ def get(event_id: UUID) -> schemas.EventShow:
         return schemas.EventShow.model_validate(session.get(models.Event, event_id))
 
 
+def get_batch_for_solver(event_ids: list[UUID]) -> dict[UUID, schemas.EventForSolver]:
+    """Lädt mehrere Events als EventForSolver für den Solver.
+
+    Benötigte Felder durch Solver-Constraints:
+    - time_of_day → time_of_day_enum  (check_time_span_avail_day_fits_event)
+    - location_plan_period → location_of_work  (check_actor_location_prefs_fits_event, cast_rules)
+    - location_plan_period → plan_period → team  (LocationPlanPeriod-Schema-Pflichtfeld)
+    - flags  (EventCreate-Pflichtfeld)
+    - skill_groups  (skills.py)
+    - cast_group.nr_actors  (skills.py, partner_location_prefs.py, unsigned_shifts.py)
+    - event_group.id  (cast_rules.py — lookup via entities.event_groups)
+
+    EventForSolver vermeidet die rekursive event_group-Eltern-Kette (EventShow-Problem:
+    4014ms für 55 Events durch Pydantic-Traversierung bis Root-EventGroup).
+    """
+    if not event_ids:
+        return {}
+    with get_session() as session:
+        stmt = (select(models.Event)
+                .where(models.Event.id.in_(event_ids))
+                .options(
+                    # ── Basis-Chains ─────────────────────────────────────────
+                    joinedload(models.Event.time_of_day)
+                    .joinedload(models.TimeOfDay.time_of_day_enum),
+                    joinedload(models.Event.location_plan_period)
+                    .joinedload(models.LocationPlanPeriod.location_of_work),
+                    joinedload(models.Event.location_plan_period)
+                    .joinedload(models.LocationPlanPeriod.plan_period)
+                    .joinedload(models.PlanPeriod.team),
+                    selectinload(models.Event.flags),
+                    # ── Solver-spezifische Chains ─────────────────────────────
+                    selectinload(models.Event.skill_groups),
+                    joinedload(models.Event.cast_group),  # nur id + nr_actors benötigt
+                    joinedload(models.Event.event_group),  # nur id benötigt
+                ))
+        events = session.exec(stmt).unique().all()
+        return {e.id: schemas.EventForSolver.model_validate(e) for e in events}
+
+
 def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.EventShow]:
     with get_session() as session:
         events = session.exec(select(models.Event).join(models.LocationPlanPeriod)

@@ -15,6 +15,7 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import location_of_work_show_options
 
 
 def get(location_id: UUID) -> schemas.LocationOfWorkShow:
@@ -37,11 +38,25 @@ def get_many(location_ids: list[UUID]) -> dict[UUID, schemas.LocationOfWorkShow]
         return {loc.id: schemas.LocationOfWorkShow.model_validate(loc) for loc in locs}
 
 
+def exists_any_from__project(project_id: UUID) -> bool:
+    """Gibt True zurück, wenn das Projekt mindestens einen aktiven Standort hat (kein model_validate)."""
+    with get_session() as session:
+        stmt = select(models.LocationOfWork).where(
+            models.LocationOfWork.project_id == project_id,
+            models.LocationOfWork.prep_delete.is_(None)
+        ).limit(1)
+        return session.exec(stmt).first() is not None
+
+
 def get_all_from__project(project_id: UUID) -> list[schemas.LocationOfWorkShow]:
     with get_session() as session:
-        locs = session.exec(select(models.LocationOfWork).where(
-            models.LocationOfWork.project_id == project_id,
-            models.LocationOfWork.prep_delete.is_(None))).all()
+        stmt = (select(models.LocationOfWork)
+                .where(
+                    models.LocationOfWork.project_id == project_id,
+                    models.LocationOfWork.prep_delete.is_(None),
+                )
+                .options(*location_of_work_show_options()))
+        locs = session.exec(stmt).unique().all()
         return [schemas.LocationOfWorkShow.model_validate(loc) for loc in locs]
 
 

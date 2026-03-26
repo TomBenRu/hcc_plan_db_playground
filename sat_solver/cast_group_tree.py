@@ -80,6 +80,8 @@ class CastGroupTree:
     def construct_cast_group_tree(self):
         self.root = CastGroup(None)
         all_cast_groups_db = db_services.CastGroup.get_all_from__plan_period(self.plan_period_id)
+        # Lookup-Dict verhindert N×get()-Aufrufe für Child-Nodes
+        cg_lookup = {cg.id: cg for cg in all_cast_groups_db}
         cast_groups_db_top = [cg for cg in all_cast_groups_db if not cg.parent_groups]
         top_nodes: list[CastGroup] = []
         lower_nodes: list[CastGroup] = []
@@ -92,7 +94,7 @@ class CastGroupTree:
         while top_nodes:
             for node in top_nodes:
                 for cg_db in node.cast_group_db.child_groups:
-                    cg_db = db_services.CastGroup.get(cg_db.id)
+                    cg_db = cg_lookup[cg_db.id]
                     curr_node = CastGroup(cg_db, None, node)
                     if cg_db.child_groups:
                         lower_nodes.append(curr_node)

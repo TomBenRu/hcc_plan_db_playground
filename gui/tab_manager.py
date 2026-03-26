@@ -414,8 +414,11 @@ class TabManager(QObject):
                 self._activate_plan_period_tab(plan_period_id)
                 return True
                 
-            plan_period = db_services.PlanPeriod.get(plan_period_id)
-            
+            # minimal=True: FrmTabActorPlanPeriods lädt PlanPeriodShow intern selbst;
+            # FrmTabLocationPlanPeriods nutzt nur plan_period.id.
+            # Hier werden nur start/end für Tab-Label und PlanPeriodTabWidget benötigt.
+            plan_period = db_services.PlanPeriod.get(plan_period_id, minimal=True)
+
             # Import hier um zirkuläre Abhängigkeiten zu vermeiden
             from .frm_plan_period_tab_widget import PlanPeriodTabWidget
             from .frm_actor_plan_period import FrmTabActorPlanPeriods

@@ -26,14 +26,25 @@ def get(team_id: UUID) -> schemas.TeamShow:
         return schemas.TeamShow.model_validate(team)
 
 
+def exists_any_from__project(project_id: UUID) -> bool:
+    """Gibt True zurück, wenn das Projekt mindestens ein Team hat (kein model_validate)."""
+    with get_session() as session:
+        stmt = select(models.Team).where(models.Team.project_id == project_id).limit(1)
+        return session.exec(stmt).first() is not None
+
+
 def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.TeamShow | tuple[str, UUID]]:
     with get_session() as session:
-        project_db = session.get(models.Project, project_id)
-        if not project_db:
-            return []
         if minimal:
-            return [(t.name, t.id) for t in project_db.teams]
-        return [schemas.TeamShow.model_validate(t) for t in project_db.teams]
+            teams = session.exec(
+                select(models.Team).where(models.Team.project_id == project_id)
+            ).all()
+            return [(t.name, t.id) for t in teams]
+        stmt = (select(models.Team)
+                .where(models.Team.project_id == project_id)
+                .options(*team_show_options()))
+        teams = session.exec(stmt).unique().all()
+        return [schemas.TeamShow.model_validate(t) for t in teams]
 
 
 def create(team_name: str, project_id: UUID, dispatcher_id: UUID = None):

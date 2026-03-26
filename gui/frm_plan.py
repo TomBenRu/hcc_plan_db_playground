@@ -1375,9 +1375,14 @@ class FrmTabPlan(QWidget):
         self.weekday_cols = self.generate_weekday_col()
 
         event_ids = [a.event.id for a in self.plan.appointments]
-        self.cast_group_nr_actors: dict[UUID, int] = (
-            db_services.CastGroup.get_nr_actors_by_event_ids(event_ids) if event_ids else {}
-        )
+        # CastGroup-Daten sind event-gebunden und ändern sich nicht bei Besetzungsänderungen.
+        # Cache wird nur invalidiert wenn sich die Event-Menge ändert (reload_plan).
+        new_event_id_set = set(event_ids)
+        if not hasattr(self, '_cached_cast_group_event_ids') or new_event_id_set != self._cached_cast_group_event_ids:
+            self.cast_group_nr_actors: dict[UUID, int] = (
+                db_services.CastGroup.get_nr_actors_by_event_ids(event_ids) if event_ids else {}
+            )
+            self._cached_cast_group_event_ids = new_event_id_set
 
         self.week_num_weekday = self.generate_week_num_weekday()
         self.weekdays_locations = self.get_weekdays_locations()
@@ -1677,8 +1682,21 @@ class FrmTabPlan(QWidget):
 
     def get_weekdays_locations(self):
         if self.plan.location_columns:
-            all_ids = list({u for v in self.plan.location_columns.values() for u in v})
-            loc_map = db_services.LocationOfWork.get_many(all_ids)
+            # LocationOfWork-Objekte aus bereits Eager-geladenen Appointments extrahieren —
+            # kein DB-Query nötig, da diese Daten via plan_show_options() im plan.appointments
+            # bereits vollständig im Arbeitsspeicher vorliegen.
+            loc_map: dict = {
+                a.event.location_plan_period.location_of_work.id:
+                    a.event.location_plan_period.location_of_work
+                for a in self.plan.appointments
+            }
+            missing_ids = [
+                uid for ids in self.plan.location_columns.values()
+                for uid in ids if uid not in loc_map
+            ]
+            if missing_ids:
+                # Fallback: Standorte ohne Termine (leere Spalten) aus DB nachladen
+                loc_map.update(db_services.LocationOfWork.get_many(missing_ids))
             return {k: [loc_map[u] for u in v] for k, v in self.plan.location_columns.items()}
 
         weekdays_locations = self.generate_weekdays_locations()
@@ -2078,8 +2096,7 @@ class TblPlanStatistics(QTableWidget):
         self.setCornerButtonEnabled(False)
 
     def _fill_in_table_cells(self):
-        max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_all_from__plan_period_minimal(
-            self.frm_plan.plan.plan_period.id)
+        max_fair_shifts_of_app_ids = self.max_fair_shifts_of_app_ids
         for c, (name, (actor_plan_period, appointments)) in enumerate(self.appointments_of_employees.items()):
             requested = actor_plan_period.requested_assignments if actor_plan_period else 0
             if actor_plan_period and (max_fair_shifts := max_fair_shifts_of_app_ids.get(actor_plan_period.id)):
@@ -2128,6 +2145,10 @@ class TblPlanStatistics(QTableWidget):
         self.item_statistics_stylesheets: defaultdict[tuple[int, int], dict] = defaultdict(dict)
         self.item_statistics_selected: defaultdict[tuple[int, int], bool] = defaultdict(lambda: False)
         self.cells_with_action = set()
+        # MaxFairShifts hier laden: actor_plan_period_ids sind bekannt, kein JOIN nötig.
+        # Direkter WHERE-IN-Query ist schneller und teilt keine Session mit _fill_in_table_cells().
+        app_ids = [app.id for app, _ in self.appointments_of_employees.values() if app]
+        self.max_fair_shifts_of_app_ids = db_services.MaxFairShiftsOfApp.get_by_actor_plan_period_ids(app_ids)
 
     @Slot(UUID)
     def refresh_statistics(self, plan_period_id: UUID | None):

@@ -33,10 +33,38 @@ def get_batch(avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDayShow]:
 
 
 def get_batch_minimal(avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDaySolverMinimal]:
+    """Lädt AvailDays als AvailDaySolverMinimal in einer Batch-Abfrage mit Eager-Loading.
+
+    Eager-Loading deckt alle Chains ab, die AvailDaySolverMinimal.model_validate() traversiert:
+    - time_of_day → time_of_day_enum
+    - actor_plan_period → person
+    - skills
+    - actor_location_prefs_defaults → location_of_work
+    - actor_partner_location_prefs_defaults → partner (person) + location_of_work
+    - combination_locations_possibles → locations_of_work
+    """
     if not avail_day_ids:
         return {}
+    from sqlalchemy.orm import joinedload
     with get_session() as session:
-        ads = session.exec(select(models.AvailDay).where(models.AvailDay.id.in_(avail_day_ids))).all()
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.id.in_(avail_day_ids))
+                .options(
+                    joinedload(models.AvailDay.time_of_day)
+                    .joinedload(models.TimeOfDay.time_of_day_enum),
+                    joinedload(models.AvailDay.actor_plan_period)
+                    .joinedload(models.ActorPlanPeriod.person),
+                    selectinload(models.AvailDay.skills),
+                    selectinload(models.AvailDay.actor_location_prefs_defaults)
+                    .joinedload(models.ActorLocationPref.location_of_work),
+                    selectinload(models.AvailDay.actor_partner_location_prefs_defaults)
+                    .joinedload(models.ActorPartnerLocationPref.partner),
+                    selectinload(models.AvailDay.actor_partner_location_prefs_defaults)
+                    .joinedload(models.ActorPartnerLocationPref.location_of_work),
+                    selectinload(models.AvailDay.combination_locations_possibles)
+                    .selectinload(models.CombinationLocationsPossible.locations_of_work),
+                ))
+        ads = session.exec(stmt).unique().all()
         return {ad.id: schemas.AvailDaySolverMinimal.model_validate(ad) for ad in ads}
 
 

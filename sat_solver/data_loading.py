@@ -50,6 +50,47 @@ class Entities:
     shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
 
 
+def _preload_tree_events(event_group_tree: EventGroupTree, cast_group_tree: CastGroupTree) -> None:
+    """Lädt alle Events für Tree-Nodes in einer Batch-Abfrage vor.
+
+    Verhindert N+1 Queries beim späteren Zugriff auf node.event:
+    EventGroup- und CastGroup-Nodes mit event_group_db.event / cast_group_db.event
+    bekommen ihren _event-Cache direkt gesetzt, sodass die lazy property keinen
+    DB-Aufruf mehr auslöst.
+    """
+    event_ids: list[UUID] = []
+    for node in event_group_tree.root.descendants:
+        if node.event_group_db:
+            # EventGroupTreeNode hat event_id (UUID); EventGroupShow hat event (Objekt)
+            eid = (node.event_group_db.event_id
+                   if isinstance(node.event_group_db, schemas.EventGroupTreeNode)
+                   else (node.event_group_db.event.id if node.event_group_db.event else None))
+            if eid:
+                event_ids.append(eid)
+    for node in cast_group_tree.root.descendants:
+        if node.cast_group_db and node.cast_group_db.event:
+            event_ids.append(node.cast_group_db.event.id)
+
+    if not event_ids:
+        return
+
+    events = db_services.Event.get_batch_for_solver(list(set(event_ids)))
+
+    for node in event_group_tree.root.descendants:
+        if node.event_group_db:
+            eid = (node.event_group_db.event_id
+                   if isinstance(node.event_group_db, schemas.EventGroupTreeNode)
+                   else (node.event_group_db.event.id if node.event_group_db.event else None))
+            if eid and eid in events:
+                node._event = events[eid]
+
+    for node in cast_group_tree.root.descendants:
+        if node.cast_group_db and node.cast_group_db.event:
+            eid = node.cast_group_db.event.id
+            if eid in events:
+                node._event = events[eid]
+
+
 def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: AvailDayGroupTree,
                        cast_group_tree: CastGroupTree, plan_period_id: UUID) -> Optional[Entities]:
     """
@@ -66,6 +107,9 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
         Gefülltes Entities-Objekt, oder None wenn abgebrochen
     """
     entities = Entities()
+
+    # Events aller Tree-Nodes vorladen – verhindert N+1 lazy loads in den dict-Comprehensions
+    _preload_tree_events(event_group_tree, cast_group_tree)
 
     # ActorPlanPeriods laden - optimiert mit Batch-Abfrage statt N+1 Queries
     entities.actor_plan_periods = db_services.ActorPlanPeriod.get_all_for_solver(plan_period_id)

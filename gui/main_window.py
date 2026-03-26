@@ -527,7 +527,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def _load_project(self, choose_project: bool):
         start_config = team_start_config.curr_start_config_handler.get_start_config()
         # Bei Neuinstallation: Prüfen ob Projekte existieren
-        if not (all_projects := db_services.Project.get_all()):
+        if not db_services.Project.exists_any():
             QMessageBox.information(self, 'Projekt',
                                     'Sie haben noch kein Projekt angelegt.\n'
                                     'Legen Sie im folgenden Dialog ein neues Projekt an.')
@@ -536,7 +536,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if choose_project:
             self._choose_project(start_config)
         else:
-            self.project_id = all_projects[0].id
+            self.project_id = db_services.Project.get_first_id()
 
     def _choose_project(self, start_config: team_start_config.StartConfig):
         dlg = DlgProjectSelect(self, start_config.project_id)
@@ -557,10 +557,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             team_start_config.curr_start_config_handler.save_config_to_file(start_config)
 
     def new_plan_period(self):
-        if not db_services.Team.get_all_from__project(self.project_id):
+        if not db_services.Team.exists_any_from__project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum', 'Sie müssen Ihrem Projekt zuerst ein Team hinzufügen.')
             return
-        if not db_services.LocationOfWork.get_all_from__project(self.project_id):
+        if not db_services.LocationOfWork.exists_any_from__project(self.project_id):
             QMessageBox.critical(self, 'Neuer Planungszeitraum',
                                  'Sie müssen Ihrem Projekt zuerst eine Einrichtung hinzufügen.')
             return
@@ -568,7 +568,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         dlg.exec()
 
     def edit_plan_period(self):
-        if not db_services.PlanPeriod.get_all_from__project(self.project_id):
+        if not db_services.PlanPeriod.exists_any_from__project(self.project_id):
             QMessageBox.critical(self, 'Planungszeitraum Ändern', 'Es wurden noch keine Planungszeiträume angelegt.')
             return
         else:
@@ -654,9 +654,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def edit_team_excel_export_settings(self, team: schemas.Team):
         team = db_services.Team.get(team.id)
-        project = db_services.Project.get(team.project.id)
+        # team.project bereits via team_show_options() geladen — kein separater Project.get()-Aufruf nötig
         dlg = frm_excel_settings.DlgExcelExportSettings(self, team.excel_export_settings,
-                                                        project)
+                                                        team.project)
         if dlg.exec():
             if dlg.curr_excel_settings_id == dlg.excel_settings.id:
                 db_services.ExcelExportSettings.update(dlg.excel_settings)
@@ -792,7 +792,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         if new_name_suggestion_is_same_as_plan_name(new_name_suggestion, active_widget):
             return
 
-        if existing_plan_with_same_name := db_services.Plan.get_from__name(new_name_suggestion):
+        if existing_plan_with_same_name := db_services.Plan.get_from__name(new_name_suggestion, minimal=True):
             if not confirm_plan_deletion(existing_plan_with_same_name):
                 return
             delete_existing_plan(existing_plan_with_same_name)
@@ -950,32 +950,37 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def _put_clients_to_menu(self) -> tuple[MenuToolbarAction, ...] | None:
         try:
-            teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
+            teams = sorted(db_services.Team.get_all_from__project(self.project_id, minimal=True),
+                           key=lambda x: x[0])
         except Exception as e:
             QMessageBox.critical(self, 'put_clients_to_menu', f'Fehler: {e}')
             return
         self.actions_teams_in_clients_menu = {
-            team.id: MenuToolbarAction(self, None, team.name, f'Zu {team.name} wechseln.',
-                                       lambda event=1, team_id=team.id: self.goto_team(team_id)) for team in teams
+            team_id: MenuToolbarAction(self, None, name, f'Zu {name} wechseln.',
+                                       lambda event=1, team_id=team_id: self.goto_team(team_id))
+            for name, team_id in teams
         }
         return tuple(self.actions_teams_in_clients_menu.values())
 
     def put_teams_to__teams_edit_menu(self) -> dict[str, list[MenuToolbarAction]] | None:
         try:
-            teams = sorted(db_services.Team.get_all_from__project(self.project_id), key=lambda x: x.name)
+            teams = sorted(db_services.Team.get_all_from__project(self.project_id, minimal=True),
+                           key=lambda x: x[0])
         except Exception as e:
             QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
             return None
-        return {team.name: [MenuToolbarAction(self, None, self.tr('Facility Combinations...'),
-                                              self.tr('Edit possible combinations of facilities.'),
-                                              functools.partial(self.edit_comb_loc_poss, team)),
-                            MenuToolbarAction(self, None, self.tr('Excel Settings...'),
-                                              self.tr('Edit settings for Excel export of the schedule.'),
-                                              functools.partial(self.edit_team_excel_export_settings, team)),
-                            MenuToolbarAction(self, None, self.tr('Notes...'),
-                                              self.tr('Edit team notes.'),
-                                              functools.partial(self.edit_team_notes, team))]
-                for team in teams}
+        # checked=False absorbiert Qt's triggered(bool checked) — tid bleibt die korrekte UUID
+        # db_services.Team.get(team_id) wird erst beim Klick aufgerufen, nicht beim Menü-Aufbau
+        return {name: [MenuToolbarAction(self, None, self.tr('Facility Combinations...'),
+                                         self.tr('Edit possible combinations of facilities.'),
+                                         lambda checked=False, tid=team_id: self.edit_comb_loc_poss(db_services.Team.get(tid))),
+                       MenuToolbarAction(self, None, self.tr('Excel Settings...'),
+                                         self.tr('Edit settings for Excel export of the schedule.'),
+                                         lambda checked=False, tid=team_id: self.edit_team_excel_export_settings(db_services.Team.get(tid))),
+                       MenuToolbarAction(self, None, self.tr('Notes...'),
+                                         self.tr('Edit team notes.'),
+                                         lambda checked=False, tid=team_id: self.edit_team_notes(db_services.Team.get(tid)))]
+                for name, team_id in teams}
 
     @Slot(UUID, UUID)
     def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):

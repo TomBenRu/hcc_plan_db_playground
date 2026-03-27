@@ -48,6 +48,10 @@ class Entities:
     cast_groups_with_event: dict[UUID, CastGroup] = dataclasses.field(default_factory=dict)
     shift_vars: dict[tuple[UUID, UUID], 'IntVar'] = dataclasses.field(default_factory=dict)
     shifts_exclusive: dict[tuple[UUID, UUID], int] = dataclasses.field(default_factory=dict)
+    # Reverse-Lookup: (person_id, event_group_id) -> bool
+    # Wird von populate_shifts_exclusive befüllt; ermöglicht O(1)-Verfügbarkeitsprüfung
+    # statt linearem Scan über shifts_exclusive in is_person_available_for_event().
+    person_event_availability: dict[tuple[UUID, UUID], bool] = dataclasses.field(default_factory=dict)
 
 
 def _preload_tree_events(event_group_tree: EventGroupTree, cast_group_tree: CastGroupTree) -> None:
@@ -254,3 +258,19 @@ def populate_shifts_exclusive(entities: Entities) -> None:
             # Prüfe Zeitfenster und Datum
             if not check_time_span_avail_day_fits_event(event_group.event, adg.avail_day):
                 entities.shifts_exclusive[adg_id, event_group_id] = 0
+
+    # Reverse-Lookup aufbauen: (person_id, event_group_id) -> bool
+    # Ermöglicht O(1) statt O(n) in is_person_available_for_event().
+    # OR-Logik: Person gilt als verfügbar wenn IRGENDEINE ihrer avail_day_groups
+    # für dieses Event verfügbar ist (mehrere adg_ids pro Person möglich — z.B.
+    # verschiedene Daten). Überschreiben mit False darf einen True nicht löschen.
+    for adg_id, adg in entities.avail_day_groups_with_avail_day.items():
+        if adg._avail_day is None:
+            continue
+        person_id = adg.avail_day.actor_plan_period.person.id
+        for event_group_id in entities.event_groups_with_event:
+            val = bool(entities.shifts_exclusive.get((adg_id, event_group_id), 0))
+            if val:  # Nur True-Werte eintragen; bestehender True bleibt erhalten
+                entities.person_event_availability[(person_id, event_group_id)] = True
+            elif (person_id, event_group_id) not in entities.person_event_availability:
+                entities.person_event_availability[(person_id, event_group_id)] = False

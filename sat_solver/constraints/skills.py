@@ -89,13 +89,20 @@ class SkillsConstraint(ConstraintBase):
         geforderten Fertigkeiten zugewiesen sind.
         """
         errors = []
-        
+
         # Lookup-Dict für schnellen Zugriff: event_id -> event_group
         event_groups_by_event_id = {
-            eg.event.id: eg 
+            eg.event.id: eg
             for eg in self.entities.event_groups_with_event.values()
         }
-        
+
+        # Skills-Lookup: adg_id -> set[skill_id] (verhindert lineare Suche in der inneren Schleife)
+        # Skill-IDs (UUID) statt Skill-Objekte, da Pydantic-Modelle nicht hashbar sind
+        skills_by_adg_id = {
+            adg_id: {s.id for s in adg.avail_day.skills}
+            for adg_id, adg in self.entities.avail_day_groups_with_avail_day.items()
+        }
+
         for appointment in sorted(plan.appointments,
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event_group = event_groups_by_event_id.get(appointment.event.id)
@@ -103,26 +110,22 @@ class SkillsConstraint(ConstraintBase):
                 continue
 
             event = event_group.event
-            
+
             # Überspringe Events ohne Skill-Anforderungen
             if not event.skill_groups:
                 continue
-            
+
             nr_actors = event.cast_group.nr_actors
-            
+
             for skill_group in event.skill_groups:
                 skill = skill_group.skill
                 num_required = min(skill_group.nr_actors, nr_actors)
-                
-                # Zähle zugewiesene Mitarbeiter mit diesem Skill
-                num_with_skill = 0
-                for avd in appointment.avail_days:
-                    adg_id = avd.avail_day_group.id
-                    # Hole die Skills über entities
-                    if adg_id in self.entities.avail_day_groups_with_avail_day:
-                        adg = self.entities.avail_day_groups_with_avail_day[adg_id]
-                        if skill in adg.avail_day.skills:
-                            num_with_skill += 1
+
+                # Zähle zugewiesene Mitarbeiter mit diesem Skill (O(1) set-Lookup per Skill-ID)
+                num_with_skill = sum(
+                    1 for avd in appointment.avail_days
+                    if skill.id in skills_by_adg_id.get(avd.avail_day_group.id, set())
+                )
                 
                 # Prüfe ob genug Mitarbeiter mit dem Skill vorhanden sind
                 if num_with_skill < num_required:

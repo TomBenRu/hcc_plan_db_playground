@@ -189,38 +189,49 @@ class PartnerLocationPrefsConstraint(ConstraintBase):
         from sat_solver.constraints.base import ValidationError
         
         errors = []
-        
+
         # Lookup: event_id -> cast_group (für nr_actors)
         cast_group_by_event_id = {
-            cg.event.id: cg 
+            cg.event.id: cg
             for cg in self.entities.cast_groups_with_event.values()
             if cg.event is not None
         }
-        
+
+        # Partner-Score-Lookup: avd.id -> {(partner_id, location_id): score}
+        # Einmalig aufgebaut, ersetzt die lineare Suche in _get_partner_score_from_avail_day
+        partner_score_lookup: dict = {}
+        for appointment in plan.appointments:
+            for avd in appointment.avail_days:
+                if avd.id not in partner_score_lookup:
+                    partner_score_lookup[avd.id] = {
+                        (plp.partner.id, plp.location_of_work.id): plp.score
+                        for plp in avd.actor_partner_location_prefs_defaults
+                    }
+
         for appointment in plan.appointments:
             event = appointment.event
             avail_days = list(appointment.avail_days)
-            
+
             # Nur prüfen wenn genau 2 Personen zugewiesen sind (Besetzungsstärke 2)
             if len(avail_days) != 2:
                 continue
-            
+
             # nr_actors über cast_group_by_event_id holen
             cast_group = cast_group_by_event_id.get(event.id)
             nr_actors = cast_group.nr_actors if cast_group else None
             if nr_actors is None or nr_actors >= 3:
                 continue
-            
+
             location_id = event.location_plan_period.location_of_work.id
             location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
-            
-            # Prüfe beide Richtungen der Partner-Präferenz
+
+            # Prüfe beide Richtungen der Partner-Präferenz (O(1)-Lookup)
             avd_0, avd_1 = avail_days[0], avail_days[1]
             person_0 = avd_0.actor_plan_period.person
             person_1 = avd_1.actor_plan_period.person
-            
-            score_0_to_1 = self._get_partner_score_from_avail_day(avd_0, person_1.id, location_id)
-            score_1_to_0 = self._get_partner_score_from_avail_day(avd_1, person_0.id, location_id)
+
+            score_0_to_1 = partner_score_lookup.get(avd_0.id, {}).get((person_1.id, location_id), 1)
+            score_1_to_0 = partner_score_lookup.get(avd_1.id, {}).get((person_0.id, location_id), 1)
             
             # Fehler wenn mindestens ein Score 0 ist
             if score_0_to_1 == 0 or score_1_to_0 == 0:

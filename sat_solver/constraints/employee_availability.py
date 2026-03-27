@@ -6,7 +6,6 @@ für die sie verfügbar sind.
 """
 from typing import TYPE_CHECKING
 
-from database import db_services
 from sat_solver.constraints.base import ConstraintBase, ValidationError
 
 if TYPE_CHECKING:
@@ -50,11 +49,20 @@ class EmployeeAvailabilityConstraint(ConstraintBase):
         für das Event verfügbar sind (shifts_exclusive).
         """
         errors = []
-        
+
+        # Reverse-Lookup: event.id → event_group_id aus entities (keine DB-Query nötig)
+        event_id_to_group_id = {
+            eg.event.id: eg_id
+            for eg_id, eg in self.entities.event_groups_with_event.items()
+            if eg._event is not None
+        }
+
         for appointment in sorted(plan.appointments,
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event = appointment.event
-            event_group_id = db_services.Event.get(event.id).event_group.id
+            event_group_id = event_id_to_group_id.get(event.id)
+            if event_group_id is None:
+                continue
             location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
             
             for avd in appointment.avail_days:

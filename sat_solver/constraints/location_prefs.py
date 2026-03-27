@@ -173,40 +173,40 @@ class LocationPrefsConstraint(ConstraintBase):
         Nur Score=0 wird validiert, da dies ein Hard Constraint ist.
         """
         errors = []
-        
+
+        # Verbotene Locations (score=0) pro adg_id: {location_id} (O(1)-Lookup statt innere Schleife)
+        blocked_locations_by_adg: dict = {}
+        for adg_id, adg in self.entities.avail_day_groups_with_avail_day.items():
+            blocked = {
+                lp.location_of_work.id
+                for lp in adg.avail_day.actor_location_prefs_defaults
+                if not lp.prep_delete and lp.score == 0
+            }
+            if blocked:
+                blocked_locations_by_adg[adg_id] = blocked
+
         for appointment in sorted(plan.appointments,
                                   key=lambda x: (x.event.date, x.event.time_of_day.time_of_day_enum.time_index)):
             event = appointment.event
             location_id = event.location_plan_period.location_of_work.id
             location_name = event.location_plan_period.location_of_work.name_an_city.replace("-", "&#8209;")
-            
+
             for avd in appointment.avail_days:
                 adg_id = avd.avail_day_group.id
-                
-                # Hole die Location-Präferenzen über entities
-                if adg_id not in self.entities.avail_day_groups_with_avail_day:
+                blocked = blocked_locations_by_adg.get(adg_id)
+                if not blocked or location_id not in blocked:
                     continue
-                
-                adg: AvailDayGroup = self.entities.avail_day_groups_with_avail_day[adg_id]
-                avail_day = adg.avail_day
-                
-                # Prüfe Location-Präferenzen für diese Location
-                for loc_pref in avail_day.actor_location_prefs_defaults:
-                    if loc_pref.prep_delete:
-                        continue
 
-                    # Prüfe ob es um diese Location geht und Score=0 ist
-                    if (loc_pref.location_of_work.id == location_id 
-                            and loc_pref.score == 0):
-                        person_name = avail_day.actor_plan_period.person.full_name
-                        errors.append(ValidationError(
-                            category="Standort-Präferenz",
-                            message=(
-                                f'{person_name} darf am<br>'
-                                f'<span style="white-space: nowrap;">'
-                                f'{event.date:%d.%m.%y} ({event.time_of_day.name}) '
-                                f'nicht in {location_name} arbeiten (Score=0).</span>'
-                            )
-                        ))
+                adg: AvailDayGroup = self.entities.avail_day_groups_with_avail_day[adg_id]
+                person_name = adg.avail_day.actor_plan_period.person.full_name
+                errors.append(ValidationError(
+                    category="Standort-Präferenz",
+                    message=(
+                        f'{person_name} darf am<br>'
+                        f'<span style="white-space: nowrap;">'
+                        f'{event.date:%d.%m.%y} ({event.time_of_day.name}) '
+                        f'nicht in {location_name} arbeiten (Score=0).</span>'
+                    )
+                ))
         
         return errors

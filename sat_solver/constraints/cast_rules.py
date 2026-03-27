@@ -268,25 +268,14 @@ class CastRulesConstraint(ConstraintBase):
         
         errors = []
         
-        # Lookup: event_id -> Set von Person-IDs
-        assigned_persons_by_event: dict[UUID, set[UUID]] = {}
+        # Lookup: event_id -> {person_id: full_name} (für IDs und Fehlermeldungen)
+        assigned_persons_by_event: dict[UUID, dict[UUID, str]] = {}
         for appointment in plan.appointments:
             event_id = appointment.event.id
-            person_ids = {
-                avd.actor_plan_period.person.id 
+            assigned_persons_by_event[event_id] = {
+                avd.actor_plan_period.person.id: avd.actor_plan_period.person.full_name
                 for avd in appointment.avail_days
             }
-            assigned_persons_by_event[event_id] = person_ids
-        
-        # Lookup: event_id -> Person-Namen (für Fehlermeldungen)
-        assigned_names_by_event: dict[UUID, set[str]] = {}
-        for appointment in plan.appointments:
-            event_id = appointment.event.id
-            person_names = {
-                avd.actor_plan_period.person.full_name 
-                for avd in appointment.avail_days
-            }
-            assigned_names_by_event[event_id] = person_names
         
         # Sammle Cast Groups auf Level 1, gruppiert nach Parent (wie in apply())
         cast_groups_level_1 = collections.defaultdict(list)
@@ -322,22 +311,17 @@ class CastRulesConstraint(ConstraintBase):
                 
                 persons_1 = assigned_persons_by_event[event_1.id]
                 persons_2 = assigned_persons_by_event[event_2.id]
-                
+                ids_1 = persons_1.keys()
+                ids_2 = persons_2.keys()
+
                 # Regel-Symbol aus zyklischem Pattern
                 rule_symbol = rule[idx % len(rule)]
-                
+
                 if rule_symbol == '-':
                     # Different Cast: Keine Person darf in beiden Events sein
-                    overlap = persons_1 & persons_2
+                    overlap = ids_1 & ids_2
                     if overlap:
-                        # Namen der überlappenden Personen sammeln
-                        overlap_names = []
-                        for appointment in plan.appointments:
-                            if appointment.event.id == event_1.id:
-                                for avd in appointment.avail_days:
-                                    if avd.actor_plan_period.person.id in overlap:
-                                        overlap_names.append(avd.actor_plan_period.person.full_name)
-                        
+                        overlap_names = [persons_1[pid] for pid in overlap]
                         errors.append(ValidationError(
                             category="Different-Cast-Regel verletzt",
                             message=(
@@ -347,32 +331,22 @@ class CastRulesConstraint(ConstraintBase):
                                 f'Doppelt besetzt: {", ".join(overlap_names)}'
                             )
                         ))
-                
+
                 elif rule_symbol == '~':
                     # Same Cast: Gleiche Personen (mit erlaubter Differenz durch unterschiedliche nr_actors)
                     allowed_diff = abs(cg_1.nr_actors - cg_2.nr_actors)
-                    
+
                     # Symmetrische Differenz = Personen die nur in einem der beiden Events sind
-                    sym_diff = persons_1 ^ persons_2
+                    sym_diff = ids_1 ^ ids_2
                     actual_diff = len(sym_diff)
-                    
+
                     if actual_diff > allowed_diff:
-                        # Namen der unterschiedlichen Personen sammeln
-                        diff_in_1 = persons_1 - persons_2
-                        diff_in_2 = persons_2 - persons_1
-                        
-                        diff_names_1 = []
-                        diff_names_2 = []
-                        for appointment in plan.appointments:
-                            if appointment.event.id == event_1.id:
-                                for avd in appointment.avail_days:
-                                    if avd.actor_plan_period.person.id in diff_in_1:
-                                        diff_names_1.append(avd.actor_plan_period.person.full_name)
-                            if appointment.event.id == event_2.id:
-                                for avd in appointment.avail_days:
-                                    if avd.actor_plan_period.person.id in diff_in_2:
-                                        diff_names_2.append(avd.actor_plan_period.person.full_name)
-                        
+                        diff_in_1 = ids_1 - ids_2
+                        diff_in_2 = ids_2 - ids_1
+
+                        diff_names_1 = [persons_1[pid] for pid in diff_in_1]
+                        diff_names_2 = [persons_2[pid] for pid in diff_in_2]
+
                         details = []
                         if diff_names_1:
                             details.append(f'Nur am {event_1.date:%d.%m.%y}: {", ".join(diff_names_1)}')

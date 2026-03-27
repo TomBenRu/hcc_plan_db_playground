@@ -33,21 +33,21 @@ def is_person_available_for_event(person_id: UUID, cast_group, entities) -> bool
     """
     if cast_group.nr_actors == 0:
         return False
-    event = cast_group.event
     # event.event_group_id ist direkter FK auf der Event-Tabelle (schemas.Event);
     # event.event_group.id (EventShow) ist nicht mehr verfügbar seit get_batch_for_solver → Event-Schema
-    event_group_id = event.event_group_id
+    event_group_id = cast_group.event.event_group_id
 
+    # O(1)-Lookup über person_event_availability (aufgebaut in populate_shifts_exclusive)
+    if entities.person_event_availability:
+        return entities.person_event_availability.get((person_id, event_group_id), False)
+
+    # Fallback für den Fall dass person_event_availability nicht befüllt wurde
     available = next(
         (bool(val) for (adg_id, eg_id), val in entities.shifts_exclusive.items()
          if eg_id == event_group_id
-         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id
-         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.date == event.date
-         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.time_of_day.time_of_day_enum.time_index
-         == event.time_of_day.time_of_day_enum.time_index),
+         and entities.avail_day_groups_with_avail_day[adg_id].avail_day.actor_plan_period.person.id == person_id),
         False
     )
-
     return available
 
 

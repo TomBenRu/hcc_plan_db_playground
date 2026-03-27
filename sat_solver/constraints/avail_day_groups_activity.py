@@ -90,28 +90,33 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
                     adg_to_appointments[adg_id] = []
                 adg_to_appointments[adg_id].append(appointment)
         
+        # Memoization-Cache für _get_appointments_for_group (verhindert mehrfache Traversierung)
+        group_appointments_cache: dict = {}
+
         # Für jede Gruppe mit Kindern prüfen
         for avail_day_group_id, avail_day_group in self.entities.avail_day_groups.items():
             # Überspringe Gruppen ohne Kinder
             if not avail_day_group.children:
                 continue
-            
+
             # Gleiche Logik wie in apply(): relevante Kinder ermitteln
             relevant_children = [
-                c for c in avail_day_group.children 
+                c for c in avail_day_group.children
                 if c.children or c.avail_day
             ]
-            
+
             # Limit ermitteln
             nr_of_active_children = (
                 avail_day_group.nr_of_active_children
                 or len(relevant_children)
             )
-            
+
             # Sammle aktive Kinder und deren Appointments (gruppiert)
             active_children_with_appointments: list[tuple] = []
             for child in relevant_children:
-                child_appointments = self._get_appointments_for_group(child, adg_to_appointments)
+                child_appointments = self._get_appointments_for_group(
+                    child, adg_to_appointments, group_appointments_cache
+                )
                 if child_appointments:
                     active_children_with_appointments.append((child, child_appointments))
             
@@ -167,18 +172,24 @@ class AvailDayGroupsActivityConstraint(ConstraintBase):
         
         return False
     
-    def _get_appointments_for_group(self, group, adg_to_appointments: dict[UUID, list]) -> list:
+    def _get_appointments_for_group(self, group, adg_to_appointments: dict[UUID, list],
+                                    cache: dict | None = None) -> list:
         """
         Sammelt alle Appointments für diese Gruppe und ihre Nachkommen.
+        cache verhindert mehrfache Traversierung desselben Knotens (Memoization).
         """
+        gid = group.avail_day_group_id
+        if cache is not None and gid in cache:
+            return cache[gid]
+
         appointments = []
-        
-        if group.avail_day_group_id in adg_to_appointments:
-            appointments.extend(adg_to_appointments[group.avail_day_group_id])
-        
+        if gid in adg_to_appointments:
+            appointments.extend(adg_to_appointments[gid])
         for child in group.children:
-            appointments.extend(self._get_appointments_for_group(child, adg_to_appointments))
-        
+            appointments.extend(self._get_appointments_for_group(child, adg_to_appointments, cache))
+
+        if cache is not None:
+            cache[gid] = appointments
         return appointments
     
     def _get_person_name_from_group(self, avail_day_group) -> str:

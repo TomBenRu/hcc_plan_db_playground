@@ -179,9 +179,8 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
         return next(
             (
                 clp for clp in combination_locations_possibles
-                if location_1_id in [loc.id for loc in clp.locations_of_work]
-                and location_2_id in [loc.id for loc in clp.locations_of_work]
-                and not clp.prep_delete
+                if not clp.prep_delete
+                and {location_1_id, location_2_id} <= {loc.id for loc in clp.locations_of_work}
             ),
             None
         )

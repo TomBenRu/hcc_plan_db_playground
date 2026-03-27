@@ -4,7 +4,7 @@ RequiredAvailDayGroupsConstraint - Hard Constraint für erforderliche Verfügbar
 Stellt sicher, dass entweder die erforderliche Mindestanzahl an Schichten
 geplant wird oder gar keine.
 """
-from database import schemas
+from database import schemas, db_services
 from sat_solver.constraints.base import ConstraintBase
 
 
@@ -80,7 +80,7 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
         from sat_solver.constraints.base import ValidationError
         
         errors = []
-        
+
         # Sammle alle im Plan verwendeten avail_day_group_ids mit zugehörigen Appointments
         adg_to_appointments: dict[UUID, list] = {}
         for appointment in plan.appointments:
@@ -89,10 +89,18 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
                 if adg_id not in adg_to_appointments:
                     adg_to_appointments[adg_id] = []
                 adg_to_appointments[adg_id].append(appointment)
-        
+
+        # Batch-Load aller RequiredAvailDayGroups in einer einzigen DB-Query
+        # ersetzt 245+ einzelne get_from__avail_day_group()-Aufrufe (N+1-Problem).
+        # Super-Root-Knoten hat avail_day_group_id=0 (int) → herausfiltern, da PostgreSQL
+        # uuid=integer ablehnt.
+        all_adg_ids = [adg_id for adg_id in self.entities.avail_day_groups.keys()
+                       if isinstance(adg_id, UUID)]
+        required_by_adg = db_services.RequiredAvailDayGroups.get_all_from__avail_day_group_ids(all_adg_ids)
+
         # Für jede Gruppe mit required_avail_day_groups prüfen
         for avail_day_group_id, avail_day_group in self.entities.avail_day_groups.items():
-            required = avail_day_group.required_avail_day_groups
+            required = required_by_adg.get(avail_day_group_id)
             if not required:
                 continue
             

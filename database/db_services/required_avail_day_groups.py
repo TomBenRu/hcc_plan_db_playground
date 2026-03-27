@@ -8,6 +8,7 @@ für Undo-Operationen.
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -20,6 +21,30 @@ def get(required_avail_day_groups_id: UUID):
     with get_session() as session:
         obj = session.get(models.RequiredAvailDayGroups, required_avail_day_groups_id)
         return schemas.RequiredAvailDayGroups.model_validate(obj) if obj else None
+
+
+def get_all_from__avail_day_group_ids(
+        ids: list[UUID]) -> dict[UUID, 'schemas.RequiredAvailDayGroups']:
+    """Batch-Laden aller RequiredAvailDayGroups für eine Liste von AvailDayGroup-IDs.
+
+    Ersetzt N einzelne get_from__avail_day_group()-Aufrufe durch eine einzige IN-Query.
+    Gibt ein Dict {avail_day_group_id: RequiredAvailDayGroups} zurück;
+    IDs ohne Eintrag sind nicht im Dict enthalten.
+    """
+    if not ids:
+        return {}
+    with get_session() as session:
+        stmt = (
+            select(models.RequiredAvailDayGroups)
+            .where(models.RequiredAvailDayGroups.avail_day_group_id.in_(ids))
+            .options(
+                selectinload(models.RequiredAvailDayGroups.avail_day_group),
+                selectinload(models.RequiredAvailDayGroups.locations_of_work),
+            )
+        )
+        rows = session.exec(stmt).all()
+        return {r.avail_day_group_id: schemas.RequiredAvailDayGroups.model_validate(r)
+                for r in rows}
 
 
 def get_from__avail_day_group(avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:

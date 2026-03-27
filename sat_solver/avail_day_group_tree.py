@@ -5,6 +5,11 @@ from anytree import NodeMixin, RenderTree, ContRoundStyle
 
 from database import schemas, db_services
 
+# Sentinel für "RequiredAvailDayGroups noch nicht geladen" — unterscheidet sich von None
+# (= "kein Eintrag vorhanden"). Wird von _preload_required_avail_day_groups() überschrieben
+# um 247 einzelne DB-Aufrufe pro solve()-Aufruf zu vermeiden.
+_REQUIRED_ADG_NOT_LOADED = object()
+
 
 class AvailDayGroup(NodeMixin):
     """
@@ -30,7 +35,7 @@ class AvailDayGroup(NodeMixin):
         self.children: list['AvailDayGroup'] = children if children is not None else []
         self.weight = avail_day_group_db.variation_weight if avail_day_group_db else None
         self.nr_of_active_children = avail_day_group_db.nr_avail_day_groups if avail_day_group_db else None
-        self._required_avail_day_groups: schemas.RequiredAvailDayGroups | None = None
+        self._required_avail_day_groups = _REQUIRED_ADG_NOT_LOADED
 
         # Für TreeNode-Schema: avail_day_id speichern
         if avail_day_group_db and isinstance(avail_day_group_db, schemas.AvailDayGroupTreeNode):
@@ -49,7 +54,7 @@ class AvailDayGroup(NodeMixin):
     def required_avail_day_groups(self) -> schemas.RequiredAvailDayGroups | None:
         if not self.avail_day_group_id:
             return None
-        if self._required_avail_day_groups is None:
+        if self._required_avail_day_groups is _REQUIRED_ADG_NOT_LOADED:
             self._required_avail_day_groups = db_services.RequiredAvailDayGroups.get_from__avail_day_group(
                 self.avail_day_group_id)
         return self._required_avail_day_groups
@@ -160,9 +165,11 @@ class AvailDayGroupTree:
         self.nodes[0] = self.root
 
 
-def get_avail_day_group_tree(plan_period_id: UUID) -> AvailDayGroupTree:
-    actor_plan_periods = db_services.PlanPeriod.get(plan_period_id).actor_plan_periods
-    return AvailDayGroupTree([app.id for app in actor_plan_periods])
+def get_avail_day_group_tree(plan_period_id: UUID, app_ids: list[UUID] | None = None) -> AvailDayGroupTree:
+    if app_ids is None:
+        from database.db_services import plan_period as pp_svc
+        _, app_ids = pp_svc.get_lpp_and_app_ids(plan_period_id)
+    return AvailDayGroupTree(app_ids)
 
 
 def get_combined_avail_day_group_tree(plan_period_ids: list[UUID]) -> AvailDayGroupTree:

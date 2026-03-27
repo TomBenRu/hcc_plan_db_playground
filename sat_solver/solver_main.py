@@ -40,6 +40,7 @@ from ortools.sat.python.cp_model import IntVar
 
 from configuration.project_paths import curr_user_path_handler
 from database import db_services, schemas
+from database.db_services import plan_period as pp_svc
 from configuration.solver import curr_config_handler
 from database.schemas import AppointmentCreate
 from gui.observer import signal_handling
@@ -1235,8 +1236,9 @@ def _get_max_fair_shifts_and_max_shifts_to_assign(
     """
     signal_handling.handler_solver.progress('Vorberechnungen...')
 
-    event_group_tree = get_event_group_tree(plan_period_id)
-    avail_day_group_tree = get_avail_day_group_tree(plan_period_id)
+    lpp_ids, app_ids = pp_svc.get_lpp_and_app_ids(plan_period_id)
+    event_group_tree = get_event_group_tree(plan_period_id, lpp_ids)
+    avail_day_group_tree = get_avail_day_group_tree(plan_period_id, app_ids)
     cast_group_tree = get_cast_group_tree(plan_period_id)
     entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan_period_id)
 
@@ -1318,10 +1320,11 @@ def _get_max_fair_shifts_and_max_shifts_to_assign_multi_period(
     
     for plan_period_id in plan_period_ids:
         # Single-Period Trees für diese Periode
-        event_group_tree_period = get_event_group_tree(plan_period_id)
-        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id)
+        lpp_ids, app_ids = pp_svc.get_lpp_and_app_ids(plan_period_id)
+        event_group_tree_period = get_event_group_tree(plan_period_id, lpp_ids)
+        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id, app_ids)
         cast_group_tree_period = get_cast_group_tree(plan_period_id)
-        
+
         # Neue entities für jede Periode (wichtig: jede Periode hat eigene Daten!)
         entities = create_data_models(
             event_group_tree_period, 
@@ -1540,10 +1543,11 @@ def solve_multi_period(plan_period_ids: list[UUID], num_plans: int, time_calc_ma
         )
         
         # Single-Period Trees für diese Periode
-        event_group_tree_period = get_event_group_tree(plan_period_id)
-        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id)
+        lpp_ids, app_ids = pp_svc.get_lpp_and_app_ids(plan_period_id)
+        event_group_tree_period = get_event_group_tree(plan_period_id, lpp_ids)
+        avail_day_group_tree_period = get_avail_day_group_tree(plan_period_id, app_ids)
         cast_group_tree_period = get_cast_group_tree(plan_period_id)
-        
+
         # entities mit nur dieser Periode füllen
         # WICHTIG: adjusted_assignments sind bereits fair durch Fair Distribution!
         entities = create_data_models(
@@ -1700,8 +1704,9 @@ def test_plan(plan_id: UUID, cached_entities: 'Entities | None' = None) -> tuple
         entities = cached_entities
     else:
         # Langsamer Pfad: Entities neu laden (Fallback)
-        event_group_tree = get_event_group_tree(plan.plan_period.id)
-        avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
+        lpp_ids, app_ids = pp_svc.get_lpp_and_app_ids(plan.plan_period.id)
+        event_group_tree = get_event_group_tree(plan.plan_period.id, lpp_ids)
+        avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id, app_ids)
         cast_group_tree = get_cast_group_tree(plan.plan_period.id)
         entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
 
@@ -1745,8 +1750,9 @@ def test_plan_with_solver(plan_id: UUID) -> tuple[bool, list[str]]:
     )
     
     plan = db_services.Plan.get(plan_id)
-    event_group_tree = get_event_group_tree(plan.plan_period.id)
-    avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id)
+    lpp_ids, app_ids = pp_svc.get_lpp_and_app_ids(plan.plan_period.id)
+    event_group_tree = get_event_group_tree(plan.plan_period.id, lpp_ids)
+    avail_day_group_tree = get_avail_day_group_tree(plan.plan_period.id, app_ids)
     cast_group_tree = get_cast_group_tree(plan.plan_period.id)
     entities = create_data_models(event_group_tree, avail_day_group_tree, cast_group_tree, plan.plan_period.id)
     success, problems = call_solver_to_test_plan(plan, event_group_tree, avail_day_group_tree, entities, 20, False)

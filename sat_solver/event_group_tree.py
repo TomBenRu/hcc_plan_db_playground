@@ -138,9 +138,11 @@ class EventGroupTree:
             current_level = next_level
 
 
-def get_event_group_tree(plan_period_id: UUID) -> EventGroupTree:
-    location_plan_periods = db_services.PlanPeriod.get(plan_period_id).location_plan_periods
-    return EventGroupTree([lpp.id for lpp in location_plan_periods])
+def get_event_group_tree(plan_period_id: UUID, lpp_ids: list[UUID] | None = None) -> EventGroupTree:
+    if lpp_ids is None:
+        from database.db_services import plan_period as pp_svc
+        lpp_ids, _ = pp_svc.get_lpp_and_app_ids(plan_period_id)
+    return EventGroupTree(lpp_ids)
 
 
 def get_combined_event_group_tree(plan_period_ids: list[UUID]) -> EventGroupTree:

@@ -28,7 +28,10 @@ def get_batch(avail_day_ids: list[UUID]) -> dict[UUID, schemas.AvailDayShow]:
     if not avail_day_ids:
         return {}
     with get_session() as session:
-        ads = session.exec(select(models.AvailDay).where(models.AvailDay.id.in_(avail_day_ids))).all()
+        stmt = (select(models.AvailDay)
+                .where(models.AvailDay.id.in_(avail_day_ids))
+                .options(*avail_day_show_options()))
+        ads = session.exec(stmt).unique().all()
         return {ad.id: schemas.AvailDayShow.model_validate(ad) for ad in ads}
 
 

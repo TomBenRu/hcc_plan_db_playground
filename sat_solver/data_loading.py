@@ -19,7 +19,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from sat_solver.event_group_tree import EventGroupTree, EventGroup
-from sat_solver.avail_day_group_tree import AvailDayGroupTree, AvailDayGroup
+from sat_solver.avail_day_group_tree import AvailDayGroupTree, AvailDayGroup, _REQUIRED_ADG_NOT_LOADED
 from sat_solver.cast_group_tree import CastGroupTree, CastGroup
 from sat_solver.constraints.helpers import (
     check_actor_location_prefs_fits_event,
@@ -147,6 +147,10 @@ def create_data_models(event_group_tree: EventGroupTree, avail_day_group_tree: A
     # Preload AvailDays (Batch-Laden für spätere Verwendung)
     preload_avail_days(entities)
 
+    # Preload RequiredAvailDayGroups — verhindert 247 einzelne DB-Calls in
+    # RequiredAvailDayGroupsConstraint.apply() (besonders kritisch bei Remote-DB)
+    preload_required_avail_day_groups(entities)
+
     return entities
 
 
@@ -203,6 +207,8 @@ def create_data_models_multi_period(event_group_tree: EventGroupTree, avail_day_
     entities.cast_groups_with_event = {cast_group.cast_group_id: cast_group
                                        for cast_group in cast_group_tree.root.leaves if cast_group.event}
 
+    preload_required_avail_day_groups(entities)
+
     return entities
 
 
@@ -231,6 +237,27 @@ def preload_avail_days(entities: Entities) -> None:
     for adg in entities.avail_day_groups_with_avail_day.values():
         if adg._avail_day_id and adg._avail_day_id in avail_days:
             adg._avail_day = avail_days[adg._avail_day_id]
+
+
+def preload_required_avail_day_groups(entities: Entities) -> None:
+    """Lädt alle RequiredAvailDayGroups als Batch vor und füllt den Node-Cache.
+
+    Verhindert 247 einzelne DB-Aufrufe in RequiredAvailDayGroupsConstraint.apply():
+    Ohne Preloading löst jeder Zugriff auf adg.required_avail_day_groups einen
+    einzelnen SELECT aus. Mit Preloading werden alle Einträge in einer IN-Query
+    geladen und direkt in _required_avail_day_groups gecacht (Sentinel-Wert
+    _REQUIRED_ADG_NOT_LOADED wird durch None oder das Objekt ersetzt).
+    """
+    all_adg_ids = [adg_id for adg_id in entities.avail_day_groups.keys()
+                   if isinstance(adg_id, UUID)]
+    if not all_adg_ids:
+        return
+
+    required_by_adg = db_services.RequiredAvailDayGroups.get_all_from__avail_day_group_ids(all_adg_ids)
+
+    for adg_id, adg in entities.avail_day_groups.items():
+        if isinstance(adg_id, UUID) and adg._required_avail_day_groups is _REQUIRED_ADG_NOT_LOADED:
+            adg._required_avail_day_groups = required_by_adg.get(adg_id)  # None wenn kein Eintrag
 
 
 def populate_shifts_exclusive(entities: Entities) -> None:

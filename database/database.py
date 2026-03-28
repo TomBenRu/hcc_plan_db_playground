@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from collections.abc import Generator
 
 from dotenv import load_dotenv
+from sqlalchemy import event as _sa_event
 from sqlmodel import Session, SQLModel, create_engine
 
 from database.event_listeners import register_listeners
@@ -32,7 +33,6 @@ from database.models import *  # noqa: F401, F403
 # .env laden (nur falls Vars noch nicht gesetzt — explizite Env-Vars haben Vorrang)
 load_dotenv()
 _database_url = os.environ.get("DATABASE_URL")
-
 if _database_url:
     # PostgreSQL: render.com setzt DATABASE_URL automatisch
     # pool_pre_ping: Erkennt serverseitig geschlossene Verbindungen (render.com Idle-Timeout)
@@ -63,6 +63,14 @@ else:
     )
     # SQLite-Fallback: Tabellen direkt anlegen (kein Alembic-Deployment)
     SQLModel.metadata.create_all(engine)
+
+    # FK-Constraints für SQLite aktivieren (standardmäßig deaktiviert)
+    # Nötig damit ON DELETE CASCADE für Bulk-DELETEs wirkt
+    @_sa_event.listens_for(engine, "connect")
+    def _set_sqlite_fk_pragma(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 # ── Listeners registrieren ───────────────────────────────────────────────────
 

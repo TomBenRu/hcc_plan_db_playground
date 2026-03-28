@@ -10,6 +10,7 @@ und vollständiger Form.
 import datetime
 from uuid import UUID
 
+from sqlalchemy import delete as sql_delete
 from sqlmodel import select
 
 from .. import schemas, models
@@ -37,22 +38,18 @@ def update_notes(plan_id: UUID, notes: str) -> schemas.PlanShow:
         return schemas.PlanShow.model_validate(plan)
 
 
-def delete(plan_id: UUID) -> schemas.PlanShow:
+def delete(plan_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
         plan.prep_delete = _utcnow()
-        session.flush()
-        return schemas.PlanShow.model_validate(plan)
 
 
-def undelete(plan_id: UUID) -> schemas.PlanShow:
+def undelete(plan_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
         plan.prep_delete = None
-        session.flush()
-        return schemas.PlanShow.model_validate(plan)
 
 
 def get(plan_id: UUID, small: bool = False) -> schemas.PlanShow | schemas.Plan:
@@ -132,17 +129,27 @@ def delete_prep_deleted(plan_id):
         plan = session.get(models.Plan, plan_id)
         if not plan.prep_delete:
             raise LookupError(f'Plan {plan.name} ist not marked to delete.')
-        session.delete(plan)
+        session.execute(sql_delete(models.Plan).where(models.Plan.id == plan_id))
 
 
 def delete_prep_deletes_from__team(team_id: UUID):
+    """Löscht alle zum-Löschen-markierten Pläne eines Teams in einem SQL-Statement.
+
+    Nutzt DB-seitige ON DELETE CASCADE statt ORM-Cascades, um das N+1-Laden
+    aller Appointments zu vermeiden. Appointments und AvailDayAppointmentLinks
+    werden vom DBMS automatisch kaskadiert gelöscht.
+    """
     log_function_info()
     with get_session() as session:
-        plans = session.exec(select(models.Plan).join(models.PlanPeriod)
-                             .where(models.PlanPeriod.team_id == team_id,
-                                    models.Plan.prep_delete.isnot(None))).all()
-        for p in plans:
-            session.delete(p)
+        subq = (
+            select(models.Plan.id)
+            .join(models.PlanPeriod)
+            .where(
+                models.PlanPeriod.team_id == team_id,
+                models.Plan.prep_delete.isnot(None),
+            )
+        )
+        session.execute(sql_delete(models.Plan).where(models.Plan.id.in_(subq)))
 
 
 def update_name(plan_id: UUID, new_name: str) -> schemas.PlanShow:

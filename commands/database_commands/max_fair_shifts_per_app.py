@@ -24,3 +24,23 @@ class Create(Command):
 
     def _redo(self):
         db_services.MaxFairShiftsOfApp.create(self.max_fair_shifts_per_app)
+
+
+class CreateBulk(Command):
+    """Erstellt alle MaxFairShiftsOfApp-Einträge in einer einzigen DB-Session."""
+
+    def __init__(self, entries: list[schemas.MaxFairShiftsOfAppCreate]):
+        super().__init__()
+        self.entries = entries
+        self.created_ids: list[UUID] = []
+
+    def execute(self):
+        self.created_ids = db_services.MaxFairShiftsOfApp.create_bulk(self.entries)
+        for entry, id_ in zip(self.entries, self.created_ids):
+            entry.id = id_
+
+    def _undo(self):
+        db_services.MaxFairShiftsOfApp.delete_bulk(self.created_ids)
+
+    def _redo(self):
+        db_services.MaxFairShiftsOfApp.create_bulk(self.entries)

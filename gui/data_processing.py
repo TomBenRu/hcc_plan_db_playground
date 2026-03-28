@@ -374,7 +374,7 @@ class LocationPlanPeriodData:
 def save_schedule_versions_to_db(plan_period_id: UUID, team_id: UUID, schedule_versions: list[list[schemas.AppointmentCreate]],
                                 max_shifts_per_app: dict[UUID, int], fair_shifts_per_app: dict[UUID, float],
                                 nr_versions_to_use: int, controller: command_base_classes.ContrExecUndoRedo) -> list[UUID]:
-    plan_period = db_services.PlanPeriod.get(plan_period_id)
+    plan_period = db_services.PlanPeriod.get(plan_period_id, minimal=True)
     saved_plan_names = set(db_services.Plan.get_all_from__team(team_id, True, True).keys())
     plan_base_name = f'{plan_period.start:%d.%m.%y}-{plan_period.end:%d.%m.%y}'
     new_first_plan_index = 1
@@ -389,15 +389,14 @@ def save_schedule_versions_to_db(plan_period_id: UUID, team_id: UUID, schedule_v
         plan_create_command = plan_commands.Create(plan_period_id, name_plan)
         controller.execute(plan_create_command)
         created_plan_ids.append(plan_create_command.plan.id)
-        for appointment in version:
-            controller.execute(
-                appointment_commands.Create(appointment, created_plan_ids[-1]))
-    for app_id in max_shifts_per_app:
-        max_fair_shifts_per_app_create = schemas.MaxFairShiftsOfAppCreate(
+        controller.execute(appointment_commands.CreateBulk(version, created_plan_ids[-1]))
+    bulk_max_fair_entries = [
+        schemas.MaxFairShiftsOfAppCreate(
             max_shifts=max_shifts_per_app[app_id],
             fair_shifts=fair_shifts_per_app[app_id],
-            actor_plan_period_id=app_id
+            actor_plan_period_id=app_id,
         )
-        max_fair_shifts_per_app_command = max_fair_shifts_per_app.Create(max_fair_shifts_per_app_create)
-        controller.execute(max_fair_shifts_per_app_command)
+        for app_id in max_shifts_per_app
+    ]
+    controller.execute(max_fair_shifts_per_app.CreateBulk(bulk_max_fair_entries))
     return created_plan_ids

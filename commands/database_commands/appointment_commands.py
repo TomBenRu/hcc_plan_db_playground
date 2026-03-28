@@ -30,6 +30,25 @@ class Create(Command):
         db_services.Appointment.undelete(self.appointment_created.id)
 
 
+class CreateBulk(Command):
+    """Erstellt alle Appointments einer Plan-Version in einer einzigen DB-Session."""
+
+    def __init__(self, appointments: list[schemas.AppointmentCreate], plan_id: UUID):
+        super().__init__()
+        self.appointments = appointments
+        self.plan_id = plan_id
+        self.created_ids: list[UUID] = []
+
+    def execute(self):
+        self.created_ids = db_services.Appointment.create_bulk(self.appointments, self.plan_id)
+
+    def _undo(self):
+        db_services.Appointment.delete_bulk(self.created_ids)
+
+    def _redo(self):
+        db_services.Appointment.undelete_bulk(self.created_ids)
+
+
 class UpdateAvailDays(Command):
     def __init__(self, appointment_id: UUID, avail_day_ids: list[UUID]):
         super().__init__()

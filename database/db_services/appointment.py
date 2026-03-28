@@ -92,6 +92,48 @@ def undelete(appointment_id: UUID) -> schemas.AppointmentShow:
         return schemas.AppointmentShow.model_validate(app)
 
 
+def create_bulk(appointments: list[schemas.AppointmentCreate], plan_id: UUID) -> list[UUID]:
+    """Erstellt alle Appointments in einer einzigen Session/Transaktion.
+
+    Gibt nur die UUIDs zurück (kein model_validate-Overhead).
+    Da Appointment.id per uuid4() Python-seitig generiert wird, ist kein
+    Zwischens-flush() für die M2M-Beziehungen nötig.
+    """
+    log_function_info()
+    with get_session() as session:
+        plan = session.get(models.Plan, plan_id)
+        created_ids: list[UUID] = []
+        for appointment in appointments:
+            app = models.Appointment(
+                event=session.get(models.Event, appointment.event.id),
+                plan=plan,
+                notes=appointment.notes,
+            )
+            session.add(app)
+            for ad in appointment.avail_days:
+                app.avail_days.append(session.get(models.AvailDay, ad.id))
+            created_ids.append(app.id)
+        session.flush()
+        return created_ids
+
+
+def delete_bulk(appointment_ids: list[UUID]) -> None:
+    log_function_info()
+    now = _utcnow()
+    with get_session() as session:
+        for app_id in appointment_ids:
+            app = session.get(models.Appointment, app_id)
+            app.prep_delete = now
+
+
+def undelete_bulk(appointment_ids: list[UUID]) -> None:
+    log_function_info()
+    with get_session() as session:
+        for app_id in appointment_ids:
+            app = session.get(models.Appointment, app_id)
+            app.prep_delete = None
+
+
 def get_plan_names_from__event(event_id: UUID) -> dict[str, int]:
     with get_session() as session:
         event = session.get(models.Event, event_id)

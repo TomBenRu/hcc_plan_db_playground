@@ -60,6 +60,36 @@ def create(max_fair_shifts_per_app: schemas.MaxFairShiftsOfAppCreate) -> schemas
         return schemas.MaxFairShiftsOfAppShow.model_validate(mfs)
 
 
+def create_bulk(entries: list[schemas.MaxFairShiftsOfAppCreate]) -> list[UUID]:
+    """Erstellt alle MaxFairShiftsOfApp-Einträge in einer einzigen Session.
+
+    Gibt nur die UUIDs zurück — kein model_validate-Overhead.
+    """
+    log_function_info()
+    with get_session() as session:
+        created_ids: list[UUID] = []
+        for entry in entries:
+            kwargs: dict = dict(
+                max_shifts=entry.max_shifts,
+                fair_shifts=entry.fair_shifts,
+                actor_plan_period_id=entry.actor_plan_period_id,
+            )
+            if entry.id:
+                kwargs['id'] = entry.id
+            mfs = models.MaxFairShiftsOfApp(**kwargs)
+            session.add(mfs)
+            created_ids.append(mfs.id)
+        session.flush()
+        return created_ids
+
+
+def delete_bulk(ids: list[UUID]) -> None:
+    log_function_info()
+    with get_session() as session:
+        for id_ in ids:
+            session.delete(session.get(models.MaxFairShiftsOfApp, id_))
+
+
 def delete(max_fair_shifts_per_app_id: UUID):
     log_function_info()
     with get_session() as session:

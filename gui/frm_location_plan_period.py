@@ -11,6 +11,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
     QMenu, QSpinBox, QWidgetAction
+from line_profiler import profile
 
 from database import schemas, db_services
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
@@ -1402,7 +1403,23 @@ class FrmLocationPlanPeriod(QWidget):
         if location_plan_period_id == self.location_plan_period.id:
             self.change_mode__event_group()
 
-    def change_mode__cast_group(self):
+    @profile
+    def _update_fixed_cast_buttons(self, cast_groups: list) -> None:
+        """Verteilt vorab geladene CastGroupForButton-Daten an alle ButtonFixedCast-Kinder.
+
+        Ersetzt reload_cast_groups__cast_configs + reset_styling_fixed_cast_configs (je 30 DB-Calls)
+        durch eine einzige In-Memory-Verteilung ohne weitere DB-Zugriffe.
+        """
+        date__cast_groups: dict = {}
+        for cg in cast_groups:
+            if cg.event:
+                date__cast_groups.setdefault(cg.event.date, []).append(cg)
+        for btn in self.findChildren(ButtonFixedCast):
+            btn.cast_groups_at_day = date__cast_groups.get(btn.date, [])
+            btn.set_stylesheet()
+            btn.set_tooltip()
+
+    def change_mode__cast_group(self, *args):
         plan_period = db_services.PlanPeriod.get(self.location_plan_period.plan_period.id)
         dlg = frm_cast_group.DlgCastGroups(self, plan_period, {self.location_plan_period.id})
         if dlg.exec():
@@ -1416,12 +1433,9 @@ class FrmLocationPlanPeriod(QWidget):
             self.reload_location_plan_period()
             signal_handling.handler_location_plan_period.reload_location_pp__events(
                 signal_handling.DataLocationPPWithDate(self.location_plan_period))
-            signal_handling.handler_location_plan_period.reload_cast_groups__cast_configs(
-                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id)
-            )
-            signal_handling.handler_location_plan_period.reset_styling_fixed_cast_configs(
-                signal_handling.DataLocationPlanPeriodDate(self.location_plan_period.id)
-            )
+            cast_groups = db_services.CastGroup.get_all_for_button__location_plan_period(
+                self.location_plan_period.id)
+            self._update_fixed_cast_buttons(cast_groups)
             signal_handling.handler_location_plan_period.event_update_num_employees(
                 plan_period_id=None, location_plan_period_id=self.location_plan_period.id
             )

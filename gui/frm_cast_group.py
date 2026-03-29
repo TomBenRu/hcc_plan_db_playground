@@ -10,6 +10,7 @@ from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu,
                                QCheckBox)
+from line_profiler import profile
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
@@ -60,13 +61,26 @@ def get_all_child_items(item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
     return all_items
 
 
-def location_plan_period_ids__from_cast_group(cast_group: schemas.CastGroup) -> set[UUID]:
+def location_plan_period_ids__from_cast_group(
+        cast_group: schemas.CastGroup,
+        cg_lookup: dict | None = None) -> set[UUID]:
+    """Sammelt alle LocationPlanPeriod-IDs, die in einer CastGroup-Hierarchie referenziert werden.
 
+    cg_lookup: Wenn übergeben (dict[UUID, CastGroupShow]), werden alle CastGroup-Daten
+    aus diesem Dict bezogen statt per DB-Call. Setzt voraus, dass das Dict bereits alle
+    relevanten CastGroups enthält (z.B. aus get_all_from__plan_period).
+    """
     def find_recursive(child_group: schemas.CastGroup) -> set[UUID]:
         lpp_ids = set()
-        child_group = db_services.CastGroup.get(child_group.id)
+        if cg_lookup is not None:
+            child_group = cg_lookup.get(child_group.id, child_group)
+        else:
+            child_group = db_services.CastGroup.get(child_group.id)
         if child_group.event:
-            lpp_ids.add(db_services.Event.get(child_group.event.id).location_plan_period.id)
+            if cg_lookup is not None:
+                lpp_ids.add(child_group.event.location_plan_period.id)
+            else:
+                lpp_ids.add(db_services.Event.get(child_group.event.id).location_plan_period.id)
         else:
             for child in child_group.child_groups:
                 lpp_ids |= find_recursive(child)
@@ -209,9 +223,8 @@ class TreeWidgetItem(QTreeWidgetItem):
         super().__init__(tree_widget_item)
         self.date_object = date_object
 
-    def configure(self, group: schemas.CastGroup, event: schemas.Event | None,
+    def configure(self, group: schemas.CastGroupShow, event: schemas.Event | None,
                   group_nr: int | None, parent_group_nr: int):
-        group: schemas.CastGroupShow = db_services.CastGroup.get(group.id)
         fixed_cast_text = generate_fixed_cast_clear_text(group.fixed_cast,
                                                          group.fixed_cast_only_if_available,
                                                          group.prefer_fixed_cast_events)
@@ -263,6 +276,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
 
 class TreeWidget(QTreeWidget):
+    @profile
     def __init__(self, plan_period: schemas.PlanPeriodShow,
                  slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None],
                  slot_add_group: Callable[[], TreeWidgetItem],
@@ -377,15 +391,20 @@ class TreeWidget(QTreeWidget):
         # Drag-Items zurücksetzen
         self.drag_items = []
 
+    @profile
     def setup_tree(self):
+        cast_groups = db_services.CastGroup.get_all_from__plan_period(self.plan_period.id)
+        cg_id__cg: dict = {cg.id: cg for cg in cast_groups}
+
         def add_children(parent: QTreeWidgetItem, parent_group: schemas.CastGroupShow):
             children = parent_group.child_groups
             parent_group_nr = parent.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
             for child in children:
-                child = db_services.CastGroup.get(child.id)
+                child = cg_id__cg[child.id]
                 if date_object := child.event:
                     item = TreeWidgetItem(parent, True)
-                    if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
+                    if not (self.visible_location_plan_period_ids &
+                            location_plan_period_ids__from_cast_group(child, cg_id__cg)):
                         item.setHidden(True)
                     item.configure(child, date_object, None, parent_group_nr)
                     signal_handling.handler_location_plan_period.change_location_plan_period_group_mode(
@@ -400,8 +419,6 @@ class TreeWidget(QTreeWidget):
                     item = TreeWidgetItem(parent)
                     item.configure(child, None, self.nr_main_groups, parent_group_nr)
                     add_children(item, child)
-
-        cast_groups = db_services.CastGroup.get_all_from__plan_period(self.plan_period.id)
 
         most_top_cast_groups = [cg for cg in cast_groups if not cg.parent_groups]
 
@@ -421,7 +438,8 @@ class TreeWidget(QTreeWidget):
                 self.nr_main_groups += 1
                 item.configure(child, None, self.nr_main_groups, 0)
                 add_children(item, child)
-            if not (self.visible_location_plan_period_ids & location_plan_period_ids__from_cast_group(child)):
+            if not (self.visible_location_plan_period_ids &
+                    location_plan_period_ids__from_cast_group(child, cg_id__cg)):
                 item.setHidden(True)
 
         self.sortByColumn(1, Qt.SortOrder.AscendingOrder)
@@ -511,34 +529,47 @@ class TreeWidget(QTreeWidget):
                 if self._is_child_of(target_group, item):
                     return
 
-        # Für jedes ausgewählte Item die bestehende item_moved Logik verwenden
-        for item in selected_items:
-            previous_parent = item.parent()
+        # Batch-Modus: update_all_items() nur einmal am Ende aller Moves aufrufen
+        dlg = getattr(self.slot_item_moved, '__self__', None)
+        batch_mode = dlg is not None and hasattr(dlg, '_batch_move_active')
+        if batch_mode:
+            dlg._batch_move_active = True
 
-            # Item aus dem Tree entfernen
-            if previous_parent:
-                previous_parent.removeChild(item)
-            else:
-                index = self.indexOfTopLevelItem(item)
-                self.takeTopLevelItem(index)
+        try:
+            for item in selected_items:
+                previous_parent = item.parent()
 
-            # Item zur Zielgruppe hinzufügen
-            if target_group:
-                target_group.addChild(item)
-                target_group_nr = target_group.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
-            else:
-                self.addTopLevelItem(item)
-                target_group_nr = 0
+                # Item aus dem Tree entfernen
+                if previous_parent:
+                    previous_parent.removeChild(item)
+                else:
+                    index = self.indexOfTopLevelItem(item)
+                    self.takeTopLevelItem(index)
 
-            # Parent-Gruppe-Nummer im Item aktualisieren
-            item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, target_group_nr)
+                # Item zur Zielgruppe hinzufügen
+                if target_group:
+                    target_group.addChild(item)
+                    target_group_nr = target_group.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                else:
+                    self.addTopLevelItem(item)
+                    target_group_nr = 0
 
-            # Signal senden (nur für events)
-            if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
-                self.send_signal_to_date_object(target_group_nr, item)
+                # Parent-Gruppe-Nummer im Item aktualisieren
+                item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, target_group_nr)
 
-            # Bestehende item_moved Logik aufrufen
-            self.slot_item_moved(item, target_group, previous_parent)
+                # Signal senden (nur für events)
+                if item.data(TREE_ITEM_DATA_COLUMN__EVENT, Qt.ItemDataRole.UserRole):
+                    self.send_signal_to_date_object(target_group_nr, item)
+
+                # DB-Operationen (update_all_items im Batch-Modus unterdrückt)
+                self.slot_item_moved(item, target_group, previous_parent)
+        finally:
+            if batch_mode:
+                dlg._batch_move_active = False
+
+        # update_all_items einmalig nach allen Moves aufrufen
+        if batch_mode:
+            dlg.update_all_items()
 
         # Tree aktualisieren
         self.expandAll()
@@ -923,6 +954,7 @@ class DlgGroupProperties(QDialog):
 
 
 class DlgCastGroups(QDialog):
+    @profile
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriodShow,
                  visible_location_plan_period_ids: set[UUID]):
         super().__init__(parent=parent)
@@ -934,6 +966,7 @@ class DlgCastGroups(QDialog):
         self.visible_location_plan_period_ids = visible_location_plan_period_ids
 
         self.controller = command_base_classes.ContrExecUndoRedo()
+        self._batch_move_active = False
 
         self.simplified = False
 
@@ -1018,7 +1051,8 @@ class DlgCastGroups(QDialog):
         if new_parent_id:
             self.controller.execute(cast_group_commands.SetNewParent(object_to_move.id, new_parent_id))
 
-        self.update_all_items()
+        if not self._batch_move_active:
+            self.update_all_items()
 
     def edit_item(self, item: QTreeWidgetItem):
         cast_group: schemas.CastGroupShow = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
@@ -1043,10 +1077,17 @@ class DlgCastGroups(QDialog):
 
     def update_all_items(self):
         all_items = get_all_child_items(self.tree_groups.invisibleRootItem())
+        if not all_items:
+            return
+
+        # Batch-Load: eine Query statt N×CastGroup.get()
+        cast_groups = db_services.CastGroup.get_all_from__plan_period(self.plan_period.id)
+        cg_id__cg: dict = {cg.id: cg for cg in cast_groups}
 
         for item in all_items:
             item: TreeWidgetItem
-            cast_group = db_services.CastGroup.get(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
+            item_id = item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id
+            cast_group = cg_id__cg[item_id]
             item.setData(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole, cast_group)
             item.setText(TREE_HEAD_COLUMN__FIXED_CAST,
                          generate_fixed_cast_clear_text(

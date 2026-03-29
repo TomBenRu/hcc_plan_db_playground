@@ -49,6 +49,22 @@ def get_all_for_button__plan_period(plan_period_id: UUID) -> list[schemas.CastGr
         return [schemas.CastGroupForButton.model_validate(cg) for cg in cast_groups]
 
 
+def get_all_for_button__location_plan_period(
+        location_plan_period_id: UUID) -> list[schemas.CastGroupForButton]:
+    """Batch-Variante: alle CastGroupForButton einer LocationPlanPeriod in einer Query.
+
+    Ersetzt N×get_all_for_button__location_plan_period_at_date() durch eine einzige Abfrage.
+    Der Aufrufer verteilt die Ergebnisse anhand event.date auf die einzelnen Buttons.
+    """
+    with get_session() as session:
+        stmt = (select(models.CastGroup)
+                .join(models.Event)
+                .where(models.Event.location_plan_period_id == location_plan_period_id)
+                .options(selectinload(models.CastGroup.event)))
+        cgs = session.exec(stmt).all()
+        return [schemas.CastGroupForButton.model_validate(cg) for cg in cgs]
+
+
 def get_all_for_button__location_plan_period_at_date(
         location_plan_period_id: UUID, date: datetime.date) -> list[schemas.CastGroupForButton]:
     """Minimale CastGroupForButton-Variante für ButtonFixedCast-Reload nach Signalauslösung."""

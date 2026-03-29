@@ -171,6 +171,12 @@ class Team(TeamCreate):
     excel_export_settings: Optional['ExcelExportSettings']
 
 
+class TeamIdOnly(BaseModel):
+    """Minimales Team-Schema — nur id, kein project/dispatcher/excel_export_settings."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+
+
 class TeamWithAssigns(Team):
     """Team mit actor- und location assigns — für PlanPeriodShow (Planungsmasken)."""
 
@@ -913,6 +919,34 @@ class EventGroupShow(EventGroup):
     event_groups: List[EventGroup]
 
 
+class EventForDialogTree(BaseModel):
+    """Minimales Event-Schema für den EventGroup-Dialog-Baum.
+
+    Enthält nur date, time_of_day und location_plan_period_id (FK statt Relationship).
+    Kein flags, kein cast_group, kein skill_groups — spart ~45 % model_validate-Zeit.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    date: datetime.date
+    location_plan_period_id: UUID
+    time_of_day: 'TimeOfDay'
+
+
+class EventGroupForDialog(BaseModel):
+    """Minimales EventGroup-Schema für den EventGroup-Dialog.
+
+    Kein event_groups-Feld (rekursive Kinder kommen aus dem Cache-Dict),
+    kein location_plan_period/event_group-Parent-Chain.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    nr_event_groups: Optional[int] = None
+    variation_weight: int = 1
+    event: Optional[EventForDialogTree] = None
+
+
 class CastGroupCreate(BaseModel):
     plan_period: PlanPeriod
 
@@ -1047,6 +1081,18 @@ class LocationPlanPeriodForMask(LocationPlanPeriod):
     @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
+
+
+class LocationPlanPeriodForDialog(BaseModel):
+    """Minimales LPP-Schema für reload_object_with_groups im EventGroup-Dialog.
+
+    Benötigt nur id und team.id — kein events, time_of_days, project, location_of_work.
+    team (TeamIdOnly) wird via @property plan_period.team geladen; kein project/dispatcher.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    team: TeamIdOnly
 
 
 class AppointmentCreate(BaseModel):

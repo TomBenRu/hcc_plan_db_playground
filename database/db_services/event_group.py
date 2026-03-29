@@ -15,6 +15,7 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import event_group_dialog_options
 
 
 def _build_tree_nodes_from_ids(adg_ids: list[UUID], session) -> dict[UUID, schemas.EventGroupTreeNode]:
@@ -127,6 +128,71 @@ def get_batch_masters_for_tree(location_plan_period_ids: list[UUID]) -> dict[UUI
             if parent_node is not None:
                 parent_node.child_ids.append(child_row.id)
         return nodes_by_lpp
+
+
+def get_flat_tree_for_dialog__location_plan_period(
+        location_plan_period_id: UUID,
+) -> tuple[schemas.EventGroupForDialog | None, dict[UUID, list[schemas.EventGroupForDialog]]]:
+    """Lädt den gesamten EventGroup-Baum einer LPP für den Dialog in 2 Roundtrips.
+
+    Ersetzt N× get_child_groups_from__parent_group() in setup_tree() + sortByColumn()
+    durch:
+      1. Rekursiver CTE → alle (id, event_group_id) des Baums (1 Roundtrip)
+      2. Batch-SELECT aller EventGroups mit event_group_dialog_options() (1 Roundtrip)
+
+    Gibt EventGroupForDialog zurück (kein event_groups-Feld, nur EventForDialogTree
+    als event-Objekt) — eliminiert die rekursive Pydantic-Validierung der Kinder.
+
+    Returns:
+        (master_group, {parent_event_group_id: [child EventGroupForDialogs]})
+    """
+    with get_session() as session:
+        # ── Schritt 1: alle IDs + Parent-IDs via rekursivem CTE ─────────────
+        base = (
+            select(models.EventGroup.id, models.EventGroup.event_group_id)
+            .where(models.EventGroup.location_plan_period_id == location_plan_period_id)
+            .cte(name='eg_tree', recursive=True)
+        )
+        recursive = (
+            select(models.EventGroup.id, models.EventGroup.event_group_id)
+            .join(base, models.EventGroup.event_group_id == base.c.id)
+        )
+        cte = base.union_all(recursive)
+        id_rows = session.exec(select(cte.c.id, cte.c.event_group_id)).all()
+
+        if not id_rows:
+            return None, {}
+
+        all_ids = [row[0] for row in id_rows]
+        id__parent_id: dict[UUID, UUID | None] = {row[0]: row[1] for row in id_rows}
+
+        # ── Schritt 2: Batch-Load mit minimalen Dialog-Optionen ─────────────
+        stmt = (
+            select(models.EventGroup)
+            .where(models.EventGroup.id.in_(all_ids))
+            .options(*event_group_dialog_options())
+        )
+        all_egs = session.exec(stmt).unique().all()
+
+        id__eg: dict[UUID, schemas.EventGroupForDialog] = {
+            eg.id: schemas.EventGroupForDialog.model_validate(eg)
+            for eg in all_egs
+        }
+
+        # ── Schritt 3: Parent→Children-Dict aufbauen (in-memory) ────────────
+        parent__children: dict[UUID, list[schemas.EventGroupForDialog]] = {}
+        master: schemas.EventGroupForDialog | None = None
+
+        for eg_id, parent_id in id__parent_id.items():
+            eg = id__eg.get(eg_id)
+            if eg is None:
+                continue
+            if parent_id is None:
+                master = eg
+            else:
+                parent__children.setdefault(parent_id, []).append(eg)
+
+        return master, parent__children
 
 
 def get(event_group_id: UUID) -> schemas.EventGroupShow:
@@ -324,13 +390,123 @@ def update_variation_weight(event_group_id: UUID, variation_weight: int) -> sche
         return schemas.EventGroupShow.model_validate(eg)
 
 
-def set_new_parent(event_group_id: UUID, new_parent_id: UUID) -> schemas.EventGroupShow:
+def set_new_parent_batch(
+        moves: list[tuple[UUID, UUID]],
+) -> tuple[list[tuple[UUID | None, int | None]], dict[UUID, int]]:
+    """Führt N Parent-Verschiebungen in einer einzigen Session durch.
+
+    Bulk-lädt alle Kinder + alten Parents in je einer IN-Query statt N einzelnen
+    session.get()-Calls — eliminiert den O(N)-Session-Overhead.
+
+    Args:
+        moves: [(child_event_group_id, new_parent_id), ...]
+
+    Returns:
+        old_parent_infos: [(old_parent_id, old_parent_nr_event_groups), ...] — parallel zu moves
+        nr_resets:         {old_parent_id: saved_nr_event_groups} — für Undo
+    """
+    from sqlalchemy import func
+
+    child_ids = [child_id for child_id, _ in moves]
+    new_parent_ids = {new_id for _, new_id in moves}
+
+    with get_session() as session:
+        # ── Bulk-Load: alle zu verschiebenden Kinder ──────────────────────────
+        children_list = session.exec(
+            select(models.EventGroup).where(models.EventGroup.id.in_(child_ids))
+        ).all()
+        child_map: dict[UUID, models.EventGroup] = {c.id: c for c in children_list}
+
+        # ── Bulk-Load: alle alten Parents ─────────────────────────────────────
+        old_parent_ids: set[UUID] = {
+            c.event_group_id for c in child_map.values() if c.event_group_id
+        }
+        if old_parent_ids:
+            old_parents_list = session.exec(
+                select(models.EventGroup).where(models.EventGroup.id.in_(old_parent_ids))
+            ).all()
+            # bereits in Identity-Map — kein weiterer DB-Call für session.get() nötig
+            _ = old_parents_list
+
+        # ── Bulk-Load: neue Parents (sofern noch nicht in Identity-Map) ───────
+        missing_new = new_parent_ids - old_parent_ids
+        if missing_new:
+            session.exec(
+                select(models.EventGroup).where(models.EventGroup.id.in_(missing_new))
+            ).all()
+
+        # ── Alle Moves durchführen (Identity-Map → kein DB-Call) ──────────────
+        old_parent_infos: list[tuple[UUID | None, int | None]] = []
+        for child_id, new_parent_id in moves:
+            child = child_map.get(child_id)
+            if child is None:
+                old_parent_infos.append((None, None))
+                continue
+            old_parent_id = child.event_group_id
+            old_parent = session.get(models.EventGroup, old_parent_id) if old_parent_id else None
+            old_parent_nr = old_parent.nr_event_groups if old_parent else None
+            child.event_group = session.get(models.EventGroup, new_parent_id)
+            old_parent_infos.append((old_parent_id, old_parent_nr))
+
+        session.flush()
+
+        # ── nr_event_groups-Konsistenz nach Move ──────────────────────────────
+        nr_resets: dict[UUID, int] = {}
+        for (_, _), (old_parent_id, old_parent_nr) in zip(moves, old_parent_infos):
+            if not (old_parent_id and old_parent_nr and old_parent_id not in nr_resets):
+                continue
+            remaining = session.exec(
+                select(func.count()).where(models.EventGroup.event_group_id == old_parent_id)
+            ).one()
+            if old_parent_nr > remaining:
+                parent_obj = session.get(models.EventGroup, old_parent_id)
+                parent_obj.nr_event_groups = None
+                nr_resets[old_parent_id] = old_parent_nr
+
+        if nr_resets:
+            session.flush()
+
+        return old_parent_infos, nr_resets
+
+
+def get_parent_info(event_group_id: UUID) -> tuple[UUID | None, int | None]:
+    """Gibt (parent_id, parent.nr_event_groups) ohne EventGroupShow.model_validate().
+
+    Ersetzt EventGroup.get(id).event_group in SetNewParent.execute() — 1 Roundtrip statt
+    1 teures get() + rekursives model_validate.
+    """
+    with get_session() as session:
+        parent_id = session.exec(
+            select(models.EventGroup.event_group_id)
+            .where(models.EventGroup.id == event_group_id)
+        ).one_or_none()
+        if parent_id is None:
+            return None, None
+        parent_nr = session.exec(
+            select(models.EventGroup.nr_event_groups)
+            .where(models.EventGroup.id == parent_id)
+        ).one_or_none()
+        return parent_id, parent_nr
+
+
+def count_children(event_group_id: UUID) -> int:
+    """Gibt die Anzahl direkter Kinder zurück ohne Objekte zu laden.
+
+    Ersetzt len(get_child_groups_from__parent_group(id)) — 1 COUNT-Query statt N model_validate.
+    """
+    from sqlalchemy import func
+    with get_session() as session:
+        return session.exec(
+            select(func.count()).where(models.EventGroup.event_group_id == event_group_id)
+        ).one()
+
+
+def set_new_parent(event_group_id: UUID, new_parent_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         eg = session.get(models.EventGroup, event_group_id)
         eg.event_group = session.get(models.EventGroup, new_parent_id)
         session.flush()
-        return schemas.EventGroupShow.model_validate(eg)
 
 
 def delete(event_group_id: UUID):

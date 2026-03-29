@@ -38,8 +38,8 @@ VARIATION_WEIGHT_TEXT = {
 
 
 object_with_group_type: TypeAlias = schemas.ActorPlanPeriodForMask | schemas.LocationPlanPeriodShow
-group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.EventGroupShow
-date_object_type: TypeAlias = schemas.AvailDayShow | schemas.EventShow
+group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.EventGroupShow | schemas.EventGroupForDialog
+date_object_type: TypeAlias = schemas.AvailDayShow | schemas.EventShow | schemas.EventForDialogTree
 create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_group_commands.Create]
 delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_group_commands.Delete]
 set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.SetNewParent] |
@@ -86,6 +86,7 @@ class DlgGroupModeBuilderABC(ABC):
         self.update_variation_weight_command: Callable[[group_id_type, int], command_base_classes.Command] | None = None
         self.get_group_from_id: Callable[[group_id_type], group_type] | None = None
         self.set_new_parent_group_command: set_new_parent_group_command_type | None = None
+        self.set_new_parent_group_batch_command: type | None = None
         self.get_nr_groups_from_group: Callable[[group_type], int] | None = None
         self.get_child_groups_from__parent_group_id: Callable[[UUID], list[group_type]] | None = None
         self.get_date_object_from_group: Callable[[group_type], date_object_type] | None = None
@@ -189,27 +190,38 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
 
 class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
     def __init__(self, parent: QWidget, location_plan_period: schemas.LocationPlanPeriodShow):
+        self._eg_children_cache: dict = {}
         super().__init__(parent=parent, object_with_groups=location_plan_period)
 
         self.object_with_groups: schemas.LocationPlanPeriodShow = location_plan_period
 
     def _generate_field_values(self):
-        self.master_group = db_services.EventGroup.get_master_from__location_plan_period(self.object_with_groups.id)
+        self.master_group, self._eg_children_cache = (
+            db_services.EventGroup.get_flat_tree_for_dialog__location_plan_period(
+                self.object_with_groups.id)
+        )
         self.create_group_command = event_group_commands.Create
         self.delete_group_command = event_group_commands.Delete
         self.update_nr_groups_command = event_group_commands.UpdateNrEventGroups
         self.update_variation_weight_command = event_group_commands.UpdateVariationWeight
         self.get_group_from_id = db_services.EventGroup.get
         self.set_new_parent_group_command = event_group_commands.SetNewParent
+        self.set_new_parent_group_batch_command = event_group_commands.SetNewParentBatch
         self.get_nr_groups_from_group = lambda group: group.nr_event_groups
         self.get_date_object_from_group = lambda group: getattr(group, 'event')
-        self.get_child_groups_from__parent_group_id = db_services.EventGroup.get_child_groups_from__parent_group
+        self.get_child_groups_from__parent_group_id = (
+            lambda eg_id: self._eg_children_cache.get(eg_id, [])
+        )
         self.signal_handler_change__object_with_groups__group_mode = (
             signal_handling.handler_location_plan_period.change_location_plan_period_group_mode)
         self.text_date_object = QCoreApplication.translate("DlgGroupModeBuilderLocationPlanPeriod", "assigned")
 
     def reload_object_with_groups(self):
-        self.object_with_groups = db_services.LocationPlanPeriod.get(self.object_with_groups.id)
+        self.master_group, self._eg_children_cache = (
+            db_services.EventGroup.get_flat_tree_for_dialog__location_plan_period(
+                self.object_with_groups.id)
+        )
+        self.object_with_groups = db_services.LocationPlanPeriod.get_for_dialog(self.object_with_groups.id)
 
 
 class TreeWidgetItem(QTreeWidgetItem):
@@ -322,7 +334,7 @@ class TreeWidget(QTreeWidget):
                                               parent_group_nr,
                                               (date_object.actor_plan_period.id
                                                if isinstance(date_object, schemas.AvailDay)
-                                               else date_object.location_plan_period.id)
+                                               else date_object.location_plan_period_id)
                                                )
             )
 
@@ -355,30 +367,47 @@ class TreeWidget(QTreeWidget):
         
         # WICHTIG: Previous_parent Werte VOR super().dropEvent() sammeln
         previous_parents = [(item, item.parent()) for item in items_to_move]
-        
+
         # Drop-Event akzeptieren
         super().dropEvent(event)
-        
+
         # Neue Parent-Gruppennummer ermitteln
         new_parent_group_nr = (item_to_move_to.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
                                if item_to_move_to else 0)
-        
-        # Für jedes Item die Verschiebung durchführen
-        for item, previous_parent in previous_parents:
-            # Signal an Date-Object senden
-            self.send_signal_to_date_object(new_parent_group_nr, item)
-            
-            # Parent-Gruppennummer aktualisieren
-            item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
-            
-            # Item-moved Callback aufrufen
-            self.slot_item_moved(item, item_to_move_to, previous_parent)
-        
+
+        # Batch-Modus aktivieren (wie in move_selected_items_to_group)
+        dlg = getattr(self.slot_item_moved, '__self__', None)
+        batch_mode = dlg is not None and hasattr(dlg, '_batch_move_active')
+        if batch_mode:
+            dlg._batch_move_active = True
+            dlg._batch_moves = []
+
+        try:
+            # Für jedes Item die Verschiebung durchführen
+            for item, previous_parent in previous_parents:
+                # Signal an Date-Object senden
+                self.send_signal_to_date_object(new_parent_group_nr, item)
+
+                # Parent-Gruppennummer aktualisieren
+                item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, new_parent_group_nr)
+
+                # Item-moved Callback aufrufen
+                self.slot_item_moved(item, item_to_move_to, previous_parent)
+        finally:
+            if batch_mode:
+                dlg._batch_move_active = False
+
+        # Batch-DB-Call: alle Moves in einer Session
+        if batch_mode and dlg._batch_moves and dlg.builder.set_new_parent_group_batch_command:
+            dlg.controller.execute(
+                dlg.builder.set_new_parent_group_batch_command(dlg._batch_moves))
+            dlg._batch_moves = []
+
         # Tree nach dem Drop aktualisieren
         self.expandAll()
-        for i in range(self.columnCount()): 
+        for i in range(self.columnCount()):
             self.resizeColumnToContents(i)
-        
+
         # Drag-Items zurücksetzen
         self.drag_items = []
 
@@ -397,7 +426,7 @@ class TreeWidget(QTreeWidget):
                                                       parent_group_nr,
                                                       (date_object.actor_plan_period.id
                                                        if isinstance(date_object, schemas.AvailDay)
-                                                       else date_object.location_plan_period.id)
+                                                       else date_object.location_plan_period_id)
                                                       )
                     )
                 else:
@@ -417,7 +446,7 @@ class TreeWidget(QTreeWidget):
                                                   0,
                                                    (date_object.actor_plan_period.id if
                                                     isinstance(date_object, schemas.AvailDay)
-                                                    else date_object.location_plan_period.id)
+                                                    else date_object.location_plan_period_id)
                                                   )
                 )
             else:
@@ -505,49 +534,76 @@ class TreeWidget(QTreeWidget):
     
     def move_selected_items_to_group(self, selected_items: list[QTreeWidgetItem], target_group: QTreeWidgetItem | None):
         """Verschiebt alle ausgewählten Items in die angegebene Gruppe"""
-        
+
         # Validierung: Items können nicht in sich selbst oder ihre eigenen Kinder verschoben werden
         if target_group and target_group in selected_items:
             return
-        
+
         # Validierung: Items können nicht in ihre eigenen Kinder verschoben werden
         if target_group:
             for item in selected_items:
                 if self._is_child_of(target_group, item):
                     return
-        
-        # Für jedes ausgewählte Item die bestehende item_moved Logik verwenden
-        for item in selected_items:
-            previous_parent = item.parent()
-            
-            # Item aus dem Tree entfernen
-            if previous_parent:
-                previous_parent.removeChild(item)
-            else:
-                index = self.indexOfTopLevelItem(item)
-                self.takeTopLevelItem(index)
-            
-            # Item zur Zielgruppe hinzufügen
+
+        # Batch-Modus: adjust_num_required....(obj_to_move_to) wird in item_moved unterdrückt
+        # und nach dem Loop einmalig aufgerufen (Zielgruppe ändert sich nicht pro Item).
+        # set_new_parent_group_batch_command (falls gesetzt) sammelt alle Moves für eine
+        # einzige DB-Session statt N einzelner Sessions.
+        dlg = getattr(self.slot_item_moved, '__self__', None)
+        batch_mode = dlg is not None and hasattr(dlg, '_batch_move_active')
+        if batch_mode:
+            dlg._batch_move_active = True
+            dlg._batch_moves = []
+
+        try:
+            for item in selected_items:
+                previous_parent = item.parent()
+
+                # Item aus dem Tree entfernen
+                if previous_parent:
+                    previous_parent.removeChild(item)
+                else:
+                    index = self.indexOfTopLevelItem(item)
+                    self.takeTopLevelItem(index)
+
+                # Item zur Zielgruppe hinzufügen
+                if target_group:
+                    target_group.addChild(item)
+                    target_group_nr = target_group.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                else:
+                    self.addTopLevelItem(item)
+                    target_group_nr = 0
+
+                # Parent-Gruppe-Nummer im Item aktualisieren
+                item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, target_group_nr)
+
+                # Signal senden (nur für date_objects)
+                if item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole):
+                    self.send_signal_to_date_object(target_group_nr, item)
+
+                self.slot_item_moved(item, target_group, previous_parent)
+        finally:
+            if batch_mode:
+                dlg._batch_move_active = False
+
+        # Batch-DB-Call: alle gesammelten Moves in einer Session ausführen
+        if batch_mode and dlg._batch_moves and dlg.builder.set_new_parent_group_batch_command:
+            dlg.controller.execute(
+                dlg.builder.set_new_parent_group_batch_command(dlg._batch_moves))
+            dlg._batch_moves = []
+
+        # Einmaliger adjust-Aufruf für die Zielgruppe (während Batch deferred)
+        if batch_mode and dlg.builder.num_required_group_field:
             if target_group:
-                target_group.addChild(item)
-                target_group_nr = target_group.data(TREE_ITEM_DATA_COLUMN__MAIN_GROUP_NR, Qt.ItemDataRole.UserRole)
+                obj_to_move_to = target_group.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
             else:
-                self.addTopLevelItem(item)
-                target_group_nr = 0
-            
-            # Parent-Gruppe-Nummer im Item aktualisieren
-            item.setData(TREE_ITEM_DATA_COLUMN__PARENT_GROUP_NR, Qt.ItemDataRole.UserRole, target_group_nr)
-            
-            # Signal senden (nur für date_objects)
-            if item.data(TREE_ITEM_DATA_COLUMN__DATE_OBJECT, Qt.ItemDataRole.UserRole):
-                self.send_signal_to_date_object(target_group_nr, item)
-            
-            # Bestehende item_moved Logik aufrufen
-            self.slot_item_moved(item, target_group, previous_parent)
-        
+                obj_to_move_to = dlg.builder.master_group
+            if obj_to_move_to:
+                dlg.builder.adjust_num_required_avail_day_groups(obj_to_move_to, dlg.controller)
+
         # Tree aktualisieren
         self.expandAll()
-        for i in range(self.columnCount()): 
+        for i in range(self.columnCount()):
             self.resizeColumnToContents(i)
     
     def _is_child_of(self, potential_child: QTreeWidgetItem, potential_parent: QTreeWidgetItem) -> bool:
@@ -950,6 +1006,8 @@ class DlgGroupMode(QDialog):
         self.builder = builder
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.simplified = False
+        self._batch_move_active = False
+        self._batch_moves: list[tuple] = []
 
         # Setup layouts
         self.layout = QVBoxLayout(self)
@@ -1037,7 +1095,10 @@ class DlgGroupMode(QDialog):
         else:
             obj_to_move_to = self.builder.master_group
 
-        self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
+        if self._batch_move_active and self.builder.set_new_parent_group_batch_command:
+            self._batch_moves.append((object_to_move.id, obj_to_move_to.id))
+        else:
+            self.controller.execute(self.builder.set_new_parent_group_command(object_to_move.id, obj_to_move_to.id))
 
         if not previous_parent:
             parent_group = self.builder.master_group
@@ -1045,7 +1106,8 @@ class DlgGroupMode(QDialog):
             parent_group = previous_parent.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
 
         if self.builder.num_required_group_field:
-            self.builder.adjust_num_required_avail_day_groups(obj_to_move_to, self.controller)
+            if not self._batch_move_active:
+                self.builder.adjust_num_required_avail_day_groups(obj_to_move_to, self.controller)
             self.builder.adjust_num_required_avail_day_groups(parent_group, self.controller)
 
         # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:

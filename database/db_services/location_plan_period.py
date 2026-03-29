@@ -15,7 +15,8 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
-from ._eager_loading import location_plan_period_show_options, location_mask_lpp_options
+from ._eager_loading import (location_plan_period_show_options, location_mask_lpp_options,
+                             location_plan_period_for_dialog_options)
 
 
 def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
@@ -25,6 +26,20 @@ def get(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodShow:
                 .options(*location_plan_period_show_options()))
         lpp = session.exec(stmt).unique().one()
         return schemas.LocationPlanPeriodShow.model_validate(lpp)
+
+
+def get_for_dialog(location_plan_period_id: UUID) -> schemas.LocationPlanPeriodForDialog:
+    """Minimaler LPP-Load für reload_object_with_groups im EventGroup-Dialog.
+
+    Lädt nur id + team.id (via plan_period → team) — kein events, time_of_days,
+    location_of_work, project. Ersetzt get() in reload_object_with_groups.
+    """
+    with get_session() as session:
+        stmt = (select(models.LocationPlanPeriod)
+                .where(models.LocationPlanPeriod.id == location_plan_period_id)
+                .options(*location_plan_period_for_dialog_options()))
+        lpp = session.exec(stmt).unique().one()
+        return schemas.LocationPlanPeriodForDialog.model_validate(lpp)
 
 
 def get_multiple(location_plan_period_ids: list[UUID]) -> list[schemas.LocationPlanPeriodShow]:

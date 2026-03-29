@@ -844,6 +844,18 @@ def location_plan_period_show_options() -> list:
     ]
 
 
+def location_plan_period_for_dialog_options() -> list:
+    """Minimale Loader-Optionen für LocationPlanPeriodForDialog.model_validate().
+
+    Lädt nur plan_period → team — kein location_of_work, time_of_days, events, project.
+    Wird in get_for_dialog() verwendet (reload_object_with_groups im EventGroup-Dialog).
+    """
+    return [
+        joinedload(models.LocationPlanPeriod.plan_period)
+        .joinedload(models.PlanPeriod.team)
+    ]
+
+
 def location_mask_lpp_options() -> list:
     """Loader-Optionen für Standort-Masken-Startup (ohne events).
 
@@ -1048,3 +1060,28 @@ def project_show_options() -> list:
         tod_enum_standards,
         skills, flags, cast_rules,
     ]
+
+
+def event_group_dialog_options() -> list:
+    """Loader-Optionen für den EventGroup-Dialog-Batch-Load (minimale Variante).
+
+    Verwendet, wenn ALLE EventGroups einer LocationPlanPeriod in einer einzigen
+    Session geladen werden (get_flat_tree_for_dialog__location_plan_period).
+
+    EventGroupForDialog benötigt nur:
+      - event → time_of_day → time_of_day_enum
+
+    Wegfall gegenüber der alten Variante:
+      - event_groups (Kinder): kommen aus dem parent__children-Dict
+      - event → location_plan_period → ...: nur location_plan_period_id (FK) genutzt
+      - event → flags: EventForDialogTree hat kein flags-Feld
+      - location_plan_period → plan_period → team: Master-Knoten braucht das nicht
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    ev_tod = (
+        joinedload(models.EventGroup.event)
+        .joinedload(models.Event.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum)
+    )
+    return [ev_tod]

@@ -38,8 +38,8 @@ VARIATION_WEIGHT_TEXT = {
 
 
 object_with_group_type: TypeAlias = schemas.ActorPlanPeriodForMask | schemas.LocationPlanPeriodShow
-group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.EventGroupShow | schemas.EventGroupForDialog
-date_object_type: TypeAlias = schemas.AvailDayShow | schemas.EventShow | schemas.EventForDialogTree
+group_type: TypeAlias = schemas.AvailDayGroupShow | schemas.AvailDayGroupForDialog | schemas.EventGroupShow | schemas.EventGroupForDialog
+date_object_type: TypeAlias = schemas.AvailDayShow | schemas.AvailDayForDialogTree | schemas.EventShow | schemas.EventForDialogTree
 create_group_command_type: TypeAlias = type[avail_day_group_commands.Create] | type[event_group_commands.Create]
 delete_group_command_type: TypeAlias = type[avail_day_group_commands.Delete] | type[event_group_commands.Delete]
 set_new_parent_group_command_type: TypeAlias = (type[avail_day_group_commands.SetNewParent] |
@@ -127,26 +127,37 @@ class DlgGroupModeBuilderABC(ABC):
 
 class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
     def __init__(self, parent: QWidget, actor_plan_period: schemas.ActorPlanPeriodForMask):
+        self._adg_children_cache: dict = {}
         super().__init__(parent=parent, object_with_groups=actor_plan_period)
 
         self.object_with_groups: schemas.ActorPlanPeriodForMask = actor_plan_period
 
     def _generate_field_values(self):
-        self.master_group = db_services.AvailDayGroup.get_master_from__actor_plan_period(self.object_with_groups.id)
+        self.master_group, self._adg_children_cache = (
+            db_services.AvailDayGroup.get_flat_tree_for_dialog__actor_plan_period(
+                self.object_with_groups.id)
+        )
         self.create_group_command = avail_day_group_commands.Create
         self.delete_group_command = avail_day_group_commands.Delete
         self.update_nr_groups_command = avail_day_group_commands.UpdateNrAvailDayGroups
         self.update_variation_weight_command = avail_day_group_commands.UpdateVariationWeight
         self.get_group_from_id = db_services.AvailDayGroup.get
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
+        self.set_new_parent_group_batch_command = avail_day_group_commands.SetNewParentBatch
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
         self.get_date_object_from_group = lambda group: getattr(group, 'avail_day')
-        self.get_child_groups_from__parent_group_id = db_services.AvailDayGroup.get_child_groups_from__parent_group
+        self.get_child_groups_from__parent_group_id = (
+            lambda adg_id: self._adg_children_cache.get(adg_id, [])
+        )
         self.signal_handler_change__object_with_groups__group_mode = signal_handling.handler_actor_plan_period.change_actor_plan_period_group_mode
         self.text_date_object = QCoreApplication.translate("DlgGroupModeBuilderActorPlanPeriod", "available")
         self.num_required_group_field = True
 
     def reload_object_with_groups(self):
+        self.master_group, self._adg_children_cache = (
+            db_services.AvailDayGroup.get_flat_tree_for_dialog__actor_plan_period(
+                self.object_with_groups.id)
+        )
         self.object_with_groups = db_services.ActorPlanPeriod.get_for_mask(self.object_with_groups.id)
 
     def get_required_avail_day_groups(self, avail_day_group_id: UUID) -> schemas.RequiredAvailDayGroups | None:
@@ -332,7 +343,9 @@ class TreeWidget(QTreeWidget):
                                               date_object.date,
                                               date_object.time_of_day.time_of_day_enum.time_index,
                                               parent_group_nr,
-                                              (date_object.actor_plan_period.id
+                                              (date_object.actor_plan_period_id
+                                               if isinstance(date_object, schemas.AvailDayForDialogTree)
+                                               else date_object.actor_plan_period.id
                                                if isinstance(date_object, schemas.AvailDay)
                                                else date_object.location_plan_period_id)
                                                )
@@ -424,7 +437,9 @@ class TreeWidget(QTreeWidget):
                                                       date_object.date,
                                                       date_object.time_of_day.time_of_day_enum.time_index,
                                                       parent_group_nr,
-                                                      (date_object.actor_plan_period.id
+                                                      (date_object.actor_plan_period_id
+                                                       if isinstance(date_object, schemas.AvailDayForDialogTree)
+                                                       else date_object.actor_plan_period.id
                                                        if isinstance(date_object, schemas.AvailDay)
                                                        else date_object.location_plan_period_id)
                                                       )
@@ -444,8 +459,10 @@ class TreeWidget(QTreeWidget):
                                                   date_object.date,
                                                   date_object.time_of_day.time_of_day_enum.time_index,
                                                   0,
-                                                   (date_object.actor_plan_period.id if
-                                                    isinstance(date_object, schemas.AvailDay)
+                                                   (date_object.actor_plan_period_id
+                                                    if isinstance(date_object, schemas.AvailDayForDialogTree)
+                                                    else date_object.actor_plan_period.id
+                                                    if isinstance(date_object, schemas.AvailDay)
                                                     else date_object.location_plan_period_id)
                                                   )
                 )

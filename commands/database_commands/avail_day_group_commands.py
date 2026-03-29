@@ -147,17 +147,17 @@ class SetNewParent(Command):
         self.old_parent_nr_avail_day_groups: int | None = None
 
     def execute(self):
-        old_parent = db_services.AvailDayGroup.get(self.avail_day_group_id).avail_day_group
+        old_parent_id, old_parent_nr_adg = db_services.AvailDayGroup.get_parent_info(self.avail_day_group_id)
 
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.new_parent_id)
 
-        # Um Inkonsistenzen zu vermeiden:
-        old_parent_childs = db_services.AvailDayGroup.get_child_groups_from__parent_group(old_parent.id)
-        if old_parent.nr_avail_day_groups and old_parent.nr_avail_day_groups > len(old_parent_childs):
-            self.old_parent_nr_avail_day_groups = old_parent.nr_avail_day_groups
-            db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent.id, None)
-        self.old_parent_id = old_parent.id
-
+        # Um Inkonsistenzen zu vermeiden (COUNT nach dem Move — Kind ist bereits weg):
+        if old_parent_id and old_parent_nr_adg:
+            remaining = db_services.AvailDayGroup.count_children(old_parent_id)
+            if old_parent_nr_adg > remaining:
+                self.old_parent_nr_avail_day_groups = old_parent_nr_adg
+                db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent_id, None)
+        self.old_parent_id = old_parent_id
 
     def _undo(self):
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.old_parent_id)
@@ -165,14 +165,41 @@ class SetNewParent(Command):
             db_services.AvailDayGroup.update_nr_avail_day_groups(self.old_parent_id, self.old_parent_nr_avail_day_groups)
 
     def _redo(self):
-        old_parent = db_services.AvailDayGroup.get(self.avail_day_group_id).avail_day_group
+        old_parent_id, old_parent_nr_adg = db_services.AvailDayGroup.get_parent_info(self.avail_day_group_id)
 
         db_services.AvailDayGroup.set_new_parent(self.avail_day_group_id, self.new_parent_id)
 
-        old_parent_childs = db_services.AvailDayGroup.get_child_groups_from__parent_group(old_parent.id)
-        if old_parent.nr_avail_day_groups and old_parent.nr_avail_day_groups > len(old_parent_childs):
-            self.old_parent_nr_avail_day_groups = old_parent.nr_avail_day_groups
-            db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent.id, None)
+        if old_parent_id and old_parent_nr_adg:
+            remaining = db_services.AvailDayGroup.count_children(old_parent_id)
+            if old_parent_nr_adg > remaining:
+                self.old_parent_nr_avail_day_groups = old_parent_nr_adg
+                db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent_id, None)
+
+
+class SetNewParentBatch(Command):
+    """Verschiebt N AvailDayGroups auf einmal in einer einzigen DB-Session.
+
+    Ersetzt N einzelne SetNewParent-Commands in move_selected_items_to_group.
+    """
+
+    def __init__(self, moves: list[tuple[UUID, UUID]]):
+        super().__init__()
+        self.moves = moves
+        self.old_parent_infos: list[tuple[UUID | None, int | None]] = []
+        self.nr_resets: dict[UUID, int] = {}
+
+    def execute(self):
+        self.old_parent_infos, self.nr_resets = db_services.AvailDayGroup.set_new_parent_batch(self.moves)
+
+    def _undo(self):
+        for (child_id, _), (old_parent_id, _) in zip(self.moves, self.old_parent_infos):
+            if old_parent_id:
+                db_services.AvailDayGroup.set_new_parent(child_id, old_parent_id)
+        for old_parent_id, old_nr in self.nr_resets.items():
+            db_services.AvailDayGroup.update_nr_avail_day_groups(old_parent_id, old_nr)
+
+    def _redo(self):
+        self.old_parent_infos, self.nr_resets = db_services.AvailDayGroup.set_new_parent_batch(self.moves)
 
 
 

@@ -1095,6 +1095,34 @@ class LocationPlanPeriodForDialog(BaseModel):
     team: TeamIdOnly
 
 
+class AvailDayForDialogTree(BaseModel):
+    """Minimales AvailDay-Schema für den AvailDayGroup-Dialog-Baum.
+
+    Enthält nur date, time_of_day und actor_plan_period_id (FK statt Relationship).
+    Kein actor_plan_period-Objekt, kein flags — spart ~45 % model_validate-Zeit.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    date: datetime.date
+    actor_plan_period_id: UUID
+    time_of_day: 'TimeOfDay'
+
+
+class AvailDayGroupForDialog(BaseModel):
+    """Minimales AvailDayGroup-Schema für den AvailDayGroup-Dialog.
+
+    Kein avail_day_groups-Feld (rekursive Kinder kommen aus dem Cache-Dict),
+    kein actor_plan_period/avail_day_group-Parent-Chain.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    nr_avail_day_groups: Optional[int] = None
+    variation_weight: int = 1
+    avail_day: Optional[AvailDayForDialogTree] = None
+
+
 class AppointmentCreate(BaseModel):
     notes: Optional[str] = ''
     avail_days: List[AvailDay]

@@ -1085,3 +1085,27 @@ def event_group_dialog_options() -> list:
         .joinedload(models.TimeOfDay.time_of_day_enum)
     )
     return [ev_tod]
+
+
+def avail_day_group_dialog_options() -> list:
+    """Loader-Optionen für den AvailDayGroup-Dialog-Batch-Load (minimale Variante).
+
+    Verwendet, wenn ALLE AvailDayGroups eines ActorPlanPeriods in einer einzigen
+    Session geladen werden (get_flat_tree_for_dialog__actor_plan_period).
+
+    AvailDayGroupForDialog benötigt nur:
+      - avail_day → time_of_day → time_of_day_enum
+
+    Wegfall gegenüber AvailDayGroupShow:
+      - avail_day_groups (Kinder): kommen aus dem parent__children-Dict
+      - avail_day → actor_plan_period → ...: nur actor_plan_period_id (FK) genutzt
+      - actor_plan_period / avail_day_group (Parent-Chain): nicht benötigt
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    ad_tod = (
+        joinedload(models.AvailDayGroup.avail_day)
+        .joinedload(models.AvailDay.time_of_day)
+        .joinedload(models.TimeOfDay.time_of_day_enum)
+    )
+    return [ad_tod]

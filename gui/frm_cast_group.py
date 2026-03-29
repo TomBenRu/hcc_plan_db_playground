@@ -10,7 +10,6 @@ from PySide6.QtGui import QDropEvent, QColor, QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialogButtonBox, QTreeWidget,
                                QTreeWidgetItem, QGridLayout, QLabel, QComboBox, QSlider, QSpinBox, QMessageBox, QMenu,
                                QCheckBox)
-from line_profiler import profile
 
 from database import schemas, db_services
 from gui import frm_cast_rule, widget_styles
@@ -276,7 +275,6 @@ class TreeWidgetItem(QTreeWidgetItem):
 
 
 class TreeWidget(QTreeWidget):
-    @profile
     def __init__(self, plan_period: schemas.PlanPeriodShow,
                  slot_item_moved: Callable[[TreeWidgetItem, TreeWidgetItem, TreeWidgetItem], None],
                  slot_add_group: Callable[[], TreeWidgetItem],
@@ -391,7 +389,6 @@ class TreeWidget(QTreeWidget):
         # Drag-Items zurücksetzen
         self.drag_items = []
 
-    @profile
     def setup_tree(self):
         cast_groups = db_services.CastGroup.get_all_from__plan_period(self.plan_period.id)
         cg_id__cg: dict = {cg.id: cg for cg in cast_groups}
@@ -954,7 +951,6 @@ class DlgGroupProperties(QDialog):
 
 
 class DlgCastGroups(QDialog):
-    @profile
     def __init__(self, parent: QWidget, plan_period: schemas.PlanPeriodShow,
                  visible_location_plan_period_ids: set[UUID]):
         super().__init__(parent=parent)

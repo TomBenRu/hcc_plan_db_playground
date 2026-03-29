@@ -11,7 +11,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QScrollArea, QLabel, QTextEdit, QVBoxLayout, QSplitter, QTableWidget, \
     QGridLayout, QHBoxLayout, QAbstractItemView, QHeaderView, QTableWidgetItem, QPushButton, QMessageBox, QApplication, \
     QMenu, QSpinBox, QWidgetAction
-from line_profiler import profile
 
 from database import schemas, db_services
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
@@ -1403,7 +1402,6 @@ class FrmLocationPlanPeriod(QWidget):
         if location_plan_period_id == self.location_plan_period.id:
             self.change_mode__event_group()
 
-    @profile
     def _update_fixed_cast_buttons(self, cast_groups: list) -> None:
         """Verteilt vorab geladene CastGroupForButton-Daten an alle ButtonFixedCast-Kinder.
 

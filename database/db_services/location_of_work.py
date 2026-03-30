@@ -8,7 +8,8 @@ Orte (inkl. Zeitraumprüfung gegen TeamLocationAssign) für Dropdown-Auswahlen.
 import datetime
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -84,16 +85,34 @@ def get_all_possible_from__plan_period_minimal(plan_period_id: UUID) -> dict['st
 
 
 def get_all_locations_at_dates(team_id: UUID, dates: list[datetime.date]) -> list[schemas.LocationOfWork]:
+    """Gibt alle Standorte zurück, die an mindestens einem der gegebenen Termine aktiv sind.
+
+    Ersetzt N einzelne Queries (eine je Datum) durch einen einzigen OR-Query — die
+    Bedingungen für alle Daten werden als OR-Klausel zusammengefasst.
+    """
+    if not dates:
+        return []
     with get_session() as session:
-        locs: dict[UUID, models.LocationOfWork] = {}
-        for date in dates:
-            assigns = session.exec(select(models.TeamLocationAssign).where(
+        date_conditions = [
+            and_(
+                models.TeamLocationAssign.start <= d,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > d)
+            )
+            for d in dates
+        ]
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .where(
                 models.TeamLocationAssign.team_id == team_id,
-                models.TeamLocationAssign.start <= date,
-                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date))).all()
-            for tla in assigns:
-                locs[tla.location_of_work_id] = tla.location_of_work
-        return [schemas.LocationOfWork.model_validate(loc) for loc in locs.values()]
+                or_(*date_conditions)
+            )
+            .options(joinedload(models.TeamLocationAssign.location_of_work))
+        ).unique().all()
+        seen: dict[UUID, models.LocationOfWork] = {}
+        for tla in assigns:
+            if tla.location_of_work_id not in seen:
+                seen[tla.location_of_work_id] = tla.location_of_work
+        return [schemas.LocationOfWork.model_validate(loc) for loc in seen.values()]
 
 
 def create(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:

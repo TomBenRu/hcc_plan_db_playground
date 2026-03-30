@@ -121,6 +121,20 @@ class DlgGroupModeBuilderABC(ABC):
                                              controller: command_base_classes.ContrExecUndoRedo):
         ...
 
+    def update_cache_after_move(self, moved_group: group_type, new_parent: group_type,
+                                old_parent: group_type) -> None:
+        """Aktualisiert den internen Cache nach einem Drag-Drop-Move. Standard: No-Op."""
+        ...
+
+    def register_new_group_in_cache(self, created_group: schemas.AvailDayGroupShow,
+                                    parent_group: group_type) -> None:
+        """Registriert eine neu angelegte Gruppe im internen Cache. Standard: No-Op."""
+        ...
+
+    def rebuild_children_cache(self) -> None:
+        """Baut den internen Children-Cache komplett neu auf. Standard: No-Op."""
+        ...
+
     def build(self) -> 'DlgGroupMode':
         return DlgGroupMode(self.parent_widget, self)
 
@@ -141,7 +155,7 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         self.delete_group_command = avail_day_group_commands.Delete
         self.update_nr_groups_command = avail_day_group_commands.UpdateNrAvailDayGroups
         self.update_variation_weight_command = avail_day_group_commands.UpdateVariationWeight
-        self.get_group_from_id = db_services.AvailDayGroup.get
+        self.get_group_from_id = db_services.AvailDayGroup.get_for_dialog_properties
         self.set_new_parent_group_command = avail_day_group_commands.SetNewParent
         self.set_new_parent_group_batch_command = avail_day_group_commands.SetNewParentBatch
         self.get_nr_groups_from_group = lambda group: group.nr_avail_day_groups
@@ -172,16 +186,19 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
                 required_avail_day_groups_id, required_num_groups, None))
 
     def all_child_groups_have_avail_day(self, avail_day_group: schemas.AvailDayGroup,
-                                        child_groups: list[schemas.AvailDayGroupShow] = None) -> bool:
-        child_groups = child_groups or db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
-        return all(db_services.AvailDay.get_from__avail_day_group(child_group.id) for child_group in child_groups)
+                                        child_groups=None) -> bool:
+        # Kein DB-Aufruf: avail_day ist bereits in AvailDayGroupForDialog geladen (Cache).
+        # getattr-Fallback für den seltenen Fall, dass child_groups AvailDayGroupShow sind.
+        child_groups = child_groups or self.get_child_groups_from__parent_group_id(avail_day_group.id)
+        return all(getattr(cg, 'avail_day', None) is not None for cg in child_groups)
 
     def get_max_value_num_required_avail_day_groups(self, avail_day_group: schemas.AvailDayGroup) -> int:
         """
         Gibt den geringeren Wert von Child-Groups und der max. Anzahl der gewünschten Tage zurück,
         wenn alle Child-Groups verfügbare Tage haben.
         """
-        child_groups = db_services.AvailDayGroup.get_child_groups_from__parent_group(avail_day_group.id)
+        # Cache-Zugriff statt DB-Roundtrip (get_child_groups_from__parent_group_id = Cache-Lambda)
+        child_groups = self.get_child_groups_from__parent_group_id(avail_day_group.id)
         if not self.all_child_groups_have_avail_day(avail_day_group, child_groups):
             return 1
         return min([len(child_groups), avail_day_group.nr_avail_day_groups or 1000])
@@ -197,6 +214,29 @@ class DlgGroupModeBuilderActorPlanPeriod(DlgGroupModeBuilderABC):
         required_num = None if required_num == 1 else required_num
         self.update_required_avail_day_groups_to_db(required_avail_day_groups.id, required_num,
                                                     controller)
+
+    def update_cache_after_move(self, moved_group: group_type, new_parent: group_type,
+                                old_parent: group_type) -> None:
+        old_list = self._adg_children_cache.get(old_parent.id, [])
+        self._adg_children_cache[old_parent.id] = [c for c in old_list if c.id != moved_group.id]
+        self._adg_children_cache.setdefault(new_parent.id, []).append(moved_group)
+        self._adg_children_cache.setdefault(moved_group.id, [])
+
+    def register_new_group_in_cache(self, created_group: schemas.AvailDayGroupShow,
+                                    parent_group: group_type) -> None:
+        new_adg = schemas.AvailDayGroupForDialog(
+            id=created_group.id,
+            nr_avail_day_groups=created_group.nr_avail_day_groups,
+            variation_weight=created_group.variation_weight,
+        )
+        self._adg_children_cache.setdefault(parent_group.id, []).append(new_adg)
+        self._adg_children_cache[new_adg.id] = []
+
+    def rebuild_children_cache(self) -> None:
+        self.master_group, self._adg_children_cache = (
+            db_services.AvailDayGroup.get_flat_tree_for_dialog__actor_plan_period(
+                self.object_with_groups.id)
+        )
 
 
 class DlgGroupModeBuilderLocationPlanPeriod(DlgGroupModeBuilderABC):
@@ -415,6 +455,7 @@ class TreeWidget(QTreeWidget):
             dlg.controller.execute(
                 dlg.builder.set_new_parent_group_batch_command(dlg._batch_moves))
             dlg._batch_moves = []
+            dlg.builder.rebuild_children_cache()
 
         # Tree nach dem Drop aktualisieren
         self.expandAll()
@@ -608,6 +649,7 @@ class TreeWidget(QTreeWidget):
             dlg.controller.execute(
                 dlg.builder.set_new_parent_group_batch_command(dlg._batch_moves))
             dlg._batch_moves = []
+            dlg.builder.rebuild_children_cache()
 
         # Einmaliger adjust-Aufruf für die Zielgruppe (während Batch deferred)
         if batch_mode and dlg.builder.num_required_group_field:
@@ -654,16 +696,15 @@ class DlgGroupProperties(QDialog):
             else self.tr("Properties of Main Group")
         )
 
-        # Für invisibleRootItem: builder.master_group verwenden (da keine Daten auf item gespeichert)
+        # Daten direkt von TreeWidgetItem lesen — kein DB-Roundtrip nötig,
+        # die Objekte wurden beim setup_tree() bereits in UserRole gespeichert.
+        # Für invisibleRootItem (master) gibt data() None zurück → builder.master_group.
         item_group_data = self.item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
-        if item_group_data:
-            self.group = self.builder.get_group_from_id(item_group_data.id)
-        else:
-            self.group = self.builder.get_group_from_id(self.builder.master_group.id)
+        self.group = item_group_data if item_group_data else self.builder.master_group
         self.child_items: [TreeWidgetItem] = [self.item.child(i) for i in range(self.item.childCount())]
         self.child_groups = [
-            self.builder.get_group_from_id(item.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole).id)
-            for item in self.child_items]
+            child.data(TREE_ITEM_DATA_COLUMN__GROUP, Qt.ItemDataRole.UserRole)
+            for child in self.child_items]
         self.variation_weight_text = VARIATION_WEIGHT_TEXT
 
         self.controller = command_base_classes.ContrExecUndoRedo()
@@ -1073,6 +1114,8 @@ class DlgGroupMode(QDialog):
         self.controller.execute(create_command)
         self.tree_groups.nr_main_groups += 1
 
+        self.builder.register_new_group_in_cache(create_command.created_group, self.builder.master_group)
+
         new_item = TreeWidgetItem(self.builder, self.tree_groups.invisibleRootItem())
         new_item.configure(create_command.created_group, None, self.tree_groups.nr_main_groups, 0)
         return new_item
@@ -1126,6 +1169,9 @@ class DlgGroupMode(QDialog):
             if not self._batch_move_active:
                 self.builder.adjust_num_required_avail_day_groups(obj_to_move_to, self.controller)
             self.builder.adjust_num_required_avail_day_groups(parent_group, self.controller)
+
+        if not self._batch_move_active:
+            self.builder.update_cache_after_move(object_to_move, obj_to_move_to, parent_group)
 
         # Weil sich nr_groups durch Inkonsistenzen geändert haben könnte:
         if not previous_parent:

@@ -24,6 +24,23 @@ def get(avail_day_group_id: UUID) -> schemas.AvailDayGroupShow:
         return schemas.AvailDayGroupShow.model_validate(session.get(models.AvailDayGroup, avail_day_group_id))
 
 
+def get_for_dialog_properties(avail_day_group_id: UUID) -> schemas.AvailDayGroupForDialog:
+    """Lädt eine einzelne AvailDayGroup mit minimalen Optionen für den Gruppen-Eigenschaften-Dialog.
+
+    Ersetzt get() in get_group_from_id für post-Mutations-Refreshes (nr_childs_changed,
+    chk_none_toggled) — kein avail_day_groups-Feld (Kinder-Liste), kein actor_plan_period-Chain.
+    Gegenüber get() spart das ~90 % model_validate-Zeit (kein AvailDayGroupShow-Overhead).
+    """
+    with get_session() as session:
+        stmt = (
+            select(models.AvailDayGroup)
+            .where(models.AvailDayGroup.id == avail_day_group_id)
+            .options(*avail_day_group_dialog_options())
+        )
+        adg = session.exec(stmt).unique().one()
+        return schemas.AvailDayGroupForDialog.model_validate(adg)
+
+
 def get_master_from__actor_plan_period(actor_plan_period_id: UUID) -> schemas.AvailDayGroupShow:
     with get_session() as session:
         return schemas.AvailDayGroupShow.model_validate(

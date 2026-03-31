@@ -224,7 +224,7 @@ def get_flat_tree_for_dialog__actor_plan_period(
             .join(base, models.AvailDayGroup.avail_day_group_id == base.c.id)
         )
         cte = base.union_all(recursive)
-        id_rows = session.exec(select(cte.c.id, cte.c.avail_day_group_id)).all()
+        id_rows: list[tuple[UUID, UUID | None]] = session.exec(select(cte.c.id, cte.c.avail_day_group_id)).all()
 
         if not id_rows:
             return None, {}

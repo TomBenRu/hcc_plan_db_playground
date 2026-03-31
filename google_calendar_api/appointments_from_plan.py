@@ -6,7 +6,8 @@ from database import schemas
 
 
 class GoogleCalendarEvent:
-    def __init__(self, summary, location, description, start_time, end_time, time_zone='Europe/Berlin', attendees=None):
+    def __init__(self, summary, location, description, start_time, end_time, time_zone='Europe/Berlin', attendees=None,
+                 extended_properties: dict | None = None):
         self.summary = summary
         self.location = location
         self.description = description
@@ -14,6 +15,7 @@ class GoogleCalendarEvent:
         self.end_time = end_time  # datetime-Objekt
         self.time_zone = pytz.timezone(time_zone)  # Zeitzone als pytz-Zeitzonenobjekt
         self.attendees = attendees or []
+        self.extended_properties = extended_properties
 
     def to_google_event(self):
         """Wandelt das Event in das JSON-Format um, das Google erwartet."""
@@ -37,6 +39,9 @@ class GoogleCalendarEvent:
 
         if self.attendees:
             event['attendees'] = [{'email': email} for email in self.attendees]
+
+        if self.extended_properties:
+            event['extendedProperties'] = self.extended_properties
 
         return event
 

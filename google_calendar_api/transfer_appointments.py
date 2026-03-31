@@ -12,7 +12,7 @@ from configuration.google_calenders import curr_calendars_handler
 from database import schemas, db_services
 from google_calendar_api.appointments_from_plan import GoogleCalendarEvent
 from google_calendar_api.authenticate import authenticate_google
-from google_calendar_api.del_calendar_events import delete_events_in_range
+from google_calendar_api.del_calendar_events import delete_events_in_range, delete_untagged_events_in_range
 from gui.observer import signal_handling
 
 
@@ -40,7 +40,7 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
     google_events_vacant = []
     user_cal_id__google_events: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
     for appointment in plan.appointments:
-        google_event, num_vacant = create_google_event(appointment)
+        google_event, num_vacant = create_google_event(appointment, plan.plan_period.team.id)
         google_events.append(google_event)
         if num_vacant:
             google_events_vacant.append(google_event.copy())
@@ -119,13 +119,14 @@ def transfer_appointments_with_batch_requests(plan: schemas.PlanShow):
         # Batch-Request erstellen
         batch = BatchHttpRequest(callback=callback, batch_uri='https://www.googleapis.com/batch/calendar/v3')
 
-        # Alle Events innerhalb des Zeitrahmens des Kalenders mit id user_cal_id abrufen
+        # Nur Events dieses Teams im Zeitraum des Kalenders mit id user_cal_id abrufen
         events_result = service.events().list(
             calendarId=user_cal_id,
             timeMin=f'{start_time.isoformat()}Z',
             timeMax=f'{end_time.isoformat()}Z',
             singleEvents=True,
-            orderBy='startTime'
+            orderBy='startTime',
+            privateExtendedProperty=f'hcc_team_id={plan.plan_period.team.id}'
         ).execute()
 
         # Alle Events innerhalb des Zeitrahmens des Kalenders mit id user_cal_id löschen
@@ -156,7 +157,7 @@ def add_event_to_calendar(calendar_id, event, service: Resource | None = None):
         print(f"Fehlerdetails: {error.content}")
 
 
-def create_google_event(appointment: schemas.Appointment) -> tuple[dict, int]:
+def create_google_event(appointment: schemas.Appointment, team_id: UUID) -> tuple[dict, int]:
     """
     Erstellt ein Google Calendar Event aus einem Appointment.
     Args:
@@ -181,7 +182,8 @@ def create_google_event(appointment: schemas.Appointment) -> tuple[dict, int]:
                                      appointment.event.time_of_day.start.minute),
         end_time=datetime.datetime(appointment.event.date.year, appointment.event.date.month,
                                    appointment.event.date.day, appointment.event.time_of_day.end.hour,
-                                   appointment.event.time_of_day.end.minute)
+                                   appointment.event.time_of_day.end.minute),
+        extended_properties={'private': {'hcc_team_id': str(team_id)}}
     )
     if appointment.event.time_of_day.end < appointment.event.time_of_day.start:
         event_obj.end_time += datetime.timedelta(days=1)
@@ -196,7 +198,7 @@ def transfer_plan_appointments(plan: schemas.PlanShow):
     google_events = []
     user_cal_id__google_events: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
     for appointment in plan.appointments:
-        google_event = create_google_event(appointment)
+        google_event, _ = create_google_event(appointment, plan.plan_period.team.id)
         google_events.append(google_event)
         user_calendars = (c for c in calendars.values()
                           if c.person_id in {avd.actor_plan_period.person.id for avd in appointment.avail_days})
@@ -233,7 +235,8 @@ def transfer_plan_appointments(plan: schemas.PlanShow):
         delete_events_in_range(user_cal_id,
                                datetime.datetime.combine(plan.plan_period.start, datetime.datetime.min.time()),
                                datetime.datetime.combine(plan.plan_period.end, datetime.datetime.max.time()),
-                               service)
+                               service,
+                               private_extended_property=f'hcc_team_id={plan.plan_period.team.id}')
         signal_handling.handler_google_cal_api.transfer_appointments_progress(
             f'Google-Kalender von: {user_name}\n'
             f'Planungszeitraum: {text_time_span}\n'

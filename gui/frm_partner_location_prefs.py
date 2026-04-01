@@ -10,8 +10,8 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel
     QApplication, QScrollArea, QWidget, QAbstractScrollArea
 
 from database import schemas, db_services
-from database.special_schema_requests import (get_locations_of_team_at_date, get_persons_of_team_at_date,
-                                              get_curr_assignment_of_person)
+from database.special_schema_requests import (get_locations_of_team_at_date, get_curr_assignment_of_person)
+from database.db_services.person import get_persons_of_team_at_date
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
@@ -197,7 +197,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
 
 class DlgPartnerLocationPrefsPartner(QDialog):
     def __init__(self, parent, person: schemas.PersonShow, curr_model: schemas.ModelWithPartnerLocPrefs,
-                 location_id: UUID, all_partners: list[schemas.Person]):
+                 location_id: UUID, all_partners: list[schemas.PersonForFixedCastCombo]):
         super().__init__(parent)
 
         self.person = person.model_copy(deep=True)
@@ -325,7 +325,7 @@ class DlgPartnerLocationPrefs(QDialog):
         self.curr_team: schemas.Team | None = None
         self.persons_at_date: list[schemas.PersonShow] = []
         self.locations_at_date: list[schemas.LocationOfWorkShow] = []
-        self.partners: list[schemas.Person] | None = None
+        self.partners: list[schemas.PersonForFixedCastCombo] | None = None
         self.locations: list[schemas.LocationOfWork] | None = None
 
         self.updating_sliders = False
@@ -545,7 +545,7 @@ class DlgPartnerLocationPrefs(QDialog):
             self.locations = sorted(get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython()),
                                     key=lambda x: x.name+x.address.city)
 
-    def union_partners(self) -> list[schemas.Person]:
+    def union_partners(self) -> list[schemas.PersonForFixedCastCombo]:
         """Vereinigung aus allen möglichen Partner an den Tagen der Planungsperiode werden gebildet"""
         #  todo: days_of_plan_period u. valid_days_of_actor können an Funktion ausgelagert werden
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
@@ -553,19 +553,23 @@ class DlgPartnerLocationPrefs(QDialog):
         valid_days_of_actor = [date for date in days_of_plan_period
                                if (curr_team_assignment := get_curr_assignment_of_person(self.person, date))
                                and curr_team_assignment.team.id == self.curr_team.id]
-        curr_partner_ids = {pers.id for pers in get_persons_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])
-                            if pers.id != self.person.id}
+        persons_by_id: dict = {}
+        first_day_ids: set = set()
         info_text = self.tr('The same partners belong to the team on all days of the period.')
-        for date in valid_days_of_actor[1:]:
-            partner_ids_at_date = {p.id for p in get_persons_of_team_at_date(self.curr_team.id, date)
-                                   if p.id != self.person.id}
-            if partner_ids_at_date != curr_partner_ids:
+        for i, date in enumerate(valid_days_of_actor):
+            persons_today = [p for p in get_persons_of_team_at_date(self.curr_team.id, date)
+                             if p.id != self.person.id]
+            ids_today = {p.id for p in persons_today}
+            if i == 0:
+                first_day_ids = ids_today
+            elif ids_today != first_day_ids:
                 info_text = self.tr('Not all days of the period have the same partners in the team.')
-            curr_partner_ids |= partner_ids_at_date
+            for p in persons_today:
+                persons_by_id[p.id] = p
 
         self.lb_info.setText(self.lb_info.text() + info_text)
 
-        return sorted((db_services.Person.get(p_id) for p_id in curr_partner_ids), key=lambda x: x.f_name+x.l_name)
+        return sorted(persons_by_id.values(), key=lambda x: x.f_name+x.l_name)
 
     def union_locations_of_work(self) -> list[schemas.LocationOfWork]:
         """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""

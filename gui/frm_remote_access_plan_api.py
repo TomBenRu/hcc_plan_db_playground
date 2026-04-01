@@ -12,7 +12,8 @@ from commands.database_commands import entities_api_to_db_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services, schemas
 from database.schemas_plan_api import AvailDay, PlanPeriod
-from database.special_schema_requests import get_locations_of_team_at_date, get_persons_of_team_at_date
+from database.special_schema_requests import get_locations_of_team_at_date
+from database.db_services.person import get_persons_of_team_at_date
 
 
 def get_locations_actors_in_period(start: datetime.date, end: datetime.date,

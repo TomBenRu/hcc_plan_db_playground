@@ -316,3 +316,25 @@ def remove_flag(person_id: UUID, flag_id: UUID) -> schemas.PersonShow:
         person_db.flags.remove(session.get(models.Flag, flag_id))
         session.flush()
         return schemas.PersonShow.model_validate(person_db)
+
+
+def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[schemas.PersonForFixedCastCombo]:
+    """Gibt Personen eines Teams an einem Datum zurück.
+
+    Ersetzt den zweistufigen Ansatz (TeamActorAssign laden → persons extrahieren)
+    durch einen einzigen JOIN-Query mit SQL-seitigem prep_delete-Filter.
+    """
+    cutoff = datetime.datetime.combine(date, datetime.time.max)
+    with get_session() as session:
+        stmt = (
+            select(models.Person)
+            .join(models.TeamActorAssign, models.TeamActorAssign.person_id == models.Person.id)
+            .where(
+                models.TeamActorAssign.team_id == team_id,
+                models.TeamActorAssign.start <= date,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date),
+                or_(models.Person.prep_delete.is_(None), models.Person.prep_delete > cutoff),
+            )
+            .order_by(models.Person.f_name)
+        )
+        return [schemas.PersonForFixedCastCombo.model_validate(p) for p in session.exec(stmt).unique().all()]

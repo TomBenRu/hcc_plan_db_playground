@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTabl
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
                                QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame,
                                QScrollArea, QStyle)
+from line_profiler import profile
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand
@@ -229,8 +230,8 @@ class DlgEditAppointment(QDialog):
         self.button_box.rejected.connect(self.reject)
 
     def _setup_data(self):
-        self.cast_group = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id)
-        self.possible_avail_days = db_services.AvailDay.get_all_from__plan_period__date__time_of_day__location_prefs(
+        self.nr_actors = db_services.CastGroup.get_nr_actors_of_event(self.appointment.event.id)
+        self.possible_avail_days = db_services.AvailDay.get_for_edit_appointment_combo(
             self.appointment.event.location_plan_period.plan_period.id,
             self.appointment.event.date,
             self.appointment.event.time_of_day.time_of_day_enum.time_index,
@@ -247,14 +248,14 @@ class DlgEditAppointment(QDialog):
             True wenn alles ok oder Cleanup erfolgreich, False bei Abbruch
         """
         current_count = len(self.appointment.avail_days) + len(self.appointment.guests)
-        if current_count <= self.cast_group.nr_actors:
+        if current_count <= self.nr_actors:
             return True
 
-        excess = current_count - self.cast_group.nr_actors
+        excess = current_count - self.nr_actors
 
         from gui.custom_widgets.dlg_event_properties import DlgAvailDayCleanup
 
-        dlg = DlgAvailDayCleanup(self, self.appointment, self.cast_group.nr_actors, excess)
+        dlg = DlgAvailDayCleanup(self, self.appointment, self.nr_actors, excess)
 
         if dlg.exec():
             # Appointment neu laden
@@ -265,10 +266,10 @@ class DlgEditAppointment(QDialog):
 
     def _setup_employee_combos(self):
         self.combos_employees = []
-        if self.cast_group.nr_actors == 0:
+        if self.nr_actors == 0:
             self.form_employees.addRow(self.tr('No employees are required.'), QLabel(''))
             return
-        for i in range(1, self.cast_group.nr_actors + 1):
+        for i in range(1, self.nr_actors + 1):
             self.combos_employees.append(QComboBoxToFindData())
             self.form_employees.addRow(self.tr('Employee %02d') % i, self.combos_employees[-1])
             self.combos_employees[-1].addItem(self.tr('Unassigned'), None)
@@ -316,14 +317,12 @@ class DlgEditAppointment(QDialog):
         """Öffnet den DlgEventProperties Dialog für das Event dieses Appointments."""
         from gui.custom_widgets.dlg_event_properties import DlgEventProperties
 
-        location_plan_period = db_services.LocationPlanPeriod.get(
-            self.appointment.event.location_plan_period.id
-        )
+        cast_group = db_services.CastGroup.get_cast_group_of_event(self.appointment.event.id)
 
         dlg = DlgEventProperties(
             self,
-            self.cast_group,
-            location_plan_period,
+            cast_group,
+            None,
             self.appointment,
             defer_execution=True  # Commands werden gesammelt, nicht sofort committed
         )
@@ -333,7 +332,7 @@ class DlgEditAppointment(QDialog):
             self._event_properties_commands.extend(dlg.get_pending_commands())
 
             # Daten neu laden (nr_actors und AvailDays könnten sich geändert haben)
-            self.cast_group = db_services.CastGroup.get_cast_group_of_event(
+            self.nr_actors = db_services.CastGroup.get_nr_actors_of_event(
                 self.appointment.event.id
             )
             self.appointment = db_services.Appointment.get(self.appointment.id)
@@ -1021,7 +1020,6 @@ class AppointmentField(QWidget):
                                              dlg.new_time_of_day,
                                              batch_command_redo_undo_callback,
                                              self.plan_widget.controller)
-            print(f'DEBUG: {result=}')
             if not result:
                 QMessageBox.critical(self, self.tr('Move appointment'),
                                      self.tr('On %s (%s)\nan appointment for %s already exists') % (

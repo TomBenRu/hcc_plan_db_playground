@@ -113,13 +113,6 @@ def get_curr_persons_of_team(team: schemas.TeamShow) -> list[schemas.Person]:
     return persons
 
 
-def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[schemas.Person]:
-    team_actor_assignments_at_date = db_services.TeamActorAssign.get_all_at__date(date, team_id)
-    persons_at_date = sorted([taa.person for taa in team_actor_assignments_at_date
-                              if (not taa.person.prep_delete or taa.person.prep_delete.date() > date)],
-                             key=lambda x: x.f_name)
-    return persons_at_date
-
 def get_persons_of_team_at_date_2(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
     persons_at_date_ids = {taa.person.id for taa in team.team_actor_assigns
                            if taa.start <= date < (taa.end or date + datetime.timedelta(days=1))

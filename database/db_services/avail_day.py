@@ -9,7 +9,7 @@ Bietet außerdem batch-optimierte Abfragen für den Solver.
 import datetime
 from uuid import UUID
 
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -178,7 +178,8 @@ def get_all_from__plan_period__date__time_of_day__location_prefs(
             .where(models.ActorPlanPeriod.plan_period_id == plan_period_id,
                    models.AvailDay.date == date,
                    models.TimeOfDayEnum.time_index == time_of_day_index)
-        ).all()
+            .options(*avail_day_show_options())
+        ).unique().all()
         filtered = []
         for ad in ads:
             dominated = True
@@ -190,6 +191,43 @@ def get_all_from__plan_period__date__time_of_day__location_prefs(
                     break
             if not dominated:
                 filtered.append(schemas.AvailDayShow.model_validate(ad))
+        return filtered
+
+
+def get_for_edit_appointment_combo(
+        plan_period_id: UUID, date: datetime.date, time_of_day_index: int,
+        location_of_work_ids: set[UUID]) -> list[schemas.AvailDayForEditCombo]:
+    """Schlanke Variante für DlgEditAppointment: lädt nur id + Personname.
+
+    Gleiche Filterlogik wie get_all_from__plan_period__date__time_of_day__location_prefs,
+    aber mit minimalem Eager-Loading (nur actor_plan_period → person + loc_prefs für Filter).
+    Spart ~95 % gegenüber AvailDayShow.model_validate().
+    """
+    with get_session() as session:
+        ads = session.exec(
+            select(models.AvailDay).join(models.ActorPlanPeriod)
+            .join(models.TimeOfDay, models.AvailDay.time_of_day_id == models.TimeOfDay.id)
+            .join(models.TimeOfDayEnum)
+            .where(models.ActorPlanPeriod.plan_period_id == plan_period_id,
+                   models.AvailDay.date == date,
+                   models.TimeOfDayEnum.time_index == time_of_day_index)
+            .options(
+                selectinload(models.AvailDay.actor_location_prefs_defaults),
+                joinedload(models.AvailDay.actor_plan_period)
+                .joinedload(models.ActorPlanPeriod.person),
+            )
+        ).unique().all()
+        filtered = []
+        for ad in ads:
+            dominated = True
+            for loc_id in location_of_work_ids:
+                blocked = any(p.location_of_work_id == loc_id and p.score == 0
+                              for p in ad.actor_location_prefs_defaults)
+                if not blocked:
+                    dominated = False
+                    break
+            if not dominated:
+                filtered.append(schemas.AvailDayForEditCombo.model_validate(ad))
         return filtered
 
 

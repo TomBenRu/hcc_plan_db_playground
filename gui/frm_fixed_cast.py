@@ -12,10 +12,12 @@ from PySide6.QtCore import Qt, QTimer, QCoreApplication
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
                                QDialogButtonBox, QDateEdit, QMenu, QMessageBox, QCheckBox)
+from line_profiler import profile
 from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
-from database.special_schema_requests import get_persons_of_team_at_date, get_curr_team_of_location_at_date
+from database.special_schema_requests import get_curr_team_of_location_at_date
+from database.db_services.person import get_persons_of_team_at_date
 from gui import widget_styles
 from gui.widget_styles import combo_boxes
 from tools.actions import MenuToolbarAction
@@ -67,7 +69,7 @@ class DlgFixedCastBuilderABC(ABC):
         self.object_with_fixed_cast__refresh_func = ..."""
 
     @abstractmethod
-    def method_date_changed(self, date: datetime.date) -> list[schemas.Person]:
+    def method_date_changed(self, date: datetime.date) -> list[schemas.PersonForFixedCastCombo]:
         ...
 
     def build(self) -> 'DlgFixedCast':
@@ -87,7 +89,7 @@ class DlgFixedCastBuilderLocationOfWork(DlgFixedCastBuilderABC):
         self.object_with_fixed_cast__refresh_func = partial(db_services.LocationOfWork.get,
                                                             self.object_with_fixed_cast.id)
 
-    def method_date_changed(self, date: datetime.date) -> list[schemas.Person]:
+    def method_date_changed(self, date: datetime.date) -> list[schemas.PersonForFixedCastCombo]:
         team = get_curr_team_of_location_at_date(self.object_with_fixed_cast, date)
         return sorted(get_persons_of_team_at_date(team.id, date), key=lambda x: x.f_name)
 
@@ -116,25 +118,27 @@ class DlgFixedCastBuilderLocationPlanPeriod(DlgFixedCastBuilderABC):
         self.object_with_fixed_cast__refresh_func = partial(db_services.LocationPlanPeriod.get,
                                                             self.object_with_fixed_cast.id)
 
-    def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
+    def method_date_changed(self, date: datetime.date = None) -> list[schemas.PersonForFixedCastCombo]:
         return self.union_persons(self.object_with_fixed_cast.plan_period)
 
-    def union_persons(self, plan_period: schemas.PlanPeriod):
+    def union_persons(self, plan_period: schemas.PlanPeriod) -> list[schemas.PersonForFixedCastCombo]:
         days_of_plan_period = [
             plan_period.start + datetime.timedelta(delta)
             for delta in range((plan_period.end - plan_period.start).days + 1)
         ]
-        person_ids = set()
+        persons_by_id: dict[UUID, schemas.PersonForFixedCastCombo] = {}
         same_person_over_period = True
         for day in days_of_plan_period:
-            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(plan_period.team.id, day)}
-            if day != days_of_plan_period[0] and person_ids_at_day != person_ids:
+            persons_today = get_persons_of_team_at_date(plan_period.team.id, day)
+            ids_today = {p.id for p in persons_today}
+            if day != days_of_plan_period[0] and ids_today != set(persons_by_id):
                 same_person_over_period = False
-            person_ids |= person_ids_at_day
+            for p in persons_today:
+                persons_by_id[p.id] = p
         if not same_person_over_period:
             self.warning_text = QCoreApplication.translate('DlgFixedCastBuilderLocationPlanPeriod',
                                                            'Warning: Available staff varies across days!')
-        return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
+        return sorted(persons_by_id.values(), key=lambda x: x.f_name)
 
 
 class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
@@ -142,6 +146,8 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                  location_plan_period: schemas.LocationPlanPeriodShow = None):
         super().__init__(parent=parent, object_with_fixed_cast=cast_group, location_plan_period=location_plan_period)
         self.object_with_fixed_cast: schemas.CastGroupShow = cast_group.model_copy()
+        self._cached_location_of_work: schemas.LocationOfWorkShow | None = None
+        self._cached_team: schemas.Team | None = None
 
     def _generate_field_values(self):
         self.title_text = (QCoreApplication.translate('DlgFixedCastBuilderCastGroup','Fixed Cast of an Event')
@@ -161,12 +167,15 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
         self.update_command = partial(cast_group_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
         self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
-    def method_date_changed(self, date: datetime.date = None) -> list[schemas.Person]:
+    @profile
+    def method_date_changed(self, date: datetime.date = None) -> list[schemas.PersonForFixedCastCombo]:
         if self.object_with_fixed_cast.event:
-            location_of_work = db_services.LocationOfWork.get(
-                self.object_with_fixed_cast.event.location_plan_period.location_of_work.id)
-            team = get_curr_team_of_location_at_date(location_of_work, self.object_with_fixed_cast.event.date)
-            return get_persons_of_team_at_date(team.id, date)
+            if self._cached_location_of_work is None:
+                self._cached_location_of_work = db_services.LocationOfWork.get(
+                    self.object_with_fixed_cast.event.location_plan_period.location_of_work.id)
+                self._cached_team = get_curr_team_of_location_at_date(
+                    self._cached_location_of_work, self.object_with_fixed_cast.event.date)
+            return get_persons_of_team_at_date(self._cached_team.id, date) if self._cached_team else []
         return self.union_persons()
 
     def union_persons(self):
@@ -181,19 +190,21 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
                     find_recursive(child_group)
 
         find_recursive(self.object_with_fixed_cast)
-        person_ids = set()
+        persons_by_id: dict = {}
         same_person_over_period = True
         for event in events:
             location_of_work = db_services.LocationOfWork.get(event.location_plan_period.location_of_work.id)
             team = get_curr_team_of_location_at_date(location_of_work, event.date)
-            person_ids_at_day = {p.id for p in get_persons_of_team_at_date(team.id, event.date)}
-            if event != events[0] and person_ids_at_day != person_ids:
+            persons_today = get_persons_of_team_at_date(team.id, event.date)
+            ids_today = {p.id for p in persons_today}
+            if event != events[0] and ids_today != set(persons_by_id):
                 same_person_over_period = False
-            person_ids |= person_ids_at_day
+            for p in persons_today:
+                persons_by_id[p.id] = p
         if not same_person_over_period:
             self.warning_text = QCoreApplication.translate('DlgFixedCastBuilderCastGroup',
                                                            'Warning: Available staff varies across days!')
-        return sorted((db_services.Person.get(p_id) for p_id in person_ids), key=lambda x: x.f_name)
+        return sorted(persons_by_id.values(), key=lambda x: x.f_name)
 
 
 class SimplifyFixedCastAndInfo:
@@ -279,7 +290,7 @@ class DlgFixedCast(QDialog):
         self.object_name_operator_between_rows = 'operator_between_rows'
         self.data_text_operator = {'and': self.tr('and'), 'or': self.tr('or')}
 
-        self.persons: list[schemas.Person] = []
+        self.persons: list[schemas.PersonForFixedCastCombo] = []
 
         self.layout = QVBoxLayout(self)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -329,8 +340,9 @@ class DlgFixedCast(QDialog):
         self.lb_date = QLabel(self.tr('Date:'))
         self.de_date = QDateEdit()
         self.de_date.setFixedWidth(120)
-        self.de_date.dateChanged.connect(self.date_changed)
         self.de_date__set_initial_value()
+        self.date_changed()  # einmaliger Init-Load (Personen + Plot)
+        self.de_date.dateChanged.connect(self.date_changed)
         self.layout_date.addWidget(self.lb_date)
         self.layout_date.addWidget(self.de_date)
 
@@ -371,10 +383,11 @@ class DlgFixedCast(QDialog):
             self.de_date.setDate(datetime.date.today())
             self.de_date.setMinimumDate(datetime.date.today())
 
+    @profile
     def date_changed(self):
         self.persons = self.builder.method_date_changed(self.de_date.date().toPython())
         self.lb_warning.setText(self.builder.warning_text)
-        self.reset_fixed_cast_plot()
+        self.reset_fixed_cast_plot(reload=False)
 
     def accept(self) -> None:
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
@@ -605,6 +618,7 @@ class DlgFixedCast(QDialog):
         for data, text in self.data_text_operator.items():
             combo_operator.addItem(text, data)
 
+    @profile
     def reload_object_with_fixed_cast(self):
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
         # Checkbox-Status aktualisieren
@@ -614,8 +628,10 @@ class DlgFixedCast(QDialog):
         )
         self.chk_only_if_available.blockSignals(False)
 
-    def reset_fixed_cast_plot(self):
-        self.reload_object_with_fixed_cast()
+    @profile
+    def reset_fixed_cast_plot(self, reload: bool = True):
+        if reload:
+            self.reload_object_with_fixed_cast()
         self.clear_plot()
         self.chk_only_if_available.setChecked(self.object_with_fixed_cast.fixed_cast_only_if_available)
         QTimer.singleShot(20, self.plot_eval_str)

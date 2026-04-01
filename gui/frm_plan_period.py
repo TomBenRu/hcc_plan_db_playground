@@ -8,8 +8,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QP
 
 from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas
-from database.special_schema_requests import get_locations_of_team_at_date, \
-    get_persons_of_team_at_date
+from database.special_schema_requests import get_locations_of_team_at_date
+from database.db_services.person import get_persons_of_team_at_date
 from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
     actor_plan_period_commands, avail_day_group_commands
 from gui.frm_remote_access_plan_api import plan_api_handler

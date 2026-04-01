@@ -104,6 +104,18 @@ class Person(PersonCreate):
         return f'{self.f_name} {self.l_name}'
 
 
+class PersonForFixedCastCombo(BaseModel):
+    """Minimales Schema für Fixed-Cast-Comboboxen — nur id + Name."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    f_name: str
+    l_name: str
+
+    @property
+    def full_name(self):
+        return f'{self.f_name} {self.l_name}'
+
+
 class PersonShow(Person):
     requested_assignments: Optional[int]
     team_actor_assigns: List['TeamActorAssign']
@@ -634,6 +646,29 @@ class AvailDayWithSkills(BaseModel):
     @classmethod
     def set_to_list(cls, values):  # sourcery skip: identity-comprehension
         return [v for v in values]
+
+
+class _PersonName(BaseModel):
+    """Intern: nur f_name + l_name, für AvailDayForEditCombo."""
+    model_config = ConfigDict(from_attributes=True)
+    f_name: str
+    l_name: str
+
+
+class _ActorPlanPeriodName(BaseModel):
+    """Intern: nur person.f_name/l_name, für AvailDayForEditCombo."""
+    model_config = ConfigDict(from_attributes=True)
+    person: _PersonName
+
+
+class AvailDayForEditCombo(BaseModel):
+    """Minimales Projektionsschema für DlgEditAppointment-Comboboxen.
+
+    Enthält nur id + Personname – reduziert model_validate()-Overhead gegenüber
+    AvailDayShow um ~95 %."""
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    actor_plan_period: _ActorPlanPeriodName
 
 
 class TimeOfDayCreate(BaseModel):

@@ -9,6 +9,7 @@ import datetime
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlmodel import select
 
 from .. import schemas, models
@@ -347,6 +348,28 @@ def get_child_groups_from__parent_group(event_group_id) -> list[schemas.EventGro
     with get_session() as session:
         eg = session.get(models.EventGroup, event_group_id)
         return [schemas.EventGroupShow.model_validate(e) for e in eg.event_groups]
+
+
+def get_fewer_children_than_events(direct_parent_event_group_id: UUID) -> bool:
+    """Prüft ob die Großeltern-EventGroup weniger aktive Events hat als Child-Groups.
+
+    Ersetzt den teuren Event.get()-Aufruf + get_child_groups_from__parent_group()-Aufruf
+    in DlgEventProperties._update_prefer_fixed_cast_checkbox_state durch 3 Scalar-Queries.
+
+    Returns True wenn grandparent.nr_event_groups < count(grandparent.event_groups).
+    """
+    with get_session() as session:
+        parent = session.get(models.EventGroup, direct_parent_event_group_id)
+        if not parent or not parent.event_group_id:
+            return False
+        grandparent = session.get(models.EventGroup, parent.event_group_id)
+        if not grandparent or not grandparent.nr_event_groups:
+            return False
+        child_count = session.exec(
+            select(func.count()).select_from(models.EventGroup)
+            .where(models.EventGroup.event_group_id == grandparent.id)
+        ).first()
+        return grandparent.nr_event_groups < child_count
 
 
 def get_grand_parent_event_group_id_from_event(event_id: UUID) -> UUID | None:

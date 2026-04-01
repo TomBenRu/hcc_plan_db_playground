@@ -91,7 +91,21 @@ def get_all_from__location_plan_period_at_date(
 
 def get_cast_group_of_event(event_id: UUID) -> schemas.CastGroupShow:
     with get_session() as session:
-        return schemas.CastGroupShow.model_validate(session.get(models.Event, event_id).cast_group)
+        stmt = (select(models.CastGroup)
+                .join(models.Event, models.Event.cast_group_id == models.CastGroup.id)
+                .where(models.Event.id == event_id)
+                .options(*cast_group_show_options()))
+        cg = session.exec(stmt).unique().first()
+        return schemas.CastGroupShow.model_validate(cg)
+
+
+def get_nr_actors_of_event(event_id: UUID) -> int:
+    """Gibt nur nr_actors zurück – spart das vollständige CastGroupShow-Loading."""
+    with get_session() as session:
+        stmt = (select(models.CastGroup.nr_actors)
+                .join(models.Event, models.Event.cast_group_id == models.CastGroup.id)
+                .where(models.Event.id == event_id))
+        return session.exec(stmt).first()
 
 
 def get_nr_actors_by_event_ids(event_ids: list[UUID]) -> dict[UUID, int]:

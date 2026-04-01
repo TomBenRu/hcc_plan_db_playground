@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                                QLabel, QPushButton, QSpinBox, QCheckBox, QDialogButtonBox,
                                QMessageBox, QListWidget, QListWidgetItem)
+from line_profiler import profile
 
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, appointment_commands
@@ -48,7 +49,6 @@ class DlgEventProperties(QDialog):
             raise ValueError("DlgEventProperties kann nur für CastGroups mit Event verwendet werden.")
 
         self.cast_group = cast_group.model_copy()
-        self.event_data = db_services.Event.get(cast_group.event.id)
         self.location_plan_period = location_plan_period
         self.appointment = appointment
 
@@ -89,9 +89,9 @@ class DlgEventProperties(QDialog):
             "Event: {location}\n"
             "{date}, {time_of_day}"
         ).format(
-            location=self.event_data.location_plan_period.location_of_work.name_an_city,
-            date=date_to_string(self.event_data.date),
-            time_of_day=self.event_data.time_of_day.name
+            location=(self.location_plan_period or self.cast_group.event.location_plan_period).location_of_work.name_an_city,
+            date=date_to_string(self.cast_group.event.date),
+            time_of_day=self.cast_group.event.time_of_day.name
         )
         self.lb_info = QLabel(info_text)
         self.lb_info.setStyleSheet("font-weight: bold;")
@@ -207,8 +207,13 @@ class DlgEventProperties(QDialog):
 
     def edit_fixed_cast(self):
         """Öffnet den DlgFixedCast Dialog zur Bearbeitung."""
+        location_plan_period = self.location_plan_period
+        if location_plan_period is None and self.cast_group.event:
+            location_plan_period = db_services.LocationPlanPeriod.get(
+                self.cast_group.event.location_plan_period.id
+            )
         dlg = DlgFixedCastBuilderCastGroup(
-            self, self.cast_group, self.location_plan_period
+            self, self.cast_group, location_plan_period
         ).build()
 
         if dlg.exec():
@@ -244,16 +249,9 @@ class DlgEventProperties(QDialog):
 
         # Prüfen ob prefer_fixed_cast_events sinnvoll ist
         fewer_active_children_than_events = False
-        event = db_services.Event.get(self.cast_group.event.id)
-        parent_event_group = event.event_group.event_group if event.event_group else None
-
-        if parent_event_group:
-            children_with_event = db_services.EventGroup.get_child_groups_from__parent_group(
-                parent_event_group.id
-            )
-            fewer_active_children_than_events = (
-                (parent_event_group.nr_event_groups < len(children_with_event))
-                if parent_event_group.nr_event_groups else False
+        if self.cast_group.event.event_group_id:
+            fewer_active_children_than_events = db_services.EventGroup.get_fewer_children_than_events(
+                self.cast_group.event.event_group_id
             )
 
         self.cb_prefer_fixed_cast_events.setEnabled(has_fixed_cast and fewer_active_children_than_events)

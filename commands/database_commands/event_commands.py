@@ -71,18 +71,16 @@ class UpdateDateTimeOfDay(Command):
         self.event = event
         self.new_date = new_date
         self.new_time_of_day_id = new_time_of_day_id
-        self.updated_event: schemas.EventShow | None = None
-
     def execute(self):
-        self.updated_event = db_services.Event.update_time_of_day_and_date(
+        db_services.Event.update_time_of_day_and_date(
             self.event.id, self.new_time_of_day_id, self.new_date)
 
     def _undo(self):
-        self.updated_event = db_services.Event.update_time_of_day_and_date(
+        db_services.Event.update_time_of_day_and_date(
             self.event.id, self.event.time_of_day.id, self.event.date)
 
     def _redo(self):
-        self.updated_event = db_services.Event.update_time_of_day_and_date(
+        db_services.Event.update_time_of_day_and_date(
             self.event.id, self.new_time_of_day_id, self.new_date)
 
 
@@ -91,10 +89,9 @@ class UpdateNotes(Command):
         super().__init__()
         self.event = event
         self.notes = notes
-        self.updated_event: schemas.EventShow | None = None
 
     def execute(self):
-        self.updated_event = db_services.Event.update_notes(self.event.id, self.notes)
+        db_services.Event.update_notes(self.event.id, self.notes)
 
     def _undo(self):
         db_services.Event.update_notes(self.event.id, self.event.notes)

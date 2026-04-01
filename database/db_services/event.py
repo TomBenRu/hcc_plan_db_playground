@@ -16,11 +16,33 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
+from ._eager_loading import event_button_update_options, event_for_button_options
 
 
 def get(event_id: UUID) -> schemas.EventShow:
     with get_session() as session:
         return schemas.EventShow.model_validate(session.get(models.Event, event_id))
+
+
+def get_flat(event_id: UUID) -> schemas.Event | None:
+    """Lädt Event mit flachem Schema — kein event_group/cast_group/skill_groups."""
+    with get_session() as session:
+        event = session.get(models.Event, event_id)
+        return schemas.Event.model_validate(event) if event else None
+
+
+def get_time_of_day_and_nr_actors(event_id: UUID) -> tuple[schemas.TimeOfDay, int] | None:
+    """Lädt time_of_day + cast_group.nr_actors via JOINs — für ButtonEvent.on_appointment_moved."""
+    with get_session() as session:
+        stmt = (
+            select(models.Event)
+            .options(*event_button_update_options())
+            .where(models.Event.id == event_id)
+        )
+        event = session.exec(stmt).unique().first()
+        if not event:
+            return None
+        return schemas.TimeOfDay.model_validate(event.time_of_day), event.cast_group.nr_actors
 
 
 def get_batch_for_solver(event_ids: list[UUID]) -> dict[UUID, schemas.EventForSolver]:
@@ -139,12 +161,15 @@ def get_from__location_pp_date_time_index(location_plan_period_id: UUID, date: d
         return schemas.Event.model_validate(event) if event else None
 
 
-def get_from__location_pp_date(location_plan_period_id: UUID, date: datetime.date) -> list[schemas.EventShow]:
+def get_from__location_pp_date(location_plan_period_id: UUID, date: datetime.date) -> list[schemas.EventForButton]:
+    """Lädt Events eines Datums als EventForButton — für ButtonNotes/ButtonSkillGroups-Prefetch."""
     with get_session() as session:
-        events = session.exec(select(models.Event).where(
-            models.Event.location_plan_period_id == location_plan_period_id,
-            models.Event.date == date)).all()
-        return [schemas.EventShow.model_validate(e) for e in events]
+        stmt = (select(models.Event)
+                .where(models.Event.location_plan_period_id == location_plan_period_id,
+                       models.Event.date == date)
+                .options(*event_for_button_options()))
+        events = session.exec(stmt).unique().all()
+        return [schemas.EventForButton.model_validate(e) for e in events]
 
 
 def create(event: schemas.EventCreate) -> schemas.EventShow:
@@ -170,7 +195,7 @@ def create(event: schemas.EventCreate) -> schemas.EventShow:
 
 
 def update_time_of_day_and_date(event_id: UUID, new_time_of_day_id: UUID,
-                                new_date: datetime.date = None) -> schemas.EventShow:
+                                new_date: datetime.date = None) -> None:
     log_function_info()
     with get_session() as session:
         event = session.get(models.Event, event_id)
@@ -178,7 +203,6 @@ def update_time_of_day_and_date(event_id: UUID, new_time_of_day_id: UUID,
         if new_date:
             event.date = new_date
         session.flush()
-        return schemas.EventShow.model_validate(event)
 
 
 def update_time_of_days(event_id: UUID, time_of_days: list[schemas.TimeOfDay]) -> schemas.EventShow:
@@ -191,13 +215,12 @@ def update_time_of_days(event_id: UUID, time_of_days: list[schemas.TimeOfDay]) -
         return schemas.EventShow.model_validate(event)
 
 
-def update_notes(event_id: UUID, notes: str) -> schemas.EventShow:
+def update_notes(event_id: UUID, notes: str) -> None:
     log_function_info()
     with get_session() as session:
         event = session.get(models.Event, event_id)
         event.notes = notes
         session.flush()
-        return schemas.EventShow.model_validate(event)
 
 
 def delete(event_id: UUID) -> schemas.EventShow:

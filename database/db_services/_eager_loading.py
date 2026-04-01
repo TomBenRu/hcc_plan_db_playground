@@ -1109,3 +1109,58 @@ def avail_day_group_dialog_options() -> list:
         .joinedload(models.TimeOfDay.time_of_day_enum)
     )
     return [ad_tod]
+
+
+def event_button_update_options() -> list:
+    """Loader-Optionen für ButtonEvent.on_appointment_moved (minimale Variante).
+
+    Benötigt nur:
+      - time_of_day → time_of_day_enum (für time_index)
+      - time_of_day → project (für schemas.TimeOfDay Pflichtfeld)
+      - time_of_day → project_standard (optional)
+      - cast_group → nr_actors (für add_spin_box_num_employees + set_tooltip)
+
+    Wegfall gegenüber EventShow:
+      - event_group (rekursive Eltern-Kette): nicht benötigt
+      - location_plan_period → ...: nicht benötigt
+      - flags: nicht benötigt
+      - skill_groups: nicht benötigt
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    tod = (
+        joinedload(models.Event.time_of_day).options(
+            joinedload(models.TimeOfDay.time_of_day_enum),
+            joinedload(models.TimeOfDay.project),
+            joinedload(models.TimeOfDay.project_standard),
+        )
+    )
+    cast = joinedload(models.Event.cast_group)
+    return [tod, cast]
+
+
+def event_for_button_options() -> list:
+    """Loader-Optionen für EventForButton — für get_from__location_pp_date.
+
+    Benötigt:
+      - time_of_day → time_of_day_enum, project, project_standard (Pflichtfelder des Schemas)
+      - skill_groups → skill (für _check_skill_groups_all_equal)
+      - notes: skalares Feld, kein Load nötig
+
+    Wegfall gegenüber EventShow:
+      - event_group (rekursive Eltern-Kette): nicht benötigt
+      - cast_group: nicht benötigt
+      - flags: nicht benötigt
+      - location_plan_period → ...: nicht benötigt (nur location_plan_period_id als FK)
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    tod = (
+        joinedload(models.Event.time_of_day).options(
+            joinedload(models.TimeOfDay.time_of_day_enum),
+            joinedload(models.TimeOfDay.project),
+            joinedload(models.TimeOfDay.project_standard),
+        )
+    )
+    skills = selectinload(models.Event.skill_groups).joinedload(models.SkillGroup.skill)
+    return [tod, skills]

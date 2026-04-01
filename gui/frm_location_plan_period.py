@@ -353,16 +353,18 @@ class ButtonEvent(QPushButton):
         else:
             self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
 
-    def _update_time_of_day_from_event(self, event_id: UUID):
-        """Aktualisiert die time_of_day des Buttons basierend auf dem Event aus der Datenbank.
+    def _update_time_of_day_from_event(self, event_id: UUID) -> int | None:
+        """Aktualisiert time_of_day des Buttons und gibt cast_group.nr_actors zurück.
 
-        Dies ist notwendig, wenn ein Appointment verschoben wird und die neue Tageszeit
-        nicht der Standard-Tageszeit des Buttons entspricht.
+        Lädt time_of_day + nr_actors in einem einzigen SQL-Statement (keine lazy loads).
+        Rückgabewert: nr_actors für add_spin_box_num_employees/set_tooltip, oder None.
         """
-        event = db_services.Event.get(event_id)
-        if event:
-            self.time_of_day = event.time_of_day
+        result = db_services.Event.get_time_of_day_and_nr_actors(event_id)
+        if result:
+            self.time_of_day, nr_actors = result
             self.setProperty('time_index', str(self.time_of_day.time_of_day_enum.time_index))
+            return nr_actors
+        return None
 
     def _update_time_of_day_from_position(self):
         """Aktualisiert die time_of_day des Buttons basierend auf dem Event an dieser Position.
@@ -393,20 +395,20 @@ class ButtonEvent(QPushButton):
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
                     self.setChecked(True)
-                    self._update_time_of_day_from_event(data.event_id)
+                    nr_actors = self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.add_spin_box_num_employees()
-                    self.set_tooltip()
+                    self.add_spin_box_num_employees(nr_actors)
+                    self.set_tooltip(nr_actors)
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
                 if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(True)
-                    self._update_time_of_day_from_event(data.event_id)
+                    nr_actors = self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.add_spin_box_num_employees()
-                    self.set_tooltip()
+                    self.add_spin_box_num_employees(nr_actors)
+                    self.set_tooltip(nr_actors)
                 else:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
@@ -426,21 +428,21 @@ class ButtonEvent(QPushButton):
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
                     self.setChecked(True)
-                    self._update_time_of_day_from_event(data.event_id)
+                    nr_actors = self._update_time_of_day_from_event(data.event_id)
                     self.create_actions_times_of_day()
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.add_spin_box_num_employees()
-                    self.set_tooltip()
+                    self.add_spin_box_num_employees(nr_actors)
+                    self.set_tooltip(nr_actors)
                 self.set_stylesheet()
             elif data.action_type == 'move_and_delete':
                 if data.old_date == self.date and data.old_time_index == self.time_of_day.time_of_day_enum.time_index:
                     self.setChecked(False)
                     self.context_menu.removeAction(self.action_num_employees)
                 else:
-                    self._update_time_of_day_from_event(data.event_id)
+                    nr_actors = self._update_time_of_day_from_event(data.event_id)
                     self.reset_menu_times_of_day(self.location_plan_period)
-                    self.add_spin_box_num_employees()
-                    self.set_tooltip()
+                    self.add_spin_box_num_employees(nr_actors)
+                    self.set_tooltip(nr_actors)
             elif data.action_type == 'flip':
                 # Bei flip: Button bleibt checked, aber time_of_day kann sich geändert haben
                 # Hier _update_time_of_day_from_position verwenden, da event_id das Ausgangs-Event ist
@@ -646,6 +648,8 @@ class ButtonNotes(QPushButton):  # todo: Fertigstellen... + Tooltip Notes der Ev
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
+            if data.prefetched_events is not None:
+                self._prefetched_events = data.prefetched_events
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):
@@ -763,6 +767,8 @@ class ButtonSkillGroups(QPushButton):  # todo: Fertigstellen... + Tooltip Flags 
             if data.plan_period_id != self.location_plan_period.plan_period.id:
                 return
         if (data.date and data.date == self.date) or not data.date:
+            if data.prefetched_events is not None:
+                self._prefetched_events = data.prefetched_events
             self.set_stylesheet_and_tooltip()
 
     def _set_events_at_day(self):

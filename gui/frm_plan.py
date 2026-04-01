@@ -734,11 +734,11 @@ class AppointmentField(QWidget):
             # 2. Cast-Commands erstellen (noch nicht ausgeführt)
             cast_commands: list[appointment_commands.UpdateAvailDays | appointment_commands.UpdateGuests] = []
             if (new_avail_days := sorted(dlg.new_avail_days)) != sorted(avd.id for avd in self.appointment.avail_days):
-                command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_days)
+                command_avail_days = appointment_commands.UpdateAvailDays(self.appointment.id, new_avail_days, self.appointment)
                 cast_commands.append(command_avail_days)
 
             if (new_guests := sorted(dlg.new_guests)) != sorted(self.appointment.guests):
-                command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests)
+                command_guests = appointment_commands.UpdateGuests(self.appointment.id, new_guests, self.appointment)
                 cast_commands.append(command_guests)
 
             all_commands.extend(cast_commands)
@@ -775,12 +775,8 @@ class AppointmentField(QWidget):
             self.batch_command = BatchCommand(self, all_commands, description=description)
             self.batch_command.appointment = self.appointment  # notwendig für undo undo nach automatischer Validierung und für undo/redo Highlighting
 
-            # Appointment neu laden
-            if cast_commands:
-                # Letztes Command enthält das aktualisierte Appointment
-                self.appointment = cast_commands[-1].updated_appointment
-            else:
-                self.appointment = db_services.Appointment.get(self.appointment.id)
+            # Appointment neu laden (erfasst Änderungen aller Cast-Commands)
+            self.appointment = db_services.Appointment.get(self.appointment.id)
 
             # UI aktualisieren
             fill_in_data(self)
@@ -937,8 +933,8 @@ class AppointmentField(QWidget):
                     return None
 
                 batch_command = BatchCommand(self, [])
-                command_remove_avail_days = appointment_commands.UpdateAvailDays(appointment.id, [])
-                command_remove_guests = appointment_commands.UpdateGuests(appointment.id, [])
+                command_remove_avail_days = appointment_commands.UpdateAvailDays(appointment.id, [], appointment)
+                command_remove_guests = appointment_commands.UpdateGuests(appointment.id, [], appointment)
                 # location_columns leeren, damit sie beim Refresh neu generiert werden
                 command_reset_location_columns = plan_commands.UpdateLocationColumns(
                     self.plan_widget.plan.id, {})
@@ -1003,16 +999,15 @@ class AppointmentField(QWidget):
                 signal_handling.handler_plan_tabs.invalidate_entities_cache(
                     self.appointment.event.location_plan_period.plan_period.id)
                 signal_handling.handler_location_plan_period.appointment_moved(data)
-                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataLocationPlanPeriodDate(
-                        self.appointment.event.location_plan_period.id, date=data.old_date
-                    )
-                )
-                signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
-                    signal_handling.DataLocationPlanPeriodDate(
-                        self.appointment.event.location_plan_period.id, date=data.new_date
-                    )
-                )
+                # Bei 'flip' ändert sich kein Event-Datum — fixed_cast/notes/skills bleiben gleich
+                if data.action_type != 'flip':
+                    lpp_id = self.appointment.event.location_plan_period.id
+                    # Events pro Datum einmal vorab laden — ButtonNotes + ButtonSkillGroups teilen die Daten
+                    for date in (data.old_date, data.new_date):
+                        events = db_services.Event.get_from__location_pp_date(lpp_id, date)
+                        signal_handling.handler_location_plan_period.reset_styling_all_configs_at_day(
+                            signal_handling.DataLocationPlanPeriodDate(lpp_id, date=date, prefetched_events=events)
+                        )
                 self.execution_timer_plan_post_cast_change.finished.connect(
                     lambda: signal_handling.handler_plan_tabs.load_entities_from_cache(
                         self.appointment.event.location_plan_period.plan_period.id
@@ -1026,6 +1021,7 @@ class AppointmentField(QWidget):
                                              dlg.new_time_of_day,
                                              batch_command_redo_undo_callback,
                                              self.plan_widget.controller)
+            print(f'DEBUG: {result=}')
             if not result:
                 QMessageBox.critical(self, self.tr('Move appointment'),
                                      self.tr('On %s (%s)\nan appointment for %s already exists') % (

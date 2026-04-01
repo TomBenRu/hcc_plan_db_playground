@@ -49,10 +49,14 @@ class DataLocationPlanPeriodDate:
     Ermöglicht direkten Vergleich mit location_plan_period.id statt über plan_period.id.
 
     Wenn location_plan_period_id gesetzt ist, wird nur diese spezifische LocationPlanPeriod benachrichtigt.
-    Wenn nur plan_period_id gesetzt ist, werden alle LocationPlanPeriods der PlanPeriod benachrichtigt."""
+    Wenn nur plan_period_id gesetzt ist, werden alle LocationPlanPeriods der PlanPeriod benachrichtigt.
+
+    prefetched_events: Optionale vorgeladene Events für dieses Datum — vermeidet doppelte
+    DB-Abfragen wenn ButtonNotes und ButtonSkillGroups denselben Datensatz benötigen."""
     location_plan_period_id: UUID | None = None
     plan_period_id: UUID | None = None
     date: datetime.date | None = None
+    prefetched_events: list | None = None
 
 
 @dataclass

@@ -36,7 +36,7 @@ def create(appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.App
         return schemas.AppointmentShow.model_validate(app)
 
 
-def update_avail_days(appointment_id: UUID, avail_day_ids: list[UUID]) -> schemas.AppointmentShow:
+def update_avail_days(appointment_id: UUID, avail_day_ids: list[UUID]) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
@@ -44,52 +44,46 @@ def update_avail_days(appointment_id: UUID, avail_day_ids: list[UUID]) -> schema
         for aid in avail_day_ids:
             app.avail_days.append(session.get(models.AvailDay, aid))
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
-def update_notes(appointment_id: UUID, notes: str) -> schemas.AppointmentShow:
+def update_notes(appointment_id: UUID, notes: str) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
         app.notes = notes
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
-def update_guests(appointment_id: UUID, guests: list[str]) -> schemas.AppointmentShow:
+def update_guests(appointment_id: UUID, guests: list[str]) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
         app.guests = json.dumps(guests)
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
-def update_event(appointment_id: UUID, event_id: UUID) -> schemas.AppointmentShow:
+def update_event(appointment_id: UUID, event_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
         app.event = session.get(models.Event, event_id)
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
-def delete(appointment_id: UUID) -> schemas.AppointmentShow:
+def delete(appointment_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
         app.prep_delete = _utcnow()
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
-def undelete(appointment_id: UUID) -> schemas.AppointmentShow:
+def undelete(appointment_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
         app = session.get(models.Appointment, appointment_id)
         app.prep_delete = None
         session.flush()
-        return schemas.AppointmentShow.model_validate(app)
 
 
 def create_bulk(appointments: list[schemas.AppointmentCreate], plan_id: UUID) -> list[UUID]:

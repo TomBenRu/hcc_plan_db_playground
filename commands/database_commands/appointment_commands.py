@@ -50,15 +50,15 @@ class CreateBulk(Command):
 
 
 class UpdateAvailDays(Command):
-    def __init__(self, appointment_id: UUID, avail_day_ids: list[UUID]):
+    def __init__(self, appointment_id: UUID, avail_day_ids: list[UUID],
+                 appointment: schemas.Appointment = None):
         super().__init__()
         self.appointment_id = appointment_id
         self.avail_day_ids = avail_day_ids
-        self.appointment = db_services.Appointment.get(self.appointment_id)
-        self.updated_appointment: schemas.AppointmentShow | None = None
+        self.appointment = appointment if appointment is not None else db_services.Appointment.get(self.appointment_id)
 
     def execute(self):
-        self.updated_appointment = db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+        db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
     def _undo(self):
         db_services.Appointment.update_avail_days(self.appointment_id, [avd.id for avd in self.appointment.avail_days])
@@ -85,10 +85,9 @@ class UpdateNotes(Command):
         super().__init__()
         self.appointment = appointment
         self.notes = notes
-        self.updated_appointment: schemas.AppointmentShow | None = None
 
     def execute(self):
-        self.updated_appointment = db_services.Appointment.update_notes(self.appointment.id, self.notes)
+        db_services.Appointment.update_notes(self.appointment.id, self.notes)
 
     def _undo(self):
         db_services.Appointment.update_notes(self.appointment.id, self.appointment.notes)
@@ -151,10 +150,9 @@ class UpdateEvent(Command):
         super().__init__()
         self.appointment = appointment
         self.new_event_id = new_event_id
-        self.updated_appointment: schemas.AppointmentShow | None = None
 
     def execute(self):
-        self.updated_appointment = db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
+        db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
 
     def _undo(self):
         db_services.Appointment.update_event(self.appointment.id, self.appointment.event.id)
@@ -164,15 +162,15 @@ class UpdateEvent(Command):
 
 
 class UpdateGuests(Command):
-    def __init__(self, appointment_id: UUID, guests: list[str]):
+    def __init__(self, appointment_id: UUID, guests: list[str],
+                 appointment: schemas.Appointment = None):
         super().__init__()
         self.appointment_id = appointment_id
         self.guests = guests
-        self.appointment = db_services.Appointment.get(self.appointment_id)
-        self.updated_appointment: schemas.AppointmentShow | None = None
+        self.appointment = appointment if appointment is not None else db_services.Appointment.get(self.appointment_id)
 
     def execute(self):
-        self.updated_appointment = db_services.Appointment.update_guests(self.appointment_id, self.guests)
+        db_services.Appointment.update_guests(self.appointment_id, self.guests)
 
     def _undo(self):
         db_services.Appointment.update_guests(self.appointment_id, self.appointment.guests)

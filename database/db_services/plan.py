@@ -161,13 +161,12 @@ def update_name(plan_id: UUID, new_name: str) -> schemas.PlanShow:
         return schemas.PlanShow.model_validate(plan)
 
 
-def update_location_columns(plan_id: UUID, location_columns: str) -> schemas.PlanShow:
+def update_location_columns(plan_id: UUID, location_columns: str) -> None:
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
         plan.location_columns = location_columns
         session.flush()
-        return schemas.PlanShow.model_validate(plan)
 
 
 def put_in_excel_settings(plan_id: UUID, excel_settings_id: UUID) -> schemas.PlanShow:

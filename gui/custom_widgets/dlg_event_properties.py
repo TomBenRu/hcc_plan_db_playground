@@ -14,7 +14,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
                                QLabel, QPushButton, QSpinBox, QCheckBox, QDialogButtonBox,
                                QMessageBox, QListWidget, QListWidgetItem)
-from line_profiler import profile
 
 from commands import command_base_classes
 from commands.database_commands import cast_group_commands, appointment_commands

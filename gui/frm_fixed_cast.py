@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt, QTimer, QCoreApplication
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (QDialog, QWidget, QHBoxLayout, QPushButton, QGridLayout, QComboBox, QLabel, QVBoxLayout,
                                QDialogButtonBox, QDateEdit, QMenu, QMessageBox, QCheckBox)
-from line_profiler import profile
+
 from sympy.logic.boolalg import BooleanFunction, simplify_logic
 
 from database import db_services, schemas
@@ -167,7 +167,6 @@ class DlgFixedCastBuilderCastGroup(DlgFixedCastBuilderABC):
         self.update_command = partial(cast_group_commands.UpdateFixedCast, self.object_with_fixed_cast.id)
         self.object_with_fixed_cast__refresh_func = partial(db_services.CastGroup.get, self.object_with_fixed_cast.id)
 
-    @profile
     def method_date_changed(self, date: datetime.date = None) -> list[schemas.PersonForFixedCastCombo]:
         if self.object_with_fixed_cast.event:
             if self._cached_location_of_work is None:
@@ -383,7 +382,6 @@ class DlgFixedCast(QDialog):
             self.de_date.setDate(datetime.date.today())
             self.de_date.setMinimumDate(datetime.date.today())
 
-    @profile
     def date_changed(self):
         self.persons = self.builder.method_date_changed(self.de_date.date().toPython())
         self.lb_warning.setText(self.builder.warning_text)
@@ -618,7 +616,6 @@ class DlgFixedCast(QDialog):
         for data, text in self.data_text_operator.items():
             combo_operator.addItem(text, data)
 
-    @profile
     def reload_object_with_fixed_cast(self):
         self.object_with_fixed_cast = self.builder.object_with_fixed_cast__refresh_func()
         # Checkbox-Status aktualisieren
@@ -628,7 +625,6 @@ class DlgFixedCast(QDialog):
         )
         self.chk_only_if_available.blockSignals(False)
 
-    @profile
     def reset_fixed_cast_plot(self, reload: bool = True):
         if reload:
             self.reload_object_with_fixed_cast()

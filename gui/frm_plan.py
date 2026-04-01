@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QTableWidget, QTabl
                                QHBoxLayout, QMessageBox, QMenu, QAbstractItemView, QDialog, QFormLayout, QGroupBox,
                                QDialogButtonBox, QComboBox, QPushButton, QCheckBox, QLineEdit, QCalendarWidget, QFrame,
                                QScrollArea, QStyle)
-from line_profiler import profile
 
 from commands import command_base_classes
 from commands.command_base_classes import BatchCommand

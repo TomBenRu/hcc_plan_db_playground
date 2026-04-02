@@ -8,7 +8,6 @@ from PySide6.QtGui import Qt, QResizeEvent
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QHBoxLayout, QGroupBox, QMenu, QDateEdit, \
     QApplication, QScrollArea, QWidget, QAbstractScrollArea
-
 from database import schemas, db_services
 from database.special_schema_requests import (get_locations_of_team_at_date, get_curr_assignment_of_person)
 from database.db_services.person import get_persons_of_team_at_date, get_persons_of_team_between_dates
@@ -157,9 +156,9 @@ class DlgPartnerLocationPrefsLocs(QDialog):
             self.dict_location_id__slider[location.id] = slider_location
 
     def connect_sliders_to_save(self):
+        location_by_id = {loc.id: loc for loc in self.all_locations}
         for location_id, slider in self.dict_location_id__slider.items():
-            location = db_services.LocationOfWork.get(location_id)
-            slider.valueChanged.connect(partial(self.save_pref_loc, location))
+            slider.valueChanged.connect(partial(self.save_pref_loc, location_by_id[location_id]))
 
     def setup_values(self):
         for location in self.all_locations:
@@ -179,8 +178,8 @@ class DlgPartnerLocationPrefsLocs(QDialog):
 
         if value != 2:
             if location.id in self.dict_location_id__apl:
-                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
-                new_apl.score = value / 2
+                new_apl = schemas.ActorPartnerLocationPrefCreate(
+                    score=value / 2, person=self.person, partner=apl.partner, location_of_work=location)
             else:
                 partner = db_services.Person.get(self.partner_id)
                 new_apl = schemas.ActorPartnerLocationPrefCreate(
@@ -267,8 +266,7 @@ class DlgPartnerLocationPrefsPartner(QDialog):
 
     def connect_sliders_to_save(self):
         for partner_id, slider in self.dict_partner_id__slider.items():
-            partner = db_services.Person.get(partner_id)
-            slider.valueChanged.connect(partial(self.save_pref_loc, partner))
+            slider.valueChanged.connect(partial(self.save_pref_loc, partner_id))
 
     def setup_values(self):
         for partner in self.all_partners:
@@ -280,18 +278,20 @@ class DlgPartnerLocationPrefsPartner(QDialog):
     def show_slider_text(self, lb_loc_val: QLabel, val: int):
         lb_loc_val.setText(SliderValToText.get_text(val))
 
-    def save_pref_loc(self, partner: schemas.Person, value: int):
-        if partner.id in self.dict_partner_id__apl:
-            apl = self.dict_partner_id__apl[partner.id]
+    def save_pref_loc(self, partner_id: UUID, value: int):
+        if partner_id in self.dict_partner_id__apl:
+            apl = self.dict_partner_id__apl[partner_id]
             remove_command = factory_for_remove_prefs(self.curr_model, apl.id)
             self.controller.execute(remove_command)
 
         if value != 2:
-            if partner.id in self.dict_partner_id__apl:
-                new_apl = schemas.ActorPartnerLocationPrefCreate(**apl.model_dump())
-                new_apl.score = value / 2
+            if partner_id in self.dict_partner_id__apl:
+                new_apl = schemas.ActorPartnerLocationPrefCreate(
+                    score=value / 2, person=self.person, partner=apl.partner,
+                    location_of_work=apl.location_of_work)
             else:
                 location = db_services.LocationOfWork.get(self.location_id)
+                partner = db_services.Person.get(partner_id)
                 new_apl = schemas.ActorPartnerLocationPrefCreate(
                     score=value/2, person=self.person, partner=partner, location_of_work=location)
 

@@ -338,3 +338,26 @@ def get_persons_of_team_at_date(team_id: UUID, date: datetime.date) -> list[sche
             .order_by(models.Person.f_name)
         )
         return [schemas.PersonForFixedCastCombo.model_validate(p) for p in session.exec(stmt).unique().all()]
+
+
+def get_persons_of_team_between_dates(team_id: UUID, date_start: datetime.date,
+                                      date_end: datetime.date) -> list[schemas.PersonForFixedCastCombo]:
+    """Alle Personen, die dem Team in [date_start, date_end] angehörten (Vereinigung, 1 Query).
+
+    Ersetzt N einzelne get_persons_of_team_at_date()-Aufrufe (einen pro Tag) durch
+    einen einzigen JOIN-Query über den gesamten Datumsbereich.
+    """
+    cutoff_end = datetime.datetime.combine(date_end, datetime.time.max)
+    with get_session() as session:
+        stmt = (
+            select(models.Person)
+            .join(models.TeamActorAssign, models.TeamActorAssign.person_id == models.Person.id)
+            .where(
+                models.TeamActorAssign.team_id == team_id,
+                models.TeamActorAssign.start <= date_end,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_start),
+                or_(models.Person.prep_delete.is_(None), models.Person.prep_delete > cutoff_end),
+            )
+            .order_by(models.Person.f_name)
+        )
+        return [schemas.PersonForFixedCastCombo.model_validate(p) for p in session.exec(stmt).unique().all()]

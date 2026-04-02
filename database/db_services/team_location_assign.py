@@ -58,6 +58,19 @@ def get_all_between_dates(team_id: UUID,
         return [schemas.TeamLocationAssignShow.model_validate(a) for a in assigns]
 
 
+def get_location_ids_at_date(team_id: UUID, date: datetime.date) -> set[UUID]:
+    """Gibt nur die location_of_work_ids des Teams an einem Datum zurück (kein model_validate).
+
+    Deutlich schneller als get_all_at__date(), da keine Schema-Validierung stattfindet —
+    geeignet für reine ID-Vergleiche (z.B. Info-Text-Prüfung).
+    """
+    with get_session() as session:
+        assigns = session.exec(select(models.TeamLocationAssign).where(
+            models.TeamLocationAssign.team_id == team_id, models.TeamLocationAssign.start <= date,
+            or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date))).all()
+        return {a.location_of_work_id for a in assigns}
+
+
 def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamLocationAssignShow]:
     with get_session() as session:
         assigns = session.exec(select(models.TeamLocationAssign).where(

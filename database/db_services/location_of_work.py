@@ -9,14 +9,13 @@ import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
-from ._eager_loading import location_of_work_show_options
+from ._eager_loading import location_of_work_show_options, team_location_assign_with_location_options
 
 
 def get(location_id: UUID) -> schemas.LocationOfWorkShow:
@@ -106,13 +105,40 @@ def get_all_locations_at_dates(team_id: UUID, dates: list[datetime.date]) -> lis
                 models.TeamLocationAssign.team_id == team_id,
                 or_(*date_conditions)
             )
-            .options(joinedload(models.TeamLocationAssign.location_of_work))
+            .options(*team_location_assign_with_location_options())
         ).unique().all()
         seen: dict[UUID, models.LocationOfWork] = {}
         for tla in assigns:
             if tla.location_of_work_id not in seen:
                 seen[tla.location_of_work_id] = tla.location_of_work
         return [schemas.LocationOfWork.model_validate(loc) for loc in seen.values()]
+
+
+def get_locations_of_team_between_dates(team_id: UUID, date_start: datetime.date,
+                                        date_end: datetime.date) -> list[schemas.LocationOfWork]:
+    """Alle Standorte, die dem Team in [date_start, date_end] zugeordnet waren (Vereinigung, 1 Query).
+
+    Ersetzt N einzelne get_locations_of_team_at_date()-Aufrufe durch einen einzigen
+    Range-JOIN-Query — effizienter als get_all_locations_at_dates() bei vielen Tagen.
+    """
+    with get_session() as session:
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .where(
+                models.TeamLocationAssign.team_id == team_id,
+                models.TeamLocationAssign.start <= date_end,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date_start),
+            )
+            .options(*team_location_assign_with_location_options())
+        ).unique().all()
+        seen: set[UUID] = set()
+        result: list[schemas.LocationOfWork] = []
+        for tla in assigns:
+            loc = tla.location_of_work
+            if loc.id not in seen and (not loc.prep_delete or loc.prep_delete.date() > date_end):
+                seen.add(loc.id)
+                result.append(schemas.LocationOfWork.model_validate(loc))
+    return sorted(result, key=lambda x: x.name + x.address.city)
 
 
 def create(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:

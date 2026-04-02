@@ -11,7 +11,9 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QSlider, QGridLayout, QLabel
 
 from database import schemas, db_services
 from database.special_schema_requests import (get_locations_of_team_at_date, get_curr_assignment_of_person)
-from database.db_services.person import get_persons_of_team_at_date
+from database.db_services.person import get_persons_of_team_at_date, get_persons_of_team_between_dates
+from database.db_services.location_of_work import get_locations_of_team_between_dates
+from database.db_services.team_location_assign import get_location_ids_at_date
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, actor_partner_loc_pref_commands, person_commands, \
@@ -547,51 +549,57 @@ class DlgPartnerLocationPrefs(QDialog):
 
     def union_partners(self) -> list[schemas.PersonForFixedCastCombo]:
         """Vereinigung aus allen möglichen Partner an den Tagen der Planungsperiode werden gebildet"""
-        #  todo: days_of_plan_period u. valid_days_of_actor können an Funktion ausgelagert werden
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
                                range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
         valid_days_of_actor = [date for date in days_of_plan_period
                                if (curr_team_assignment := get_curr_assignment_of_person(self.person, date))
                                and curr_team_assignment.team.id == self.curr_team.id]
-        persons_by_id: dict = {}
-        first_day_ids: set = set()
-        info_text = self.tr('The same partners belong to the team on all days of the period.')
-        for i, date in enumerate(valid_days_of_actor):
-            persons_today = [p for p in get_persons_of_team_at_date(self.curr_team.id, date)
-                             if p.id != self.person.id]
-            ids_today = {p.id for p in persons_today}
-            if i == 0:
-                first_day_ids = ids_today
-            elif ids_today != first_day_ids:
-                info_text = self.tr('Not all days of the period have the same partners in the team.')
-            for p in persons_today:
-                persons_by_id[p.id] = p
+        if not valid_days_of_actor:
+            self.lb_info.setText(self.lb_info.text() +
+                                 self.tr('The same partners belong to the team on all days of the period.'))
+            return []
+
+        date_start, date_end = valid_days_of_actor[0], valid_days_of_actor[-1]
+        all_partners = [p for p in get_persons_of_team_between_dates(self.curr_team.id, date_start, date_end)
+                        if p.id != self.person.id]
+
+        # Info-Text: prüfe ob die Teamzusammensetzung über den Zeitraum konstant ist
+        partners_at_start = {p.id for p in get_persons_of_team_at_date(self.curr_team.id, date_start)
+                             if p.id != self.person.id}
+        all_partner_ids = {p.id for p in all_partners}
+        if all_partner_ids == partners_at_start:
+            info_text = self.tr('The same partners belong to the team on all days of the period.')
+        else:
+            info_text = self.tr('Not all days of the period have the same partners in the team.')
 
         self.lb_info.setText(self.lb_info.text() + info_text)
-
-        return sorted(persons_by_id.values(), key=lambda x: x.f_name+x.l_name)
+        return sorted(all_partners, key=lambda x: x.f_name + x.l_name)
 
     def union_locations_of_work(self) -> list[schemas.LocationOfWork]:
         """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
-        #  todo: days_of_plan_period u. valid_days_of_actor können an Funktion ausgelagert werden
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
                                range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
         valid_days_of_actor = [date for date in days_of_plan_period
                                if (curr_team_assignment := get_curr_assignment_of_person(self.person, date))
                                and curr_team_assignment.team.id == self.curr_team.id]
-        curr_loc_of_work_ids = {loc.id for loc in
-                                get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
-        info_text = self.tr('The same facilities belong to the team on all days of the period.\n')
-        for date in valid_days_of_actor[1:]:
-            location_ids_at_date = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
-            if location_ids_at_date != curr_loc_of_work_ids:
-                info_text = self.tr('Not all days of the period have the same facilities in the team.\n')
-            curr_loc_of_work_ids |= location_ids_at_date
+        if not valid_days_of_actor:
+            self.lb_info.setText(self.lb_info.text() +
+                                 self.tr('The same facilities belong to the team on all days of the period.\n'))
+            return []
+
+        date_start, date_end = valid_days_of_actor[0], valid_days_of_actor[-1]
+        all_locations = get_locations_of_team_between_dates(self.curr_team.id, date_start, date_end)
+
+        # Info-Text: prüfe ob die Standort-Zusammensetzung über den Zeitraum konstant ist
+        locs_at_start = get_location_ids_at_date(self.curr_team.id, date_start)
+        all_location_ids = {loc.id for loc in all_locations}
+        if all_location_ids == locs_at_start:
+            info_text = self.tr('The same facilities belong to the team on all days of the period.\n')
+        else:
+            info_text = self.tr('Not all days of the period have the same facilities in the team.\n')
 
         self.lb_info.setText(self.lb_info.text() + info_text)
-
-        return sorted((db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids),
-                      key=lambda x: x.name+x.address.city)
+        return all_locations
 
     def clear_option_field(self):
         for widgets in self.dict_location_id__bt_slider_lb.values():

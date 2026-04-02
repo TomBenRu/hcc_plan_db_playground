@@ -1164,3 +1164,18 @@ def event_for_button_options() -> list:
     )
     skills = selectinload(models.Event.skill_groups).joinedload(models.SkillGroup.skill)
     return [tod, skills]
+
+
+def team_location_assign_with_location_options() -> list:
+    """Loader-Optionen für TeamLocationAssign → location_of_work + address.
+
+    Für Queries, die TeamLocationAssign-Zeilen laden und anschließend
+    schemas.LocationOfWork.model_validate() aufrufen — verhindert N Lazy-Loads
+    für location_of_work.address.
+
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    return [
+        joinedload(models.TeamLocationAssign.location_of_work)
+        .joinedload(models.LocationOfWork.address)
+    ]

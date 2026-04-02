@@ -17,8 +17,8 @@ from pydantic_core._pydantic_core import ValidationError
 
 from database import schemas, db_services, schemas_plan_api
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_team_of_person_at_date, \
-    get_curr_assignment_of_person, get_locations_of_team_at_date_2, \
-    get_persons_of_team_at_date_2, get_next_assignment_of_person
+    get_curr_assignment_of_person, get_location_ids_at_date_from_team, \
+    get_person_ids_at_date_from_team, get_next_assignment_of_person
 from export_to_file import avail_days_to_xlsx
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
@@ -359,7 +359,7 @@ class ButtonLocationPreferences(BaseConfigButton):
         """Prüft ob AvailDays am Tag untereinander inkonsistent sind (reine Query)."""
         if len(avail_days_at_date) <= 1:
             return False
-        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        locations_at_date_ids = get_location_ids_at_date_from_team(self.team, self.date)
         pref_of_idx0 = {
             (pref.location_of_work.id, pref.score) for pref in avail_days_at_date[0].actor_location_prefs_defaults
             if (not pref.prep_delete or pref.prep_delete > self.date)
@@ -377,7 +377,7 @@ class ButtonLocationPreferences(BaseConfigButton):
 
     def _check_loc_pref_of_day__eq__loc_pref_of_actor_pp(self) -> bool | None:
         """Prüft ob Standort-Präferenzen am Tag den ActorPlanPeriod-Defaults entsprechen (reine Query)."""
-        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        locations_at_date_ids = get_location_ids_at_date_from_team(self.team, self.date)
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
             return None
@@ -511,8 +511,8 @@ class ButtonPartnerPreferences(BaseConfigButton):
         """Prüft ob AvailDays am Tag untereinander inkonsistent sind (reine Query)."""
         if len(avail_days_at_date) <= 1:
             return False
-        partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
-        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        partner_at_date_ids = get_person_ids_at_date_from_team(self.team, self.date)
+        locations_at_date_ids = get_location_ids_at_date_from_team(self.team, self.date)
         pref_of_idx0 = {
             (pref.location_of_work.id, pref.partner.id, pref.score)
             for pref in avail_days_at_date[0].actor_partner_location_prefs_defaults
@@ -530,8 +530,8 @@ class ButtonPartnerPreferences(BaseConfigButton):
 
     def _check_pref_of_day__eq__pref_of_actor_pp(self) -> bool | None:
         """Prüft ob Partner/Standort-Präferenzen am Tag den ActorPlanPeriod-Defaults entsprechen (reine Query)."""
-        partner_at_date_ids = get_persons_of_team_at_date_2(self.team, self.date)
-        locations_at_date_ids = get_locations_of_team_at_date_2(self.team, self.date)
+        partner_at_date_ids = get_person_ids_at_date_from_team(self.team, self.date)
+        locations_at_date_ids = get_location_ids_at_date_from_team(self.team, self.date)
 
         avail_days_at_date = self.avail_days_at_date()
         if not avail_days_at_date:
@@ -1565,9 +1565,6 @@ class FrmActorPlanPeriod(QWidget):
 
         person = db_services.Person.get(self.actor_plan_period.person.id)
         team_at_date_factory = lambda date: self.actor_plan_period.team
-
-        locations_at_date = get_locations_of_team_at_date(self.actor_plan_period.team.id,
-                                                          self.actor_plan_period.plan_period.start)
 
         dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.actor_plan_period, person, team_at_date_factory)
         dlg.de_date.setDate(self.actor_plan_period.plan_period.start)

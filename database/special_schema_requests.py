@@ -95,7 +95,7 @@ def get_locations_of_team_at_date(team_id: UUID, date: datetime.date) -> list[sc
     return locations_at_date
 
 
-def get_locations_of_team_at_date_2(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
+def get_location_ids_at_date_from_team(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
     locations_at_date_ids = {
         tla.location_of_work.id for tla in team.team_location_assigns
         if tla.start <= date < (tla.end or date + datetime.timedelta(days=1))
@@ -113,7 +113,7 @@ def get_curr_persons_of_team(team: schemas.TeamShow) -> list[schemas.Person]:
     return persons
 
 
-def get_persons_of_team_at_date_2(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
+def get_person_ids_at_date_from_team(team: schemas.TeamShow, date: datetime.date) -> set[UUID]:
     persons_at_date_ids = {taa.person.id for taa in team.team_actor_assigns
                            if taa.start <= date < (taa.end or date + datetime.timedelta(days=1))
                            and (not taa.person.prep_delete or taa.person.prep_delete.date() > date)}

@@ -5,7 +5,7 @@ Stellt sicher, dass entweder die erforderliche Mindestanzahl an Schichten
 geplant wird oder gar keine.
 """
 from database import schemas
-from sat_solver.constraints.base import ConstraintBase
+from sat_solver.constraints.base import ConstraintBase, ValidationError
 
 
 class RequiredAvailDayGroupsConstraint(ConstraintBase):
@@ -69,7 +69,7 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
                 # Wenn y = 0 => shift_sum = 0, wenn y = 1 => shift_sum = required
                 self.model.Add(shift_sum == required.num_avail_day_groups * y)
     
-    def validate_plan(self, plan: 'schemas.PlanShow') -> list['ValidationError']:
+    def validate_plan(self, plan: 'schemas.PlanShow') -> list[ValidationError]:
         """
         Prüft ob die Mindesteinsätze eingehalten werden.
         
@@ -77,7 +77,6 @@ class RequiredAvailDayGroupsConstraint(ConstraintBase):
         entweder 0 Einsätze oder mindestens die erforderliche Anzahl geplant sind.
         """
         from uuid import UUID
-        from sat_solver.constraints.base import ValidationError
         
         errors = []
 

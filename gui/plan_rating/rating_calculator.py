@@ -50,7 +50,7 @@ class PlanRatingCalculator:
         # Statt self._load_config()
         # Bessere Gewichte für die Bewertung:
         self.weights = MinimizationWeights(sum_squared_deviations=1, constraints_location_prefs=1,
-                                           constraints_partner_loc_prefs=1, unassigned_shifts=5.0)
+                                           constraints_partner_loc_prefs=1, unassigned_shifts=5)
 
     def _load_config(self):
         """Lädt die Solver-Konfiguration für die Gewichtung."""
@@ -256,13 +256,11 @@ class PlanRatingCalculator:
         total_required = 0
         total_assigned = 0
 
+        event_ids = [a.event.id for a in self.plan.appointments]
+        nr_actors_by_event = db_services.CastGroup.get_nr_actors_by_event_ids(event_ids)
+
         for appointment in self.plan.appointments:
-            # Hole CastGroup für das Event
-            try:
-                cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
-                required = cast_group.nr_actors
-            except Exception:
-                required = 1  # Fallback
+            required = nr_actors_by_event.get(appointment.event.id, 1)
 
             # Anzahl zugewiesener Mitarbeiter + Gäste
             assigned = len(appointment.avail_days)

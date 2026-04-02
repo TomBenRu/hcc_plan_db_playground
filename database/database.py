@@ -33,7 +33,7 @@ from database.models import *  # noqa: F401, F403
 # .env laden (nur falls Vars noch nicht gesetzt — explizite Env-Vars haben Vorrang)
 load_dotenv()
 _database_url = os.environ.get("DATABASE_URL")
-_remote = False
+_remote = True
 if _database_url and _remote:
     # PostgreSQL: render.com setzt DATABASE_URL automatisch
     # pool_pre_ping: Erkennt serverseitig geschlossene Verbindungen (render.com Idle-Timeout)

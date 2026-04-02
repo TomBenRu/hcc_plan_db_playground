@@ -4,6 +4,7 @@ Enthält:
 - `Create`: Erstellt eine neue Partner-Standortpräferenz (Akteur + Partner + Ort);
   Undo/Redo via Soft-Delete (`prep_delete`).
 - `DeleteUnused`: Bereinigt alle ungenutzten Partner-Präferenzen einer Person.
+- `ReplaceAll`: Ersetzt alle APL-Verknüpfungen eines Modells in einer Transaktion.
 
 Hinweis: Die auskommentierte `Modify`-Klasse ist derzeit nicht in Verwendung.
 """
@@ -50,6 +51,35 @@ class Create(Command):
 #
 #     def redo(self):
 #         db_services.ActorPartnerLocationPref.modify(self.actor_partner_loc_pref)
+
+
+class ReplaceAll(Command):
+    """Ersetzt alle APL-Verknüpfungen eines Modells in einer einzigen Transaktion.
+
+    Deutlich performanter als einzelne Remove/Create/PutIn-Commands:
+    statt N×(Remove+Create+PutIn) Transaktionen → 1 Transaktion.
+    """
+    def __init__(self, model_class_name: str, model_id: UUID, person_id: UUID,
+                 new_prefs: list[tuple[UUID, UUID, float]]):
+        super().__init__()
+        self.model_class_name = model_class_name
+        self.model_id = model_id
+        self.person_id = person_id
+        self.new_prefs = new_prefs
+        self.created_ids: list[UUID] = []
+        self.old_apl_ids: list[UUID] = []
+
+    def execute(self):
+        self.created_ids, self.old_apl_ids = db_services.ActorPartnerLocationPref.replace_all_for_model(
+            self.model_class_name, self.model_id, self.person_id, self.new_prefs)
+
+    def _undo(self):
+        db_services.ActorPartnerLocationPref.undo_replace_all_for_model(
+            self.model_class_name, self.model_id, self.created_ids, self.old_apl_ids)
+
+    def _redo(self):
+        self.created_ids, self.old_apl_ids = db_services.ActorPartnerLocationPref.replace_all_for_model(
+            self.model_class_name, self.model_id, self.person_id, self.new_prefs)
 
 
 class DeleteUnused(Command):

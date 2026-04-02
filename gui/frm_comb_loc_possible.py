@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QPushButton, QGridLayout
 from database import schemas, db_services
 from database.schemas import ModelWithCombLocPossible
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_assignment_of_person
+from database.db_services.location_of_work import get_locations_of_team_between_dates
+from database.db_services.team_location_assign import get_location_ids_at_date
 from commands import command_base_classes
 from tools.helper_functions import setup_form_help
 from commands.database_commands import team_commands
@@ -228,18 +230,15 @@ class DlgCombLocPossibleEditList(QDialog):
             self.lb_info.setText(self.tr('No valid days found for this person in the selected team.'))
             return
 
-        curr_loc_of_work_ids = {loc.id
-                                for loc in get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+        date_start, date_end = valid_days_of_actor[0], valid_days_of_actor[-1]
+        self.locations_of_work = get_locations_of_team_between_dates(self.curr_team.id, date_start, date_end)
 
-        self.lb_info.setText(self.tr('The team has the same facilities on all days of the period.'))
-        for date in valid_days_of_actor[1:]:
-            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
-            if location_ids != curr_loc_of_work_ids:
-                self.lb_info.setText(self.tr('The team does not have the same facilities on all days of the period.'))
-
-            curr_loc_of_work_ids |= location_ids
-
-        self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+        locs_at_start = get_location_ids_at_date(self.curr_team.id, date_start)
+        all_ids = {loc.id for loc in self.locations_of_work}
+        if all_ids == locs_at_start:
+            self.lb_info.setText(self.tr('The team has the same facilities on all days of the period.'))
+        else:
+            self.lb_info.setText(self.tr('The team does not have the same facilities on all days of the period.'))
 
     def new(self):
         if not self.locations_of_work:

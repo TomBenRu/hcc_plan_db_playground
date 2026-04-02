@@ -6,10 +6,11 @@ from uuid import UUID
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QSlider, QGridLayout, QLabel, \
     QDialogButtonBox, QPushButton, QDateEdit, QHBoxLayout
-
 from database import schemas, db_services
 from database.special_schema_requests import get_locations_of_team_at_date, \
     get_curr_assignment_of_person
+from database.db_services.location_of_work import get_locations_of_team_between_dates
+from database.db_services.team_location_assign import get_location_ids_at_date
 from gui.custom_widgets.slider_with_press_event import SliderWithPressEvent
 from gui.custom_widgets.team_selector import TeamSelectorWidget
 
@@ -135,19 +136,20 @@ class DlgActorLocPref(QDialog):
                                if (curr_team_assignment := get_curr_assignment_of_person(person, date))
                                and curr_team_assignment.team.id == self.curr_team.id]
 
-        curr_loc_of_work_ids = {loc.id for loc in
-                                get_locations_of_team_at_date(self.curr_team.id, valid_days_of_actor[0])}
+        if not valid_days_of_actor:
+            self.lb_info.setText(self.tr('All locations belong to the team on all days of the period.'))
+            self.locations_of_work = []
+            return
 
-        self.lb_info.setText(self.tr('All locations belong to the team on all days of the period.'))
-        for date in valid_days_of_actor[1:]:
-            location_ids = {loc.id for loc in get_locations_of_team_at_date(self.curr_team.id, date)}
-            if location_ids != curr_loc_of_work_ids:
-                self.lb_info.setText(
-                    self.tr('Not all locations belong to the team on all days of the period.'))
+        date_start, date_end = valid_days_of_actor[0], valid_days_of_actor[-1]
+        self.locations_of_work = get_locations_of_team_between_dates(self.curr_team.id, date_start, date_end)
 
-            curr_loc_of_work_ids |= location_ids
-
-        self.locations_of_work = [db_services.LocationOfWork.get(loc_id) for loc_id in curr_loc_of_work_ids]
+        locs_at_start = get_location_ids_at_date(self.curr_team.id, date_start)
+        all_ids = {loc.id for loc in self.locations_of_work}
+        if all_ids == locs_at_start:
+            self.lb_info.setText(self.tr('All locations belong to the team on all days of the period.'))
+        else:
+            self.lb_info.setText(self.tr('Not all locations belong to the team on all days of the period.'))
 
 
     def delete_sliders_labels(self):

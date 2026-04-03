@@ -592,12 +592,14 @@ class ButtonPartnerPreferences(BaseConfigButton):
         # avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
         # nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst
         avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
+        new_pref_ids = [p.id for p in avail_days_at_date[0].actor_partner_location_prefs_defaults
+                        if not p.prep_delete]
         for avd in avail_days_at_date[1:]:
-            for pref in avd.actor_partner_location_prefs_defaults:
-                db_services.AvailDay.remove_partner_location_pref(avd.id, pref.id)
-            for pref_new in avail_days_at_date[0].actor_partner_location_prefs_defaults:
-                if not pref_new.prep_delete:
-                    db_services.AvailDay.put_in_partner_location_pref(avd.id, pref_new.id)
+            remove_command = avail_day_commands.ClearActorPartnerLocationPrefs(
+                avd.id, [p.id for p in avd.actor_partner_location_prefs_defaults])
+            add_command = avail_day_commands.PutInActorPartnerLocationPrefs(avd.id, new_pref_ids)
+            batch_command = command_base_classes.BatchCommand(self, [remove_command, add_command])
+            self.controller.execute(batch_command)
 
         self.refresh()
         signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()

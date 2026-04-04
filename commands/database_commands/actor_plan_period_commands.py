@@ -177,6 +177,35 @@ class RemoveActorLocationPref(Command):
         db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
 
+class UpdateLocationPrefsBulk(Command):
+    """Ersetzt alle Location-Präferenzen einer ActorPlanPeriod in einer Session.
+
+    Wiederverwendungslogik: Existiert eine Person-Pref mit gleicher Location und
+    gleichem Score, wird sie verknüpft statt neu angelegt.
+    Undo/Redo stellen den jeweiligen Zustand vollständig wieder her.
+    """
+    def __init__(self, actor_plan_period_id: UUID, location_id_to_score: dict[UUID, float]):
+        super().__init__()
+        self.actor_plan_period_id = actor_plan_period_id
+        self.location_id_to_score = location_id_to_score
+        self._result: dict[str, list[UUID]] | None = None
+
+    def execute(self):
+        self._result = db_services.ActorPlanPeriod.update_location_prefs_bulk(
+            self.actor_plan_period_id, self.location_id_to_score
+        )
+
+    def _undo(self):
+        db_services.ActorPlanPeriod.restore_location_prefs_bulk(
+            self.actor_plan_period_id, self._result['old_pref_ids']
+        )
+
+    def _redo(self):
+        self._result = db_services.ActorPlanPeriod.update_location_prefs_bulk(
+            self.actor_plan_period_id, self.location_id_to_score
+        )
+
+
 class PutInActorPartnerLocationPref(Command):
     def __init__(self, actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID):
         super().__init__()

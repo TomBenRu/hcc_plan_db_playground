@@ -1574,44 +1574,24 @@ class FrmActorPlanPeriod(QWidget):
         if not dlg.exec():
             return
 
-        # Warnung für Undo/Redo NACH Dialog
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
         ):
-            return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+            return
 
-        for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs:
-                if dlg.loc_id__prefs[loc_id].score == score:
-                    continue
-                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                curr_loc_pref.score = score
-                self.controller_actor_loc_prefs.execute(
-                    actor_plan_period_commands.RemoveActorLocationPref(self.actor_plan_period.id, curr_loc_pref.id))
-                if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
-                    create_command = actor_loc_pref_commands.Create(new_pref)
-                    self.controller_actor_loc_prefs.execute(create_command)
-                    created_pref_id = create_command.get_created_actor_loc_pref()
-
-                    self.controller_actor_loc_prefs.execute(
-                        actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
-            else:
-                if score == 1:
-                    continue
-                location = dlg.location_id__location[loc_id]
-                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
-                create_command = actor_loc_pref_commands.Create(new_loc_pref)
-                self.controller_actor_loc_prefs.execute(create_command)
-                created_pref_id = create_command.get_created_actor_loc_pref()
-                self.controller_actor_loc_prefs.execute(
-                    actor_plan_period_commands.PutInActorLocationPref(self.actor_plan_period.id, created_pref_id))
-
-        self.controller_actor_loc_prefs.execute(actor_loc_pref_commands.DeleteUnused(person.project.id))
-        self.reload_actor_plan_period_and_set_instance_variables()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-            signal_handling.DataActorPPWithDate(self.actor_plan_period))
+        self.controller_actor_loc_prefs.execute(
+            actor_plan_period_commands.UpdateLocationPrefsBulk(
+                self.actor_plan_period.id,
+                dlg.loc_id__results,
+            )
+        )
+        self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+        self.set_instance_variables()
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+        data = signal_handling.DataActorPPWithDate(self.actor_plan_period)
+        for button in self.findChildren(ButtonLocationPreferences):
+            button.refresh(data)
 
     def reset_all_loc_prefs(self, e=None):
         """Setzt actor_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
@@ -1692,8 +1672,10 @@ class FrmActorPlanPeriod(QWidget):
                 return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
             self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+            data = signal_handling.DataActorPPWithDate(self.actor_plan_period)
+            for button in self.findChildren(ButtonPartnerPreferences):
+                button.refresh(data)
 
     def reset_all_partner_loc_prefs(self, e):
         """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""

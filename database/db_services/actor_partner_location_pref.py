@@ -117,32 +117,52 @@ def replace_all_for_model(
         else:  # AvailDay, AvailDayShow
             model_obj = session.get(models.AvailDay, model_id)
 
+        existing_person_prefs = session.exec(
+            select(models.ActorPartnerLocationPref)
+            .where(models.ActorPartnerLocationPref.person_id == person_id)
+            .where(models.ActorPartnerLocationPref.prep_delete == None)
+        ).all()
+        pref_index: dict[tuple[UUID, UUID, float], models.ActorPartnerLocationPref] = {
+            (p.partner_id, p.location_of_work_id, p.score): p for p in existing_person_prefs
+        }
+
         old_apls = [a for a in model_obj.actor_partner_location_prefs_defaults if a.prep_delete is None]
         old_apl_ids = [a.id for a in old_apls]
 
         model_obj.actor_partner_location_prefs_defaults.clear()
         session.flush()
 
+        new_pref_keys = {(partner_id, location_id, score) for partner_id, location_id, score in new_prefs}
         now = _utcnow()
         for apl in old_apls:
+            key = (apl.partner_id, apl.location_of_work_id, apl.score)
+            if key in new_pref_keys:
+                continue  # wird gleich wiederverwendet — nicht soft-löschen
             if (apl.person_default is None
                     and not apl.actor_plan_periods_defaults
                     and not apl.avail_days_defaults):
                 apl.prep_delete = now
 
-        person_obj = session.get(models.Person, person_id)
+        new_ids: list[UUID] = []
         for partner_id, location_id, score in new_prefs:
-            new_apl = models.ActorPartnerLocationPref(
-                score=score,
-                person=person_obj,
-                partner=session.get(models.Person, partner_id),
-                location_of_work=session.get(models.LocationOfWork, location_id))
-            session.add(new_apl)
-            model_obj.actor_partner_location_prefs_defaults.append(new_apl)
+            key = (partner_id, location_id, score)
+            if key in pref_index:
+                apl = pref_index[key]
+                apl.prep_delete = None  # ggf. reaktivieren
+                model_obj.actor_partner_location_prefs_defaults.append(apl)
+            else:
+                new_apl = models.ActorPartnerLocationPref(
+                    score=score,
+                    person=session.get(models.Person, person_id),
+                    partner=session.get(models.Person, partner_id),
+                    location_of_work=session.get(models.LocationOfWork, location_id))
+                session.add(new_apl)
+                session.flush()
+                new_ids.append(new_apl.id)
+                model_obj.actor_partner_location_prefs_defaults.append(new_apl)
 
         session.flush()
-        created_ids = [a.id for a in model_obj.actor_partner_location_prefs_defaults]
-        return created_ids, old_apl_ids
+        return new_ids, old_apl_ids
 
 
 def undo_replace_all_for_model(

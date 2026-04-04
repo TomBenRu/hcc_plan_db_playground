@@ -262,6 +262,100 @@ def remove_location_pref(actor_plan_period_id: UUID, actor_loc_pref_id: UUID) ->
         return schemas.ActorPlanPeriodShow.model_validate(app)
 
 
+def update_location_prefs_bulk(
+        actor_plan_period_id: UUID,
+        location_id_to_score: dict[UUID, float],
+) -> dict[str, list[UUID]]:
+    """Setzt die Location-Präferenzen einer ActorPlanPeriod in einer einzigen Session.
+
+    Wiederverwendungslogik: Existiert bereits eine nicht-gelöschte ActorLocationPref
+    der Person mit derselben Location UND demselben Score, wird sie übernommen statt
+    neu angelegt. Verwaiste Prefs werden am Ende bereinigt.
+
+    Returns: {'old_pref_ids': [...], 'new_pref_ids': [...]}
+    """
+    log_function_info()
+    with get_session() as session:
+        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        person_id = app.person_id
+        project_id = app.project.id
+
+        existing_person_prefs: list[models.ActorLocationPref] = session.exec(
+            select(models.ActorLocationPref)
+            .where(models.ActorLocationPref.person_id == person_id)
+            .where(models.ActorLocationPref.prep_delete == None)
+        ).all()
+        person_pref_index: dict[tuple[UUID, float], models.ActorLocationPref] = {
+            (p.location_of_work_id, p.score): p for p in existing_person_prefs
+        }
+
+        old_pref_ids = [p.id for p in app.actor_location_prefs_defaults]
+
+        new_prefs: list[models.ActorLocationPref] = []
+        for loc_id, score in location_id_to_score.items():
+            if score == 1.0:
+                continue
+            key = (loc_id, score)
+            if key in person_pref_index:
+                new_prefs.append(person_pref_index[key])
+            else:
+                new_pref = models.ActorLocationPref(
+                    score=score,
+                    project_id=project_id,
+                    person_id=person_id,
+                    location_of_work_id=loc_id,
+                )
+                session.add(new_pref)
+                session.flush()
+                new_prefs.append(new_pref)
+
+        app.actor_location_prefs_defaults = new_prefs
+        new_pref_ids = [p.id for p in new_prefs]
+
+        now = _utcnow()
+        for pref_id in set(old_pref_ids) - set(new_pref_ids):
+            pref = session.get(models.ActorLocationPref, pref_id)
+            if (pref and not pref.prep_delete
+                    and not pref.actor_plan_periods_defaults
+                    and not pref.avail_days_defaults
+                    and not pref.person_default):
+                pref.prep_delete = now
+
+        session.flush()
+        return {'old_pref_ids': old_pref_ids, 'new_pref_ids': new_pref_ids}
+
+
+def restore_location_prefs_bulk(
+        actor_plan_period_id: UUID,
+        pref_ids_to_restore: list[UUID],
+) -> None:
+    """Undo-Gegenstück zu update_location_prefs_bulk: stellt alten Zustand wieder her."""
+    log_function_info()
+    with get_session() as session:
+        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        current_pref_ids = {p.id for p in app.actor_location_prefs_defaults}
+
+        prefs_to_restore: list[models.ActorLocationPref] = []
+        for pref_id in pref_ids_to_restore:
+            pref = session.get(models.ActorLocationPref, pref_id)
+            if pref:
+                pref.prep_delete = None
+                prefs_to_restore.append(pref)
+
+        app.actor_location_prefs_defaults = prefs_to_restore
+
+        now = _utcnow()
+        for pref_id in current_pref_ids - set(pref_ids_to_restore):
+            pref = session.get(models.ActorLocationPref, pref_id)
+            if (pref and not pref.prep_delete
+                    and not pref.actor_plan_periods_defaults
+                    and not pref.avail_days_defaults
+                    and not pref.person_default):
+                pref.prep_delete = now
+
+        session.flush()
+
+
 def put_in_partner_location_pref(actor_plan_period_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.ActorPlanPeriodShow:
     log_function_info()
     with get_session() as session:

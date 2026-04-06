@@ -58,7 +58,7 @@ class DlgNewCombLocPossible(QDialog):
         self.layout.addWidget(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-        
+
         # F1 Help Integration
         setup_form_help(self, "new_comb_loc_possible", add_help_button=True)
 
@@ -81,7 +81,8 @@ class DlgNewCombLocPossible(QDialog):
 class DlgCombLocPossibleEditList(QDialog):
     def __init__(self, parent: QWidget, curr_model: ModelWithCombLocPossible,
                  parent_model_factory: Callable[[datetime.date], ModelWithCombLocPossible] | None,
-                 team_at_date_factory: Callable[[datetime.date], schemas.Team] | None):
+                 team_at_date_factory: Callable[[datetime.date], schemas.Team] | None,
+                 curr_date: datetime.date | None = None):
         """Wenn Combinations des Teams bearbeitet werden, wird der Parameter parent_model_factory auf None gesetzt.
         In den anderen Fällen generiert parent_model_factory eine Instanz der Pydantic-Klasse von der das curr_model
         automatisch die Combinations erbt."""
@@ -92,6 +93,7 @@ class DlgCombLocPossibleEditList(QDialog):
         self.curr_model = curr_model.model_copy(deep=True)
         self.parent_model_factory = parent_model_factory
         self.team_at_date_factory = team_at_date_factory
+        self.curr_date = curr_date
 
         self.curr_team: schemas.Team | None = None
         self.parent_model: ModelWithCombLocPossible | None = None
@@ -114,22 +116,13 @@ class DlgCombLocPossibleEditList(QDialog):
         self.layout.addWidget(self.lb_date, 1, 0)
         self.layout.addWidget(self.de_date, 1, 1)
 
-        # Team-Selektor für Multi-Team-Personen (nur bei PersonShow mit team_at_date_factory)
-        # WICHTIG: Muss VOR dateChanged-Connect initialisiert werden!
-        self.team_selector: TeamSelectorWidget | None = None
-        if self.team_at_date_factory and isinstance(self.curr_model, schemas.PersonShow):
-            self.team_selector = TeamSelectorWidget(self)
-            self.team_selector.teamChanged.connect(self._on_team_changed)
-            self.layout.addWidget(self.team_selector, 1, 2)
-
-        # Signal-Connect NACH team_selector Initialisierung
-        self.de_date.dateChanged.connect(self._on_date_changed)
-        self.de_date.setMinimumDate(datetime.date.today())
+        self._setup_date_widget()
 
         self.bt_create = QPushButton(self.tr('New...'), clicked=self.new)
         self.bt_reset = QPushButton(self.tr('Reset'), clicked=self.reset)
         self.bt_delete = QPushButton(self.tr('Delete'), clicked=self.delete)
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
@@ -138,9 +131,27 @@ class DlgCombLocPossibleEditList(QDialog):
         self.layout.addWidget(self.bt_delete, 3, 2)
         self.layout.addWidget(self.button_box, 4, 0, 1, 3)
         self.button_box.setCenterButtons(True)
-        
+
         # F1 Help Integration
         setup_form_help(self, "comb_loc_possible_edit_list", add_help_button=True)
+
+    def _setup_date_widget(self):
+        # Team-Selektor für Multi-Team-Personen (nur bei PersonShow mit team_at_date_factory)
+        # WICHTIG: Muss VOR dateChanged-Connect initialisiert werden!
+        self.team_selector: TeamSelectorWidget | None = None
+        if self.team_at_date_factory and isinstance(self.curr_model, schemas.PersonShow):
+            self.team_selector = TeamSelectorWidget(self)
+            self.team_selector.teamChanged.connect(self._on_team_changed)
+            self.layout.addWidget(self.team_selector, 1, 2)
+
+        # Signal-Connect NACH team_selector Initialisierung und setMinimumDate
+        self.de_date.dateChanged.connect(self._on_date_changed)
+        if isinstance(self.curr_model, schemas.ActorPlanPeriodForMask):
+            self.de_date.setDate(self.curr_date or datetime.date.today())
+            self.de_date.setDisabled(True)
+        else:
+            self.de_date.setMinimumDate(datetime.date.today())
+
 
     def _on_date_changed(self):
         """Wird aufgerufen wenn das Datum geändert wird."""
@@ -194,7 +205,6 @@ class DlgCombLocPossibleEditList(QDialog):
             self.union_locations_of_work()
 
         comb_loc_poss = self.valid_combs_at_date()
-        print(comb_loc_poss)
 
         self.table_combinations.setRowCount(len(comb_loc_poss))
         for row, c in enumerate(comb_loc_poss):
@@ -218,7 +228,7 @@ class DlgCombLocPossibleEditList(QDialog):
 
     def union_locations_of_work(self):
         """Vereinigung aus allen möglichen Locations an den Tagen der Planungsperiode werden gebildet"""
-        person: schemas.PersonShow = self.parent_model
+        person: schemas.PersonForCombLocDialog = self.parent_model
         days_of_plan_period = [self.curr_model.plan_period.start + datetime.timedelta(delta) for delta in
                                range((self.curr_model.plan_period.end - self.curr_model.plan_period.start).days + 1)]
         valid_days_of_actor = [date for date in days_of_plan_period
@@ -243,7 +253,7 @@ class DlgCombLocPossibleEditList(QDialog):
     def new(self):
         if not self.locations_of_work:
             QMessageBox.critical(self, self.tr('Facility Combinations'),
-                               self.tr('No facilities are assigned to this team at this date.'))
+                                 self.tr('No facilities are assigned to this team at this date.'))
             return
         curr_model_c_l_p_ids = [{loc.id for loc in c.locations_of_work if not loc.prep_delete}
                                 for c in self.curr_model.combination_locations_possibles if not c.prep_delete]
@@ -252,7 +262,7 @@ class DlgCombLocPossibleEditList(QDialog):
             return
         if len(dlg.comb_location_ids) < 2:
             QMessageBox.critical(self, self.tr('Facility Combinations'),
-                               self.tr('You must select at least 2 facilities.'))
+                                 self.tr('You must select at least 2 facilities.'))
             return
         if dlg.comb_location_ids not in curr_model_c_l_p_ids:
             locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
@@ -287,7 +297,7 @@ class DlgCombLocPossibleEditList(QDialog):
     def delete(self):
         if self.table_combinations.currentRow() == -1:
             QMessageBox.critical(self, self.tr('Facility Combinations'),
-                               self.tr('You must first select a row.'))
+                                 self.tr('You must first select a row.'))
             return
         comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
         remove_command = self.factory_for_remove_combs(self.curr_model, comb_id_to_remove)

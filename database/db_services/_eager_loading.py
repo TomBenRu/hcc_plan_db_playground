@@ -179,6 +179,31 @@ def person_show_options() -> list:
     ]
 
 
+def person_for_comb_loc_dialog_options() -> list:
+    """Minimal-Loader für PersonForCombLocDialog.
+
+    Lädt nur team_actor_assigns→team und combination_locations_possibles→locations_of_work.
+    Ersetzt person_show_options() mit 19 Pfaden durch 4 gezielte Queries.
+    .unique() auf dem Query-Result ist Pflicht (joinedload-Deduplizierung).
+    """
+    taa_team = (
+        selectinload(models.Person.team_actor_assigns)
+        .joinedload(models.TeamActorAssign.team)
+    )
+    clp_project = (
+        selectinload(models.Person.combination_locations_possibles)
+        .joinedload(models.CombinationLocationsPossible.project)
+    )
+    clp_low = (
+        selectinload(models.Person.combination_locations_possibles)
+        .selectinload(models.CombinationLocationsPossible.locations_of_work)
+    )
+    return [
+        joinedload(models.Person.project),
+        taa_team, clp_project, clp_low,
+    ]
+
+
 def plan_show_options() -> list:
     """Gibt SQLAlchemy Loader-Optionen für vollständige PlanShow-Objekte zurück.
 

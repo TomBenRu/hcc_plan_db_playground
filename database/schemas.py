@@ -136,6 +136,25 @@ class PersonShow(Person):
         return [v for v in values]
 
 
+class PersonForCombLocDialog(BaseModel):
+    """Minimales Schema für DlgCombLocPossibleEditList.
+
+    Lädt nur team_actor_assigns (für Datums-Team-Zuordnung) und
+    combination_locations_possibles — statt der ~19 Pfade von PersonShow.
+    """
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    project: 'Project'
+    prep_delete: Optional[datetime.datetime] = None
+    team_actor_assigns: List['TeamActorAssign']
+    combination_locations_possibles: list['CombinationLocationsPossible']
+
+    @field_validator('team_actor_assigns', 'combination_locations_possibles')
+    @classmethod
+    def set_to_list(cls, values):  # sourcery skip: identity-comprehension
+        return [v for v in values]
+
+
 class ProjectCreate(BaseModel):
     name: str
     active: bool

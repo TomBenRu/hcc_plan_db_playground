@@ -13,6 +13,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
+from line_profiler import profile
 from pydantic_core._pydantic_core import ValidationError
 
 from database import schemas, db_services, schemas_plan_api
@@ -1482,23 +1483,26 @@ class FrmActorPlanPeriod(QWidget):
         # Entities-Cache invalidieren bei TimeOfDay-Änderungen
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
 
-    def edit_comb_loc_possibles(self):
-        person = db_services.Person.get(self.actor_plan_period.person.id)
+    def edit_comb_loc_possibles(self, *args):
+        person = db_services.Person.get_for_comb_loc_dialog(self.actor_plan_period.person.id)
 
         '''Workaround: für die Dialogklasse wird eine funktion gebraucht'''
         parent_model_factory = lambda date: person
         team_at_date_factory = lambda date: self.actor_plan_period.team
         '''----------------------------------------------------------------------------------------------------'''
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period, parent_model_factory,
-                                                               team_at_date_factory)
-        dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
-        dlg.de_date.setDisabled(True)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.actor_plan_period,
+                                                               parent_model_factory,
+                                                               team_at_date_factory,
+                                                               self.actor_plan_period.plan_period.start)
 
         if dlg.exec():
-            self.reload_actor_plan_period_and_set_instance_variables()
-            signal_handling.handler_actor_plan_period.reload_actor_pp__avail_configs(
-                signal_handling.DataActorPPWithDate(self.actor_plan_period))
+            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+            self.set_instance_variables()
+            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+            data = signal_handling.DataActorPPWithDate(self.actor_plan_period)
+            for button in self.findChildren(ButtonLocationCombinations):
+                button.refresh(data)
 
     def reset_all_avail_combs(self):
         """Setzt combination_locations_possibles aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""
@@ -1561,7 +1565,6 @@ class FrmActorPlanPeriod(QWidget):
         self._reset_all_avail_days_comb_loc_possibles_to_defaults(
             on_undo_callback=handle_undo, on_redo_callback=handle_reset)
         handle_reset()
-
 
     def edit_location_prefs(self):
 

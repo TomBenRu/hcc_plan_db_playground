@@ -20,7 +20,7 @@ from ..database import get_session
 from ..models import _utcnow
 from ..enums import Gender
 from ._common import log_function_info
-from ._eager_loading import person_show_options
+from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options
 
 
 def get(person_id: UUID) -> schemas.PersonShow:
@@ -30,6 +30,16 @@ def get(person_id: UUID) -> schemas.PersonShow:
                 .options(*person_show_options()))
         person = session.exec(stmt).unique().one()
         return schemas.PersonShow.model_validate(person)
+
+
+def get_for_comb_loc_dialog(person_id: UUID) -> schemas.PersonForCombLocDialog:
+    """Lädt nur team_actor_assigns + combination_locations_possibles für DlgCombLocPossibleEditList."""
+    with get_session() as session:
+        stmt = (select(models.Person)
+                .where(models.Person.id == person_id)
+                .options(*person_for_comb_loc_dialog_options()))
+        person = session.exec(stmt).unique().one()
+        return schemas.PersonForCombLocDialog.model_validate(person)
 
 
 def get_full_name_of_person(person_id: UUID) -> str:

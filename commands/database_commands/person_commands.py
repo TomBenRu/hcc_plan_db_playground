@@ -154,6 +154,37 @@ class RemoveCombLocPossible(Command):
         db_services.Person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
 
+class ReplaceCombLocPossibles(Command):
+    """Ersetzt alle CombLocPossibles einer Person in einer Session.
+
+    Undo: restore(old_comb_ids) — stellt den alten Zustand wieder her.
+    Redo: restore(new_comb_ids) — reaktiviert die beim Execute erstellten CLPs.
+    """
+
+    def __init__(self, person_id: UUID,
+                 original_ids: set[UUID],
+                 pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+                 current_combs: list[schemas.CombinationLocationsPossible]):
+        super().__init__()
+        self.person_id = person_id
+        self.original_ids = original_ids
+        self.pending_creates = pending_creates
+        self.current_combs = current_combs
+        self._result: dict[str, list[UUID]] | None = None
+
+    def execute(self):
+        self._result = db_services.Person.replace_comb_loc_possibles(
+            self.person_id, self.original_ids, self.pending_creates, self.current_combs)
+
+    def _undo(self):
+        db_services.Person.restore_comb_loc_possibles(
+            self.person_id, self._result['old_comb_ids'])
+
+    def _redo(self):
+        db_services.Person.restore_comb_loc_possibles(
+            self.person_id, self._result['new_comb_ids'])
+
+
 class PutInActorLocationPref(Command):
     def __init__(self, person_id: UUID, actor_loc_pref_id: UUID):
         super().__init__()

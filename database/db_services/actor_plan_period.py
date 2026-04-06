@@ -8,7 +8,7 @@ Solver (`get_all_for_solver`).
 import datetime
 from uuid import UUID
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -16,6 +16,7 @@ from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
 from ._eager_loading import actor_plan_period_show_options, actor_plan_period_mask_options
+from .combination_locations_possible import is_comb_loc_orphaned
 
 
 def get_multiple(actor_plan_period_ids: list[UUID]) -> list[schemas.ActorPlanPeriodShow]:
@@ -372,3 +373,122 @@ def remove_partner_location_pref(actor_plan_period_id: UUID, actor_partner_loc_p
         app.actor_partner_location_prefs_defaults.remove(session.get(models.ActorPartnerLocationPref, actor_partner_loc_pref_id))
         session.flush()
         return schemas.ActorPlanPeriodShow.model_validate(app)
+
+
+
+
+def replace_comb_loc_possibles(
+        actor_plan_period_id: UUID,
+        person_id: UUID,
+        original_ids: set[UUID],
+        pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+        current_combs: list[schemas.CombinationLocationsPossible],
+) -> dict[str, list[UUID]]:
+    """Ersetzt alle CombLocPossibles des ActorPlanPeriods in einer einzigen Session.
+
+    Wiederverwendungslogik: Existiert in der Person bereits eine nicht-gelöschte
+    CombLocPossible mit gleichem locations_of_work-ID-Set und time_span_between,
+    wird sie übernommen statt neu angelegt.
+    Verwaiste CombLocPossibles (kein Team/Person/APP/AvailDay-Bezug) werden soft-deleted.
+
+    Returns: {'old_comb_ids': [...], 'new_comb_ids': [...]}
+    """
+    log_function_info()
+    with get_session() as session:
+        # Person-CLPs laden für Wiederverwendungs-Check
+        person_clps = session.exec(
+            select(models.CombinationLocationsPossible)
+            .join(models.PersonCombLocLink,
+                  models.PersonCombLocLink.combination_locations_possible_id
+                  == models.CombinationLocationsPossible.id)
+            .where(models.PersonCombLocLink.person_id == person_id)
+            .where(models.CombinationLocationsPossible.prep_delete.is_(None))
+            .options(selectinload(models.CombinationLocationsPossible.locations_of_work))
+        ).all()
+
+        # Index: (frozenset(loc_ids), time_span_between) → CombLocPossible
+        person_clp_index: dict[tuple, models.CombinationLocationsPossible] = {
+            (frozenset(loc.id for loc in clp.locations_of_work), clp.time_span_between): clp
+            for clp in person_clps
+        }
+
+        # Temp-UUID → echte UUID auflösen
+        temp_to_real: dict[UUID, UUID] = {}
+        for temp_id, create_schema in pending_creates:
+            loc_ids = frozenset(loc.id for loc in create_schema.locations_of_work)
+            key = (loc_ids, create_schema.time_span_between)
+            if key in person_clp_index:
+                # Vorhandene CombLocPossible der Person wiederverwenden
+                temp_to_real[temp_id] = person_clp_index[key].id
+            else:
+                # Neue CombLocPossible anlegen
+                new_clp = models.CombinationLocationsPossible(
+                    project=session.get(models.Project, create_schema.project.id),
+                    time_span_between=create_schema.time_span_between)
+                session.add(new_clp)
+                session.flush()
+                for loc in create_schema.locations_of_work:
+                    new_clp.locations_of_work.append(session.get(models.LocationOfWork, loc.id))
+                session.flush()
+                temp_to_real[temp_id] = new_clp.id
+
+        # Finale echte IDs bestimmen
+        final_ids = {temp_to_real.get(c.id, c.id) for c in current_combs}
+
+        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        old_ids = {c.id for c in app.combination_locations_possibles}
+
+        # Assoziationen ersetzen
+        app.combination_locations_possibles = [
+            session.get(models.CombinationLocationsPossible, clp_id)
+            for clp_id in final_ids
+        ]
+        session.flush()
+
+        # Verwaiste CombLocPossibles soft-deleten
+        now = _utcnow()
+        for removed_id in old_ids - final_ids:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()
+
+        return {'old_comb_ids': list(old_ids), 'new_comb_ids': list(final_ids)}
+
+
+def restore_comb_loc_possibles(
+        actor_plan_period_id: UUID,
+        comb_ids_to_restore: list[UUID],
+) -> None:
+    """Undo/Redo-Gegenstück zu replace_comb_loc_possibles: stellt einen früheren Zustand wieder her.
+
+    Reaktiviert evtl. soft-gelöschte CombLocPossibles und setzt
+    die Assoziationen des ActorPlanPeriods auf comb_ids_to_restore.
+    Verwaiste CLPs aus dem aktuellen Zustand werden bereinigt.
+    """
+    log_function_info()
+    with get_session() as session:
+        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        current_ids = {c.id for c in app.combination_locations_possibles}
+        ids_to_restore = set(comb_ids_to_restore)
+
+        # Evtl. soft-gelöschte CLPs reaktivieren
+        for clp_id in ids_to_restore:
+            clp = session.get(models.CombinationLocationsPossible, clp_id)
+            if clp and clp.prep_delete:
+                clp.prep_delete = None
+
+        # Assoziationen ersetzen
+        app.combination_locations_possibles = [
+            session.get(models.CombinationLocationsPossible, clp_id)
+            for clp_id in ids_to_restore
+        ]
+        session.flush()
+
+        # Verwaiste CombLocPossibles soft-deleten
+        now = _utcnow()
+        for removed_id in current_ids - ids_to_restore:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()

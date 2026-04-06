@@ -12,6 +12,45 @@ from database import db_services, schemas
 from commands.command_base_classes import Command
 
 
+class ReplaceCombLocPossibles(Command):
+    """Ersetzt alle CombLocPossibles eines ActorPlanPeriods in einer einzigen Session.
+
+    Wiederverwendungslogik: Existiert in der Person bereits eine CombLocPossible mit
+    gleichem locations_of_work-ID-Set und time_span_between, wird sie übernommen
+    statt neu angelegt. Verwaiste CLPs werden soft-deleted.
+
+    Undo: restore(old_comb_ids)
+    Redo: restore(new_comb_ids) — reaktiviert die beim Execute erstellten CLPs statt neue zu erzeugen.
+    """
+    def __init__(self, actor_plan_period_id: UUID, person_id: UUID,
+                 original_ids: set[UUID],
+                 pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+                 current_combs: list[schemas.CombinationLocationsPossible]):
+        super().__init__()
+        self.actor_plan_period_id = actor_plan_period_id
+        self.person_id = person_id
+        self.original_ids = original_ids
+        self.pending_creates = pending_creates
+        self.current_combs = current_combs
+        self._result: dict[str, list[UUID]] | None = None
+
+    def execute(self):
+        self._result = db_services.ActorPlanPeriod.replace_comb_loc_possibles(
+            self.actor_plan_period_id, self.person_id,
+            self.original_ids, self.pending_creates, self.current_combs,
+        )
+
+    def _undo(self):
+        db_services.ActorPlanPeriod.restore_comb_loc_possibles(
+            self.actor_plan_period_id, self._result['old_comb_ids']
+        )
+
+    def _redo(self):
+        db_services.ActorPlanPeriod.restore_comb_loc_possibles(
+            self.actor_plan_period_id, self._result['new_comb_ids']
+        )
+
+
 class Create(Command):
     def __init__(self, plan_period_id: UUID, person_id: UUID):
         super().__init__()

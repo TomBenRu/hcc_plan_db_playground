@@ -504,8 +504,17 @@ class DlgPersonModify(DlgPersonData):
     def edit_comb_loc_possible(self):
         team_at_date_factory = parent_model_factory = partial(get_curr_team_of_person_at_date, self.person)
 
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, parent_model_factory, team_at_date_factory)
+        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, parent_model_factory,
+                                                               team_at_date_factory)
         if dlg.exec():
+            self.controller.execute(
+                person_commands.ReplaceCombLocPossibles(
+                    person_id=self.person.id,
+                    original_ids=dlg.original_ids,
+                    pending_creates=dlg.pending_creates,
+                    current_combs=list(dlg.curr_model.combination_locations_possibles),
+                )
+            )
             self.person = db_services.Person.get(self.person.id)
 
     def edit_location_prefs(self):

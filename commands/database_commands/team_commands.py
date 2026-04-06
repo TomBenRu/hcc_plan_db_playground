@@ -45,6 +45,37 @@ class RemoveCombLocPossible(Command):
         db_services.Team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
 
+class ReplaceCombLocPossibles(Command):
+    """Ersetzt alle CombLocPossibles eines Teams in einer Session.
+
+    Undo: restore(old_comb_ids) — stellt den alten Zustand wieder her.
+    Redo: restore(new_comb_ids) — reaktiviert die beim Execute erstellten CLPs.
+    """
+
+    def __init__(self, team_id: UUID,
+                 original_ids: set[UUID],
+                 pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+                 current_combs: list[schemas.CombinationLocationsPossible]):
+        super().__init__()
+        self.team_id = team_id
+        self.original_ids = original_ids
+        self.pending_creates = pending_creates
+        self.current_combs = current_combs
+        self._result: dict[str, list[UUID]] | None = None
+
+    def execute(self):
+        self._result = db_services.Team.replace_comb_loc_possibles(
+            self.team_id, self.original_ids, self.pending_creates, self.current_combs)
+
+    def _undo(self):
+        db_services.Team.restore_comb_loc_possibles(
+            self.team_id, self._result['old_comb_ids'])
+
+    def _redo(self):
+        db_services.Team.restore_comb_loc_possibles(
+            self.team_id, self._result['new_comb_ids'])
+
+
 class NewExcelExportSettings(Command):
     def __init__(self, team_id: UUID, excel_settings: schemas.ExcelExportSettingsCreate):
         super().__init__()

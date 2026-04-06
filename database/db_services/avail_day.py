@@ -17,6 +17,7 @@ from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
 from ._eager_loading import avail_day_show_options
+from .combination_locations_possible import is_comb_loc_orphaned
 
 
 def get(avail_day_id: UUID) -> schemas.AvailDayShow:
@@ -322,6 +323,128 @@ def clear_comb_loc_possibles(avail_day_id: UUID) -> schemas.AvailDayShow:
         ad.combination_locations_possibles.clear()
         session.flush()
         return schemas.AvailDayShow.model_validate(ad)
+
+
+def replace_comb_loc_possibles_for_avail_days(
+        avail_day_ids: list[UUID],
+        person_id: UUID,
+        original_ids: set[UUID],
+        pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+        current_combs: list[schemas.CombinationLocationsPossible],
+) -> dict:
+    """Ersetzt CombLocPossibles für alle AvailDays an einem Tag in einer einzigen Session.
+
+    avail_day_ids[0] ist der primäre AvailDay (aus dem Dialog).
+    Alle AvailDays erhalten danach dieselben CLPs.
+    Wiederverwendungslogik: Existiert in der Person bereits eine CombLocPossible mit
+    gleichem locations_of_work-ID-Set und time_span_between, wird sie übernommen.
+    Verwaiste CLPs werden soft-deleted.
+
+    Returns: {'old_comb_ids_per_avail_day': {avd_id: [...]}, 'new_comb_ids': [...]}
+    """
+    log_function_info()
+    with get_session() as session:
+        # Person-CLPs laden für Wiederverwendungs-Check
+        person_clps = session.exec(
+            select(models.CombinationLocationsPossible)
+            .join(models.PersonCombLocLink,
+                  models.PersonCombLocLink.combination_locations_possible_id
+                  == models.CombinationLocationsPossible.id)
+            .where(models.PersonCombLocLink.person_id == person_id)
+            .where(models.CombinationLocationsPossible.prep_delete.is_(None))
+            .options(selectinload(models.CombinationLocationsPossible.locations_of_work))
+        ).all()
+        person_clp_index: dict[tuple, models.CombinationLocationsPossible] = {
+            (frozenset(loc.id for loc in clp.locations_of_work), clp.time_span_between): clp
+            for clp in person_clps
+        }
+
+        # Temp-UUID → echte UUID auflösen
+        temp_to_real: dict[UUID, UUID] = {}
+        for temp_id, create_schema in pending_creates:
+            loc_ids = frozenset(loc.id for loc in create_schema.locations_of_work)
+            key = (loc_ids, create_schema.time_span_between)
+            if key in person_clp_index:
+                temp_to_real[temp_id] = person_clp_index[key].id
+            else:
+                new_clp = models.CombinationLocationsPossible(
+                    project=session.get(models.Project, create_schema.project.id),
+                    time_span_between=create_schema.time_span_between)
+                session.add(new_clp)
+                session.flush()
+                for loc in create_schema.locations_of_work:
+                    new_clp.locations_of_work.append(session.get(models.LocationOfWork, loc.id))
+                session.flush()
+                temp_to_real[temp_id] = new_clp.id
+
+        # Finale echte CLPs ermitteln
+        final_ids = list({temp_to_real.get(c.id, c.id) for c in current_combs})
+        final_clps = [session.get(models.CombinationLocationsPossible, clp_id) for clp_id in final_ids]
+
+        # Alten Zustand pro AvailDay speichern, neuen Zustand setzen
+        old_comb_ids_per_avail_day: dict[UUID, list[UUID]] = {}
+        all_old_ids: set[UUID] = set()
+        for avd_id in avail_day_ids:
+            avd = session.get(models.AvailDay, avd_id)
+            old_comb_ids_per_avail_day[avd_id] = [c.id for c in avd.combination_locations_possibles]
+            all_old_ids.update(c.id for c in avd.combination_locations_possibles)
+            avd.combination_locations_possibles = list(final_clps)
+        session.flush()
+
+        # Verwaiste CLPs soft-deleten
+        now = _utcnow()
+        final_ids_set = set(final_ids)
+        for removed_id in all_old_ids - final_ids_set:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()
+
+        return {
+            'old_comb_ids_per_avail_day': old_comb_ids_per_avail_day,
+            'new_comb_ids': final_ids,
+        }
+
+
+def restore_comb_loc_possibles_for_avail_days(
+        target_ids_per_avail_day: dict[UUID, list[UUID]],
+) -> None:
+    """Undo/Redo-Gegenstück zu replace_comb_loc_possibles_for_avail_days.
+
+    Stellt pro AvailDay den übergebenen Zielzustand wieder her.
+    Reaktiviert soft-gelöschte CLPs und bereinigt neu entstandene Waisen.
+    """
+    log_function_info()
+    with get_session() as session:
+        # Aktuellen Zustand erfassen (für Orphan-Cleanup)
+        current_ids: set[UUID] = set()
+        for avd_id in target_ids_per_avail_day:
+            avd = session.get(models.AvailDay, avd_id)
+            if avd:
+                current_ids.update(c.id for c in avd.combination_locations_possibles)
+
+        # Zielzustand herstellen
+        all_target_ids: set[UUID] = set()
+        for avd_id, comb_ids in target_ids_per_avail_day.items():
+            avd = session.get(models.AvailDay, avd_id)
+            if avd:
+                restore_clps = []
+                for clp_id in comb_ids:
+                    clp = session.get(models.CombinationLocationsPossible, clp_id)
+                    if clp:
+                        clp.prep_delete = None
+                        restore_clps.append(clp)
+                        all_target_ids.add(clp_id)
+                avd.combination_locations_possibles = restore_clps
+        session.flush()
+
+        # Verwaiste CLPs soft-deleten
+        now = _utcnow()
+        for removed_id in current_ids - all_target_ids:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()
 
 
 def put_in_location_pref(avail_day_id: UUID, actor_loc_pref_id: UUID) -> schemas.AvailDayShow:

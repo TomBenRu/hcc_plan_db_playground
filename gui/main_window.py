@@ -650,7 +650,15 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         team = db_services.Team.get(team.id)
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, None)
         dlg.disable_reset_bt()
-        dlg.exec()
+        if dlg.exec():
+            self.controller.execute(
+                team_commands.ReplaceCombLocPossibles(
+                    team_id=team.id,
+                    original_ids=dlg.original_ids,
+                    pending_creates=dlg.pending_creates,
+                    current_combs=list(dlg.curr_model.combination_locations_possibles),
+                )
+            )
 
     def edit_team_excel_export_settings(self, team: schemas.Team):
         team = db_services.Team.get(team.id)

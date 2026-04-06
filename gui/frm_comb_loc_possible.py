@@ -1,13 +1,13 @@
 import datetime
 from typing import Callable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QWidget, QLabel, QPushButton, QGridLayout, QMessageBox, \
     QDialogButtonBox, QCheckBox, QTableWidget, QAbstractItemView, QHeaderView, \
     QVBoxLayout, QGroupBox, QTableWidgetItem, QDateEdit, QFormLayout, QSpinBox
 
-from database import schemas, db_services
+from database import schemas
 from database.schemas import ModelWithCombLocPossible
 from database.special_schema_requests import get_locations_of_team_at_date, get_curr_assignment_of_person
 from database.db_services.location_of_work import get_locations_of_team_between_dates
@@ -95,11 +95,14 @@ class DlgCombLocPossibleEditList(QDialog):
         self.team_at_date_factory = team_at_date_factory
         self.curr_date = curr_date
 
+        # Cache-Pattern: alle Änderungen nur im Speicher, DB-Schreiben erst bei accept()
+        self._original_ids: set[UUID] = {c.id for c in curr_model.combination_locations_possibles
+                                         if not c.prep_delete}
+        self._pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]] = []
+
         self.curr_team: schemas.Team | None = None
         self.parent_model: ModelWithCombLocPossible | None = None
         self.locations_of_work: list[schemas.LocationOfWork] | None = None
-
-        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QGridLayout(self)
 
@@ -144,14 +147,26 @@ class DlgCombLocPossibleEditList(QDialog):
             self.team_selector.teamChanged.connect(self._on_team_changed)
             self.layout.addWidget(self.team_selector, 1, 2)
 
-        # Signal-Connect NACH team_selector Initialisierung und setMinimumDate
-        self.de_date.dateChanged.connect(self._on_date_changed)
-        if isinstance(self.curr_model, schemas.ActorPlanPeriodForMask):
-            self.de_date.setDate(self.curr_date or datetime.date.today())
+        if self.curr_date is not None:
+            # Datum ist vorgegeben: setDate feuert dateChanged → Tabelle wird befüllt, Widget wird gesperrt
+            self.de_date.dateChanged.connect(self._on_date_changed)
+            self.de_date.setDate(self.curr_date)
             self.de_date.setDisabled(True)
         else:
+            self.de_date.dateChanged.connect(self._on_date_changed)
+            self.de_date.setDate(datetime.date.today())
             self.de_date.setMinimumDate(datetime.date.today())
 
+
+    @property
+    def original_ids(self) -> set[UUID]:
+        """IDs die beim Öffnen des Dialogs vorhanden waren — für Diff-Berechnung im Caller."""
+        return self._original_ids
+
+    @property
+    def pending_creates(self) -> list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]]:
+        """Neue CombLocPossibles (Temp-UUID, Create-Schema) die noch nicht in der DB existieren."""
+        return self._pending_creates
 
     def _on_date_changed(self):
         """Wird aufgerufen wenn das Datum geändert wird."""
@@ -265,33 +280,34 @@ class DlgCombLocPossibleEditList(QDialog):
                                  self.tr('You must select at least 2 facilities.'))
             return
         if dlg.comb_location_ids not in curr_model_c_l_p_ids:
-            locations_work = [db_services.LocationOfWork.get(loc_id) for loc_id in dlg.comb_location_ids]
-            time_span_between = dlg.time_span_between
-            comb_to_create = schemas.CombinationLocationsPossibleCreate(project=self.curr_team.project,
-                                                                        locations_of_work=locations_work,
-                                                                        time_span_between=time_span_between)
-            create_command = comb_loc_possible_commands.Create(comb_to_create)
-            self.controller.execute(create_command)
-            created_comb_loc_poss = create_command.created_comb_loc_poss
-            command_to_put_in_combination = self.factory_for_put_in_combs(self.curr_model, created_comb_loc_poss.id)
-            self.controller.execute(command_to_put_in_combination)
-            self.curr_model.combination_locations_possibles.append(created_comb_loc_poss)
+            # Locations aus self.locations_of_work — kein DB-Call nötig
+            locations_work = [loc for loc in self.locations_of_work if loc.id in dlg.comb_location_ids]
+            comb_to_create = schemas.CombinationLocationsPossibleCreate(
+                project=self.curr_team.project,
+                locations_of_work=locations_work,
+                time_span_between=dlg.time_span_between)
 
+            # Temp-UUID für In-Memory-Darstellung; echter DB-Write erst bei accept()
+            temp_id = uuid4()
+            self._pending_creates.append((temp_id, comb_to_create))
+            self.curr_model.combination_locations_possibles.append(
+                schemas.CombinationLocationsPossible(
+                    id=temp_id,
+                    project=comb_to_create.project,
+                    locations_of_work=comb_to_create.locations_of_work,
+                    time_span_between=comb_to_create.time_span_between,
+                    prep_delete=None))
             self.fill_table_combinations()
 
     def reset(self):
         if not self.parent_model:
             return
-        for c in self.curr_model.combination_locations_possibles:
-            remove_command = self.factory_for_remove_combs(self.curr_model, c.id)
-            self.controller.execute(remove_command)
+        self._pending_creates.clear()
         self.curr_model.combination_locations_possibles.clear()
-        for c in [comb for comb in self.parent_model.combination_locations_possibles
-                  if (not comb.prep_delete) or (comb.prep_delete > self.de_date.date().toPython())]:
-            put_in_command = self.factory_for_put_in_combs(self.curr_model, c.id)
-            self.controller.execute(put_in_command)
-        self.curr_model.combination_locations_possibles.extend(self.parent_model.combination_locations_possibles)
-
+        date = self.de_date.date().toPython()
+        valid_parent_combs = [c for c in self.parent_model.combination_locations_possibles
+                              if (not c.prep_delete) or (c.prep_delete > date)]
+        self.curr_model.combination_locations_possibles.extend(valid_parent_combs)
         self.fill_table_combinations()
 
     def delete(self):
@@ -300,18 +316,41 @@ class DlgCombLocPossibleEditList(QDialog):
                                  self.tr('You must first select a row.'))
             return
         comb_id_to_remove = UUID(self.table_combinations.item(self.table_combinations.currentRow(), 0).text())
-        remove_command = self.factory_for_remove_combs(self.curr_model, comb_id_to_remove)
-        self.controller.execute(remove_command)
-        self.curr_model.combination_locations_possibles = [c for c in self.curr_model.combination_locations_possibles
-                                                           if c.id != comb_id_to_remove]
+        self._pending_creates = [(t, c) for t, c in self._pending_creates if t != comb_id_to_remove]
+        self.curr_model.combination_locations_possibles = [
+            c for c in self.curr_model.combination_locations_possibles if c.id != comb_id_to_remove]
         self.fill_table_combinations()
 
     def accept(self) -> None:
+        # Kein DB-Write hier — Caller führt jeweils den passenden Bulk-Command aus.
+        caller_handles_db = (schemas.ActorPlanPeriodForMask, schemas.AvailDayForMask,
+                              schemas.PersonShow, schemas.TeamShow)
+        if not isinstance(self.curr_model, caller_handles_db):
+            controller = command_base_classes.ContrExecUndoRedo()
+
+            # 1. Neue CombLocPossibles anlegen und Temp-IDs auf echte IDs abbilden
+            temp_to_real: dict[UUID, UUID] = {}
+            for temp_id, comb_to_create in self._pending_creates:
+                create_cmd = comb_loc_possible_commands.Create(comb_to_create)
+                controller.execute(create_cmd)
+                temp_to_real[temp_id] = create_cmd.created_comb_loc_poss.id
+
+            # 2. Finale echte IDs bestimmen
+            current_ids = {temp_to_real.get(c.id, c.id)
+                           for c in self.curr_model.combination_locations_possibles}
+
+            # 3. Entfernte Assoziationen löschen
+            for removed_id in self._original_ids - current_ids:
+                controller.execute(self.factory_for_remove_combs(self.curr_model, removed_id))
+
+            # 4. Neue Assoziationen eintragen
+            for added_id in current_ids - self._original_ids:
+                controller.execute(self.factory_for_put_in_combs(self.curr_model, added_id))
+
         super().accept()
 
     def reject(self) -> None:
-        self.controller.undo_all()
-        super().reject()
+        super().reject()  # Kein Undo nötig — kein DB-Write während des Dialogs
 
     def factory_for_put_in_combs(self, curr_model: ModelWithCombLocPossible,
                                  comb_to_put_i_id: UUID) -> command_base_classes.Command:

@@ -21,6 +21,7 @@ from ..models import _utcnow
 from ..enums import Gender
 from ._common import log_function_info
 from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options
+from .combination_locations_possible import is_comb_loc_orphaned
 
 
 def get(person_id: UUID) -> schemas.PersonShow:
@@ -252,6 +253,81 @@ def remove_comb_loc_possible(person_id: UUID, comb_loc_possible_id: UUID) -> sch
             session.get(models.CombinationLocationsPossible, comb_loc_possible_id))
         session.flush()
         return schemas.PersonShow.model_validate(person_db)
+
+
+def replace_comb_loc_possibles(
+        person_id: UUID,
+        original_ids: set[UUID],
+        pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+        current_combs: list[schemas.CombinationLocationsPossible],
+) -> dict[str, list[UUID]]:
+    """Ersetzt alle CombLocPossibles einer Person in einer einzigen Session.
+
+    Neue CLPs werden aus pending_creates angelegt. Verwaiste CLPs werden soft-deleted.
+    Returns: {'old_comb_ids': [...], 'new_comb_ids': [...]}
+    """
+    log_function_info()
+    with get_session() as session:
+        person_db = session.get(models.Person, person_id)
+        old_ids = {c.id for c in person_db.combination_locations_possibles}
+
+        # Neue CLPs anlegen und Temp-IDs auflösen
+        temp_to_real: dict[UUID, UUID] = {}
+        for temp_id, create_schema in pending_creates:
+            new_clp = models.CombinationLocationsPossible(
+                project=session.get(models.Project, create_schema.project.id),
+                time_span_between=create_schema.time_span_between)
+            session.add(new_clp)
+            session.flush()
+            for loc in create_schema.locations_of_work:
+                new_clp.locations_of_work.append(session.get(models.LocationOfWork, loc.id))
+            session.flush()
+            temp_to_real[temp_id] = new_clp.id
+
+        # Finale echte IDs bestimmen und Assoziationen ersetzen
+        final_ids = {temp_to_real.get(c.id, c.id) for c in current_combs}
+        person_db.combination_locations_possibles = [
+            session.get(models.CombinationLocationsPossible, clp_id) for clp_id in final_ids]
+        session.flush()
+
+        # Verwaiste CLPs soft-deleten
+        now = _utcnow()
+        for removed_id in old_ids - final_ids:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()
+
+        return {'old_comb_ids': list(old_ids), 'new_comb_ids': list(final_ids)}
+
+
+def restore_comb_loc_possibles(
+        person_id: UUID,
+        comb_ids_to_restore: list[UUID],
+) -> None:
+    """Undo/Redo-Gegenstück zu replace_comb_loc_possibles für Person."""
+    log_function_info()
+    with get_session() as session:
+        person_db = session.get(models.Person, person_id)
+        current_ids = {c.id for c in person_db.combination_locations_possibles}
+        ids_to_restore = set(comb_ids_to_restore)
+
+        for clp_id in ids_to_restore:
+            clp = session.get(models.CombinationLocationsPossible, clp_id)
+            if clp and clp.prep_delete:
+                clp.prep_delete = None
+
+        person_db.combination_locations_possibles = [
+            session.get(models.CombinationLocationsPossible, clp_id)
+            for clp_id in ids_to_restore]
+        session.flush()
+
+        now = _utcnow()
+        for removed_id in current_ids - ids_to_restore:
+            clp = session.get(models.CombinationLocationsPossible, removed_id)
+            if clp and not clp.prep_delete and is_comb_loc_orphaned(session, removed_id):
+                clp.prep_delete = now
+        session.flush()
 
 
 def put_in_location_pref(person_id: UUID, actor_loc_pref_id: UUID) -> schemas.PersonShow:

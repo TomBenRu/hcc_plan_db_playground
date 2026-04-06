@@ -201,9 +201,11 @@ class ButtonLocationCombinations(BaseConfigButton):
     """
 
     def __init__(self, parent, date: datetime.date, width_height: int,
-                 actor_plan_period: schemas.ActorPlanPeriodForMask):
-        # Eigenes Attribut vor super().__init__() setzen
+                 actor_plan_period: schemas.ActorPlanPeriodForMask,
+                 controller: command_base_classes.ContrExecUndoRedo):
+        # Eigene Attribute vor super().__init__() setzen
         self.person: schemas.PersonShow | None = None
+        self.controller = controller
 
         super().__init__(parent, date, width_height, actor_plan_period)
         self.setObjectName(f'comb_loc_poss: {date}')
@@ -287,24 +289,24 @@ class ButtonLocationCombinations(BaseConfigButton):
         team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.get_person())
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(
-            self, avail_days_at_date[0], parent_model_factory, team_at_date_factory)
-        dlg.de_date.setDate(self.date)
-        dlg.de_date.setDisabled(True)
+            self, avail_days_at_date[0], parent_model_factory, team_at_date_factory,
+            curr_date=self.date)
         if dlg.exec():
             plan_period = self.actor_plan_period.plan_period
             if not warn_and_clear_undo_redo_if_plans_open(
                 self, plan_period.id, plan_period.start, plan_period.end
             ):
-                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+                return
 
-            # avail_days_at_date[0].combination_locations_possibles wurden geändert.
-            # nun werden die combination_locations_possibles der übrigen avail_days an diesem Tag angepasst
-            avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
-            for avd in avail_days_at_date[1:]:
-                for comb in avd.combination_locations_possibles:
-                    db_services.AvailDay.remove_comb_loc_possible(avd.id, comb.id)
-                for comb_new in avail_days_at_date[0].combination_locations_possibles:
-                    db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_new.id)
+            self.controller.execute(
+                avail_day_commands.ReplaceAvailDayCombLocPossibles(
+                    avail_day_ids=[avd.id for avd in avail_days_at_date],
+                    person_id=self.actor_plan_period.person.id,
+                    original_ids=dlg.original_ids,
+                    pending_creates=dlg.pending_creates,
+                    current_combs=list(dlg.curr_model.combination_locations_possibles),
+                )
+            )
 
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
             self.refresh()
@@ -1063,6 +1065,7 @@ class FrmActorPlanPeriod(QWidget):
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.controller_avail_days = command_base_classes.ContrExecUndoRedo()
         self.controller_actor_loc_prefs = command_base_classes.ContrExecUndoRedo()
+        self.controller_comb_loc_possibles = command_base_classes.ContrExecUndoRedo()
         self.actor_plan_period = actor_plan_period
         self.team = team
         self.t_o_d_standards: list[schemas.TimeOfDay] = []
@@ -1273,7 +1276,8 @@ class FrmActorPlanPeriod(QWidget):
                 lb_weekday.setStyleSheet(
                     f'background-color: rgba{widget_styles.labels.check_field_weekend_color_rgba_string};')
             self.layout.addWidget(lb_weekday, row + 1, col)
-            bt_comb_loc_poss = ButtonLocationCombinations(self, d, 24, self.actor_plan_period)
+            bt_comb_loc_poss = ButtonLocationCombinations(self, d, 24, self.actor_plan_period,
+                                                           self.controller_comb_loc_possibles)
             bt_comb_loc_poss.setDisabled(disable_buttons)
             self.layout.addWidget(bt_comb_loc_poss, row + 2, col)
             bt_loc_prefs = ButtonLocationPreferences(self, d, 24, self.actor_plan_period, team)
@@ -1497,6 +1501,15 @@ class FrmActorPlanPeriod(QWidget):
                                                                self.actor_plan_period.plan_period.start)
 
         if dlg.exec():
+            self.controller_comb_loc_possibles.execute(
+                actor_plan_period_commands.ReplaceCombLocPossibles(
+                    actor_plan_period_id=self.actor_plan_period.id,
+                    person_id=self.actor_plan_period.person.id,
+                    original_ids=dlg.original_ids,
+                    pending_creates=dlg.pending_creates,
+                    current_combs=dlg.curr_model.combination_locations_possibles,
+                )
+            )
             self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
             self.set_instance_variables()
             signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)

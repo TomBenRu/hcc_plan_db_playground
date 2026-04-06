@@ -48,6 +48,32 @@ def undelete(comb_loc_poss_id: UUID) -> schemas.CombinationLocationsPossibleShow
         return schemas.CombinationLocationsPossibleShow.model_validate(obj)
 
 
+def is_comb_loc_orphaned(session, clp_id: UUID) -> bool:
+    """Gibt True zurück wenn keine Person, kein ActorPlanPeriod, kein AvailDay und kein Team
+    die CombinationLocationsPossible noch referenziert.
+    Muss innerhalb einer offenen Session aufgerufen werden."""
+    if session.exec(
+        select(models.PersonCombLocLink.person_id)
+        .where(models.PersonCombLocLink.combination_locations_possible_id == clp_id)
+        .limit(1)
+    ).first():
+        return False
+    if session.exec(
+        select(models.ActorPlanPeriodCombLocLink.actor_plan_period_id)
+        .where(models.ActorPlanPeriodCombLocLink.combination_locations_possible_id == clp_id)
+        .limit(1)
+    ).first():
+        return False
+    if session.exec(
+        select(models.AvailDayCombLocLink.avail_day_id)
+        .where(models.AvailDayCombLocLink.combination_locations_possible_id == clp_id)
+        .limit(1)
+    ).first():
+        return False
+    clp = session.get(models.CombinationLocationsPossible, clp_id)
+    return clp is not None and clp.team_id is None
+
+
 def get_comb_loc_poss_ids_per_avail_day_of_actor_plan_period(actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
     with get_session() as session:
         app = session.get(models.ActorPlanPeriod, actor_plan_period_id)

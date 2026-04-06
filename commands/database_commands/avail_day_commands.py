@@ -329,6 +329,40 @@ class ResetAllAvailDaysActorLocationPrefsToDefaults(Command):
             self.actor_plan_period_id)
 
 
+class ReplaceAvailDayCombLocPossibles(Command):
+    """Ersetzt CombLocPossibles für alle AvailDays an einem Tag in einer Session.
+
+    avail_day_ids[0] ist der primäre AvailDay (aus dem Dialog), alle anderen werden synchronisiert.
+    Undo: restore(old_comb_ids_per_avail_day) — stellt pro AvailDay den alten Zustand wieder her.
+    Redo: restore({avd_id: new_comb_ids}) — setzt alle AvailDays auf den neuen Zustand.
+    """
+
+    def __init__(self, avail_day_ids: list[UUID], person_id: UUID,
+                 original_ids: set[UUID],
+                 pending_creates: list[tuple[UUID, schemas.CombinationLocationsPossibleCreate]],
+                 current_combs: list[schemas.CombinationLocationsPossible]):
+        super().__init__()
+        self.avail_day_ids = avail_day_ids
+        self.person_id = person_id
+        self.original_ids = original_ids
+        self.pending_creates = pending_creates
+        self.current_combs = current_combs
+        self._result: dict | None = None
+
+    def execute(self):
+        self._result = db_services.AvailDay.replace_comb_loc_possibles_for_avail_days(
+            self.avail_day_ids, self.person_id,
+            self.original_ids, self.pending_creates, self.current_combs)
+
+    def _undo(self):
+        db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(
+            self._result['old_comb_ids_per_avail_day'])
+
+    def _redo(self):
+        redo_target = {avd_id: self._result['new_comb_ids'] for avd_id in self.avail_day_ids}
+        db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(redo_target)
+
+
 class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):
     """Setzt CombLocPossibles aller AvailDays einer ActorPlanPeriod auf Defaults zurück."""
 

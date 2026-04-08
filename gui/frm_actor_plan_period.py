@@ -13,7 +13,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QAbstractItemView, QTableWidgetItem, QLabel, \
     QHBoxLayout, QPushButton, QHeaderView, QSplitter, QGridLayout, QMessageBox, QScrollArea, QTextEdit, \
     QMenu, QApplication
-from line_profiler import profile
 from pydantic_core._pydantic_core import ValidationError
 
 from database import schemas, db_services, schemas_plan_api
@@ -27,7 +26,8 @@ from gui.custom_widgets import side_menu, BaseConfigButton
 from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import actor_plan_period_commands, avail_day_commands, actor_loc_pref_commands
+from commands.database_commands import (actor_plan_period_commands, avail_day_commands,
+                                        actor_loc_pref_commands, actor_partner_loc_pref_commands)
 from gui.observer import signal_handling
 from tools.helper_functions import date_to_string, time_to_string, setup_form_help, warn_and_clear_undo_redo_if_plans_open
 
@@ -423,35 +423,6 @@ class ButtonLocationPreferences(BaseConfigButton):
         dlg.de_date.setDisabled(True)
         if not dlg.exec():
             return
-        for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs:
-                if dlg.loc_id__prefs[loc_id].score == score:
-                    continue
-                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                curr_loc_pref.score = score
-                db_services.AvailDay.remove_location_pref(avail_days_at_date[0].id, curr_loc_pref.id)
-                if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
-                    created_pref = db_services.ActorLocationPref.create(new_pref)
-                    db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
-            else:
-                if score == 1:
-                    continue
-                person = self.actor_plan_period.person
-                location = dlg.location_id__location[loc_id]
-                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=person, location_of_work=location)
-                created_pref = db_services.ActorLocationPref.create(new_loc_pref)
-                db_services.AvailDay.put_in_location_pref(avail_days_at_date[0].id, created_pref.id)
-
-        # avail_days_at_date[0].actor_location_prefs_defaults wurden geändert.
-        # nun werden die actor_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst
-        avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
-        for avd in avail_days_at_date[1:]:
-            for pref in avd.actor_location_prefs_defaults:
-                db_services.AvailDay.remove_location_pref(avd.id, pref.id)
-            for pref_new in avail_days_at_date[0].actor_location_prefs_defaults:
-                if not pref_new.prep_delete:
-                    db_services.AvailDay.put_in_location_pref(avd.id, pref_new.id)
 
         plan_period = self.actor_plan_period.plan_period
         if not warn_and_clear_undo_redo_if_plans_open(
@@ -459,10 +430,18 @@ class ButtonLocationPreferences(BaseConfigButton):
         ):
             return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
 
-        db_services.ActorLocationPref.delete_unused(self.actor_plan_period.project.id)
-        self.refresh()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+        self.controller.execute(
+            avail_day_commands.ReplaceAvailDayLocationPrefs(
+                avail_day_ids=[avd.id for avd in avail_days_at_date],
+                person_id=self.actor_plan_period.person.id,
+                project_id=self.actor_plan_period.project.id,
+                location_id_to_score=dlg.loc_id__results,
+            )
+        )
+
+        new_actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+        self.refresh(signal_handling.DataActorPPWithDate(new_actor_plan_period, self.date))
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period.id)
 
 
 class ButtonPartnerPreferences(BaseConfigButton):
@@ -576,7 +555,6 @@ class ButtonPartnerPreferences(BaseConfigButton):
             return
 
         person = db_services.Person.get(self.actor_plan_period.person.id)
-
         team_at_date_factory = lambda date: self.actor_plan_period.team
 
         dlg = frm_partner_location_prefs.DlgPartnerLocationPrefs(
@@ -590,23 +568,19 @@ class ButtonPartnerPreferences(BaseConfigButton):
         if not warn_and_clear_undo_redo_if_plans_open(
             self, plan_period.id, plan_period.start, plan_period.end
         ):
-            return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+            return
 
-        # avail_days_at_date[0].actor_partner_location_prefs_defaults wurden geändert.
-        # nun werden die actor_partner_location_prefs_defaults der übrigen avail_days an diesem Tag angepasst
-        avail_days_at_date[0] = db_services.AvailDay.get(avail_days_at_date[0].id)
-        new_pref_ids = [p.id for p in avail_days_at_date[0].actor_partner_location_prefs_defaults
-                        if not p.prep_delete]
-        for avd in avail_days_at_date[1:]:
-            remove_command = avail_day_commands.ClearActorPartnerLocationPrefs(
-                avd.id, [p.id for p in avd.actor_partner_location_prefs_defaults])
-            add_command = avail_day_commands.PutInActorPartnerLocationPrefs(avd.id, new_pref_ids)
-            batch_command = command_base_classes.BatchCommand(self, [remove_command, add_command])
-            self.controller.execute(batch_command)
+        self.controller.execute(
+            avail_day_commands.ReplacePartnerPrefsForAvailDays(
+                avail_day_ids=[avd.id for avd in avail_days_at_date],
+                person_id=self.actor_plan_period.person.id,
+                new_prefs=dlg.new_prefs,
+            )
+        )
 
-        self.refresh()
-        signal_handling.handler_actor_plan_period.reload_actor_pp__frm_actor_plan_period()
-        signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
+        new_actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+        self.refresh(signal_handling.DataActorPPWithDate(new_actor_plan_period, self.date))
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period.id)
 
 
 class ButtonSkills(BaseConfigButton):
@@ -1679,19 +1653,28 @@ class FrmActorPlanPeriod(QWidget):
             self, person, self.actor_plan_period, person, team_at_date_factory)
         dlg.de_date.setDate(self.actor_plan_period.plan_period.start)
         dlg.de_date.setDisabled(True)
-        if dlg.exec():
-            # Warnung für Undo/Redo NACH Dialog
-            plan_period = self.actor_plan_period.plan_period
-            if not warn_and_clear_undo_redo_if_plans_open(
-                self, plan_period.id, plan_period.start, plan_period.end
-            ):
-                return  # Dialog wurde bereits geschlossen, Änderungen sind in DB
+        if not dlg.exec():
+            return
 
-            self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
-            signal_handling.handler_plan_tabs.invalidate_entities_cache(self.actor_plan_period.plan_period.id)
-            data = signal_handling.DataActorPPWithDate(self.actor_plan_period)
-            for button in self.findChildren(ButtonPartnerPreferences):
-                button.refresh(data)
+        plan_period = self.actor_plan_period.plan_period
+        if not warn_and_clear_undo_redo_if_plans_open(
+            self, plan_period.id, plan_period.start, plan_period.end
+        ):
+            return
+
+        self.controller_actor_loc_prefs.execute(
+            actor_partner_loc_pref_commands.ReplaceAll(
+                model_class_name=self.actor_plan_period.__class__.__name__,
+                model_id=self.actor_plan_period.id,
+                person_id=person.id,
+                new_prefs=dlg.new_prefs,
+            )
+        )
+        self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+        signal_handling.handler_plan_tabs.invalidate_entities_cache(plan_period.id)
+        data = signal_handling.DataActorPPWithDate(self.actor_plan_period)
+        for button in self.findChildren(ButtonPartnerPreferences):
+            button.refresh(data)
 
     def reset_all_partner_loc_prefs(self, e):
         """Setzt actor_partner_location_prefs aller AvailDays in dieser Planperiode auf die Werte der Planperiode zurück."""

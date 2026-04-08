@@ -368,16 +368,13 @@ class DlgPartnerLocationPrefs(QDialog):
             self.move(self.screen_geometry.center() - self.rect().center())
         super().resizeEvent(event)
 
+    @property
+    def new_prefs(self) -> list[tuple[UUID, UUID, float]]:
+        """Gibt die gesetzten Präferenzen als Liste von (partner_id, location_id, score)-Tupeln zurück."""
+        return [(partner_id, location_id, score)
+                for (partner_id, location_id), score in self._score_cache.items()]
+
     def accept(self) -> None:
-        self.controller = command_base_classes.ContrExecUndoRedo()
-        new_prefs = [(partner_id, location_id, score)
-                     for (partner_id, location_id), score in self._score_cache.items()]
-        cmd = actor_partner_loc_pref_commands.ReplaceAll(
-            model_class_name=self.curr_model.__class__.__name__,
-            model_id=self.curr_model.id,
-            person_id=self.person.id,
-            new_prefs=new_prefs)
-        self.controller.execute(cmd)
         super().accept()
 
     def reject(self) -> None:

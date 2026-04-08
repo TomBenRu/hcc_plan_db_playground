@@ -281,6 +281,38 @@ class ClearActorPartnerLocationPrefs(Command):
         db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
 
 
+class ReplacePartnerPrefsForAvailDays(Command):
+    """Ersetzt alle Partner-Prefs für alle AvailDays an einem Tag in einer Session.
+
+    Analog zu ReplaceAvailDayLocationPrefs, aber für Partner-Präferenzen.
+    Undo: stellt pro AvailDay den alten Zustand wieder her.
+    Redo: führt den Replace erneut aus.
+    """
+
+    def __init__(self, avail_day_ids: list[UUID], person_id: UUID,
+                 new_prefs: list[tuple[UUID, UUID, float]]):
+        super().__init__()
+        self.avail_day_ids = avail_day_ids
+        self.person_id = person_id
+        self.new_prefs = new_prefs
+        self._created_ids: list[UUID] = []
+        self._old_pref_ids_per_avail_day: dict[UUID, list[UUID]] = {}
+
+    def execute(self):
+        self._created_ids, self._old_pref_ids_per_avail_day = (
+            db_services.ActorPartnerLocationPref.replace_all_for_avail_days(
+                self.avail_day_ids, self.person_id, self.new_prefs))
+
+    def _undo(self):
+        db_services.ActorPartnerLocationPref.undo_replace_all_for_avail_days(
+            self.avail_day_ids, self._created_ids, self._old_pref_ids_per_avail_day)
+
+    def _redo(self):
+        self._created_ids, self._old_pref_ids_per_avail_day = (
+            db_services.ActorPartnerLocationPref.replace_all_for_avail_days(
+                self.avail_day_ids, self.person_id, self.new_prefs))
+
+
 class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
     def __init__(self, actor_plan_period_id: UUID):
         super().__init__()
@@ -361,6 +393,36 @@ class ReplaceAvailDayCombLocPossibles(Command):
     def _redo(self):
         redo_target = {avd_id: self._result['new_comb_ids'] for avd_id in self.avail_day_ids}
         db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(redo_target)
+
+
+class ReplaceAvailDayLocationPrefs(Command):
+    """Ersetzt Location-Prefs für alle AvailDays an einem Tag in einer Session.
+
+    Analog zu ReplaceAvailDayCombLocPossibles.
+    Undo: restore(old_pref_ids_per_avail_day) — stellt pro AvailDay den alten Zustand wieder her.
+    Redo: restore({avd_id: new_pref_ids}) — setzt alle AvailDays auf den neuen Zustand.
+    """
+
+    def __init__(self, avail_day_ids: list[UUID], person_id: UUID, project_id: UUID,
+                 location_id_to_score: dict[UUID, float]):
+        super().__init__()
+        self.avail_day_ids = avail_day_ids
+        self.person_id = person_id
+        self.project_id = project_id
+        self.location_id_to_score = location_id_to_score
+        self._result: dict | None = None
+
+    def execute(self):
+        self._result = db_services.AvailDay.replace_location_prefs_for_avail_days(
+            self.avail_day_ids, self.person_id, self.project_id, self.location_id_to_score)
+
+    def _undo(self):
+        db_services.AvailDay.restore_location_prefs_for_avail_days(
+            self._result['old_pref_ids_per_avail_day'])
+
+    def _redo(self):
+        redo_target = {avd_id: self._result['new_pref_ids'] for avd_id in self.avail_day_ids}
+        db_services.AvailDay.restore_location_prefs_for_avail_days(redo_target)
 
 
 class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):

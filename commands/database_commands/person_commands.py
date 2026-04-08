@@ -217,6 +217,35 @@ class RemoveActorLocationPref(Command):
         db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
 
 
+class UpdateLocationPrefsBulk(Command):
+    """Ersetzt alle Location-Präferenzen einer Person in einer Session.
+
+    Analog zu ActorPlanPeriod.UpdateLocationPrefsBulk, aber für die Person-Default-
+    Verknüpfung. Wiederverwendungslogik identisch.
+    """
+    def __init__(self, person_id: UUID, project_id: UUID, location_id_to_score: dict[UUID, float]):
+        super().__init__()
+        self.person_id = person_id
+        self.project_id = project_id
+        self.location_id_to_score = location_id_to_score
+        self._result: dict[str, list[UUID]] | None = None
+
+    def execute(self):
+        self._result = db_services.Person.update_location_prefs_bulk(
+            self.person_id, self.project_id, self.location_id_to_score
+        )
+
+    def _undo(self):
+        db_services.Person.restore_location_prefs_bulk(
+            self.person_id, self._result['old_pref_ids']
+        )
+
+    def _redo(self):
+        self._result = db_services.Person.update_location_prefs_bulk(
+            self.person_id, self.project_id, self.location_id_to_score
+        )
+
+
 class PutInActorPartnerLocationPref(Command):
     def __init__(self, person_id: UUID, actor_partner_loc_pref_id: UUID):
         super().__init__()

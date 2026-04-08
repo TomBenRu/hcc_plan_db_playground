@@ -19,8 +19,8 @@ from database.special_schema_requests import get_curr_team_of_person_at_date, \
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
     frm_assign_to_team, frm_skills, frm_team_assignments
 from commands import command_base_classes
-from commands.database_commands import person_commands, location_of_work_commands, actor_loc_pref_commands, \
-    location_plan_period_commands, event_group_commands, address_commands
+from commands.database_commands import person_commands, location_of_work_commands, \
+    location_plan_period_commands, event_group_commands, address_commands, actor_partner_loc_pref_commands
 from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
@@ -524,32 +524,11 @@ class DlgPersonModify(DlgPersonData):
         dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, team_at_date_factory)
         if not dlg.exec():
             return
-        for loc_id, score in dlg.loc_id__results.items():
-            if loc_id in dlg.loc_id__prefs:
-                if dlg.loc_id__prefs[loc_id].score == score:
-                    continue
-                curr_loc_pref: schemas.ActorLocationPref = dlg.loc_id__prefs[loc_id]
-                curr_loc_pref.score = score
-                self.controller.execute(person_commands.RemoveActorLocationPref(self.person.id, curr_loc_pref.id))
-                if score != 1:
-                    new_pref = schemas.ActorLocationPrefCreate(**curr_loc_pref.model_dump())
-                    create_command = actor_loc_pref_commands.Create(new_pref)
-                    self.controller.execute(create_command)
-                    created_pref_id = create_command.get_created_actor_loc_pref()
-
-                    self.controller.execute(person_commands.PutInActorLocationPref(self.person.id, created_pref_id))
-            else:
-                if score == 1:
-                    continue
-                location = dlg.location_id__location[loc_id]
-                new_loc_pref = schemas.ActorLocationPrefCreate(score=score, person=self.person,
-                                                               location_of_work=location)
-                create_command = actor_loc_pref_commands.Create(new_loc_pref)
-                self.controller.execute(create_command)
-                created_pref_id = create_command.get_created_actor_loc_pref()
-                self.controller.execute(person_commands.PutInActorLocationPref(self.person.id, created_pref_id))
-
-        self.controller.execute(actor_loc_pref_commands.DeleteUnused(self.person.project.id))
+        self.controller.execute(
+            person_commands.UpdateLocationPrefsBulk(
+                self.person.id, self.person.project.id, dlg.loc_id__results
+            )
+        )
         self.person = db_services.Person.get(self.person.id)
 
     def edit_partner_location_prefs(self):
@@ -566,7 +545,14 @@ class DlgPersonModify(DlgPersonData):
                                                                  team_at_date_factory)
         if not dlg.exec():
             return
-        self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
+        self.controller.execute(
+            actor_partner_loc_pref_commands.ReplaceAll(
+                model_class_name=self.person.__class__.__name__,
+                model_id=self.person.id,
+                person_id=self.person.id,
+                new_prefs=dlg.new_prefs,
+            )
+        )
         self.person = db_services.Person.get(self.person.id)
 
     def select_skills(self):

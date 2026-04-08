@@ -199,6 +199,113 @@ def undo_replace_all_for_model(
         session.flush()
 
 
+def replace_all_for_avail_days(
+    avail_day_ids: list[UUID],
+    person_id: UUID,
+    new_prefs: list[tuple[UUID, UUID, float]],
+) -> tuple[list[UUID], dict[UUID, list[UUID]]]:
+    """Ersetzt alle APL-Verknüpfungen für mehrere AvailDays in einer einzigen Session.
+
+    Analog zu replace_all_for_model, aber für mehrere AvailDays gleichzeitig.
+    Wiederverwendungslogik: Existiert bereits eine nicht-gelöschte APL der Person
+    mit identischem (partner, location, score)-Tripel, wird sie übernommen.
+
+    Returns: (created_ids, old_pref_ids_per_avail_day) — für Undo-Support.
+    """
+    log_function_info()
+    with get_session() as session:
+        existing_person_prefs = session.exec(
+            select(models.ActorPartnerLocationPref)
+            .where(models.ActorPartnerLocationPref.person_id == person_id)
+            .where(models.ActorPartnerLocationPref.prep_delete == None)
+        ).all()
+        pref_index: dict[tuple[UUID, UUID, float], models.ActorPartnerLocationPref] = {
+            (p.partner_id, p.location_of_work_id, p.score): p for p in existing_person_prefs
+        }
+
+        # Alten Zustand sichern, AvailDays leeren
+        old_pref_ids_per_avail_day: dict[UUID, list[UUID]] = {}
+        all_old_apls: list[models.ActorPartnerLocationPref] = []
+        avail_day_objs: list[models.AvailDay] = []
+        for avd_id in avail_day_ids:
+            avd = session.get(models.AvailDay, avd_id)
+            old_pref_ids_per_avail_day[avd_id] = [
+                a.id for a in avd.actor_partner_location_prefs_defaults if a.prep_delete is None]
+            all_old_apls.extend(
+                a for a in avd.actor_partner_location_prefs_defaults if a.prep_delete is None)
+            avd.actor_partner_location_prefs_defaults.clear()
+            avail_day_objs.append(avd)
+        session.flush()
+
+        # Verwaiste APLs soft-löschen
+        new_pref_keys = {(partner_id, location_id, score) for partner_id, location_id, score in new_prefs}
+        now = _utcnow()
+        for apl in all_old_apls:
+            key = (apl.partner_id, apl.location_of_work_id, apl.score)
+            if key not in new_pref_keys:
+                if (apl.person_default is None
+                        and not apl.actor_plan_periods_defaults
+                        and not apl.avail_days_defaults):
+                    apl.prep_delete = now
+
+        # Neue Prefs erstellen/wiederverwenden
+        new_apl_objects: list[models.ActorPartnerLocationPref] = []
+        new_ids: list[UUID] = []
+        for partner_id, location_id, score in new_prefs:
+            key = (partner_id, location_id, score)
+            if key in pref_index:
+                apl = pref_index[key]
+                apl.prep_delete = None
+                new_apl_objects.append(apl)
+            else:
+                new_apl = models.ActorPartnerLocationPref(
+                    score=score,
+                    person=session.get(models.Person, person_id),
+                    partner=session.get(models.Person, partner_id),
+                    location_of_work=session.get(models.LocationOfWork, location_id))
+                session.add(new_apl)
+                session.flush()
+                new_ids.append(new_apl.id)
+                new_apl_objects.append(new_apl)
+
+        # Alle AvailDays auf neue Prefs setzen
+        for avd in avail_day_objs:
+            avd.actor_partner_location_prefs_defaults = list(new_apl_objects)
+        session.flush()
+
+        return new_ids, old_pref_ids_per_avail_day
+
+
+def undo_replace_all_for_avail_days(
+    avail_day_ids: list[UUID],
+    created_ids: list[UUID],
+    old_pref_ids_per_avail_day: dict[UUID, list[UUID]],
+) -> None:
+    """Undo-Gegenstück zu replace_all_for_avail_days in einer einzigen Session."""
+    log_function_info()
+    with get_session() as session:
+        # Neu angelegte APLs soft-löschen
+        now = _utcnow()
+        for created_id in created_ids:
+            apl = session.get(models.ActorPartnerLocationPref, created_id)
+            if apl:
+                apl.prep_delete = now
+
+        # Pro AvailDay alten Zustand wiederherstellen
+        for avd_id in avail_day_ids:
+            avd = session.get(models.AvailDay, avd_id)
+            if not avd:
+                continue
+            avd.actor_partner_location_prefs_defaults.clear()
+            old_ids = old_pref_ids_per_avail_day.get(avd_id, [])
+            for old_id in old_ids:
+                apl = session.get(models.ActorPartnerLocationPref, old_id)
+                if apl:
+                    apl.prep_delete = None
+                    avd.actor_partner_location_prefs_defaults.append(apl)
+        session.flush()
+
+
 def delete_prep_deletes(person_id: UUID) -> None:
     log_function_info()
     with get_session() as session:

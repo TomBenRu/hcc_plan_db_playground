@@ -484,6 +484,120 @@ def clear_location_prefs(avail_day_id: UUID) -> schemas.AvailDayShow:
         return schemas.AvailDayShow.model_validate(ad)
 
 
+def replace_location_prefs_for_avail_days(
+        avail_day_ids: list[UUID],
+        person_id: UUID,
+        project_id: UUID,
+        location_id_to_score: dict[UUID, float],
+) -> dict:
+    """Ersetzt Location-Prefs für alle AvailDays an einem Tag in einer einzigen Session.
+
+    Analog zu ActorPlanPeriod.update_location_prefs_bulk, aber für mehrere AvailDays.
+    avail_day_ids[0] ist der primäre AvailDay (aus dem Dialog), alle anderen werden synchronisiert.
+    Wiederverwendungslogik: Existiert eine Person-Pref mit gleicher Location und
+    gleichem Score, wird sie verknüpft statt neu angelegt.
+    Verwaiste Prefs werden am Ende bereinigt.
+
+    Returns: {'old_pref_ids_per_avail_day': {avd_id: [...]}, 'new_pref_ids': [...]}
+    """
+    log_function_info()
+    with get_session() as session:
+        existing_person_prefs = session.exec(
+            select(models.ActorLocationPref)
+            .where(models.ActorLocationPref.person_id == person_id)
+            .where(models.ActorLocationPref.prep_delete == None)
+        ).all()
+        person_pref_index: dict[tuple[UUID, float], models.ActorLocationPref] = {
+            (p.location_of_work_id, p.score): p for p in existing_person_prefs
+        }
+
+        new_prefs: list[models.ActorLocationPref] = []
+        for loc_id, score in location_id_to_score.items():
+            if score == 1.0:
+                continue
+            key = (loc_id, score)
+            if key in person_pref_index:
+                new_prefs.append(person_pref_index[key])
+            else:
+                new_pref = models.ActorLocationPref(
+                    score=score,
+                    project_id=project_id,
+                    person_id=person_id,
+                    location_of_work_id=loc_id,
+                )
+                session.add(new_pref)
+                session.flush()
+                new_prefs.append(new_pref)
+
+        new_pref_ids = [p.id for p in new_prefs]
+
+        old_pref_ids_per_avail_day: dict[UUID, list[UUID]] = {}
+        all_old_ids: set[UUID] = set()
+        for avd_id in avail_day_ids:
+            avd = session.get(models.AvailDay, avd_id)
+            old_pref_ids_per_avail_day[avd_id] = [p.id for p in avd.actor_location_prefs_defaults]
+            all_old_ids.update(p.id for p in avd.actor_location_prefs_defaults)
+            avd.actor_location_prefs_defaults = list(new_prefs)
+        session.flush()
+
+        now = _utcnow()
+        new_pref_ids_set = set(new_pref_ids)
+        for removed_id in all_old_ids - new_pref_ids_set:
+            pref = session.get(models.ActorLocationPref, removed_id)
+            if (pref and not pref.prep_delete
+                    and not pref.actor_plan_periods_defaults
+                    and not pref.avail_days_defaults
+                    and not pref.person_default):
+                pref.prep_delete = now
+        session.flush()
+
+        return {
+            'old_pref_ids_per_avail_day': old_pref_ids_per_avail_day,
+            'new_pref_ids': new_pref_ids,
+        }
+
+
+def restore_location_prefs_for_avail_days(
+        target_ids_per_avail_day: dict[UUID, list[UUID]],
+) -> None:
+    """Undo/Redo-Gegenstück zu replace_location_prefs_for_avail_days.
+
+    Stellt pro AvailDay den übergebenen Zielzustand wieder her.
+    Reaktiviert soft-gelöschte Prefs und bereinigt neu entstandene Waisen.
+    """
+    log_function_info()
+    with get_session() as session:
+        current_ids: set[UUID] = set()
+        for avd_id in target_ids_per_avail_day:
+            avd = session.get(models.AvailDay, avd_id)
+            if avd:
+                current_ids.update(p.id for p in avd.actor_location_prefs_defaults)
+
+        all_target_ids: set[UUID] = set()
+        for avd_id, pref_ids in target_ids_per_avail_day.items():
+            avd = session.get(models.AvailDay, avd_id)
+            if avd:
+                restore_prefs = []
+                for pref_id in pref_ids:
+                    pref = session.get(models.ActorLocationPref, pref_id)
+                    if pref:
+                        pref.prep_delete = None
+                        restore_prefs.append(pref)
+                        all_target_ids.add(pref_id)
+                avd.actor_location_prefs_defaults = restore_prefs
+        session.flush()
+
+        now = _utcnow()
+        for removed_id in current_ids - all_target_ids:
+            pref = session.get(models.ActorLocationPref, removed_id)
+            if (pref and not pref.prep_delete
+                    and not pref.actor_plan_periods_defaults
+                    and not pref.avail_days_defaults
+                    and not pref.person_default):
+                pref.prep_delete = now
+        session.flush()
+
+
 def put_in_partner_location_pref(avail_day_id: UUID, actor_partner_loc_pref_id: UUID) -> schemas.AvailDayShow:
     log_function_info()
     with get_session() as session:

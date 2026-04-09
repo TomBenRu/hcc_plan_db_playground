@@ -20,7 +20,7 @@ from ..database import get_session
 from ..models import _utcnow
 from ..enums import Gender
 from ._common import log_function_info
-from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options
+from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options, person_for_master_data_options
 from .combination_locations_possible import is_comb_loc_orphaned
 
 
@@ -69,6 +69,25 @@ def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schem
         ).all()
         return ([(p.full_name, p.id) for p in persons] if minimal
                 else [schemas.PersonShow.model_validate(p) for p in persons])
+
+
+def get_all_for_master_data_table(project_id: UUID) -> list[schemas.PersonForMasterData]:
+    """Lädt alle aktiven Personen eines Projekts mit minimalem Eager-Loading.
+
+    Verwendet PersonForMasterData statt PersonShow — lädt nur address per JOIN,
+    keine team_actor_assigns/skills/prefs/flags. Teams werden separat per
+    get_team_names_for_persons_at_date() als Batch-Query geladen.
+    """
+    with get_session() as session:
+        persons = session.exec(
+            select(models.Person)
+            .where(
+                models.Person.project_id == project_id,
+                models.Person.prep_delete.is_(None)
+            )
+            .options(*person_for_master_data_options())
+        ).all()
+        return [schemas.PersonForMasterData.model_validate(p) for p in persons]
 
 
 def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PersonShow]:

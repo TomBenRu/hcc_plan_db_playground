@@ -106,9 +106,9 @@ class WidgetPerson(QWidget):
         self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
-    def get_persons(self) -> list[schemas.PersonShow]:
+    def get_persons(self) -> list[schemas.PersonForMasterData]:
         try:
-            return [p for p in db_services.Person.get_all_from__project(self.project_id) if not p.prep_delete]
+            return db_services.Person.get_all_for_master_data_table(self.project_id)
         except Exception as e:
             QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
 
@@ -231,6 +231,11 @@ class TablePersons(QTableWidget):
         # Sortierung temporär deaktivieren, um Daten-Mismatch zu vermeiden
         self.setSortingEnabled(False)
 
+        today = datetime.date.today()
+        person_ids = [p.id for p in self.persons]
+        teams_by_person = db_services.TeamActorAssign.get_team_names_for_persons_at_date(
+            person_ids, today)
+
         self.setRowCount(len(self.persons))
         for row, p in enumerate(self.persons):
             item_f_name = QTableWidgetItem(p.f_name)
@@ -245,8 +250,8 @@ class TablePersons(QTableWidget):
             self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
 
             # Team-Spalte: Text mit allen Teams + Edit-Button für Multi-Team-Support
-            teams = db_services.TeamActorAssign.get_all_teams_at_date(p.id, datetime.date.today())
-            team_names = ', '.join([t.name for t in teams]) if teams else self.tr('No Team')
+            names = teams_by_person.get(p.id, [])
+            team_names = ', '.join(names) if names else self.tr('No Team')
 
             widget_teams = QWidget()
             layout_teams = QHBoxLayout(widget_teams)
@@ -254,7 +259,7 @@ class TablePersons(QTableWidget):
             layout_teams.setSpacing(4)
 
             lb_teams = QLabel(team_names)
-            lb_teams.setToolTip(team_names if teams else '')
+            lb_teams.setToolTip(team_names if names else '')
             bt_edit_teams = QPushButton('...')
             bt_edit_teams.setMaximumWidth(30)
             bt_edit_teams.setToolTip(self.tr('Edit team assignments'))

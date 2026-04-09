@@ -136,6 +136,33 @@ class PersonShow(Person):
         return [v for v in values]
 
 
+class AddressForTable(BaseModel):
+    """Minimales Adress-Schema für Tabellen-Anzeige — ohne project-FK."""
+    model_config = ConfigDict(from_attributes=True)
+    street: str
+    postal_code: str
+    city: str
+
+
+class PersonForMasterData(BaseModel):
+    """Minimales Schema für die Stammdaten-Tabelle (FrmMasterData/TablePersons).
+
+    Lädt nur die direkt angezeigten Felder — ohne team_actor_assigns,
+    teams_of_dispatcher, time_of_days, skills, clp, prefs, flags.
+    Teams werden separat per Batch-Query geladen (get_team_names_for_persons_at_date).
+    Reduziert model_validate von ~19 Relation-Pfaden auf 1 (address).
+    """
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    f_name: str
+    l_name: str
+    email: str
+    gender: Gender
+    phone_nr: Optional[str] = None
+    address: Optional['AddressForTable'] = None
+    prep_delete: Optional[datetime.datetime] = None
+
+
 class PersonForCombLocDialog(BaseModel):
     """Minimales Schema für DlgCombLocPossibleEditList.
 

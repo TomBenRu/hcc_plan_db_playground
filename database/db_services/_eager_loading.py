@@ -179,6 +179,17 @@ def person_show_options() -> list:
     ]
 
 
+def person_for_master_data_options() -> list:
+    """Minimal-Loader für PersonForMasterData (Stammdaten-Tabelle).
+
+    Lädt nur Person.address per JOIN — alle anderen Relationen (team_actor_assigns,
+    time_of_days, skills, etc.) werden nicht traversiert, weil PersonForMasterData
+    diese Felder nicht deklariert.
+    1 Query statt ~100+ Lazy-Load-Queries bei model_validate(PersonShow).
+    """
+    return [joinedload(models.Person.address)]
+
+
 def person_for_comb_loc_dialog_options() -> list:
     """Minimal-Loader für PersonForCombLocDialog.
 

@@ -77,6 +77,33 @@ def get_all_teams_at_date(person_id: UUID, date: datetime.date,
         return [schemas.TeamShow.model_validate(a.team) for a in assigns]
 
 
+def get_team_names_for_persons_at_date(
+        person_ids: list[UUID], date: datetime.date) -> dict[UUID, list[str]]:
+    """Batch-Abfrage: Team-Namen aller Personen an einem Datum in einer einzigen Query.
+
+    Ersetzt N einzelne get_all_teams_at_date()-Aufrufe (je eine Session + model_validate)
+    durch einen einzigen JOIN-Query über alle person_ids.
+    Gibt {person_id: [team_name, ...]} zurück — nur die Namen, kein Schema-Overhead.
+    """
+    if not person_ids:
+        return {}
+    result: dict[UUID, list[str]] = {pid: [] for pid in person_ids}
+    with get_session() as session:
+        rows = session.exec(
+            select(models.TeamActorAssign.person_id, models.Team.name)
+            .join(models.Team, models.TeamActorAssign.team_id == models.Team.id)
+            .where(
+                models.TeamActorAssign.person_id.in_(person_ids),
+                models.TeamActorAssign.start <= date,
+                or_(models.TeamActorAssign.end.is_(None),
+                    models.TeamActorAssign.end > date),
+            )
+        ).all()
+    for person_id, team_name in rows:
+        result[person_id].append(team_name)
+    return result
+
+
 def get_all_teams_at_dates(person_id: UUID, dates: list[datetime.date]) -> dict[datetime.date, list[UUID]]:
     """Gibt {date: [team_id, ...]} für alle übergebenen Dates in einer einzigen Query zurück.
 

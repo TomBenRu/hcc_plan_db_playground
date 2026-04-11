@@ -734,6 +734,27 @@ def plan_period_show_options() -> list:
     ]
 
 
+def plan_period_actor_tab_options() -> list:
+    """Loader-Optionen für PlanPeriodForActorTab (FrmTabActorPlanPeriods).
+
+    Lädt team + TAAs + persons, team_location_assigns + LOW, actor_plan_periods + person.
+    Verzichtet auf location_plan_periods, cast_groups, project (~600ms Einsparung).
+    """
+    return [
+        joinedload(models.PlanPeriod.team).joinedload(models.Team.project),
+        joinedload(models.PlanPeriod.team).joinedload(models.Team.dispatcher),
+        joinedload(models.PlanPeriod.team).joinedload(models.Team.excel_export_settings),
+        joinedload(models.PlanPeriod.team)
+        .selectinload(models.Team.team_actor_assigns)
+        .joinedload(models.TeamActorAssign.person),
+        joinedload(models.PlanPeriod.team)
+        .selectinload(models.Team.team_location_assigns)
+        .joinedload(models.TeamLocationAssign.location_of_work),
+        selectinload(models.PlanPeriod.actor_plan_periods)
+        .joinedload(models.ActorPlanPeriod.person),
+    ]
+
+
 def cast_group_show_options() -> list:
     """Gibt SQLAlchemy Loader-Optionen für CastGroupShow-Objekte zurück.
 

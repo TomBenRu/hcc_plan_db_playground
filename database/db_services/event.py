@@ -84,6 +84,28 @@ def get_batch_for_solver(event_ids: list[UUID]) -> dict[UUID, schemas.EventForSo
         return {e.id: schemas.EventForSolver.model_validate(e) for e in events}
 
 
+def get_batch_for_conflict_display(event_ids: list[UUID]) -> list[schemas.EventForConflictDisplay]:
+    """Lädt mehrere Events für die FixedCast-Konflikt-Anzeige in einer einzigen Session.
+
+    Verwendet EventForConflictDisplay — lädt nur time_of_day, location_plan_period→location_of_work
+    und cast_group. Verzichtet auf die rekursive event_group-Eltern-Kette aus EventShow.
+    """
+    if not event_ids:
+        return []
+    with get_session() as session:
+        events = session.exec(
+            select(models.Event)
+            .where(models.Event.id.in_(event_ids))
+            .options(
+                joinedload(models.Event.time_of_day),
+                joinedload(models.Event.location_plan_period)
+                .joinedload(models.LocationPlanPeriod.location_of_work),
+                joinedload(models.Event.cast_group),
+            )
+        ).unique().all()
+        return [schemas.EventForConflictDisplay.model_validate(e) for e in events]
+
+
 def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.EventShow]:
     with get_session() as session:
         events = session.exec(select(models.Event).join(models.LocationPlanPeriod)

@@ -357,7 +357,8 @@ class DlgCalculate(QDialog):
             return
 
         if sum(fixed_cast_conflicts.values()) > 0:
-            events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            event_ids = [id_event for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            events = db_services.Event.get_batch_for_conflict_display(event_ids)
             conflict_string = '\n'.join([
                 self.tr('  - {date} ({time_of_day}) {location}:\n'
                        '      - Fixed cast: {fixed_cast}').format(
@@ -370,7 +371,7 @@ class DlgCalculate(QDialog):
                 ) for e in events
             ])
             QMessageBox.critical(
-                self, 
+                self,
                 self.tr('Error'),
                 self.tr('{count} fixed cast conflicts found.\n{conflicts}').format(
                     count=sum(fixed_cast_conflicts.values()),
@@ -382,11 +383,11 @@ class DlgCalculate(QDialog):
 
         if sum(skill_conflicts.values()) > 0:
             conflict_string = '\n'.join([
-                self.tr('  - {skill}: {count}').format(skill=skill, count=v) 
+                self.tr('  - {skill}: {count}').format(skill=skill, count=v)
                 for skill, v in skill_conflicts.items() if v > 0
             ])
             QMessageBox.critical(
-                self, 
+                self,
                 self.tr('Error'),
                 self.tr('{count} skill conflicts found.\n{conflicts}').format(
                     count=sum(skill_conflicts.values()),
@@ -518,7 +519,8 @@ class DlgCalculate(QDialog):
             return
 
         if sum(fixed_cast_conflicts.values()) > 0:
-            events = [db_services.Event.get(id_event) for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            event_ids = [id_event for (_, _, id_event), v in fixed_cast_conflicts.items() if v > 0]
+            events = db_services.Event.get_batch_for_conflict_display(event_ids)
             conflict_string = '\n'.join([
                 self.tr('  - {date} ({time_of_day}) {location}:\n'
                        '      - Fixed cast: {fixed_cast}').format(
@@ -531,7 +533,7 @@ class DlgCalculate(QDialog):
                 ) for e in events
             ])
             QMessageBox.critical(
-                self, 
+                self,
                 self.tr('Error'),
                 self.tr('{count} fixed cast conflicts found.\n{conflicts}').format(
                     count=sum(fixed_cast_conflicts.values()),
@@ -543,7 +545,7 @@ class DlgCalculate(QDialog):
 
         if sum(skill_conflicts.values()) > 0:
             conflict_string = '\n'.join([
-                self.tr('  - {skill}: {count}').format(skill=skill, count=v) 
+                self.tr('  - {skill}: {count}').format(skill=skill, count=v)
                 for skill, v in skill_conflicts.items() if v > 0
             ])
             QMessageBox.critical(

@@ -783,7 +783,7 @@ class FrmTabActorPlanPeriods(QWidget):
         signal_handling.handler_actor_plan_period.signal_update_app_in_app_tab_widget.connect(self.update_actor_plan_period)
         signal_handling.handler_actor_plan_period.signal_reload_app_notes_in_app_tab_widget.connect(self.reload_actor_plan_period_notes)
 
-        self.plan_period = db_services.PlanPeriod.get(plan_period.id)
+        self.plan_period = db_services.PlanPeriod.get_for_actor_tab(plan_period.id)
         self.team = self.plan_period.team
         self.actor_plan_periods = self.plan_period.actor_plan_periods
         active_person_ids = {

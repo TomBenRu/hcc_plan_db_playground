@@ -278,14 +278,12 @@ class TablePersons(QTableWidget):
         person = db_services.Person.get(person_id)
         dlg = frm_team_assignments.DlgTeamAssignments(self, self.project_id, person)
         if dlg.exec():
-            # Tabelle aktualisieren
-            self.persons = [db_services.Person.get(p.id) for p in self.persons]
+            self.persons = db_services.Person.get_batch([p.id for p in self.persons])
             self.put_data_to_table()
 
     def refresh_table(self):
         """Aktualisiert die gesamte Tabelle mit aktuellen Daten."""
-        person_ids = [p.id for p in self.persons]
-        self.persons = [db_services.Person.get(pid) for pid in person_ids]
+        self.persons = db_services.Person.get_batch([p.id for p in self.persons])
         self.put_data_to_table()
 
 

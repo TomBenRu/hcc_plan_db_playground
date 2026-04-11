@@ -10,7 +10,7 @@ import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 import pandas as pd
@@ -48,6 +48,22 @@ def get_full_name_of_person(person_id: UUID) -> str:
     with get_session() as session:
         p = session.get(models.Person, person_id)
         return f'{p.f_name} {p.l_name}'
+
+
+def get_batch(person_ids: list[UUID]) -> list[schemas.PersonShow]:
+    """Batch-Abfrage: Lädt mehrere PersonShow-Objekte in einer einzigen Session.
+
+    Ersetzt N×get() (je neue Session) durch 1 Query mit person_show_options().
+    Gibt die Personen in derselben Reihenfolge wie person_ids zurück.
+    """
+    with get_session() as session:
+        persons = session.exec(
+            select(models.Person)
+            .where(models.Person.id.in_(person_ids))
+            .options(*person_show_options())
+        ).unique().all()
+        persons_by_id = {p.id: schemas.PersonShow.model_validate(p) for p in persons}
+        return [persons_by_id[pid] for pid in person_ids if pid in persons_by_id]
 
 
 def get_full_names_for_ids(person_ids: list[UUID]) -> dict[UUID, str]:
@@ -102,21 +118,33 @@ def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PersonShow]:
         return [schemas.PersonShow.model_validate(p) for p in persons]
 
 
-def get_all_from__plan_period_minimal(plan_period_id: UUID) -> dict['str', UUID]:
+def get_all_from__plan_period_minimal(plan_period_id: UUID) -> dict[str, UUID]:
+    """Lädt Name→ID-Mapping aller Akteure einer PlanPeriod in einer einzigen JOIN-Query."""
     with get_session() as session:
-        pp_db = session.get(models.PlanPeriod, plan_period_id)
-        return {app.person.full_name: app.person.id for app in pp_db.actor_plan_periods}
+        rows = session.exec(
+            select(models.Person.f_name, models.Person.l_name, models.Person.id)
+            .join(models.ActorPlanPeriod, models.ActorPlanPeriod.person_id == models.Person.id)
+            .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+        ).all()
+        return {f'{f_name} {l_name}': p_id for f_name, l_name, p_id in rows}
 
 
-def get_all_possible_from__plan_period_minimal(plan_period_id: UUID) -> dict['str', UUID]:
+def get_all_possible_from__plan_period_minimal(plan_period_id: UUID) -> dict[str, UUID]:
+    """Lädt Name→ID-Mapping aller möglichen Akteure einer PlanPeriod.
+
+    joinedload(person) verhindert N Lazy-Load-Queries bei der anschließenden
+    taa.person-Traversal.
+    """
     with get_session() as session:
         pp_db = session.get(models.PlanPeriod, plan_period_id)
         assigns = session.exec(
-            select(models.TeamActorAssign).where(
+            select(models.TeamActorAssign)
+            .where(
                 models.TeamActorAssign.team_id == pp_db.team_id,
                 models.TeamActorAssign.start < pp_db.end,
                 or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > pp_db.end)
             )
+            .options(joinedload(models.TeamActorAssign.person))
         ).all()
         return {taa.person.full_name: taa.person.id for taa in assigns}
 
@@ -188,8 +216,13 @@ def update(person: schemas.PersonShow) -> schemas.Person:
         elif person.address:
             person_db.address = session.get(models.Address, person.address.id)
         person_db.time_of_days.clear()
-        for t_o_d in person.time_of_days:
-            person_db.time_of_days.append(session.get(models.TimeOfDay, t_o_d.id))
+        if person.time_of_days:
+            tod_ids = [t.id for t in person.time_of_days]
+            tods_by_id = {t.id: t for t in session.exec(
+                select(models.TimeOfDay).where(models.TimeOfDay.id.in_(tod_ids))
+            ).all()}
+            for t_o_d in person.time_of_days:
+                person_db.time_of_days.append(tods_by_id[t_o_d.id])
         for k, v in person.model_dump(include={'f_name', 'l_name', 'email', 'gender', 'phone_nr', 'requested_assignments', 'notes'}).items():
             setattr(person_db, k, v)
         session.flush()

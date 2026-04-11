@@ -16,7 +16,7 @@ from .. import schemas, models
 from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
-from ._eager_loading import plan_period_show_options
+from ._eager_loading import plan_period_show_options, plan_period_actor_tab_options
 
 
 def get(plan_period_id: UUID, minimal: bool = False) -> schemas.PlanPeriodShow | schemas.PlanPeriod:
@@ -42,6 +42,20 @@ def get(plan_period_id: UUID, minimal: bool = False) -> schemas.PlanPeriodShow |
                 .options(*plan_period_show_options()))
         pp = session.exec(stmt).unique().one()
         return schemas.PlanPeriodShow.model_validate(pp)
+
+
+def get_for_actor_tab(plan_period_id: UUID) -> schemas.PlanPeriodForActorTab:
+    """Lädt PlanPeriod für FrmTabActorPlanPeriods — ohne location_plan_periods, cast_groups, project.
+
+    Spart ~600ms gegenüber get() mit vollem PlanPeriodShow, da die schweren
+    location_plan_periods- und cast_groups-Chains nicht geladen werden.
+    """
+    with get_session() as session:
+        stmt = (select(models.PlanPeriod)
+                .where(models.PlanPeriod.id == plan_period_id)
+                .options(*plan_period_actor_tab_options()))
+        pp = session.exec(stmt).unique().one()
+        return schemas.PlanPeriodForActorTab.model_validate(pp)
 
 
 def get_lpp_and_app_ids(plan_period_id: UUID) -> tuple[list[UUID], list[UUID]]:

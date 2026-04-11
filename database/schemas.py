@@ -299,6 +299,21 @@ class PlanPeriodShow(PlanPeriod):
         return [v for v in values]
 
 
+class PlanPeriodForActorTab(PlanPeriod):
+    """Schlankes PlanPeriodShow für FrmTabActorPlanPeriods.
+
+    Enthält team (mit team_actor_assigns + team_location_assigns) und actor_plan_periods.
+    Verzichtet auf location_plan_periods, cast_groups, project (~600ms Einsparung).
+    """
+    team: TeamWithAssigns
+    actor_plan_periods: List['ActorPlanPeriod']
+
+    @field_validator('actor_plan_periods')
+    @classmethod
+    def set_to_list(cls, values):
+        return [v for v in values]
+
+
 class ActorPlanPeriodCreate(BaseModel):
     notes: Optional[str] = None
     plan_period: PlanPeriod
@@ -1082,6 +1097,40 @@ class CastGroupForButton(BaseModel):
     fixed_cast_only_if_available: bool = False
     prefer_fixed_cast_events: bool = False
     event: Optional[EventForCastGroupButton]
+
+
+class CastGroupForConflictDisplay(BaseModel):
+    """Minimales CastGroup-Schema für die FixedCast-Konflikt-Anzeige nach dem Solver."""
+    model_config = ConfigDict(from_attributes=True)
+    fixed_cast: Optional[str]
+    fixed_cast_only_if_available: bool = False
+    prefer_fixed_cast_events: bool = False
+
+
+class LocationOfWorkForConflictDisplay(BaseModel):
+    """Minimales LocationOfWork-Schema für die Konflikt-Anzeige — nur Name."""
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+
+
+class LocationPlanPeriodForConflictDisplay(BaseModel):
+    """Minimales LocationPlanPeriod-Schema für die Konflikt-Anzeige."""
+    model_config = ConfigDict(from_attributes=True)
+    location_of_work: LocationOfWorkForConflictDisplay
+
+
+class EventForConflictDisplay(BaseModel):
+    """Minimales Event-Schema für die FixedCast-Konflikt-Anzeige nach dem Solver.
+
+    Enthält nur die vier für die Fehleranzeige benötigten Relationships.
+    Verzichtet auf event_group-Kette, skill_groups, flags — vermeidet
+    die rekursive Pydantic-Traversierung aus EventShow (~73ms/Event).
+    """
+    model_config = ConfigDict(from_attributes=True)
+    date: datetime.date
+    time_of_day: TimeOfDay
+    location_plan_period: LocationPlanPeriodForConflictDisplay
+    cast_group: CastGroupForConflictDisplay
 
 
 class CastRuleCreate(BaseModel):

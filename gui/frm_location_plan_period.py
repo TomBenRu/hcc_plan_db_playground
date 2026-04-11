@@ -1508,7 +1508,8 @@ class FrmLocationPlanPeriod(QWidget):
             dlg.controller.undo_all()
 
     def edit_time_of_days(self):
-        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, self.location_plan_period).build()
+        lpp = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocationPlanPeriod(self, lpp).build()
         if dlg.exec():
             self.reload_location_plan_period()
             buttons_event: list[ButtonEvent] = self.findChildren(ButtonEvent)
@@ -1617,7 +1618,8 @@ class FrmLocationPlanPeriod(QWidget):
         signal_handling.handler_plan_tabs.invalidate_entities_cache(self.location_plan_period.plan_period.id)
 
     def edit_fixed_cast(self):
-        dlg = DlgFixedCastBuilderLocationPlanPeriod(self, self.location_plan_period).build()
+        lpp = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
+        dlg = DlgFixedCastBuilderLocationPlanPeriod(self, lpp).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.reload_location_plan_period()

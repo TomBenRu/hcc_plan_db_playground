@@ -133,16 +133,20 @@ def delete_bulk(appointment_ids: list[UUID]) -> None:
     log_function_info()
     now = _utcnow()
     with get_session() as session:
-        for app_id in appointment_ids:
-            app = session.get(models.Appointment, app_id)
+        appointments = session.exec(
+            select(models.Appointment).where(models.Appointment.id.in_(appointment_ids))
+        ).all()
+        for app in appointments:
             app.prep_delete = now
 
 
 def undelete_bulk(appointment_ids: list[UUID]) -> None:
     log_function_info()
     with get_session() as session:
-        for app_id in appointment_ids:
-            app = session.get(models.Appointment, app_id)
+        appointments = session.exec(
+            select(models.Appointment).where(models.Appointment.id.in_(appointment_ids))
+        ).all()
+        for app in appointments:
             app.prep_delete = None
 
 

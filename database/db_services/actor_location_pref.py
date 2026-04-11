@@ -8,6 +8,7 @@ AvailDay oder Person-Default).
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -50,8 +51,13 @@ def undelete(actor_loc_pref_id: UUID) -> schemas.ActorLocationPrefShow:
 def delete_unused(project_id: UUID) -> list[UUID]:
     log_function_info()
     with get_session() as session:
-        prefs = session.exec(select(models.ActorLocationPref).where(
-            models.ActorLocationPref.project_id == project_id)).all()
+        prefs = session.exec(
+            select(models.ActorLocationPref)
+            .where(models.ActorLocationPref.project_id == project_id)
+            .options(selectinload(models.ActorLocationPref.actor_plan_periods_defaults),
+                     selectinload(models.ActorLocationPref.avail_days_defaults),
+                     joinedload(models.ActorLocationPref.person_default))
+        ).all()
         deleted_ids = []
         for p in prefs:
             if p.prep_delete:

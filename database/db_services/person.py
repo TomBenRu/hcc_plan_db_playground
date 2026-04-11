@@ -10,6 +10,7 @@ import datetime
 from uuid import UUID
 
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 import pandas as pd
@@ -61,12 +62,13 @@ def get_full_names_for_ids(person_ids: list[UUID]) -> dict[UUID, str]:
 
 def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.PersonShow | tuple[str, UUID]]:
     with get_session() as session:
-        persons = session.exec(
-            select(models.Person).where(
-                models.Person.project_id == project_id,
-                models.Person.prep_delete.is_(None)
-            )
-        ).all()
+        query = select(models.Person).where(
+            models.Person.project_id == project_id,
+            models.Person.prep_delete.is_(None)
+        )
+        if not minimal:
+            query = query.options(*person_show_options())
+        persons = session.exec(query).all()
         return ([(p.full_name, p.id) for p in persons] if minimal
                 else [schemas.PersonShow.model_validate(p) for p in persons])
 
@@ -95,6 +97,7 @@ def get_all_from__plan_period(plan_period_id: UUID) -> list[schemas.PersonShow]:
         persons = session.exec(
             select(models.Person).join(models.ActorPlanPeriod)
             .where(models.ActorPlanPeriod.plan_period_id == plan_period_id)
+            .options(*person_show_options())
         ).unique().all()
         return [schemas.PersonShow.model_validate(p) for p in persons]
 
@@ -327,20 +330,32 @@ def restore_comb_loc_possibles(
     """Undo/Redo-Gegenstück zu replace_comb_loc_possibles für Person."""
     log_function_info()
     with get_session() as session:
-        person_db = session.get(models.Person, person_id)
+        person_db = session.exec(
+            select(models.Person)
+            .where(models.Person.id == person_id)
+            .options(selectinload(models.Person.combination_locations_possibles))
+        ).first()
+        if not person_db:
+            return
         current_ids = {c.id for c in person_db.combination_locations_possibles}
         ids_to_restore = set(comb_ids_to_restore)
 
-        for clp_id in ids_to_restore:
-            clp = session.get(models.CombinationLocationsPossible, clp_id)
-            if clp and clp.prep_delete:
+        clps_by_id = {
+            clp.id: clp for clp in session.exec(
+                select(models.CombinationLocationsPossible)
+                .where(models.CombinationLocationsPossible.id.in_(ids_to_restore))
+            ).all()
+        } if ids_to_restore else {}
+
+        for clp in clps_by_id.values():
+            if clp.prep_delete:
                 clp.prep_delete = None
 
-        person_db.combination_locations_possibles = [
-            session.get(models.CombinationLocationsPossible, clp_id)
-            for clp_id in ids_to_restore]
+        person_db.combination_locations_possibles = [clps_by_id[clp_id] for clp_id in ids_to_restore
+                                                     if clp_id in clps_by_id]
         session.flush()
 
+        # Verwaiste CLPs soft-deleten; via selectinload bereits im Session-Cache
         now = _utcnow()
         for removed_id in current_ids - ids_to_restore:
             clp = session.get(models.CombinationLocationsPossible, removed_id)
@@ -437,18 +452,35 @@ def restore_location_prefs_bulk(
     """Undo-Gegenstück zu update_location_prefs_bulk: stellt alten Zustand wieder her."""
     log_function_info()
     with get_session() as session:
-        person_db = session.get(models.Person, person_id)
+        person_db = session.exec(
+            select(models.Person)
+            .where(models.Person.id == person_id)
+            .options(selectinload(models.Person.actor_location_prefs_defaults)
+                     .selectinload(models.ActorLocationPref.actor_plan_periods_defaults),
+                     selectinload(models.Person.actor_location_prefs_defaults)
+                     .selectinload(models.ActorLocationPref.avail_days_defaults))
+        ).first()
+        if not person_db:
+            return
         current_pref_ids = {p.id for p in person_db.actor_location_prefs_defaults}
+
+        restore_prefs_by_id = {
+            pref.id: pref for pref in session.exec(
+                select(models.ActorLocationPref)
+                .where(models.ActorLocationPref.id.in_(pref_ids_to_restore))
+            ).all()
+        } if pref_ids_to_restore else {}
 
         prefs_to_restore: list[models.ActorLocationPref] = []
         for pref_id in pref_ids_to_restore:
-            pref = session.get(models.ActorLocationPref, pref_id)
+            pref = restore_prefs_by_id.get(pref_id)
             if pref:
                 pref.prep_delete = None
                 prefs_to_restore.append(pref)
 
         person_db.actor_location_prefs_defaults = prefs_to_restore
 
+        # Verwaiste Prefs soft-deleten; Relationships via selectinload im Cache → kein Lazy-Load
         now = _utcnow()
         for pref_id in current_pref_ids - set(pref_ids_to_restore):
             pref = session.get(models.ActorLocationPref, pref_id)

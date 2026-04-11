@@ -7,6 +7,7 @@ ungenutzter Einträge ohne Bezug zu ActorPlanPeriod, AvailDay oder Person-Defaul
 import datetime
 from uuid import UUID
 
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -51,12 +52,25 @@ def modify(actor_partner_loc_pref: schemas.ActorPartnerLocationPrefShow) -> sche
         obj = session.get(models.ActorPartnerLocationPref, actor_partner_loc_pref.id)
         obj.person_default = (session.get(models.Person, actor_partner_loc_pref.person_default.id)
                               if actor_partner_loc_pref.person_default else None)
+
+        app_ids = [app.id for app in actor_partner_loc_pref.actor_plan_periods_defaults]
+        apps_by_id = {
+            a.id: a for a in session.exec(
+                select(models.ActorPlanPeriod).where(models.ActorPlanPeriod.id.in_(app_ids))
+            ).all()
+        } if app_ids else {}
         obj.actor_plan_periods_defaults.clear()
-        for app in actor_partner_loc_pref.actor_plan_periods_defaults:
-            obj.actor_plan_periods_defaults.append(session.get(models.ActorPlanPeriod, app.id))
+        obj.actor_plan_periods_defaults.extend(apps_by_id[a_id] for a_id in app_ids)
+
+        ad_ids = [ad.id for ad in actor_partner_loc_pref.avail_days_defaults]
+        avds_by_id = {
+            ad.id: ad for ad in session.exec(
+                select(models.AvailDay).where(models.AvailDay.id.in_(ad_ids))
+            ).all()
+        } if ad_ids else {}
         obj.avail_days_defaults.clear()
-        for ad in actor_partner_loc_pref.avail_days_defaults:
-            obj.avail_days_defaults.append(session.get(models.AvailDay, ad.id))
+        obj.avail_days_defaults.extend(avds_by_id[ad_id] for ad_id in ad_ids)
+
         session.flush()
         return schemas.ActorPartnerLocationPrefShow.model_validate(obj)
 
@@ -82,8 +96,13 @@ def undelete(actor_partner_loc_pref_id: UUID) -> schemas.ActorPartnerLocationPre
 def delete_unused(person_id: UUID) -> list[UUID]:
     log_function_info()
     with get_session() as session:
-        prefs = session.exec(select(models.ActorPartnerLocationPref).where(
-            models.ActorPartnerLocationPref.person_id == person_id)).all()
+        prefs = session.exec(
+            select(models.ActorPartnerLocationPref)
+            .where(models.ActorPartnerLocationPref.person_id == person_id)
+            .options(selectinload(models.ActorPartnerLocationPref.actor_plan_periods_defaults),
+                     selectinload(models.ActorPartnerLocationPref.avail_days_defaults),
+                     joinedload(models.ActorPartnerLocationPref.person_default))
+        ).all()
         deleted_ids = []
         for p in prefs:
             if p.prep_delete:

@@ -359,6 +359,14 @@ def replace_comb_loc_possibles_for_avail_days(
             for clp in person_clps
         }
 
+        # LocationOfWork für alle pending_creates vorab laden
+        all_loc_ids = {loc.id for _, cs in pending_creates for loc in cs.locations_of_work}
+        locs_by_id = {
+            loc.id: loc for loc in session.exec(
+                select(models.LocationOfWork).where(models.LocationOfWork.id.in_(all_loc_ids))
+            ).all()
+        } if all_loc_ids else {}
+
         # Temp-UUID → echte UUID auflösen
         temp_to_real: dict[UUID, UUID] = {}
         for temp_id, create_schema in pending_creates:
@@ -373,25 +381,36 @@ def replace_comb_loc_possibles_for_avail_days(
                 session.add(new_clp)
                 session.flush()
                 for loc in create_schema.locations_of_work:
-                    new_clp.locations_of_work.append(session.get(models.LocationOfWork, loc.id))
+                    new_clp.locations_of_work.append(locs_by_id[loc.id])
                 session.flush()
                 temp_to_real[temp_id] = new_clp.id
 
-        # Finale echte CLPs ermitteln
+        # Finale echte CLPs ermitteln — Batch statt N × session.get()
         final_ids = list({temp_to_real.get(c.id, c.id) for c in current_combs})
-        final_clps = [session.get(models.CombinationLocationsPossible, clp_id) for clp_id in final_ids]
+        final_clps = session.exec(
+            select(models.CombinationLocationsPossible)
+            .where(models.CombinationLocationsPossible.id.in_(final_ids))
+        ).all()
 
-        # Alten Zustand pro AvailDay speichern, neuen Zustand setzen
+        # Alten Zustand pro AvailDay speichern, neuen Zustand setzen — Batch mit selectinload
+        avds_by_id = {
+            avd.id: avd for avd in session.exec(
+                select(models.AvailDay)
+                .where(models.AvailDay.id.in_(avail_day_ids))
+                .options(selectinload(models.AvailDay.combination_locations_possibles))
+            ).all()
+        }
         old_comb_ids_per_avail_day: dict[UUID, list[UUID]] = {}
         all_old_ids: set[UUID] = set()
         for avd_id in avail_day_ids:
-            avd = session.get(models.AvailDay, avd_id)
-            old_comb_ids_per_avail_day[avd_id] = [c.id for c in avd.combination_locations_possibles]
-            all_old_ids.update(c.id for c in avd.combination_locations_possibles)
-            avd.combination_locations_possibles = list(final_clps)
+            avd = avds_by_id.get(avd_id)
+            if avd:
+                old_comb_ids_per_avail_day[avd_id] = [c.id for c in avd.combination_locations_possibles]
+                all_old_ids.update(c.id for c in avd.combination_locations_possibles)
+                avd.combination_locations_possibles = list(final_clps)
         session.flush()
 
-        # Verwaiste CLPs soft-deleten
+        # Verwaiste CLPs soft-deleten; Objekte via selectinload im Session-Cache → session.get() trifft Cache
         now = _utcnow()
         final_ids_set = set(final_ids)
         for removed_id in all_old_ids - final_ids_set:
@@ -416,21 +435,36 @@ def restore_comb_loc_possibles_for_avail_days(
     """
     log_function_info()
     with get_session() as session:
-        # Aktuellen Zustand erfassen (für Orphan-Cleanup)
+        avd_ids = list(target_ids_per_avail_day.keys())
+        avds_by_id = {
+            avd.id: avd for avd in session.exec(
+                select(models.AvailDay)
+                .where(models.AvailDay.id.in_(avd_ids))
+                .options(selectinload(models.AvailDay.combination_locations_possibles))
+            ).all()
+        }
+
+        all_target_comb_ids = [cid for cids in target_ids_per_avail_day.values() for cid in cids]
+        clps_by_id = {
+            clp.id: clp for clp in session.exec(
+                select(models.CombinationLocationsPossible)
+                .where(models.CombinationLocationsPossible.id.in_(all_target_comb_ids))
+            ).all()
+        }
+
+        # Aktuellen Zustand erfassen (für Orphan-Cleanup); CLPs bereits via selectinload geladen
         current_ids: set[UUID] = set()
-        for avd_id in target_ids_per_avail_day:
-            avd = session.get(models.AvailDay, avd_id)
-            if avd:
-                current_ids.update(c.id for c in avd.combination_locations_possibles)
+        for avd in avds_by_id.values():
+            current_ids.update(c.id for c in avd.combination_locations_possibles)
 
         # Zielzustand herstellen
         all_target_ids: set[UUID] = set()
         for avd_id, comb_ids in target_ids_per_avail_day.items():
-            avd = session.get(models.AvailDay, avd_id)
+            avd = avds_by_id.get(avd_id)
             if avd:
                 restore_clps = []
                 for clp_id in comb_ids:
-                    clp = session.get(models.CombinationLocationsPossible, clp_id)
+                    clp = clps_by_id.get(clp_id)
                     if clp:
                         clp.prep_delete = None
                         restore_clps.append(clp)
@@ -438,7 +472,7 @@ def restore_comb_loc_possibles_for_avail_days(
                 avd.combination_locations_possibles = restore_clps
         session.flush()
 
-        # Verwaiste CLPs soft-deleten
+        # Verwaiste CLPs soft-deleten; Objekte via selectinload im Session-Cache → session.get() trifft Cache
         now = _utcnow()
         for removed_id in current_ids - all_target_ids:
             clp = session.get(models.CombinationLocationsPossible, removed_id)
@@ -610,9 +644,15 @@ def put_in_partner_location_pref(avail_day_id: UUID, actor_partner_loc_pref_id: 
 def put_in_partner_location_prefs(avail_day_id: UUID, actor_partner_loc_pref_ids: list[UUID]) -> schemas.AvailDayShow:
     log_function_info()
     with get_session() as session:
+        prefs_by_id = {
+            p.id: p for p in session.exec(
+                select(models.ActorPartnerLocationPref)
+                .where(models.ActorPartnerLocationPref.id.in_(actor_partner_loc_pref_ids))
+            ).all()
+        } if actor_partner_loc_pref_ids else {}
         ad = session.get(models.AvailDay, avail_day_id)
-        for pid in actor_partner_loc_pref_ids:
-            ad.actor_partner_location_prefs_defaults.append(session.get(models.ActorPartnerLocationPref, pid))
+        ad.actor_partner_location_prefs_defaults.extend(
+            prefs_by_id[pid] for pid in actor_partner_loc_pref_ids if pid in prefs_by_id)
         session.flush()
         return schemas.AvailDayShow.model_validate(ad)
 
@@ -638,7 +678,15 @@ def clear_partner_location_prefs(avail_day_id: UUID) -> schemas.AvailDayShow:
 def reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(actor_plan_period_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.actor_partner_location_prefs_defaults),
+                     selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.actor_partner_location_prefs_defaults))
+        ).first()
+        if not app:
+            return
         defaults = list(app.actor_partner_location_prefs_defaults)
         for ad in app.avail_days:
             ad.actor_partner_location_prefs_defaults.clear()
@@ -648,7 +696,15 @@ def reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults
 def reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(actor_plan_period_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.actor_location_prefs_defaults),
+                     selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.actor_location_prefs_defaults))
+        ).first()
+        if not app:
+            return
         defaults = list(app.actor_location_prefs_defaults)
         for ad in app.avail_days:
             ad.actor_location_prefs_defaults.clear()
@@ -658,7 +714,15 @@ def reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(actor_p
 def reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(actor_plan_period_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.combination_locations_possibles),
+                     selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.combination_locations_possibles))
+        ).first()
+        if not app:
+            return
         defaults = list(app.combination_locations_possibles)
         for ad in app.avail_days:
             ad.combination_locations_possibles.clear()
@@ -695,9 +759,13 @@ def clear_skills(avail_day_id: UUID) -> schemas.AvailDayShow:
 def put_in_skills(avail_day_id: UUID, skill_ids: list[UUID]) -> schemas.AvailDayShow:
     log_function_info()
     with get_session() as session:
+        skills_by_id = {
+            s.id: s for s in session.exec(
+                select(models.Skill).where(models.Skill.id.in_(skill_ids))
+            ).all()
+        } if skill_ids else {}
         ad = session.get(models.AvailDay, avail_day_id)
-        for sid in skill_ids:
-            ad.skills.append(session.get(models.Skill, sid))
+        ad.skills.extend(skills_by_id[sid] for sid in skill_ids if sid in skills_by_id)
         session.flush()
         return schemas.AvailDayShow.model_validate(ad)
 
@@ -705,7 +773,14 @@ def put_in_skills(avail_day_id: UUID, skill_ids: list[UUID]) -> schemas.AvailDay
 def clear_all_skills_of_actor_plan_period(actor_plan_period_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.skills))
+        ).first()
+        if not app:
+            return
         for ad in app.avail_days:
             ad.skills.clear()
 
@@ -713,7 +788,16 @@ def clear_all_skills_of_actor_plan_period(actor_plan_period_id: UUID) -> None:
 def reset_all_skills_of_actor_plan_period_to_person_defaults(actor_plan_period_id: UUID) -> None:
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.skills),
+                     joinedload(models.ActorPlanPeriod.person)
+                     .selectinload(models.Person.skills))
+        ).first()
+        if not app:
+            return
         person_skills = list(app.person.skills)
         for ad in app.avail_days:
             ad.skills.clear()
@@ -722,5 +806,12 @@ def reset_all_skills_of_actor_plan_period_to_person_defaults(actor_plan_period_i
 
 def get_skill_ids_per_avail_day_of_actor_plan_period(actor_plan_period_id: UUID) -> dict[UUID, list[UUID]]:
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
+        app = session.exec(
+            select(models.ActorPlanPeriod)
+            .where(models.ActorPlanPeriod.id == actor_plan_period_id)
+            .options(selectinload(models.ActorPlanPeriod.avail_days)
+                     .selectinload(models.AvailDay.skills))
+        ).first()
+        if not app:
+            return {}
         return {ad.id: [s.id for s in ad.skills] for ad in app.avail_days}

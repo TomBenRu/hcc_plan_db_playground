@@ -9,6 +9,7 @@ import datetime
 import json
 from uuid import UUID
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from .. import schemas, models
@@ -25,13 +26,18 @@ def get(appointment_id: UUID) -> schemas.AppointmentShow:
 def create(appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.AppointmentShow:
     log_function_info()
     with get_session() as session:
+        ad_ids = [ad.id for ad in appointment.avail_days]
+        avds_by_id = {
+            ad.id: ad for ad in session.exec(
+                select(models.AvailDay).where(models.AvailDay.id.in_(ad_ids))
+            ).all()
+        } if ad_ids else {}
         app = models.Appointment(
             event=session.get(models.Event, appointment.event.id),
             plan=session.get(models.Plan, plan_id), notes=appointment.notes)
         session.add(app)
         session.flush()
-        for ad in appointment.avail_days:
-            app.avail_days.append(session.get(models.AvailDay, ad.id))
+        app.avail_days.extend(avds_by_id[ad.id] for ad in appointment.avail_days)
         session.flush()
         return schemas.AppointmentShow.model_validate(app)
 
@@ -39,10 +45,14 @@ def create(appointment: schemas.AppointmentCreate, plan_id: UUID) -> schemas.App
 def update_avail_days(appointment_id: UUID, avail_day_ids: list[UUID]) -> None:
     log_function_info()
     with get_session() as session:
+        avds_by_id = {
+            ad.id: ad for ad in session.exec(
+                select(models.AvailDay).where(models.AvailDay.id.in_(avail_day_ids))
+            ).all()
+        } if avail_day_ids else {}
         app = session.get(models.Appointment, appointment_id)
         app.avail_days.clear()
-        for aid in avail_day_ids:
-            app.avail_days.append(session.get(models.AvailDay, aid))
+        app.avail_days.extend(avds_by_id[aid] for aid in avail_day_ids)
         session.flush()
 
 
@@ -96,16 +106,24 @@ def create_bulk(appointments: list[schemas.AppointmentCreate], plan_id: UUID) ->
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
+
+        event_ids = [a.event.id for a in appointments]
+        avail_day_ids = [ad.id for a in appointments for ad in a.avail_days]
+        events_by_id = {e.id: e for e in session.exec(select(models.Event).where(models.Event.id.in_(event_ids))).all()}
+        avail_days_by_id = {
+            ad.id: ad for ad in session.exec(select(models.AvailDay).where(models.AvailDay.id.in_(avail_day_ids))).all()
+        }
+
         created_ids: list[UUID] = []
         for appointment in appointments:
             app = models.Appointment(
-                event=session.get(models.Event, appointment.event.id),
+                event=events_by_id[appointment.event.id],
                 plan=plan,
                 notes=appointment.notes,
             )
             session.add(app)
             for ad in appointment.avail_days:
-                app.avail_days.append(session.get(models.AvailDay, ad.id))
+                app.avail_days.append(avail_days_by_id[ad.id])
             created_ids.append(app.id)
         session.flush()
         return created_ids
@@ -130,7 +148,11 @@ def undelete_bulk(appointment_ids: list[UUID]) -> None:
 
 def get_plan_names_from__event(event_id: UUID) -> dict[str, int]:
     with get_session() as session:
-        event = session.get(models.Event, event_id)
+        event = session.exec(
+            select(models.Event)
+            .where(models.Event.id == event_id)
+            .options(selectinload(models.Event.appointments).joinedload(models.Appointment.plan))
+        ).first()
         if not event:
             return {}
         plan_counts: dict[str, int] = {}

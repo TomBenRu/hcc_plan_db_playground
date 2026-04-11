@@ -133,10 +133,19 @@ def create(*, plan_period_id: UUID, restore_cast_group: schemas.CastGroupShow = 
             cg = models.CastGroup(id=restore_cast_group.id, nr_actors=0, plan_period=pp, cast_rule=cast_rule)
             session.add(cg)
             session.flush()
-            for pg in restore_cast_group.parent_groups:
-                cg.parent_groups.append(session.get(models.CastGroup, pg.id))
-            for child in restore_cast_group.child_groups:
-                cg.child_groups.append(session.get(models.CastGroup, child.id))
+            all_related_ids = (
+                [pg.id for pg in restore_cast_group.parent_groups]
+                + [child.id for child in restore_cast_group.child_groups]
+            )
+            related_by_id = {
+                g.id: g for g in session.exec(
+                    select(models.CastGroup).where(models.CastGroup.id.in_(all_related_ids))
+                ).all()
+            } if all_related_ids else {}
+            cg.parent_groups.extend(related_by_id[pg.id] for pg in restore_cast_group.parent_groups
+                                    if pg.id in related_by_id)
+            cg.child_groups.extend(related_by_id[child.id] for child in restore_cast_group.child_groups
+                                   if child.id in related_by_id)
             cg.nr_actors = restore_cast_group.nr_actors
             cg.fixed_cast = restore_cast_group.fixed_cast
             cg.strict_cast_pref = restore_cast_group.strict_cast_pref

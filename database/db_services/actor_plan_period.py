@@ -154,10 +154,15 @@ def delete(actor_plan_period_id: UUID):
 def update(actor_plan_period: schemas.ActorPlanPeriodShow) -> schemas.ActorPlanPeriodShow:
     log_function_info()
     with get_session() as session:
+        tod_ids = [t.id for t in actor_plan_period.time_of_days]
+        tods_by_id = {
+            t.id: t for t in session.exec(
+                select(models.TimeOfDay).where(models.TimeOfDay.id.in_(tod_ids))
+            ).all()
+        } if tod_ids else {}
         app = session.get(models.ActorPlanPeriod, actor_plan_period.id)
         app.time_of_days.clear()
-        for t in actor_plan_period.time_of_days:
-            app.time_of_days.append(session.get(models.TimeOfDay, t.id))
+        app.time_of_days.extend(tods_by_id[t.id] for t in actor_plan_period.time_of_days)
         for k, v in actor_plan_period.model_dump(include={'notes', 'requested_assignments'}).items():
             setattr(app, k, v)
         session.flush()

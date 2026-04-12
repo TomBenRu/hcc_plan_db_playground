@@ -140,20 +140,15 @@ class UpdateNotes(Command):
 
 class SetBinding(Command):
     """Markiert einen Plan als verbindlich; hebt bei anderen Plänen der gleichen
-    Planperiode is_binding auf. Vollständig undo/redo-fähig."""
+    Planperiode is_binding auf."""
 
     def __init__(self, plan_id: UUID):
         super().__init__()
         self.plan_id = plan_id
         self.previous_binding_plan_id: UUID | None = None
-        self.updated_plan: schemas.PlanShow | None = None
 
     def execute(self):
-        plan = db_services.Plan.get(self.plan_id)
-        all_plans = db_services.Plan.get_all_from__plan_period(plan.plan_period.id)
-        prev = next((p for p in all_plans if p.is_binding and p.id != self.plan_id), None)
-        self.previous_binding_plan_id = prev.id if prev else None
-        self.updated_plan = db_services.Plan.set_binding(self.plan_id)
+        self.previous_binding_plan_id = db_services.Plan.set_binding(self.plan_id)
 
     def _undo(self):
         db_services.Plan.unset_binding(self.plan_id)

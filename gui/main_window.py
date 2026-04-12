@@ -834,8 +834,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         plan_period_id = plan.plan_period.id
         cmd = plan_commands.SetBinding(plan.id)
         cmd.execute()
-        active_widget.plan = cmd.updated_plan
-        self._sync_binding_tab_titles(plan_period_id, cmd.updated_plan.id)
+        self._sync_binding_tab_titles(plan_period_id, plan.id)
 
     def _sync_binding_tab_titles(self, plan_period_id, new_binding_id):
         """Synchronisiert In-Memory-Zustand und Tab-Darstellung nach is_binding-Änderung."""

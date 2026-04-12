@@ -38,9 +38,9 @@ def update_notes(plan_id: UUID, notes: str) -> schemas.PlanShow:
         return schemas.PlanShow.model_validate(plan)
 
 
-def set_binding(plan_id: UUID) -> schemas.PlanShow:
-    """Markiert plan_id als verbindlich; setzt is_binding=False bei allen
-    anderen Plänen derselben Planperiode atomisch in einer Session."""
+def set_binding(plan_id: UUID) -> UUID | None:
+    """Markiert plan_id als verbindlich; setzt is_binding=False beim bisherigen
+    verbindlichen Plan derselben Planperiode. Gibt dessen ID zurück (oder None)."""
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
@@ -50,22 +50,21 @@ def set_binding(plan_id: UUID) -> schemas.PlanShow:
             .where(models.Plan.is_binding == True)
             .where(models.Plan.id != plan_id)
         ).first()
+        prev_id = prev.id if prev else None
         if prev:
             prev.is_binding = False
             session.flush()  # erst FALSE committen, dann TRUE setzen
         plan.is_binding = True
         session.flush()
-        return schemas.PlanShow.model_validate(plan)
+        return prev_id
 
 
-def unset_binding(plan_id: UUID) -> schemas.PlanShow:
+def unset_binding(plan_id: UUID) -> None:
     """Entfernt is_binding-Flag von einem Plan."""
     log_function_info()
     with get_session() as session:
         plan = session.get(models.Plan, plan_id)
         plan.is_binding = False
-        session.flush()
-        return schemas.PlanShow.model_validate(plan)
 
 
 def delete(plan_id: UUID) -> None:

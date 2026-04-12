@@ -1,0 +1,50 @@
+{#
+  Wochen-Grid-Fragment — wird via HTMX in #week-grid geladen.
+  Erwartet:
+    days_list: list[tuple[date, list[AvailDayMarker]]]  — 7 Einträge (Mo–So)
+    actor_plan_period_id: UUID
+    today: date
+    palette: list[str]                                   — Farben per Enum-time_index
+#}
+{% set weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+{% set months_de = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'] %}
+
+<div class="grid grid-cols-7 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-100 h-full min-h-[320px]">
+{% for day, markers in days_list %}
+    {% set is_today = (day == today) %}
+    {% set is_weekend = (loop.index0 >= 5) %}
+    {% set out_of_period = (day < period_start or day > period_end) %}
+    <div class="flex flex-col {% if out_of_period %}bg-slate-100/60{% elif is_weekend %}bg-slate-50/40{% else %}bg-white{% endif %}"
+         {% if not out_of_period %}onclick="openDayPanelFromGrid('{{ day.isoformat() }}')" style="cursor: pointer;"{% else %}style="cursor: default;"{% endif %}>
+
+        {# ── Spalten-Header ──────────────────────────────────────────── #}
+        <div class="px-2 pt-2 pb-1.5 border-b border-slate-100 {% if is_today and not out_of_period %}bg-brand/5{% endif %}">
+            <p class="text-xs font-semibold tracking-widest uppercase font-sans text-slate-400{% if out_of_period %}/40{% endif %}">
+                {{ weekdays[loop.index0] }}
+            </p>
+            <p class="text-lg font-semibold font-display leading-none mt-0.5
+                       {% if out_of_period %}text-slate-400/40{% elif is_today %}text-brand{% else %}text-slate-700{% endif %}">
+                {{ day.day }}
+            </p>
+            <p class="text-xs font-sans {% if out_of_period %}text-slate-400/40{% else %}text-slate-400{% endif %}">{{ months_de[day.month - 1] }}</p>
+        </div>
+
+        {# ── Marker-Chips ────────────────────────────────────────────── #}
+        <div class="flex flex-col gap-1 p-1.5 flex-1">
+            {% for m in markers %}
+            {% set color = palette[m.time_of_day_enum_time_index % palette|length] %}
+            <div class="flex items-center gap-1 rounded-md px-1.5 py-1 text-white text-xs font-semibold font-sans leading-none"
+                 style="background-color: {{ color }}; box-shadow: 0 1px 3px {{ color }}55;">
+                <span>{{ m.time_of_day_enum_abbreviation }}</span>
+                {% if m.has_appointment %}
+                <svg class="w-2.5 h-2.5 ml-auto opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endfor %}
+</div>

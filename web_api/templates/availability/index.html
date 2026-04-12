@@ -1,0 +1,698 @@
+{% extends "base.html" %}
+
+{% block title %}Verfügbarkeit — hcc plan{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/de.global.min.js"></script>
+<style>
+    /* ── FullCalendar Theme Override (identisch mit employees/calendar.html) ── */
+    :root {
+        --fc-border-color: #e2e8f0;
+        --fc-button-text-color: #fff;
+        --fc-button-bg-color: #0C1628;
+        --fc-button-border-color: #0C1628;
+        --fc-button-hover-bg-color: #162846;
+        --fc-button-hover-border-color: #162846;
+        --fc-button-active-bg-color: #F97316;
+        --fc-button-active-border-color: #F97316;
+        --fc-today-bg-color: rgba(249, 115, 22, 0.06);
+        --fc-event-border-color: transparent;
+        --fc-page-bg-color: #fff;
+        --fc-neutral-bg-color: #f8fafc;
+        --fc-list-event-hover-bg-color: #fff7ed;
+        --fc-highlight-color: rgba(249, 115, 22, 0.1);
+    }
+    .fc .fc-toolbar-title {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 1.3rem; font-weight: 600; color: #0C1628;
+        letter-spacing: -0.02em;
+    }
+    .fc .fc-button {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.75rem; font-weight: 500; border-radius: 6px;
+        text-transform: none; letter-spacing: 0;
+        padding: 0.3rem 0.7rem;
+        transition: background-color 0.15s, border-color 0.15s;
+    }
+    .fc .fc-button:focus { box-shadow: 0 0 0 3px rgba(249,115,22,0.25); }
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+        background-color: #F97316; border-color: #F97316;
+    }
+    .fc .fc-daygrid-event {
+        border-radius: 4px; font-size: 0.73rem;
+        font-family: 'Outfit', sans-serif; font-weight: 600;
+        padding: 2px 5px; cursor: pointer;
+        transition: opacity 0.15s, transform 0.1s;
+        border: none !important;
+    }
+    .fc .fc-daygrid-event:hover { opacity: 0.85; transform: translateY(-1px); }
+    .fc-event--active { outline: 2px solid #F97316 !important; outline-offset: 1px; }
+    .fc .fc-col-header-cell-cushion {
+        font-family: 'Outfit', sans-serif; font-size: 0.68rem; font-weight: 600;
+        letter-spacing: 0.07em; text-transform: uppercase; color: #64748b;
+        padding: 8px 4px; text-decoration: none !important;
+    }
+    .fc .fc-daygrid-day-number {
+        font-family: 'Outfit', sans-serif; font-size: 0.8rem;
+        color: #475569; font-weight: 400; padding: 4px 6px;
+        text-decoration: none !important; cursor: pointer;
+    }
+    .fc .fc-day-today .fc-daygrid-day-number { color: #F97316; font-weight: 700; }
+    .fc .fc-daygrid-day-frame { min-height: 72px; }
+    .fc thead { border-bottom: 2px solid #e2e8f0; }
+    .fc .fc-scrollgrid { border-radius: 0; border: none; }
+    .fc .fc-scrollgrid-section-header th { background: #f8fafc; }
+    .fc .fc-scrollgrid td, .fc .fc-scrollgrid th { border-color: #e2e8f0; }
+
+    /* ── Sidebar scrollbar ─────────────────────────────────────────────────── */
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15); border-radius: 2px;
+    }
+
+    /* ── Sidebar select chevron ────────────────────────────────────────────── */
+    .sidebar-select {
+        -webkit-appearance: none; appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23F97316' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 10px center;
+        padding-right: 2rem;
+    }
+
+    /* ── Detail-Panel / Day-Panel Animation ───────────────────────────────── */
+    #day-panel > *:first-child {
+        animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(10px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Deadline-Badge ────────────────────────────────────────────────────── */
+    .deadline-normal  { color: #4ADE80; }
+    .deadline-warning { color: #FBBF24; }
+    .deadline-locked  { color: #F87171; }
+
+    /* ── Farbenblindheit ───────────────────────────────────────────────────── */
+    [data-theme="colorblind"] {
+        --fc-button-active-bg-color: #0072B2;
+        --fc-button-active-border-color: #0072B2;
+        --fc-today-bg-color: rgba(0,114,178,0.06);
+    }
+    [data-theme="colorblind"] .fc .fc-button-primary:not(:disabled).fc-button-active,
+    [data-theme="colorblind"] .fc .fc-button-primary:not(:disabled):active {
+        background-color: #0072B2; border-color: #0072B2;
+    }
+    [data-theme="colorblind"] .fc .fc-day-today .fc-daygrid-day-number { color: #0072B2; }
+    [data-theme="colorblind"] .fc .fc-button:focus { box-shadow: 0 0 0 3px rgba(0,114,178,0.25); }
+    [data-theme="colorblind"] .fc-event--active { outline-color: #0072B2 !important; }
+
+    /* ── Dark Mode ─────────────────────────────────────────────────────────── */
+    [data-theme="dark"] {
+        --fc-border-color: #334155;
+        --fc-button-text-color: #F1F5F9;
+        --fc-button-bg-color: #1E293B;
+        --fc-button-border-color: #334155;
+        --fc-button-hover-bg-color: #334155;
+        --fc-button-hover-border-color: #475569;
+        --fc-button-active-bg-color: var(--brand);
+        --fc-button-active-border-color: var(--brand);
+        --fc-today-bg-color: rgba(249,115,22,0.07);
+        --fc-page-bg-color: #1E293B;
+        --fc-neutral-bg-color: #0F172A;
+    }
+    [data-theme="dark"] .fc .fc-toolbar-title { color: #F1F5F9; }
+    [data-theme="dark"] .fc .fc-col-header-cell-cushion { color: #64748b; }
+    [data-theme="dark"] .fc .fc-daygrid-day-number { color: #94a3b8; }
+    [data-theme="dark"] .fc .fc-day-today .fc-daygrid-day-number { color: var(--brand); font-weight: 700; }
+    [data-theme="dark"] .fc thead { border-bottom-color: #334155; }
+    [data-theme="dark"] .fc .fc-scrollgrid-section-header th { background: #0F172A; }
+    [data-theme="dark"] .fc .fc-scrollgrid td,
+    [data-theme="dark"] .fc .fc-scrollgrid th { border-color: #334155; }
+    [data-theme="dark"] .fc .fc-button:focus { box-shadow: 0 0 0 3px var(--brand-ring); }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 1279px) {
+        .cal-wrapper { grid-template-columns: 220px 1fr !important; }
+        .detail-panel {
+            display: none !important;
+            position: fixed !important;
+            right: 0; top: 56px; bottom: 0;
+            width: 300px;
+            box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+            z-index: 50;
+        }
+        .detail-panel.has-content {
+            display: flex !important;
+            animation: slideInFromRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+        }
+    }
+    @keyframes slideInFromRight {
+        from { opacity: 0; transform: translateX(24px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    @media (max-width: 1023px) {
+        .cal-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .cal-sidebar {
+            flex-direction: row !important;
+            flex-wrap: wrap; gap: 0.75rem;
+            padding: 0.625rem 1rem !important;
+            align-items: center; min-height: unset !important;
+        }
+        .cal-sidebar .sidebar-spacer,
+        .cal-sidebar .sidebar-section:not(.sidebar-period-select) { display: none !important; }
+        .fc .fc-toolbar-title { font-size: 1rem; }
+        .detail-panel.has-content {
+            right: 0 !important; left: 0 !important;
+            top: auto !important; bottom: 0 !important;
+            width: 100% !important; height: 60vh;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.12) !important;
+            animation: slideInFromBottom 0.28s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+            border-radius: 16px 16px 0 0;
+        }
+    }
+    @keyframes slideInFromBottom {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 639px) {
+        .fc .fc-toolbar { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+        .fc .fc-toolbar-title { font-size: 0.9rem !important; }
+    }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+{% set ap = view_model.active_period %}
+{% set stats = view_model.sidebar_stats %}
+
+<div class="h-[calc(100vh-56px)] flex flex-col">
+
+    <!-- ── Three-Column Layout ─────────────────────────────────────────────── -->
+    <div class="cal-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 252px 1fr 308px;">
+
+        <!-- ── Left Sidebar ──────────────────────────────────────────────── -->
+        <aside class="cal-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll p-6 animate-fade-up border-r border-white/5">
+
+            <!-- Brand -->
+            <div class="mb-7">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand"></span>
+                        <span class="text-xs font-semibold tracking-widest text-brand/80 uppercase font-sans">Mitarbeiter</span>
+                    </div>
+                    <a href="/dashboard"
+                       class="lg:hidden flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors font-sans flex-shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Dashboard
+                    </a>
+                </div>
+                <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+                    Verfügbarkeit
+                </h1>
+                <p class="font-sans text-xs text-slate-500 mt-1.5">
+                    Trage deine verfügbaren Tage ein.
+                </p>
+            </div>
+
+            <div class="border-t border-white/5 mb-5"></div>
+
+            <!-- Team-Dropdown (nur bei mehreren Teams sichtbar) -->
+            {% if view_model.teams | length > 1 %}
+            <div class="sidebar-section sidebar-period-select mb-4">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Team
+                </label>
+                <form id="team-form" method="GET" action="/availability">
+                    <select name="team_id"
+                            class="sidebar-select w-full text-sm rounded-lg border border-white/10 bg-navy-800 text-slate-200 px-3 py-2.5 font-sans focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30 transition-all"
+                            style="background-color: #111F38;"
+                            onchange="document.getElementById('team-form').submit()">
+                        {% for team in view_model.teams %}
+                        <option value="{{ team.team_id }}"
+                                {% if team.team_id == view_model.selected_team_id %}selected{% endif %}>
+                            {{ team.team_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Periode-Dropdown -->
+            <div class="sidebar-section sidebar-period-select mb-6">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Planperiode
+                </label>
+                <form id="period-form" method="GET" action="/availability">
+                    {% if view_model.selected_team_id %}
+                    <input type="hidden" name="team_id" value="{{ view_model.selected_team_id }}">
+                    {% endif %}
+                    <select name="plan_period_id"
+                            id="period-select"
+                            class="sidebar-select w-full text-sm rounded-lg border border-white/10 bg-navy-800 text-slate-200 px-3 py-2.5 font-sans focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30 transition-all"
+                            style="background-color: #111F38;"
+                            onchange="document.getElementById('period-form').submit()">
+                        {% for pp in open_periods %}
+                        <option value="{{ pp.plan_period_id }}"
+                                {% if pp.plan_period_id == ap.plan_period_id %}selected{% endif %}>
+                            {{ pp.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+
+            <!-- Deadline-Badge -->
+            <div class="sidebar-section mb-5">
+                {% if ap.deadline_severity == "locked" %}
+                <div class="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-900/20 border border-red-800/30 rounded-xl px-3 py-2 font-sans">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    {% if ap.closed %}Periode geschlossen{% else %}Abgabefrist abgelaufen{% endif %}
+                </div>
+                {% elif ap.deadline_severity == "warning" %}
+                <div class="flex items-center gap-2 text-xs font-medium text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl px-3 py-2 font-sans">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Noch {{ ap.days_until_deadline }} Tag{% if ap.days_until_deadline != 1 %}e{% endif %} bis zur Abgabe
+                </div>
+                {% else %}
+                <div class="flex items-center gap-2 text-xs text-slate-500 font-sans">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Abgabe: {{ ap.deadline.strftime('%d.%m.%Y') }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Statistik -->
+            <div class="sidebar-section mb-5">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Statistik
+                </label>
+                <div id="sidebar-stats">
+                    {% include "availability/partials/sidebar_period_stats.html" %}
+                </div>
+            </div>
+
+            <!-- Notizen (auto-save) -->
+            <div class="sidebar-section mb-5">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Anmerkungen
+                </label>
+                <textarea
+                    rows="3"
+                    placeholder="Persönliche Notiz für den Disponenten…"
+                    class="w-full text-xs rounded-lg border border-white/10 bg-navy-800 text-slate-300
+                           px-3 py-2 font-sans resize-none focus:outline-none focus:border-brand/60
+                           focus:ring-1 focus:ring-brand/30 placeholder-slate-600"
+                    style="background-color: #111F38;"
+                    {% if ap.is_locked %}disabled{% endif %}
+                    hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
+                    hx-trigger="change delay:600ms"
+                    hx-target="#sidebar-stats"
+                    hx-swap="innerHTML"
+                    name="notes">{{ ap.notes or '' }}</textarea>
+            </div>
+
+            <!-- Wunscheinsätze -->
+            <div class="sidebar-section mb-6">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Wunscheinsätze
+                </label>
+                <input
+                    type="number"
+                    min="0"
+                    max="999"
+                    value="{{ stats.requested_assignments }}"
+                    class="w-full text-sm rounded-lg border border-white/10 bg-navy-800 text-slate-200
+                           px-3 py-2 font-sans focus:outline-none focus:border-brand/60
+                           focus:ring-1 focus:ring-brand/30 transition-all"
+                    style="background-color: #111F38;"
+                    {% if ap.is_locked %}disabled{% endif %}
+                    hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
+                    hx-trigger="change"
+                    hx-target="#sidebar-stats"
+                    hx-swap="innerHTML"
+                    name="requested_assignments">
+
+                <p class="text-xs text-slate-600 font-sans mt-1.5">
+                    Wie viele Einsätze wünschst du dir?
+                </p>
+            </div>
+
+            <!-- Hinweise für Mitarbeiter -->
+            {% if ap.notes_for_employees %}
+            <div class="sidebar-section mb-6">
+                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                    Hinweise
+                </label>
+                <p class="text-xs text-slate-400 font-sans leading-relaxed whitespace-pre-line">
+                    {{ ap.notes_for_employees }}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Spacer -->
+            <div class="sidebar-spacer mt-auto pt-5 border-t border-white/5 space-y-3">
+                <a href="/availability/time-of-days"
+                   class="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors font-sans">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Meine Tageszeiten
+                </a>
+                <a href="/dashboard"
+                   class="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-400 transition-colors font-sans">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Zurück zum Dashboard
+                </a>
+            </div>
+        </aside>
+
+        <!-- ── Kalender-Bereich ───────────────────────────────────────────── -->
+        <main class="flex flex-col bg-white overflow-hidden animate-fade-up" style="animation-delay: 0.06s;">
+
+            <!-- View-Toggle Toolbar -->
+            <div class="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-slate-100 lg:px-6 flex-shrink-0">
+                <!-- Monat/Woche Switcher -->
+                <div class="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-lg">
+                    <button id="btn-month"
+                            class="text-xs font-medium px-3 py-1.5 rounded-md transition-colors font-sans bg-white text-slate-700 shadow-sm"
+                            onclick="switchView('month')">
+                        Monat
+                    </button>
+                    <button id="btn-week"
+                            class="text-xs font-medium px-3 py-1.5 rounded-md transition-colors font-sans text-slate-500 hover:text-slate-700"
+                            onclick="switchView('week')">
+                        Woche
+                    </button>
+                </div>
+                <!-- Woche Navigation (nur in Wochenansicht sichtbar) -->
+                <div id="week-nav" style="display:none;" class="flex items-center gap-1.5">
+                    <button onclick="prevWeek()"
+                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <span id="week-label"
+                          class="text-xs font-medium text-slate-600 font-sans min-w-[10rem] text-center select-none"></span>
+                    <button onclick="nextWeek()"
+                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    <button onclick="gotoToday()"
+                            class="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200
+                                   text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors font-sans">
+                        Heute
+                    </button>
+                </div>
+            </div>
+
+            <!-- Monatsansicht (FullCalendar) -->
+            <div id="month-view" class="flex-1 p-4 lg:p-6 overflow-hidden">
+                <div id="calendar" class="h-full"></div>
+            </div>
+
+            <!-- Wochenansicht (HTMX-Grid) -->
+            <div id="week-view" style="display:none;" class="flex-1 overflow-auto">
+                <div id="week-grid" class="p-4 lg:p-6 h-full">
+                    <!-- Wird via HTMX geladen wenn Woche-Button geklickt -->
+                    <div class="flex items-center justify-center h-32 text-sm text-slate-300 font-sans">
+                        Wochenansicht wird geladen…
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ── Day-Panel ─────────────────────────────────────────────────── -->
+        <aside
+            id="detail-panel"
+            class="detail-panel bg-slate-50 border-l border-slate-100 overflow-y-auto flex flex-col"
+        >
+            <div id="day-panel" class="flex-1">
+                <!-- Empty state -->
+                <div class="flex flex-col items-center justify-center h-full text-center px-8 py-12">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-medium text-slate-400 font-sans">Tag auswählen</p>
+                    <p class="text-xs text-slate-300 mt-1 font-sans leading-relaxed">
+                        Klicke auf einen Tag<br>im Kalender.
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+    </div><!-- /.cal-wrapper -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Farbenblindheit-Unterstützung ────────────────────────────────────────
+    const CB_PALETTE = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00'];
+    const cbColorMap = new Map();
+    let cbIdx = 0;
+    function getCBColor(original) {
+        if (!cbColorMap.has(original)) {
+            cbColorMap.set(original, CB_PALETTE[cbIdx++ % CB_PALETTE.length]);
+        }
+        return cbColorMap.get(original);
+    }
+    function resolveColor(original) {
+        return window.hccTheme.current() === 'colorblind' ? getCBColor(original) : original;
+    }
+
+    // ── FullCalendar Init ────────────────────────────────────────────────────
+    const calendarEl = document.getElementById('calendar');
+    const actorPlanPeriodId = '{{ view_model.active_period.actor_plan_period_id }}';
+    const periodStart = '{{ view_model.active_period.start.isoformat() }}';
+    const periodEnd   = '{{ view_model.active_period.end.isoformat() }}';
+    // validRange.end ist exklusiv — einen Tag addieren
+    const periodEndExcl = (function() {
+        const d = new Date(periodEnd + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().substring(0, 10);
+    })();
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: '{{ view_model.initial_date }}',
+        locale: 'de',
+        firstDay: 1,
+        height: '100%',
+        validRange: { start: periodStart, end: periodEndExcl },
+        headerToolbar: {
+            left:   'prev,next today',
+            center: 'title',
+            right:  'dayGridMonth',
+        },
+        buttonText: { today: 'Heute', month: 'Monat' },
+
+        // Events: Verfügbarkeitstage aus dem Backend
+        eventSources: [{
+            url: '/availability/events',
+            method: 'GET',
+            extraParams: { actor_plan_period_id: actorPlanPeriodId },
+            failure: function () { console.warn('Verfügbarkeitstage konnten nicht geladen werden.'); },
+        }],
+
+        // Klick auf einen Tag → Day-Panel laden
+        dateClick: function (info) {
+            const panel = document.getElementById('detail-panel');
+            if (panel) panel.classList.add('has-content');
+            htmx.ajax('GET',
+                '/availability/day/' + info.dateStr + '?actor_plan_period_id=' + actorPlanPeriodId,
+                { target: '#day-panel', swap: 'innerHTML' }
+            );
+        },
+
+        // Klick auf ein Event → gleiches Tag-Panel öffnen
+        eventClick: function (info) {
+            const panel = document.getElementById('detail-panel');
+            if (panel) panel.classList.add('has-content');
+            const dayStr = info.event.startStr.substring(0, 10);
+            htmx.ajax('GET',
+                '/availability/day/' + dayStr + '?actor_plan_period_id=' + actorPlanPeriodId,
+                { target: '#day-panel', swap: 'innerHTML' }
+            );
+        },
+
+        eventDidMount: function (info) {
+            const color = info.event.backgroundColor;
+            if (color) {
+                const display = resolveColor(color);
+                info.el.style.backgroundColor = display;
+                info.el.style.boxShadow = '0 1px 4px ' + display + '55';
+            }
+            // Lock-Icon bei Appointments
+            if (info.event.extendedProps.has_appointment) {
+                const title = info.el.querySelector('.fc-event-title');
+                if (title) {
+                    title.insertAdjacentHTML('afterend', '<span class="ml-0.5 text-white/80">🔒</span>');
+                }
+            }
+        },
+    });
+
+    calendar.render();
+
+    // ── HTMX: nach Mutation Kalender + Week-Grid aktualisieren ─────────────
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        if (evt.target.id === 'day-panel') {
+            calendar.refetchEvents();
+            if (currentViewMode === 'week') loadWeekGrid();
+        }
+    });
+
+    // ── Theme-Wechsel: Event-Farben neu rendern ──────────────────────────────
+    window.hccTheme.onchange(function () {
+        calendar.refetchEvents();
+        if (currentViewMode === 'week') loadWeekGrid();
+    });
+
+    // ── View-Toggle ──────────────────────────────────────────────────────────
+    const DE_MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
+                              'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    let currentViewMode = 'month';
+
+    function getMondayOf(d) {
+        const day = d.getDay(); // 0=So
+        const diff = (day === 0) ? -6 : 1 - day;
+        const mon = new Date(d);
+        mon.setDate(d.getDate() + diff);
+        mon.setHours(0, 0, 0, 0);
+        return mon;
+    }
+    function toISODate(d) {
+        return d.getFullYear() + '-'
+            + String(d.getMonth() + 1).padStart(2, '0') + '-'
+            + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Startwoche: heute, aber innerhalb der Planperiode
+    const _periodStartDate = new Date(periodStart + 'T00:00:00');
+    const _periodEndDate   = new Date(periodEnd   + 'T00:00:00');
+    const _today = new Date();
+    let currentWeekStart;
+    if (_today < _periodStartDate) {
+        currentWeekStart = getMondayOf(_periodStartDate);
+    } else if (_today > _periodEndDate) {
+        currentWeekStart = getMondayOf(_periodEndDate);
+    } else {
+        currentWeekStart = getMondayOf(_today);
+    }
+    function updateWeekLabel() {
+        const end = new Date(currentWeekStart);
+        end.setDate(end.getDate() + 6);
+        const s = `${currentWeekStart.getDate()}. ${DE_MONTHS_SHORT[currentWeekStart.getMonth()]}`;
+        const e = `${end.getDate()}. ${DE_MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+        document.getElementById('week-label').textContent = `${s} – ${e}`;
+    }
+    function loadWeekGrid() {
+        htmx.ajax('GET',
+            `/availability/week-grid?actor_plan_period_id=${actorPlanPeriodId}&start=${toISODate(currentWeekStart)}`,
+            { target: '#week-grid', swap: 'innerHTML' }
+        );
+    }
+    window.switchView = function (mode) {
+        currentViewMode = mode;
+        const monthView = document.getElementById('month-view');
+        const weekView  = document.getElementById('week-view');
+        const weekNav   = document.getElementById('week-nav');
+        const btnMonth  = document.getElementById('btn-month');
+        const btnWeek   = document.getElementById('btn-week');
+        if (mode === 'month') {
+            monthView.style.display = '';
+            weekView.style.display  = 'none';
+            weekNav.style.display   = 'none';
+            btnMonth.classList.add('bg-white', 'text-slate-700', 'shadow-sm');
+            btnMonth.classList.remove('text-slate-500');
+            btnWeek.classList.remove('bg-white', 'text-slate-700', 'shadow-sm');
+            btnWeek.classList.add('text-slate-500');
+            calendar.render();
+        } else {
+            monthView.style.display = 'none';
+            weekView.style.display  = '';
+            weekNav.style.display   = '';
+            btnWeek.classList.add('bg-white', 'text-slate-700', 'shadow-sm');
+            btnWeek.classList.remove('text-slate-500');
+            btnMonth.classList.remove('bg-white', 'text-slate-700', 'shadow-sm');
+            btnMonth.classList.add('text-slate-500');
+            updateWeekLabel();
+            loadWeekGrid();
+        }
+    };
+    window.prevWeek = function () {
+        const candidate = new Date(currentWeekStart);
+        candidate.setDate(candidate.getDate() - 7);
+        // Nur navigieren, wenn die Woche noch innerhalb der Periode endet
+        const candEnd = new Date(candidate);
+        candEnd.setDate(candEnd.getDate() + 6);
+        if (candEnd >= _periodStartDate) {
+            currentWeekStart = candidate;
+            updateWeekLabel();
+            loadWeekGrid();
+        }
+    };
+    window.nextWeek = function () {
+        const candidate = new Date(currentWeekStart);
+        candidate.setDate(candidate.getDate() + 7);
+        // Nur navigieren, wenn die Woche noch innerhalb der Periode beginnt
+        if (candidate <= _periodEndDate) {
+            currentWeekStart = candidate;
+            updateWeekLabel();
+            loadWeekGrid();
+        }
+    };
+    window.gotoToday = function () {
+        const today = new Date();
+        if (today < _periodStartDate) {
+            currentWeekStart = getMondayOf(_periodStartDate);
+        } else if (today > _periodEndDate) {
+            currentWeekStart = getMondayOf(_periodEndDate);
+        } else {
+            currentWeekStart = getMondayOf(today);
+        }
+        updateWeekLabel();
+        loadWeekGrid();
+    };
+
+    // Klick auf Wochengrid-Zelle → Day-Panel öffnen (wie FullCalendar dateClick)
+    window.openDayPanelFromGrid = function (dateStr) {
+        const panel = document.getElementById('detail-panel');
+        if (panel) panel.classList.add('has-content');
+        htmx.ajax('GET',
+            '/availability/day/' + dateStr + '?actor_plan_period_id=' + actorPlanPeriodId,
+            { target: '#day-panel', swap: 'innerHTML' }
+        );
+    };
+});
+</script>
+{% endblock %}

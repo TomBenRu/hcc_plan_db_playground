@@ -1,0 +1,57 @@
+{#
+  TOD-Zeilen-Fragment — wird via HTMX in #tod-row-{id} eingesetzt.
+  Erwartet: tod (PersonTimeOfDayInfo)
+#}
+<tr id="tod-row-{{ tod.id }}" class="border-b border-slate-100 last:border-0">
+    <td class="py-3 pr-4">
+        <div class="text-sm font-medium text-slate-800 font-sans">
+            {{ tod.start.strftime('%H:%M') }}–{{ tod.end.strftime('%H:%M') }}
+        </div>
+        {% if tod.name %}
+        <div class="text-xs text-slate-500 font-sans mt-0.5">{{ tod.name }}</div>
+        {% endif %}
+    </td>
+    <td class="py-3 text-right">
+        <div class="flex items-center justify-end gap-2">
+            {# Edit-Form #}
+            <form hx-patch="/availability/time-of-days/{{ tod.id }}"
+                  hx-target="#tod-row-{{ tod.id }}"
+                  hx-swap="outerHTML"
+                  class="flex items-center gap-1.5">
+                <input type="time" name="start" value="{{ tod.start.strftime('%H:%M') }}"
+                       class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                              text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                              w-24">
+                <span class="text-xs text-slate-400">–</span>
+                <input type="time" name="end" value="{{ tod.end.strftime('%H:%M') }}"
+                       class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                              text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                              w-24">
+                <button type="submit"
+                        class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg
+                               bg-brand/10 text-brand hover:bg-brand/20 transition-colors font-sans">
+                    Speichern
+                </button>
+            </form>
+
+            {# Delete-Button #}
+            {% if tod.avail_day_count == 0 %}
+            <button hx-delete="/availability/time-of-days/{{ tod.id }}"
+                    hx-target="#tod-row-{{ tod.id }}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Tageszeit wirklich löschen?"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg
+                           text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+            {% else %}
+            <span class="text-xs text-slate-400 font-sans" title="{{ tod.avail_day_count }} Verfügbarkeitstage nutzen diese Tageszeit">
+                {{ tod.avail_day_count }}×
+            </span>
+            {% endif %}
+        </div>
+    </td>
+</tr>

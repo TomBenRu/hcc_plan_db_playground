@@ -155,6 +155,63 @@
     .fc .fc-list-event-dot { border-color: currentColor; }
     .fc .fc-list-empty { font-family: 'Outfit', sans-serif; color: #94a3b8; font-size: 0.875rem; }
 
+    /* ── Farbenblindheit: FullCalendar-Variablen ────────────── */
+    [data-theme="colorblind"] {
+        --fc-button-active-bg-color:     #0072B2;
+        --fc-button-active-border-color: #0072B2;
+        --fc-today-bg-color:             rgba(0,114,178,0.06);
+        --fc-list-event-hover-bg-color:  #EBF5FB;
+        --fc-highlight-color:            rgba(0,114,178,0.08);
+    }
+    [data-theme="colorblind"] .fc .fc-button-primary:not(:disabled).fc-button-active,
+    [data-theme="colorblind"] .fc .fc-button-primary:not(:disabled):active {
+        background-color: #0072B2;
+        border-color: #0072B2;
+    }
+    [data-theme="colorblind"] .fc .fc-day-today .fc-daygrid-day-number { color: #0072B2; }
+    [data-theme="colorblind"] .fc .fc-button:focus {
+        box-shadow: 0 0 0 3px rgba(0,114,178,0.25);
+    }
+    [data-theme="colorblind"] .fc-event--active {
+        outline-color: #0072B2 !important;
+    }
+
+    /* ── Dark Mode: FullCalendar-Variablen ──────────────────── */
+    [data-theme="dark"] {
+        --fc-border-color:               #334155;
+        --fc-button-text-color:          #F1F5F9;
+        --fc-button-bg-color:            #1E293B;
+        --fc-button-border-color:        #334155;
+        --fc-button-hover-bg-color:      #334155;
+        --fc-button-hover-border-color:  #475569;
+        --fc-button-active-bg-color:     var(--brand);
+        --fc-button-active-border-color: var(--brand);
+        --fc-today-bg-color:             rgba(249,115,22,0.07);
+        --fc-page-bg-color:              #1E293B;
+        --fc-neutral-bg-color:           #0F172A;
+        --fc-list-event-hover-bg-color:  #334155;
+        --fc-highlight-color:            rgba(249,115,22,0.08);
+    }
+    [data-theme="dark"] .fc .fc-toolbar-title  { color: #F1F5F9; }
+    [data-theme="dark"] .fc .fc-col-header-cell-cushion { color: #64748b; }
+    [data-theme="dark"] .fc .fc-daygrid-day-number { color: #94a3b8; }
+    [data-theme="dark"] .fc .fc-day-today .fc-daygrid-day-number { color: var(--brand); font-weight: 700; }
+    [data-theme="dark"] .fc thead { border-bottom-color: #334155; }
+    [data-theme="dark"] .fc .fc-scrollgrid-section-header th { background: #0F172A; }
+    [data-theme="dark"] .fc .fc-scrollgrid td,
+    [data-theme="dark"] .fc .fc-scrollgrid th { border-color: #334155; }
+    [data-theme="dark"] .fc .fc-list-day-cushion  { background: #0F172A; }
+    [data-theme="dark"] .fc .fc-list-day-text,
+    [data-theme="dark"] .fc .fc-list-day-side-text { color: #64748b; }
+    [data-theme="dark"] .fc .fc-list-event:hover td { background: #334155; }
+    [data-theme="dark"] .fc .fc-list-empty          { color: #64748b; }
+    [data-theme="dark"] .fc .fc-button:focus {
+        box-shadow: 0 0 0 3px var(--brand-ring);
+    }
+
+    /* ── Dark Mode: Kalender-Bereich ────────────────────────── */
+    [data-theme="dark"] main.bg-white-fc { background-color: #1E293B; }
+
     /* ── Responsive ──────────────────────────────────────────── */
 
     /* Tablet Landscape (<1280px): 2-Spalten, Detail als seitliches Overlay */
@@ -303,6 +360,7 @@
                     <li class="flex items-center gap-2.5 group">
                         <span
                             class="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-white/10"
+                            data-legend-color="{{ loc.color }}"
                             style="background-color: {{ loc.color }}; box-shadow: 0 0 6px {{ loc.color }}60;"
                         ></span>
                         <span class="text-sm text-slate-400 font-sans truncate group-hover:text-slate-200 transition-colors">
@@ -361,6 +419,54 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // ── Farbenblindheit-Modus: Okabe-Ito Palette ─────────────────────────
+    // Wissenschaftlich validiert für Protanopie, Deuteranopie und Tritanopie
+    const CB_PALETTE = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00'];
+    const cbColorMap = new Map();  // original → CB-Farbe
+    let cbIdx = 0;
+
+    function getCBColor(original) {
+        if (!cbColorMap.has(original)) {
+            cbColorMap.set(original, CB_PALETTE[cbIdx++ % CB_PALETTE.length]);
+        }
+        return cbColorMap.get(original);
+    }
+
+    function resolveColor(original) {
+        return window.hccTheme.current() === 'colorblind' ? getCBColor(original) : original;
+    }
+
+    function applyEventColors() {
+        document.querySelectorAll('[data-original-color]').forEach(function (el) {
+            const orig = el.getAttribute('data-original-color');
+            const color = resolveColor(orig);
+            el.style.backgroundColor = color;
+            el.style.boxShadow = '0 1px 4px ' + color + '55';
+        });
+        document.querySelectorAll('[data-legend-color]').forEach(function (el) {
+            const orig = el.getAttribute('data-legend-color');
+            const color = resolveColor(orig);
+            el.style.backgroundColor = color;
+            el.style.boxShadow = window.hccTheme.current() === 'colorblind'
+                ? 'none'
+                : '0 0 6px ' + color + '60';
+        });
+        applyDetailColors();
+    }
+
+    // Farben im Detail-Panel anwenden (nach HTMX-Swap und bei Theme-Wechsel)
+    function applyDetailColors() {
+        document.querySelectorAll('[data-event-color]').forEach(function (el) {
+            const orig = el.getAttribute('data-event-color');
+            const color = resolveColor(orig);
+            if (el.style.backgroundColor) el.style.backgroundColor = color;
+            if (el.style.color)           el.style.color = color;
+        });
+    }
+
+    // Bei Theme-Wechsel Farben sofort neu anwenden
+    window.hccTheme.onchange(applyEventColors);
+
     const calendarEl = document.getElementById('calendar');
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -398,16 +504,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const panel = document.getElementById('detail-panel');
             if (panel) panel.classList.add('has-content');
 
-            // Load detail via HTMX
+            // Load detail via HTMX; danach CB-Farben auf das neue Fragment anwenden
             htmx.ajax('GET', '/employees/appointments/' + info.event.id, {
                 target:  '#appointment-detail',
                 swap:    'innerHTML',
-            });
+            }).then(applyDetailColors);
         },
         eventDidMount: function (info) {
             const color = info.event.backgroundColor;
             if (color) {
-                info.el.style.boxShadow = `0 1px 4px ${color}55`;
+                info.el.setAttribute('data-original-color', color);
+                const display = resolveColor(color);
+                info.el.style.backgroundColor = display;
+                info.el.style.boxShadow = '0 1px 4px ' + display + '55';
             }
         },
     });

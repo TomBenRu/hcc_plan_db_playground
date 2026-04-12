@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}hcc plan{% endblock %}</title>
 
+    {# Anti-FOUC: Theme sofort setzen, bevor CSS geladen wird #}
+    <script>
+    (function () {
+        var t = localStorage.getItem('hcc-theme') || 'light';
+        var el = document.documentElement;
+        el.setAttribute('data-theme', t);
+        if (t === 'dark') el.classList.add('dark');
+    }());
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -43,24 +54,44 @@
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
 
     <style>
-        /* Tailwind-Klassen für Farben die nicht im Standard-Palette sind */
-        .bg-navy  { background-color: #0C1628; }
+        /* ── CSS-Variablen: Brand-Farbe (theme-sensitiv) ──────────────────── */
+        :root {
+            --brand:      #F97316;
+            --brand-h:    #EA580C;
+            --brand-ring: rgba(249,115,22,0.15);
+        }
+        [data-theme="colorblind"] {
+            --brand:      #0072B2;
+            --brand-h:    #005A8E;
+            --brand-ring: rgba(0,114,178,0.15);
+        }
+
+        /* ── Tailwind-Klassen für Nicht-Standard-Farben ───────────────────── */
+        .bg-navy   { background-color: #0C1628; }
         .text-navy { color: #0C1628; }
         .border-navy { border-color: #0C1628; }
-        .bg-brand  { background-color: #F97316; }
-        .text-brand { color: #F97316; }
-        .ring-brand { --tw-ring-color: #F97316; }
-        .hover\:bg-brand-600:hover { background-color: #EA580C; }
+        .bg-brand  { background-color: var(--brand); }
+        .text-brand { color: var(--brand); }
+        .ring-brand { --tw-ring-color: var(--brand); }
+        .hover\:bg-brand-600:hover { background-color: var(--brand-h); }
         .hover\:bg-brand-700:hover { background-color: #C2410C; }
 
-        /* Subtiles Hintergrund-Raster (Login linkes Panel) */
+        /* ── Farbenblindheit: explizite Overrides (höhere Spezifität als Tailwind) ── */
+        [data-theme="colorblind"] .bg-brand              { background-color: #0072B2; }
+        [data-theme="colorblind"] .text-brand            { color: #0072B2; }
+        [data-theme="colorblind"] .ring-brand            { --tw-ring-color: rgba(0,114,178,0.5); }
+        [data-theme="colorblind"] .hover\:bg-brand-600:hover { background-color: #005A8E; }
+        [data-theme="colorblind"] .hover\:bg-brand-700:hover { background-color: #004370; }
+        [data-theme="colorblind"] .focus\:ring-brand:focus   { --tw-ring-color: rgba(0,114,178,0.5); }
+
+        /* ── Hintergrund-Raster (Login linkes Panel, Kalender-Sidebar) ───── */
         .grid-bg {
             background-image:
                 repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px),
                 repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px);
         }
 
-        /* Formularfelder */
+        /* ── Formularfelder ───────────────────────────────────────────────── */
         .field-input {
             width: 100%;
             padding: 0.625rem 1rem;
@@ -75,9 +106,64 @@
         }
         .field-input::placeholder { color: #94a3b8; }
         .field-input:focus {
-            border-color: #F97316;
-            box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px var(--brand-ring);
         }
+
+        /* ── Dark Mode: Formularfelder ────────────────────────────────────── */
+        [data-theme="dark"] .field-input {
+            background: #1E293B;
+            border-color: #334155;
+            color: #F1F5F9;
+        }
+        [data-theme="dark"] .field-input::placeholder { color: #475569; }
+        [data-theme="dark"] .field-input:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px var(--brand-ring);
+        }
+
+        /* ── Dark Mode: Tailwind-Klassen-Overrides ────────────────────────── */
+        [data-theme="dark"] body        { background-color: #0F172A; color: #F1F5F9; }
+        [data-theme="dark"] .bg-white   { background-color: #1E293B !important; }
+        [data-theme="dark"] .bg-slate-50 { background-color: #0F172A !important; }
+        [data-theme="dark"] .text-slate-900 { color: #F1F5F9 !important; }
+        [data-theme="dark"] .text-slate-800 { color: #E2E8F0 !important; }
+        [data-theme="dark"] .text-slate-700 { color: #CBD5E1 !important; }
+        [data-theme="dark"] .text-slate-600 { color: #94A3B8 !important; }
+        [data-theme="dark"] .text-slate-500 { color: #64748B !important; }
+        [data-theme="dark"] .text-slate-400 { color: #475569 !important; }
+        [data-theme="dark"] .text-slate-300 { color: #64748B !important; }
+        [data-theme="dark"] .border-slate-100 { border-color: #1E293B !important; }
+        [data-theme="dark"] .border-slate-200 { border-color: #334155 !important; }
+        [data-theme="dark"] .bg-slate-100 { background-color: #1E293B !important; }
+        [data-theme="dark"] .bg-red-50   { background-color: #2D1A1A !important; }
+        [data-theme="dark"] .border-red-200 { border-color: #7F1D1D !important; }
+        [data-theme="dark"] .text-navy   { color: #93C5FD !important; }
+
+        /* ── Theme-Toggle-Button ──────────────────────────────────────────── */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 1px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 3px;
+        }
+        .theme-btn {
+            padding: 4px 6px;
+            border-radius: 5px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-btn:hover   { background: rgba(255,255,255,0.08); color: #94a3b8; }
+        .theme-btn.active  { background: rgba(255,255,255,0.14); color: #fff; }
+        .theme-btn svg     { width: 14px; height: 14px; }
     </style>
 
     {% block head %}{% endblock %}
@@ -89,6 +175,43 @@
     <main>
         {% block content %}{% endblock %}
     </main>
+
+    {# ── Theme-System ────────────────────────────────────────────────────── #}
+    <script>
+    (function () {
+        var THEMES = ['light', 'dark', 'colorblind'];
+        var callbacks = [];
+
+        function applyTheme(t) {
+            var el = document.documentElement;
+            el.setAttribute('data-theme', t);
+            el.classList.toggle('dark', t === 'dark');
+            localStorage.setItem('hcc-theme', t);
+            document.querySelectorAll('.theme-btn[data-t]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-t') === t);
+            });
+            callbacks.forEach(function (cb) { cb(t); });
+        }
+
+        window.hccTheme = {
+            current: function () {
+                return document.documentElement.getAttribute('data-theme') || 'light';
+            },
+            set: applyTheme,
+            onchange: function (cb) { callbacks.push(cb); },
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var t = localStorage.getItem('hcc-theme') || 'light';
+            document.querySelectorAll('.theme-btn[data-t]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-t') === t);
+                btn.addEventListener('click', function () {
+                    applyTheme(btn.getAttribute('data-t'));
+                });
+            });
+        });
+    }());
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Verfügbarkeit — hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] flex items-center justify-center bg-slate-50">
+    <div class="text-center px-8 py-16 max-w-sm">
+        <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-6">
+            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+        </div>
+        <h1 class="font-display text-xl font-semibold text-slate-700 mb-2">Keine offenen Perioden</h1>
+        <p class="text-sm text-slate-500 font-sans leading-relaxed mb-8">
+            Für dein Konto sind derzeit keine offenen Planperioden zur Verfügbarkeits-Eingabe vorhanden.
+        </p>
+        <a href="/dashboard"
+           class="inline-flex items-center gap-2 text-sm font-medium text-brand hover:text-brand-600 transition-colors font-sans">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

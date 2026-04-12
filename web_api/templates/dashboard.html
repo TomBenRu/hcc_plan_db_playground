@@ -72,6 +72,23 @@
         transform: translateX(4px);
         color: var(--tile-color);
     }
+
+    /* ── Dark Mode ──────────────────────────────────────────────────── */
+    [data-theme="dark"] .dash-bg {
+        background-color: #0F172A;
+        background-image:
+            repeating-linear-gradient(0deg,  transparent, transparent 39px, rgba(148,163,184,0.05) 39px, rgba(148,163,184,0.05) 40px),
+            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(148,163,184,0.05) 39px, rgba(148,163,184,0.05) 40px);
+    }
+    [data-theme="dark"] .tile {
+        background: #1E293B;
+        border-color: #334155;
+    }
+    [data-theme="dark"] .tile:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        border-color: var(--tile-color);
+    }
+    [data-theme="dark"] .tile-arrow { color: #475569; }
 </style>
 {% endblock %}
 

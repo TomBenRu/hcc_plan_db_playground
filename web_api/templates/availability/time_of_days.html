@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Tageszeiten — hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] bg-slate-50">
+    <div class="max-w-2xl mx-auto px-4 py-8">
+
+        {# ── Header ──────────────────────────────────────────────────────────── #}
+        <div class="flex items-center gap-3 mb-8">
+            <a href="/availability"
+               class="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors font-sans">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Verfügbarkeit
+            </a>
+            <span class="text-slate-300">/</span>
+            <h1 class="font-display text-2xl font-semibold text-slate-800 leading-tight">
+                Meine Tageszeiten
+            </h1>
+        </div>
+
+        {# ── Kein TOD vorhanden ─────────────────────────────────────────────── #}
+        {% if not enum_groups %}
+        <div class="bg-white rounded-2xl border border-slate-100 p-8 text-center">
+            <p class="text-sm text-slate-500 font-sans">
+                Noch keine Tageszeiten konfiguriert.<br>
+                Wende dich an deinen Disponenten, um Tageszeit-Kategorien einrichten zu lassen.
+            </p>
+        </div>
+        {% endif %}
+
+        {# ── Enum-Gruppen ────────────────────────────────────────────────────── #}
+        {% for grp in enum_groups %}
+        <div class="bg-white rounded-2xl border border-slate-100 mb-5 overflow-hidden animate-fade-up"
+             style="animation-delay: {{ loop.index0 * 0.06 }}s;">
+
+            {# Card-Header #}
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand/10
+                                 text-brand text-xs font-semibold font-mono">
+                        {{ grp.enum_abbreviation }}
+                    </span>
+                    <h2 class="text-sm font-semibold text-slate-800 font-sans">{{ grp.enum_name }}</h2>
+                    <span class="text-xs text-slate-400 font-sans">({{ grp.tods | length }} Tageszeit{% if grp.tods | length != 1 %}en{% endif %})</span>
+                </div>
+            </div>
+
+            {# TOD-Tabelle — immer rendern (auch leer), damit hx-target="#tod-body-..." immer auflösbar ist #}
+            <div class="px-6">
+                <table class="w-full">
+                    <tbody id="tod-body-{{ grp.enum_id }}">
+                    {% for tod in grp.tods %}
+                        {% include "availability/partials/time_of_day_row.html" %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% if not grp.tods %}
+                <p class="text-sm text-slate-400 italic font-sans py-3">Noch keine Tageszeiten für diese Kategorie.</p>
+                {% endif %}
+            </div>
+
+            {# Neue TOD hinzufügen #}
+            <div class="px-6 py-4 bg-slate-50/60 border-t border-slate-100">
+                <form hx-post="/availability/time-of-days"
+                      hx-target="#tod-body-{{ grp.enum_id }}"
+                      hx-swap="beforeend"
+                      class="flex items-center gap-2 flex-wrap">
+                    <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
+                    <div class="flex items-center gap-1.5">
+                        <input type="time" name="start" required
+                               placeholder="Beginn"
+                               class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                                      text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                                      bg-white w-24">
+                        <span class="text-xs text-slate-400">–</span>
+                        <input type="time" name="end" required
+                               placeholder="Ende"
+                               class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                                      text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                                      bg-white w-24">
+                    </div>
+                    <input type="text" name="name" placeholder="Bezeichnung (optional)"
+                           maxlength="50"
+                           class="flex-1 min-w-28 text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                                  text-slate-700 placeholder-slate-400
+                                  focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30 bg-white">
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg
+                                   bg-brand text-white hover:bg-brand-600 transition-colors font-sans flex-shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Hinzufügen
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+{% endblock %}

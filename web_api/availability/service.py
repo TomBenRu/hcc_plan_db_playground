@@ -1,0 +1,692 @@
+"""Service-Schicht für die Verfügbarkeits-Eingabe.
+
+Alle DB-Zugriffe laufen über die injected Request-Session (Depends(get_db_session)).
+db_services.* wird bewusst NICHT importiert — Mutations werden als direkte ORM-Calls
+auf der übergebenen Session reimplementiert (strategisches Ziel: einheitliche Request-Session).
+"""
+
+import uuid
+from dataclasses import dataclass, field
+from datetime import date, datetime, time, timezone
+from typing import Literal
+
+from fastapi import HTTPException, status
+from sqlalchemy import exists, func, select as sa_select
+from sqlmodel import Session
+
+from database.models import (
+    ActorPlanPeriod,
+    AvailDay,
+    AvailDayAppointmentLink,
+    AvailDayGroup,
+    Person,
+    PersonTimeOfDayLink,
+    PlanPeriod,
+    Team,
+    TimeOfDay,
+    TimeOfDayEnum,
+)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+# ── Dataclasses (Service-Rückgaben) ───────────────────────────────────────────
+
+
+@dataclass
+class TeamInfo:
+    team_id: uuid.UUID
+    team_name: str
+
+
+@dataclass
+class OpenPlanPeriodInfo:
+    actor_plan_period_id: uuid.UUID
+    plan_period_id: uuid.UUID
+    start: date
+    end: date
+    deadline: date
+    notes_for_employees: str | None
+    notes: str | None                    # ActorPlanPeriod.notes
+    requested_assignments: int
+    closed: bool
+    team_id: uuid.UUID
+    team_name: str
+
+    @property
+    def days_until_deadline(self) -> int | None:
+        delta = (self.deadline - date.today()).days
+        return delta
+
+    @property
+    def label(self) -> str:
+        months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
+                     "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+        s = f"{self.start.day}. {months_de[self.start.month - 1]} {self.start.year}"
+        e = f"{self.end.day}. {months_de[self.end.month - 1]} {self.end.year}"
+        return f"{s} – {e}"
+
+    @property
+    def is_locked(self) -> bool:
+        return self.closed or date.today() > self.deadline
+
+    @property
+    def deadline_severity(self) -> Literal["normal", "warning", "locked"]:
+        if self.is_locked:
+            return "locked"
+        if self.days_until_deadline is not None and self.days_until_deadline <= 3:
+            return "warning"
+        return "normal"
+
+
+@dataclass
+class AvailDayMarker:
+    avail_day_id: uuid.UUID
+    day: date
+    time_of_day_id: uuid.UUID
+    time_of_day_name: str | None
+    time_of_day_start: time
+    time_of_day_end: time
+    time_of_day_enum_id: uuid.UUID
+    time_of_day_enum_name: str
+    time_of_day_enum_abbreviation: str
+    time_of_day_enum_time_index: int
+    has_appointment: bool
+
+
+@dataclass
+class PersonTimeOfDayInfo:
+    id: uuid.UUID
+    name: str | None
+    start: time
+    end: time
+    enum_id: uuid.UUID
+    enum_name: str
+    enum_abbreviation: str
+    enum_time_index: int
+    avail_day_count: int
+
+
+@dataclass
+class DayTodOption:
+    """Eine TOD-Option für den Day-Panel (pro TimeOfDayEnum)."""
+    time_of_day_id: uuid.UUID
+    tod_name: str | None
+    tod_start: time
+    tod_end: time
+    avail_day_id: uuid.UUID | None       # None = noch nicht eingetragen
+    has_appointment: bool                # True = Termin → read-only
+
+
+@dataclass
+class DayEnumGroup:
+    """Alle TOD-Optionen eines Enums für den Day-Panel."""
+    enum_id: uuid.UUID
+    enum_name: str
+    enum_abbreviation: str
+    enum_time_index: int
+    options: list[DayTodOption]
+
+
+@dataclass
+class DayDetailViewModel:
+    day: date
+    actor_plan_period_id: uuid.UUID
+    is_locked: bool
+    enum_groups: list[DayEnumGroup]
+
+
+@dataclass
+class SidebarStats:
+    total_entered: int
+    total_appointed: int
+    requested_assignments: int
+
+
+@dataclass
+class AvailabilityViewModel:
+    active_period: OpenPlanPeriodInfo
+    markers: list[AvailDayMarker]
+    person_time_of_days: list[PersonTimeOfDayInfo]   # alle persönlichen TODs
+    initial_date: str                                 # ISO, für FullCalendar initialDate
+    sidebar_stats: SidebarStats
+    teams: list[TeamInfo]                             # Teams des Users (für Dropdown)
+    selected_team_id: uuid.UUID | None               # aktives Team
+
+
+# ── Queries ───────────────────────────────────────────────────────────────────
+
+
+def get_open_plan_periods_for_person(
+    session: Session,
+    person_id: uuid.UUID,
+    team_id: uuid.UUID | None = None,
+) -> list[OpenPlanPeriodInfo]:
+    """Alle offenen PlanPeriods der Person, optional nach Team gefiltert."""
+    stmt = (
+        sa_select(
+            ActorPlanPeriod.id.label("app_id"),
+            ActorPlanPeriod.notes.label("app_notes"),
+            ActorPlanPeriod.requested_assignments.label("requested_assignments"),
+            PlanPeriod.id.label("pp_id"),
+            PlanPeriod.start.label("pp_start"),
+            PlanPeriod.end.label("pp_end"),
+            PlanPeriod.deadline.label("pp_deadline"),
+            PlanPeriod.notes_for_employees.label("pp_notes_for_employees"),
+            PlanPeriod.closed.label("pp_closed"),
+            Team.id.label("team_id"),
+            Team.name.label("team_name"),
+        )
+        .select_from(ActorPlanPeriod)
+        .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
+        .join(Team, Team.id == PlanPeriod.team_id)
+        .where(ActorPlanPeriod.person_id == person_id)
+        .where(PlanPeriod.closed.is_(False))
+        .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
+    )
+    if team_id is not None:
+        stmt = stmt.where(PlanPeriod.team_id == team_id)
+    stmt = stmt.order_by(PlanPeriod.start.desc())
+    rows = session.execute(stmt).mappings().all()
+    return [
+        OpenPlanPeriodInfo(
+            actor_plan_period_id=r["app_id"],
+            plan_period_id=r["pp_id"],
+            start=r["pp_start"],
+            end=r["pp_end"],
+            deadline=r["pp_deadline"],
+            notes_for_employees=r["pp_notes_for_employees"],
+            notes=r["app_notes"],
+            requested_assignments=r["requested_assignments"],
+            closed=r["pp_closed"],
+            team_id=r["team_id"],
+            team_name=r["team_name"],
+        )
+        for r in rows
+    ]
+
+
+def get_teams_for_person(session: Session, person_id: uuid.UUID) -> list[TeamInfo]:
+    """Alle Teams, für die der Mitarbeiter offene ActorPlanPeriods hat — alphabetisch."""
+    stmt = (
+        sa_select(Team.id.label("team_id"), Team.name.label("team_name"))
+        .select_from(ActorPlanPeriod)
+        .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
+        .join(Team, Team.id == PlanPeriod.team_id)
+        .where(ActorPlanPeriod.person_id == person_id)
+        .where(PlanPeriod.closed.is_(False))
+        .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
+        .distinct()
+        .order_by(Team.name)
+    )
+    rows = session.execute(stmt).mappings().all()
+    return [TeamInfo(team_id=r["team_id"], team_name=r["team_name"]) for r in rows]
+
+
+def get_markers_for_range(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    start: date,
+    end: date,
+) -> list[AvailDayMarker]:
+    """JOIN AvailDay ↔ TimeOfDay ↔ TimeOfDayEnum + has_appointment-Flag."""
+    # Subquery: hat dieser AvailDay einen Appointment?
+    has_appt_sq = (
+        sa_select(AvailDayAppointmentLink.avail_day_id)
+        .where(AvailDayAppointmentLink.avail_day_id == AvailDay.id)
+        .correlate(AvailDay)
+        .exists()
+        .label("has_appointment")
+    )
+
+    stmt = (
+        sa_select(
+            AvailDay.id.label("ad_id"),
+            AvailDay.date.label("ad_date"),
+            AvailDay.time_of_day_id.label("tod_id"),
+            TimeOfDay.name.label("tod_name"),
+            TimeOfDay.start.label("tod_start"),
+            TimeOfDay.end.label("tod_end"),
+            TimeOfDayEnum.id.label("enum_id"),
+            TimeOfDayEnum.name.label("enum_name"),
+            TimeOfDayEnum.abbreviation.label("enum_abbr"),
+            TimeOfDayEnum.time_index.label("enum_time_index"),
+            has_appt_sq,
+        )
+        .select_from(AvailDay)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .join(TimeOfDayEnum, TimeOfDayEnum.id == TimeOfDay.time_of_day_enum_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(AvailDay.date >= start)
+        .where(AvailDay.date <= end)
+        .order_by(AvailDay.date, TimeOfDayEnum.time_index)
+    )
+    rows = session.execute(stmt).mappings().all()
+    return [
+        AvailDayMarker(
+            avail_day_id=r["ad_id"],
+            day=r["ad_date"],
+            time_of_day_id=r["tod_id"],
+            time_of_day_name=r["tod_name"],
+            time_of_day_start=r["tod_start"],
+            time_of_day_end=r["tod_end"],
+            time_of_day_enum_id=r["enum_id"],
+            time_of_day_enum_name=r["enum_name"],
+            time_of_day_enum_abbreviation=r["enum_abbr"],
+            time_of_day_enum_time_index=r["enum_time_index"],
+            has_appointment=bool(r["has_appointment"]),
+        )
+        for r in rows
+    ]
+
+
+def get_person_time_of_days(
+    session: Session,
+    person_id: uuid.UUID,
+) -> list[PersonTimeOfDayInfo]:
+    """Alle persönlichen TODs (via PersonTimeOfDayLink) mit Enum-Infos und AvailDay-Zähler."""
+    avail_count_sq = (
+        sa_select(func.count())
+        .select_from(AvailDay)
+        .where(AvailDay.time_of_day_id == TimeOfDay.id)
+        .where(AvailDay.prep_delete.is_(None))
+        .correlate(TimeOfDay)
+        .scalar_subquery()
+    )
+
+    stmt = (
+        sa_select(
+            TimeOfDay.id.label("tod_id"),
+            TimeOfDay.name.label("tod_name"),
+            TimeOfDay.start.label("tod_start"),
+            TimeOfDay.end.label("tod_end"),
+            TimeOfDayEnum.id.label("enum_id"),
+            TimeOfDayEnum.name.label("enum_name"),
+            TimeOfDayEnum.abbreviation.label("enum_abbr"),
+            TimeOfDayEnum.time_index.label("enum_time_index"),
+            avail_count_sq.label("avail_day_count"),
+        )
+        .select_from(PersonTimeOfDayLink)
+        .join(TimeOfDay, TimeOfDay.id == PersonTimeOfDayLink.time_of_day_id)
+        .join(TimeOfDayEnum, TimeOfDayEnum.id == TimeOfDay.time_of_day_enum_id)
+        .where(PersonTimeOfDayLink.person_id == person_id)
+        .where(TimeOfDay.prep_delete.is_(None))
+        .order_by(TimeOfDayEnum.time_index, TimeOfDay.start)
+    )
+    rows = session.execute(stmt).mappings().all()
+    return [
+        PersonTimeOfDayInfo(
+            id=r["tod_id"],
+            name=r["tod_name"],
+            start=r["tod_start"],
+            end=r["tod_end"],
+            enum_id=r["enum_id"],
+            enum_name=r["enum_name"],
+            enum_abbreviation=r["enum_abbr"],
+            enum_time_index=r["enum_time_index"],
+            avail_day_count=r["avail_day_count"],
+        )
+        for r in rows
+    ]
+
+
+def get_day_detail(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    person_id: uuid.UUID,
+    day: date,
+    is_locked: bool,
+) -> DayDetailViewModel:
+    """Day-Panel: alle Person-TODs gruppiert nach Enum, mit AvailDay-Status pro Option."""
+    # Alle persönlichen TODs laden
+    all_tods = get_person_time_of_days(session, person_id)
+
+    # Existierende AvailDays an diesem Tag laden
+    ad_rows = session.execute(
+        sa_select(AvailDay.id, AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+    ).all()
+
+    ad_by_tod: dict[uuid.UUID, uuid.UUID] = {r.time_of_day_id: r.id for r in ad_rows}
+
+    # has_appointment für alle aktiven AvailDays
+    ad_ids = list(ad_by_tod.values())
+    appointed_ids: set[uuid.UUID] = set()
+    if ad_ids:
+        appt_rows = session.execute(
+            sa_select(AvailDayAppointmentLink.avail_day_id)
+            .where(AvailDayAppointmentLink.avail_day_id.in_(ad_ids))
+        ).scalars().all()
+        appointed_ids = set(appt_rows)
+
+    # Gruppieren nach Enum
+    enum_map: dict[uuid.UUID, DayEnumGroup] = {}
+    for tod in all_tods:
+        if tod.enum_id not in enum_map:
+            enum_map[tod.enum_id] = DayEnumGroup(
+                enum_id=tod.enum_id,
+                enum_name=tod.enum_name,
+                enum_abbreviation=tod.enum_abbreviation,
+                enum_time_index=tod.enum_time_index,
+                options=[],
+            )
+        ad_id = ad_by_tod.get(tod.id)
+        enum_map[tod.enum_id].options.append(DayTodOption(
+            time_of_day_id=tod.id,
+            tod_name=tod.name,
+            tod_start=tod.start,
+            tod_end=tod.end,
+            avail_day_id=ad_id,
+            has_appointment=ad_id in appointed_ids if ad_id else False,
+        ))
+
+    enum_groups = sorted(enum_map.values(), key=lambda g: g.enum_time_index)
+    return DayDetailViewModel(
+        day=day,
+        actor_plan_period_id=actor_plan_period_id,
+        is_locked=is_locked,
+        enum_groups=enum_groups,
+    )
+
+
+def get_sidebar_stats(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    requested_assignments: int,
+) -> SidebarStats:
+    total_entered = session.execute(
+        sa_select(func.count())
+        .select_from(AvailDay)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.prep_delete.is_(None))
+    ).scalar_one()
+
+    # Appointments: AvailDays die mind. einen AppointmentLink haben
+    total_appointed = session.execute(
+        sa_select(func.count(AvailDay.id.distinct()))
+        .select_from(AvailDay)
+        .join(AvailDayAppointmentLink, AvailDayAppointmentLink.avail_day_id == AvailDay.id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.prep_delete.is_(None))
+    ).scalar_one()
+
+    return SidebarStats(
+        total_entered=total_entered,
+        total_appointed=total_appointed,
+        requested_assignments=requested_assignments,
+    )
+
+
+def build_availability_view(
+    session: Session,
+    person_id: uuid.UUID,
+    active_period: OpenPlanPeriodInfo,
+    teams: list[TeamInfo],
+    selected_team_id: uuid.UUID | None,
+) -> AvailabilityViewModel:
+    """Zentrale Aggregation für die index.html-Seite."""
+    markers = get_markers_for_range(
+        session,
+        active_period.actor_plan_period_id,
+        active_period.start,
+        active_period.end,
+    )
+    person_tods = get_person_time_of_days(session, person_id)
+    stats = get_sidebar_stats(
+        session,
+        active_period.actor_plan_period_id,
+        active_period.requested_assignments,
+    )
+    # Initial-Datum: innerhalb der Periode bleiben
+    today = date.today()
+    if today < active_period.start:
+        initial_date = active_period.start.isoformat()
+    elif today > active_period.end:
+        initial_date = active_period.end.isoformat()
+    else:
+        initial_date = today.isoformat()
+
+    return AvailabilityViewModel(
+        active_period=active_period,
+        markers=markers,
+        person_time_of_days=person_tods,
+        initial_date=initial_date,
+        sidebar_stats=stats,
+        teams=teams,
+        selected_team_id=selected_team_id,
+    )
+
+
+# ── Autorisierungs-Helfer ─────────────────────────────────────────────────────
+
+
+def authorize_actor_plan_period(
+    session: Session,
+    person_id: uuid.UUID,
+    actor_plan_period_id: uuid.UUID,
+) -> ActorPlanPeriod:
+    """HTTP 403 wenn APP nicht zur Person gehört."""
+    app = session.get(ActorPlanPeriod, actor_plan_period_id)
+    if app is None or app.person_id != person_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff auf diese Planperiode")
+    return app
+
+
+def authorize_avail_day(
+    session: Session,
+    person_id: uuid.UUID,
+    avail_day_id: uuid.UUID,
+) -> AvailDay:
+    """HTTP 403/404 wenn AvailDay nicht zu einer APP dieser Person gehört."""
+    ad = session.get(AvailDay, avail_day_id)
+    if ad is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Verfügbarkeitstag nicht gefunden")
+    app = session.get(ActorPlanPeriod, ad.actor_plan_period_id)
+    if app is None or app.person_id != person_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff auf diesen Verfügbarkeitstag")
+    return ad
+
+
+def authorize_person_time_of_day(
+    session: Session,
+    person_id: uuid.UUID,
+    tod_id: uuid.UUID,
+) -> TimeOfDay:
+    """HTTP 403/404 wenn TOD nicht via PersonTimeOfDayLink zur Person gehört."""
+    tod = session.get(TimeOfDay, tod_id)
+    if tod is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Tageszeit nicht gefunden")
+    link = session.get(PersonTimeOfDayLink, (person_id, tod_id))
+    if link is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff auf diese Tageszeit")
+    return tod
+
+
+def check_deadline_or_403(plan_period: PlanPeriod) -> None:
+    """HTTP 403 wenn PlanPeriod geschlossen oder Deadline überschritten."""
+    if plan_period.closed:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Planperiode ist geschlossen")
+    if date.today() > plan_period.deadline:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Abgabefrist ist abgelaufen")
+
+
+# ── Mutations (ORM auf injected Session) ─────────────────────────────────────
+
+
+def find_avail_day(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    day: date,
+    time_of_day_id: uuid.UUID,
+) -> AvailDay | None:
+    """Uniqueness-Vorcheck. Spiegelt db_services/avail_day.py:75-82."""
+    return session.execute(
+        sa_select(AvailDay)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.time_of_day_id == time_of_day_id)
+        .where(AvailDay.prep_delete.is_(None))
+    ).scalar_one_or_none()
+
+
+def has_appointment(session: Session, avail_day_id: uuid.UUID) -> bool:
+    """Prüft ob ein AvailDay bereits einem Appointment zugeordnet ist."""
+    return session.execute(
+        sa_select(
+            exists().where(AvailDayAppointmentLink.avail_day_id == avail_day_id)
+        )
+    ).scalar_one()
+
+
+def create_avail_day(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    day: date,
+    time_of_day_id: uuid.UUID,
+) -> AvailDay:
+    """Child-AvailDayGroup + AvailDay anlegen. Spiegelt db_services/avail_day.py:241-256."""
+    app = session.get(ActorPlanPeriod, actor_plan_period_id)
+    if app is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    master = app.avail_day_group
+    if master is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Root-AvailDayGroup fehlt (Datenbestand-Anomalie)")
+    child = AvailDayGroup(avail_day_group_id=master.id)
+    session.add(child)
+    session.flush()
+    ad = AvailDay(
+        date=day,
+        time_of_day_id=time_of_day_id,
+        avail_day_group_id=child.id,
+        actor_plan_period_id=actor_plan_period_id,
+    )
+    session.add(ad)
+    session.flush()
+    return ad
+
+
+def delete_avail_day(session: Session, avail_day_id: uuid.UUID) -> None:
+    """AvailDay + seine Child-Group löschen. Spiegelt db_services/avail_day.py:279-288."""
+    ad = session.get(AvailDay, avail_day_id)
+    if ad is None:
+        return
+    adg_id = ad.avail_day_group_id
+    session.delete(ad)
+    session.flush()
+    adg = session.get(AvailDayGroup, adg_id)
+    if adg is not None:
+        session.delete(adg)
+        session.flush()
+
+
+def update_notes(session: Session, app: ActorPlanPeriod, notes: str) -> None:
+    """Spiegelt db_services/actor_plan_period.py:172-177."""
+    app.notes = notes or None
+    session.flush()
+
+
+def update_requested_assignments(session: Session, app: ActorPlanPeriod, requested: int) -> None:
+    """Spiegelt db_services/actor_plan_period.py:181-187."""
+    app.requested_assignments = max(0, requested)
+    session.flush()
+
+
+def _is_tod_referenced_anywhere(session: Session, tod: TimeOfDay) -> bool:
+    """Prüft alle 9 Referenz-Relations analog db_services/time_of_day.py:97-101."""
+    # Direktfeld-Prüfung: TOD ist Projekt-Default
+    if tod.project_defaults_id is not None:
+        return True
+
+    from database.models import (
+        ActorPlanPeriodTimeOfDayLink,
+        AvailDay,
+        AvailDayTimeOfDayLink,
+        Event,
+        EventTimeOfDayLink,
+        LocOfWorkTimeOfDayLink,
+        LocPlanPeriodTimeOfDayLink,
+    )
+    checks = [
+        sa_select(exists().where(PersonTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(ActorPlanPeriodTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(AvailDayTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(AvailDay.time_of_day_id == tod.id).where(AvailDay.prep_delete.is_(None))),
+        sa_select(exists().where(LocOfWorkTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(LocPlanPeriodTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(EventTimeOfDayLink.time_of_day_id == tod.id)),
+        sa_select(exists().where(Event.time_of_day_id == tod.id).where(Event.prep_delete.is_(None))),
+    ]
+    return any(session.execute(q).scalar_one() for q in checks)
+
+
+def count_avail_days_for_tod(session: Session, tod_id: uuid.UUID) -> int:
+    """Anzahl aktiver AvailDays für diese TimeOfDay."""
+    return session.execute(
+        sa_select(func.count())
+        .select_from(AvailDay)
+        .where(AvailDay.time_of_day_id == tod_id)
+        .where(AvailDay.prep_delete.is_(None))
+    ).scalar_one()
+
+
+def create_person_time_of_day(
+    session: Session,
+    person_id: uuid.UUID,
+    time_of_day_enum_id: uuid.UUID,
+    start: time,
+    end: time,
+    name: str = "",
+) -> TimeOfDay:
+    """Neuer TOD + PersonTimeOfDayLink. Spiegelt db_services/time_of_day.py:37-46 + person.py:241-257."""
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    tod = TimeOfDay(
+        name=name or None,
+        start=start,
+        end=end,
+        time_of_day_enum_id=time_of_day_enum_id,
+        project_id=person.project_id,
+    )
+    session.add(tod)
+    session.flush()
+    person.time_of_days.append(tod)
+    session.flush()
+    return tod
+
+
+def remove_person_time_of_day(
+    session: Session,
+    person_id: uuid.UUID,
+    tod: TimeOfDay,
+) -> None:
+    """Link entfernen + ggf. Soft-Delete. Spiegelt db_services/time_of_day.py:72-78 + person.py."""
+    person = session.get(Person, person_id)
+    if person and tod in person.time_of_days:
+        person.time_of_days.remove(tod)
+        session.flush()
+    if not _is_tod_referenced_anywhere(session, tod):
+        tod.prep_delete = _utcnow()
+        session.flush()
+
+
+def replace_person_time_of_day(
+    session: Session,
+    person_id: uuid.UUID,
+    old: TimeOfDay,
+    start: time,
+    end: time,
+) -> TimeOfDay:
+    """Remove+Create-Pattern (§2.5 des Plans). Historische AvailDays bleiben unverändert."""
+    enum_id = old.time_of_day_enum_id
+    name = old.name
+    remove_person_time_of_day(session, person_id, old)
+    return create_person_time_of_day(session, person_id, enum_id, start, end, name or "")

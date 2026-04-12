@@ -9,6 +9,7 @@ from web_api.auth.router import router as auth_router
 from web_api.config import get_settings
 from web_api.dashboard.router import router as dashboard_router
 from web_api.dependencies import get_db_session
+from web_api.availability.router import router as availability_router
 from web_api.employees.router import router as employees_router
 from web_api.exceptions import LoginRequired
 from web_api.scheduler.setup import create_scheduler
@@ -35,6 +36,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(employees_router)
+app.include_router(availability_router)
 
 
 @app.exception_handler(LoginRequired)

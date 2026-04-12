@@ -136,6 +136,8 @@ def get_appointments_for_person(
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
         .where(ActorPlanPeriod.person_id == person_id)
         .where(Appointment.prep_delete.is_(None))
         .where(Event.prep_delete.is_(None))

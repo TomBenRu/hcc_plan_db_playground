@@ -16,11 +16,13 @@ from sqlmodel import Session
 
 from database.models import (
     ActorPlanPeriod,
+    Appointment,
     AvailDay,
     AvailDayAppointmentLink,
     AvailDayGroup,
     Person,
     PersonTimeOfDayLink,
+    Plan,
     PlanPeriod,
     Team,
     TimeOfDay,
@@ -237,7 +239,11 @@ def get_markers_for_range(
     # Subquery: hat dieser AvailDay einen Appointment?
     has_appt_sq = (
         sa_select(AvailDayAppointmentLink.avail_day_id)
+        .join(Appointment, Appointment.id == AvailDayAppointmentLink.appointment_id)
+        .join(Plan, Plan.id == Appointment.plan_id)
         .where(AvailDayAppointmentLink.avail_day_id == AvailDay.id)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
         .correlate(AvailDay)
         .exists()
         .label("has_appointment")
@@ -362,7 +368,11 @@ def get_day_detail(
     if ad_ids:
         appt_rows = session.execute(
             sa_select(AvailDayAppointmentLink.avail_day_id)
+            .join(Appointment, Appointment.id == AvailDayAppointmentLink.appointment_id)
+            .join(Plan, Plan.id == Appointment.plan_id)
             .where(AvailDayAppointmentLink.avail_day_id.in_(ad_ids))
+            .where(Plan.is_binding.is_(True))
+            .where(Plan.prep_delete.is_(None))
         ).scalars().all()
         appointed_ids = set(appt_rows)
 
@@ -537,10 +547,15 @@ def find_avail_day(
 
 
 def has_appointment(session: Session, avail_day_id: uuid.UUID) -> bool:
-    """Prüft ob ein AvailDay bereits einem Appointment zugeordnet ist."""
+    """Prüft ob ein AvailDay einem Appointment aus einem verbindlichen Plan zugeordnet ist."""
     return session.execute(
         sa_select(
-            exists().where(AvailDayAppointmentLink.avail_day_id == avail_day_id)
+            exists()
+            .where(AvailDayAppointmentLink.avail_day_id == avail_day_id)
+            .where(AvailDayAppointmentLink.appointment_id == Appointment.id)
+            .where(Appointment.plan_id == Plan.id)
+            .where(Plan.is_binding.is_(True))
+            .where(Plan.prep_delete.is_(None))
         )
     ).scalar_one()
 

@@ -17,6 +17,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum as SAEnum,
+    Index,
     Interval,
     JSON,
     SmallInteger,
@@ -25,6 +26,7 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -1199,7 +1201,15 @@ class Event(SQLModel, table=True):
 
 class Plan(SQLModel, table=True):
     __tablename__ = "plan"
-    __table_args__ = (UniqueConstraint("name", "plan_period_id"),)
+    __table_args__ = (
+        UniqueConstraint("name", "plan_period_id"),
+        Index(
+            "uq_plan_one_binding_per_period",
+            "plan_period_id",
+            unique=True,
+            postgresql_where=text("is_binding = TRUE"),
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=50)
@@ -1208,6 +1218,7 @@ class Plan(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_col())
     last_modified: datetime = Field(default_factory=_utcnow, sa_column=_last_modified_col())
     prep_delete: datetime | None = Field(default=None, sa_column=_optional_dt_col())
+    is_binding: bool = Field(default=False)
 
     # FK
     plan_period_id: uuid.UUID = Field(foreign_key="plan_period.id", ondelete="CASCADE")

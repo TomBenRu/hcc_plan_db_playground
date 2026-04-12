@@ -122,6 +122,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Saves the active plan'),
                               self.plan_save),
             MenuToolbarAction(self, None,
+                              self.tr('Set as Binding Plan'),
+                              self.tr('Mark the active plan as binding for its period'),
+                              self.plan_set_binding),
+            MenuToolbarAction(self, None,
                               self.tr('Excel Settings'),
                               self.tr('Color settings for the exported Excel file...'),
                               self.plan_excel_configs),
@@ -295,6 +299,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.tr('&Schedule'): [self.actions['calculate_plans'], self.actions['_edit_plan_infos'],
                                    self.actions['plan_excel_configs'], None,
                                    self.actions['open_plan'], self.actions['plan_save'],
+                                   self.actions['plan_set_binding'],
                                    self.actions['undelete_plans'],
                                    self.actions['plans_of_team_delete_prep_deletes'], None,
                                    self.actions['apply_events__plan_to_mask']
@@ -808,6 +813,39 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         update_plan_name(active_widget, new_name_suggestion)
         update_tab_text(new_name_suggestion)
+
+    def plan_set_binding(self, target_widget=None):
+        active_widget = target_widget or self.tab_manager.current_plan_widget
+        if not active_widget:
+            QMessageBox.critical(self, self.tr('Set as Binding Plan'),
+                                 self.tr('No plan is active.'))
+            return
+        plan = active_widget.plan
+        if plan.is_binding:
+            QMessageBox.information(self, self.tr('Set as Binding Plan'),
+                                    self.tr(f'"{plan.name}" is already the binding plan.'))
+            return
+        if QMessageBox.question(
+            self, self.tr('Set as Binding Plan'),
+            self.tr(f'Set plan "{plan.name}" as the binding plan for this period?\n\n'
+                    f'Any previously binding plan will be replaced.'),
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        plan_period_id = plan.plan_period.id
+        cmd = plan_commands.SetBinding(plan.id)
+        cmd.execute()
+        active_widget.plan = cmd.updated_plan
+        self._sync_binding_tab_titles(plan_period_id, cmd.updated_plan.id)
+
+    def _sync_binding_tab_titles(self, plan_period_id, new_binding_id):
+        """Synchronisiert In-Memory-Zustand und Tab-Darstellung nach is_binding-Änderung."""
+        for i in range(self.tabs_plans.count()):
+            widget = self.tabs_plans.widget(i)
+            if not hasattr(widget, 'plan'):
+                continue
+            if widget.plan.plan_period.id == plan_period_id:
+                widget.plan.is_binding = (widget.plan.id == new_binding_id)
+            self.tab_manager._apply_plan_tab_binding_style(i, widget.plan.is_binding, widget.plan.name)
 
     def sheets_for_availables(self):
         ...

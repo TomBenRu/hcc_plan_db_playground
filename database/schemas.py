@@ -1465,6 +1465,7 @@ class PlanCreate(BaseModel):
 class Plan(PlanCreate):
     model_config = ConfigDict(from_attributes=True)
     prep_delete: Optional[datetime.datetime]
+    is_binding: bool = False
     location_columns: dict[int, list[UUID]] = {}
 
     id: UUID

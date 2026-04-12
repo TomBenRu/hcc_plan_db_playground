@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, TYPE_CHECKING
 from uuid import UUID
 
 from PySide6.QtCore import QObject, Signal, Slot, QPoint, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QMessageBox, QInputDialog, QMenu, QApplication
 from pydantic_core import ValidationError
 
@@ -282,6 +283,9 @@ class TabManager(QObject):
                     tab_index = self.tabs_plans.addTab(cached_tab.widget, cached_tab.tab_text)
                     if cached_tab.tooltip:
                         self.tabs_plans.setTabToolTip(tab_index, cached_tab.tooltip)
+                    if hasattr(cached_tab.widget, 'plan'):
+                        p = cached_tab.widget.plan
+                        self._apply_plan_tab_binding_style(tab_index, p.is_binding, p.name)
 
             # Planungsmasken-Tabs wiederherstellen
             for cached_tab in cached_team.plan_period_tabs:
@@ -384,6 +388,7 @@ class TabManager(QObject):
             )
             
             tab_index = self.tabs_plans.addTab(new_widget, plan.name)
+            self._apply_plan_tab_binding_style(tab_index, plan.is_binding, plan.name)
             self.tabs_plans.setTabToolTip(tab_index, 'Rechtsklick: weitere Aktionen')
             self.tabs_plans.setCurrentIndex(tab_index)
             self.tab_opened.emit("plan", new_widget)
@@ -884,8 +889,17 @@ class TabManager(QObject):
             return self.tabs_left.currentWidget().objectName()
         return ""
     
+    # === HILFSMETHODEN ===
+
+    def _apply_plan_tab_binding_style(self, tab_index: int, is_binding: bool, plan_name: str):
+        """Setzt ★-Präfix und grüne Textfarbe für verbindliche Plan-Tabs."""
+        prefix = '★ ' if is_binding else ''
+        self.tabs_plans.setTabText(tab_index, f'{prefix}{plan_name}')
+        color = QColor('#2e7d32') if is_binding else QColor()
+        self.tabs_plans.tabBar().setTabTextColor(tab_index, color)
+
     # === KONTEXTMENÜ ===
-    
+
     def create_plan_context_menu(self, point: QPoint, index: int):
         """Erstellt Kontextmenü für Plan-Tabs"""
         context_menu = QMenu()
@@ -899,7 +913,12 @@ class TabManager(QObject):
             context_menu, None, 'Plan als Excel-File exportieren...', None,
             lambda: self._export_plan_to_excel(index)
         ))
-        
+
+        context_menu.addAction(MenuToolbarAction(
+            context_menu, None, 'Als verbindlich festlegen', None,
+            lambda: self.parent.plan_set_binding(self.tabs_plans.widget(index))
+        ))
+
         context_menu.exec(self.tabs_plans.mapToGlobal(point))
     
     def _export_plan_to_excel(self, index: int):

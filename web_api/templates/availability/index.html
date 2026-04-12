@@ -157,12 +157,29 @@
         .cal-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
         .cal-sidebar {
             flex-direction: row !important;
-            flex-wrap: wrap; gap: 0.75rem;
-            padding: 0.625rem 1rem !important;
-            align-items: center; min-height: unset !important;
+            flex-wrap: wrap; gap: 0.5rem;
+            padding: 0.5rem 1rem !important;
+            align-items: flex-start; min-height: unset !important;
         }
-        .cal-sidebar .sidebar-spacer,
-        .cal-sidebar .sidebar-section:not(.sidebar-period-select) { display: none !important; }
+        /* Einstellungen-Toggle: nur auf Mobile/Tablet sichtbar */
+        .sidebar-settings-toggle { display: flex !important; flex-basis: 100%; }
+        /* .sidebar-settings: standardmäßig eingeklappt, auf Desktop immer sichtbar */
+        .sidebar-settings {
+            flex-basis: 100%; max-height: 0; overflow: hidden;
+            transition: max-height 0.35s ease-in-out, padding-top 0.2s;
+            width: 100%;
+        }
+        .sidebar-settings.open {
+            max-height: 900px;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        /* Spacer auf Mobile ausblenden (kein flex-col-Layout) */
+        .cal-sidebar .sidebar-spacer { display: none !important; }
+        /* Kompaktere Brand-Zeile in horizontal Sidebar */
+        .cal-sidebar > div:first-child { margin-bottom: 0 !important; }
+        .cal-sidebar h1 { font-size: 1.15rem !important; }
+        .cal-sidebar .border-t.mb-5 { display: none !important; }
         .fc .fc-toolbar-title { font-size: 1rem; }
         .detail-panel.has-content {
             right: 0 !important; left: 0 !important;
@@ -178,9 +195,68 @@
         to   { opacity: 1; transform: translateY(0); }
     }
     @media (max-width: 639px) {
-        .fc .fc-toolbar { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+        .fc .fc-toolbar { gap: 0.25rem; flex-wrap: wrap; }
         .fc .fc-toolbar-title { font-size: 0.9rem !important; }
+        /* Redundanten FC-Ansichtsbutton ausblenden (eigener Toggle vorhanden) */
+        .fc .fc-toolbar-chunk:last-child { display: none !important; }
+        /* FullCalendar Zell-Mindesthöhe reduzieren damit Kalender ohne Scrollbar passt */
+        .fc .fc-daygrid-day-frame { min-height: 50px !important; }
+        /* Toolbar wrapping */
+        .view-toolbar { flex-wrap: wrap; gap: 0.5rem !important; }
+        #week-nav { gap: 0.75rem; }
+        #week-label { min-width: 7rem !important; font-size: 0.7rem; }
+        /* Bottom-Sheet auf sehr kleinen Screens */
+        .detail-panel.has-content { height: 70vh !important; }
+        /* Brand-Header in eigener Zeile → Team + Planperiode nebeneinander */
+        .cal-sidebar > div:first-child { flex-basis: 100%; }
+        .cal-sidebar .sidebar-period-select { flex: 1; min-width: 0; }
+        /* Scroll-Hinweis rechts am Wochen-Grid */
+        #week-view { position: relative; }
+        #week-view::after {
+            content: '›';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 50%; right: 0;
+            transform: translateY(-50%);
+            width: 28px; height: 48px;
+            background: rgba(15, 23, 42, 0.65);
+            color: #fff;
+            font-size: 1.2rem;
+            border-radius: 6px 0 0 6px;
+            pointer-events: none;
+            z-index: 2;
+        }
     }
+
+    /* Wochen-Grid scrollt horizontal wenn zu schmal */
+    #week-view { overflow-x: auto; overflow-y: hidden; }
+    #week-grid { min-width: 0; }
+
+    /* ── Close-Bar & Backdrop ───────────────────────────────────────────── */
+    /* Close-Bar sichtbar wenn Panel offen und nicht Desktop */
+    @media (max-width: 1279px) {
+        .detail-panel.has-content .panel-close-bar { display: flex !important; }
+    }
+    /* Backdrop sichtbar auf Mobile/Tablet im Bottom-Sheet-Modus */
+    @media (max-width: 1023px) {
+        .day-panel-backdrop.open { display: block !important; }
+    }
+
+    /* Desktop: Einstellungen immer sichtbar, Toggle ausgeblendet */
+    @media (min-width: 1024px) {
+        .sidebar-settings-toggle { display: none !important; }
+        .sidebar-settings {
+            max-height: none !important; overflow: visible !important;
+            flex: 1; display: flex; flex-direction: column;
+            padding-top: 0 !important; border-top: none !important;
+        }
+    }
+
+    /* Chevron-Rotation für offene Einstellungen */
+    #sidebar-settings-icon { transition: transform 0.25s; }
+    #sidebar-settings-icon.rotated { transform: rotate(180deg); }
 </style>
 {% endblock %}
 
@@ -190,7 +266,7 @@
 {% set ap = view_model.active_period %}
 {% set stats = view_model.sidebar_stats %}
 
-<div class="h-[calc(100vh-56px)] flex flex-col">
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
 
     <!-- ── Three-Column Layout ─────────────────────────────────────────────── -->
     <div class="cal-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 252px 1fr 308px;">
@@ -246,7 +322,7 @@
             {% endif %}
 
             <!-- Periode-Dropdown -->
-            <div class="sidebar-section sidebar-period-select mb-6">
+            <div class="sidebar-section sidebar-period-select mb-4">
                 <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
                     Planperiode
                 </label>
@@ -269,128 +345,161 @@
                 </form>
             </div>
 
-            <!-- Deadline-Badge -->
-            <div class="sidebar-section mb-5">
-                {% if ap.deadline_severity == "locked" %}
-                <div class="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-900/20 border border-red-800/30 rounded-xl px-3 py-2 font-sans">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    {% if ap.closed %}Periode geschlossen{% else %}Abgabefrist abgelaufen{% endif %}
-                </div>
-                {% elif ap.deadline_severity == "warning" %}
-                <div class="flex items-center gap-2 text-xs font-medium text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl px-3 py-2 font-sans">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    Noch {{ ap.days_until_deadline }} Tag{% if ap.days_until_deadline != 1 %}e{% endif %} bis zur Abgabe
-                </div>
-                {% else %}
-                <div class="flex items-center gap-2 text-xs text-slate-500 font-sans">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Abgabe: {{ ap.deadline.strftime('%d.%m.%Y') }}
-                </div>
-                {% endif %}
-            </div>
+            <!-- Meine Tageszeiten (Desktop: zwischen Dropdowns und Toggle sichtbar) -->
+            <a href="/availability/time-of-days"
+               class="hidden lg:flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-3
+                      bg-brand/10 border border-brand/20 text-sm font-semibold text-brand
+                      hover:bg-brand/20 transition-colors font-sans">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Meine Tageszeiten
+            </a>
 
-            <!-- Statistik -->
-            <div class="sidebar-section mb-5">
-                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
-                    Statistik
-                </label>
-                <div id="sidebar-stats">
-                    {% include "availability/partials/sidebar_period_stats.html" %}
-                </div>
-            </div>
-
-            <!-- Notizen (auto-save) -->
-            <div class="sidebar-section mb-5">
-                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
-                    Anmerkungen
-                </label>
-                <textarea
-                    rows="3"
-                    placeholder="Persönliche Notiz für den Disponenten…"
-                    class="w-full text-xs rounded-lg border border-white/10 bg-navy-800 text-slate-300
-                           px-3 py-2 font-sans resize-none focus:outline-none focus:border-brand/60
-                           focus:ring-1 focus:ring-brand/30 placeholder-slate-600"
-                    style="background-color: #111F38;"
-                    {% if ap.is_locked %}disabled{% endif %}
-                    hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
-                    hx-trigger="change delay:600ms"
-                    hx-target="#sidebar-stats"
-                    hx-swap="innerHTML"
-                    name="notes">{{ ap.notes or '' }}</textarea>
-            </div>
-
-            <!-- Wunscheinsätze -->
-            <div class="sidebar-section mb-6">
-                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
-                    Wunscheinsätze
-                </label>
-                <input
-                    type="number"
-                    min="0"
-                    max="999"
-                    value="{{ stats.requested_assignments }}"
-                    class="w-full text-sm rounded-lg border border-white/10 bg-navy-800 text-slate-200
-                           px-3 py-2 font-sans focus:outline-none focus:border-brand/60
-                           focus:ring-1 focus:ring-brand/30 transition-all"
-                    style="background-color: #111F38;"
-                    {% if ap.is_locked %}disabled{% endif %}
-                    hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
-                    hx-trigger="change"
-                    hx-target="#sidebar-stats"
-                    hx-swap="innerHTML"
-                    name="requested_assignments">
-
-                <p class="text-xs text-slate-600 font-sans mt-1.5">
-                    Wie viele Einsätze wünschst du dir?
-                </p>
-            </div>
-
-            <!-- Hinweise für Mitarbeiter -->
-            {% if ap.notes_for_employees %}
-            <div class="sidebar-section mb-6">
-                <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
-                    Hinweise
-                </label>
-                <p class="text-xs text-slate-400 font-sans leading-relaxed whitespace-pre-line">
-                    {{ ap.notes_for_employees }}
-                </p>
-            </div>
-            {% endif %}
-
-            <!-- Spacer -->
-            <div class="sidebar-spacer mt-auto pt-5 border-t border-white/5 space-y-3">
-                <a href="/availability/time-of-days"
-                   class="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors font-sans">
+            <!-- Mobile: Einstellungen-Toggle (nur auf < 1024px sichtbar) -->
+            <button class="sidebar-settings-toggle hidden w-full items-center justify-between py-2.5 mt-1
+                           text-xs font-semibold tracking-widest text-slate-500 uppercase font-sans
+                           border-t border-white/5"
+                    onclick="toggleSidebarSettings()">
+                <span class="flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Einstellungen
+                </span>
+                <svg id="sidebar-settings-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+
+            <!-- Einstellungen: Desktop immer sichtbar, Mobile ausklappbar -->
+            <div class="sidebar-settings">
+
+                <!-- Meine Tageszeiten (Mobile: oben im aufgeklappten Panel) -->
+                <a href="/availability/time-of-days"
+                   class="lg:hidden flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-4
+                          bg-brand/10 border border-brand/20 text-sm font-semibold text-brand
+                          hover:bg-brand/20 transition-colors font-sans">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Meine Tageszeiten
                 </a>
-                <a href="/dashboard"
-                   class="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-400 transition-colors font-sans">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                    Zurück zum Dashboard
-                </a>
-            </div>
+
+                <!-- Deadline-Badge -->
+                <div class="mb-4">
+                    {% if ap.deadline_severity == "locked" %}
+                    <div class="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-900/20 border border-red-800/30 rounded-xl px-3 py-2 font-sans">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        {% if ap.closed %}Periode geschlossen{% else %}Abgabefrist abgelaufen{% endif %}
+                    </div>
+                    {% elif ap.deadline_severity == "warning" %}
+                    <div class="flex items-center gap-2 text-xs font-medium text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl px-3 py-2 font-sans">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Noch {{ ap.days_until_deadline }} Tag{% if ap.days_until_deadline != 1 %}e{% endif %} bis zur Abgabe
+                    </div>
+                    {% else %}
+                    <div class="flex items-center gap-2 text-xs text-slate-500 font-sans">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Abgabe: {{ ap.deadline.strftime('%d.%m.%Y') }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Statistik + Wunscheinsätze (kombinierte Karte) -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                        Statistik
+                    </label>
+                    <div class="bg-white/5 rounded-xl p-3">
+                        <div id="sidebar-stats">
+                            {% include "availability/partials/sidebar_period_stats.html" %}
+                        </div>
+                        <!-- Wunscheinsätze: außerhalb von #sidebar-stats → kein HTMX-Überschreiben -->
+                        <div class="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+                            <label class="text-xs text-slate-500 font-sans flex-1">Wunscheinsätze</label>
+                            <input
+                                type="number" min="0" max="999"
+                                value="{{ stats.requested_assignments }}"
+                                class="w-16 text-sm rounded-lg border border-white/10 text-slate-200
+                                       px-2 py-1.5 font-sans text-center focus:outline-none
+                                       focus:border-brand/60 focus:ring-1 focus:ring-brand/30 transition-all"
+                                style="background-color: #111F38;"
+                                {% if ap.is_locked %}disabled{% endif %}
+                                hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
+                                hx-trigger="change"
+                                hx-target="#sidebar-stats"
+                                hx-swap="innerHTML"
+                                name="requested_assignments">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anmerkungen (auto-save) -->
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                        Anmerkungen
+                    </label>
+                    <textarea
+                        rows="3"
+                        placeholder="Persönliche Notiz für den Disponenten…"
+                        class="w-full text-xs rounded-lg border border-white/10 bg-navy-800 text-slate-300
+                               px-3 py-2 font-sans resize-none focus:outline-none focus:border-brand/60
+                               focus:ring-1 focus:ring-brand/30 placeholder-slate-600"
+                        style="background-color: #111F38;"
+                        {% if ap.is_locked %}disabled{% endif %}
+                        hx-patch="/availability/actor-plan-period/{{ ap.actor_plan_period_id }}"
+                        hx-trigger="change delay:600ms"
+                        hx-target="#sidebar-stats"
+                        hx-swap="innerHTML"
+                        name="notes">{{ ap.notes or '' }}</textarea>
+                </div>
+
+                <!-- Hinweise für Mitarbeiter -->
+                {% if ap.notes_for_employees %}
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+                        Hinweise
+                    </label>
+                    <p class="text-xs text-slate-400 font-sans leading-relaxed whitespace-pre-line">
+                        {{ ap.notes_for_employees }}
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- Spacer -->
+                <div class="sidebar-spacer mt-auto pt-4 border-t border-white/5">
+                    <a href="/dashboard"
+                       class="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-400 transition-colors font-sans">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Zurück zum Dashboard
+                    </a>
+                </div>
+
+            </div><!-- /.sidebar-settings -->
         </aside>
 
         <!-- ── Kalender-Bereich ───────────────────────────────────────────── -->
         <main class="flex flex-col bg-white overflow-hidden animate-fade-up" style="animation-delay: 0.06s;">
 
             <!-- View-Toggle Toolbar -->
-            <div class="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-slate-100 lg:px-6 flex-shrink-0">
+            <div class="view-toolbar flex items-center gap-3 px-4 pt-3 pb-2 border-b border-slate-100 lg:px-6 flex-shrink-0">
                 <!-- Monat/Woche Switcher -->
                 <div class="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-lg">
                     <button id="btn-month"
@@ -448,27 +557,48 @@
         <!-- ── Day-Panel ─────────────────────────────────────────────────── -->
         <aside
             id="detail-panel"
-            class="detail-panel bg-slate-50 border-l border-slate-100 overflow-y-auto flex flex-col"
+            class="detail-panel bg-slate-50 border-l border-slate-100 flex flex-col"
         >
-            <div id="day-panel" class="flex-1">
-                <!-- Empty state -->
-                <div class="flex flex-col items-center justify-center h-full text-center px-8 py-12">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
+            <!-- Close-Bar: nur auf < 1280px sichtbar wenn Panel offen -->
+            <div class="panel-close-bar hidden flex-shrink-0 items-center justify-between px-5 py-3 border-b border-slate-200 bg-white">
+                <span class="text-xs font-semibold tracking-widest text-slate-400 uppercase font-sans">Detail</span>
+                <button onclick="closeDayPanel()"
+                        class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        aria-label="Schließen">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <!-- Scrollbarer Inhaltsbereich -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="day-panel">
+                    <!-- Empty state -->
+                    <div class="flex flex-col items-center justify-center h-full text-center px-8 py-12">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                            <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-slate-400 font-sans">Tag auswählen</p>
+                        <p class="text-xs text-slate-300 mt-1 font-sans leading-relaxed">
+                            Klicke auf einen Tag<br>im Kalender.
+                        </p>
                     </div>
-                    <p class="text-sm font-medium text-slate-400 font-sans">Tag auswählen</p>
-                    <p class="text-xs text-slate-300 mt-1 font-sans leading-relaxed">
-                        Klicke auf einen Tag<br>im Kalender.
-                    </p>
                 </div>
             </div>
         </aside>
 
     </div><!-- /.cal-wrapper -->
 </div>
+
+<!-- Backdrop: schließt Bottom-Sheet/Overlay bei Klick daneben (Mobile/Tablet) -->
+<div id="day-panel-backdrop"
+     onclick="closeDayPanel()"
+     class="day-panel-backdrop fixed inset-0 bg-black/40 z-40 hidden">
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -525,23 +655,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Klick auf einen Tag → Day-Panel laden
         dateClick: function (info) {
-            const panel = document.getElementById('detail-panel');
-            if (panel) panel.classList.add('has-content');
-            htmx.ajax('GET',
-                '/availability/day/' + info.dateStr + '?actor_plan_period_id=' + actorPlanPeriodId,
-                { target: '#day-panel', swap: 'innerHTML' }
-            );
+            openDayPanel('/availability/day/' + info.dateStr + '?actor_plan_period_id=' + actorPlanPeriodId);
         },
 
         // Klick auf ein Event → gleiches Tag-Panel öffnen
         eventClick: function (info) {
-            const panel = document.getElementById('detail-panel');
-            if (panel) panel.classList.add('has-content');
             const dayStr = info.event.startStr.substring(0, 10);
-            htmx.ajax('GET',
-                '/availability/day/' + dayStr + '?actor_plan_period_id=' + actorPlanPeriodId,
-                { target: '#day-panel', swap: 'innerHTML' }
-            );
+            openDayPanel('/availability/day/' + dayStr + '?actor_plan_period_id=' + actorPlanPeriodId);
         },
 
         eventDidMount: function (info) {
@@ -684,14 +804,31 @@ document.addEventListener('DOMContentLoaded', function () {
         loadWeekGrid();
     };
 
+    // ── Day-Panel öffnen/schließen ───────────────────────────────────────────
+    function openDayPanel(url) {
+        document.getElementById('detail-panel').classList.add('has-content');
+        if (window.innerWidth < 1024) {
+            document.getElementById('day-panel-backdrop').classList.add('open');
+        }
+        htmx.ajax('GET', url, { target: '#day-panel', swap: 'innerHTML' });
+    }
+
+    window.closeDayPanel = function () {
+        document.getElementById('detail-panel').classList.remove('has-content');
+        document.getElementById('day-panel-backdrop').classList.remove('open');
+    };
+
     // Klick auf Wochengrid-Zelle → Day-Panel öffnen (wie FullCalendar dateClick)
     window.openDayPanelFromGrid = function (dateStr) {
-        const panel = document.getElementById('detail-panel');
-        if (panel) panel.classList.add('has-content');
-        htmx.ajax('GET',
-            '/availability/day/' + dateStr + '?actor_plan_period_id=' + actorPlanPeriodId,
-            { target: '#day-panel', swap: 'innerHTML' }
-        );
+        openDayPanel('/availability/day/' + dateStr + '?actor_plan_period_id=' + actorPlanPeriodId);
+    };
+
+    // ── Sidebar-Einstellungen aus-/einklappen (Mobile) ──────────────────────
+    window.toggleSidebarSettings = function () {
+        const settings = document.querySelector('.sidebar-settings');
+        const icon = document.getElementById('sidebar-settings-icon');
+        const open = settings.classList.toggle('open');
+        icon.classList.toggle('rotated', open);
     };
 });
 </script>

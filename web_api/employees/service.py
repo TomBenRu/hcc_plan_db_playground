@@ -97,7 +97,14 @@ def get_plan_periods_for_person(
         .distinct()
     ).scalars().all()
 
-    return [PlanPeriodInfo(id=pp.id, start=pp.start, end=pp.end) for pp in rows]
+    seen: set[tuple[date, date]] = set()
+    result: list[PlanPeriodInfo] = []
+    for pp in rows:
+        key = (pp.start, pp.end)
+        if key not in seen:
+            seen.add(key)
+            result.append(PlanPeriodInfo(id=pp.id, start=pp.start, end=pp.end))
+    return result
 
 
 def get_appointments_for_person(

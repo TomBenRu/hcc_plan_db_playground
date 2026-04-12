@@ -1,15 +1,11 @@
 {# HTMX-Fragment: Statistik-Block in der Sidebar — wird nach PATCH neu geladen #}
-<div class="space-y-2">
-    <div class="flex items-center justify-between">
-        <span class="text-xs text-slate-500 font-sans">Eingetragen</span>
-        <span class="text-sm font-semibold text-slate-200 font-sans">{{ stats.total_entered }}</span>
+<div class="grid grid-cols-2 gap-2">
+    <div class="bg-white/5 rounded-xl px-3 py-2.5 text-center">
+        <p class="text-2xl font-semibold text-white font-display leading-none">{{ stats.total_entered }}</p>
+        <p class="text-xs text-slate-500 font-sans mt-1">Eingetragen</p>
     </div>
-    <div class="flex items-center justify-between">
-        <span class="text-xs text-slate-500 font-sans">Eingeplant</span>
-        <span class="text-sm font-semibold text-brand font-sans">{{ stats.total_appointed }}</span>
-    </div>
-    <div class="flex items-center justify-between">
-        <span class="text-xs text-slate-500 font-sans">Wunscheinsätze</span>
-        <span class="text-sm font-semibold text-slate-200 font-sans">{{ stats.requested_assignments }}</span>
+    <div class="bg-white/5 rounded-xl px-3 py-2.5 text-center">
+        <p class="text-2xl font-semibold text-brand font-display leading-none">{{ stats.total_appointed }}</p>
+        <p class="text-xs text-slate-500 font-sans mt-1">Eingeplant</p>
     </div>
 </div>

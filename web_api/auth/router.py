@@ -75,8 +75,19 @@ def login_page(
     error: str | None = Query(default=None),
     prefill_email: str | None = Query(default=None),
     next_url: str | None = Query(default=None, alias="next"),
+    access_token: str | None = Cookie(default=None),
+    settings: Settings = Depends(get_settings),
 ):
-    """Zeigt die Login-Seite an."""
+    """Zeigt die Login-Seite an. Leitet direkt zum Dashboard weiter, wenn bereits eingeloggt."""
+    if access_token:
+        try:
+            payload = decode_token(access_token, settings)
+            if payload.get("type") == "access":
+                redirect_url = _validate_next_url(next_url) or "/dashboard"
+                return RedirectResponse(url=redirect_url, status_code=303)
+        except jwt.PyJWTError:
+            pass
+
     return templates.TemplateResponse(
         "auth/login.html",
         {
